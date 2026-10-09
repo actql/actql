@@ -72,7 +72,9 @@ try {
     assert.equal(state.status, 'succeeded');
     assert.equal((await execution.status()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), expected);
-    assert.equal((await execution.cancel()).kind, 'already_terminal');
+    const cancellation = await execution.cancel();
+    assert.equal(cancellation.kind, 'already_satisfied');
+    assert.equal(cancellation.cancellation.kind, 'already_terminal');
     assert.equal((await client.cancelRequest(requestId)).kind,
       'already_terminal');
     console.log('published');

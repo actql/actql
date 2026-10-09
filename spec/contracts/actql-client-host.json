@@ -60,7 +60,8 @@
       "connection",
       "ref",
       "cancelId",
-      "expectedRevision"
+      "expectedRevision",
+      "attemptRef"
     ],
     "lookup-cancellation": [
       "connection",
@@ -4093,6 +4094,431 @@
           "const": "possible_prior_execution_and_effects"
         }
       }
+    },
+    "operation_attempt_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "attemptId"
+      ],
+      "properties": {
+        "operation": {
+          "enum": [
+            "submit",
+            "cancel"
+          ]
+        },
+        "attemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        }
+      }
+    },
+    "cancellation_attempt": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "attemptRef",
+            "cancellation"
+          ],
+          "properties": {
+            "kind": {
+              "const": "accepted"
+            },
+            "attemptRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "attemptId"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "cancel"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                }
+              }
+            },
+            "cancellation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ref",
+                "kind",
+                "revision",
+                "cancelRef"
+              ],
+              "properties": {
+                "ref": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "namespaceId",
+                    "authorityScopeCid",
+                    "runDefinitionCid"
+                  ],
+                  "properties": {
+                    "namespaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "authorityScopeCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "runDefinitionCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "kind": {
+                  "enum": [
+                    "accepted",
+                    "already_requested",
+                    "already_terminal"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                "cancelRef": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "namespaceId",
+                    "authorityScopeCid",
+                    "runDefinitionCid",
+                    "cancelId",
+                    "expectedRevision"
+                  ],
+                  "properties": {
+                    "namespaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "authorityScopeCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "runDefinitionCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "cancelId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "expectedRevision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "attemptRef",
+            "cancellation"
+          ],
+          "properties": {
+            "kind": {
+              "const": "already_satisfied"
+            },
+            "attemptRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "attemptId"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "cancel"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                }
+              }
+            },
+            "cancellation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ref",
+                "kind",
+                "revision",
+                "cancelRef"
+              ],
+              "properties": {
+                "ref": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "namespaceId",
+                    "authorityScopeCid",
+                    "runDefinitionCid"
+                  ],
+                  "properties": {
+                    "namespaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "authorityScopeCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "runDefinitionCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "kind": {
+                  "enum": [
+                    "accepted",
+                    "already_requested",
+                    "already_terminal"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                "cancelRef": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "namespaceId",
+                    "authorityScopeCid",
+                    "runDefinitionCid",
+                    "cancelId",
+                    "expectedRevision"
+                  ],
+                  "properties": {
+                    "namespaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "authorityScopeCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "runDefinitionCid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "cancelId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                    },
+                    "expectedRevision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "attemptRef",
+            "guarantee",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "attemptRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "attemptId"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "cancel"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                }
+              }
+            },
+            "guarantee": {
+              "const": "attempt_uncommitted_unconsumed"
+            },
+            "reason": {
+              "enum": [
+                "authorization",
+                "admission_capacity"
+              ]
+            },
+            "cancelRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespaceId",
+                "authorityScopeCid",
+                "runDefinitionCid",
+                "cancelId",
+                "expectedRevision"
+              ],
+              "properties": {
+                "namespaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "authorityScopeCid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "runDefinitionCid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "cancelId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "attemptRef",
+            "reason",
+            "cancelRef"
+          ],
+          "properties": {
+            "kind": {
+              "const": "conflict"
+            },
+            "attemptRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "attemptId"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "cancel"
+                },
+                "attemptId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                }
+              }
+            },
+            "reason": {
+              "enum": [
+                "intent",
+                "control_revision"
+              ]
+            },
+            "cancelRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespaceId",
+                "authorityScopeCid",
+                "runDefinitionCid",
+                "cancelId",
+                "expectedRevision"
+              ],
+              "properties": {
+                "namespaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "authorityScopeCid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "runDefinitionCid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "cancelId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "check_report_rules": [

@@ -9,7 +9,7 @@ import {observeClientAuthorizationFailure} from
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,
-  validClientAdmission, validClientBody, validClientProfile, validCancellation, validCancellationLookup,
+  validClientAdmission, validClientBody, validClientProfile, validCancellationAttempt, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
@@ -390,7 +390,7 @@ export function createClientHttpHandler({
       } else if (operation === 'cancel') {
         const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
         const cancelled = await invoke(cancel);
-        if (!validCancellation(cancelled, expected)) invalid('InvalidClientHostCancellation');
+        if (!validCancellationAttempt(cancelled, expected, body.attemptRef)) invalid('InvalidClientHostCancellation');
         sendJson(cancelled);
       } else if (operation === 'lookup-cancellation') {
         const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};

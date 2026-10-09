@@ -48,15 +48,22 @@ record and Host release receipt contracts, binds them to the requested
 attempt, Run and Result, and rejects missing or contradictory evidence. It
 does not request payload replay or hash payload bytes.
 
-`cancel` requires a caller-saved `--cancel-id` and `--expected-revision`, in
+`cancel` requires a caller-saved `--cancel-id`, `--expected-revision`, and
+`--operation-attempt-id`, in
 addition to the original Run reference file. Obtain the revision from the
 Run's current control observation before issuing a new operation, and retain
-all three inputs. `lookup-cancellation` takes those same inputs and only
+the Run reference, operation ID and revision. The attempt ID correlates this
+invocation; it is not a cancellation identity or a lookup authority.
+`lookup-cancellation` takes the original Run reference, cancel ID and revision and only
 observes the original operation; it does not cancel again. Replies must match
 the exact Run, operation ID and original revision. An accepted cancellation
 must advance that revision. Lost cancel replies report `CancellationUnknown`
 with the exact `cancel-ref` and lookup command. An unknown lookup is not
 evidence that cancellation was refused, physically stopped, or released.
+Typed invocation replies distinguish `accepted`, `already_satisfied`,
+`refused` and `conflict`. A Refused certificate says only that this invocation
+did not commit or consume cancellation identity. Another invocation may have
+been accepted. Generic HTTP errors carry no such certificate.
 
 This is a transport development artifact. The binary does not include
 embedded Local providers. The mTLS fixture in

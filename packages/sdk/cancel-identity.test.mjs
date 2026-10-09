@@ -47,15 +47,76 @@ test('lost cancel response retains the exact original identity and only looks it
   assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach', 'cancel', 'lookup-cancellation']);
 });
 
-test('cancel identity conflicts are retained and never retried automatically', async t => {
+test('a transported conflict code is not an owner-issued operation outcome', async t => {
   const f = await fixture(t, () => { throw new ClientError('ClientCancellationIntentConflict', {status: 409}); });
   await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}), error => {
-    assert.equal(error.code, 'ClientCancellationIntentConflict');
+    assert.equal(error.code, 'CancellationUnknown');
     assert.deepEqual(error.cancelRef, cancelRef);
     return true;
   });
   assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 1);
 });
+
+for (const code of ['ClientAuthenticationDenied', 'ClientConnectionDenied',
+  'ClientCancellationDenied', 'ClientCancellationRevisionConflict',
+  'InvalidClientRequest', 'InvalidClientCancellationOperation', 'ClientOperationUnavailable']) {
+  test(`transported ${code} does not certify an uncommitted cancellation attempt`, async t => {
+    const f = await fixture(t, () => { throw new ClientError(code, {status: 403}); });
+    await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19}), error => {
+      assert.equal(error.code, 'CancellationUnknown');
+      assert.deepEqual(error.cancelRef, cancelRef);
+      assert.equal(explainCancellation(error)?.observation, 'outcome_unknown');
+      return true;
+    });
+    assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 1);
+    assert.equal(f.calls.filter(call => call.operation === 'lookup-cancellation').length, 0);
+  });
+}
+
+test('typed Refused binds the invocation without granting retry authority', async t => {
+  const f = await fixture(t, (operation, body) => {
+    assert.equal(operation, 'cancel');
+    assert.deepEqual(body.attemptRef, {operation: 'cancel', attemptId: 'denied-attempt'});
+    return {kind: 'refused', attemptRef: {operation: 'cancel', attemptId: 'denied-attempt'},
+      guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization'};
+  });
+  assert.deepEqual(await f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19,
+    attemptId: 'denied-attempt'}), {kind: 'refused',
+    attemptRef: {operation: 'cancel', attemptId: 'denied-attempt'},
+    guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization'});
+  assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach', 'cancel']);
+});
+
+test('typed revision Conflict preserves the original cancellation reference', async t => {
+  const f = await fixture(t, () => ({kind: 'conflict', reason: 'control_revision',
+    attemptRef: {operation: 'cancel', attemptId: 'stale-attempt'}, cancelRef}));
+  const answer = await f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19,
+    attemptId: 'stale-attempt'});
+  assert.deepEqual(answer, {kind: 'conflict', reason: 'control_revision',
+    attemptRef: {operation: 'cancel', attemptId: 'stale-attempt'}, cancelRef});
+  assert(Object.isFrozen(answer.attemptRef));
+  assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 1);
+});
+
+for (const change of ['attempt', 'operation', 'guarantee', 'target']) {
+  test(`a borrowed or contradictory typed refusal (${change}) remains unknown`, async t => {
+    const reply = {kind: 'refused', reason: 'authorization',
+      attemptRef: {operation: 'cancel', attemptId: 'original-attempt'},
+      guarantee: 'attempt_uncommitted_unconsumed', cancelRef};
+    if (change === 'attempt') reply.attemptRef.attemptId = 'other-attempt';
+    if (change === 'operation') reply.attemptRef.operation = 'submit';
+    if (change === 'guarantee') reply.guarantee = 'nothing_executed';
+    if (change === 'target') reply.cancelRef = {...cancelRef, runDefinitionCid: cid('f')};
+    const f = await fixture(t, () => reply);
+    await assert.rejects(f.run.cancel({cancelId: 'original-cancel', expectedRevision: 19,
+      attemptId: 'original-attempt'}), error => {
+      assert.equal(error.code, 'CancellationUnknown');
+      assert.deepEqual(error.attemptRef, {operation: 'cancel', attemptId: 'original-attempt'});
+      assert.deepEqual(error.cancelRef, cancelRef);
+      return true;
+    });
+  });
+}
 
 for (const change of [{cancelId: 'foreign-cancel'}, {expectedRevision: 20}, {runDefinitionCid: cid('f')}]) {
   test(`foreign cancellation reply ${Object.keys(change)[0]} is unknown under the original identity`, async t => {

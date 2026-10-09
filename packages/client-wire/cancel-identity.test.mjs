@@ -27,10 +27,12 @@ test('exact cancellation lookup admits only its original found or unknown observ
 test('cancel and lookup requests bind the target and original expected revision', () => {
   const body = {connection, ref, cancelId: 'original-cancel', expectedRevision: 19};
   for (const operation of ['cancel', 'lookup-cancellation']) {
-    assert.equal(wire.validClientBody(operation, body), true);
+    const request = operation === 'cancel' ? {...body,
+      attemptRef: {operation: 'cancel', attemptId: 'first-invocation'}} : body;
+    assert.equal(wire.validClientBody(operation, request), true);
     for (const change of [{cancelId: ''}, {cancelId: 'bad\r\n'}, {cancelId: '\ud800'},
       {expectedRevision: -1}, {expectedRevision: 2147483648}, {extra: true}]) {
-      assert.equal(wire.validClientBody(operation, {...body, ...change}), false);
+      assert.equal(wire.validClientBody(operation, {...request, ...change}), false);
     }
     assert.equal(wire.validClientBody(operation, {connection, ref}), false);
   }

@@ -26,8 +26,9 @@ async function fixture(t) {
       if (operation === 'status') return unknown;
       if (operation === 'cancel') {
         if (cancellation === 'outcome_unknown') throw new Error('private-cancel-cause');
-        return {kind: cancellation, ref: body.ref, cancelRef: {...body.ref,
-          cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 7};
+        return {kind: cancellation === 'accepted' ? 'accepted' : 'already_satisfied',
+          attemptRef: body.attemptRef, cancellation: {kind: cancellation, ref: body.ref, cancelRef: {...body.ref,
+            cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 7}};
       }
       if (operation === 'read') return {kind: 'rows', frames: (async function* () {
         yield {value: {value: 1}, byteLength: 12};

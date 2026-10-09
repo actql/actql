@@ -532,16 +532,26 @@ are `SubmissionUnknown` with the original request ID and lookup context, even
 when the in-process exception is a `ClientError`. A public-looking error code
 is not by itself a refusal contract. Neither transport retries submission.
 
-`execution.cancel({cancelId, expectedRevision})` submits one cancellation
+`execution.cancel({cancelId, expectedRevision, attemptId})` submits one cancellation
 operation bound to the existing Run. The Host compares the expected Run-control
 revision atomically on first admission. An omitted ID is generated once for
 this call; an omitted revision is observed through `status()` before dispatch.
 Without a control revision the SDK refuses with `CancellationRevisionUnavailable`.
-For durable caller custody, choose and save both fields before sending.
+For durable caller custody, choose and save the cancellation ID and expected
+revision before sending. `attemptId` is a per-invocation correlation ID, generated
+once when omitted; it is neither cancellation custody nor authorization.
+
+The response contains this invocation's `attemptRef`. `accepted` and
+`already_satisfied` contain the unchanged durable `cancellation` record.
+`refused` certifies only that this invocation did not commit or consume an
+identity; it does not rule out another concurrent invocation. `conflict` binds
+the requested cancellation reference and an intent or control-revision conflict.
+Only the existing Owner can issue these facts, before custody or after a
+confirmed admission rollback. A generic exception or HTTP status cannot do so.
 
 A lost, malformed or foreign response raises `CancellationUnknown` carrying
 the immutable original `cancelRef`: the Run reference, cancellation ID and
-expected revision. Retain the original Host selection and use
+expected revision, together with this invocation's `attemptRef`. Retain the original Host selection and use
 `execution.lookupCancellation(error.cancelRef)` after reconnecting and
 attaching that same Run. Lookup does not issue another cancellation, fence,
 dispatch or Compute request. Neither submission nor lookup retries automatically.
@@ -551,7 +561,7 @@ Pending custody is `unknown`; it is not accepted and absence does not establish
 non-acceptance. The final operation result and Run cancellation request commit
 together. A `found` lookup returns that original result even after later Run
 revisions. Reusing the same ID in the same namespace and authority scope with
-another target or expected revision is refused. The bounded journal refuses
+another target or expected revision returns an intent conflict. The bounded journal refuses
 new admission at capacity and does not evict operation custody to admit it.
 
 After a recorded outcome, `status()` separately observes the Run's
@@ -1166,8 +1176,9 @@ An HTTP `Response` object returned through Local is also an invalid
 representation with an unknown cancellation outcome. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. For the cancellation write, local failures before the send boundary and typed Host refusals
-retain their existing errors without a fabricated cancellation observation.
+association. For the cancellation write, local failures before dispatch retain their errors.
+Typed `refused` and `conflict` results remain structured Owner facts without a
+fabricated recorded cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
 The presentation association lasts only while its SDK result is retained.
 
@@ -1182,16 +1193,11 @@ Editing the caller's reference or reusing a Host reply cannot rewrite an earlier
 explanation. Looking up or formatting never sends another cancellation.
 The Host's separate durable operation custody is owned by its existing journal.
 
-This is presentation over the existing Client–Host cancellation contract.
-No wire/schema/CID, cancellation ledger or execution semantics is replaced.
-The current public Run cancellation response has no cancellation-operation
-identity or exact-operation lookup. A Run status refresh cannot reconcile a
-particular lost cancellation; it only observes current Run state under current
-authorization. The existing control owner must provide that operation's
-identity, immutable intent, revision conflicts and reconciliation contract
-before the complete cancellation-outcome design can be exposed. A recorded
-physical-start/close control fixture does not prove delayed live-worker stop
-or external Effect reconciliation.
+The typed attempt envelope reuses the existing journal's cancellation identity
+and immutable outcome. It does not add a cancellation ledger or rewrite old
+records. Exact lookup remains the original operation's contract and is
+independent of the latest invocation or current Run status. The Submit typed
+attempt and multi-owner observation cursor are separate follow-up units.
 
 
 ### Unused Parameter explanations
