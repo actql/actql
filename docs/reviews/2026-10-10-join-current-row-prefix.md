@@ -315,3 +315,45 @@ All cases are in the normal corpus as well as the existing narrow consumer.
 At this source commit, public execution of the expanded SELECT-window cohort
 is pending. Prior prefix and ORDER-window packed receipts above retain their
 actual source SHAs; they are not new-SHA acceptance evidence.
+
+
+### SELECT-window successful public acceptance
+
+Clean packed source: `7cdcaa3b943643718d5461f7318f64db62fa888c`.
+The source addition consists of tests, fixtures and this report; the existing
+product repair is unchanged. The serial 1200-second guard ran:
+
+```sh
+node scripts/packed-client-packages.mjs \
+  /private/tmp/actql-b-join-select-window-7cdcaa3b9-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-select-window-7cdcaa3b9-pack \
+  node scripts/test-packed-public-query.mjs --order-window-only
+```
+
+Guard: `_build/local-checks/attempts/run-H7YXwA`. Original receipt/logs:
+`../.codex-scratch/public-query-evidence-2ADgSc`, especially `summary.json`
+and `010.stdout.log`. All ten receipt commands returned 0 with complete
+output; source is clean and matches the producer revision; evidenceErrors is
+empty. Each transport completes 33 positives and 10 refusals. Six refusals
+assert exact public codes, including both new SELECT-window scope refusals;
+four retained cases assert the existing accepted input-error categories.
+The completion marker follows the entire refusal loop for both transports.
+
+The common public harness compares Named Result rows and describe columns
+(full contract/nullability/declaration order), including empty results. It
+checks one acquisition session, same-Run resend/reattach/lookup without extra
+admission or acquisition, and zero Run admission/Source I/O on preparation
+refusal. Window/private JOIN columns are absent from the expected public rows
+and description. No generated Program is changed by the test application.
+
+All five receipt digests match the normal producer manifest and independently
+hashed tarballs. They equal the older ORDER-window digests above because no
+product/runtime source changes. This does not relabel the older executions:
+this receipt belongs to `7cdcaa3b943643718d5461f7318f64db62fa888c`.
+The successful temporary installation has been removed and its directory is
+absent. Original logs/receipt and the producer tarballs remain available.
+
+The final evidence-recording commit changes only this report. Its exact SHA,
+content review and workflow observation are recorded separately in the PR.
+No full Core, Wasm/Native execution, full packed campaign, manual CI rerun or
+merge has been performed for this supplement.
