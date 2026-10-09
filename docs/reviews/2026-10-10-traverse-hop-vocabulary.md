@@ -98,8 +98,39 @@ nor the general allowlist was changed. Original failed receipt:
 `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-7ItJNs`,
 guard `run-9FRUvc`. Remaining old refusals, new refusals and HTTPS were not
 reached by that run. Source, expected rows, input limits and the product
-repair are unchanged. A clean pack with the corrected diagnostic fixtures is
-pending; lowering/checker success is not execution
-success. Submitted-HEAD CI, Wasm/native, full Core and the complete packed
+repair are unchanged.
+
+The corrected clean source is `5178858fd6d20e0ada222f648bd5a87d18a366bb`.
+Normal five-package production, independent digest verification and the
+existing node/path consumer ran under guard `run-pIT1GT`, using
+`node /private/tmp/actql-b-traverse-hop-vocabulary-packed.mjs`. Producer:
+`node scripts/packed-client-packages.mjs /private/tmp/actql-b-traverse-hop-vocabulary-5178858fd-pack`.
+Consumer: `node scripts/test-packed-public-query.mjs --graph-traverse-paths-only`,
+with ACTQL_PACKED_CLIENT_PACKAGES pointing to that pack directory.
+Local and HTTPS each completed all 20 positives and 25 refusals. Every new
+normal/refusal case, including the independent JSON control, completed. The
+sixteen old refusals without explicit codes still use the unchanged ordinary
+input-error checks; the four emission contrasts and five new refusals require
+their explicit distinct codes. All refusals check zero new Run admission and
+Source I/O, retained submission lookup and the existing access contract.
+
+Original complete receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-yy1FS4`.
+Its source is clean and matches the manifest, all ten commands exit 0, output
+is complete, and evidenceErrors is empty. SHA-256 digests were independently
+recomputed from all five producer tarballs and compared to that original
+receipt. Temporary full installations were removed after evidence preservation;
+artifact absence was checked for both the successful and initial failed run.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `db411676120dd62dbf6d1a397c82e9b791fa4ccef9c2f26bcbb3050a1aaade07` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Final evidence-only changes do not move the packed execution claim to a later
+submitted SHA. Submitted-HEAD CI, Wasm/native, full Core and the complete packed
 campaign have not been run locally. Final target main; no unmerged dependency,
 merge operation or manual CI rerun is requested.
