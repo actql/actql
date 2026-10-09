@@ -1,6 +1,8 @@
 ///|
 pub(all) enum NativePublicationStoreIssue {
   UnsupportedTarget
+  PrivateEvidence(@signature.NativePrivateEvidenceIssue)
+  PrivateCaptureRollback(NativePublicationStoreIssue, @sqlite.NativeSqliteIssue)
   Closed
   InvalidConfiguration
   LegacyStoreFormat(String)

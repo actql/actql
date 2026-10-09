@@ -363,3 +363,93 @@ int32_t actql_native_signature_verify_ed25519(
     : "signature verification initialization failed");
   return 5;
 }
+
+/* Private evidence uses the same AES-256-GCM algorithm and AAD as the existing
+ * Node Store. Optional cipher symbols are resolved only for this operation;
+ * signature verification does not acquire a new cipher dependency. */
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_private_evidence_cipher(
+  void *value, moonbit_bytes_t key, int32_t key_length,
+  moonbit_bytes_t aad, int32_t aad_length,
+  moonbit_bytes_t input, int32_t input_length, int32_t encrypt
+) {
+  actql_native_signature_library *library = value;
+  typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
+  typedef struct evp_cipher_st EVP_CIPHER;
+  typedef EVP_CIPHER_CTX *(*ctx_new_fn)(void);
+  typedef void (*ctx_free_fn)(EVP_CIPHER_CTX *);
+  typedef const EVP_CIPHER *(*cipher_fn)(void);
+  typedef int (*init_fn)(EVP_CIPHER_CTX *, const EVP_CIPHER *, ENGINE *,
+                        const unsigned char *, const unsigned char *);
+  typedef int (*update_fn)(EVP_CIPHER_CTX *, unsigned char *, int *,
+                          const unsigned char *, int);
+  typedef int (*final_fn)(EVP_CIPHER_CTX *, unsigned char *, int *);
+  typedef int (*ctrl_fn)(EVP_CIPHER_CTX *, int, int, void *);
+  typedef int (*random_fn)(unsigned char *, int);
+  ctx_new_fn ctx_new = NULL; ctx_free_fn ctx_free = NULL;
+  cipher_fn aes = NULL; init_fn init = NULL; update_fn update = NULL;
+  final_fn final = NULL; ctrl_fn ctrl = NULL; random_fn random = NULL;
+  moonbit_bytes_t result = moonbit_make_bytes_raw(1);
+  result[0] = 1;
+  if (library == NULL || library->dynamic_library == NULL || key_length != 32 ||
+      aad_length < 1 || aad_length > 4096 || input_length < 1 ||
+      input_length > 1048576 + 28 || (!encrypt && input_length <= 28)) return result;
+#define ACTQL_PRIVATE_SYMBOL(target, symbol) \
+  actql_load_symbol(library, (void **)&(target), (symbol))
+  if (!ACTQL_PRIVATE_SYMBOL(ctx_new, "EVP_CIPHER_CTX_new") ||
+      !ACTQL_PRIVATE_SYMBOL(ctx_free, "EVP_CIPHER_CTX_free") ||
+      !ACTQL_PRIVATE_SYMBOL(aes, "EVP_aes_256_gcm") ||
+      !ACTQL_PRIVATE_SYMBOL(init, encrypt ? "EVP_EncryptInit_ex" : "EVP_DecryptInit_ex") ||
+      !ACTQL_PRIVATE_SYMBOL(update, encrypt ? "EVP_EncryptUpdate" : "EVP_DecryptUpdate") ||
+      !ACTQL_PRIVATE_SYMBOL(final, encrypt ? "EVP_EncryptFinal_ex" : "EVP_DecryptFinal_ex") ||
+      !ACTQL_PRIVATE_SYMBOL(ctrl, "EVP_CIPHER_CTX_ctrl") ||
+      !ACTQL_PRIVATE_SYMBOL(random, "RAND_bytes")) return result;
+#undef ACTQL_PRIVATE_SYMBOL
+  int length = encrypt ? input_length : input_length - 28;
+  if (length > 1048576) return result;
+  unsigned char *scratch = malloc((size_t)length + 64);
+  if (scratch == NULL) return result;
+  unsigned char nonce[12];
+  unsigned char tag[16];
+  unsigned char private_key[32];
+  memcpy(private_key, key, 32);
+  if (encrypt) {
+    if (random(nonce, 12) != 1) goto cleanup;
+  } else {
+    memcpy(nonce, input, 12);
+    memcpy(tag, input + input_length - 16, 16);
+  }
+  EVP_CIPHER_CTX *context = ctx_new();
+  if (context == NULL) goto cleanup;
+  int written = 0, tail = 0, ignored = 0;
+  int ok = init(context, aes(), NULL, private_key, nonce) == 1 &&
+    update(context, NULL, &ignored, aad, aad_length) == 1 &&
+    update(context, scratch, &written, encrypt ? input : input + 12, length) == 1;
+  if (ok && !encrypt) ok = ctrl(context, 0x11, 16, tag) == 1;
+  if (ok) ok = final(context, scratch + written, &tail) == 1;
+  if (ok) ok = written + tail == length;
+  if (ok && encrypt) ok = ctrl(context, 0x10, 16, tag) == 1;
+  ctx_free(context);
+  if (ok) {
+    moonbit_decref(result);
+    result = moonbit_make_bytes_raw(length + (encrypt ? 29 : 1));
+    result[0] = 0;
+    if (encrypt) {
+      memcpy(result + 1, nonce, 12);
+      memcpy(result + 13, scratch, (size_t)length);
+      memcpy(result + 13 + length, tag, 16);
+    } else {
+      /* Do not expose any unauthenticated plaintext to the MoonBit heap. */
+      memcpy(result + 1, scratch, (size_t)length);
+    }
+  }
+cleanup:
+  {
+    volatile unsigned char *wipe = private_key;
+    for (int i = 0; i < 32; i++) wipe[i] = 0;
+    wipe = scratch;
+    for (size_t i = 0; i < (size_t)length + 64; i++) wipe[i] = 0;
+  }
+  free(scratch);
+  return result;
+}

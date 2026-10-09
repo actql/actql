@@ -310,3 +310,37 @@ test "Effect Source dispatch refuses a caller with a different initial input int
     is Err(@host.ForeignRequest),
   )
 }
+
+///|
+test "Effect checked task fragment retains original materials and rejects swapped compilation" {
+  let fixture = effect_source_dispatch_fixture()
+  let materials = effect_source_restored_materials(fixture)
+  let producer = @host.issue_client_effect_task_fragment(materials, 0).unwrap()
+  let consumer = @host.issue_client_effect_task_fragment(materials, 1).unwrap()
+  assert_eq(
+    @host.client_task_fragment_node_id(producer),
+    @remote.dispatch_request_task_scope(fixture.request).1,
+  )
+  let edge = @host.prepare_client_effect_retained_input_edge(
+    materials.allowed,
+    materials.run_definition,
+  ).unwrap()
+  assert_eq(
+    @host.client_task_fragment_node_id(consumer),
+    @host.client_retained_input_edge_projection(edge)[5],
+  )
+  assert_true(
+    @host.issue_client_effect_task_fragment(materials, 2)
+    is Err(@host.UnsupportedGraph),
+  )
+  assert_true(
+    @host.issue_client_effect_task_fragment(
+      {
+        ..materials,
+        compilation: effect_source_restored_materials(fixture).compilation,
+      },
+      1,
+    )
+    is Err(@host.ForeignDispatch),
+  )
+}

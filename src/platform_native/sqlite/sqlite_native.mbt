@@ -123,6 +123,7 @@ extern "C" fn database_reserve_capacity_ffi(
   reserved_objects : Int64,
   max_bytes : Int64,
   max_objects : Int64,
+  caller_transaction : Int,
 ) -> Int = "actql_native_sqlite_database_reserve_capacity"
 
 ///|
@@ -451,6 +452,40 @@ pub fn Database::reserve_capacity(
   max_bytes : Int64,
   max_objects : Int64,
 ) -> Result[Bool, NativeSqliteIssue] {
+  self.reserve_capacity_transaction(
+    scope, key, reserved_bytes, reserved_objects, max_bytes, max_objects, false,
+  )
+}
+
+///|
+/// Add an exact reservation to the caller's active transaction. This operation
+/// never commits or rolls back; the caller must finish or retain that obligation.
+/// Calling it outside a transaction is refused before any reservation is added.
+pub fn Database::reserve_capacity_in_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  self.reserve_capacity_transaction(
+    scope, key, reserved_bytes, reserved_objects, max_bytes, max_objects, true,
+  )
+}
+
+///|
+fn Database::reserve_capacity_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+  caller_transaction : Bool,
+) -> Result[Bool, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -473,6 +508,11 @@ pub fn Database::reserve_capacity(
       reserved_objects,
       max_bytes,
       max_objects,
+      if caller_transaction {
+        1
+      } else {
+        0
+      },
     ) {
     0 => Ok(true)
     7 => Ok(false)

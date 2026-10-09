@@ -12,8 +12,16 @@ pub fn load_library(String) -> Result[Library, NativeSignatureIssue]
 
 // Types and methods
 type Library
+pub fn Library::open_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
+pub fn Library::seal_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
 pub fn Library::sha256_hasher(Self) -> Result[Sha256Hasher, NativeSignatureIssue]
 pub fn Library::verify_ed25519(Self, String, Bytes, String) -> Result[Bool, NativeSignatureIssue]
+
+pub(all) enum NativePrivateEvidenceIssue {
+  UnsupportedTarget
+  InvalidInput
+  CipherRejected
+} derive(Eq, @debug.Debug)
 
 pub(all) enum NativeSignatureIssue {
   UnsupportedTarget

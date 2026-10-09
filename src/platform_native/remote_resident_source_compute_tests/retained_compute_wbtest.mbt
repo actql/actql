@@ -12,11 +12,11 @@ fn retained_compute_effect_retention() -> @publication.PublicationContract {
   @publication.seal_publication_contract(
     "result_retention_policy",
     "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
-    retained_compute_cid("7") +
+    retained_effect_retention_dependency_cid("retention_contract") +
     "\",\"effective_data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"available_until\":\"2026-10-10T01:00:00.000Z\",\"delete_by\":\"2026-10-10T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-10-10T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
-    retained_compute_cid("8") +
+    retained_effect_retention_dependency_cid("metadata_retention_policy") +
     "\",\"metadata_delete_by\":\"2026-10-10T04:00:00.000Z\",\"clock_contract_cid\":\"" +
-    retained_compute_cid("9") +
+    retained_effect_retention_dependency_cid("clock_contract") +
     "\"}",
     32768,
     1000,
@@ -323,6 +323,18 @@ fn retained_compute_case(
   } else {
     None
   }
+  let selected = if through_runtime {
+    retained_compute_selection(
+      bundle_cid=retained_runtime_required_env(
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+      ),
+      budget_cid=@remote.remote_dispatch_budget_cid(
+        @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
+      ),
+    )
+  } else {
+    retained_compute_selection()
+  }
   let effect_producer_dispatch = effect_materials.map(pair => {
     @host.prepare_client_effect_source_dispatch(
       pair.0.allowed,
@@ -330,7 +342,7 @@ fn retained_compute_case(
       pair.1,
       1,
       "producer",
-      retained_compute_selection(),
+      selected,
     ).unwrap()
   })
   let acquisitions = Ref(0)
@@ -464,18 +476,6 @@ fn retained_compute_case(
     4096,
     bytes,
   ).unwrap()
-  let selected = if through_runtime {
-    retained_compute_selection(
-      bundle_cid=retained_runtime_required_env(
-        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
-      ),
-      budget_cid=@remote.remote_dispatch_budget_cid(
-        @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
-      ),
-    )
-  } else {
-    retained_compute_selection()
-  }
   let producer_dispatch = match effect_materials {
     Some(_) => effect_producer_dispatch.unwrap()
     None =>
@@ -684,10 +684,24 @@ fn retained_compute_case(
       input,
       material,
       dispatch,
-      @host.prepare_client_retained_task_dispatch(
-        prepared, compilation, admission, definition, caller, 1, 2, "different-consumer-attempt",
-        selected, common_input, common_current,
-      ).unwrap(),
+      match effect_materials {
+        Some((materials, caller)) =>
+          @host.prepare_client_effect_retained_task_dispatch(
+            materials.allowed,
+            materials.run_definition,
+            caller,
+            2,
+            "different-consumer-attempt",
+            selected,
+            common_input,
+            common_current,
+          ).unwrap()
+        None =>
+          @host.prepare_client_retained_task_dispatch(
+            prepared, compilation, admission, definition, caller, 1, 2, "different-consumer-attempt",
+            selected, common_input, common_current,
+          ).unwrap()
+      },
       codec,
       current,
       site,
@@ -697,6 +711,7 @@ fn retained_compute_case(
       journal,
       cleanup_owner,
       bytes,
+      effect_materials=effect_materials.map(pair => pair.0),
     )
     @execution.cancel_completed_relation_export_receipt(receipt)
     @execution.cancel_completed_output_export(source_export)
@@ -961,6 +976,7 @@ fn retained_compute_case(
       root_local_index,
       effect_local_index,
       earlier,
+      acquired.unwrap().1,
       @host.client_effect_acquired_invocation(again),
       producer_dependency.unwrap().0,
       producer_dependency.unwrap().1,
@@ -968,6 +984,7 @@ fn retained_compute_case(
       producer_dependency.unwrap().4,
       common_input,
       site,
+      output,
       stop_custodies,
     )
     assert_eq(acquisitions.val, 1)
@@ -1074,4 +1091,9 @@ test "Effect retained consumer resumes from committed Transfer without Source IO
 ///|
 test "Effect retained consumer cancellation returns its borrow before holding cleanup" {
   retained_compute_case(true, effect=true)
+}
+
+///|
+test "Effect retained consumer completes through Runtime claim evidence readers and formal cleanup" {
+  retained_compute_case(false, through_runtime=true, effect=true)
 }
