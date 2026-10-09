@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "scope": "Original-Run private Effect Source cleanup custody in the existing Native Store, with a live Native execution Ledger reservation. Actual Native bytes survive Store reopen; this is not Host execution restoration or encrypted Preview persistence.",
+  "verifiedSource": "c629bb10e739cd12c72ad25a0d14d178006b397a",
+  "sourceClean": true,
+  "mergedMain": "321db1b2c82f7c584e64920fa007c56204862a2c",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1133",
+    "head": "4abaadba3dc6bfbc7666fed7bd9c1c3e0f9dd910",
+    "state": "merged",
+    "finalTarget": "main"
+  },
+  "files": {
+    "src/platform_native/publication_store/effect_source_custody_native.mbt": "d9a9d5908ded1bbfdac16febd01e6e99bda5485aca2e1fe4be698f0a2ad35a99",
+    "src/platform_native/publication_store/effect_source_custody_unsupported.mbt": "169b2fd71f24500d3594f168015958b3befda1df23aa8ca56e1b783ed89ea4ec",
+    "src/platform_native/publication_store/moon.pkg": "1096ec58c0c906c9343cc00c81d3f6f73acd29707c3156c4b362bbc41faba626",
+    "src/platform_native/publication_store/pkg.generated.mbti": "140a8d92c3963707424c798680abf6d561bf735d82cf989008d47aa06de74f87",
+    "src/platform_native/publication_store/store_native.mbt": "6ea3ba2f2a94a6f3a58776ee448ac0ef43823127b4ba3721a139f7b5f88c22ef",
+    "src/platform_native/remote_resident_host/effect_preview_inputs.mbt": "1f7193ddf3b81790d98f7ba43bf999984ac7cbabba2ef91b3fba6c673844bbf2",
+    "src/platform_native/remote_resident_host/effect_source_custody.mbt": "3890900b0291f0e7f9fa8083303374f0e46d240087012693911b1b1300f26ac2",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "be5718df67a5f0e6ea62fea88e29c3f7c7bdafa466436666f1ab0f600b5291d6",
+    "src/platform_native/remote_resident_host/source_compute.mbt": "fb471bce954880cf3d215e43f7b217b7d7030519b78c8e33881bad845fa6113e",
+    "src/platform_native/remote_resident_source_compute_tests/effect_preview_inputs_wbtest.mbt": "a4cde0458ff2757a453762cba596235ab8b56b3e0a8b65d06562f9eb17819d1d",
+    "src/platform_native/remote_resident_source_compute_tests/effect_source_custody_wbtest.mbt": "be608a5b09744690328270eddc925a0a719cd77c1b854cb9e6cbe13630747dd5",
+    "src/platform_native/remote_resident_source_compute_tests/moon.pkg": "da2a2772dda5389061b39ef145498e2309930582d27bba676d2002ea8ce7443c",
+    "src/run_publication/effect_source_payload_facts.mbt": "91b1d222e4d4a5262f5dc973ddbc08b54a42dfafa88b2b2270bc6adc612c6b6f",
+    "src/run_publication/pkg.generated.mbti": "c971ed0d04c11fde78be8b208f133864048b1d5747db7572be9fdfb88e592880",
+    "src/run_publication_host/client_effect_source_payload.mbt": "3dc1265b1fc979f4493d442a5d1113d48485f6366e805776ee7eb7a41a1275d9",
+    "src/run_publication_host/moon.pkg": "f90a5bf925fea8198576ed415f370b611747cd031b5f90679b54a5675d65720a",
+    "src/run_publication_host/pkg.generated.mbti": "bb1e4a0de675e1674324f971b81f7407f2b34a4d9544c5581e8db0deb1ea66f3"
+  },
+  "receipt": "_build/resident-effect-source-custody-1791543248831/receipt.json",
+  "sourceRecord": "_build/resident-effect-source-custody-1791543248831/source.json",
+  "inputs": "_build/resident-effect-source-custody-1791543248831/inputs.json",
+  "artifact": {
+    "source": "c629bb10e739cd12c72ad25a0d14d178006b397a",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "_build/resident-effect-source-custody-1791543248831/retained-compute.whitebox_test.exe",
+    "sha256": "fce4491eebdeb8548c6514e7a502a3da486570c9f48190af7830b803d58a8885"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2
+    },
+    {
+      "command": "Bounded/nonzero moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Scoped moon fmt; moon info --target native src/platform_native/remote_resident_host src/platform_native/publication_store src/run_publication src/run_publication_host; moon info --target js src/platform_native/publication_store src/platform_native/remote_resident_host; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "actualEvidence": {
+    "sourceAcquisitions": 1,
+    "consumerEntries": 1,
+    "independentExpectedPayload": "[{\"id\":3}]",
+    "content": "Completed Native output export Owner; confirmed digest and allocation generation in PublicationPayload",
+    "storage": "Actual SQLite journal and filesystem payload; complete payload reopened and read in three-byte chunks",
+    "intentLostReply": "No writer admitted; same prepared Native owner and original reservation survive readback failure and reconcile committed intent",
+    "intentBeforeCommitFailure": "Same prepared owner is retained and its exact intent is reconciled without allocating payload",
+    "partialPayload": "Replacement writer refused; active writer blocks cleanup; same responsibility retries after cancellation",
+    "readerBusy": "Store and execution reservations stay reserved until the reader returns",
+    "terminalWriteFailure": "Physical reclaim confirmed but exact custody and execution reservation remain pending; reopen and retry persist terminal before returning the execution reservation",
+    "idempotence": "Repeated admission shares the same live Native custody owner; repeated cleanup returns false after success, with no new reservation or capacity refund",
+    "refusals": "Foreign schema and a payload reservation exceeding the unchanged 512 MiB execution ceiling refuse before allocation",
+    "storeAndExecutionReservationsAfterCleanup": "zero for the added holdings; original Source/receiver owners remain separately charged until their existing cleanup",
+    "capacityBoundBytes": 536870912
+  },
+  "history": {
+    "preMainIntegration": {
+      "source": "75b2e365af8dae45f31e2c966f16c1d4d6b4965f",
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "result": "passed",
+      "receipt": "_build/resident-effect-source-custody-1791542583501/receipt.json"
+    },
+    "postMainIntegration": {
+      "source": "949b24bc758453348c81d884f679d2ef88662da8",
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "result": "failed",
+      "firstError": "Unlisted foundation source change 3e266bc18a81faaed6726551479340e0a10fde10: package.json",
+      "log": "_build/resident-effect-source-custody-1791542873467/history.log",
+      "owner": "Imported frontend merge on main, not this Native change"
+    },
+    "finalSource": "Not rerun after the final current-input fence change: the imported missing declaration remains unresolved. No validator, declaration or validation condition was weakened."
+  },
+  "priorSourceCoverage": {
+    "source": "75b2e365af8dae45f31e2c966f16c1d4d6b4965f",
+    "nativePassed": 5,
+    "jsPassed": 1,
+    "receipt": "_build/resident-effect-source-custody-1791542583501/receipt.json",
+    "note": "Producer and ordinary Transfer/cancellation caller checks were not rerun after main integration; do not claim those counts for the final source."
+  },
+  "initialFailure": {
+    "source": "c3e881abc6a085337d02b198633ed9c129b37e73",
+    "log": "_build/resident-effect-source-custody-1791542460466/tests.log",
+    "result": "Native fixture SIGABRT on unwrap, without test summary",
+    "correction": "Admit the existing ordering_evidence contract; do not invent a result_ordering_evidence contract name."
+  },
+  "limitations": [
+    "Publication attempt/material/codec, provider target and source-binding allocation remain explicit protocol fixtures; actual content is produced by Native execution.",
+    "The new Store record associates existing payload cleanup responsibility with exact original Run/private Source metadata. It is not a new scheduler, execution ledger, capture completion or approval evidence.",
+    "Store reopen reuses a live Native reservation owner. No process restart, fresh Ledger reconstruction, current-authorization restoration or execution permission is demonstrated.",
+    "Caller orchestration still owns the bounded actual export loop; this PR does not add a production encrypted private-input adapter.",
+    "No complete captured Run, waiting Run CAS, approval, physical Effect write, public SDK or Cloud Preview acceptance.",
+    "Native whitebox executable is not a production Site binary or formally adopted package cohort.",
+    "Cloud main vendor manifest remains at OSS 1376a2ec4b0cb1944971b268f7c2c637fcc37e99; no formal adoption of this unmerged source.",
+    "Hosted CI not started or rerun. Local test success is not CI or merge verification.",
+    "Old failed Run custody under Cloud #88 remains unresolved separately."
+  ]
+}

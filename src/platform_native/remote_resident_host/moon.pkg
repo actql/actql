@@ -35,6 +35,7 @@ import {
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/filesystem",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
