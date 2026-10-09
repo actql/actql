@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {graphTraverseHopProgram, graphTraversePathSuccesses, graphTraversePathRefusals}
   from './fixtures/graph-traverse-path-source-input.mjs';
+import {graphTraverseSourceRefusals} from './fixtures/graph-traverse-source-input.mjs';
 
 test('typed hop control retains two filters, path mode and exact output bound', () => {
   assert.deepEqual(graphTraverseHopProgram.stages[0].steps[6].traverse, {
@@ -46,4 +47,12 @@ test('normal and narrow packed consumers both include the same unchanged travers
   assert.ok(fixture.includes('scopeInputs.successes.push(...graphTraversePathSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...graphTraversePathRefusals)'));
   assert.ok(fixture.includes('graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses]'));
+});
+
+test('existing unavailable traversal emissions retain their exact lowerer refusal category', () => {
+  const names = ['graph-traverse-unknown-emission', 'graph-traverse-paths-missing-emission',
+    'graph-traverse-paths-unknown-emission', 'graph-traverse-paths-parameter-emission'];
+  const refusals = new Map([...graphTraverseSourceRefusals, ...graphTraversePathRefusals]
+    .map(item => [item.name, item]));
+  for (const name of names) assert.equal(refusals.get(name).expectedCode, 'ClientProgramImplementationLimit');
 });

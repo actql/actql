@@ -166,7 +166,9 @@ export const graphTraversePathRefusals = [
   ['invalid-path-mode', call().replace("'trail'", "'invented'")],
   ['extra-argument', call().replace('max_output_rows: 10', 'max_output_rows: 10, extra: true')],
 ].map(([name, operation]) => ({name: 'graph-traverse-paths-' + name, format: 'aql-text',
-  text: source + seeds + 'FROM g |> ' + operation + tail}));
+  text: source + seeds + 'FROM g |> ' + operation + tail,
+  ...(['missing-emission', 'unknown-emission', 'parameter-emission'].includes(name)
+    ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
 for (const name of ['depth', 'node_id']) graphTraversePathRefusals.push({
   name: 'graph-traverse-paths-node-field-' + name, format: 'aql-text',
   text: source + seeds + 'FROM g |> ' + call() + ' |> SELECT ' + name + ' |> RESULT paths',

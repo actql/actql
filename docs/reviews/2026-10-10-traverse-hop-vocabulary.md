@@ -79,13 +79,27 @@ records under `_build/focused-evidence` in this checkout.
   Command: `node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_syntax/traverse_hop_vocabulary_test.mbt src/query_syntax/sga_call_test.mbt src/query_program/traverse_hop_vocabulary_test.mbt src/query_program/traversal_nodes_test.mbt src/query_program/traversal_paths_test.mbt`.
 - Node fixture checks: 4/4, `run-yjYG0e` / `focused-test-xaDMw5` after fixing each new public refusal to its exact input-error code. The preceding fixture-only run also passed 4/4 (`run-wTjF8v` / `focused-test-WI1OjC`).
   Command: `node scripts/local-checks.mjs test node -- scripts/graph-traverse-hop-vocabulary.test.mjs`.
+- Final Node after exact existing emission-category corrections: 5/5, `run-p8Zgji` / `focused-test-VFSYdg`, with the same command.
 - Changed-file moonfmt and git diff --check passed.
 
 ## Public execution and remaining verification
 
 The existing node/path narrow cohort has 20 positives and 25 refusals after
-these six positive/five refusal additions. Clean-source normal five-package
-Local/HTTPS acceptance is pending; lowering/checker success is not execution
+these six positive/five refusal additions. The first clean normal five-package run at
+`9390d276ef6e226ae87698bcab33d987129dcf32` passed all 20 Local positives,
+including the six new cases. It stopped during old refusals at
+`graph-traverse-unknown-emission`: that fixture relied on a default input-code
+allowlist excluding the existing ClientProgramImplementationLimit. The
+existing `lower_script_traversal_rows` guard and exact
+`traversal_paths_test.mbt` assertions establish UnsupportedGraph for missing,
+unknown or parameter-valued emission. Four existing node/path fixtures now
+explicitly require that established public code; neither the product refusal
+nor the general allowlist was changed. Original failed receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-7ItJNs`,
+guard `run-9FRUvc`. Remaining old refusals, new refusals and HTTPS were not
+reached by that run. Source, expected rows, input limits and the product
+repair are unchanged. A clean pack with the corrected diagnostic fixtures is
+pending; lowering/checker success is not execution
 success. Submitted-HEAD CI, Wasm/native, full Core and the complete packed
 campaign have not been run locally. Final target main; no unmerged dependency,
 merge operation or manual CI rerun is requested.
