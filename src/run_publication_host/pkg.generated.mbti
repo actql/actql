@@ -227,6 +227,8 @@ pub fn client_effect_compilation_result_names(ClientEffectCompilation) -> Array[
 
 pub fn client_effect_compilation_result_transformation(ClientEffectCompilation, PreparedClientEffectComputation, Int) -> Result[ClientResultTransformation?, ClientEffectCompilationAdmissionIssue]
 
+pub fn client_effect_compilation_task_keys(ClientEffectCompilation) -> Result[Array[String], ClientTaskFragmentIssue]
+
 pub fn client_effect_compilation_template(ClientEffectCompilation) -> @run_publication.RunEvidenceValue
 
 pub fn client_effect_compilation_unit_id(ClientEffectCompilation) -> String
@@ -300,6 +302,8 @@ pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObser
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
 
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
+
+pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
@@ -701,6 +705,8 @@ pub fn issue_client_effect_multi_captured_invocation(PreparedClientEffectComputa
 
 pub fn issue_client_effect_result_import_observation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, ClientEffectLocalManifest, ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[ClientEffectResultImportObservation, ClientEffectResultImportIssue]
 
+pub fn issue_client_effect_result_schema(ClientEffectCompilation, Int, @execution_relation.RelationSchemaIdentityLimits) -> Result[@execution_relation.RelationSchemaIdentity, ClientTaskOutputSchemaIssue]
+
 pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientEffectCompiledRunIssue]
 
 pub fn issue_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?, ClientEffectComputationLimits) -> Result[String, ClientEffectRunMaterialsIssue]
@@ -852,6 +858,8 @@ pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdg
 pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+
+pub fn prepare_client_effect_publication_inventory(ClientEffectCompilation) -> Result[@run_publication.CheckedPublicationInventory, @run_publication.PublicationInventoryIssue]
 
 pub fn prepare_client_effect_query_acquisition(PreparedClientEffectComputation, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 

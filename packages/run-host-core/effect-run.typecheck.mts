@@ -2,6 +2,8 @@ import {prepareEffect, compileEffect, issueAllowedEffectRun, issueEffectRunDefin
   issueEffectRunMaterials, admitEffectRunMaterials, effectExecutionShape, compileValues,
   prepareEffectRequest, effectSourceInputBinding, issueEffectSourceDispatch,
   prepareEffectRetainedTaskInputEdge, issueEffectRetainedTaskDispatch,
+  effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts,
+  type PreparedProgram, type TaskCompilation,
   type ValuesSiteSelection, type RetainedTaskInput, type CheckEnvironment, type PreparedEffectProgram, type EffectCompilation,
   type AllowedEffectRun} from '@actql/run-host-core';
 declare const environment: CheckEnvironment;
@@ -14,6 +16,21 @@ const wire = issueEffectRunMaterials(allowed, definition,
   {format: 'json', document: '{}', environment, environmentWire: '{}'});
 const restored = admitEffectRunMaterials(wire, 'definition', {rela: true});
 effectExecutionShape(restored.prepared, restored.compilation);
+effectTaskKeys(prepared, compiled);
+effectResultDefinitions(prepared, compiled);
+effectResultSchema(prepared, compiled, 'answer');
+effectSourceEvidenceFacts(prepared, compiled, 0, 0);
+declare const pure: PreparedProgram;
+declare const pureCompilation: TaskCompilation;
+// @ts-expect-error A Pure Program cannot replace the original Effect Owner.
+effectTaskKeys(pure, compiled);
+// @ts-expect-error Effect inventory retains its own typed compilation.
+effectResultDefinitions(prepared, pureCompilation);
+// @ts-expect-error Schema selection is a Result name, not an ordinal.
+effectResultSchema(prepared, compiled, 0);
+// @ts-expect-error A Result declaration is not an execution or approval permit.
+issueEffectSourceDispatch(effectResultDefinitions(prepared, compiled), definition,
+  prepareEffectRequest(prepared, compiled, 'authority', 'caller'), {});
 // @ts-expect-error Effect computation is not an Effect-free Values Program.
 compileValues(prepared);
 // @ts-expect-error Opaque preparation cannot be constructed by a caller.

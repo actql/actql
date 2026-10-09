@@ -75,6 +75,20 @@ export function prepareEffect(document: string, format: 'json' | 'yaml',
 export function compileEffect(prepared: PreparedEffectProgram): EffectCompilation;
 export function effectExecutionShape(prepared: PreparedEffectProgram,
   compilation: EffectCompilation): Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>;
+/** Checked coordinates only; these grant no acquisition, start or approval. */
+export function effectTaskKeys(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation): readonly string[];
+export function effectResultDefinitions(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation): readonly Readonly<{name: string; cid: string; wire: string}>[];
+export function effectResultSchema(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, resultName: string): Readonly<{
+    cid: string; wire: string; fields: readonly string[]}>;
+/** Original Catalog evidence; current read authority remains a separate check. */
+export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
+    sourceRef: string; sourceContractCid: string; carrierSchemaContractCid: string;
+    sourceDataPolicyCid: string; dataClassification: string; sourceViewContractCid: string;
+  }> | undefined;
 export function privateEffectCompilationWires(compilation: EffectCompilation):
   Readonly<{boundTemplate: string; compiledPlan: string}>;
 /** Current Host authorization precedes issuance; Effect approval is separate. */
