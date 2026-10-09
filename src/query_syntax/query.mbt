@@ -1543,7 +1543,9 @@ fn QueryParser::aggregate(
     Some(
       match calls {
         Some(outputs) => {
-          let (expression, embedded) = self.aggregate_expression(aggregate_prefix)
+          let (expression, embedded) = self.aggregate_expression(
+            aggregate_prefix,
+          )
           outputs.append(embedded)
           expression
         }
@@ -1879,19 +1881,37 @@ fn QueryParser::unnest_source(
 // Correlation expands the current row; it is not an independent JOIN input.
 // Fixed lookahead keeps quoted names out of the operator dispatch.
 fn QueryParser::starts_correlated_unnest(self : QueryParser) -> Bool {
-  self.index + 2 < self.source.tokens.length() &&
-  self.has("CROSS") &&
-  keyword(self.source.tokens[self.index + 1], "JOIN") &&
-  keyword(self.source.tokens[self.index + 2], "UNNEST")
+  if self.has("JOIN") {
+    self.index + 1 < self.source.tokens.length() &&
+    keyword(self.source.tokens[self.index + 1], "UNNEST")
+  } else {
+    self.index + 2 < self.source.tokens.length() &&
+    (self.has("CROSS") || self.has("INNER")) &&
+    keyword(self.source.tokens[self.index + 1], "JOIN") &&
+    keyword(self.source.tokens[self.index + 2], "UNNEST")
+  }
 }
 
 ///|
 fn QueryParser::correlated_unnest(
   self : QueryParser,
-) -> QueryOperation raise QueryAbort {
-  self.keyword("CROSS")
+  operations : Array[QueryOperation],
+) -> Unit raise QueryAbort {
+  let cross = self.has("CROSS")
+  if cross {
+    self.keyword("CROSS")
+  } else if self.has("INNER") {
+    self.keyword("INNER")
+  }
   self.keyword("JOIN")
-  self.unnest_source()
+  operations.push(self.unnest_source())
+  if !cross && self.has("ON") {
+    self.keyword("ON")
+    self.node()
+    // INNER correlation filters expanded pairs. Keeping the predicate at
+    // this point preserves NULL/duplicate rows and the current range scope.
+    operations.push(Where(self.expression()))
+  }
 }
 
 ///|
@@ -1937,7 +1957,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   let joins : Array[JoinPart] = []
   while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
     if self.starts_correlated_unnest() {
-      operations.push(self.correlated_unnest())
+      self.correlated_unnest(operations)
       continue
     }
     if operations.any(operation => operation is UnnestSource(_, _, _)) {
@@ -2080,12 +2100,16 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     for operation in resolved {
       self.spend(1)
       if !inserted &&
-        (operation is Having(_, _) ||
+        (
+          operation is Having(_, _) ||
           operation is Analytic(_) ||
           operation is AnalyticExpressions(_, _) ||
           operation is Qualify(_, _) ||
-          operation is Select(_, _)) {
-        result.push(Group([], group_projections + aggregate_projections, SqlSelect))
+          operation is Select(_, _)
+        ) {
+        result.push(
+          Group([], group_projections + aggregate_projections, SqlSelect),
+        )
         inserted = true
       }
       result.push(
@@ -2630,7 +2654,7 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      operations.push(self.correlated_unnest())
+      self.correlated_unnest(operations)
     } else if self.starts_join() {
       if !sets.is_empty() || operations.length() > 1 {
         raise QueryAbort(
@@ -2663,14 +2687,48 @@ fn QueryParser::pipe_tail(
       operations.push(Where(self.expression()))
     } else if self.has("EXTEND") {
       self.keyword("EXTEND")
-      let (values, _) = self.projections()
-      if values.any(p => p.name is None || p.expression is None) {
+      let windows : Array[Projection] = []
+      let (values, _) = self.projections(windows~, window_expressions=true)
+      if values.any(p => {
+          p.name is None ||
+          (p.expression is None && p.analytic is None) ||
+          p.star is Some(_)
+        }) {
         raise QueryAbort(
-          "EXTEND requires named scalar expressions",
+          "EXTEND requires named scalar or window expressions",
           self.peek().start,
         )
       }
-      operations.push(Extend(values))
+      let calls : Array[(NamePart, AggregateCall)] = []
+      let definitions = if self.has("WINDOW") {
+        self.window_definitions(calls)
+      } else {
+        []
+      }
+      if !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe EXTEND cannot introduce ordinary aggregation",
+          self.peek().start,
+        )
+      }
+      let window_operations : Array[QueryOperation] = []
+      if values.any(p => p.analytic is Some(_)) || !windows.is_empty() {
+        window_operations.push(
+          if windows.is_empty() {
+            Analytic(values)
+          } else {
+            AnalyticExpressions(
+              values + windows,
+              windows.map(p => p.name.unwrap()),
+            )
+          },
+        )
+      }
+      window_operations.push(Extend(values))
+      // WINDOW names belong only to this EXTEND, not to a subsequent operator.
+      operations.append(
+        self.resolve_window_operations(window_operations, definitions),
+      )
     } else if self.has("SET") {
       self.keyword("SET")
       let values : Array[(NamePart, Expression)] = []
@@ -2793,12 +2851,19 @@ fn QueryParser::pipe_tail(
       }
       let windows : Array[Projection] = []
       let (projections, _) = self.projections(windows~, window_expressions=true)
+      let calls : Array[(NamePart, AggregateCall)] = []
+      let definitions = if self.has("WINDOW") {
+        self.window_definitions(calls)
+      } else {
+        []
+      }
+      let window_operations : Array[QueryOperation] = []
       if projections.any(projection => {
           projection.analytic is Some(_) ||
           projection.replacements.any(value => value.analytic is Some(_))
         }) ||
         !windows.is_empty() {
-        operations.push(
+        window_operations.push(
           if windows.is_empty() {
             Analytic(projections)
           } else {
@@ -2809,7 +2874,18 @@ fn QueryParser::pipe_tail(
           },
         )
       }
-      operations.push(Select(projections, distinct))
+      window_operations.push(Select(projections, distinct))
+      let resolved = self.resolve_window_operations(
+        window_operations, definitions,
+      )
+      if !self.used_named_window_aggregates(resolved, calls).is_empty() {
+        raise QueryAbort(
+          "Pipe SELECT cannot introduce ordinary aggregation",
+          self.peek().start,
+        )
+      }
+      // WINDOW names are consumed here, before the next Pipe operator.
+      operations.append(resolved)
     } else if self.has("ORDER") {
       self.keyword("ORDER")
       self.keyword("BY")

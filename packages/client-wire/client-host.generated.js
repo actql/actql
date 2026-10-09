@@ -8448,6 +8448,44 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "reference"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "reference": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8192,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "value",
+                                  "quoted"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 65536
+                                  },
+                                  "quoted": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     }
@@ -9404,6 +9442,75 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_alias_absent"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -9422,7 +9529,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "query_alias_absent"
                               ]
                             }
                           }
@@ -10131,6 +10239,44 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "reference"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "reference": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8192,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "value",
+                                  "quoted"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 65536
+                                  },
+                                  "quoted": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     }
@@ -11087,6 +11233,75 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_alias_absent"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -11105,7 +11320,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "query_alias_absent"
                               ]
                             }
                           }
@@ -11292,7 +11508,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+            "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -12218,6 +12434,44 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "reference"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "reference": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8192,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "value",
+                                  "quoted"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 65536
+                                  },
+                                  "quoted": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     }
@@ -13174,6 +13428,75 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_alias_absent"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -13192,7 +13515,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "query_alias_absent"
                               ]
                             }
                           }
@@ -13901,6 +14225,44 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "reference"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "reference": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8192,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "value",
+                                  "quoted"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 65536
+                                  },
+                                  "quoted": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     }
@@ -14857,6 +15219,75 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_alias_absent"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "reference"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "reference": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8192,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "value",
+                                    "quoted"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 65536
+                                    },
+                                    "quoted": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -14875,7 +15306,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "query_alias_absent"
                               ]
                             }
                           }
@@ -15080,7 +15512,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+            "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -15126,7 +15558,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+            "const": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -16207,8 +16639,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
-export const checkOutcomeSchemaCid = "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9";
+export const checkReasonSchemaCid = "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6";
+export const checkOutcomeSchemaCid = "sha256:b1062306669a530f532faa3b7fc5d24e34bd72aeae712c177cee7557216ea464";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {

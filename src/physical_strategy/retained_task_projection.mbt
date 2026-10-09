@@ -15,8 +15,18 @@ pub fn prepare_retained_task_projection(
   original : CheckedDAG,
   consumer : Int,
 ) -> Result[RetainedTaskProjection, RunIssue] {
-  if graph_program_has_effects(original) ||
-    consumer <= 0 ||
+  if graph_program_has_effects(original) {
+    return Err(UnsupportedGraph)
+  }
+  prepare_retained_task_projection_owned(original, consumer)
+}
+
+///|
+fn prepare_retained_task_projection_owned(
+  original : CheckedDAG,
+  consumer : Int,
+) -> Result[RetainedTaskProjection, RunIssue] {
+  if consumer <= 0 ||
     consumer >= original.owners.length() ||
     original.input_counts[consumer] != 1 ||
     original.targets[consumer] is None ||
@@ -91,6 +101,74 @@ pub fn prepare_retained_task_projection(
     .map(result => { ..result, task: 1, }),
   }
   Ok({ original, graph, producer, consumer, target: edge.target, })
+}
+
+///|
+/// The original admitted Effect closure owns this initial two-task view. Do
+/// not use the ordinary projection to discard Effect input retention.
+pub fn prepare_retained_effect_task_projection(
+  checked : CheckedEffectRunDAG,
+) -> Result[RetainedTaskProjection, RunIssue] {
+  let original = checked.computation.graph
+  if original.owners.length() != 2 ||
+    original.captured_prefix != 1 ||
+    original.results.length() != 1 ||
+    original.results[0].task != 1 ||
+    checked.computation.sources.length() != 1 ||
+    checked.computation.table_sources.length() != 1 ||
+    checked.computation.table_sources[0] is Some(_) ||
+    checked.computation.sources[0] is None {
+    return Err(UnsupportedGraph)
+  }
+  if checked.computation.sources[0].unwrap().task != 1 {
+    return Err(UnsupportedGraph)
+  }
+  let projection = match prepare_retained_task_projection_owned(original, 1) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if projection.producer != 0 {
+    return Err(UnsupportedGraph)
+  }
+  Ok(projection)
+}
+
+///|
+/// Restore Compute from the exact independent receiver holding, preserving
+/// the original Effect candidate and dependency pins. This grants no apply
+/// permission and performs no acquisition. Current physical custody and the
+/// exclusive consumer start claim remain with the existing calling owners.
+pub fn open_retained_effect_task_dag(
+  checked : CheckedEffectRunDAG,
+  projection : RetainedTaskProjection,
+  output : @execution.CompletedOutput,
+  ledger : @resources.Ledger,
+  canonical_wire_bytes~ : Int,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  if !physical_equal(projection.original, checked.computation.graph) ||
+    projection.producer != 0 ||
+    projection.consumer != 1 {
+    return Err(ForeignCandidate)
+  }
+  match prepare_retained_effect_task_projection(checked) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let captured = match
+    open_retained_task_dag(projection, output, ledger, canonical_wire_bytes~) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // This limited view preserves both original task coordinates exactly.
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
+  }
+  Ok({ checked, captured, })
 }
 
 ///|

@@ -20,6 +20,8 @@ pub(all) enum ResidentSourceComputeIssue {
   UnsupportedGraph
   Unavailable
   Source(ResidentSourceIssue)
+  EffectRun(@host.ClientEffectCompiledRunIssue)
+  EffectInput(@host.ClientEffectRetainedInputIssue)
   Acquisition(@duckdb_native.NativeReadOnlySourceIssue)
   Execution(@duckdb_native.NativeAcquisitionFailure)
   Capture
@@ -579,6 +581,16 @@ fn open_resident_captured_compute(
         @host.prepared_client_effect_run_graph(bound),
         source,
         ledger,
+      )
+      .map(run => (@strategy.captured_effect_run_dag(run), Some(run)))
+      .map_err(issue => Run(issue))
+    (Effect(bound), None, Some((projection, output, wire_bytes))) =>
+      @strategy.open_retained_effect_task_dag(
+        @host.prepared_client_effect_run_graph(bound),
+        projection,
+        output,
+        ledger,
+        canonical_wire_bytes=wire_bytes,
       )
       .map(run => (@strategy.captured_effect_run_dag(run), Some(run)))
       .map_err(issue => Run(issue))
