@@ -78,4 +78,5 @@ export const graphTraverseSourceRefusals = [
   ['invalid-path-mode', call.replace("'trail'", "'invented'")],
   ['extra-argument', call.replace('max_output_rows: 10', 'max_output_rows: 10, extra: true')],
 ].map(([name, operation]) => ({name: 'graph-traverse-' + name, format: 'aql-text',
-  text: source + seeds + 'FROM g |> ' + operation + tail}));
+  text: source + seeds + 'FROM g |> ' + operation + tail,
+  ...(name === 'unknown-emission' ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
