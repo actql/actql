@@ -211,3 +211,45 @@ windowScalarRefusals.push(...[
   ['extend-dropped-range', 'FROM records AS before |> AS current |> EXTEND LAG(before.amount) OVER (ORDER BY id) AS n'],
 ].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})));
+
+// Named Pipe SELECT uses the same independent ordinary Analytic Program.
+export const pipeSelectNamedWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_select_named_window',
+  stages: [structuredClone(windowScalarProgram.stages[0]),
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', analytic: {partition_by: [], order_by: [
+        {field: 'amount', dir: 'desc', nulls: 'last'},
+        {field: 'id', dir: 'asc', nulls: 'first'}], functions: {n: {fn: 'row_number'}}}},
+        {select: ['id', 'n']}, {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['id', 'n']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const namedRows = [{id: 1, n: 4}, {id: 2, n: 1}, {id: 3, n: 3}, {id: 4, n: 2}, {id: 5, n: 5}];
+const namedSelectHead = 'FROM records |> WHERE id > 0 |> SELECT ';
+const namedSelectDirect = namedSelectHead + `id, ROW_NUMBER() OVER w AS n WINDOW w AS (${window}) |> ORDER BY id`;
+windowScalarSuccesses.push(
+  success('pipe-named-json', JSON.stringify(pipeSelectNamedWindowProgram), {format: 'json', expected: namedRows}),
+  success('pipe-named-direct', namedSelectDirect, {format: 'aql-text', expected: namedRows}),
+  success('pipe-named-operand', namedSelectHead + `id, ROW_NUMBER() OVER w + @increment AS n WINDOW w AS (${window}) |> ORDER BY id`,
+    {format: 'aql-text', ...parameterInput}),
+  success('pipe-named-empty', namedSelectDirect, {format: 'aql-text', sourceRows: [], expected: []}),
+  success('pipe-named-quoted-inheritance', namedSelectHead + 'id, ROW_NUMBER() OVER (`W`) AS n '
+    + `WINDOW base AS (${window}), w AS base |> ORDER BY id`, {format: 'aql-text', expected: namedRows}),
+  success('pipe-named-local-declarations', namedSelectHead + 'id, ROW_NUMBER() OVER w AS pos WINDOW w AS (ORDER BY id) '
+    + '|> SELECT id, pos, RANK() OVER w AS reverse_pos WINDOW w AS (ORDER BY id DESC) |> ORDER BY id',
+    {format: 'aql-text', columns: ['id', 'pos', 'reverse_pos'].map(name => ({name, contract: number})),
+      expected: [{id: 1, pos: 1, reverse_pos: 5}, {id: 2, pos: 2, reverse_pos: 4},
+        {id: 3, pos: 3, reverse_pos: 3}, {id: 4, pos: 4, reverse_pos: 2}, {id: 5, pos: 5, reverse_pos: 1}]}),
+  success('pipe-named-star-replace', namedSelectHead + `* REPLACE (ROW_NUMBER() OVER w AS amount) WINDOW w AS (${window}) |> ORDER BY id`,
+    {format: 'aql-text', columns: ['amount', 'id'].map(name => ({name, contract: number})),
+      expected: [{amount: 4, id: 1}, {amount: 1, id: 2}, {amount: 3, id: 3}, {amount: 2, id: 4}, {amount: 5, id: 5}]}),
+  success('pipe-named-nullable', namedSelectHead + 'id, LAG(amount) OVER w + 1 AS n WINDOW w AS (ORDER BY id) |> ORDER BY id',
+    {format: 'aql-text', columns: [{name: 'id', contract: number}, {name: 'n', contract: nullable}],
+      expected: [{id: 1, n: null}, {id: 2, n: null}, {id: 3, n: 21}, {id: 4, n: 11}, {id: 5, n: 21}]}),
+);
+windowScalarRefusals.push(...[
+  ['pipe-named-window-leak', 'FROM records |> SELECT id, ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY id) |> SELECT ROW_NUMBER() OVER w AS next'],
+  ['pipe-named-duplicate', 'FROM records |> SELECT ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY id), `W` AS (ORDER BY amount)'],
+  ['pipe-named-sibling-key', 'FROM records |> SELECT amount AS invented, ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY invented)'],
+  ['pipe-named-dropped-range', 'FROM records AS old |> AS current |> SELECT LAG(old.amount) OVER w AS n WINDOW w AS (ORDER BY id)'],
+  ['pipe-named-private-slot', 'FROM records |> SELECT ROW_NUMBER() OVER w + aql_select_window_0 AS n WINDOW w AS (ORDER BY id)'],
+].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})));

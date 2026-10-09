@@ -101,3 +101,23 @@ test('EXTEND windows preserve the complete current row and local input scopes', 
     assert.equal(value.expectedCode, 'ClientProgramInvalidInput');
   }
 });
+
+test('named Pipe SELECT preserves independent analytic values and output contracts', async () => {
+  const {pipeSelectNamedWindowProgram} = await import('./fixtures/window-scalar-source-input.mjs');
+  const get = name => windowScalarSuccesses.find(value => value.name === 'window-scalar-pipe-named-' + name);
+  assert.deepEqual(JSON.parse(get('json').text), pipeSelectNamedWindowProgram);
+  assert.deepEqual(pipeSelectNamedWindowProgram.stages[1].steps[0].analytic.functions, {n: {fn: 'row_number'}});
+  assert.deepEqual(get('direct').expected.map(row => row.n), [4, 1, 3, 2, 5]);
+  assert.deepEqual(get('quoted-inheritance').expected, get('direct').expected);
+  assert.deepEqual(get('empty').expected, []);
+  assert.deepEqual(get('empty').columns, get('direct').columns);
+  assert.deepEqual(get('operand').parameters, {increment: 1});
+  assert.deepEqual(get('star-replace').columns.map(value => [value.name, value.contract.nullable]), [['amount', false], ['id', false]]);
+  assert.deepEqual(get('star-replace').expected.map(row => row.amount), [4, 1, 3, 2, 5]);
+  assert.equal(get('nullable').columns[1].contract.nullable, true);
+  assert.deepEqual(get('nullable').expected.map(row => row.n), [null, null, 21, 11, 21]);
+  assert.deepEqual(get('local-declarations').expected.map(row => [row.pos, row.reverse_pos]), [[1, 5], [2, 4], [3, 3], [4, 2], [5, 1]]);
+  const refusals = windowScalarRefusals.filter(value => value.name.includes('refuse-pipe-named-'));
+  assert.equal(refusals.length, 5);
+  for (const value of refusals) assert.equal(value.expectedCode, 'ClientProgramInvalidInput');
+});
