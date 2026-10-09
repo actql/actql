@@ -20,6 +20,14 @@ import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   prepareRetainedInputCurrentQuery, retainedInputCurrentEnvelope,
   admitRetainedInputCurrentReply, retainedInputCurrentReplyFacts} from
   '@actql/run-host-core';
+import {checkpointAdmit, checkpointWaitingState} from '@actql/run-host-core/checkpoints';
+
+checkpointAdmit('{}');
+checkpointWaitingState('{}', '{}', '2026-09-25T11:00:00.000Z', '["answer"]');
+// @ts-expect-error Only canonical wire strings cross the Checkpoint ABI.
+checkpointAdmit({run_id: 'original-run'});
+// @ts-expect-error A storage observation is distinct from a successful write flag.
+checkpointWaitingState('{}', true, '2026-09-25T11:00:00.000Z', '["answer"]');
 
 declare const control: ResultDeliveryControl;
 declare const manifest: DeliveryContractView<'result_manifest'>;
