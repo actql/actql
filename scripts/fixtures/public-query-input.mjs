@@ -545,13 +545,30 @@ export async function exercisePublicQueryInput(connect, options,
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
+        const attemptId = requestId + '-changed-intent';
+        const expectedAttemptRef = {operation: 'submit', attemptId};
         await assert.rejects(client.startSource(text, {...input, submissionRef,
-          parameters: {minimum: 21}}), error => {
-          assert.equal(error.code, 'SubmissionUnknown');
-          assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
+          parameters: {minimum: 21}, attemptId}), error => {
+          assert.equal(error.code, 'SubmissionConflict');
+          assert.equal(error.cause, undefined);
+          assert.deepEqual(error.submissionRef, submissionRef);
+          assert.deepEqual(error.attemptRef, expectedAttemptRef);
+          // The SDK exposes this validated invocation attempt on the error.
+          // Its identity is authored above, independently of the returned reply.
+          const attempt = error.outcome;
+          assert.equal(attempt.kind, 'conflict');
+          assert.equal(attempt.reason, 'intent');
+          assert.deepEqual(attempt.attemptRef, expectedAttemptRef);
+          assert.deepEqual(attempt.submissionRef, submissionRef);
+          assert.equal(attempt.outcome, undefined);
+          assert.ok(Object.isFrozen(attempt));
           return true;
         });
         assert.equal((await execution.status()).status, 'succeeded');
+        assert.deepEqual(await client.lookupSubmission(submissionRef), lookup,
+          'a conflicting invocation must preserve the original submission');
+        assert.deepEqual(await counters(), beforeRead,
+          'a conflicting invocation must not accept another Run or acquire source');
       }
     }
     for (const {name, text, resultNames, sourceRows, sourceReadSessionCount, ...input} of executionFailures) {

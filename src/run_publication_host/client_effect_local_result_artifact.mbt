@@ -441,6 +441,16 @@ pub fn client_effect_local_artifact_invocation_cid(
 }
 
 ///|
+/// Return the immutable Invocation already owned by this Artifact, including
+/// its formally transferred checked context. This does not issue an Invocation
+/// from equal bytes or grant permission to consume unavailable custody.
+pub fn client_effect_local_artifact_invocation(
+  value : ClientEffectLocalResultArtifact,
+) -> ClientEffectLocalInvocation {
+  value.invocation
+}
+
+///|
 pub fn client_effect_local_result_artifact_json(
   value : ClientEffectLocalResultArtifact,
 ) -> String {

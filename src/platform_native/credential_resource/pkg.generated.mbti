@@ -13,6 +13,8 @@ pub fn admit_signed_native_credential_grant(@signature.Library, @remote_credenti
 
 pub fn call_native_credential_resource(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
 
+pub fn call_native_credential_resource_at_path(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope, String) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
+
 pub fn install_native_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]

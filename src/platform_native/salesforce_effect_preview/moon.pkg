@@ -1,0 +1,20 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/platform_native/credential_resource" @resource,
+  "actql/actql/remote_credential" @credential,
+}
+
+import {
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/signature",
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  targets: { "target_native_wbtest.mbt": [ "native" ] },
+)

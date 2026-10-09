@@ -6,6 +6,7 @@
 fn acquisition_runtime_case(
   through_consumer : Bool,
   effect? : Bool = false,
+  parent_ack_failure? : Bool = false,
   revoke_effect_at_start? : Bool = false,
   expire_effect_at_start? : Bool = false,
   expire_effect_before_start? : Bool = false,
@@ -188,8 +189,10 @@ fn acquisition_runtime_case(
   let envelope = @remote.remote_poll_dispatch_materials_json(
     dispatch, binding, wire,
   ).unwrap()
-  journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
-  journal.accept(dispatch).unwrap() |> ignore
+  if !parent_ack_failure {
+    journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
+    journal.accept(dispatch).unwrap() |> ignore
+  }
   let admission : @resident.ResidentRunAdmission = {
     source: Some((source.source_ref, source.source_contract_cid)),
     expressions: { text_time: false, veca: false, },
@@ -219,6 +222,9 @@ fn acquisition_runtime_case(
   }
   let allow_effect_cleanup = Ref(!fail_effect_capture_cleanup)
   let original_effect_source : Ref[@resident.ResidentSourceCompute?] = Ref(None)
+  let original_effect_producer : Ref[@resident.ResidentEffectProducerExecuted?] = Ref(
+    None,
+  )
   let (runtime, completion) = if effect {
     let delegations = Ref(0)
     let clocks = Ref(0)
@@ -232,6 +238,74 @@ fn acquisition_runtime_case(
       grant_cid: selected.grant_cid,
       evidence_issuer_capability_cid: selected.evidence_issuer_capability_cid,
       budget_cids: [selected.budget_cid],
+    }
+    if parent_ack_failure {
+      let http = @http.load_library(
+        retained_runtime_required_env("ACTQL_TEST_NATIVE_HTTP_LIBRARY"),
+      ).unwrap()
+      // A real closed client deterministically refuses the HTTP ACK after
+      // the existing SQLite journal has accepted the original envelope.
+      let client = http
+        .create_authenticated_client(
+          root_path + "/unused-ca",
+          @http.Bearer(root_path + "/unused-bearer"),
+          4096L,
+          100,
+          100,
+        )
+        .unwrap()
+      assert_true(client.close())
+      let queue = @resident_protocol.ResidentAcceptedQueue::new(1).unwrap()
+      let polled = @remote.admit_remote_poll_dispatch_json(envelope).unwrap()
+      assert_true(
+        @resident.resident_dispatch_execution_family(admission, polled)
+        is Ok(@host.EffectComputation),
+      )
+      let offer = fn(generation : Int) {
+        @resident.accept_resident_effect_source_dispatch(
+          journal,
+          client,
+          "https://localhost/observations",
+          delegation,
+          generation,
+          queue,
+          admission,
+          retained_compute_effect_limits(),
+          polled,
+          "2026-10-09T00:00:00.000Z",
+          configuration.registry_body,
+          configuration.values_body,
+          configuration.source.fragment_contract_body,
+        )
+      }
+      assert_true(offer(2) is Ok(@resident.Refused(_)))
+      let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
+      assert_eq(journal.dispatch_envelope(attempt).unwrap(), None)
+      assert_false(queue.contains(attempt))
+      assert_true(
+        offer(1) is Err(@resident.Host(@resident.Client(Http(@http.Closed)))),
+      )
+      let saved = journal.require(dispatch).unwrap()
+      assert_true(@remote.dispatch_record_state(saved).0 is @remote.Accepted)
+      assert_eq(journal.start_claimant(dispatch).unwrap(), None)
+      assert_eq(journal.dispatch_envelope(attempt).unwrap(), Some(envelope))
+      assert_false(queue.contains(attempt))
+      assert_true(offer(1) is Err(_))
+      assert_eq(
+        @remote.dispatch_record_durable_json(journal.require(dispatch).unwrap()).unwrap(),
+        @remote.dispatch_record_durable_json(saved).unwrap(),
+      )
+      assert_false(queue.contains(attempt))
+      assert_eq(entries.val, 0)
+      assert_eq(acquisitions.val, 0)
+      assert_true(
+        bundles
+        .release(@bundle.native_active_runtime_process_hold_id(active))
+        .unwrap(),
+      )
+      assert_true(journal.close())
+      assert_true(bundles.close().unwrap())
+      return
     }
     let outcome = @resident.execute_resident_effect_source_attempt(
       journal,
@@ -344,7 +418,55 @@ fn acquisition_runtime_case(
       return
     }
     let owned = outcome.unwrap()
+    let capture_materials = owned.materials_for_capture(journal).unwrap()
+    let captured = @strategy.pin_captured_effect_acquired_unit_results(
+      owned.source.effect_run().unwrap(),
+      0,
+      4,
+    ).unwrap()
+    assert_true(
+      @strategy.captured_effect_local_unit_inputs_match_computation(
+        captured,
+        @host.prepared_client_effect_computation_graph(
+          capture_materials.prepared,
+        ),
+      ),
+    )
+    // Equal wire reconstructed by a different owner cannot replace the exact
+    // preparation context retained by the actual acquisition Runtime.
+    assert_false(
+      @strategy.captured_effect_local_unit_inputs_match_computation(
+        captured,
+        @host.prepared_client_effect_computation_graph(
+          effect_pair.unwrap().0.prepared,
+        ),
+      ),
+    )
+    assert_eq(
+      @publication.publication_contract_identity(
+        capture_materials.run_definition,
+      ),
+      @remote.dispatch_request_task_scope(dispatch).0,
+    )
+    assert_true(@strategy.release_captured_effect_local_unit_inputs(captured))
+    assert_true(
+      physical_equal(owned.source_for_capture(journal).unwrap(), owned.source),
+    )
+    let foreign_journal = @dispatch_journal.open_journal(
+      sqlite,
+      root_path + "/" + name + ".foreign-capture.sqlite",
+      1048576L,
+      @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
+    ).unwrap()
+    assert_true(owned.source_for_capture(foreign_journal) is None)
+    assert_true(owned.materials_for_capture(foreign_journal) is None)
+    assert_true(
+      owned.invocation_for_capture(foreign_journal, 65536, 4096, 64)
+      is Err(Unavailable),
+    )
+    assert_true(foreign_journal.close())
     original_effect_source.val = Some(owned.source)
+    original_effect_producer.val = Some(owned)
     assert_eq(owned.executed.result_definition_cid, None)
     assert_true(owned.source.usage().held_bytes > 0L)
     let original_record = journal.require(dispatch).unwrap()
@@ -522,6 +644,8 @@ fn acquisition_runtime_case(
       sqlite,
       root_path,
       name,
+      effect_pair~,
+      effect_producer=original_effect_producer.val,
       through_consumer_holder~,
       cancel_consumer_before_start~,
       cancel_consumer_after_borrow~,
@@ -589,6 +713,13 @@ fn acquisition_runtime_case(
     assert_eq(original.usage().held_bytes, 0L)
     assert_eq(original.usage().reserved_execution_bytes, 0L)
     assert_true(original.close())
+  }
+  if original_effect_producer.val is Some(original) {
+    assert_true(original.materials_for_capture(journal) is None)
+    assert_true(
+      original.invocation_for_capture(journal, 65536, 4096, 64)
+      is Err(Unavailable),
+    )
   }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
@@ -728,4 +859,68 @@ test "Effect original Source producer settles an already expired accepted envelo
 ///|
 test "Effect original Source producer preserves primary and cleanup failure until the same Runtime retries" {
   acquisition_runtime_case(false, effect=true, fail_effect_capture_cleanup=true)
+}
+
+///|
+test "Effect actual producer bytes transfer to saved consumer without Source reacquisition" {
+  acquisition_runtime_case(true, effect=true)
+}
+
+///|
+test "Effect actual producer keeps Source custody when partial receiver holding is cancelled" {
+  acquisition_runtime_case(true, effect=true, cancel_receiver=true)
+}
+
+///|
+test "Effect actual producer handoff rechecks authority after receiver admission before bytes" {
+  acquisition_runtime_case(true, effect=true, deny_after_admission=true)
+}
+
+///|
+test "Effect actual producer cancellation withholds transfer while preserving completed Source custody" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    cancel_producer_before_handoff=true,
+  )
+}
+
+///|
+test "Effect consumer holder owns one borrow and separate receiver cleanup" {
+  acquisition_runtime_case(true, effect=true, through_consumer_holder=true)
+}
+
+///|
+test "Effect consumer holder cancellation before start retains independent cleanup" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    cancel_consumer_before_start=true,
+  )
+}
+
+///|
+test "Effect consumer holder cancellation after borrow prevents exclusive start" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    cancel_consumer_after_borrow=true,
+  )
+}
+
+///|
+test "Effect consumer holder output failure does not acquire input or execute twice" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    consumer_output_unavailable=true,
+  )
+}
+
+///|
+test "Effect poll admission keeps durable original intent after ACK failure without queuing execution" {
+  acquisition_runtime_case(false, effect=true, parent_ack_failure=true)
 }
