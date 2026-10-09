@@ -73,12 +73,24 @@ fn join_chain_reference(
 }
 
 ///|
+fn validate_join_using_names(part : @query.JoinPart) -> Unit raise Abort {
+  let seen : Array[@query.NamePart] = []
+  for name in part.using_columns {
+    if seen.any(previous => same_name(name, previous)) {
+      raise Abort(DuplicateOutput)
+    }
+    seen.push(name)
+  }
+}
+
+///|
 fn join_chain_keys(
   part : @query.JoinPart,
   scope : JoinChainScope,
   right : @query.NamePart,
   right_fields : Array[String],
 ) -> Array[(String, String)] raise Abort {
+  validate_join_using_names(part)
   let pairs : Array[(String, String)] = []
   if part.on is Some(expression) {
     let pending = [@query.expression_root(expression)]
@@ -246,7 +258,7 @@ fn compile_join_chain_steps(
         if merged.any(entry => {
             same_name(name, { value: entry.0, quoted: false, })
           }) {
-          raise Abort(UnsupportedJoin)
+          raise Abort(DuplicateOutput)
         }
         guard pipe_slot(
             [name],

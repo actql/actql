@@ -2495,8 +2495,15 @@ fn compile_steps(
         let targets : Array[String] = []
         let replacements : Array[(String, String)] = []
         for assignment in assignments {
-          if !pipe_name_exists(snapshot, assignment.0) {
+          // SET addresses one current column, not every matching JOIN slot.
+          let matching_targets = snapshot.filter(entry => {
+            same_name(assignment.0, { value: entry.0, quoted: false, })
+          })
+          if matching_targets.is_empty() {
             raise Abort(UnknownColumn)
+          }
+          if matching_targets.length() > 1 {
+            raise Abort(AmbiguousColumn)
           }
           if targets.any(name => {
               same_name(assignment.0, { value: name, quoted: false, })
@@ -7322,6 +7329,7 @@ fn join_keys(
   left_fields : Array[String],
   right_fields : Array[String],
 ) -> Array[(String, String)] raise Abort {
+  validate_join_using_names(part)
   let pairs : Array[(String, String)] = []
   if part.on is Some(expression) {
     let pending = [@query.expression_root(expression)]
@@ -8058,6 +8066,11 @@ fn compile_join_query(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.join_part_count(query) == 1 {
+    validate_join_using_names(@query.join_part_at(query, 0).unwrap()) catch {
+      Abort(issue) => return Err(issue)
+    }
+  }
   if @query.join_part_count(query) != 1 ||
     @query.operation_count(query) < 1 ||
     (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
