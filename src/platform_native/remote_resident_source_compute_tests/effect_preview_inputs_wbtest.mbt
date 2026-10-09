@@ -1,7 +1,8 @@
 // Actual Native input/Artifact identity binding to the existing Preview Owner.
 // Target version, read decision, capability and Store authority are fixtures.
-// Source content is issued from the actual Native local Artifact. No durable
-// private holding, target I/O, approval, waiting commit or write is claimed.
+// Source content is issued from the actual Native local Artifact; the existing
+// Store fixture checks private payload custody separately. Encrypted Captured
+// Run persistence, target I/O, approval, waiting commit and writes are not claimed.
 
 ///|
 fn retained_effect_preview_inputs(
@@ -12,6 +13,12 @@ fn retained_effect_preview_inputs(
   artifact : @host.ClientEffectLocalResultArtifact,
   local_result : Int,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
+  local_manifest : @host.ClientEffectLocalManifest,
+  imported : @host.ClientEffectImportedEvidence,
+  acquired : @host.ClientEffectAcquiredEvidence,
+  acquired_bodies : (String, String),
+  dependencies : Array[@host.ClientEffectDependencyCapture],
+  public_capture : @resident.ResidentEffectResultCapture,
 ) -> Unit raise {
   let owner = materials.prepared
   let retention = retained_compute_effect_retention()
@@ -171,6 +178,10 @@ fn retained_effect_preview_inputs(
   let admitted_source = @publication.admit_captured_effect_source_from_result(
     preview, 0, invocation, source, result, store_authority,
   ).unwrap()
+  let (local_source, inventory) = retained_effect_capture_inventory(
+    materials, inputs, admitted_source, local_manifest, artifact, imported, acquired,
+    acquired_bodies, dependencies,
+  )
   retained_effect_source_store(
     consumer, materials, inputs, artifact, admitted_source, local_result, stop_custodies,
   )
@@ -240,6 +251,11 @@ fn retained_effect_preview_inputs(
     )
     .unwrap()
   assert_true(@strategy.captured_effect_plan_proof_matches(proof, captured, 0))
+  retained_effect_complete_capture(
+    consumer, materials, inputs, invocation, captured, proof, admitted_source, local_source,
+    inventory, authoring, public_capture,
+  )
+  public_capture.output.cancel()
   assert_true(
     consumer.verify_effect_preview_plan(
       inputs,

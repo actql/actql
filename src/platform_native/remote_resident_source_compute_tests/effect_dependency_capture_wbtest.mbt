@@ -13,7 +13,7 @@ fn retained_effect_dependency_capture(
   result_index : Int,
   result_export : @strategy.CapturedEffectLocalResultExport,
   result_receipt : @execution.CompletedRelationExportReceipt,
-) -> Unit raise {
+) -> Array[@host.ClientEffectDependencyCapture] raise {
   let capture = (material, artifact, index, bytes, limits) => {
     consumer.capture_effect_dependency(
       material, inputs, artifact, index, limits, bytes, 4096, 64,
@@ -137,4 +137,5 @@ fn retained_effect_dependency_capture(
   println(
     "retained-effect-dependencies: actual producer and consumer bodies captured",
   )
+  [producer_capture, result_capture]
 }

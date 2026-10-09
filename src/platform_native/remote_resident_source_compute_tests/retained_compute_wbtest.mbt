@@ -12,11 +12,11 @@ fn retained_compute_effect_retention() -> @publication.PublicationContract {
   @publication.seal_publication_contract(
     "result_retention_policy",
     "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
-    retained_compute_cid("7") +
+    retained_effect_retention_dependency_cid("retention_contract") +
     "\",\"effective_data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"available_until\":\"2026-10-10T01:00:00.000Z\",\"delete_by\":\"2026-10-10T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-10-10T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
-    retained_compute_cid("8") +
+    retained_effect_retention_dependency_cid("metadata_retention_policy") +
     "\",\"metadata_delete_by\":\"2026-10-10T04:00:00.000Z\",\"clock_contract_cid\":\"" +
-    retained_compute_cid("9") +
+    retained_effect_retention_dependency_cid("clock_contract") +
     "\"}",
     32768,
     1000,
@@ -961,6 +961,7 @@ fn retained_compute_case(
       root_local_index,
       effect_local_index,
       earlier,
+      acquired.unwrap().1,
       @host.client_effect_acquired_invocation(again),
       producer_dependency.unwrap().0,
       producer_dependency.unwrap().1,
