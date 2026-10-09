@@ -41,3 +41,39 @@ test('Graph member fixtures remain in the normal public acceptance consumer', as
   assert.ok(driver.includes('fixtures/graph-projection-property-source-input.mjs'));
   assert.ok(driver.includes('--graph-projection-property-only'));
 });
+
+test('grouped Graph binding fixtures retain independent identity and multiplicity controls', () => {
+  const identity = successes.find(item => item.name.endsWith('grouped-identity-independent-json'));
+  assert.deepEqual(identity.results.matched.rows, [{id: 1, score: 20}]);
+  const control = JSON.parse(identity.text);
+  assert.deepEqual(control.stages[0].steps[3].filter, {and: [
+    {not: {is_null: {field: 'identity'}}},
+    {gt: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: 10}]},
+  ]});
+  assert.equal(control.stages[0].steps[4].from, undefined);
+  for (const argument of ['(a)', '(((a)))', '(`A`)']) {
+    const item = successes.find(value => value.text.includes('NODE_ID(' + argument + ')')
+      && value.parameters?.min === 10);
+    assert.ok(item, argument);
+    assert.deepEqual(item.results, identity.results);
+  }
+  const empty = successes.find(item => item.name.endsWith('grouped-identity-typed-empty'));
+  assert.deepEqual(empty.results.matched.rows, []);
+  assert.deepEqual(empty.results.matched.columns, identity.results.matched.columns);
+  const path = successes.find(item => item.name.endsWith('grouped-path-independent-json'));
+  assert.deepEqual(path.results.matched, {rows: [{depth: 1}, {depth: 1}],
+    columns: [{name: 'depth', contract: {type: 'number', nullable: false}}]});
+  assert.deepEqual(JSON.parse(path.text).stages[0].steps[1].values.rows,
+    [{key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1}]);
+  for (const argument of ['p', '((p))', '(`P`)']) {
+    const item = successes.find(value => value.text.includes('PATH_LENGTH(' + argument + ')'));
+    assert.ok(item, argument);
+    assert.deepEqual(item.results, path.results);
+  }
+});
+
+test('grouped Graph binding refusals preserve closed roles and post-projection scope', () => {
+  for (const suffix of ['property', 'expression', 'wrong-role', 'wrong-arity', 'removed-binding']) {
+    assert.ok(refusals.some(item => item.name.endsWith('grouped-macro-' + suffix)), suffix);
+  }
+});

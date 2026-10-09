@@ -286,17 +286,27 @@ fn append_resolved(
   }
   let macro_children : Array[MacroValue?] = Array::make(count, None)
   let macro_calls : Array[Int?] = Array::make(count, None)
+  // Classify grouped references once in postorder. Grouping preserves a
+  // binding's role; other expressions never become macro arguments. This
+  // avoids rescanning a nested argument for every enclosing call.
+  let references : Array[Int?] = Array::make(count, None)
   for i in 0..<count {
-    guard @query.expression_node(ast, i) is Some({ kind: Call(path, args), .. }) &&
-      args.length() == 1 &&
-      @query.expression_node(ast, args[0])
+    let node = @query.expression_node(ast, i).unwrap()
+    match node.kind {
+      Reference(_) => references[i] = Some(i)
+      Parenthesized(child) => references[i] = references[child]
+      _ => ()
+    }
+    guard node.kind is Call(path, args) && args.length() == 1 &&
+      references[args[0]] is Some(reference) &&
+      @query.expression_node(ast, reference)
       is Some({ kind: Reference(argument), .. }) else {
       continue
     }
     match resolve_macro(path, argument) {
       Some(value) => {
-        macro_children[args[0]] = Some(value)
-        macro_calls[i] = Some(args[0])
+        macro_children[reference] = Some(value)
+        macro_calls[i] = Some(reference)
       }
       None => ()
     }
