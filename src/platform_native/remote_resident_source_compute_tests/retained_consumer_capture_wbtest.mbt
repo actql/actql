@@ -4,6 +4,7 @@
 fn retained_holder_effect_capture(
   owner : @resident.ResidentRetainedConsumer,
   journal : @dispatch_journal.Journal,
+  proposed : @host.ClientEffectRunMaterials,
 ) -> Unit raise {
   let computation = owner.effect_computation(journal).unwrap()
   let usage = computation.usage()
@@ -12,6 +13,29 @@ fn retained_holder_effect_capture(
     computation.effect_run().unwrap(),
     4,
   ).unwrap()
+  let materials = computation.effect_materials_for_capture().unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(materials.run_definition),
+    @publication.publication_contract_identity(proposed.run_definition),
+  )
+  assert_false(
+    @strategy.captured_effect_inputs_match_computation(
+      inputs,
+      @host.prepared_client_effect_computation_graph(proposed.prepared),
+    ),
+  )
+  assert_true(
+    @strategy.captured_effect_inputs_match_computation(
+      inputs,
+      @host.prepared_client_effect_computation_graph(materials.prepared),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      computation.effect_materials_for_capture().unwrap().prepared,
+      materials.prepared,
+    ),
+  )
   let plan = @strategy.prepare_captured_effect_proposal_plan(
     inputs, 0, 16, 10000,
   ).unwrap()
