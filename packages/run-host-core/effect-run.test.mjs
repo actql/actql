@@ -189,3 +189,20 @@ test('formal Effect dispatch rejects foreign Program bindings and lossy Site sel
       original.definition, request, {...effectSelection, ...change}), /InvalidRunHostSiteSelection/u);
   }
 });
+
+
+test('Effect Site selection validates the same snapshot that reaches dispatch', () => {
+  const original = issued();
+  const request = prepareEffectRequest(original.prepared, original.compilation,
+    fixed('c'), 'original-caller');
+  let reads = 0;
+  const selection = {...effectSelection, get taskAttempt() {
+    return ++reads <= 3 ? 1 : 2147483648;
+  }};
+  const actual = issueEffectSourceDispatch(original.allowed, original.definition,
+    request, selection);
+  const expected = issueEffectSourceDispatch(original.allowed, original.definition,
+    request, effectSelection);
+  assert.deepEqual(actual, expected);
+  assert.equal(reads, 1);
+});

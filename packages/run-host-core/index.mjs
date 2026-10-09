@@ -275,16 +275,20 @@ export function effectSourceInputBinding(compilation) {
 
 function effectSiteSelection(selection) {
   if (selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
-      Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0') ||
-      !Number.isSafeInteger(selection.taskAttempt) || selection.taskAttempt <= 0 ||
-      selection.taskAttempt > 2147483647 ||
-      !Number.isSafeInteger(selection.siteGeneration) || selection.siteGeneration < 0 ||
-      selection.siteGeneration > 2147483647 ||
-      siteSelectionKeys.slice(1).filter(key => key !== 'siteGeneration')
-        .some(key => typeof selection[key] !== 'string')) {
+      Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0')) {
     throw new TypeError('InvalidRunHostSiteSelection');
   }
-  return siteSelectionKeys.map(key => selection[key]);
+  // Capture once: validation and the ABI must consume exactly the same values.
+  const args = siteSelectionKeys.map(key => selection[key]);
+  const [taskAttempt, , , siteGeneration] = args;
+  if (!Number.isSafeInteger(taskAttempt) || taskAttempt <= 0 ||
+      taskAttempt > 2147483647 ||
+      !Number.isSafeInteger(siteGeneration) || siteGeneration < 0 ||
+      siteGeneration > 2147483647 ||
+      args.some((value, index) => index !== 0 && index !== 3 && typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  return args;
 }
 
 /** The Host saves the original envelope before the existing Coordinator sends. */
