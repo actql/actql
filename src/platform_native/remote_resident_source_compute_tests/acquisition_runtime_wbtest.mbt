@@ -522,6 +522,7 @@ fn acquisition_runtime_case(
       sqlite,
       root_path,
       name,
+      effect_pair~,
       through_consumer_holder~,
       cancel_consumer_before_start~,
       cancel_consumer_after_borrow~,
@@ -728,4 +729,63 @@ test "Effect original Source producer settles an already expired accepted envelo
 ///|
 test "Effect original Source producer preserves primary and cleanup failure until the same Runtime retries" {
   acquisition_runtime_case(false, effect=true, fail_effect_capture_cleanup=true)
+}
+
+///|
+test "Effect actual producer bytes transfer to saved consumer without Source reacquisition" {
+  acquisition_runtime_case(true, effect=true)
+}
+
+///|
+test "Effect actual producer keeps Source custody when partial receiver holding is cancelled" {
+  acquisition_runtime_case(true, effect=true, cancel_receiver=true)
+}
+
+///|
+test "Effect actual producer handoff rechecks authority after receiver admission before bytes" {
+  acquisition_runtime_case(true, effect=true, deny_after_admission=true)
+}
+
+///|
+test "Effect actual producer cancellation withholds transfer while preserving completed Source custody" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    cancel_producer_before_handoff=true,
+  )
+}
+
+///|
+test "Effect consumer holder owns one borrow and separate receiver cleanup" {
+  acquisition_runtime_case(true, effect=true, through_consumer_holder=true)
+}
+
+///|
+test "Effect consumer holder cancellation before start retains independent cleanup" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    cancel_consumer_before_start=true,
+  )
+}
+
+///|
+test "Effect consumer holder cancellation after borrow prevents exclusive start" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    cancel_consumer_after_borrow=true,
+  )
+}
+
+///|
+test "Effect consumer holder output failure does not acquire input or execute twice" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    through_consumer_holder=true,
+    consumer_output_unavailable=true,
+  )
 }

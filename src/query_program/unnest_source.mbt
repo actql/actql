@@ -122,17 +122,58 @@ fn unnest_expression_columns(
   visible : Array[(String, String)],
   object_receivers : Array[(@query.NamePart, String)],
   scalar_receivers : Array[(@query.NamePart, String)],
+  current_columns : Array[(String, String)],
 ) -> Array[(String, String)] {
   let receivers = object_receivers + scalar_receivers
   let columns = visible.filter(entry => {
     !receivers.any(receiver => {
       same_name(receiver.0, { value: entry.0, quoted: false, })
+    }) &&
+    !current_columns.any(column => {
+      same_name({ value: column.0, quoted: false, }, {
+        value: entry.0,
+        quoted: false,
+      }) &&
+      column.1 != entry.1
     })
   })
+  // AS on a multi-column table turns old value-table ranges into current
+  // columns. Their whole values are expression names, not extra star fields.
+  for (name, slot) in current_columns {
+    if !receivers.any(receiver => {
+        same_name(receiver.0, { value: name, quoted: false, })
+      }) &&
+      !columns.any(column => {
+        same_name({ value: column.0, quoted: false, }, {
+          value: name,
+          quoted: false,
+        }) &&
+        column.1 == slot
+      }) {
+      columns.push((name, slot))
+    }
+  }
   for (name, slot) in receivers {
     if !pipe_name_exists(columns, name) {
       columns.push((name.value, slot))
     }
   }
   columns
+}
+
+///|
+// AS can make a whole value an ordinary expression column without making it
+// an additional star column. Qualified stars retain the captured row layout.
+fn unnest_star_ranges(
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+  snapshots : Array[(@query.NamePart, Array[(String, String)])],
+) -> Array[(@query.NamePart, Array[(String, String)])] {
+  ranges.map(range => {
+    let matching = snapshots.filter(snapshot => same_name(snapshot.0, range.0))
+    if matching.length() == 1 {
+      (range.0, matching[0].1)
+    } else {
+      range
+    }
+  })
 }

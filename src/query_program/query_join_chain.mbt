@@ -5,7 +5,10 @@
 priv struct JoinChainScope {
   visible : Array[(String, String)]
   columns : Array[(String, String)]
+  value_table : Bool
+  value_columns : Array[(String, String, Array[(String, String)])]
   ranges : Array[(@query.NamePart, Array[(String, String)])]
+  star_ranges : Array[(@query.NamePart, Array[(String, String)])]
   receivers : Array[(@query.NamePart, String)]
   scalar_ranges : Array[(@query.NamePart, String)]
 }
@@ -189,6 +192,9 @@ fn compile_join_chain_steps(
   let source_scope = initial_scope.unwrap_or({
     visible: original,
     columns: original.copy(),
+    value_table: false,
+    value_columns: [],
+    star_ranges: [],
     ranges: [(query_range_name(query), original.copy())],
     receivers: [],
     scalar_ranges: [],
@@ -229,6 +235,7 @@ fn compile_join_chain_steps(
                 scope.visible,
                 scope.receivers,
                 scope.scalar_ranges,
+                scope.columns,
               ),
               scope.ranges,
               limits.max_expression_work,
@@ -410,6 +417,25 @@ fn compile_join_chain_steps(
     scope = {
       visible: next_visible,
       columns: next_columns,
+      value_table: false,
+      value_columns: if index == 0 {
+        source_scope.value_columns.map(column => {
+          (
+            column.0,
+            slots[column.1],
+            column.2.map(field => (field.0, slots[field.1])),
+          )
+        })
+      } else {
+        scope.value_columns.copy()
+      },
+      star_ranges: if index == 0 {
+        source_scope.star_ranges.map(range => {
+          (range.0, range.1.map(field => (field.0, slots[field.1])))
+        })
+      } else {
+        scope.star_ranges.copy()
+      },
       ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
       [(qualifier, right_range)],
       scalar_ranges: if index == 0 {

@@ -828,9 +828,15 @@ public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
 Scalar UNNEST also introduces a range name, although it has no member columns.
-Pipe RENAME cannot rename that original value-table range. SELECT or AS first
-creates an ordinary column scope; SET of the whole value column also removes
-its original range and permits a later RENAME. DROP removes the matching range.
+Pipe RENAME cannot rename that original value-table range. AS preserves a
+single value table and replaces its range name; it does not project or compute
+values. On a table with additional columns, AS replaces old ranges with one
+row range and admits former value-table aliases as current whole columns.
+Those columns retain their field-expanding star layout, distinct from whole-value
+expression lookup. SELECT creates an ordinary output column scope; SET of a
+whole value column removes its original range and permits a later RENAME.
+DROP removes the matching range. Current column edits do not rewrite values or
+star layouts captured by a surviving row range.
 The range kind is retained across JOIN continuations and checked for duplicate
 UNNEST aliases. A scalar `element.*` remains invalid; scalar DISTINCT continues
 to compare the visible scalar values, rather than object-field expansions.
