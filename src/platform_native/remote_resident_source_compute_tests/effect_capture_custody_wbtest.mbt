@@ -11,6 +11,7 @@ fn retained_effect_capture_store(
   preview : @strategy.CapturedEffectPreviewInputs,
   captured : @publication.PublicationContract,
   authority : String,
+  provider? : Bool = false,
 ) -> Unit raise {
   let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-capture-custody-" + @env.now().to_string()
@@ -135,7 +136,9 @@ fn retained_effect_capture_store(
   let capture_wire = @publication.publication_contract_json(captured)
   assert_true(encrypted_row.body != @utf8.encode(capture_wire))
   assert_false(
-    @utf8.decode(encrypted_row.body).contains("\"answer\":[{\"id\":3}]"),
+    @utf8.decode(encrypted_row.body).contains(
+      "\"answer\":" + retained_effect_expected_rows(provider),
+    ),
   )
   assert_eq(
     crypto
