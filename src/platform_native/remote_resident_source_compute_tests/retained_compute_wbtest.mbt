@@ -709,6 +709,7 @@ fn retained_compute_case(
     assert_true(journal.close())
     return
   }
+  let stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)] = []
   let entries = Ref(0)
   let consumer = match
     open_consumer(current, event => {
@@ -965,6 +966,7 @@ fn retained_compute_case(
       producer_dependency.unwrap().4,
       common_input,
       site,
+      stop_custodies,
     )
     assert_eq(acquisitions.val, 1)
     assert_eq(entries.val, 1)
@@ -977,6 +979,16 @@ fn retained_compute_case(
     None
   }
   assert_false(consumer.close())
+  for (custody, store) in stop_custodies {
+    assert_true(custody.begin_payload() is Err(Unavailable),
+      msg="stopped parent must reject new payload allocation while cleanup is pending")
+    assert_true(custody.confirm_payload() is Err(Unavailable))
+    assert_true(custody.open_reader() is Err(Unavailable))
+    assert_true(custody.retry_cleanup().unwrap())
+    assert_false(custody.retry_cleanup().unwrap())
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+    assert_true(store.close().unwrap())
+  }
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
   output.cancel()

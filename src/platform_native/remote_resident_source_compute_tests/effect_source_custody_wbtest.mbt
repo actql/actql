@@ -11,6 +11,7 @@ fn retained_effect_source_store(
   artifact : @host.ClientEffectLocalResultArtifact,
   source : @publication.CapturedEffectSourceArtifact,
   local_result : Int,
+  stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
 ) -> Unit raise {
   let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let root = @filesystem.open_root(root_path).unwrap()
@@ -250,7 +251,13 @@ fn retained_effect_source_store(
   assert_false(partial.retry_cleanup().unwrap())
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
-  assert_true(store.close().unwrap())
+  // Leave an original custody live until the caller stops this same consumer.
+  // Its retained input is still borrowed while physical cleanup remains pending.
+  let stop_custody = consumer.retain_effect_source_custody(
+    store, materials, inputs, 0, artifact, source,
+    request("stop-before-payload", schema, 64L),
+  ).unwrap()
+  stop_custodies.push((stop_custody, store))
   println(
     "retained-effect-custody: exact Native bytes restored; pending cleanup retried once",
   )
