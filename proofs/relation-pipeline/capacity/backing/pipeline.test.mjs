@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { pipelineBounds, inspectPipelineBacking } from './pipeline.mjs';
 import { fixedCorpus } from '../../corpus.mjs';
-import { registry } from '../../registry.mjs';
+// The restricted capacity proof retains the complete six-descriptor cohort.
+import { corpusBaseline as registry } from '../../registry.mjs';
 import { registrations } from '../../obligations.mjs';
 import { mapBounds } from './maps.mjs';
 import { nativeUnitFixture, nativeArrayUnitFixture } from './native-unit-fixture.mjs';
