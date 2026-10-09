@@ -30,7 +30,8 @@ const dataCid = value => hash(wire(value));
 // runtime compiler or an executed Result. Parameter and query preimages are
 // independently authored below from this exact source meaning.
 export async function writeSyntheticHistoricalHeldQuery({directory, document,
-  requestId, authorization, sourceProfile, runtimeRootUrl, now = Date.now(), mode = 'remote', runHeld, effectEnvironmentWire, modelEnvironmentWire}) {
+  requestId, authorization, sourceProfile, runtimeRootUrl, now = Date.now(), mode = 'remote', runHeld, effectEnvironmentWire, modelEnvironmentWire,
+  expressionContractUrl = new URL('spec/contracts/actql-expressions.json', runtimeRootUrl)}) {
   const program = JSON.parse(document);
   const model = modelEnvironmentWire !== undefined;
   assert.ok(!model || effectEnvironmentWire === undefined);
@@ -82,7 +83,7 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
     caller_request_id: requestId, version: 'actql-logical-request/0.1'});
   let programDefinitionCid;
   if (model) {
-    const expressionCid = cid(JSON.parse(await readFile(new URL('spec/contracts/actql-expressions.json', runtimeRootUrl), 'utf8')));
+    const expressionCid = cid(JSON.parse(await readFile(new URL(expressionContractUrl), 'utf8')));
     const stage = program.stages[0];
     const local = {version: 'actql-stage-semantics/0.1', binding_references: [], bindings: {},
       parameter_references: [], parameters: {}, expression_contract_cid: expressionCid,
@@ -96,7 +97,7 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
   } else {
     // The same finite normative Program preimage as tasksDependencyOracle,
     // kept portable for a package-external consumer. No runtime issuer runs.
-    const expressionCid = cid(JSON.parse(await readFile(new URL('spec/contracts/actql-expressions.json', runtimeRootUrl), 'utf8')));
+    const expressionCid = cid(JSON.parse(await readFile(new URL(expressionContractUrl), 'utf8')));
     const parameterReferences = [{name: 'minimum', path: '/steps/0/filter/gt/1', type: program.params.minimum}];
     const stages = program.stages.map((stage, index) => {
       const expression = {[index === 3 ? 'lt' : 'gt']: [{field: 'id'},
