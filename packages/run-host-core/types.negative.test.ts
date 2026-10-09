@@ -1,3 +1,4 @@
+import './effect-run.typecheck.mjs';
 import type {DeliveryContractView, PublicationContract,
   PublicationRequestContract, PublicationAttemptContract,
   PublicationRecordContract, PublicIndexEntryContract,
