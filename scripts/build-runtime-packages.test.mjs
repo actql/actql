@@ -63,7 +63,8 @@ const packages = {
   'local-node': {builder: 'build-local-node-assets', args: [],
     sources: ['connectors_builtin_node', 'connectors/duckdb/host_node',
       'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node',
-      'connectors/github/host_node', 'connectors/salesforce/host_node'],
+      'connectors/github/host_node', 'connectors/salesforce/host_node',
+      'connectors/sheets/host_node'],
     destination: 'packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
     stale: 'StaleLocalNodeAsset'},
 };
@@ -268,6 +269,13 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs ',
 );
 
+// Scoped Owner observations reuse the existing distribution gate. Keep its
+// independently authored command inventory and avoid a second packed producer.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-effect-uncertainty.test.mjs ',
+  'adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs ',
+);
+
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
 // package command, retaining the exact inventory and duplicate rejection.
@@ -315,7 +323,7 @@ distribution[3] = distribution[3].replace(
 ).replace('packages/sdk/index.test.mjs ',
   'packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs '
 ).replace('adapters/host-node/client-cancel-response-loss.test.mjs ',
-  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs ');
+  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs ');
 // Workspace packed acceptance follows the original Node package boundary.
 distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs') + 1,
   0, 'node scripts/test-packed-workspace-connection.mjs');
@@ -327,6 +335,10 @@ expectedGates['check:local-node-assets'].push('node scripts/test-packed-installe
 
 // The epoch-bound submission chain uses the same prepared distribution gate.
 distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs';
+// Invocation-bound Submit cases adopted with #1106 remain registered too.
+distribution[3]=distribution[3].replace('adapters/host-node/client-submission.test.mjs ',
+  'adapters/host-node/client-submission.test.mjs adapters/host-node/client-submission-attempt.test.mjs ');
+distribution[3]+=' packages/sdk/submission-attempt.test.mjs';
 
 
 // Retain adopted composed-INFER, evaluation and submission-check coverage at

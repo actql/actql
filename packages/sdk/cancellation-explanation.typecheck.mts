@@ -27,6 +27,23 @@ if (explanation?.observation === 'outcome_unknown') {
   explanation.next.ref;
   // @ts-expect-error An unestablished outcome has no fabricated recorded revision.
   explanation.revision;
+} else if (explanation?.observation === 'refused' || explanation?.observation === 'conflict') {
+  const operation: 'lookupCancellation' = explanation.next.operation;
+  const originalCancelId: string = explanation.cancelRef.cancelId;
+  const invocation: string = explanation.attemptRef.attemptId;
+  const invocationOperation: 'cancel' = explanation.attemptRef.operation;
+  void [operation, originalCancelId, invocation, invocationOperation];
+  // @ts-expect-error A rejected invocation supplies no fabricated recorded revision.
+  explanation.revision;
+  // @ts-expect-error The read-only target cannot be changed into a resend.
+  explanation.next.operation = 'cancel';
+  if (explanation.observation === 'refused') {
+    const guarantee: 'attempt_uncommitted_unconsumed' = explanation.guarantee;
+    void guarantee;
+  } else {
+    // @ts-expect-error A conflict is not a certificate of uncommitted custody.
+    explanation.guarantee;
+  }
 } else if (explanation) {
   const operation: 'status' = explanation.next.operation;
   const runDefinitionCid: string = explanation.next.ref.runDefinitionCid;

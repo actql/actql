@@ -142,12 +142,19 @@ test "keyed source refuses internal Graph star and unadapted identity binding" {
     )
     is Ok(_),
   )
-  assert_true(
-    keyed_script(
-      prefix + "FROM GRAPH g |> MATCH WALK (a) |> SELECT aql_keyed_identity_1",
-    )
-    is Err(UnknownColumn),
+  let hidden_identity = keyed_script(
+    prefix + "FROM GRAPH g |> MATCH WALK (a) |> SELECT aql_keyed_identity_1",
   )
+  guard hidden_identity
+    is Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(origin), })
+    ) else {
+    fail("an internal identity slot must not enter the authored column scope")
+  }
+  assert_eq(@origin.kind(origin), @origin.Authored)
+  let span = @origin.span(origin)
+  assert_eq(span.start_byte, 150)
+  assert_eq(span.end_byte, 170)
   assert_true(
     keyed_script(
       prefix +

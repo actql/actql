@@ -152,11 +152,11 @@ test "Graph diagnostic invalid bodies reach the existing common checker" {
 ///|
 test "Graph diagnostic transition rejects Graph columns and another Graph call" {
   for
-    (suffix, graph_call) in [
-      ("degree(direction: 'in') |> SELECT node_key", false),
-      ("graph_bounds(max_nodes: 0) |> SELECT node", false),
-      ("components(kind: 'weak') |> SELECT degree", false),
-      ("degree(direction: 'both') |> node_rows() |> SELECT id", true),
+    (suffix, field_range) in [
+      ("degree(direction: 'in') |> SELECT node_key", Some((163, 171))),
+      ("graph_bounds(max_nodes: 0) |> SELECT node", Some((166, 170))),
+      ("components(kind: 'weak') |> SELECT degree", Some((164, 170))),
+      ("degree(direction: 'both') |> node_rows() |> SELECT id", None),
     ] {
     let source = graph_diagnostic_prefix() + "FROM g |> " + suffix
     let actual = compile_query_script(
@@ -164,14 +164,22 @@ test "Graph diagnostic transition rejects Graph columns and another Graph call" 
       { ..fixture_context(), inputs: [], },
       construction_limits(),
     )
-    assert_true(
-      if graph_call {
-        actual is Err(UnsupportedGraph)
-      } else {
-        actual is Err(UnknownColumn)
-      },
-      msg=suffix,
-    )
+    if field_range is Some((start, end)) {
+      guard actual
+        is Err(
+          Expression(
+            { issue: @expression.UnknownReference, origin: Some(origin), }
+          )
+        ) else {
+        fail("diagnostic output must reject the unavailable field: " + suffix)
+      }
+      assert_eq(@origin.kind(origin), @origin.Authored)
+      let span = @origin.span(origin)
+      assert_eq(span.start_byte, start)
+      assert_eq(span.end_byte, end)
+    } else {
+      assert_true(actual is Err(UnsupportedGraph), msg=suffix)
+    }
   }
 }
 

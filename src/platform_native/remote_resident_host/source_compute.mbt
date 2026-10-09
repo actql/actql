@@ -20,6 +20,8 @@ pub(all) enum ResidentSourceComputeIssue {
   UnsupportedGraph
   Unavailable
   Source(ResidentSourceIssue)
+  EffectRun(@host.ClientEffectCompiledRunIssue)
+  EffectInput(@host.ClientEffectRetainedInputIssue)
   Acquisition(@duckdb_native.NativeReadOnlySourceIssue)
   Execution(@duckdb_native.NativeAcquisitionFailure)
   Capture
@@ -52,6 +54,7 @@ pub(all) enum ResidentSourceComputeEvent {
 struct ResidentSourceCompute {
   close_source : () -> Bool
   capture : @query.CapturedInputSource?
+  effect_source : ResidentEffectSourceCapture?
   run : @strategy.CapturedDAG
   effect_run : @strategy.CapturedEffectRunDAG?
   compute : @duckdb_native.NativeStandardStrategyRun
@@ -335,6 +338,15 @@ fn open_resident_source_compute_owned(
       generated,
       close_source,
       observe,
+      effect_source=match prepared {
+        Pure(_) => None
+        Effect(bound) =>
+          Some({
+            owner: @host.prepared_client_effect_run_computation(bound),
+            requirement,
+            capture,
+          })
+      },
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -523,6 +535,7 @@ fn open_resident_captured_compute(
     @execution.CompletedOutput,
     Int,
   )? = None,
+  effect_source? : ResidentEffectSourceCapture? = None,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -579,6 +592,16 @@ fn open_resident_captured_compute(
         @host.prepared_client_effect_run_graph(bound),
         source,
         ledger,
+      )
+      .map(run => (@strategy.captured_effect_run_dag(run), Some(run)))
+      .map_err(issue => Run(issue))
+    (Effect(bound), None, Some((projection, output, wire_bytes))) =>
+      @strategy.open_retained_effect_task_dag(
+        @host.prepared_client_effect_run_graph(bound),
+        projection,
+        output,
+        ledger,
+        canonical_wire_bytes=wire_bytes,
       )
       .map(run => (@strategy.captured_effect_run_dag(run), Some(run)))
       .map_err(issue => Run(issue))
@@ -675,6 +698,7 @@ fn open_resident_captured_compute(
   }
   let owner : ResidentSourceCompute = {
     effect_run,
+    effect_source,
     close_source,
     capture: captured,
     run,

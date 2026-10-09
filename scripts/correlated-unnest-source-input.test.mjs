@@ -33,6 +33,43 @@ test('correlated expansion obligations distinguish current arrays and original r
     correlatedUnnestSuccesses.length + correlatedUnnestRefusals.length);
 });
 
+test('INNER expansion preserves the explicit ON filter and independently counted duplicate matches', async () => {
+  const {innerCorrelatedUnnestProgram, innerCorrelatedUnnestImmutableProgram}
+    = await import('./fixtures/correlated-unnest-source-input.mjs');
+  const byName = new Map(correlatedUnnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('correlated-unnest-inner-json-control');
+  assert.deepEqual(JSON.parse(control.text), innerCorrelatedUnnestProgram);
+  assert.deepEqual(innerCorrelatedUnnestProgram.stages[0].steps[6],
+    {filter: {eq: [{field: 'element'}, {field: 'id'}]}});
+  assert.deepEqual(control.expected, [{id: 1, element: 1, position: 0},
+    {id: 2, element: 2, position: 0}, {id: 2, element: 2, position: 2}]);
+  assert.deepEqual(byName.get('correlated-unnest-inner-sql-on').expected, control.expected);
+  assert.deepEqual(byName.get('correlated-unnest-inner-pipe-on').expected, control.expected);
+  assert.notDeepEqual(byName.get('correlated-unnest-inner-no-on').expected, control.expected);
+  assert.deepEqual(byName.get('correlated-unnest-inner-on-false').expected, []);
+  assert.deepEqual(byName.get('correlated-unnest-inner-empty').columns, control.columns);
+  assert.deepEqual(byName.get('correlated-unnest-inner-immutable-parent').expected,
+    [{id: 99, element: 1, position: 0}, {id: 99, element: 2, position: 0},
+      {id: 99, element: 2, position: 2}]);
+  const immutable = byName.get('correlated-unnest-inner-immutable-parent');
+  assert.match(immutable.text, /SET id = 99.*ON element = p\.id.*SELECT id, element, position/u);
+  assert.deepEqual(JSON.parse(byName.get('correlated-unnest-inner-immutable-json-control').text),
+    innerCorrelatedUnnestImmutableProgram);
+  assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps.slice(4, 6),
+    [{derive: {original_id: {field: 'id'}}}, {derive: {current_id: {literal: 99}}}]);
+  assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps[8],
+    {filter: {eq: [{field: 'element'}, {field: 'original_id'}]}});
+  assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps[10],
+    {select: [{id: 'current_id'}, 'element', 'position'], as: 'selected'});
+  const acquired = byName.get('correlated-unnest-inner-acquired-parent');
+  assert.equal(acquired.sourceReadCount, 1);
+  assert.equal(acquired.sourceReadSessionCount, 1);
+  assert.deepEqual(acquired.expected, control.expected.slice(1));
+  const refusals = correlatedUnnestRefusals.filter(item => item.name.startsWith('correlated-unnest-refusal-inner-'));
+  assert.equal(refusals.length, 4);
+  for (const item of refusals) assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+});
+
 test('correlated expansion is registered in normal and focused packed execution', () => {
   const corpus = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
   const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');

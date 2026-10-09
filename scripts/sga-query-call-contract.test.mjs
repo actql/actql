@@ -385,16 +385,44 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // Its later query-text clarification changed the normative rules digest.
   assert.equal(upstreamBody.query_text_rules_sha256,
     'ede6d8449c25ed883ac9fe9eff46670655bb5212f548a3097e230d73394304ad');
-  assert.deepEqual(currentBody, {...upstreamBody, source_grammar_cid:
+  const {grammar_manifest_cid: beforeInnerCid, ...beforeInnerBody} =
+    read('scripts/fixtures/pre-inner-unnest-grammar.json').grammar;
+  assert.deepEqual(beforeInnerBody, {...upstreamBody, source_grammar_cid:
     'sha256:21bae76f36b9428995aba44017787ee327786a741db006ca952404253a409810',
     query_text_rules_sha256:
       'afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e'});
-  const currentExpected = 'sha256:27ebfa9f22860ffcf7d16c15199c95cd41952579720e27b16b715fa5d5b0f18c';
+  assert.equal(beforeInnerCid, 'sha256:27ebfa9f22860ffcf7d16c15199c95cd41952579720e27b16b715fa5d5b0f18c');
+  assert.equal(cid(beforeInnerBody), beforeInnerCid);
+  const {grammar_manifest_cid: beforeExtendCid, ...beforeExtendBody} =
+    read('scripts/fixtures/pre-pipe-extend-window-grammar.json').grammar;
+  assert.equal(beforeExtendCid, 'sha256:6c736875bc97084060934856c845f467405e231cdd8971494e8d0934c043b18b');
+  assert.equal(cid(beforeExtendBody), beforeExtendCid);
+  assert.deepEqual(beforeExtendBody, {...beforeInnerBody,
+    query_text_grammar_sha256: 'e0565d4c5c3d038b4f7ec38718e95725819772e4558de38144ed9206fbaccb04',
+    query_text_rules_sha256: '48a784c862cdb3eac61e12a34ac9c19c79a3001a2b00a2bb0bc15591a89cfacb'});
+  const {grammar_manifest_cid: beforePipeSelectCid, ...beforePipeSelectBody} =
+    read('scripts/fixtures/pre-pipe-select-window-grammar.json').grammar;
+  assert.equal(beforePipeSelectCid, 'sha256:2d24701e5ceee0f06400e197124eb7d9c05b74b88de7bd76500820b04fe692ed');
+  assert.equal(cid(beforePipeSelectBody), beforePipeSelectCid);
+  assert.deepEqual(beforePipeSelectBody, {...beforeExtendBody,
+    query_text_grammar_sha256: 'eca5ea6807104e1c8fd74213c468e6e2b147c02f70e348b4ace778c788b10065',
+    query_text_rules_sha256: 'd99c8079d21f7648cfa8e8fb1273b62cac28c05740b727769aa744ed8be052e2'});
+  const {grammar_manifest_cid: beforeWhereCid, ...beforeWhereBody} =
+    read('scripts/fixtures/pre-pipe-where-window-grammar.json').grammar;
+  assert.equal(beforeWhereCid, 'sha256:621f06cc9ffc651a0d68da0b7994163bef2439b4b72a8608ccc480622e4c67d9');
+  assert.equal(cid(beforeWhereBody), beforeWhereCid);
+  assert.deepEqual(beforeWhereBody, {...beforePipeSelectBody,
+    query_text_grammar_sha256: '2e71420d022a4de524c95545b1dd8525062a3d456e98efeb3fd9275777ac6b71',
+    query_text_rules_sha256: '41dd912f04bb6fc837c70a023a2666733bda1d36eefad64f00439ca07c061126'});
+  const currentExpected = 'sha256:e0ad6a5fa648e290e490096887361d02e7a9b223c1d6a267646c6974a874d832';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
-  assert.equal(currentBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
+  assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
-  assert.equal(currentBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
+  assert.equal(beforeInnerBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
   assert.equal(cid(currentBody), currentExpected);
+  assert.deepEqual(currentBody, {...beforeWhereBody,
+    query_text_grammar_sha256: '313d0a8950a653bd56a93f15877e70bef9137526cec0b0b0bd42e0dc8aa09d95',
+    query_text_rules_sha256: '909f6396526d846fa687b8e4b456f10aa5c25d4b0ad5914c2d9a7f4992e9d3ad'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
