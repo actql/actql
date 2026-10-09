@@ -30,11 +30,11 @@ test('repeated-key corpus keeps distinct receivers and Pipe aliases observable',
     ['first', 'second', 'n']);
   assert.deepEqual(cases.get('group-ordinal-repeated-key-empty').expected, []);
   assert.equal(repeatedGroupKeySuccesses.length, 8);
-  assert.equal(groupOrdinalSuccesses.length, 17);
+  assert.equal(groupOrdinalSuccesses.length, 25);
   const all = [...groupOrdinalSuccesses, ...groupOrdinalRefusals];
   assert.equal(new Set(all.map(value => value.name)).size, all.length);
-  assert.equal(groupOrdinalRefusals.length, 6);
-  assert.ok(groupOrdinalRefusals.every(value => value.expectedCode === 'ClientProgramImplementationLimit'));
+  assert.equal(groupOrdinalRefusals.length, 9);
+  assert.ok(groupOrdinalRefusals.slice(0, 6).every(value => value.expectedCode === 'ClientProgramImplementationLimit'));
 });
 
 test('normal and focused public consumers retain the complete ordinal corpus', () => {

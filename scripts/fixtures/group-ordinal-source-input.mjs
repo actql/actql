@@ -1,3 +1,6 @@
+import {groupComparisonSuccesses, groupComparisonRefusals}
+  from './group-comparison-source-input.mjs';
+
 // Independent grouped values and named-column contracts, not lowerer output.
 // GROUP 2,1 denotes amount,id in the SELECT list id,amount,n. WHERE excludes
 // ID 0; duplicate ID 3 rows must contribute to n=2, and NULL is a real key.
@@ -101,6 +104,7 @@ export const repeatedGroupKeySuccesses = [
   }),
 ];
 groupOrdinalSuccesses.push(...repeatedGroupKeySuccesses);
+groupOrdinalSuccesses.push(...groupComparisonSuccesses);
 export const groupOrdinalRefusals = [
   'SELECT id, amount FROM records GROUP BY 0',
   'SELECT *, COUNT(*) AS n FROM records GROUP BY 4',
@@ -109,4 +113,5 @@ export const groupOrdinalRefusals = [
   'SELECT id, amount FROM records GROUP BY TRUE',
   'FROM records |> AGGREGATE COUNT(*) AS n GROUP BY 1',
 ].map((text, index) => ({name: 'group-ordinal-invalid-' + index,
-  format: 'aql-text', text, expectedCode: 'ClientProgramImplementationLimit'}));
+  format: 'aql-text', text, expectedCode: 'ClientProgramImplementationLimit'}))
+  .concat(groupComparisonRefusals);

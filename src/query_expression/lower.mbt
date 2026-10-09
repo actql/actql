@@ -208,6 +208,40 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
 }
 
 ///|
+fn binary_call(op : String) -> (String, Bool) raise Abort {
+  let name = match op {
+    "+" => "add"
+    "-" => "subtract"
+    "*" => "multiply"
+    "/" => "divide"
+    "%" => "modulo"
+    "=" => "eq"
+    "!=" | "<>" => "neq"
+    "<" => "lt"
+    "<=" => "lte"
+    ">" => "gt"
+    ">=" => "gte"
+    "AND" => "and"
+    "OR" => "or"
+    "||" => "concat_strict"
+    "LIKE" | "NOT LIKE" => "like"
+    _ => raise Abort(InvalidArguments)
+  }
+  (name, op == "NOT LIKE")
+}
+
+///|
+// Use the same operator and polarity contract as lowering. Different spelling
+// alone must not prevent reuse of != / <>, and LIKE is not NOT LIKE.
+pub fn same_binary_operator(left : String, right : String) -> Bool {
+  try {
+    binary_call(left) == binary_call(right)
+  } catch {
+    Abort(_) => false
+  }
+}
+
+///|
 // Append an expression to the caller's Program source owner. Clause lowering
 // can share one builder and retain original token origins without printing an
 // expression and sending it through another expression parser.
@@ -484,26 +518,9 @@ fn append_resolved(
             _ => raise Abort(InvalidArguments)
           }
         Binary(op, left, right) => {
-          let name = match op {
-            "+" => "add"
-            "-" => "subtract"
-            "*" => "multiply"
-            "/" => "divide"
-            "%" => "modulo"
-            "=" => "eq"
-            "!=" | "<>" => "neq"
-            "<" => "lt"
-            "<=" => "lte"
-            ">" => "gt"
-            ">=" => "gte"
-            "AND" => "and"
-            "OR" => "or"
-            "||" => "concat_strict"
-            "LIKE" | "NOT LIKE" => "like"
-            _ => raise Abort(InvalidArguments)
-          }
+          let (name, inverted) = binary_call(op)
           let value = lowering.arguments(name, [nodes[left], nodes[right]])
-          if op == "NOT LIKE" {
+          if inverted {
             lowering.form("not", value)
           } else {
             value
