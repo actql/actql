@@ -997,6 +997,19 @@ It does not change `actql-diagnostics/0.1`. Consumers must agree on the current
 pins; an older response or consumer is rejected by contract validation rather
 than adapted to success or an empty diagnosis.
 
+Structured Source selectors have a separate resolution domain. The existing
+SourceView resolver retains an opaque association between an unresolved Issue,
+its admitted Inputs, SourceRequestContracts and declaration. The
+`unresolved_selector_declaration` accessor checks these exact owners before
+returning the declaration; identical reconstructed inputs or Catalogs do not
+inherit the association. Limits and ambiguous selection do not issue it.
+Its diagnostic cursor belongs to the admitted Program: normalized grammar keys
+must pass through the existing original-document pointer mapping before public
+presentation. An omitted view points at its actual enclosing input; a NULL view
+fails declaration admission and is not an omitted selector. This resolution
+association alone proves neither installed registration completeness nor
+Provider Resource absence, and carries no read or execution authority.
+
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with
 execution-value Requirements; unsupported or incomplete static paths retain
@@ -1604,6 +1617,25 @@ describes only its dispatch boundary, not the Owner outcome for a previously
 used identity. Only admitted Run references offer a Run-status candidate.
 Formatting consumes the same immutable SDK-owned explanation; copied DTOs and
 error messages cannot supply these facts.
+
+An admitted `SubmissionAttempt` refusal or conflict has its own explanation,
+bound to that invocation's attempt reference, original submission reference,
+connection scope and immutable SDK input snapshot. Refusal retains the Owner's
+authorization, admission-capacity or epoch reason and its invocation-local
+`attempt_uncommitted_unconsumed` guarantee. This is not a durable `not_accepted`
+receipt, nor evidence that another invocation never committed that identity.
+Conflict retains the submitted intent/restart-decision reason without revealing
+the previously stored intent or decision. It supplies no unconsumed guarantee,
+current revision or durable original-outcome conclusion.
+
+Both branches offer only a currently authorized `lookupSubmission` target for
+that same original epoch/nonce. Their safe advice does not grant resubmission,
+changed-input or restart authority. Explanation/formatting never sends a
+request, allocates a fresh submission identity or changes a Run. Caller edits,
+copied failures and borrowed response data cannot replace the retained input
+or acquire its association. No Check result is synthesized for these initial
+invocation outcomes. No public input hash, new storage, wire/pin or Native
+validation contract is added by this presentation.
 
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and
 `formatEffectUncertainty` render only the original SDK-owned observations used

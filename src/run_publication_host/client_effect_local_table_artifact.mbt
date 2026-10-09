@@ -86,6 +86,7 @@ pub fn issue_source_free_client_effect_local_table_artifact(
     TableSource(@strategy.captured_effect_table_input_borrow(input), definition),
     invocation,
     receipt,
+    run_invocation,
     retention,
     scope,
     policy,

@@ -101,6 +101,26 @@ fn check_fixture(
     guard result is Err(issue) else { fail("expected resolution failure") }
     assert_eq(issue.kind, kind)
     assert_true(issue.source is Some(_))
+    let original = unresolved_selector_declaration(issue, inputs, catalog)
+    if kind == Unresolved {
+      assert_true(
+        physical_equal(original.unwrap(), @inputs.at(inputs, 0).unwrap()),
+      )
+      assert_true(
+        unresolved_selector_declaration(issue, fixture_inputs(input), catalog)
+        is None,
+      )
+      assert_true(
+        unresolved_selector_declaration(
+          issue,
+          inputs,
+          fixture_catalog(wire, cid),
+        )
+        is None,
+      )
+    } else {
+      assert_true(original is None)
+    }
     if kind == Unresolved && explicit {
       let path = @decode.cursor_path(issue.source.unwrap())
       assert_eq(path[path.length() - 1], @source.Key("view"))

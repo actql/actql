@@ -305,6 +305,7 @@ fn build_client_effect_acquired_result_artifact(
     ResultSource(borrow, definition),
     source.invocation,
     receipt,
+    run_invocation,
     source.publication_retention,
     @publication.publication_contract_identity(source.scope),
     policy,
