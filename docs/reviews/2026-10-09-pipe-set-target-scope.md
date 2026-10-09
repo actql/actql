@@ -89,3 +89,21 @@ full Core/full packed/performance and live Google differential execution remain
 unverified. Draft preparation is not merge CI; the broader Frontend goal remains
 active. No other worktree, D's CTE/assert/Effect code or common execution owner
 was edited.
+
+## First packed attempt: independent control correction
+
+Normal five-package production and exact revision/digest verification passed at
+`7cf526f286794126ca25a0fc3ae16a0066d4b789` (`run-K8Fytl`). The existing ten
+Local positives passed before the new independent JSON control was rejected
+at preparation with ClientProgramInvalidInput. Receipt
+`public-query-evidence-JQCgSD` retains complete command 010 streams and exit 1.
+Later positives/refusals and HTTPS are not established by this run.
+
+The independent JSON authoring error was a snapshot derive map writing current
+over an already selected current column. The normative derive map is add-only;
+ordered derive arrays have their own shadow contract. The control now selects
+only original/matched and adds current as a new slot. No expected value, type,
+column order, multiplicity, limit or Source acquisition count changed. The
+Frontend correction and its independent complete MoonBit Program remain
+unchanged. This is a fixture correction, not a product execution fix or an
+adjustment of the desired public result.

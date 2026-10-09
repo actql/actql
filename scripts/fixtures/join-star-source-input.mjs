@@ -25,7 +25,7 @@ export const pipeSetTargetProgram = {version: 'actql/0.1', id: 'fixture.pipe_set
       steps: [{values: {schema: {k: number}, rows: [{k: 3}]}, as: 'keys'},
         {from: 'keys', join: {with: 'records', kind: 'left',
           on: [{left: 'k', right: 'id'}], max_output_rows: 10,
-          select: {current: 'right.amount', original: 'right.amount', matched: 'left.k'}}, as: 'joined'},
+          select: {original: 'right.amount', matched: 'left.k'}}, as: 'joined'},
         {derive: {current: {literal: 99}}},
         {sort: [{field: 'original', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
       results: {rows: {from: 'ordered', fields: ['current', 'original', 'matched']}}}],
