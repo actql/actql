@@ -128,3 +128,19 @@ not reach later Local cases, refusals or the HTTPS cohort.
 The main integration `1a9baf0d1c971bf4305fd46968a9219c651a3c31` normally
 merges `727520c8d02e4f3836471a8851e5d735c2cd3f02` without conflicts.
 Its selected JS callers passed 27/27 (`run-wceC2Y`, `focused-test-FS5VQ7`).
+
+The second clean pack at `f0e899e1117e8302dd3e37f7b4724061af6960b9`
+failed at the newly added immutable JSON control (`public-query-evidence-SQSlAU`,
+`010.stderr.log`, wrapper `run-3R4DYb`), again after 23 Local positives.
+The ordinary bridge diagnostic identifies `InputCollision("id")` at
+`stages[0].steps[5].derive.id`: derive adds columns and cannot overwrite one.
+Changing numeric literal representation alone did not fix that collision
+(`run-8NDyXq`: 1/2 passed). The independent control now derives a fresh
+`current_id` literal and projects it as `id`; original_id remains the predicate
+and order receiver. Rows, contracts, bounds and product code are unchanged.
+The corrected control passes the ordinary checker; its paired refusal and
+fixture checks pass 7/7 (`run-BHTNux`, `focused-test-1qvGpP`). The diagnostic
+source is retained at `/private/tmp/actql-b-inner-control-diagnostic.test.mjs`.
+The prior fixture/vector checks passed 15/15 with the first fixture correction
+in an uncommitted working tree (`run-0BGaIJ`, `focused-test-8tjwJA`); that result
+is not attributed to the subsequent corrected immutable control.

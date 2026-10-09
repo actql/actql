@@ -70,17 +70,19 @@ export const innerCorrelatedUnnestProgram = {version: 'actql/0.1',
     ...correlatedUnnestProgram.stages[0].steps.slice(6),
   ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// derive adds a fresh value slot; the final projection names it id without
+// replacing the original receiver used by the predicate and ordering.
 export const innerCorrelatedUnnestImmutableProgram = {version: 'actql/0.1',
   id: 'fixture.inner_correlated_unnest_immutable', params: parameterDeclarations,
   stages: [{id: 'main', inputs: {}, steps: [
     ...correlatedUnnestProgram.stages[0].steps.slice(0, 4),
     {derive: {original_id: {field: 'id'}}},
-    {derive: {id: 99}},
+    {derive: {current_id: {literal: 99}}},
     ...correlatedUnnestProgram.stages[0].steps.slice(4, 6),
     {filter: {eq: [{field: 'element'}, {field: 'original_id'}]}},
     {sort: [{field: 'original_id', dir: 'asc', nulls: 'first'},
       {field: 'position', dir: 'asc', nulls: 'first'}]},
-    {select: ['id', 'element', 'position'], as: 'selected'},
+    {select: [{id: 'current_id'}, 'element', 'position'], as: 'selected'},
   ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const immutableInnerExpected = [{id: 99, element: 1, position: 0},

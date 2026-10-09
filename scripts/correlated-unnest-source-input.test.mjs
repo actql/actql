@@ -56,9 +56,11 @@ test('INNER expansion preserves the explicit ON filter and independently counted
   assert.deepEqual(JSON.parse(byName.get('correlated-unnest-inner-immutable-json-control').text),
     innerCorrelatedUnnestImmutableProgram);
   assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps.slice(4, 6),
-    [{derive: {original_id: {field: 'id'}}}, {derive: {id: 99}}]);
+    [{derive: {original_id: {field: 'id'}}}, {derive: {current_id: {literal: 99}}}]);
   assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps[8],
     {filter: {eq: [{field: 'element'}, {field: 'original_id'}]}});
+  assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps[10],
+    {select: [{id: 'current_id'}, 'element', 'position'], as: 'selected'});
   const acquired = byName.get('correlated-unnest-inner-acquired-parent');
   assert.equal(acquired.sourceReadCount, 1);
   assert.equal(acquired.sourceReadSessionCount, 1);
