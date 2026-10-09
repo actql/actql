@@ -11,6 +11,8 @@ import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 
 const retained = JSON.parse(await readFile('retained-string-results.json', 'utf8'));
+const {hostCapacityPolicy} = retained;
+assert.ok(hostCapacityPolicy !== null && typeof hostCapacityPolicy === 'object');
 const sourceProfilePath = resolve('source-profile.json');
 function accepted(directory) {
   const db = new DatabaseSync(resolve(directory, 'requests/client-requests.sqlite3'),
@@ -32,9 +34,9 @@ async function readRetained(mode, options, directory) {
   } finally { client.close(); }
 }
 await readRetained('local', {mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve('local-state'), sourceProfilePath}}, 'local-state');
+  installation: {directory: resolve('local-state'), sourceProfilePath, hostCapacityPolicy}}, 'local-state');
 const host = await openInstalledRemoteHttpHost({directory: resolve('remote-state'),
-  sourceProfilePath, authenticate: header => header === 'Bearer fixture-token'
+  sourceProfilePath, hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined});
 const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);

@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
@@ -89,6 +90,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-window-source-input.mjs', 'order-window-source-input.mjs'],
   ['scripts/fixtures/set-by-name-list-source-input.mjs', 'set-by-name-list-source-input.mjs'],
   ['scripts/fixtures/set-corresponding-source-input.mjs', 'set-corresponding-source-input.mjs'],
+  ['scripts/fixtures/set-join-source-input.mjs', 'set-join-source-input.mjs'],
   ['scripts/fixtures/set-inner-by-name-source-input.mjs', 'set-inner-by-name-source-input.mjs'],
   ['scripts/fixtures/window-scalar-source-input.mjs', 'window-scalar-source-input.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
