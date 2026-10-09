@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "scope": "Original captured Effect Run Preview binding and actual Native retained row-plan proof. Provider target/capability/source-binding fixtures; not waiting persistence, approval or write.",
+  "verifiedSource": "99c5917eb29feee7686d57d87e2a3ab43bc29624",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1129",
+    "head": "7474f3d95fd92185b1266a93d51ca2f537210b15",
+    "finalTarget": "main",
+    "integrationOrder": [
+      1112,
+      1117,
+      1120,
+      1123,
+      1129
+    ]
+  },
+  "files": {
+    "src/platform_native/remote_resident_host/effect_preview_inputs.mbt": "875db0acdcbffcf82a8928c01d67f91532e482ef89b48d4da6b039256e19931c",
+    "src/platform_native/remote_resident_host/effect_preview_plan.mbt": "caa62927e84762e871332ac874951d1378035ff73872c4488447ccf080c4cbff",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "0c17184cfc4f3fb3c2f30fa9d9da730d67c958eb7e549116847c117c51a9d72d",
+    "src/platform_native/remote_resident_source_compute_tests/effect_preview_inputs_wbtest.mbt": "19fee92b11bb2235a2589ea13bd661ce59a68ee651deb638a8575ad742b67ca9",
+    "src/platform_native/remote_resident_source_compute_tests/effect_transferred_artifact_wbtest.mbt": "a7f68c9d353b758989079a839dfe2c9acbc792f1999b97968ea7c05ca5fa4752",
+    "src/platform_native/remote_resident_source_compute_tests/moon.pkg": "f1d69fc93d790eb4f0686736b3568cb8667e937e01125afdf691744ee9a44b34",
+    "src/run_publication_host/client_effect_captured_preview.mbt": "222ebc7935d87580fd252b3184923211085713b2d8b8e4557b409a68688a6f5b",
+    "src/run_publication_host/pkg.generated.mbti": "8b8cadcccabf8a0899132ddcff50a4dc1ade0db262f3614d210cd64e8a87e67c"
+  },
+  "receipt": "_build/resident-effect-preview-inputs-1791539484484/receipt.json",
+  "sourceRecord": "_build/resident-effect-preview-inputs-1791539484484/source.json",
+  "inputs": "_build/resident-effect-preview-inputs-1791539484484/inputs.json",
+  "artifact": {
+    "source": "99c5917eb29feee7686d57d87e2a3ab43bc29624",
+    "scope": "Native whitebox fixture, not a production Site binary or formal package cohort",
+    "artifact": "_build/resident-effect-preview-inputs-1791539484484/retained-compute.whitebox_test.exe",
+    "sha256": "7b1f39231e4a8bfdb5786d1b01d5ee664dcf89a49e99c73e7dc4bd43a5b6793e"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/effect_producer_dependency_wbtest.mbt --filter \"*Native Effect producer dependency*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*retained Direct holding*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*retained Native cancellation*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Scoped moon fmt; moon info --target native src/platform_native/remote_resident_host src/physical_strategy src/run_publication_host; node proofs/relation-pipeline/history.mjs --write; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "actualEvidence": {
+    "sourceAcquisitions": 1,
+    "consumerEntries": 1,
+    "consumerRows": [
+      {
+        "id": 3
+      }
+    ],
+    "capturedPreviewBoundToOriginalRun": true,
+    "actualNativePlanProof": {
+      "selector": 3,
+      "intendedChanges": {
+        "state": "present",
+        "value": {
+          "Name": 3
+        }
+      }
+    },
+    "wrongName4Preview": "structural binding succeeds but actual Native row-plan proof refuses PreviewMismatch",
+    "inputPinsAvailableAfterFailedProof": true,
+    "sourceAndDestinationCapacityAfterCleanup": "zero",
+    "capacityBoundBytes": 536870912
+  },
+  "refusals": [
+    "Missing issued local Effect identity",
+    "Wrong checked Stage",
+    "Another original Run",
+    "Wrong Result namespace",
+    "Producer Result substituted for consumer Result view",
+    "Mapped Preview value differs from actual held Native row"
+  ],
+  "preparationFailures": [
+    {
+      "log": "_build/resident-effect-preview-preparation-1791539245688/interface.log",
+      "reason": "Incorrect stage-results type alias; corrected to existing imported package"
+    },
+    {
+      "log": "_build/resident-effect-preview-preparation-1791539400060/interface.log",
+      "reason": "Helper method call and export issue type references corrected against generated interfaces"
+    }
+  ],
+  "limitations": [
+    "Provider target version, capability and physical source-binding are explicit fixtures, not real target I/O or durable Store custody",
+    "Producer completion observation remains an explicit protocol fixture; no public Cloud poll/start-claim evidence",
+    "No waiting transition persistence, approval, physical Effect write or restart acceptance",
+    "Semantic body reconstruction after process restart remains unconnected",
+    "Native whitebox artifact is not a production Site binary or formal package cohort",
+    "Cloud formal pin remains 1376a2ec4b0cb1944971b268f7c2c637fcc37e99; formal adoption waits for merged OSS main",
+    "No Hosted CI, deployment or public SDK/Preview acceptance; local results are not CI results",
+    "Old failed Run custody remains unresolved separately"
+  ]
+}

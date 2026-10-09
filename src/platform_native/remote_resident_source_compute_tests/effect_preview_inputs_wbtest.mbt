@@ -1,0 +1,194 @@
+// Actual Native input/Artifact identity binding to the existing Preview Owner.
+// Target version, read decision and capability are explicit provider fixtures.
+// No real target I/O, approval, waiting commit or physical write is claimed.
+
+///|
+fn retained_effect_preview_inputs(
+  consumer : @resident.ResidentSourceCompute,
+  materials : @host.ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  invocation : @publication.PublicationContract,
+  artifact : @host.ClientEffectLocalResultArtifact,
+  local_result : Int,
+) -> Unit raise {
+  let owner = materials.prepared
+  let identity = @host.issue_source_free_client_effect_local_identity(
+    owner, inputs, 0, artifact, 10000, 65536, 4096, 64,
+  ).unwrap()
+  let definition = @host.prepared_client_effect_computation_definition_cid(
+    owner,
+  )
+  let authoring = @publication.seal_run_evidence_value(
+    "authoring_context",
+    "{\"version\":\"actql-authoring-context/0.1\",\"program_definition_cid\":\"" +
+    definition +
+    "\",\"annotations\":[]}",
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  let descriptor = @host.client_effect_member_descriptor(
+    owner, 1, "save", 10000,
+  ).unwrap()
+  let candidate = @host.prepared_client_effect_computation_candidate(owner)
+  let effects = @checked.effect_program_static_effects(candidate)
+  let terminal = @results.effect_plan_terminal_for_member(
+      @results.effect_static_candidate_mapping_rules(effects),
+      0,
+      100,
+      10000,
+    )
+    .unwrap()
+    .unwrap()
+  let plan = @results.effect_plan_pipeline_cid(terminal, 65536, 4096, 64)
+  let run_cid = @publication.publication_contract_identity(
+    materials.run_definition,
+  )
+  let authoring_cid = @publication.run_evidence_value_identity(authoring)
+  let raw =
+    #|{"version":"actql-effect-preview/0.1","sensitivity":"private","retention_class":"authority-evidence","encryption_required":true,"program_semantics_cid":"@SEMANTICS@","program_definition_cid":"@DEFINITION@","invocation_cid":"@INVOCATION@","run_identity_cid":"@RUN@","compiled_plan_cid":"@COMPILED@","check_environment_cid":"@ENVIRONMENT@","authoring_context":@AUTHORING@,"barrier_provenance_cids":[],"model_derived":false,"model_task_contract_cids":[],"model_invocation_evidence_cids":[],"model_response_artifact_cids":[],"effects":[{"effect_id":"save","effect_kind":"update","target":"connector://crm/account","mapping":"mapping:crm.account.v1","resolved_mapping_contract_cid":"@MAPPING@","effect_identity_cid":"@EFFECT@","source_result":"r","effect_plan_logical_cid":"@PLAN@","result_artifact_cid":"@ARTIFACT@","preview_strength":"full_diff","source_binding_cid":"@FIXTURE@","capability_evidence_cid":"@FIXTURE@","authority_scope_cid":"@AUTHORITY@","write_footprint":{"kind":"exact_targets","provider_namespace":"fixture","provider_boundary_cid":"@FIXTURE@","resource_kind":"Account","resource_identity_scheme_cid":"@FIXTURE@","provider_object_identity_cids":["@FIXTURE@"]},"count":1,"max_items":1,"required_permissions":["scope:update"],"approval":"required","on_item_failure":"halt","changes":[{"target_row_identity":3,"target_guard":{"state":"version","version_cid":"@FIXTURE@"},"before":{"state":"present","value":{"Name":0}},"after":{"state":"present","value":{"Name":3}},"intended_changes":{"state":"present","value":{"Name":3}},"row_preview_cid":"@FIXTURE@","row_idempotency_key":"@FIXTURE@"}],"row_order":[],"effect_member_preview_cid":"@FIXTURE@","executed":false}],"executed":false,"effect_preview_cid":"@FIXTURE@"}
+  let raw = raw
+    .replace_all(old="@DEFINITION@", new=definition)
+    .replace_all(
+      old="@SEMANTICS@",
+      new=@host.prepared_client_effect_computation_semantics_cid(owner),
+    )
+    .replace_all(
+      old="@ENVIRONMENT@",
+      new=@host.prepared_client_effect_computation_environment_cid(owner),
+    )
+    .replace_all(
+      old="@COMPILED@",
+      new=@publication.publication_contract_identity(
+        @host.client_effect_compilation_compiled_plan(materials.compilation),
+      ),
+    )
+    .replace_all(
+      old="@INVOCATION@",
+      new=@publication.publication_contract_identity(invocation),
+    )
+    .replace_all(old="@RUN@", new=run_cid)
+    .replace_all(
+      old="@AUTHORING@",
+      new=@publication.run_evidence_value_json(authoring),
+    )
+    .replace_all(old="@MAPPING@", new=descriptor.5)
+    .replace_all(old="@PLAN@", new=plan)
+    .replace_all(
+      old="@EFFECT@",
+      new=@host.client_effect_local_identity_cid(identity),
+    )
+    .replace_all(
+      old="@ARTIFACT@",
+      new=@host.client_effect_local_result_artifact_cid(artifact),
+    )
+    .replace_all(old="@AUTHORITY@", new=retained_compute_cid("c"))
+    .replace_all(old="@FIXTURE@", new=retained_compute_cid("d"))
+  let draft = @publication.canonical_effect_preview_draft_wire(
+    raw, 65536, 4096, 64,
+  ).unwrap()
+  let (wire, preview) = @publication.author_effect_preview_semantic_wire(
+    draft, run_cid, authoring_cid, 65536, 4096, 64,
+  ).unwrap()
+  let limits : @host.ClientCapturedEffectPreviewLimits = {
+    max_work: 10000,
+    max_wire_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 64,
+    plan: {
+      max_work: 10000,
+      max_fields: 100,
+      max_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 64,
+    },
+  }
+  let bind = (material, stage, text, issued) => {
+    consumer.bind_effect_preview_inputs(
+      material, inputs, invocation, stage, text, authoring_cid, issued, limits,
+    )
+  }
+  let captured = bind(materials, 1, wire, [identity]).unwrap()
+  assert_true(@strategy.captured_effect_preview_inputs_available(captured))
+  assert_eq(@publication.effect_preview_row_count(preview, 0), Some(1))
+  assert_eq(
+    @publication.effect_preview_row_intended_changes_wire(preview, 0, 0),
+    Some("{\"state\":\"present\",\"value\":{\"Name\":3}}"),
+  )
+  assert_true(
+    @strategy.captured_effect_preview_plan_terminal(captured, 0, 100, 10000)
+    is Ok(Some(_)),
+  )
+  let proof = consumer
+    .verify_effect_preview_plan(
+      inputs,
+      captured,
+      0,
+      local_result,
+      resident_compute_limits(),
+      100,
+      10000,
+      65536,
+      4096,
+      64,
+    )
+    .unwrap()
+  assert_true(@strategy.captured_effect_plan_proof_matches(proof, captured, 0))
+  assert_true(
+    consumer.verify_effect_preview_plan(
+      inputs,
+      captured,
+      0,
+      0,
+      resident_compute_limits(),
+      100,
+      10000,
+      65536,
+      4096,
+      64,
+    )
+    is Err(ForeignInput),
+  )
+  let wrong_rows = wire.replace_all(old="\"Name\":3", new="\"Name\":4")
+  let (wrong_rows, _) = @publication.author_effect_preview_semantic_wire(
+    wrong_rows, run_cid, authoring_cid, 65536, 4096, 64,
+  ).unwrap()
+  let wrong_preview = bind(materials, 1, wrong_rows, [identity]).unwrap()
+  assert_true(
+    consumer.verify_effect_preview_plan(
+      inputs,
+      wrong_preview,
+      0,
+      local_result,
+      resident_compute_limits(),
+      100,
+      10000,
+      65536,
+      4096,
+      64,
+    )
+    is Err(Plan(PreviewMismatch)),
+  )
+  assert_true(@strategy.captured_effect_preview_inputs_available(captured))
+  assert_true(bind(materials, 1, wire, []) is Err(Identity(_)))
+  assert_true(bind(materials, 0, wire, [identity]) is Err(Run(_)))
+  let another_run = @host.issue_client_effect_run_definition(
+    materials.allowed,
+    "retained-effect",
+    "another-preview-run",
+    "2026-10-09T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    bind({ ..materials, run_definition: another_run, }, 1, wire, [identity])
+    is Err(ForeignInput),
+  )
+  let changed = wire.replace(
+    old="\"source_result\":\"r\"",
+    new="\"source_result\":\"other\"",
+  )
+  let (changed, _) = @publication.author_effect_preview_semantic_wire(
+    changed, run_cid, authoring_cid, 65536, 4096, 64,
+  ).unwrap()
+  assert_true(bind(materials, 1, changed, [identity]) is Err(Identity(_)))
+}

@@ -374,6 +374,9 @@ fn retained_effect_transferred_artifact(
     64,
   ).unwrap()
   |> ignore
+  retained_effect_preview_inputs(
+    consumer, materials, inputs, invocation, result, result_index,
+  )
   // The observation identifies the Artifact; the derived input Relation
   // preserves its exact provenance and the consumer derivation names that
   // Relation. These three reference kinds must not be conflated.
