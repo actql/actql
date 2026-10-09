@@ -30,7 +30,8 @@ counterpart failed with `UnsupportedAggregate` (0/1, `run-lgSFim`,
 published Run failure.
 
 The total-expression guard omitted BETWEEN, IN and IS DISTINCT FROM even
-though the common expression lowerer already implements them. Connect those
+though the query expression lowerer already emits their ordinary Program forms.
+The common execution lowerer still rejects BETWEEN, as isolated below. Connect those
 predicates and total ARRAY operand trees to that guard, then preserve ordinary
 lowering. Do not expand BETWEEN into duplicate comparisons, coerce membership
 NULL to FALSE, turn a computed list into literal data, or invent key evidence.
@@ -80,7 +81,99 @@ and its actual common checker refusal was fixed at that boundary. No product
 contract or expected result was weakened. `run-GrsCBZ` was interrupted after an
 edit script failed before writing its changes; it establishes no success.
 
-Public execution, five-package identity, submitted-HEAD required CI and content
-review remain unverified at this preparation stage. Full Core, Wasm/native,
+At clean integrated source `3daf7fe1769575b13e0d3e1fc113c4917c4c2d85`, the same
+focused JS selection passed 16/16 (`run-b8MzqW`, `focused-test-StKAvR`); Node
+fixture checks passed 13/13 (`run-aUNh4B`, `focused-test-RlNVb9`). Main
+`b40818e09295dba39de6b570b977610e95c75b1e` was normally merged, preserving
+#1079's UNNEST receiver changes. #1080 remains an unmerged dependency.
+
+## Public attempt and common-owner handoff
+
+The normal producer packed all five packages from clean integrated source
+`3daf7fe1769575b13e0d3e1fc113c4917c4c2d85`. Actual bytes were independently
+checked against the manifest before the existing external acceptance consumer.
+
+```sh
+node /private/tmp/actql-b-aggregate-membership-3daf7fe17-packed-20261009.mjs
+```
+
+Producer and consumer guard: `run-amz4sY`, terminal exit 1, locks released.
+Original receipt/logs: `worktrees/.codex-scratch/public-query-evidence-rDNfv0`.
+The external consumer's artifacts were cleaned after evidence retention;
+producer tarballs/manifest remain in
+`/private/tmp/actql-b-aggregate-membership-3daf7fe17-pack`.
+
+| Package | Actual tarball SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `3cae6b01413f4386e8d72fff427fccef96482257c966618be00b7b6886a3ecea` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+Local passed the existing 79 normal cases and the first six new membership
+cases, including the independent JSON control, NULL list, Pipe, NOT IN,
+IN UNNEST and empty list. The next case,
+`aggregate-conditional-order-membership-between`, returned
+`SubmissionUnknown` with a Host 500 `ClientHostFailure`. Its independent expected
+Named Result remains `[{"names":"a|b|b|c"}]`. Later normal/refusal cases and
+HTTPS were not reached. This is **partial Local evidence, not completed public
+acceptance**. Run admission/provider-I/O zero was not observed for this failure.
+
+A corrected direct-runtime diagnostic at the same built source isolates the
+first failure. Both the exact authored source and the independent acquired JSON
+pass ordinary preparation, then return **Err** from
+`clientProgramCompileLocalTasks`, with expression kind `between`. The IN and
+null-safe controls return **Ok**, resolve the installed source and issue request
+identity. Evidence: `run-qKOf1E`, `focused-test-6UJ2ig`, retained compact and full
+record `/private/tmp/actql-b-membership-source-preparation-probe-20261009.json`.
+The test's 1/1 result means the diagnostic completed; it does not mean that all
+four Programs compiled successfully. The earlier diagnostic checked only that
+the compile function returned and is superseded for compilation claims.
+
+A separate Values-only independent JSON also prepares, but task compilation
+returns Err; equivalent IN and IS DISTINCT FROM controls return Ok. Evidence:
+`run-tJ9NRN`, `focused-test-3Mblsy`. The simpler control's intended result is
+`[{"names":"a|b|c"}]`, with nullable string column `names`.
+
+Retained minimal inputs and reproducer:
+
+- [Values-only independent Program](fixtures/aggregate-membership-between.program.json).
+- [Independent acquired Program](fixtures/aggregate-membership-between-acquired.program.json).
+- [Common task-compiler diagnostic](fixtures/aggregate-membership-between-compile.mjs).
+
+```sh
+node docs/reviews/fixtures/aggregate-membership-between-compile.mjs
+```
+
+Run against the normal prepared local-node runtime for the fixed source above;
+Observed at the unchanged built source above: preparation success, Result tag 0,
+expression `between`, nonzero exit (`run-Kr9Nzb`, terminal exit 1). This diagnostic is not a new execution path or a
+public acceptance substitute.
+
+The common boundary is explicit in
+`src/lowering_relation/expression.mbt::expression_tag`: BETWEEN is absent and
+returns `ExpressionNotImplemented("between")`. The existing
+`src/lowering_relation/expression_test.mbt` case “expression budget and
+unsupported handlers are explicit implementation failures” already asserts this
+exact refusal. The caller chain is
+`client_program_compile_local_tasks` →
+`issue_prepared_client_task_compilation` → the ordinary relation expression
+lowerer. The installed Host's `planFor` uses the common task compilation owner;
+HTTP sanitizes the internal failure to Host 500. No public execution failure
+beyond this preparation boundary has been established.
+
+Handoff to A: implement the existing typed BETWEEN expression in the common
+lowerer/evaluation frames, preserving once-only search-value evaluation, NULL
+semantics, bounded work and retention. Do not replace it with two frontend
+comparisons, strip the order key or weaken the expected rows. B retains the
+source and independent controls and resumes the complete unchanged Local/HTTPS
+cohort after an adoptable fixed SHA. No common implementation or Owner was
+added in this PR.
+
+Keep this unit Draft: all 94 planned normal cases, 40 preparation refusals and
+one expected execution failure per transport must still complete; the partial
+85-case Local pass does not discharge this requirement. Submitted-HEAD required
+CI and content review remain unverified. Full Core, Wasm/native,
 proof/performance and the entire packed campaign are not local obligations for
 this focused change. This unit does not close the entire Frontend.
