@@ -3,6 +3,7 @@ package "actql/actql/platform_native/publication_store"
 
 import {
   "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/publication_payload",
   "actql/actql/run_publication",
@@ -21,6 +22,13 @@ pub fn ConfirmedPayloadDelivery::confirm_sink_finished(Self) -> Result[NativePub
 pub fn ConfirmedPayloadDelivery::fail(Self) -> Result[Int64, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::fail_chunk(Self, Int) -> Result[Int64, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::next(Self, Int) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue]
+
+type EffectCaptureCustody
+pub fn EffectCaptureCustody::confirm(Self) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
+pub fn EffectCaptureCustody::persist(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn EffectCaptureCustody::reserved_bytes(Self) -> Int64
+pub fn EffectCaptureCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+pub fn EffectCaptureCustody::same_binding(Self, Self) -> Bool
 
 type EffectSourceCustody
 pub fn EffectSourceCustody::begin_payload(Self) -> Result[PayloadWriter, NativePublicationStoreIssue]
@@ -76,6 +84,8 @@ pub(all) struct NativePublicationRecovery {
 
 pub(all) enum NativePublicationStoreIssue {
   UnsupportedTarget
+  PrivateEvidence(@signature.NativePrivateEvidenceIssue)
+  PrivateCaptureRollback(NativePublicationStoreIssue, @sqlite.NativeSqliteIssue)
   Closed
   InvalidConfiguration
   LegacyStoreFormat(String)
@@ -171,6 +181,7 @@ pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, Nati
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn Store::prepare_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
@@ -178,6 +189,7 @@ pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationSto
 pub fn Store::reconcile_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
+pub fn Store::restore_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 
 // Type aliases
