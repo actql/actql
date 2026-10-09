@@ -24,6 +24,7 @@ const targetVersion = 'actql-installed-sheets-target/0.1';
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
 const absolute = value => text(value) && isAbsolute(value);
+const gridIndex = value => Number.isInteger(value) && value >= 0 && value <= 2_147_483_647;
 const exact = (value, keys) => value && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 const sourceKeys = ['version', 'siteProfilePath', 'publicationPath',
@@ -63,13 +64,13 @@ async function readSite(path, providerMoon) {
   if (version !== SHEETS_SITE_VERSION || !exact(site, siteKeys) ||
       origin?.protocol !== 'https:' || origin.origin !== site.apiOrigin ||
       !/^[A-Za-z0-9_-]{1,128}$/u.test(site.spreadsheetId) ||
-      !Number.isSafeInteger(site.appendSheetId) || site.appendSheetId < 0 ||
+      !gridIndex(site.appendSheetId) ||
       !Number.isSafeInteger(site.siteGeneration) || site.siteGeneration < 1 ||
       !absolute(site.credentialPrivateKeyPath) || !absolute(site.journalRoot) ||
       (caPath !== undefined && !absolute(caPath)) ||
       !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(site.tokenEnvironment) ||
       !exact(site.gridRange, ['sheetId', 'startRow', 'endRow', 'startColumn', 'endColumn']) ||
-      Object.values(site.gridRange).some(value => !Number.isSafeInteger(value) || value < 0) ||
+      Object.values(site.gridRange).some(value => !gridIndex(value)) ||
       site.gridRange.endRow - site.gridRange.startRow > SHEETS_LIMITS.maxRows) {
     fail('InvalidInstalledSheetsSite');
   }

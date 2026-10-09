@@ -61,7 +61,7 @@ const directory = await withPackedQueryEvidence({
   const args = nodeTestArguments(['adapters/connectors/sheets/test/sheets-packed.fixture.mjs']);
   const stdout = run(process.execPath, args, {cwd: root, env: environment, timeout: 180_000});
   const checked = assertTestExecution('node', process.execPath, args, {status: 0, stdout});
-  assert.equal(checked.counts.passed, 12);
+  assert.equal(checked.counts.passed, 13);
   console.log('PACKED_SHEETS_VERIFIED', JSON.stringify({revision: state.revision, counts: checked.counts}));
 });
 console.log(`Packed Sheets evidence: ${directory}`);

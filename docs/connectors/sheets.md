@@ -84,8 +84,9 @@ independent Programs. Do not copy its permissive test account to production.
 ## Read contract
 
 Read is a finite, zero-based, end-exclusive rectangle: at most 100 rows,
-64 declared columns, 6,400 cells and a 2,000,000-byte response. Types are
-explicit Text/Number/Boolean; no date, business key or formatted-string
+64 declared columns, 6,400 cells and a 2,000,000-byte response. Grid indexes
+and sheet IDs must fit the provider bridge's nonnegative int32 domain. Cell
+types are explicit Text/Number/Boolean; no date, business key or formatted-string
 inference is performed. Evaluated `effectiveValue` is authoritative, including
 formula results. Cell errors and missing evaluated formula results refuse the
 read rather than becoming NULL. See Google's

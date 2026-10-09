@@ -214,6 +214,19 @@ async function approvedAppend(setup, rows) {
 }
 const row = {text: '=literal e\u0301\r\n', number: 0, flag: false};
 
+test('Sheets rejects out-of-domain grid indexes before provider I/O', async t => {
+  for (const field of ['appendSheetId', 'gridRange']) {
+    const setup = await installation(t);
+    const path = join(setup.root, 'site.json');
+    const profile = JSON.parse(await readFile(path, 'utf8'));
+    const invalid = field === 'appendSheetId' ? 2_147_483_648
+      : {...profile.gridRange, startRow: 2_147_483_648, endRow: 2_147_483_652};
+    await writeFile(path, JSON.stringify({...profile, [field]: invalid}));
+    await assert.rejects(setup.publish(false), {code: 'InvalidInstalledSheetsSite'});
+    assert.equal(setup.api.seen().length, 0);
+  }
+});
+
 test('Sheets failed publication removes only its own unpublished temporary file', async t => {
   const setup = await installation(t);
   // The target directory forces the atomic rename to fail after writing bytes.

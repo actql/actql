@@ -50,6 +50,12 @@ the recorded dirty-source selections, not a pristine final-SHA campaign:
   `run-NCfUsI` / `focused-test-A2OfKj` verified the corrected independent fault
   at the second actual send: saved success, unknown and remaining unsent row,
   with no additional send on same-process or fresh-process reconciliation.
+- After merging main, `run-aSQY1y` / `focused-test-R4abvr` passed the ten
+  codec/bridge JS cases on clean SHA
+  `62cef1aceaf22b130688915f0fba14e62d93ef0a`.
+- `run-dlLdIS` / `focused-test-1VxMes` passed a focused dirty-source regression
+  rejecting grid/sheet indexes above the bridge's int32 domain before any
+  provider request. This does not relax the rectangle or response limits.
 
 Receipts live under this worktree's `_build/local-checks/attempts` and
 `_build/focused-evidence`. They contain commands, actual source SHA and dirty
