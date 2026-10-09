@@ -286,6 +286,7 @@ fn retained_compute_case(
     None
   }
   let acquisitions = Ref(0)
+  println("retained-check: materials admitted")
   let producer_captures = Ref(0)
   let source_observe = event => {
     match event {
@@ -326,6 +327,7 @@ fn retained_compute_case(
   let source_export = source_owner
     .prepare_source_export(resident_compute_limits())
     .unwrap()
+  println("retained-check: Source export opened")
   let chunks : Array[Bytes] = []
   while @execution.next_completed_output_export_canonical_row(
           source_export, 100, 20, 4,
@@ -357,6 +359,7 @@ fn retained_compute_case(
   let bytes = chunks.fold(init=0L, (sum, chunk) => {
     sum + chunk.length().to_int64()
   })
+  println("retained-check: producer edge admitted")
   // These codec/view pins register the existing one-canonical-row-per-chunk
   // Native input implementation. They do not authorize producer completion.
   let physical = @manifest.admit(
@@ -402,6 +405,7 @@ fn retained_compute_case(
   let (producer, site) = retained_compute_producer_fixture(
     edge, producer_dispatch, physical,
   )
+  println("retained-check: producer evidence admitted")
   let current = @output.install_native_remote_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
@@ -485,6 +489,7 @@ fn retained_compute_case(
         common_input, common_current,
       ).unwrap()
   }
+  println("retained-check: consumer dispatch issued")
   let material = @transfer_client.pin_durable_direct_destination_material(
     journal,
     root,
@@ -580,6 +585,7 @@ fn retained_compute_case(
     }
   }
   let (issue, failed) = open_consumer(stale, _ => true).unwrap_err()
+  println("retained-check: stale generation rejected")
   assert_true(
     issue is RetainedInput(@output.Input(@output.StaleSiteGeneration)),
   )
@@ -655,6 +661,7 @@ fn retained_compute_case(
       fail("Native retained consumer preparation failed: " + code)
     }
   }
+  println("retained-check: consumer opened")
   // The existing destination cleanup Owner must wait for the consumer's
   // durable borrow, including a pre-start interruption.
   assert_true(
@@ -689,6 +696,7 @@ fn retained_compute_case(
     return
   }
   resident_compute_execute(consumer) |> ignore
+  println("retained-check: consumer executed")
   let source_usage = source_owner.usage()
   let consumer_usage = consumer.usage()
   let overlapping_bytes = source_usage.held_bytes +
@@ -724,6 +732,7 @@ fn retained_compute_case(
   } else {
     None
   }
+  println("retained-check: Effect inputs pinned")
   assert_false(consumer.close())
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
