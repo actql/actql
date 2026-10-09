@@ -1,0 +1,257 @@
+{
+  "version": "actql-resident-effect-poll-routing-evidence/0.1",
+  "verifiedImplementationSha": "9f09865ae8707cfc204f2051b7801cdd05282e66",
+  "parentPr": 1158,
+  "parentSha": "cf0b7cc1fe7fd2868447fba206b12ef5dd617bfe",
+  "dependencyOrder": [
+    1157,
+    1158,
+    "this PR"
+  ],
+  "finalMergeTarget": "main",
+  "scope": "Connect original Effect computation materials to production Native Site poll acceptance, exclusive producer holder, retained producer context and checked consumer holder, without granting Effect approval or publication.",
+  "checks": [
+    {
+      "command": "moon build --target native src/cmd/native_remote_resident_site",
+      "result": "passed"
+    },
+    {
+      "command": "moon test --target js src/run_publication_host/client_effect_run_materials_wbtest.mbt --filter \"*Effect run materials preserve original evidence*\"",
+      "passed": 1
+    },
+    {
+      "command": "moon test --target js src/run_publication_host/client_values_run_materials_wbtest.mbt",
+      "passed": 2
+    },
+    {
+      "command": "moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt --filter \"*Effect poll admission*\"",
+      "passed": 1
+    },
+    {
+      "command": "moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt --filter \"*Effect consumer holder*\"",
+      "passed": 4
+    },
+    {
+      "command": "moon test --target js src/platform_native/remote_resident_host --filter \"*Effect Source dispatch*\"",
+      "passed": 10
+    },
+    {
+      "command": "moon info --target native src/run_publication_host src/platform_native/remote_resident_host src/cmd/native_remote_resident_site",
+      "result": "passed"
+    },
+    {
+      "command": "moon info --target js src/run_publication_host src/platform_native/remote_resident_host",
+      "result": "passed"
+    },
+    {
+      "command": "ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY=1 node --test scripts/test-native-resident-site.mjs",
+      "passed": 1
+    },
+    {
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "result": "passed"
+    }
+  ],
+  "newAcceptanceAssertions": [
+    "generation mismatch rejects before saving an envelope or reserving a queue entry",
+    "real SQLite acceptance persists the exact original envelope before the Native HTTP ACK",
+    "closed Native HTTP client retains Accepted without a start claim or queue permission",
+    "exact retry preserves durable record and original envelope with acquisition and executor entries zero",
+    "family selection never admits a changed Run; the selected original Owner still refuses the changed CID"
+  ],
+  "normalProcessRegression": {
+    "kind": "native-retained-consumer-verified",
+    "runDefinitionCid": "sha256:6411a7fe21618c70348aa6e3c1b192df3482517e50b0224607523d7bf58f61e9",
+    "producerDispatchCid": "sha256:26a7484c17c62c356f40904631c7acec18c74bf8ecc8fc8e71d9c7b7d0bb0474",
+    "consumerDispatchCid": "sha256:10f83c89d282c9fd4325b6bf47866b2fd6358cb7ae2b31ae8ad490fa399ad50d",
+    "checkedTasks": 2,
+    "sourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "rows": [
+      {
+        "id": 3
+      }
+    ],
+    "typedOutputAck": true,
+    "formalRelease": true,
+    "reservedPayloadBytes": 0,
+    "pendingIntents": 0,
+    "siteCapacity": {
+      "kind": "retained-holder-settled",
+      "active_operations": "0",
+      "active_transfers": "0",
+      "holdings": "0",
+      "cleanup_responsibilities": "0",
+      "held_bytes": "0",
+      "reserved_retention_bytes": "0",
+      "reserved_execution_bytes": "0"
+    },
+    "coordinatorReconstructed": false,
+    "receiverCurrentQueried": true,
+    "receiverDatabaseReadForBinding": false,
+    "checkedRunProjection": true,
+    "checkedTaskStart": true,
+    "cloudRunStartCas": false,
+    "publicationReady": true,
+    "taskCleanup": [
+      "released",
+      "released"
+    ],
+    "producerHolderRecreated": false,
+    "middleHolderRecreated": false,
+    "completedConsumerRestored": false,
+    "retainedHandoffInterruption": null,
+    "transferResumedBeforeCommit": false,
+    "pendingReceiverAllocationsPreserved": false,
+    "committedReceiverAllocationsUnchanged": false,
+    "originalBorrowReturnedOnce": false,
+    "cancelledBeforeConsumer": false,
+    "receiverHoldingReclaimed": true,
+    "resultReread": true,
+    "publicCloudAcceptance": false
+  },
+  "productionNativeBinary": {
+    "sha256": "e6b1c0ee696f6a76cb4d6e5ac657a32965a243d522a9cc09ca43f027aef33829",
+    "configuration": "Native debug --strip",
+    "runtimeBundleComponentDigestMatches": true
+  },
+  "execution": {
+    "node": "24.21.0",
+    "moon": "repository-pinned toolchain",
+    "nativePlatform": "darwin-arm64",
+    "duckdbApi": "1.5.5-r.4",
+    "dependencySupply": "Existing pinned external DuckDB installation borrowed read-only; not an ActQL artifact overlay"
+  },
+  "evidenceDirectories": [
+    "_build/resident-effect-poll-routing-1791558334380",
+    "_build/resident-effect-poll-routing-1791558455390"
+  ],
+  "receipts": [
+    {
+      "label": "format",
+      "startedAt": "2026-10-09T15:05:34.498Z",
+      "finishedAt": "2026-10-09T15:05:34.552Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "native-command",
+      "startedAt": "2026-10-09T15:05:34.553Z",
+      "finishedAt": "2026-10-09T15:05:34.650Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "effect-materials",
+      "startedAt": "2026-10-09T15:05:34.650Z",
+      "finishedAt": "2026-10-09T15:05:35.206Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "values-materials",
+      "startedAt": "2026-10-09T15:05:35.206Z",
+      "finishedAt": "2026-10-09T15:05:35.808Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "effect-acceptance",
+      "startedAt": "2026-10-09T15:05:35.808Z",
+      "finishedAt": "2026-10-09T15:05:36.195Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "effect-holders",
+      "startedAt": "2026-10-09T15:05:36.195Z",
+      "finishedAt": "2026-10-09T15:05:39.454Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "source-admission",
+      "startedAt": "2026-10-09T15:05:39.454Z",
+      "finishedAt": "2026-10-09T15:05:40.406Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "interface",
+      "startedAt": "2026-10-09T15:05:40.407Z",
+      "finishedAt": "2026-10-09T15:05:40.560Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "portable-interface",
+      "startedAt": "2026-10-09T15:05:40.560Z",
+      "finishedAt": "2026-10-09T15:05:40.653Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "ordinary-site-process",
+      "startedAt": "2026-10-09T15:05:40.713Z",
+      "finishedAt": "2026-10-09T15:06:12.510Z",
+      "code": 1,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "ordinary-site-process",
+      "startedAt": "2026-10-09T15:07:35.593Z",
+      "finishedAt": "2026-10-09T15:07:41.650Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    },
+    {
+      "label": "history",
+      "startedAt": "2026-10-09T15:07:41.731Z",
+      "finishedAt": "2026-10-09T15:09:17.061Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true
+    }
+  ],
+  "firstProcessFailure": {
+    "code": "MODULE_NOT_FOUND",
+    "module": "@duckdb/node-api",
+    "phase": "test database setup before resident Site execution",
+    "resolution": "Supply read-only external dependency matching the repository pin",
+    "log": "_build/resident-effect-poll-routing-1791558334380/ordinary-site-process.log"
+  },
+  "notVerified": [
+    "Effect production poll/holder process scenario; new Effect tests exercise the actual acceptance Owner and existing Native Runtime/Transfer holders, while the production-process regression is Effect-free",
+    "Full physical Source/receiver/borrow custody restoration for an Effect Run after process restart",
+    "Checkpoint waiting Run commit, authenticated approval, write execution and saved/unknown write reconciliation",
+    "Effect Named Result publication and public SDK/Cloud Preview acceptance",
+    "Formal Cloud adoption of this unmerged OSS source",
+    "Hosted CI, full Core and all-target or packed campaigns",
+    "Historical Cloud issue 88 Run resolution"
+  ],
+  "hostedCi": "Not started; existing stop instruction retained"
+}

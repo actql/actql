@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/salesforce_effect_preview"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/platform_native/credential_resource",
+  "actql/actql/remote_credential",
+}
+
+// Values
+pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeSalesforcePreviewIssue {
+  InvalidLimits
+  ForeignScope
+  Catalog(@catalog.WriteProjectionIssue)
+  Credential(@credential_resource.NativeCredentialResourceIssue)
+  Observation(@catalog.TargetObservationIssue)
+}
+
+// Type aliases
+
+// Traits

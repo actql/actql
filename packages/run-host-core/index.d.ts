@@ -65,6 +65,11 @@ export interface EffectCompilation {
 export interface AllowedEffectRun {
   readonly [effectAllowedBrand]: true;
 }
+/** Static preparation selection; never permission to acquire or apply. */
+export function prepareProgram(document: string, format: 'json' | 'yaml',
+  environment: CheckEnvironment, parametersWire?: string):
+  Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |
+  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
 export function compileEffect(prepared: PreparedEffectProgram): EffectCompilation;

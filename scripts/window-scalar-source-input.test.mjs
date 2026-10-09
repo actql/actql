@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {windowScalarProgram, windowScalarSuccesses, windowScalarRefusals,
   windowScalarExecutionFailures, groupedLagOperandProgram,
-  groupedSumOperandProgram, selectPrivateWindowProgram, qualifyPrivateWindowProgram} from './fixtures/window-scalar-source-input.mjs';
+  groupedSumOperandProgram, selectPrivateWindowProgram, pipePrivateWindowProgram, qualifyPrivateWindowProgram} from './fixtures/window-scalar-source-input.mjs';
 
 test('QUALIFY private-window fixtures filter one evaluated value without losing public columns', () => {
   const get = name => windowScalarSuccesses.find(item => item.name === 'window-scalar-schema-private-qualify-' + name);
@@ -32,6 +32,39 @@ test('QUALIFY private-window fixtures filter one evaluated value without losing 
     ['window-alias-input', 'ClientProgramImplementationLimit']]) {
     assert.equal(windowScalarRefusals.find(item => item.name.endsWith('schema-private-qualify-' + name)).expectedCode, code);
   }
+});
+
+test('Pipe private-window controls preserve predicates, assignments and immutable inputs', () => {
+  const cases = new Map(windowScalarSuccesses.map(item => [item.name, item]));
+  const get = name => cases.get('window-scalar-pipe-schema-private-' + name);
+  for (const kind of ['where', 'extend', 'set']) {
+    const control = pipePrivateWindowProgram(kind);
+    assert.deepEqual(JSON.parse(get(kind + '-json').text), control);
+    assert.deepEqual(get(kind + '-json').expected, get(kind).expected);
+    const field = get(kind).columns[0].name;
+    assert.ok(!get(kind).text.toLowerCase().includes(field.toLowerCase()),
+      'the name collision comes from the checked schema');
+    assert.equal(get(kind).columns[0].contract.nullable, true);
+    assert.equal(get(kind).sourceReadSessionCount, 0);
+    assert.equal(get(kind + '-uppercase').columns[0].name, field.toUpperCase());
+    assert.deepEqual(control.stages[0].steps[5].analytic.functions, {private_rank: {fn: 'row_number'}});
+    assert.equal(windowScalarRefusals.find(item => item.name.endsWith('pipe-schema-private-' + kind)).expectedCode,
+      'ClientProgramInvalidInput');
+  }
+  assert.deepEqual(pipePrivateWindowProgram('where').stages[0].steps[6],
+    {filter: {eq: [{field: 'private_rank'}, {literal: 1}]}});
+  assert.deepEqual(pipePrivateWindowProgram('set').stages[0].steps[6],
+    {derive: {assigned_id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+  assert.deepEqual(pipePrivateWindowProgram('set').stages[0].steps[7],
+    {select: ['aql_pipe_set_window_0', {id: 'assigned_id'}]},
+    'a derive map adds a fresh slot; SELECT performs the declared assignment');
+  assert.deepEqual(get('where').expected, [{aql_pipe_where_window_0: 90, id: 1}]);
+  assert.deepEqual(get('extend').expected.map(row => row.pos), [3, 2]);
+  assert.deepEqual(get('set').expected.map(row => row.id), [12, 11]);
+  assert.deepEqual(get('where-nullable').expected, [{aql_pipe_where_window_0: null, id: 1}]);
+  assert.deepEqual(get('set-empty').expected, []);
+  assert.deepEqual(get('set-immutable').expected.map(row => [row.original, row.id]), [[2, 12], [1, 11]]);
+  assert.deepEqual(get('extend-authored-key').expected.map(row => row.pos), [2, 3]);
 });
 
 test('schema-only private-name columns retain independent window values and public types', () => {
