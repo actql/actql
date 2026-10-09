@@ -354,3 +354,82 @@ export const unnestReceiverRefusals = [
   parameters: receiverParameters, expectedCode: 'ClientProgramInvalidInput'}));
 unnestSuccesses.push(...unnestReceiverSuccesses);
 unnestRefusals.push(...unnestReceiverRefusals);
+
+// Scalar range receivers outrank same-named implicit parent fields. This
+// independent Program selects the real element/index; no text output is used.
+const precedenceDeclarations = {parents: {type: 'array', nullable: true, max_items: 1,
+  items: {type: 'object', nullable: false, fields: {
+    element: {type: 'number', nullable: false}, position: {type: 'number', nullable: false},
+    items: declarations.items,
+  }}}};
+const precedenceParameters = {parents: [{element: 100, position: 50, items: [2, null, 1]}]};
+const precedenceFields = ['element', 'original', 'position', 'original_position'];
+const precedenceColumns = [column('element', true), column('original'),
+  column('position'), column('original_position')];
+const precedenceRows = [{element: 2, original: 100, position: 0, original_position: 50},
+  {element: null, original: 100, position: 1, original_position: 50},
+  {element: 1, original: 100, position: 2, original_position: 50}];
+const precedencePrefix = [
+  {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+  {from: 'seed', derive: {parents: {$param: 'parents'}}},
+  {unnest: {column: 'parents', as: 'parent'}},
+  {derive: {array: {property: {value: {field: 'parent'}, name: 'items'}},
+    original: {property: {value: {field: 'parent'}, name: 'element'}},
+    original_position: {property: {value: {field: 'parent'}, name: 'position'}}}},
+  {unnest: {column: 'array', as: 'element', with_index: 'position'}},
+];
+const precedenceProgram = {version: 'actql/0.1', id: 'fixture.unnest.scalar_receiver',
+  params: precedenceDeclarations, stages: [{id: 'main', inputs: {}, steps: [
+    ...precedencePrefix,
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: precedenceFields, as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: precedenceFields}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const precedenceSelect = 'SELECT element, p.element AS original, position, p.position AS original_position';
+const precedenceFrom = 'FROM UNNEST(@parents) p CROSS JOIN UNNEST(p.items) element WITH OFFSET position';
+const precedencePipe = 'FROM UNNEST(@parents) p |> CROSS JOIN UNNEST(p.items) element WITH OFFSET position';
+const precedenceSuccess = (name, text, extra = {}) => ({
+  name: 'unnest-scalar-receiver-' + name, format: 'aql-text', text,
+  expected: precedenceRows, columns: precedenceColumns,
+  parameterDeclarations: precedenceDeclarations, parameters: precedenceParameters,
+  sourceReadCount: 0, sourceReadSessionCount: 0, ...extra,
+});
+unnestSuccesses.push(
+  precedenceSuccess('json-control', JSON.stringify(precedenceProgram),
+    {format: 'json', parameterDeclarations: undefined}),
+  precedenceSuccess('pipe', `${precedencePipe} |> ${precedenceSelect} |> ORDER BY position`),
+  precedenceSuccess('sql', `${precedenceSelect} ${precedenceFrom} ORDER BY position`, {format: 'sql'}),
+  precedenceSuccess('quoted',
+    'FROM UNNEST(@parents) `P` |> CROSS JOIN UNNEST(`p`.items) `ELEMENT` WITH OFFSET `POSITION` '
+      + '|> SELECT `element` AS element, p.element AS original, `position` AS position, p.position AS original_position |> ORDER BY position'),
+  precedenceSuccess('predicate', `${precedencePipe} |> WHERE element > 1 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[0]]}),
+  precedenceSuccess('offset-predicate', `${precedencePipe} |> WHERE position = 1 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[1]]}),
+  precedenceSuccess('computed-predicate', `${precedencePipe} |> WHERE element + 1 > 2 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[0]]}),
+  precedenceSuccess('receiver-order', `${precedencePipe} |> ORDER BY element NULLS LAST |> ${precedenceSelect}`,
+    {expected: [precedenceRows[2], precedenceRows[0], precedenceRows[1]]}),
+  precedenceSuccess('empty', `${precedencePipe} |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [], parameters: {parents: []}}),
+  precedenceSuccess('null-parent-array', `${precedencePipe} |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [], parameters: {parents: null}}),
+  precedenceSuccess('join-remapping', `${precedencePipe} |> WHERE position = 0 `
+    + '|> JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 3 '
+    + `|> WHERE position = 0 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[0]]}),
+  precedenceSuccess('group-sql', `SELECT element, COUNT(*) AS n ${precedenceFrom} GROUP BY element ORDER BY element NULLS LAST`,
+    {format: 'sql', expected: [{element: 1, n: 1}, {element: 2, n: 1}, {element: null, n: 1}],
+      columns: [column('element', true), column('n')]}),
+  precedenceSuccess('group-pipe', `${precedencePipe} |> AGGREGATE COUNT(*) AS n GROUP BY element |> ORDER BY element NULLS LAST`,
+    {expected: [{element: 1, n: 1}, {element: 2, n: 1}, {element: null, n: 1}],
+      columns: [column('element', true), column('n')]}),
+);
+unnestRefusals.push(...[
+  ['removed-element', `${precedencePipe} |> SELECT p.element AS original |> WHERE element > 0`],
+  ['removed-offset', `${precedencePipe} |> SELECT p.position AS original_position |> WHERE position = 0`],
+  ['removed-parent-range', `${precedencePipe} |> ${precedenceSelect} |> WHERE p.element > 0`],
+  ['scalar-member', `${precedencePipe} |> SELECT element.missing AS missing`],
+].map(([name, text]) => ({name: 'unnest-refusal-scalar-receiver-' + name, text,
+  format: 'aql-text', parameterDeclarations: precedenceDeclarations, parameters: precedenceParameters,
+  expectedCode: 'ClientProgramInvalidInput'})));
