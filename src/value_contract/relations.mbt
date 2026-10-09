@@ -245,7 +245,7 @@ pub fn join_nullability_usage(
             let ordered = Array::makei(entries.length(), i => {
               entries[entries.length() - 1 - i]
             })
-            Object({ values: ordered, })
+            Object({ values: ordered, name_bytes: x.name_bytes, })
           }
           (ArtifactRef(media_type=x), ArtifactRef(media_type=y)) =>
             ArtifactRef(media_type=if x == y { x } else { None })

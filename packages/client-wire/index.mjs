@@ -235,6 +235,33 @@ export const snapshotClientRequest = value =>
 export const snapshotCheckRequest = value =>
   snapshotRequest(value, 'UnrepresentableCheckNumber');
 
+// Synchronous Host ingress preparation. Capture the original Workspace target
+// before serialization or an awaited authentication/authorization boundary.
+// Authentication, authorization and transport-specific reading stay outside.
+export function prepareClientHostRequest(operation, original) {
+  if (!validClientBody(operation, original)) return undefined;
+  const suppliedConnection = original.connection;
+  const connection = Object.freeze({...suppliedConnection,
+    consentRefs: Object.freeze([...suppliedConnection.consentRefs]),
+    runners: Object.freeze([...suppliedConnection.runners])});
+  if (!validClientConnection(connection)) return undefined;
+  let body = original;
+  if (operation === 'check') {
+    // Observe the original serializer once, before spreading can erase it.
+    try { body = snapshotCheckRequest(body); }
+    catch { return undefined; }
+    if (!validClientBody(operation, body)) return undefined;
+  }
+  // A serializer cannot remove or replace the captured Workspace assertion.
+  body = {...body, connection};
+  if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
+    try { body = snapshotClientRequest(body); }
+    catch { return undefined; }
+    if (!validClientBody(operation, body)) return undefined;
+  }
+  return Object.freeze({body, connection});
+}
+
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
   // Template requests contain no submitted bindings. The scope is selected

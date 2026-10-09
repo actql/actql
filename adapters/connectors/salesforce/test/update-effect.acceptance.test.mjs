@@ -8,6 +8,7 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
+import {getSubmissionOutcome} from '../../../../packages/sdk/index.mjs';
 import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 import {numberText} from './salesforce-effect-site.fixture.mjs';
 import {approveHeldSet, readComputeEffectInstallation, waitFor} from
@@ -47,7 +48,8 @@ const nameProgram = (setup, ids) => JSON.stringify(effectProgram({save:
 
 async function submit(setup, host, program, requestId) {
   const client = await host.as('owner-token');
-  const execution = await client.startSource(program, {format: 'json', requestId});
+  const execution = await client.startSource(program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: requestId})});
   const state = await waitFor(async () => {
     const current = await execution.status();
     return current.status === 'waiting_checkpoint' ||
@@ -121,8 +123,13 @@ test('a nullable source for a non-nullable field is refused at submission',
     await assert.rejects(client.startSource(typedProgram(setup, [
       {id: 'a00000000000001', amount: '1.00',
         at: '2024-06-01T09:30:00.000Z', name: null}], true),
-    {format: 'json', requestId: 'update-null-name'}),
-    {code: 'ClientProgramRejected'});
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'update-null-name'})}),
+    error => {
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      assert.deepEqual(getSubmissionOutcome(error).problem,
+        {code: 'ClientProgramRejected', classification: 'operation_failed'});
+      return true;
+    });
     assert.equal(setup.writes().length, 0);
   });
 

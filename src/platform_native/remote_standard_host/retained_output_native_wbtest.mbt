@@ -1,6 +1,6 @@
 ///|
 fn retained_output_test_root() -> String {
-  @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
+  @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT").unwrap_or_else(() => {
     abort("retained output Native tests require a private physical root")
   })
 }

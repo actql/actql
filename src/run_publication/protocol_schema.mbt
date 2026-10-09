@@ -221,7 +221,9 @@ fn validate_protocol_node(
   budget : ProtocolValidationBudget,
 ) -> Bool {
   let cursor = start_protocol_validation(value, index, nodes, budget)
-  while !cursor.advance(256).0 { () }
+  while !cursor.advance(256).0 {
+    ()
+  }
   let result = cursor.result
   cursor.cancel()
   result

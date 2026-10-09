@@ -4,9 +4,13 @@ import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import {assertTestExecution, nodeTestArguments} from '../../scripts/test-execution.mjs';
+import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs';
+import './effect-crash-evidence.test.mjs';
 
 const scratch = new URL('../../_build/effect-partial-refusal/', import.meta.url);
+const childFile = fileURLToPath(new URL('./remote-checkpoint-host.test.mjs', import.meta.url));
 await mkdir(scratch, {recursive: true});
 const cases = [
   ['applied', 'none'], ['applied', 'answer_deadline'],
@@ -25,7 +29,7 @@ for (const [rowState, refusal] of cases) {
     await writeFile(keyPath, JSON.stringify(keys), {mode: 0o600});
     const args = nodeTestArguments(['--test', '--test-name-pattern',
       '^partial Effect historical refusal crash fixture$',
-      'adapters/host-node/remote-checkpoint-host.test.mjs']);
+      childFile]);
     const {NODE_TEST_CONTEXT: _outerContext, ...childEnvironment} = process.env;
     const run = phase => spawnSync(process.execPath, args, {
       cwd: new URL('../../', import.meta.url), encoding: 'utf8', timeout: 45_000,
@@ -34,8 +38,7 @@ for (const [rowState, refusal] of cases) {
         ACTQL_TEST_PARTIAL_EFFECT_ROW: rowState, ACTQL_TEST_PARTIAL_EFFECT_REFUSAL: refusal},
     });
     const seed = run('seed');
-    assert.notEqual(seed.status, 0, seed.stdout + seed.stderr);
-    assert.match(seed.stdout + seed.stderr, /77/, 'the real child must die after durable application');
+    assertPartialEffectSeedExit(seed, childFile);
     const seeded = JSON.parse(await readFile(join(hostRoot, 'partial-effect-seed.json'), 'utf8'));
     assert.deepEqual(seeded.states, [{prepared: 0, applied: 2, accepted: 3, unknown: 5}[rowState], 0]);
     assert.equal(seeded.started, true);

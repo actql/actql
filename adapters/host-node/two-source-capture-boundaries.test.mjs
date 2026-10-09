@@ -35,8 +35,12 @@ test('plural source configuration is bounded, copied and exclusive', () => {
   assert.equal(Object.isFrozen(admitted), true);
   assert.deepEqual(installedSourcePaths({sourceProfilePath: '/single.json'}, '/fallback.json'),
     ['/single.json']);
+  // The installed inventory admits up to 128 authorities independently of
+  // this fixture's selected two-source execution shape.
+  const maximum = Array.from({length: 128}, (_, index) => `/owned/source-${index}.json`);
+  assert.deepEqual(installedSourcePaths({sourceProfilePaths: maximum}), maximum);
   for (const sourceProfilePaths of [[], ['/left'], ['/same', '/same'],
-    ['relative', '/right'], ['/left', '/right', '/third'], 'not-an-array']) {
+    ['relative', '/right'], [...maximum, '/owned/overflow.json'], 'not-an-array']) {
     assert.throws(() => installedSourcePaths({sourceProfilePaths}),
       {message: 'InvalidInstalledSourceProfiles'});
   }

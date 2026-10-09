@@ -1,10 +1,12 @@
-// One owned SQLite namespace per invocation, including local CI reruns.
+// One owned Native fixture namespace per invocation, including local CI reruns.
 // A caller-supplied root is a parent, never a directory we adopt or remove.
 import {spawnSync} from 'node:child_process';
+import {mkdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {nativeCompletedRestorationBundle} from './native-completed-restoration-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -12,9 +14,24 @@ const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
 const scratch = await createOwnedScratch({parent: resolve(parent),
   prefix: 'native-', label: 'Native core SQLite'});
 console.log(`Native core SQLite namespace: ${scratch.path}`);
+// These unconditional fixtures share the existing restoration owner, not the
+// optional publication Store root. Enabling that global root would let unrelated
+// packages contend on one Store lock and contaminate its format admission.
+for (const name of ['standard', 'bundles', 'executor-slot']) {
+  mkdirSync(join(scratch.path, name), {mode: 0o700});
+}
+const bundle = nativeCompletedRestorationBundle();
 const result = spawnSync('moon', ['test', '--target', 'native',
   ...process.argv.slice(2)], {cwd: root, stdio: 'inherit', env: {
   ...process.env,
+  ...bundle,
+  ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(scratch.path, 'standard'),
+  ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(scratch.path, 'bundles'),
+  ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(scratch.path, 'executor-slot'),
+  ACTQL_TEST_NATIVE_CRYPTO_LIBRARY:
+    process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
+    (process.platform === 'darwin' ?
+      '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib' : 'libcrypto.so.3'),
   ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
     process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
     (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib' : 'libsqlite3.so.0'),

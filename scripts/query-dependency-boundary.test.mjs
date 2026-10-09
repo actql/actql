@@ -129,7 +129,7 @@ test('standard Node execution uses the connector-free serial driver and exact re
   const driver = readFileSync('adapters/host-common/strategy.mjs', 'utf8');
   const entry = readFileSync('adapters/host-node/entry.mjs', 'utf8');
   // The common serial driver may use only common publication, Site and
-  // Transfer lifecycle modules. Connector or concrete I/O ownership must not
+  // Transfer lifecycle and optional copied-observation modules. Connector or concrete I/O ownership must not
   // leak in.
   const driverImports = [...driver.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
     .map(match => match[1]).sort();
@@ -140,12 +140,17 @@ test('standard Node execution uses the connector-free serial driver and exact re
     './execution-sites.mjs',
     './managed-site-transfer.mjs',
     './run-publication-preflight.mjs',
+    './task-observation.mjs',
   ]);
   assert.doesNotMatch(driver, /strategyHostNative|strategyHostTakeNative|DuckDB|duckdb|resident/);
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);
   assert.match(driver, /core\.completed\(setup, index\)/);
   assert.match(entry,
-    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*authorization,\s*\)/u);
+    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*authorization,\s*taskStartObserver\(observer\),\s*taskObservation,\s*\)/u);
+  const observation = readFileSync('adapters/host-common/task-observation.mjs', 'utf8');
+  assert.doesNotMatch(observation, /\b(?:import|require)\b/);
+  assert.match(observation, /project\(Object\.freeze\(\{event, task, durationMs\}\)\)/);
+  assert.match(observation, /catch\s*\{/);
   assert.match(entry, /const observeCompletion = completionObserver\(observer\)/);
   assert(entry.indexOf('completionObserver(observer)') < entry.indexOf('await'));
   assert.doesNotMatch(entry, /strategyHostNative|runResidentStrategyHostCompute|runStrategyHostCompute/);
