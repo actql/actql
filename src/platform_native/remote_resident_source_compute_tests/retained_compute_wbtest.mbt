@@ -770,7 +770,13 @@ fn retained_compute_case(
   }
   let producer_dependency = match effect_materials {
     Some((materials, _)) =>
-      Some(retained_effect_producer_dependency(source_owner, materials))
+      Some(
+        retained_effect_producer_dependency(
+          source_owner,
+          materials,
+          acquired.unwrap().0,
+        ),
+      )
     None => None
   }
   assert_eq(entries.val, 0)
@@ -948,6 +954,7 @@ fn retained_compute_case(
       root_local_index,
       effect_local_index,
       earlier,
+      @host.client_effect_acquired_invocation(again),
       producer_dependency.unwrap().0,
       producer_dependency.unwrap().1,
       producer_dependency.unwrap().2,

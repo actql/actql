@@ -2,6 +2,7 @@
 fn retained_effect_producer_dependency(
   owner : @resident.ResidentSourceCompute,
   materials : @host.ClientEffectRunMaterials,
+  source : @host.ClientEffectAcquiredEvidence,
 ) -> (
   @strategy.CapturedEffectLocalUnitInputs,
   @host.ClientEffectLocalResultArtifact,
@@ -33,7 +34,6 @@ fn retained_effect_producer_dependency(
   ).unwrap()
   let receipt = transferred_effect_result_receipt(exported)
   println("retained-effect-evidence: producer-export-complete")
-  let (source, _) = retained_compute_acquired_evidence(owner).unwrap()
   let (observation, invocation) = producer_dependency_observation(
     materials, source,
   )
@@ -102,6 +102,7 @@ fn retained_effect_transferred_artifact(
   root_index : Int,
   result_index : Int,
   source : @host.ClientEffectAcquiredEvidence,
+  foreign_invocation : @host.ClientEffectLocalInvocation,
   sender_inputs : @strategy.CapturedEffectLocalUnitInputs,
   sender : @host.ClientEffectLocalResultArtifact,
   sender_manifest : @host.ClientEffectLocalManifest,
@@ -140,6 +141,23 @@ fn retained_effect_transferred_artifact(
     @host.client_effect_local_result_artifact_json(receiver),
     @host.client_effect_local_result_artifact_json(sender),
   )
+  assert_eq(
+    @host.client_effect_local_invocation_cid(foreign_invocation),
+    @host.client_effect_local_invocation_cid(
+      @host.client_effect_acquired_invocation(source),
+    ),
+  )
+  assert_true(
+    @host.issue_client_effect_local_manifest(
+      materials.prepared,
+      foreign_invocation,
+      [receiver],
+      65536,
+      4096,
+      64,
+    )
+    is Err(ForeignArtifact),
+  )
   let manifest = @host.issue_client_effect_local_manifest(
     materials.prepared,
     @host.client_effect_acquired_invocation(source),
@@ -164,6 +182,11 @@ fn retained_effect_transferred_artifact(
     64,
   ).unwrap()
   println("retained-effect-evidence: import-observation-complete")
+  assert_true(
+    @host.client_effect_result_import_observation_json(observation).contains(
+      @host.client_effect_local_result_artifact_cid(sender),
+    ),
+  )
   let evidence = @host.issue_client_effect_imported_evidence(
     materials.prepared,
     inputs,
@@ -309,16 +332,28 @@ fn retained_effect_transferred_artifact(
     64,
   ).unwrap()
   |> ignore
-  assert_false(
-    @host.client_effect_local_result_derivation_json(result).contains(
-      @host.client_effect_local_result_artifact_cid(receiver),
+  // The observation identifies the Artifact; the derived input Relation
+  // preserves its exact provenance and the consumer derivation names that
+  // Relation. These three reference kinds must not be conflated.
+  let relation_body = @host.client_effect_imported_relation_bodies(evidence)[0]
+  let relation = @publication.admit_publication_contract(
+    "acquisition_relation", relation_body, 65536, 4096, 64,
+  ).unwrap()
+  let producer_derivation = @publication.admit_publication_contract(
+    "derivation_evidence",
+    @host.client_effect_local_result_derivation_json(sender),
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  assert_true(
+    relation_body.contains(
+      @publication.publication_contract_identity(producer_derivation),
     ),
   )
-  // The derivation references the exact admitted input Relation; that Relation
-  // closes the dependency edge to the producer Artifact instead of inlining it.
   assert_true(
-    @host.client_effect_imported_relation_bodies(evidence)[0].contains(
-      @host.client_effect_local_result_artifact_cid(receiver),
+    @host.client_effect_local_result_derivation_json(result).contains(
+      @publication.publication_contract_identity(relation),
     ),
   )
   @execution.cancel_completed_relation_export_receipt(receipt)
