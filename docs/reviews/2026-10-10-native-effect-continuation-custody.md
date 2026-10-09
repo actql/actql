@@ -46,7 +46,11 @@ retired slot.
 
 ## Acceptance and remaining work
 
-The existing actual Native Provider Preview fixture injects interruption after
+The existing actual Native Provider harness has a separate Checkpoint case that
+uses the unchanged 10-attempt and 512 MiB limits. The original Source custody
+fault campaign remains in its original case; those cumulative fault allocations
+are not rerun inside the new Checkpoint case. No resource bound is increased.
+The Checkpoint case injects interruption after
 continuation commit, interruption after Checkpoint commit and lost terminal-save
 acknowledgement. It verifies that partial storage exposes no waiting projection,
 full readback projects the original Run, retries retain exact ciphertext and

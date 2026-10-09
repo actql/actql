@@ -22,6 +22,7 @@ fn retained_effect_preview_store(
   computation : @resident.ResidentEffectCaptureCustody,
   baseline : Int64,
   computation_bytes : Int64,
+  checkpoint_custody? : Bool = false,
 ) -> @store.Store raise {
   let identity = @strategy.captured_effect_preview_ledger_identity(preview)
   let holding = @publication.effect_preview_private_holding_cid(
@@ -250,10 +251,12 @@ fn retained_effect_preview_store(
     store.capacity_usage().unwrap().reserved_bytes,
     computation_bytes + preview_bytes,
   )
-  store = retained_effect_checkpoint_store(
-    consumer, inputs, prepared_checkpoint, computation, custody, store, authority,
-    crypto, key, sqlite, path, review_limits,
-  )
+  if checkpoint_custody {
+    store = retained_effect_checkpoint_store(
+      consumer, inputs, prepared_checkpoint, computation, custody, store, authority,
+      crypto, key, sqlite, path, review_limits,
+    )
+  }
   let inspection = sqlite
     .open_database(path + "/.actql-publication.sqlite3", 262144L)
     .unwrap()

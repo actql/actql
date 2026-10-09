@@ -344,6 +344,7 @@ fn retained_compute_case(
   probe_proposals? : Bool = false,
   provider? : Bool = false,
   deny_provider? : Bool = false,
+  checkpoint_custody? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -997,6 +998,7 @@ fn retained_compute_case(
         output,
         stop_custodies,
         provider=Some(facts),
+        checkpoint_custody~,
       )
       provider_artifact_bound.val = true
     }
@@ -1291,4 +1293,14 @@ test "Native retained consumer proposals reach actual Provider target reads with
 ///|
 test "Native retained consumer Provider observation refuses lost current permission without releasing custody" {
   retained_compute_case(false, effect=true, provider=true, deny_provider=true)
+}
+
+///|
+test "Native Checkpoint custody retains the original confirmed Effect review before waiting" {
+  retained_compute_case(
+    false,
+    effect=true,
+    provider=true,
+    checkpoint_custody=true,
+  )
 }
