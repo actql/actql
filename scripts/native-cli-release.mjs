@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkoutState} from './packed-client-packages.mjs';
+import {checkoutState, CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
 
@@ -14,6 +14,15 @@ const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algor
 const platforms = Object.freeze({'darwin-arm64': {os: 'darwin', cpu: 'arm64'},
   'linux-x64-gnu': {os: 'linux', cpu: 'x64', libc: 'glibc'}});
 const exact = (v, keys) => assert.deepEqual(Object.keys(v).sort(), [...keys].sort());
+
+// The two RCs retain distinct source SHAs. Their shared Host and protocol
+// packages must agree too: generated wire and SDK code live outside src/.
+export function sharedRuntimeSourceDelta(root, hostSha, cliSha) {
+  for (const revision of [hostSha, cliSha]) assert.match(revision, /^[a-f0-9]{40}$/u);
+  return execFileSync('git', ['--no-replace-objects', 'diff', '--name-only', hostSha, cliSha, '--',
+    'src', 'adapters', 'spec', 'moon.mod', 'moon.lock', 'toolchain.json', 'package-lock.json',
+    ...CLIENT_PACKAGES.map(name => `packages/${name}`)], {cwd: root, encoding: 'utf8'}).trim();
+}
 
 export async function admitNativeArtifact(directory, sourceSha) {
   const record = JSON.parse(await readFile(join(directory, 'artifact.json'), 'utf8'));
