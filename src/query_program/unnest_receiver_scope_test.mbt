@@ -25,7 +25,7 @@ test "UNNEST receiver collision public sources retain ordinary checking" {
       "SELECT element AS original, element.element AS field_value, position FROM UNNEST(@items) element WITH OFFSET position WHERE element IS NOT NULL ORDER BY position",
       "SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position",
       "SELECT element.*, position FROM UNNEST(@items) element WITH OFFSET position ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> SET element = 100 |> SELECT element AS original, element.element AS field_value, position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> SET position = position + 10 |> SELECT element AS original, element.element AS field_value, position |> ORDER BY position",
       "FROM UNNEST(@items) element WITH OFFSET position |> SET element = 100 |> SELECT * |> ORDER BY position",
     ] {
     let actual = compile(

@@ -6,6 +6,7 @@ priv struct JoinChainScope {
   visible : Array[(String, String)]
   ranges : Array[(@query.NamePart, Array[(String, String)])]
   receivers : Array[(@query.NamePart, String)]
+  scalar_ranges : Array[(@query.NamePart, String)]
 }
 
 ///|
@@ -22,7 +23,12 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
   }
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index)
-      is Some(Group(_, _, _) | Qualify(_, _) | UnnestSource(_, _, _) | Rename(_)) {
+      is Some(
+        Group(_, _, _)
+        | Qualify(_, _)
+        | UnnestSource(_, _, _)
+        | Rename(_)
+      ) {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
@@ -42,6 +48,14 @@ fn join_chain_reference(
 ) -> (String, String) raise Abort {
   let matches : Array[(String, String)] = []
   if path.length() == 1 {
+    // Range receivers outrank columns on either JOIN operand. USING still
+    // uses its independent column-target resolution below.
+    let receivers = (scope.receivers + scope.scalar_ranges).filter(receiver => {
+      same_name(path[0], receiver.0)
+    })
+    if receivers.length() == 1 {
+      return ("left", receivers[0].1)
+    }
     for entry in scope.visible {
       if same_name(path[0], { value: entry.0, quoted: false, }) {
         matches.push(("left", entry.1))
@@ -174,6 +188,7 @@ fn compile_join_chain_steps(
     visible: original,
     ranges: [(query_range_name(query), original.copy())],
     receivers: [],
+    scalar_ranges: [],
   })
   let visible = source_scope.visible.map(entry => (entry.0, slots[entry.1]))
   let first_ranges = source_scope.ranges.map(range => {
@@ -204,7 +219,11 @@ fn compile_join_chain_steps(
             append_pipe_expression(
               construction,
               predicate,
-              scope.visible,
+              unnest_expression_columns(
+                scope.visible,
+                scope.receivers,
+                scope.scalar_ranges,
+              ),
               scope.ranges,
               limits.max_expression_work,
             ),
@@ -374,6 +393,13 @@ fn compile_join_chain_steps(
       visible: next_visible,
       ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
       [(qualifier, right_range)],
+      scalar_ranges: if index == 0 {
+        source_scope.scalar_ranges.map(receiver => {
+          (receiver.0, slots[receiver.1])
+        })
+      } else {
+        scope.scalar_ranges.copy()
+      },
       receivers: if index == 0 {
         source_scope.receivers.map(receiver => (receiver.0, slots[receiver.1]))
       } else {

@@ -827,6 +827,14 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+Scalar UNNEST also introduces a range name, although it has no member columns.
+Pipe RENAME cannot rename that original value-table range. SELECT or AS first
+creates an ordinary column scope; SET of the whole value column also removes
+its original range and permits a later RENAME. DROP removes the matching range.
+The range kind is retained across JOIN continuations and checked for duplicate
+UNNEST aliases. A scalar `element.*` remains invalid; scalar DISTINCT continues
+to compare the visible scalar values, rather than object-field expansions.
+
 The same expansion accepts declared parameter property paths, for example
 `FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
 names retain their ordinary expression meaning. The Frontend follows the
@@ -845,9 +853,15 @@ error, rather than a guessed or truncated output schema.
 
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
-rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
-current columns while a surviving original range retains its value slots, with
-the same-name target exceptions defined above. SELECT or AS
+rows; a declared OFFSET can be used for ordering. Implicitly exposed object
+fields are expression/star names, not Pipe SET/DROP/RENAME column targets.
+Project them with SELECT first to create ordinary editable columns. SET can
+replace the whole value-table column named by its range; the replacement is an
+ordinary column and its old implicit fields are no longer current columns.
+DROP of that value-table column removes its implicit fields and range. RENAME
+cannot rename the value-table range. Other current columns remain editable and
+surviving ranges retain original value slots, with the same-name target
+exceptions defined above. SELECT or AS
 establishes the ordinary new Relation scope and removes that original range,
 except for the existing directly following SELECT-owned ORDER boundary.
 No witness, array, element or property implementation slot is publicly exported.
