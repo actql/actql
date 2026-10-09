@@ -544,7 +544,7 @@ fn ExpressionParser::expression(
                       match upper_ascii(word) {
                         "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
                         "STRING" => ArrayElementType::String
-                        "FLOAT64" => ArrayElementType::Number
+                        "FLOAT64" | "DOUBLE" => ArrayElementType::Number
                         "TIMESTAMP" => ArrayElementType::Timestamp
                         "JSON" => ArrayElementType::Json
                         _ =>
@@ -903,7 +903,7 @@ fn ExpressionParser::expression(
             match upper_ascii(word) {
               "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
-              "FLOAT64" => CastType::Number
+              "FLOAT64" | "DOUBLE" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp
               "DECIMAL" => {
                 let open = self.advance()
