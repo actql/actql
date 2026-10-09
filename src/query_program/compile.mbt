@@ -386,6 +386,13 @@ fn same_expression(
     }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
+    if two_operand_coalesce_shape(left, a_index) is Some(a_items) &&
+      two_operand_coalesce_shape(right, b_index) is Some(b_items) {
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
     match (a, b) {
       (Parenthesized(child), _) => pending.push((child, b_index))
       (_, Parenthesized(child)) => pending.push((a_index, child))
