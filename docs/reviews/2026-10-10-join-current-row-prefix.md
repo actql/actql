@@ -224,5 +224,40 @@ ORDER-window corpus remains unchanged, and the additions are included by its
 normal packed registration.
 
 The previous LIMIT-prefix public receipt remains evidence for its own source
-SHA. Fresh normal-package ORDER-window public execution is pending here; the
-new scoped compiler checks are not presented as public success.
+SHA. Fresh normal-package ORDER-window public execution completed at the source SHA
+below; the scoped compiler checks and public execution remain distinct evidence.
+
+### ORDER-window public result
+
+Clean packed source: `77f34f3724387a4a13ef067e40394b01180927c3`. One serialized
+1200-second guard (`_build/local-checks/attempts/run-WZUIbI`) ran the ordinary
+five-package producer, independent manifest/digest verification and the existing
+focused consumer:
+
+```sh
+node scripts/packed-client-packages.mjs \
+  /private/tmp/actql-b-join-order-window-77f34f372-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-order-window-77f34f372-pack \
+  node scripts/test-packed-public-query.mjs --order-window-only
+```
+
+Original receipt and command logs: `../.codex-scratch/public-query-evidence-ATraSc`.
+Both Local and HTTPS passed 25 positive and 8 refusal cases. Four refusals
+assert exact codes; four retained fixtures use the existing input-error
+categories. The new projected-input refusal is ClientProgramInvalidInput,
+with no Run admission or Source I/O. All positive JOIN cases reach Named Result,
+compare independent rows/column contracts/order and hidden-column absence,
+and preserve one Source session plus same-Run resend/reattach/lookup without
+further acquisition. LEFT nullability, duplicates and empty schemas pass.
+
+The complete receipt has ten commands with status 0 and complete output,
+no evidence errors, clean source identity and five digests matching its
+normal producer manifest. Successful temporary installations were removed
+after capture; the artifact directory is absent and original receipts/logs
+remain. All five tarball digests also equal those recorded for the previous
+LIMIT-prefix packed source above: this supplement adds tests/fixtures, not
+another product implementation. It does not relabel the old receipt as a
+new-SHA execution. The final evidence commit changes only this document.
+
+Full Core, full packed campaigns, Wasm/Native execution and submitted-HEAD
+required CI remain unverified for this PR; no manual CI rerun was requested.
