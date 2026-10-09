@@ -47,6 +47,8 @@ identityProgram.stages[0].steps.splice(3, 0, {from: 'matched', filter: {and: [
   {not: {is_null: {field: 'identity'}}},
   {gt: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: 10}]},
 ]}});
+// Continue from the filtered current row, not the original matched producer.
+delete identityProgram.stages[0].steps[4].from;
 // Two independently keyed self-loops produce two one-hop WALK occurrences.
 const pathData = 'DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst '
   + 'UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; ';

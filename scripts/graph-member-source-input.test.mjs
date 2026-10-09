@@ -68,6 +68,9 @@ test('quoted Graph identity calls retain the authored predicate value and typed 
     {not: {is_null: {field: 'identity'}}},
     {gt: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: 10}]},
   ]});
+  assert.equal(program.stages[0].steps[4].from, undefined);
+  assert.deepEqual(program.stages[0].steps[4].derive.score,
+    {property: {name: 'score', value: {field: 'payload'}}});
   assert.deepEqual(json.results.matched.rows, [{id: 1, score: 20}]);
   for (const index of [0, 1, 2]) {
     const item = successes.find(x => x.name.endsWith('quoted-identity-' + index));

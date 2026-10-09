@@ -76,3 +76,20 @@ per Local/authenticated HTTPS transport. Their receipt, full source SHA and
 tarball digests will be recorded in the PR body without changing the verified
 source commit. No full Core, full packed campaign, Wasm/native execution,
 hosted CI success or broader standard Graph conformance is claimed.
+
+## First packed-control correction
+
+The normal packages at `a5cf88106385b59090f064ec50ef202554663055` reached
+the existing five Local cases, then the new independent identity JSON control
+returned four rows instead of its expected one. Receipt:
+`public-query-evidence-V16oRT`, command 010, guard `run-5saSG1`.
+This control had kept `from: matched` on the derive after the new filter,
+explicitly reopening the unfiltered producer. Remove that redundant reference
+so the derive consumes the filtered current row. The predicate, expected one
+row, column types, bounds and product implementation are unchanged. Node
+assertions now fix that current-row continuation. This failed receipt is
+retained separately; it does not establish HTTPS or subsequent-case success.
+
+The final targeted Node run after this authored-control correction passed
+5/5: `run-w0Y0UL`, `focused-test-F9QaX9`. The MoonBit product/test sources
+are unchanged from the 13/13 JS run above.
