@@ -11,6 +11,7 @@ fn retained_effect_result_capture(
   invocation : @publication.PublicationContract,
   observation : @publication.RunEvidenceValue,
   acquired : @host.ClientEffectAcquiredEvidence,
+  public_result : @host.PublicationOutputExport,
 ) -> Unit raise {
   let retention = retained_compute_effect_retention()
   let journal = @publication.seal_run_evidence_value(
@@ -77,13 +78,38 @@ fn retained_effect_result_capture(
     })
     is Err(Context(Context(ForeignInvocation))),
   )
+  // The already-completed public probe and the retained Effect input occupy
+  // the existing pin ceiling. A second capture must refuse rather than raise
+  // that ceiling. Retire the finished probe before transferring this boundary
+  // to the product capture operation.
+  assert_true(
+    capture(materials, invocation, [observed], resident_compute_limits())
+    is Err(Native(Export(Retain(Physical(HoldingLimit))))),
+  )
+  public_result.cancel()
   // The Receipt Owner refuses an incomplete original Source inventory. Its
   // failed preparation must return only its new public Result borrow, leaving
   // the retained producer/import inputs live for the following successful call.
-  assert_true(
-    capture(materials, invocation, [], resident_compute_limits())
-    is Err(Receipt(_)),
-  )
+  match capture(materials, invocation, [], resident_compute_limits()) {
+    Err(Receipt(_)) => ()
+    Err(Context(_)) =>
+      fail("missing Source evidence failed before Receipt: context")
+    Err(Native(Export(Retain(PreviewWorkLimit)))) =>
+      fail("public Result borrow refused: pin ceiling")
+    Err(Native(Export(Retain(_)))) => fail("public Result borrow refused")
+    Err(Native(_)) =>
+      fail("missing Source evidence failed before Receipt: Native export")
+    Err(Export(_)) =>
+      fail("missing Source evidence failed before Receipt: portable export")
+    Err(Manifest(_)) =>
+      fail("missing Source evidence failed before Receipt: Manifest")
+    Err(Unavailable) =>
+      fail("missing Source evidence failed before Receipt: current custody")
+    Ok(value) => {
+      value.output.cancel()
+      fail("missing Source evidence was accepted")
+    }
+  }
   let held = consumer.usage().reserved_retention_bytes
   let result = capture(
     materials,
