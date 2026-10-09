@@ -2687,14 +2687,40 @@ fn QueryParser::pipe_tail(
       operations.push(Where(self.expression()))
     } else if self.has("EXTEND") {
       self.keyword("EXTEND")
-      let (values, _) = self.projections()
-      if values.any(p => p.name is None || p.expression is None) {
+      let windows : Array[Projection] = []
+      let (values, _) = self.projections(windows~, window_expressions=true)
+      if values.any(p => p.name is None ||
+          (p.expression is None && p.analytic is None) || p.star is Some(_)) {
         raise QueryAbort(
-          "EXTEND requires named scalar expressions",
+          "EXTEND requires named scalar or window expressions",
           self.peek().start,
         )
       }
-      operations.push(Extend(values))
+      let calls : Array[(NamePart, AggregateCall)] = []
+      let definitions = if self.has("WINDOW") {
+        self.window_definitions(calls)
+      } else {
+        []
+      }
+      if !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe EXTEND cannot introduce ordinary aggregation",
+          self.peek().start,
+        )
+      }
+      let window_operations : Array[QueryOperation] = []
+      if values.any(p => p.analytic is Some(_)) || !windows.is_empty() {
+        window_operations.push(
+          if windows.is_empty() {
+            Analytic(values)
+          } else {
+            AnalyticExpressions(values + windows, windows.map(p => p.name.unwrap()))
+          },
+        )
+      }
+      window_operations.push(Extend(values))
+      // WINDOW names belong only to this EXTEND, not to a subsequent operator.
+      operations.append(self.resolve_window_operations(window_operations, definitions))
     } else if self.has("SET") {
       self.keyword("SET")
       let values : Array[(NamePart, Expression)] = []

@@ -364,6 +364,26 @@ their expressions. These rules follow
 and the selected resolver's declaration flattening. Parsed operation snapshots
 copy mutable window/aggregate lists and cannot mutate the admitted syntax owner.
 
+Pipe `EXTEND expression AS name, ... [WINDOW ...]` also accepts the supported
+window calls, directly or inside ordinary scalar expressions. It adds outputs
+after all current visible columns, in authored order; nullable input columns
+retain their contracts, including on empty input. All sibling expressions and
+their OVER specifications see the same input snapshot, not aliases introduced
+by this EXTEND. Existing immutable range bindings remain distinct from columns
+changed by SET. Output-name collisions are refused.
+
+Each EXTEND's optional WINDOW declarations are local to that operator and use
+the same inheritance and conflict checks described above. They do not become
+visible in a later EXTEND. Window outputs are computed by the ordinary analytic
+operation; direct outputs reuse their evaluated slots, and scalar operands use
+private window slots. Final projection removes private columns. No additional
+acquisition, sorting or Result boundary is implied: an explicit ORDER BY is
+required when the public row order matters. Ordinary GROUP aggregation is not
+introduced by EXTEND. Supported analytic signatures and frames still follow the
+common contract. This connects the selected
+[GoogleSQL Pipe EXTEND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#extend)
+without a separate window executor or a new alias scope.
+
 QUALIFY resolves SELECT aliases to their evaluated slots before same-name
 inputs. Qualified input references retain their input meaning. A scalar alias
 needed by the condition is evaluated once against SELECT's input snapshot and
