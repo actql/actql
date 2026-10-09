@@ -179,3 +179,61 @@ declaration still omits it. A fixture regression compares the complete expected
 contract and prevents moving the machine member into authoring vocabulary.
 This changes neither product code nor expected rows, nullability or column
 order. Both failed campaigns and their original evidence are retained.
+
+## Completed selected public acceptance
+
+Tested implementation/fixture revision:
+`27d48246818e293446fbc900b7733e3a546697d6`. The final fixture Node selection
+passes **9/9** (`run-6z7Bub`); product MoonBit files and normative pins are
+unchanged from the successful integrated focused runs above.
+
+The final bounded command is
+`node /private/tmp/actql-b-unnest-join-27d482468-packed-20261009.mjs`, using the
+pinned Node/MoonBit environment. It normally produces all five packages, verifies
+their manifest/digests, then invokes the existing consumer:
+
+```sh
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-unnest-join-27d482468-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-unnest-join-27d482468-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --correlated-unnest-only
+```
+
+**Both Embedded Local and real HTTPS pass 58 normal cases and 17 preparation
+refusals**, including all 19 new normal cases and five new refusals. The
+unchanged consumer compares Named Result rows, complete describe contracts,
+column order/nullability and absence of extra private columns; checks per-case
+Source reads/sessions; and verifies attach/reread/unchanged-request resend
+return the same Run without another admission/acquisition. Every preparation
+refusal checks counters remain unchanged. Ten refusals per protocol have
+explicit code log lines; the other seven are established by the unchanged
+completed refusal loop and counters, not invented per-case log records.
+
+Evidence:
+
+- Terminal guard `_build/local-checks/attempts/run-MtEYww`: producer,
+  independent digest verification and selected consumer all exit 0; output is
+  complete and locks are released.
+- External receipt `worktrees/.codex-scratch/public-query-evidence-BJI4Sb`:
+  all ten commands report the exact clean tested revision, complete output,
+  exit/verification 0, no signal/error, and no evidence errors. The consumer's
+  temporary installation is removed after preserving logs/receipts.
+- Producer manifest
+  `/private/tmp/actql-b-unnest-join-27d482468-pack/packed-client-packages.json`.
+- Independent audit
+  `/private/tmp/actql-b-unnest-join-27d482468-acceptance-audit-20261009.json`:
+  independently rehashes all tarballs, matches receipt identities, and compares
+  the complete per-protocol successful case-name sets to the authored cohort.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `76b6e6e834b2b1d899899ee53840b2a4442de5b15cc9ad6f6db66aa5831b21d9` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The final documentation-only commit is not relabelled as the producer revision.
+Submitted-HEAD CI, full Core, Native/Wasm and Cloud remain unverified. Unkeyed
+FULL's common missing-evidence/public-error classification remains the separate
+boundary described above; this acceptance establishes the explicit existing
+premises, not automatic identity generation or every FULL JOIN query shape.
