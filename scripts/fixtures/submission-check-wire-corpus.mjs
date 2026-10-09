@@ -6,8 +6,8 @@ const declarationRevision = 'rev:' + '6'.repeat(64);
 const location = {kind: 'text', document_id: 'source', revision,
   start_byte: 6, end_byte: 6, precision: 'exact'};
 const observation = {version: 'actql-check-outcome/0.1',
-  reason_schema_cid: 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a',
-  outcome_schema_cid: 'sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9',
+  reason_schema_cid: 'sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6',
+  outcome_schema_cid: 'sha256:b1062306669a530f532faa3b7fc5d24e34bd72aeae712c177cee7557216ea464',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6}],
     reasons: [{code: 'query_syntax_invalid', location}], requirements: [],
@@ -44,7 +44,38 @@ const limit = report => {
   report.coverage.limits = [{code: 'implementation_limit',
     facts: {issue: 'function_lowering_unresolved'}, location: {...location}}];
 };
+const aliasAbsence = report => {
+  report.reasons = [{code: 'query_alias_absent', facts: {namespace: 'queries',
+    reference: [{value: 'e\u0301/~🧭', quoted: true}]}}];
+};
 export const submissionCheckWireCorpus = [
+  fixed('authorized query alias absence', true, aliasAbsence),
+  fixed('query alias absence requires owned facts', false, report => {
+    aliasAbsence(report); delete report.reasons[0].facts;
+  }),
+  fixed('query alias absence cannot expose private revision', false, report => {
+    aliasAbsence(report); report.reasons[0].facts.configuration_revision = 'private';
+  }),
+  fixed('query alias absence cannot invent an empty reference', false, report => {
+    aliasAbsence(report); report.reasons[0].facts.reference = [];
+  }),
+  fixed('query alias absence preserves typed quoting', false, report => {
+    aliasAbsence(report); report.reasons[0].facts.reference[0].quoted = 'true';
+  }),
+  fixed('query alias absence cannot borrow a structured location', false, report => {
+    aliasAbsence(report); report.reasons[0].location = {kind: 'structured',
+      document_id: 'source', revision, pointer: '/missing'};
+  }),
+  fixed('query alias absence grants no edit', false, report => {
+    comment(report); const fixes = report.reasons[0].fixes;
+    aliasAbsence(report); report.reasons[0].fixes = fixes;
+  }, {source: '/*'}),
+  fixed('previous reason schema is explicitly rejected', false, (_, checked) => {
+    checked.reason_schema_cid = 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a';
+  }),
+  fixed('previous outcome schema is explicitly rejected', false, (_, checked) => {
+    checked.outcome_schema_cid = 'sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9';
+  }),
   fixed('exact syntax EOF', true),
   fixed('accepted preparation failure retains checking', true, () => {}, {phase: 'preparation_failed'}),
   fixed('submission cannot borrow template scope', false, report => {report.scope.kind = 'template_only';}),

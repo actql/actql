@@ -23,6 +23,8 @@ pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
 
+pub fn unresolved_relation_namespace_presence(Issue, Context) -> Bool?
+
 pub fn unresolved_relation_reference(Issue) -> Array[@query_syntax.NamePart]?
 
 // Errors
