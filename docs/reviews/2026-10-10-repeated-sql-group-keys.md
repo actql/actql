@@ -100,3 +100,44 @@ At this checkpoint, clean five-package Local/HTTPS acceptance and submitted-SHA
 CI are unestablished. They must not be inferred from the focused checks.
 Full Core, Wasm/native, unrelated packed campaigns and performance were not run.
 No PR merge or manual CI retry.
+
+## Clean five-package public acceptance
+
+Product/fixture source: `9f179d6d38aa8ab46df24385bd8e8eaf1220b8e5`.
+The normal producer and independent digest comparison use guard `run-vJsOrd`.
+The existing ordinal consumer completes **17 positive cases and six typed
+preparation refusals per Local/HTTPS transport**, including every new case and
+all nine original positives. There are no excluded cases, runtime overlays,
+test-side Program repairs or changed execution envelopes.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-repeated-group-keys-9f179d6d3-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-repeated-group-keys-9f179d6d3-pack \
+  node scripts/test-packed-public-query.mjs --group-ordinal-only
+```
+
+Original evidence:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-xX9AlS`.
+The receipt is passed/complete, records the clean exact source, and all ten
+child commands have successful complete output without signals. Both
+transports compare independent Named Result rows and complete described column
+contracts/order. Attached reads and identical-request replay preserve the Run
+and acquisition count; preparation refusals have zero new admission/Source I/O.
+The consumer reports artifactsRemoved=true and its private artifacts directory
+is absent after evidence preservation. Source receipts, pack and logs remain.
+
+All five recomputed SHA-256 digests match both the original producer manifest
+and consumer receipt:
+
+| Distribution | SHA-256 |
+| --- | --- |
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | 6d40250898ddb5754d876a7cbc6460420ecef170983790dcab6f90b4a003895a |
+| local-node | ffbbdd886be79ba81f347a0cc4552c566a89ef14ecaf4ba7135d536727681d29 |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+The subsequent submission commit only records this evidence. Its CI and any
+later integration remain separate from this exact clean-source acceptance.
+The entire Frontend objective, pending submitted PR integration and unrelated
+common-owner execution gaps are not marked complete by this unit.
