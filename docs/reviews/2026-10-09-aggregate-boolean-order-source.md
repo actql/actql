@@ -79,11 +79,57 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- scripts/aggrega
 - Both changed MoonBit files match pinned formatter output; `git diff --check`
   passes.
 - An initial unsupported `--file` wrapper option ran no tests. The supported
-  file-path selection above was then used. The first post-repair test pass was
+  file-path selection above was then used. The first post-repair test run was
   17/19: two independent fixture details were corrected (the common
   `is_unknown` tag, and an omitted authored NULLS LAST). Product behavior and
   result expectations were not changed to hide a failure.
 
-Fresh five-package public execution and submitted-HEAD CI remain unverified
-at this checkpoint. They must be recorded separately from the limited checks.
+## Fresh public execution
+
+Clean tested source: `73a8fd1347068071fea1142c7a6ad537c09ccaa6`.
+The later evidence-only documentation commit does not claim a new package build.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-aggregate-predicate-73a8fd134-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-aggregate-predicate-73a8fd134-pack ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-aggregate-predicate-73a8fd134-pack/npm-cache node scripts/test-packed-public-query.mjs --aggregate-property-order-only
+```
+
+These were executed in one existing bounded heavy-work guard via
+`/private/tmp/actql-b-aggregate-predicate-73a8fd134-packed-20261009.mjs`.
+`run-pzMTs1` completed with exit 0, complete output and released locks
+(2026-10-09 01:54:59–02:01:29 UTC). Normal prepack was not skipped; manifest
+revision, actual five tarball digests and clean source were independently checked.
+The consumer installed outside the repository and used the real standard Hosts.
+
+Embedded Local and actual HTTPS each completed 79 normal cases, 36 preparation
+refusals and the existing demanded-argument execution-failure case. All 15 new
+Boolean-order normal cases passed. Named Result rows, declared column order and
+full `Result.describe()` contracts matched. Each new acquired-source case had
+one read session; reread, attach, resubmit and lookup caused no additional Run
+admission or acquisition. All four new refusals matched their exact typed codes
+with zero admission/provider I/O. Existing generic refusals were also executed
+by the unchanged complete application loop; 12 refusals per transport have
+individual exact-code logs and 24 retain the original generic-code assertions.
+
+Original receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-yyb25x`.
+It records ten successful commands at the same clean source SHA, complete output,
+no evidence errors and removal of its own temporary installation. The independent
+receipt/package/case audit is
+`/private/tmp/actql-b-aggregate-predicate-73a8fd134-acceptance-audit-20261009.json`.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `3f7341ecce85371abdb6403cd0c7f58632b48d1f072ec7ab392ccc7d08bee477` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+Only this completed attempt's private npm content cache was additionally removed;
+tarballs, manifest, logs, receipts and the shared dependency donor were retained.
+No other worktree or shared cache was removed.
+
 Full Core, Wasm/native, proof and performance campaigns were not run locally.
+Submitted-HEAD required CI and content review remain separate obligations; this
+focused public success does not prove completion of the entire Frontend.
