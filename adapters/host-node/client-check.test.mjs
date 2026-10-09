@@ -784,7 +784,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal(literal.report.verdict, 'verified');
       assert.deepEqual(literal.report.reasons, []);
       const bare = await client.check('SELECT missing', {kind: 'text', scope: 'bound_input', format});
-      assert.deepEqual(bare.report.reasons, [{code: 'query_expression_invalid', facts: {issue: 'unknown_reference'}}]);
+      assert.deepEqual(bare.report.reasons, [{code: 'query_expression_invalid', facts: {issue: 'unknown_reference'},
+        location: {document_id: 'source', revision: getCheckInput(bare, 'source').revision,
+          kind: 'text', start_byte: 7, end_byte: 14, precision: 'exact'}}]);
       const protectedInput = await client.check('SELECT missing AS n FROM records', {kind: 'text', scope: 'bound_input', format});
       assert.equal(protectedInput.report.verdict, 'undetermined');
       assert.deepEqual(protectedInput.report.reasons, []);
@@ -5375,16 +5377,16 @@ for (const entrance of ['local', 'http']) {
 }
 
 for (const entrance of ['local', 'http']) {
-  test(`${entrance}: bare unresolved columns retain owned explanations without invented locations`, async t => {
+  test(`${entrance}: bare unresolved columns retain owned explanations and authored locations`, async t => {
     const sourceFree = await contextClient(t, entrance, absentEnvironment);
     const visible = await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow'});
     for (const format of ['sql', 'aql-text']) {
-      for (const [client, text, bytes] of [
-        [sourceFree, 'SELECT missing', 14],
-        [sourceFree, '--😀' + String.fromCharCode(13, 10) + 'SELECT missing', 22],
-        [sourceFree, 'SELECT `e\u0301😀`', 16],
-        [visible, 'SELECT missing FROM records', 27],
-        [visible, 'SELECT records.missing FROM records', 35],
+      for (const [client, text, bytes, start, end, token] of [
+        [sourceFree, 'SELECT missing', 14, 7, 14, 'missing'],
+        [sourceFree, '--😀' + String.fromCharCode(13, 10) + 'SELECT missing', 22, 15, 22, 'missing'],
+        [sourceFree, 'SELECT `e\u0301😀`', 16, 7, 16, '`e\u0301😀`'],
+        [visible, 'SELECT missing FROM records', 27, 7, 14, 'missing'],
+        [visible, 'SELECT records.missing FROM records', 35, 7, 22, 'records.missing'],
       ]) {
         assert.equal(Buffer.byteLength(text), bytes);
         const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format});
@@ -5393,12 +5395,14 @@ for (const entrance of ['local', 'http']) {
         assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
         assert.deepEqual(outcome.report.requirements, []);
         assert.deepEqual(outcome.report.reasons, [{code: 'query_expression_invalid',
-          facts: {issue: 'unknown_reference'}}], '[check-mutation:bare-name-reason]');
+          facts: {issue: 'unknown_reference'}, location: {document_id: 'source',
+            revision: getCheckInput(outcome, 'source').revision, kind: 'text',
+            start_byte: start, end_byte: end, precision: 'exact'}}], '[check-mutation:bare-name-reason]');
         const input = getCheckInput(outcome, 'source');
         assert.equal(input.text, text);
         assert.equal(outcome.report.inputs[0].byte_length, bytes);
-        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location), undefined);
-        assert.equal(resolveCheckTextRange(outcome, outcome.report.reasons[0].location), undefined);
+        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, token);
+        assert.equal(resolveCheckTextRange(outcome, outcome.report.reasons[0].location).text, token);
         const explanation = explainCheckReason(outcome.report.reasons[0]);
         assert.equal(explanation.kind, 'known');
         assert.equal(explanation.hint, 'Use a declared reference from the disclosed query context.');
@@ -5407,7 +5411,7 @@ for (const entrance of ['local', 'http']) {
       }
     }
     // A wrapped expression already owns its authored occurrence. Its precise
-    // position must survive the added projection for an unlocated column.
+    // position must survive the unaliased column connection.
     const authored = await sourceFree.check('SELECT missing AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(resolveCheckLocation(authored, authored.report.reasons[0].location).text, 'missing');
     assert.equal(authored.report.reasons[0].location.start_byte, 7);
