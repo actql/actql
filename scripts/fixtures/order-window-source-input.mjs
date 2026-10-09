@@ -79,3 +79,61 @@ export const orderWindowRefusals = [
   {name: 'ranking-arity', expectedCode: 'ClientProgramInvalidInput', text: 'SELECT id FROM records ORDER BY ROW_NUMBER(id) OVER (ORDER BY id)'},
   {name: 'undeclared-parameter', text: 'SELECT id FROM records ORDER BY ROW_NUMBER() OVER (ORDER BY id) + @missing'},
 ].map(item => ({format: 'sql', ...item, name: 'order-window-refuse-' + item.name}));
+
+// Schema-supplied star names need not occur as tokens in the source. Preserve
+// the authored column even when it folds to the parser's private window name.
+const privateRows = field => [{id: 2, [field]: 10}, {id: 1, [field]: 90}];
+const privateDeclarations = field => ({items: {type: 'array', nullable: false,
+  max_items: 3, items: {type: 'object', nullable: false, fields: {
+    id: number, [field]: nullable,
+  }}}});
+export const setWindowPrivateProgram = field => ({
+  version: 'actql/0.1', id: 'fixture.set_window_private', params: privateDeclarations(field),
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'},
+    {from: 'seed', derive: {items: {$param: 'items'}}},
+    {unnest: {column: 'items', as: 'element'}},
+    {derive: {id: {property: {name: 'id', value: {field: 'element'}}},
+      [field]: {property: {name: field, value: {field: 'element'}}}}},
+    {select: [field, 'id'], as: 'original'},
+    {from: 'original', append: {with: 'original'}, as: 'combined'},
+    {from: 'combined', analytic: {partition_by: [], order_by: [
+      {field: 'id', dir: 'asc', nulls: 'first'}], functions: {private_rank: {fn: 'row_number'}}}},
+    {sort: [{field: 'private_rank', dir: 'desc', nulls: 'last'}]},
+    {select: [field, 'id'], as: 'out'}],
+  results: {rows: {from: 'out', fields: [field, 'id']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}});
+const privateSql = 'SELECT * FROM UNNEST(@items) e UNION ALL SELECT * FROM UNNEST(@items) e '
+  + 'ORDER BY ROW_NUMBER() OVER (ORDER BY id) DESC';
+const privateExpected = field => [{[field]: 10, id: 2}, {[field]: 10, id: 2},
+  {[field]: 90, id: 1}, {[field]: 90, id: 1}];
+const privateSuccess = (name, field, text = privateSql, extra = {}) => success('set-private-' + name,
+  text, {parameterDeclarations: privateDeclarations(field), parameters: {items: privateRows(field)},
+    expected: privateExpected(field), columns: [col(field, nullable), col('id')],
+    sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
+const lowerPrivate = 'aql_order_window_0';
+const upperPrivate = 'AQL_ORDER_WINDOW_0';
+orderWindowSuccesses.push(
+  privateSuccess('json-control', lowerPrivate, JSON.stringify(setWindowPrivateProgram(lowerPrivate)),
+    {format: 'json', parameterDeclarations: undefined}),
+  privateSuccess('star-column', lowerPrivate),
+  privateSuccess('case-json-control', upperPrivate, JSON.stringify(setWindowPrivateProgram(upperPrivate)),
+    {format: 'json', parameterDeclarations: undefined}),
+  privateSuccess('case-star-column', upperPrivate),
+  privateSuccess('scalar-window', lowerPrivate, privateSql.replace(') DESC', ') + 1 DESC')),
+  privateSuccess('data-binding', lowerPrivate,
+    'DATA combined = ' + privateSql + '; FROM combined |> SELECT * |> RESULT answer', {format: 'aql-text'}),
+  privateSuccess('nullable-column', lowerPrivate, privateSql, {
+    parameters: {items: [{id: 2, [lowerPrivate]: 10}, {id: 1, [lowerPrivate]: null}]},
+    expected: [{[lowerPrivate]: 10, id: 2}, {[lowerPrivate]: 10, id: 2},
+      {[lowerPrivate]: null, id: 1}, {[lowerPrivate]: null, id: 1}]}),
+  privateSuccess('empty', lowerPrivate, privateSql, {parameters: {items: []}, expected: []}),
+  privateSuccess('duplicates', lowerPrivate, privateSql, {
+    parameters: {items: [...privateRows(lowerPrivate), {id: 2, [lowerPrivate]: 10}]},
+    expected: [{[lowerPrivate]: 10, id: 2}, {[lowerPrivate]: 10, id: 2},
+      {[lowerPrivate]: 10, id: 2}, {[lowerPrivate]: 10, id: 2},
+      {[lowerPrivate]: 90, id: 1}, {[lowerPrivate]: 90, id: 1}]}),
+);
+orderWindowRefusals.push({name: 'order-window-refuse-set-private-hidden-slot', format: 'sql',
+  text: privateSql + ', aql_set_window_2', parameterDeclarations: privateDeclarations(lowerPrivate),
+  parameters: {items: privateRows(lowerPrivate)}, expectedCode: 'ClientProgramInvalidInput'});
