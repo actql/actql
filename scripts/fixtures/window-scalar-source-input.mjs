@@ -219,6 +219,70 @@ windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-slot', for
   parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
   expectedCode: 'ClientProgramInvalidInput'});
 
+// Independent controls for the three Pipe consumers. The input user value
+// must survive; only the separate evaluated rank drives filtering/updates.
+const pipePrivateFields = {where: 'aql_pipe_where_window_0', extend: 'aql_select_window_0',
+  set: 'aql_pipe_set_window_0'};
+export function pipePrivateWindowProgram(kind, field = pipePrivateFields[kind]) {
+  const base = selectPrivateWindowProgram(field);
+  const inputs = structuredClone(base.stages[0].steps.slice(0, 5));
+  const steps = [...inputs, {from: 'original', analytic: {partition_by: [], order_by: [
+    {field: 'id', dir: 'asc', nulls: 'first'}], functions: {private_rank: {fn: 'row_number'}}}}];
+  let fields = [field, 'id'];
+  if (kind === 'where') steps.push({filter: {eq: [{field: 'private_rank'}, {literal: 1}]}});
+  else if (kind === 'extend') {
+    steps.push({derive: {pos: {add: [{field: 'private_rank'}, {literal: 1}]}}});
+    fields = [...fields, 'pos'];
+  } else if (kind === 'set') steps.push({derive: {id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+  else throw new Error('unknown independent Pipe window control');
+  steps.push({select: fields}, {sort: [{field: 'id', dir: 'desc', nulls: 'last'}], as: 'out'});
+  return {version: 'actql/0.1', id: 'fixture.pipe_private_window', params: selectPrivateDeclarations(field),
+    stages: [{id: 'main', inputs: {}, steps, results: {rows: {from: 'out', fields}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+}
+const pipePrivateOperations = {
+  where: 'WHERE ROW_NUMBER() OVER (ORDER BY id) = 1',
+  extend: 'EXTEND ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos',
+  set: 'SET id = ROW_NUMBER() OVER (ORDER BY id) + 10',
+};
+const pipePrivateHead = 'FROM UNNEST(@items) e |> AS r |> ';
+const pipePrivateExpected = (kind, field) => kind === 'where' ? [{[field]: 90, id: 1}]
+  : kind === 'extend' ? [{[field]: 10, id: 2, pos: 3}, {[field]: 90, id: 1, pos: 2}]
+    : [{[field]: 10, id: 12}, {[field]: 90, id: 11}];
+const pipePrivateSuccess = (name, kind, field = pipePrivateFields[kind], extra = {}) =>
+  success('pipe-schema-private-' + name, pipePrivateHead + pipePrivateOperations[kind] + ' |> ORDER BY id DESC', {
+    format: 'aql-text', parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
+    expected: pipePrivateExpected(kind, field), columns: [{name: field, contract: nullable}, {name: 'id', contract: number},
+      ...(kind === 'extend' ? [{name: 'pos', contract: number}] : [])],
+    sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
+for (const kind of ['where', 'extend', 'set']) {
+  const field = pipePrivateFields[kind];
+  windowScalarSuccesses.push(
+    pipePrivateSuccess(kind + '-json', kind, field, {format: 'json', parameterDeclarations: undefined,
+      text: JSON.stringify(pipePrivateWindowProgram(kind))}),
+    pipePrivateSuccess(kind, kind),
+    pipePrivateSuccess(kind + '-uppercase', kind, field.toUpperCase()),
+  );
+  const slot = kind === 'extend' ? 'aql_analytic_output_3' : 'aql_analytic_output_2';
+  windowScalarRefusals.push({name: 'window-scalar-refuse-pipe-schema-private-' + kind, format: 'aql-text',
+    text: pipePrivateHead + pipePrivateOperations[kind] + ' |> SELECT ' + slot,
+    parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
+    expectedCode: 'ClientProgramInvalidInput'});
+}
+windowScalarSuccesses.push(
+  pipePrivateSuccess('where-nullable', 'where', undefined, {
+    parameters: {items: [{id: 2, aql_pipe_where_window_0: 10}, {id: 1, aql_pipe_where_window_0: null}]},
+    expected: [{aql_pipe_where_window_0: null, id: 1}]}),
+  pipePrivateSuccess('set-empty', 'set', undefined, {parameters: {items: []}, expected: []}),
+  pipePrivateSuccess('set-immutable', 'set', undefined, {
+    text: pipePrivateHead + pipePrivateOperations.set + ' |> SELECT r.id AS original, * |> ORDER BY id DESC',
+    columns: [{name: 'original', contract: number}, {name: 'aql_pipe_set_window_0', contract: nullable}, {name: 'id', contract: number}],
+    expected: [{original: 2, aql_pipe_set_window_0: 10, id: 12}, {original: 1, aql_pipe_set_window_0: 90, id: 11}]}),
+  pipePrivateSuccess('extend-authored-key', 'extend', undefined, {
+    text: pipePrivateHead + 'EXTEND ROW_NUMBER() OVER (ORDER BY aql_select_window_0) + 1 AS pos |> ORDER BY id DESC',
+    expected: [{aql_select_window_0: 10, id: 2, pos: 2}, {aql_select_window_0: 90, id: 1, pos: 3}]}),
+);
+
 // Pipe EXTEND preserves the current input columns and adds evaluated values.
 export const pipeExtendWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_extend_window',
   stages: [structuredClone(windowScalarProgram.stages[0]),

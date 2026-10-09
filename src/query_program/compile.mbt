@@ -2380,10 +2380,12 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               predicate,
-              unnest_expression_columns(
-                pipe_visible, value_table_receivers, scalar_value_table_ranges,
-              ) +
-              analytic_expression_bindings,
+              private_expression_columns(
+                unnest_expression_columns(
+                  pipe_visible, value_table_receivers, scalar_value_table_ranges,
+                ),
+                analytic_expression_bindings,
+              ),
               pipe_ranges,
               max_work,
             ),
@@ -2451,10 +2453,12 @@ fn compile_steps(
                 append_pipe_expression(
                   construction,
                   projection.expression.unwrap(),
-                  unnest_expression_columns(
-                    snapshot, value_table_receivers, scalar_value_table_ranges,
-                  ) +
-                  analytic_expression_bindings,
+                  private_expression_columns(
+                    unnest_expression_columns(
+                      snapshot, value_table_receivers, scalar_value_table_ranges,
+                    ),
+                    analytic_expression_bindings,
+                  ),
                   pipe_ranges,
                   max_work,
                 ),
@@ -2581,10 +2585,12 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 assignment.1,
-                unnest_expression_columns(
-                  snapshot, value_table_receivers, scalar_value_table_ranges,
-                ) +
-                window_bindings,
+                private_expression_columns(
+                  unnest_expression_columns(
+                    snapshot, value_table_receivers, scalar_value_table_ranges,
+                  ),
+                  window_bindings,
+                ),
                 pipe_ranges,
                 max_work,
               ),
