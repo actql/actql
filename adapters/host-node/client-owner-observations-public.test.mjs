@@ -6,7 +6,7 @@ import {createServer} from 'node:https';
 import {getCACertificates,setDefaultCACertificates} from 'node:tls';
 import {tmpdir,userInfo} from 'node:os';
 import {join} from 'node:path';
-import {connect as remote} from '../../packages/sdk/index.mjs';
+import {connect as remote, explainOwnerObservations, formatOwnerObservations} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal,openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 
@@ -45,8 +45,19 @@ for(const entrance of ['local','https']) {
     assert.equal(first.owners[0].snapshot.revision,undefined);
     assert.equal(first.revisionVector[0].snapshotRevision,undefined);
     assert.match(first.revisionVector[0].snapshotCid,/^sha256:[a-f0-9]{64}$/u);
+    const explanation=explainOwnerObservations(first);
+    assert.equal(explanation.owners[0].history.kind,'not_provided');
+    assert.equal(explanation.owners[0].history.summary,'This Owner provides a current view without transition history.');
+    assert.equal(explanation.consistency,'non_atomic');
+    assert.equal(explanation.controlRevision,undefined);
+    assert.equal(explanation.owners[0].snapshot.revision,undefined);
+    assert.deepEqual(explanation.ref,run.ref);
+    assert.equal(explainOwnerObservations(structuredClone(first)),undefined);
+    assert.deepEqual(JSON.parse(formatOwnerObservations(first,{format:'json'})).explanation,explanation);
     const second=await run.observeOwners({cursors:[{owner:first.owners[0].ownerRef,value:'expired-or-foreign'}]});
     assert.equal(second.owners[0].history.kind,'cursor_mismatch');
+    assert.equal(explainOwnerObservations(second).owners[0].history.kind,'cursor_mismatch');
+    assert.deepEqual(explainOwnerObservations(first),explanation);
     assert.equal(second.owners[0].snapshot.value.control.revision,state.control.revision);
     assert.equal((await run.status()).control.revision,state.control.revision);
     assert.equal(computes,1);

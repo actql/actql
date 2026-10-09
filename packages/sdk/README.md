@@ -1235,7 +1235,7 @@ The typed attempt envelope reuses the existing journal's cancellation identity
 and immutable outcome. It does not add a cancellation ledger or rewrite old
 records. Exact lookup remains the original operation's contract and is
 independent of the latest invocation or current Run status. The Submit typed
-attempt and multi-owner observation cursor are separate follow-up units.
+attempt and multi-owner observation have separate identities and contracts.
 
 
 ### Unused Parameter explanations
@@ -1676,3 +1676,42 @@ remain distinct. It performs no status lookup, resend, cancellation or execution
 Copies have no formatting custody. The existing operation display byte budget,
 escaping and independent translation revision apply; insufficient budget returns
 `undefined` rather than truncated facts. English is the default.
+
+
+### Explaining independent Owner observations
+
+```js
+import {explainOwnerObservations, formatOwnerObservations} from '@actql/sdk';
+
+const views = await run.observeOwners({maxEntries: 10, maxWireBytes: 65536});
+const explanation = explainOwnerObservations(views);
+console.log(formatOwnerObservations(views, {format: 'text'}));
+```
+
+These accessors perform no I/O. Only the original SDK-admitted result has an
+explanation association; parsed, copied, foreign and rejected responses do not.
+The association retains the original Run reference, connection scope, requested
+limits and cursors, disclosed Owner views and revision vector. Transport response
+reuse or later observations cannot change an earlier explanation. It lasts only
+while the original SDK result is retained and grants no fresh disclosure access.
+A new `observeOwners()` call always uses the Host's current authorization.
+
+Views are `non_atomic` and `owner_local`. A Run's control revision is not a
+composite observation revision. The current Run view supplies no formal history;
+Effect history comes from the existing durable Ledger. A snapshot without its
+own revision remains without that revision in the explanation. A snapshot does
+not repair a history gap, and history does not replace a failed current snapshot.
+
+The explanation distinguishes history `not_provided`, `retention_expired`,
+`history_unrecoverable`, `cursor_mismatch`, `cursor_expired`, `limit_exceeded`,
+`acquisition_failed` and a returned `page`. Cursor expiry is separate from
+Owner-certified history retention expiry. Protected unavailable views contain
+no stream identity or inferred absence. Unmatched cursors retain only the Host's
+generic request-position result, without inventing a stream or absence proof.
+
+Reobservation and cursor use are explicit application decisions under current
+authorization. A cursor or explanation grants no execution, resend, cancellation,
+reconciliation or release permission and does not change the original Run.
+Formatters preserve complete admitted facts in text, escaped HTML or agent JSON;
+an insufficient output budget returns `undefined` rather than partial facts.
+Missing translations use the same safe English wording.

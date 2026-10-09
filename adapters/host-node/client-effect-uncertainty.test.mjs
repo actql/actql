@@ -90,10 +90,33 @@ for (const entrance of ['local', 'https']) {
       assert.equal(answer.owners[0].history.kind,'not_provided');
     }
     assert.deepEqual(cursorCases.unbound.unmatchedCursors,[{index:0,kind:'unavailable'}]);
+    for(const [index,kind] of ['cursor_expired','cursor_mismatch','cursor_mismatch'].entries()){
+      const explained=cursorCases.explanations[index];
+      assert.deepEqual(explained.ref,observedOwners.ref);
+      assert.equal(explained.owners.find(view=>view.ownerRef?.streamCid===stream).history.kind,kind);
+    }
+    assert.deepEqual(cursorCases.explanations[3].unmatchedCursors,[{index:0,kind:'unavailable'}]);
     const partial=await step('partial-owners');
     assert.equal(partial.views.owners[0].snapshot.value.status,'needs_reconciliation');
     assert.deepEqual(partial.views.owners[1],{owner:'effect',kind:'unavailable',problem:{kind:'acquisition_failed'}});
     assert(!JSON.stringify(partial.views).includes('PRIVATE_INVENTORY_FAILURE'));
+    for(const report of [observedOwners,replayedOwners,partial]){
+      assert.deepEqual(report.explanation.ref,report.ref);
+      assert.equal(report.explanation.consistency,'non_atomic');
+      assert.equal(report.explanation.ordering,'owner_local');
+      assert.equal(report.explanation.controlRevision,undefined);
+      assert.deepEqual(report.explanation.revisionVector,report.views.revisionVector);
+      assert.equal(report.copiedExplanation,undefined);
+      assert.deepEqual(JSON.parse(report.formats[2]).explanation,report.explanation);
+      assert(report.formats.every(output=>typeof output==='string'));
+    }
+    assert.equal(partial.explanation.owners[1].summary,'The Owner observations could not be acquired.');
+    assert.equal(partial.explanation.owners[1].ownerRef,undefined);
+    assert(!JSON.stringify(partial.explanation).includes('PRIVATE_INVENTORY_FAILURE'));
+    assert.deepEqual(observedOwners.explanation.owners.filter(view=>view.owner==='effect')
+      .map(view=>view.history.entries.map(entry=>entry.state)),[['prepared'],['prepared']]);
+    assert.deepEqual(replayedOwners.explanation.owners.filter(view=>view.owner==='effect')
+      .map(view=>view.history.entries.map(entry=>entry.state)),[['dispatching'],['dispatching']]);
     for(const report of [replayedOwners,cursorCases,partial])assert.deepEqual(report.ref,observedOwners.ref);
     assert.deepEqual({writes:setup.writes().length,queries:setup.queries(),targetReads:setup.targetReads()},stoppedCounts,
       'Owner replay cannot resend Effects, reacquire Source or move Run control');
