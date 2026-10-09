@@ -2411,10 +2411,12 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               predicate,
-              unnest_expression_columns(
-                pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
-              ) +
-              analytic_expression_bindings,
+              private_expression_columns(
+                unnest_expression_columns(
+                  pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                ),
+                analytic_expression_bindings,
+              ),
               pipe_ranges,
               max_work,
             ),
@@ -2462,6 +2464,7 @@ fn compile_steps(
         // excludes them until every sibling expression has been resolved.
         pipe_value_table = false
         let snapshot = pipe_visible.copy()
+        let input_columns = pipe_columns.copy()
         let next = snapshot.copy()
         let derived : Array[(String, @builder.Node)] = []
         for projection in projections {
@@ -2483,10 +2486,12 @@ fn compile_steps(
                 append_pipe_expression(
                   construction,
                   projection.expression.unwrap(),
-                  unnest_expression_columns(
-                    snapshot, value_table_receivers, scalar_value_table_ranges, pipe_columns,
-                  ) +
-                  analytic_expression_bindings,
+                  private_expression_columns(
+                    unnest_expression_columns(
+                      snapshot, value_table_receivers, scalar_value_table_ranges, input_columns,
+                    ),
+                    analytic_expression_bindings,
+                  ),
                   pipe_ranges,
                   max_work,
                 ),
@@ -2509,6 +2514,7 @@ fn compile_steps(
       Extend(projections) if pipe_changed || pipe_rebound => {
         pipe_value_table = false
         let snapshot = pipe_visible.copy()
+        let input_columns = pipe_columns.copy()
         let derived : Array[(String, @builder.Node)] = []
         let next = snapshot.copy()
         for projection in projections {
@@ -2525,7 +2531,7 @@ fn compile_steps(
                 construction,
                 projection.expression.unwrap(),
                 unnest_expression_columns(
-                  snapshot, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                  snapshot, value_table_receivers, scalar_value_table_ranges, input_columns,
                 ),
                 pipe_ranges,
                 max_work,
@@ -2614,10 +2620,12 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 assignment.1,
-                unnest_expression_columns(
-                  snapshot, value_table_receivers, scalar_value_table_ranges, pipe_columns,
-                ) +
-                window_bindings,
+                private_expression_columns(
+                  unnest_expression_columns(
+                    snapshot, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                  ),
+                  window_bindings,
+                ),
                 pipe_ranges,
                 max_work,
               ),
