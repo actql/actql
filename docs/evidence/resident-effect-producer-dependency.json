@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "scope": "Actual Native acquired producer Artifact/Manifest before consumer execution. Not transfer dependency reconstruction, approval, write or public Cloud acceptance.",
+  "verifiedSource": "a3d9259b78d655a0b89492fcbe54f5fefbb02af6",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1120",
+    "head": "5564e6d9fa9d30b70bb2dfbda1e3b0c9e991bfe3",
+    "finalTarget": "main",
+    "integrationOrder": [
+      1112,
+      1117,
+      1120
+    ]
+  },
+  "files": {
+    "src/physical_strategy/effect_dependency_ports.mbt": "622bc43f07fc7c291d07c0e9e95ede6e15c2cec4250a8a22653f5683a3dcad51",
+    "src/physical_strategy/effect_local_unit_inputs.mbt": "c05d786e3103e4cfe486ceaeda2f3774519f54eed88a9acbc778487ad816193c",
+    "src/physical_strategy/pkg.generated.mbti": "418092c81e687abad41352d2e5c8d2de5fcf16415b2026fbc246c8b3ded0927c",
+    "src/platform_native/remote_resident_source_compute_tests/effect_producer_dependency_wbtest.mbt": "6abc2961512d3b44ab929072b17af40ad78283b0a767741cfbdee0c5420838c4",
+    "src/run_publication_host/client_effect_acquired_evidence.mbt": "6797943c54c2854ea03bc5df3d4683b99be333d1fb00e564846188b7f4dd5956",
+    "src/run_publication_host/client_effect_acquired_unit_artifact.mbt": "ad871c43053292a3af73d922be12de1f8d54610373ccdb0e283f70f05ee2bd7c",
+    "src/run_publication_host/client_effect_imported_evidence.mbt": "82ce3584da2ba56ff8e11216bcb7e1e762e2be45fb6945f1f8fe21ea798a21fa",
+    "src/run_publication_host/client_effect_local_identity.mbt": "106eae33b580ece4eeb023bb42b7f304eecc396e276f6364a773c178a759d59e",
+    "src/run_publication_host/client_effect_local_manifest.mbt": "570c82ecc1ef5306248a7fbd117111bedef0f620ff81b42f3372df1a0df2d67e",
+    "src/run_publication_host/client_effect_local_result_artifact.mbt": "18c4453ffefd519ba76d417839c5982754bcf57b038271e645a9adf1a0373528",
+    "src/run_publication_host/client_effect_local_table_artifact.mbt": "6b301f500b7064c47420530a588ee5b43eefb102d91fee7b9bf887610c4b0cdc",
+    "src/run_publication_host/client_effect_result_import.mbt": "64cc8987e15cd2b1c9fbd4661d8519150686ca9c296a2e9714ac9eeb7dcf54da",
+    "src/run_publication_host/client_table_input.mbt": "2a8a7ae1d707ef3ecb79176046a13ac2af482f31e7a25bcb2f7074606fa3dccb",
+    "src/run_publication_host/pkg.generated.mbti": "de9ecf937ac59b9dc6dd253ee3f378dad195572799299b228be31b169aa21cc9"
+  },
+  "receipt": "_build/resident-effect-producer-dependency-1791536455209/receipt.json",
+  "sourceRecord": "_build/resident-effect-producer-dependency-1791536455209/source.json",
+  "inputs": "_build/resident-effect-producer-dependency-1791536455209/inputs.json",
+  "artifact": {
+    "source": "a3d9259b78d655a0b89492fcbe54f5fefbb02af6",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-producer-dependency-1791536455209/retained-compute.whitebox_test.exe",
+    "sha256": "7437acdd7550a5be742f03f02b744672877c73d95c9d460d5f0e25aba45a04c6"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/effect_producer_dependency_wbtest.mbt --filter \"*Native Effect producer dependency*\"",
+      "tests": 1,
+      "passed": 1,
+      "result": "passed"
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "Bounded/nonzero moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "tests": 1,
+      "passed": 1,
+      "result": "passed"
+    },
+    {
+      "command": "Scoped moon fmt; moon info --target native src/platform_native/remote_resident_host src/physical_strategy src/run_publication_host; node proofs/relation-pipeline/history.mjs --write; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "actualEvidence": {
+    "sourceAcquisitions": 1,
+    "consumerEntriesBeforeProducerArtifact": 0,
+    "resultRows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ],
+    "sourcePathRemovedBeforeExport": true,
+    "completeProducerManifest": true,
+    "wholeEffectPinsBeforeConsumer": "refused",
+    "cleanupBeforeBorrowReturn": "pending with retained capacity",
+    "cleanupAfterBorrowReturn": {
+      "heldBytes": 0,
+      "reservedRetentionBytes": 0,
+      "reservedExecutionBytes": 0
+    },
+    "duplicateBorrowReturn": false
+  },
+  "refusals": [
+    "Unacquired consumer Unit",
+    "Zero pin budget",
+    "Foreign producer borrow inventory",
+    "Consumer Result definition substituted for producer definition",
+    "Another original Run definition",
+    "Another export receipt",
+    "Released artifact payload binding and manifest reuse"
+  ],
+  "initialFailure": {
+    "source": "f67046ac8cbec4e569a767b49c28ed60ce963109",
+    "log": "_build/resident-effect-producer-dependency-1791536412964/tests.log",
+    "reason": "Test referenced nonexistent export cancellation and Root close APIs; test-only correction uses existing completed export cancellation and Root lifetime contract"
+  },
+  "limitations": [
+    "Producer Unit custody cannot substitute for full Effect input pins, Preview identity or approval",
+    "Run observation set is an explicit fixture using the actual Native Source observation; not public SDK acceptance",
+    "Transfer semantic dependency admission/restoration remains unconnected",
+    "Full Preview, Checkpoint waiting commit, approval, physical write and Cloud/Preview acceptance remain unverified",
+    "Native whitebox executable is not a production Site binary or formal package cohort",
+    "Formal Cloud adoption waits for merged OSS main",
+    "Hosted CI stopped by user instruction; no manual invocation or rerun",
+    "Old failed Run custody remains unresolved separately"
+  ]
+}

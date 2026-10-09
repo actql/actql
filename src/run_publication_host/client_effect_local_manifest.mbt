@@ -115,10 +115,7 @@ pub fn issue_client_effect_local_manifest(
   let by_name : Map[String, ClientEffectLocalResultArtifact] = Map([])
   let by_table : Map[String, ClientEffectLocalResultArtifact] = Map([])
   for artifact in artifacts {
-    if !@strategy.captured_effect_inputs_match_computation(
-        artifact.inputs,
-        owner.graph,
-      ) ||
+    if !client_effect_local_artifact_matches_computation(artifact, owner) ||
       !physical_equal(artifact.invocation, invocation) {
       return Err(ForeignArtifact)
     }
@@ -144,14 +141,10 @@ pub fn issue_client_effect_local_manifest(
           return Err(DuplicateTableInput)
         }
         guard table_members.get(name) is Some(index) &&
-          @strategy.captured_effect_table_input_at(artifact.inputs, index)
-          is Some(input) &&
+          client_effect_local_artifact_inputs(artifact) is Some(inputs) &&
+          @strategy.captured_effect_table_input_at(inputs, index) is Some(input) &&
           client_effect_local_table_definition_matches(definition, owner, input) &&
-          client_effect_local_artifact_matches_member(
-            artifact,
-            artifact.inputs,
-            index,
-          ) else {
+          client_effect_local_artifact_matches_member(artifact, inputs, index) else {
           return Err(ForeignArtifact)
         }
         by_table[name] = artifact

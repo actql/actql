@@ -163,7 +163,18 @@ test "Graph equality rejects unknown arguments and repeated Carrier transitions"
       construction_limits(),
     )
     if suffix.has_suffix("SELECT node_key") {
-      assert_true(result is Err(UnknownColumn), msg=suffix)
+      guard result
+        is Err(
+          Expression(
+            { issue: @expression.UnknownReference, origin: Some(origin), }
+          )
+        ) else {
+        fail("the Relation output must reject the old Graph column: " + suffix)
+      }
+      assert_eq(@origin.kind(origin), @origin.Authored)
+      let span = @origin.span(origin)
+      assert_eq(span.start_byte, 473)
+      assert_eq(span.end_byte, 481)
     } else {
       assert_true(result is Err(UnsupportedGraph), msg=suffix)
     }

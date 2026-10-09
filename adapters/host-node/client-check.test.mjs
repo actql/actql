@@ -5914,3 +5914,142 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+
+const namespaceAccount = (outcome = 'allow', name = 'queries') => canonicalJson({
+  version: 'actql-execution-account-config/0.1', account_id: 'source-namespace-check',
+  entries: [{entry_id: 'namespace-negative-membership', outcome,
+    principal: {all: true}, connection: {any_of: ['actql-source-namespace']},
+    resource: {any_of: [name]}, operation: {any_of: ['inspect_absence']}, exclusions: []}],
+});
+const namespaceAuthorization = configuration => {
+  const host = generateKeyPairSync('ed25519'), reviewer = generateKeyPairSync('ed25519');
+  return {...configuration,
+    hostKey: {keyId: 'namespace-host', privateKey: host.privateKey.export({format: 'pem', type: 'pkcs8'})},
+    reviewers: [{keyId: 'namespace-reviewer-key', reviewerId: 'namespace-reviewer',
+      principalId: 'namespace-reviewer', publicKey: reviewer.publicKey.export({format: 'pem', type: 'spki'})}],
+    reviewReaders: [owner],
+  };
+};
+const namespaceReason = (value, quoted = false, name = 'queries') => ({code: 'query_alias_absent',
+  facts: {namespace: name, reference: [{value, quoted}]}});
+async function namespaceClient(t, entrance, configuration, installed) {
+  try {
+    return await (entrance === 'local' ? localClient(t, configuration, installed)
+      : httpClient(t, configuration, undefined, installed));
+  } catch (error) {
+    // Keep a fixture initialization failure distinct from a diagnostic assertion.
+    throw error.primaryFailure ?? error;
+  }
+}
+const assertNamespaceCheckOnly = client => {
+  client.assertNoExecution();
+  assert.deepEqual(client.executionCounts(), {runs: 0, dispatchReservations: 0,
+    physicalReservations: 0, sourceOpens: 0, dispatches: 0, submissions: 0,
+    issuedSubmissions: 0}, '[check-mutation:namespace-no-submission]');
+};
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: a complete empty namespace discloses only an authorized original alias absence`, async t => {
+    const client = await namespaceClient(t, entrance, [], {sourceNamespace: 'queries',
+      authorization: namespaceAuthorization({accountConfiguration: namespaceAccount()})});
+    for (const [text, value, quoted, format] of [
+      ['SELECT 1 AS n FROM missing', 'missing', false, 'sql'],
+      ['FROM missing |> SELECT 1 AS n', 'missing', false, 'aql-text'],
+      ['SELECT 1 AS n FROM `e\u0301/~🧭`', 'e\u0301/~🧭', true, 'sql'],
+    ]) {
+      const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:namespace-public-outcome]');
+      assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:namespace-public-verdict]');
+      assert.deepEqual(outcome.report.reasons, [namespaceReason(value, quoted)],
+        '[check-mutation:namespace-public-reason]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.equal(getCheckInput(outcome, 'source').text, text);
+      assert.equal(getCheckInput(structuredClone(outcome), 'source'), undefined);
+      assert.equal(sdk.getCheckFixes(structuredClone(outcome)), undefined);
+      assert.equal(Object.hasOwn(outcome.report.reasons[0], 'location'), false,
+        'Missing authoring provenance must not become an invented text position');
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+        summary: 'No query alias matching this reference is registered in the checked namespace.',
+        hint: 'Correct the reference or ask the Host administrator to check the namespace registrations, then check again. This does not establish Provider Resource absence or grant execution.'});
+    }
+    const corrected = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.equal(corrected.report.verdict, 'verified');
+    assertNamespaceCheckOnly(client);
+  });
+
+  test(`${entrance}: a hidden registered alias remains protected beside disclosable namespace absence`, async t => {
+    const client = await namespaceClient(t, entrance, configurations.denied, {sourceNamespace: 'queries',
+      authorization: namespaceAuthorization({accountConfiguration: namespaceAccount()})});
+    const present = await client.check('SELECT id FROM records',
+      {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.equal(present.report.verdict, 'undetermined');
+    assert.deepEqual(present.report.reasons, [], '[check-mutation:namespace-hidden-alias]');
+    assert.deepEqual(present.report.coverage, {limits: [], unresolved: protectedSource});
+    const absent = await client.check('SELECT 1 AS n FROM missing',
+      {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.equal(absent.report.verdict, 'invalid');
+    assert.deepEqual(absent.report.reasons, [namespaceReason('missing')]);
+    assert.equal(JSON.stringify(absent).includes('connector://'), false);
+    assert.equal(JSON.stringify(absent).includes('records.duckdb'), false);
+    for (const name of ['records', 'missing']) {
+      const outcome = await client.check(`SELECT @options AS n FROM ${name}`,
+        {kind: 'text', scope: 'bound_input', format: 'sql',
+          parameterDeclarations: {options: {type: 'number'}},
+          parameters: {options: 'private-value'}});
+      const parameterInput = getCheckInput(outcome, 'parameters');
+      const mismatch = {code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'},
+        location: {kind: 'structured', document_id: 'parameters',
+          revision: parameterInput.revision, pointer: '/options'}};
+      assert.equal(outcome.report.verdict, 'invalid');
+      // The existing projection orders distinct reason codes lexically.
+      assert.deepEqual(outcome.report.reasons, [
+        ...(name === 'missing' ? [namespaceReason('missing')] : []), mismatch],
+      '[check-mutation:namespace-independent-violation]');
+      assert.deepEqual(outcome.report.coverage, {limits: [],
+        unresolved: name === 'records' ? protectedSource : []});
+      assert.equal(resolveCheckLocation(outcome, mismatch.location).input, parameterInput);
+      assert.equal(JSON.stringify(outcome).includes('private-value'), false);
+    }
+    assertNamespaceCheckOnly(client);
+  });
+
+  test(`${entrance}: namespace inspection rechecks current authority without reusing richer reports`, async t => {
+    const directory = await mkdtemp(join(scratch, 'namespace-authority-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const path = join(directory, 'account.json');
+    await writeFile(path, namespaceAccount());
+    const client = await namespaceClient(t, entrance, [], {sourceNamespace: 'queries',
+      authorization: namespaceAuthorization({accountConfig: path})});
+    const text = 'SELECT 1 AS n FROM missing';
+    const original = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.deepEqual(original.report.reasons, [namespaceReason('missing')]);
+    await writeFile(path, namespaceAccount('deny'));
+    const denied = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.equal(denied.report.verdict, 'undetermined');
+    assert.deepEqual(denied.report.reasons, [], '[check-mutation:namespace-revocation]');
+    assert.deepEqual(denied.report.coverage, {limits: [], unresolved: protectedSource});
+    assert.notEqual(denied.report.context_ref, original.report.context_ref);
+    assert.equal(getCheckInput(original, 'source').text, text);
+    await writeFile(path, namespaceAccount());
+    const changed = await client.check('SELECT 1 AS n FROM other',
+      {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.deepEqual(changed.report.reasons, [namespaceReason('other')]);
+    assert.notEqual(changed.report.context_ref, original.report.context_ref);
+    assert.notEqual(changed.report.inputs[0].revision, original.report.inputs[0].revision);
+    assertNamespaceCheckOnly(client);
+  });
+
+  test(`${entrance}: a different namespace grant cannot disclose negative membership`, async t => {
+    const client = await namespaceClient(t, entrance, [], {sourceNamespace: 'queries',
+      authorization: namespaceAuthorization({accountConfiguration: namespaceAccount('allow', 'other')})});
+    const outcome = await client.check('SELECT 1 AS n FROM missing',
+      {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.deepEqual(outcome.report.reasons, [], '[check-mutation:namespace-other-grant]');
+    assert.equal(outcome.report.verdict, 'undetermined');
+    assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+    assert.equal(JSON.stringify(outcome).includes('queries'), false);
+    assertNamespaceCheckOnly(client);
+  });
+}

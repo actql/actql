@@ -2,7 +2,7 @@
 // same retry/status protocol as publication cleanup, without restarting work.
 export async function retainInstalledHostInitializationFailure(cause,
   {journal, store, checkpoints, dispatchOwner, sourceProfile,
-    installedEffect, observation}) {
+    installedEffect, observation, ownerViews}) {
   const pending = new Set();
   if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
     pending.add('initialization');
@@ -15,6 +15,7 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (journal !== undefined) pending.add('journal');
   if (store !== undefined) pending.add('store');
   if (observation !== undefined) pending.add('observation');
+  if (ownerViews !== undefined) pending.add('owner-views');
   const errors = [];
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
@@ -55,6 +56,7 @@ export async function retainInstalledHostInitializationFailure(cause,
           await attempt('journal', () => journal.close());
           await attempt('store', () => store.close());
           await attempt('observation', () => observation.close());
+          await attempt('owner-views', () => ownerViews.close());
         }
       }
     }
@@ -76,12 +78,13 @@ export async function retainInstalledHostInitializationFailure(cause,
 // are independent. A failed close retains only that owner for the next call;
 // another adapter or the Store must not be skipped or closed twice.
 export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
-  journal, source, effect, store, diagnostic, observation}) {
+  journal, source, effect, store, diagnostic, observation, ownerViews}) {
   const completed = new Set();
   const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
     'journal', 'source', 'effect', 'store',
     ...(diagnostic === undefined ? [] : ['diagnostic']),
-    ...(observation === undefined ? [] : ['observation'])]);
+    ...(observation === undefined ? [] : ['observation']),
+    ...(ownerViews === undefined ? [] : ['ownerViews'])]);
   let flight;
   let checkpointResult;
   let storeCleanupPending = false;
@@ -103,7 +106,8 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     }
     const failures = [];
     for (const [name, action] of [['journal', journal],
-      ['source', source], ['effect', effect], ['store', store]]) {
+      ['source', source], ['effect', effect], ['store', store],
+      ...(ownerViews === undefined ? [] : [['ownerViews',ownerViews]])]) {
       try {
         await attempt(name, action);
         if (name === 'store') storeCleanupPending = false;
