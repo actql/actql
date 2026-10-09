@@ -250,6 +250,10 @@ fn retained_effect_preview_store(
     store.capacity_usage().unwrap().reserved_bytes,
     computation_bytes + preview_bytes,
   )
+  store = retained_effect_checkpoint_store(
+    consumer, inputs, prepared_checkpoint, computation, custody, store, authority,
+    crypto, key, sqlite, path, review_limits,
+  )
   let inspection = sqlite
     .open_database(path + "/.actql-publication.sqlite3", 262144L)
     .unwrap()
