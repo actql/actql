@@ -54,8 +54,10 @@ test('normal public corpus retains binding counterexamples and precise input ref
     assert.equal(graphMatchSourceRefusals.find(c => c.name === 'graph-match-' + suffix).expectedCode,
       'ClientProgramInvalidInput');
   }
-  assert.equal(graphMatchSourceRefusals.find(c => c.name === 'graph-match-invalid-empty-fields').expectedCode,
-    'ClientProgramImplementationLimit');
+  for (const suffix of ['empty-fields', 'relation-is-not-graph']) {
+    assert.equal(graphMatchSourceRefusals.find(c => c.name === 'graph-match-invalid-' + suffix).expectedCode,
+      'ClientProgramImplementationLimit');
+  }
 });
 
 test('each typed endpoint selector identifies a different original node and deduplicates parallel-edge starts', () => {

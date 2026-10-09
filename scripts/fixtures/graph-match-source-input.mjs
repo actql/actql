@@ -162,7 +162,7 @@ export const graphMatchSourceRefusals = [
   name: 'graph-match-invalid-' + name, format: 'aql-text',
   text: prefix + 'FROM ' + input + ' |> ' + operation,
   parameterDeclarations: declarations, parameters,
-  expectedCode: name === 'empty-fields' ? 'ClientProgramImplementationLimit' : undefined,
+  expectedCode: ['empty-fields', 'relation-is-not-graph'].includes(name) ? 'ClientProgramImplementationLimit' : undefined,
 }));
 
 graphMatchSourceRefusals.push(...[

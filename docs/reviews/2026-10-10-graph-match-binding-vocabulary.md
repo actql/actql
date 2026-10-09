@@ -129,3 +129,28 @@ focused-test-pfw6vl. Command:
 Initial fixture check was 3/3 (run-suduii / focused-test-BNxDCE), before adding
 the stronger endpoint-selector obligation. Changed-file moonfmt and
 git diff --check passed.
+
+## Initial clean packed run and second existing refusal-category correction
+
+Product/fixture SHA: `bae348a5c769ead1f6290279877e6f171ad4dd84`.
+Normal five-package production and independent digest verification completed,
+guard run-To3Pmz. Original receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-6K8x7O`.
+All 19 Local positives passed, including the nine new source/JSON binding and
+endpoint controls, before refusal graph-match-invalid-relation-is-not-graph
+stopped the run. Its default code list excluded the established
+ClientProgramImplementationLimit. Later refusals and HTTPS were not reached.
+
+The unchanged compile_query_script guard and exact
+`graph_match_rows_test.mbt` assertion already reject match_nodes applied to a
+Relation with UnsupportedGraph. This old fixture now requires the same common
+implementation_limit diagnostic explicitly, alongside empty-fields. No product
+mapping, general allowlist, source, expected row or limit changes. The failed
+original receipt/logs remain; its private installation was automatically
+removed after preserving evidence.
+
+The refusal-category correction passes the targeted Node fixture check: 4/4,
+guard run-1FR96v / focused-test-BHIf83. Command:
+`node scripts/local-checks.mjs test node -- scripts/graph-match-binding-vocabulary.test.mjs`.
+This verifies fixture registration and precise categories, not the remaining
+public refusal cohort or HTTPS execution.
