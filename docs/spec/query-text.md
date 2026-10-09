@@ -398,6 +398,26 @@ This connects the selected
 to the same common analytic signatures, frames and output contracts as inline
 window specifications.
 
+Pipe SET accepts supported inline window calls as direct assignment values or
+inside scalar expressions. They use the same common analytic operation as
+SELECT/EXTEND. All sibling assignment expressions and window specifications see
+the same pre-SET snapshot; replacing an earlier target does not change a later
+assignment's input. Each target must still exist exactly once and cannot be
+assigned twice. SET retains visible column order while the replacement value's
+checked type and nullability determine that column's new contract. Existing
+range variables retain original values.
+
+Window calls are evaluated before the existing assignment derivation. Their
+private slots are visible only to that SET and are removed by normal final
+projection. Authored names cannot be captured; subsequent AS sees only current
+public columns. SET does not inherit another operator's WINDOW declarations or
+introduce implicit GROUP. Analytic signatures, frames, expression demand,
+parameters, failure and capacity remain common-owner contracts. Public ordering
+requires an explicit ORDER BY after window evaluation; no previous order is
+invented. This connects the selected
+[GoogleSQL Pipe SET](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#set)
+without a new executor, wire format or range-binding rule.
+
 Pipe WHERE accepts supported window calls inside its Boolean predicate. Each
 call observes the current input rows, including preceding filtering, grouping
 and projection, and uses the existing common analytic operation. Only rows

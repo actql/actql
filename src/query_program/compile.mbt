@@ -2485,15 +2485,23 @@ fn compile_steps(
       }
       Set(assignments) => {
         let snapshot = pipe_visible.copy()
+        let window_bindings = if i > 0 &&
+          @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _)) {
+          analytic_expression_bindings.copy()
+        } else {
+          []
+        }
         let derived : Array[(String, @builder.Node)] = []
         let targets : Array[String] = []
         let replacements : Array[(String, String)] = []
         for assignment in assignments {
-          if !pipe_name_exists(snapshot, assignment.0) ||
-            targets.any(name => {
+          if !pipe_name_exists(snapshot, assignment.0) {
+            raise Abort(UnknownColumn)
+          }
+          if targets.any(name => {
               same_name(assignment.0, { value: name, quoted: false, })
             }) {
-            raise Abort(UnsupportedProjection)
+            raise Abort(DuplicateOutput)
           }
           let physical = pipe_physical_name(active_fields, "aql_pipe_set_")
           active_fields.push(physical)
@@ -2503,7 +2511,8 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 assignment.1,
-                unnest_expression_columns(snapshot, value_table_receivers),
+                unnest_expression_columns(snapshot, value_table_receivers) +
+                window_bindings,
                 pipe_ranges,
                 max_work,
               ),
@@ -2529,6 +2538,14 @@ fn compile_steps(
         pipe_visible = next
         output = pipe_visible.map(entry => entry.0)
         pipe_changed = true
+        // All assignments use the pre-SET snapshot. Private window bindings
+        // cannot become names in the next operator or immutable ranges.
+        if !window_bindings.is_empty() {
+          analytic_outputs.clear()
+          analytic_expression_bindings.clear()
+          analytic_input_fields = None
+          analytic_input_scope = None
+        }
       }
       Drop(names) => {
         // A structural DROP does not read values from retained columns. When

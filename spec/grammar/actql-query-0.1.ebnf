@@ -158,9 +158,11 @@ terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
 pipe_where_clause = "WHERE", expression ;
+(* Pipe SET permits supported inline window calls in assignment expressions. *)
+pipe_set_clause = "SET", assignment, { ",", assignment } ;
 relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
               | "EXTEND", select_list, [ window_clause ]
-              | "SET", assignment, { ",", assignment }
+              | pipe_set_clause
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
