@@ -58,6 +58,8 @@ test "named aggregate windows compose through inheritance QUALIFY and SQL groupi
       "SELECT t.x, ROW_NUMBER() OVER w AS rn FROM t GROUP BY ALL WINDOW w AS (ORDER BY COUNT(*) DESC, t.x) ORDER BY rn",
       "SELECT COUNT(*) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS rn FROM t GROUP BY t.x WINDOW w AS (ORDER BY COUNT(*) DESC, t.x) ORDER BY rn",
       "SELECT t.x, ROW_NUMBER() OVER (`W`) AS rn FROM t GROUP BY t.x WINDOW w AS (ORDER BY COUNT(t.y) + 1 DESC, t.x) ORDER BY rn",
+      "SELECT t.x, LAG(COUNT(*)) OVER w AS value FROM t GROUP BY t.x WINDOW w AS (ORDER BY COUNT(*) DESC, t.x) ORDER BY t.x",
+      "SELECT t.x, SUM(SUM(t.y)) OVER w AS value FROM t GROUP BY t.x WINDOW w AS (ORDER BY COUNT(*) DESC, t.x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) ORDER BY t.x",
     ] {
     ignore(checked_window_group_input(source))
   }

@@ -36,6 +36,10 @@ namedAggregateWindowProgram.stages[1].steps = [
 const groupedExpected = [{id: 3, n: 1}, {id: 1, n: 2}, {id: 2, n: 3}];
 const aggregateSql = 'SELECT records.id, ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 '
   + 'GROUP BY records.id WINDOW w AS (ORDER BY COUNT(*) DESC, records.id) ORDER BY n';
+export const namedLagAggregateProgram = structuredClone(namedAggregateWindowProgram);
+namedLagAggregateProgram.id = 'fixture.named_lag_aggregate';
+namedLagAggregateProgram.stages[1].steps[1].analytic.functions.n = {fn: 'lag', expr: {field: 'counted'}};
+namedLagAggregateProgram.stages[1].steps[3].sort = [{field: 'id', dir: 'asc', nulls: 'first'}];
 export const namedWindowSuccesses = [
   success('independent-json', JSON.stringify(namedWindowProgram), {format: 'json'}),
   success('bare-reference', sql),
@@ -106,6 +110,18 @@ export const namedWindowSuccesses = [
     + 'other AS (ORDER BY COUNT(*) DESC, id) ORDER BY n',
     {columns: [column('id'), column('n'), column('ranking')],
       expected: [{id: 3, n: 1, ranking: 1}, {id: 1, n: 2, ranking: 2}, {id: 2, n: 3, ranking: 3}]}),
+  success('aggregate-navigation-json', JSON.stringify(namedLagAggregateProgram),
+    {format: 'json', columns: [column('id'), column('n', nullable)],
+      expected: [{id: 1, n: 2}, {id: 2, n: 1}, {id: 3, n: null}]}),
+  success('aggregate-navigation-operand', 'SELECT id, LAG(COUNT(*)) OVER w AS n FROM records '
+    + 'WHERE id > 0 GROUP BY id WINDOW w AS (ORDER BY COUNT(*) DESC, id) ORDER BY id',
+    {columns: [column('id'), column('n', nullable)],
+      expected: [{id: 1, n: 2}, {id: 2, n: 1}, {id: 3, n: null}]}),
+  success('aggregate-running-sum-operand', 'SELECT id, SUM(SUM(amount)) OVER w AS n FROM records '
+    + 'WHERE id > 0 GROUP BY id WINDOW w AS (ORDER BY COUNT(*) DESC, id '
+    + 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) ORDER BY id',
+    {columns: [column('id'), column('n', nullable)],
+      expected: [{id: 1, n: 60}, {id: 2, n: 80}, {id: 3, n: 60}]}),
 ];
 export const namedWindowRefusals = [
   'SELECT ROW_NUMBER() OVER absent AS n FROM records',
@@ -122,4 +138,5 @@ export const namedWindowRefusals = [
   'SELECT id, ROW_NUMBER() OVER w AS n FROM records GROUP BY id WINDOW w AS (ORDER BY COUNT(*) OVER (ORDER BY id))',
   'SELECT ROW_NUMBER() OVER w AS n FROM records HAVING TRUE WINDOW unused AS (ORDER BY COUNT(*)), w AS (ORDER BY id)',
   'SELECT id, ROW_NUMBER() OVER w AS n FROM records GROUP BY id WINDOW w AS (ORDER BY SUM(records.amount), records.amount)',
-].map((text, index) => ({name: 'named-window-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'named-window-refuse-' + index, format: 'sql', text,
+  ...(index >= 10 ? {expectedCode: 'ClientProgramInvalidInput'} : {})}));

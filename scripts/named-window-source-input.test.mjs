@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {namedWindowProgram, namedAggregateWindowProgram, namedWindowSuccesses, namedWindowRefusals}
+import {namedWindowProgram, namedAggregateWindowProgram, namedLagAggregateProgram,
+  namedWindowSuccesses, namedWindowRefusals}
   from './fixtures/named-window-source-input.mjs';
 
 test('named aggregate WINDOW controls retain independent counts, NULLs and declaration ownership', () => {
@@ -24,6 +25,14 @@ test('named aggregate WINDOW controls retain independent counts, NULLs and decla
   assert.deepEqual(get('having-before-window').expected, [{id: 3, total: 2, n: 1}]);
   assert.ok(namedWindowRefusals.some(item => item.text.includes('COUNT(invented)')));
   assert.ok(namedWindowRefusals.some(item => item.text.includes('HAVING TRUE WINDOW unused')));
+  for (const item of namedWindowRefusals.slice(10)) assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  assert.deepEqual(JSON.parse(get('navigation-json').text), namedLagAggregateProgram);
+  assert.deepEqual(namedLagAggregateProgram.stages[1].steps[1].analytic.functions,
+    {n: {fn: 'lag', expr: {field: 'counted'}}});
+  assert.deepEqual(get('navigation-operand').expected,
+    [{id: 1, n: 2}, {id: 2, n: 1}, {id: 3, n: null}]);
+  assert.deepEqual(get('running-sum-operand').expected,
+    [{id: 1, n: 60}, {id: 2, n: 80}, {id: 3, n: 60}]);
 });
 
 test('named-window independent oracles retain NULLs multiplicity frames and scope', () => {
