@@ -87,6 +87,22 @@ try {
   };
   if (residentProposals) {
     assert(testEnv.ACTQL_TEST_DUCKDB_LIBRARY, 'Native DuckDB library is required');
+    const target = process.platform === 'darwin' && process.arch === 'arm64'
+      ? 'aarch64-apple-darwin'
+      : process.platform === 'linux' && process.arch === 'x64'
+        ? 'x86_64-unknown-linux-gnu' : undefined;
+    assert(target, 'Unsupported Native fixture target');
+    // Independent signed test bundle, admitted by the existing runtime Owner.
+    // Its placeholder component is not a formal production Site binary.
+    const component = Buffer.from('native-runtime');
+    const runtimeBody = JSON.stringify({bundle_name: 'native-runtime',
+      components: [{bytes: String(component.length), cid: hash(component),
+        role: 'runtime_executable'}], connector_registration: 'local',
+      connector_revision: 'local/1', issuer_authority: 'bundle-authority-a',
+      revision: 'native/1', strategy_revision: 'strategy/1', target_triple: target,
+      version: 'actql-remote-runtime-bundle/0.1'});
+    const runtimeCid = hash(runtimeBody);
+    const runtimeKeys = generateKeyPairSync('ed25519');
     bearer = await startNativeBearerServers({host: '127.0.0.1',
       key: await readFile(join(root, 'server.key')),
       cert: await readFile(join(root, 'server.crt')), root});
@@ -96,6 +112,15 @@ try {
       ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearer.directory,
       ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: join(root, 'retained'),
       ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS: '1',
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: target,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: runtimeCid,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: runtimeBody,
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
+        runtimeKeys.publicKey.export({type: 'spki', format: 'pem'}),
+      ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: sign(null,
+        Buffer.from('actql-remote-runtime-bundle-signature/0.1\0' +
+          runtimeCid + '\0' + runtimeBody), runtimeKeys.privateKey)
+        .toString('base64url'),
     });
   }
   const selection = residentProposals
