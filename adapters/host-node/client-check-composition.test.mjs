@@ -17,6 +17,8 @@ const request = (principalId = 'owner', text = 'SELECT 1 AS n') => ({
 function fixture(states = [], publication = aliases) {
   const calls = [], checked = [];
   const moon = {
+    clientProgramCheckSourceNamespace: () => { throw Error('UnexpectedNamespaceObservation'); },
+    clientProgramCheckSourceSelectorNamespace: () => { throw Error('UnexpectedSelectorObservation'); },
     clientProgramCheckingEnvironmentCid: value => {
       assert.equal(value, environment); return environmentCid;
     },
@@ -215,12 +217,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:e1fe2957876c91a71df6d68a36a15ce567ef29f55f18861b547c5b26c18b4b25',
-      'ctx:854a2a2f8e1ed51917dc2e13048ce0ab51d2e2a16b37b1b943bf63b1c2743948',
+      'ctx:18e853c25ad1af9cee7c3872bc4be7e89fa9bd001250a4a56cb528adca8f334f',
+      'ctx:edeadc0d4274142fdac3ef9b79cccf77583a5373d5ae2d67ba61cf2d40056c8e',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:a3adfdb67e02669c52f7d4fbce763f683151636a8482070b9b556e8e7fa30542',
-        'ctx:16ca46d5b9547ae8a730f901d663c259cfffe0d47062b8cc79296edecc547c4c',
+        'ctx:3fcdcc3a06c6f74afbb9786abcda0075a8862d33c985e709a4b42c602ea58e2e',
+        'ctx:ab383cfadf88305a6220e0c927b6686e47ec5d1ea16eaf37ff335f123c22f4cd',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {

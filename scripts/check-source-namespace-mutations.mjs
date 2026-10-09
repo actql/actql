@@ -10,6 +10,16 @@ const modulePath = fileURLToPath(new URL('../adapters/host-node/source-alias-pub
 const installedPath = fileURLToPath(new URL('../adapters/host-node/installed-source.mjs', import.meta.url));
 const file = 'adapters/host-node/source-alias-publication.test.mjs';
 const faults = [
+  {name: 'a nonempty Catalog closes an empty selector registration range',
+    from: 'if (catalogRange === undefined) return undefined;',
+    to: 'void catalogRange;',
+    target: 'selector registration completeness uses the entire admitted unfiltered Catalog',
+    assertion: {id: 'selector-catalog-completeness', operator: 'deepStrictEqual'}},
+  {name: 'a different input acquires selector observation custody',
+    from: "retained?.domain === 'sourceSelector' && retained.publication === publication && retained.binding === binding",
+    to: "retained?.domain === 'sourceSelector'",
+    target: 'selector registration observations reject foreign domains copies revisions and inputs',
+    assertion: {id: 'selector-observation-custody', operator: 'strictEqual'}},
   {name: 'filtered publication falsely closes the namespace',
     from: 'if (JSON.stringify(rows(allAliases)) !== JSON.stringify(rows(aliases))) return undefined;',
     to: 'void aliases;',
@@ -22,8 +32,8 @@ const faults = [
     target: 'ordinary read and check grants do not disclose namespace absence',
     assertion: {id: 'namespace-disclosure', operator: 'deepStrictEqual'}},
   {name: 'a different call acquires original observation custody',
-    from: 'retained !== undefined && retained.publication === publication && retained.binding === binding',
-    to: 'retained !== undefined',
+    from: "retained?.domain === 'queryAlias' && retained.publication === publication && retained.binding === binding",
+    to: "retained?.domain === 'queryAlias'",
     target: 'observation custody rejects copies and a different input or namespace',
     assertion: {id: 'namespace-custody', operator: 'strictEqual'}},
   {name: 'namespace checking prepares an approval',

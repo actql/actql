@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as sdk from './index.mjs';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
-import {submissionEpoch, originalSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, submissionAttempt} from './submission-fixture.mjs';
 
 const revision = 'rev:' + '4'.repeat(64);
 const text = '/*😀*/\r\nSELECT';
@@ -29,9 +29,9 @@ async function fixture(t, {phase = 'not_accepted', change = () => {}, verified =
     if (operation === 'close') return;
     assert.equal(operation, 'submit-intent');
     const checked = observation(verified ? 'verified' : 'invalid'); change(checked);
-    return {kind: phase, submissionRef: body.submissionRef, intentCid: body.intentCid,
+    return submissionAttempt(body, {kind: phase, submissionRef: body.submissionRef, intentCid: body.intentCid,
       problem: {code: verified ? 'ClientProgramRejected' : 'ClientProgramInvalidInput',
-        classification: verified ? 'operation_failed' : 'invalid_input'}, checkObservation: checked};
+        classification: verified ? 'operation_failed' : 'invalid_input'}, checkObservation: checked});
   }});
   t.after(() => client.close());
   let error;
@@ -90,8 +90,8 @@ test('reused submission replies preserve each owned source observation', async t
       shared.report.reasons[0].location = {...location, revision: 'rev:' + '5'.repeat(64),
         start_byte: 6, end_byte: 6};
     }
-    return {kind: 'not_accepted', submissionRef: body.submissionRef, intentCid: body.intentCid,
-      problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, checkObservation: shared};
+    return submissionAttempt(body, {kind: 'not_accepted', submissionRef: body.submissionRef, intentCid: body.intentCid,
+      problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, checkObservation: shared});
   }});
   t.after(() => client.close());
   const errors = [];
@@ -141,7 +141,7 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
       if (operation === 'close') return;
       assert.equal(operation, 'submit-intent');
       entered(body);
-      return response;
+      return response.then(outcome => submissionAttempt(body, outcome));
     }});
     t.after(() => client.close());
     const pending = client.startSource(source, {format: 'sql', parameterDeclarations: declarations,

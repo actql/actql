@@ -32,3 +32,8 @@ void connect({mode: 'local', owner: 'local', installation: {hostCapacityPolicy: 
 void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', hostCapacityPolicy: {...policy, max_effect_items: '1'}});
 // @ts-expect-error A caller cannot mutate the selected policy through its public type.
 policy.max_effect_items = 2;
+
+void connect({mode: 'local', owner: 'local', installation: {sourceSelectorNamespace: 'registrations'}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', sourceSelectorNamespace: 'registrations'});
+// @ts-expect-error Namespace completeness is not a caller-supplied success flag.
+void connect({mode: 'local', owner: 'local', installation: {sourceSelectorNamespace: {name: 'registrations', complete: true}}});
