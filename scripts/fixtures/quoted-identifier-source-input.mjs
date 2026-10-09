@@ -46,3 +46,57 @@ export const quotedIdentifierRefusals = [
   format: 'sql', text: 'SELECT 1 AS `a' + escaped + '`'}));
 quotedIdentifierRefusals.push({name: 'quoted-identifier-empty',
   format: 'sql', text: 'SELECT 1 AS ``'});
+
+// Common authored-name NFC/LF is separate from the exact STRING value law.
+const canonicalNames = ['é', 'line\nname'];
+const canonicalRows = [{'é': 1, 'line\nname': 2}];
+export const canonicalQuotedIdentifierProgram = {version: 'actql/0.1',
+  id: 'fixture.canonical_quoted_identifiers', stages: [{id: 'main', inputs: {},
+    steps: [{as: 'authored', values: {
+      schema: Object.fromEntries(canonicalNames.map(name => [name, number(name).contract])),
+      rows: canonicalRows}}], results: {rows: {from: 'authored', fields: canonicalNames}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const canonical = (name, text, overrides = {}) => scalar('canonical-' + name, text, {
+  expected: canonicalRows, columns: canonicalNames.map(number), ...overrides,
+});
+export const canonicalQuotedIdentifierSuccesses = [
+  canonical('json-control', JSON.stringify(canonicalQuotedIdentifierProgram), {format: 'json'}),
+  canonical('escaped-names', 'SELECT 1 AS `e\\u0301`, 2 AS `line\\rname`'),
+  canonical('physical-names', 'SELECT 1 AS `e\u0301`, 2 AS `line\r\nname`'),
+  canonical('sql-order', 'SELECT id AS `e\\u0301` FROM records ORDER BY `é`', {
+    expected: [{'é': 1}, {'é': 2}, {'é': 3}, {'é': 3}], columns: [number('é')],
+    sourceReadCount: undefined, sourceReadSessionCount: 1,
+  }),
+  canonical('pipe-rename-filter-order', 'FROM records |> SELECT id AS `é` '
+    + '|> RENAME `e\\u0301` AS `line\\rname` |> WHERE `line\\nname` > 1 '
+    + '|> ORDER BY `line\\rname`', {
+    format: 'aql-text', expected: [{'line\nname': 2}, {'line\nname': 3}, {'line\nname': 3}],
+    columns: [number('line\nname')], sourceReadCount: undefined, sourceReadSessionCount: 1,
+  }),
+  canonical('parameter', 'SELECT @`\\u0070` AS `e\\u0301`', {
+    parameterDeclarations: {p: {type: 'number'}}, parameters: {p: 20},
+    expected: [{'é': 20}], columns: [number('é')],
+  }),
+  canonical('exact-string-values', 'SELECT "e\\u0301\\r\\n" AS `e\\u0301`, "\\r" AS `line\\rname`', {
+    expected: [{'é': 'e\u0301\r\n', 'line\nname': '\r'}],
+    columns: canonicalNames.map(name => ({name, contract: {type: 'string', nullable: false}})),
+  }),
+  canonical('empty', 'SELECT 1 AS `e\\u0301`, 2 AS `line\\rname` WHERE FALSE', {expected: []}),
+  canonical('range', 'SELECT `é`.id AS `é` FROM records AS `e\\u0301` ORDER BY `e\\u0301`', {
+    expected: [{'é': 1}, {'é': 2}, {'é': 3}, {'é': 3}], columns: [number('é')],
+    sourceReadCount: undefined, sourceReadSessionCount: 1,
+  }),
+  canonical('cte', 'WITH `e\\u0301` AS (SELECT id FROM records) '
+    + 'SELECT id AS `é` FROM `é` ORDER BY `e\\u0301`', {
+    expected: [{'é': 1}, {'é': 2}, {'é': 3}, {'é': 3}], columns: [number('é')],
+    sourceReadCount: undefined, sourceReadSessionCount: 1,
+  }),
+];
+quotedIdentifierSuccesses.push(...canonicalQuotedIdentifierSuccesses);
+export const canonicalQuotedIdentifierRefusals = [
+  'SELECT id AS `é`, amount AS `e\\u0301` FROM records',
+  'SELECT id AS `line\\nname`, amount AS `line\\rname` FROM records',
+  'FROM records AS `e\\u0301` |> AS current |> SELECT `é`.id',
+].map((text, index) => ({name: 'quoted-identifier-canonical-invalid-' + index,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'}));
+quotedIdentifierRefusals.push(...canonicalQuotedIdentifierRefusals);

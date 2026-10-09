@@ -372,7 +372,8 @@ pub fn parse_relation_path(
       }
       match token.value {
         Word(value) => parts.push({ value, quoted: false, })
-        QuotedName(value) => parts.push({ value, quoted: true, })
+        QuotedName(value) =>
+          parts.push({ value: tokens.identifier(value), quoted: true, })
         _ =>
           return Err({
             issue: Syntax("Expected relation name"),
@@ -657,7 +658,7 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
   let token = self.advance()
   match token.value {
     Word(value) => { value, quoted: false, }
-    QuotedName(value) => { value, quoted: true, }
+    QuotedName(value) => { value: self.source.identifier(value), quoted: true, }
     _ => raise QueryAbort("Expected identifier", token.start)
   }
 }
@@ -1476,10 +1477,10 @@ fn QueryParser::frame_boundary(
     ignore(self.advance())
     if self.has("PRECEDING") {
       self.keyword("PRECEDING")
-      return PrecedingParameter(name)
+      return PrecedingParameter(self.source.identifier(name))
     }
     self.keyword("FOLLOWING")
-    return FollowingParameter(name)
+    return FollowingParameter(self.source.identifier(name))
   }
   let distance = self.safe_integer(false)
   if self.has("PRECEDING") {
@@ -1820,7 +1821,7 @@ fn QueryParser::limit_integer(
 ) -> QueryInteger raise QueryAbort {
   if self.peek().value is Parameter(name) {
     ignore(self.advance())
-    BoundParameter(name)
+    BoundParameter(self.source.identifier(name))
   } else {
     Integer(self.safe_integer(zero_allowed))
   }
