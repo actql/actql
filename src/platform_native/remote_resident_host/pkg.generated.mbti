@@ -76,6 +76,8 @@ pub fn prepare_resident_cancelled_receiver_cleanup(@remote_journal.Journal, @exe
 
 pub fn prepare_resident_completed_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, () -> String, () -> Bool, retained_cleanup? : (@remote_transfer_journal.Journal, @filesystem.Root?, Int64)?) -> Result[ResidentCompletedAttempt, ResidentExecutionFailure]
 
+pub fn prepare_resident_effect_retained_producer_context(@remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.RemoteRetainedInputIntent, String, String, String, String) -> Result[ResidentRetainedProducerContext, ResidentEffectProducerExecutionIssue]
+
 pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
 pub fn prepare_resident_recorded_output(@remote_journal.Journal, @execution_site.ExecutionSite, @run_publication.RecordedRunPublication, @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, () -> Bool) -> Result[ResidentSavedOutput, ResidentHostIssue]
@@ -377,7 +379,7 @@ pub(all) enum ResidentRetainedExecutionIssue {
 
 pub struct ResidentRetainedProducerContext {
   intent : @remote_site_protocol.RemoteRetainedInputIntent
-  materials : @run_publication_host.ClientRunMaterials
+  run_current : (String) -> Bool
   producer : @run_publication_host.ClientRetainedInputProducer
   journal : @remote_journal.Journal
 }
