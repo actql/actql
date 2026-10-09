@@ -86,6 +86,28 @@ const cteCase = (name, tail, extra = {}) => ({
   parameterDeclarations, parameters, expected: propertyAliasRows,
   columns: propertyAliasColumns, sourceReadCount: 0, ...extra,
 });
+export const joinPrefilterPropertyProgram = {version: 'actql/0.1',
+  id: 'fixture.join_prefilter_property', stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload}, rows: leftRows}, as: 'objects'},
+    {values: {schema: {id: number, other}, rows: rightRows}, as: 'others'},
+    {from: 'objects', filter: {gt: [
+      {property: {value: {field: 'payload'}, name: 'score'}}, {literal: 15}]}, as: 'filtered'},
+    {from: 'filtered', join: {with: 'others', kind: 'inner',
+      on: [{left: 'id', right: 'id'}], max_output_rows: 1,
+      select: {id: 'left.id', other: 'right.other'}}, as: 'matched'},
+    {from: 'matched', derive: {score: {property: {value: {field: 'other'}, name: 'score'}}}},
+    {select: ['id', 'score']},
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['id', 'score']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const prefilterColumns = [idColumn, {name: 'score', contract: number}];
+const prefilterCase = (name, tail, extra = {}) => ({
+  name: 'join-property-prefilter-' + name, format: 'aql-text', text: ctes + tail,
+  parameterDeclarations, parameters, expected: [{id: 1, score: 5}],
+  columns: prefilterColumns, sourceReadCount: 0, ...extra,
+});
+const collisionCtes = ctes.trimEnd()
+  + ', chosen AS (SELECT id, payload, 90 AS score FROM objects) ';
 export const joinPropertySuccesses = [
   {name: 'join-property-independent-json', format: 'json', text: JSON.stringify(program),
     expected: idScoreRows, columns: idScoreColumns, sourceReadCount: 0},
@@ -126,6 +148,34 @@ export const joinPropertySuccesses = [
   cteCase('empty',
     `SELECT (l.payload).score, l.id ${join} WHERE FALSE ORDER BY score NULLS LAST, id`,
     {expected: []}),
+  {name: 'join-property-prefilter-independent-json', format: 'json',
+    text: JSON.stringify(joinPrefilterPropertyProgram), expected: [{id: 1, score: 5}],
+    columns: prefilterColumns, sourceReadCount: 0},
+  prefilterCase('range',
+    'FROM objects AS l |> WHERE ((l)).payload.score > 15 |> JOIN others AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id, r.other.score |> ORDER BY id'),
+  prefilterCase('quoted-parameter-tight-ceiling',
+    'FROM objects AS l |> WHERE ((`L`)).`payload`.score > @minimum |> JOIN others AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 1 |> SELECT l.id, r.other.score |> ORDER BY id',
+    {parameterDeclarations: {...parameterDeclarations, minimum: number},
+      parameters: {...parameters, minimum: 15}}),
+  prefilterCase('input-before-output-alias',
+    'FROM objects AS l |> WHERE ((l)).payload.score > 15 |> JOIN others AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id, r.other AS payload |> ORDER BY id',
+    {expected: [{id: 1, payload: {score: 5}}], columns: [idColumn, receiverColumns[2]]}),
+  prefilterCase('same-named-value', '',
+    {text: collisionCtes + 'FROM chosen AS payload |> WHERE (payload).score > 15'
+      + ' |> JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12'
+      + ' |> SELECT payload.id, r.other.score |> ORDER BY id, score'}),
+  prefilterCase('same-named-qualified-range', '',
+    {text: collisionCtes + 'FROM chosen AS payload |> WHERE payload.score > 15'
+      + ' |> JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12'
+      + ' |> SELECT payload.id, r.other.score |> ORDER BY id, score',
+      expected: [{id: 1, score: 5}, {id: 2, score: 30}, {id: 2, score: 40}, {id: 3, score: 15}]}),
+  prefilterCase('typed-empty',
+    'FROM objects AS l |> WHERE ((l)).payload.score > 100 |> JOIN others AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id, r.other.score |> ORDER BY id',
+    {expected: []}),
 ];
 export const joinPropertyRefusals = [
   `SELECT id.score ${join}`,
@@ -134,10 +184,18 @@ export const joinPropertyRefusals = [
   `SELECT l.id.score ${join}`,
   `SELECT DISTINCT l.id ${join} ORDER BY payload.score`,
 ].map((tail, index) => ({name: 'join-property-invalid-' + index,
-  format: 'aql-text', text: data + tail, parameterDeclarations, parameters})).concat([
+  format: 'aql-text', text: data + tail, parameterDeclarations, parameters,
+  ...(index === 4 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})})).concat([
   `SELECT (l.payload).score, (l.payload).score ${join}`,
   `SELECT (missing).score ${join}`,
   `SELECT (l.payload).missing ${join}`,
   `SELECT (l.id).score ${join}`,
 ].map((tail, index) => ({name: 'join-property-implicit-invalid-' + index,
-  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters})));
+  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters}))).concat([
+  'FROM objects AS l |> WHERE ((r)).other.score > 0 |> JOIN others AS r '
+    + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id',
+  'FROM objects AS l |> WHERE ((l)).id.score > 0 |> JOIN others AS r '
+    + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id',
+].map((tail, index) => ({name: 'join-property-prefilter-invalid-' + index,
+  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters,
+  expectedCode: 'ClientProgramInvalidInput'})));
