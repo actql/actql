@@ -12,7 +12,7 @@ fn retained_effect_result_capture(
   observation : @publication.RunEvidenceValue,
   acquired : @host.ClientEffectAcquiredEvidence,
   public_result : @host.PublicationOutputExport,
-) -> Unit raise {
+) -> @resident.ResidentEffectResultCapture raise {
   let retention = retained_compute_effect_retention()
   let journal = @publication.seal_run_evidence_value(
     "normalization_journal",
@@ -227,8 +227,8 @@ fn retained_effect_result_capture(
   }
   rows.write_string(replay.finish().unwrap())
   assert_eq(rows.to_string(), "[{\"id\":3}]")
-  result.output.cancel()
   println(
     "retained-effect-result: actual public Artifact, Manifest, Receipt and snapshot captured",
   )
+  result
 }
