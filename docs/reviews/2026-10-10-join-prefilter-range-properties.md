@@ -1,8 +1,8 @@
 # Pre-JOIN range properties in CTE continuations
 
 Base: main `040eed2b1a11a3d1f7bae81b68d956d1017fac05`.
-Status: limited compiler/checker and fixture checks pass. Public packed
-Local/HTTPS and submitted-HEAD CI have not yet been established.
+Status: limited compiler/checker, fixture checks and clean-source normal-pack
+Local/HTTPS acceptance pass. Submitted-HEAD CI and content review remain separate.
 
 ## Fixed counterexample
 
@@ -88,11 +88,45 @@ Initial repair selection 2/2: `run-Ff14kT`, `focused-test-S48qSH`.
 Expanded JS selection 25/25: `run-a2U57h`, `focused-test-zXT3bM`.
 Node selection 18/18: `run-mCg4Y0`, `focused-test-WYW2iP`.
 
+## Public acceptance
+
+Clean packed source: `936672de509791961a5c965cf138063f0d89076c`.
+Original receipt: `worktrees/.codex-scratch/public-query-evidence-LD9m0O`.
+The existing serialized heavy guard `run-NwBOCC` (1200 seconds) runs the normal
+five-package producer, independent SHA/digest verification and unchanged narrow
+public consumer:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-join-prefilter-properties-936672de5-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-prefilter-properties-936672de5-pack \
+  node scripts/test-packed-public-query.mjs --join-property-only
+```
+
+Embedded Local and real HTTPS each finish **22 positives / 11 refusals**.
+Both transports include all seven new positives and two new exact refusals.
+Three refusals check exact public codes; eight older cases retain the existing
+category assertions. Complete Named Result rows, describe type/nullability/
+column order, hidden-column absence, same-Run resend/attach/lookup without extra
+evaluation and admission/I/O zero on refusals pass through the shared consumer.
+Source-free inputs do not establish external acquisition/sharing.
+
+All ten receipt commands finish status 0 with complete output; the receipt is
+passed/complete, source clean and its revision matches the producer manifest.
+All five tarballs were independently rehashed against manifest and receipt.
+There are no evidence errors. The temporary installation was removed and its
+path is absent. Source fixtures are copied unchanged; no lowered Program is
+edited by the consumer. The final evidence commit changes only this report;
+public execution is attributed to the packed source above.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `2160abd10cf496c7cc846e5c6bc51f2152dbfe26f9b7a656686900547cb7c79c` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
 ## Remaining verification
 
-Fresh normal five-package Local/HTTPS acceptance must confirm complete Named
-Result rows, describe type/nullability/column order, hidden-column absence,
-same-Run resend/attach/lookup without extra evaluation, and admission/I/O zero
-on refusals. Source-free inputs do not establish external acquisition/sharing.
 Full Core, other execution targets, complete packed campaigns, CI and content
 review remain separate. This unit is not completion of the whole frontend goal.
