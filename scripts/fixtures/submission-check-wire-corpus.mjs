@@ -44,32 +44,38 @@ const limit = report => {
   report.coverage.limits = [{code: 'implementation_limit',
     facts: {issue: 'function_lowering_unresolved'}, location: {...location}}];
 };
+const aliasSource = 'SELECT 1 AS n FROM `e\u0301/~🧭`';
+const aliasOptions = {source: aliasSource};
 const aliasAbsence = report => {
+  // Independently fixed UTF-8 length of the original SQL above.
+  report.inputs[0].byte_length = 30;
   report.reasons = [{code: 'query_alias_absent', facts: {namespace: 'queries',
     reference: [{value: 'e\u0301/~🧭', quoted: true}]}}];
 };
 export const submissionCheckWireCorpus = [
-  fixed('authorized query alias absence', true, aliasAbsence),
+  fixed('authorized query alias absence', true, aliasAbsence, aliasOptions),
   fixed('query alias absence requires owned facts', false, report => {
     aliasAbsence(report); delete report.reasons[0].facts;
-  }),
+  }, aliasOptions),
   fixed('query alias absence cannot expose private revision', false, report => {
     aliasAbsence(report); report.reasons[0].facts.configuration_revision = 'private';
-  }),
+  }, aliasOptions),
   fixed('query alias absence cannot invent an empty reference', false, report => {
     aliasAbsence(report); report.reasons[0].facts.reference = [];
-  }),
+  }, aliasOptions),
   fixed('query alias absence preserves typed quoting', false, report => {
     aliasAbsence(report); report.reasons[0].facts.reference[0].quoted = 'true';
-  }),
+  }, aliasOptions),
   fixed('query alias absence cannot borrow a structured location', false, report => {
     aliasAbsence(report); report.reasons[0].location = {kind: 'structured',
       document_id: 'source', revision, pointer: '/missing'};
-  }),
+  }, aliasOptions),
   fixed('query alias absence grants no edit', false, report => {
-    comment(report); const fixes = report.reasons[0].fixes;
-    aliasAbsence(report); report.reasons[0].fixes = fixes;
-  }, {source: '/*'}),
+    aliasAbsence(report); report.reasons[0].fixes = [{code: 'close_block_comment',
+      applicability: 'requires_review', risk: 'syntax_structure',
+      target: {document_id: 'source', revision},
+      edits: [{start_byte: 30, end_byte: 30, replacement: '*/'}]}];
+  }, aliasOptions),
   fixed('previous reason schema is explicitly rejected', false, (_, checked) => {
     checked.reason_schema_cid = 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a';
   }),
