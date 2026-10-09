@@ -179,9 +179,9 @@ async function duckdbAdapter(profile, moon, {root, principalId}) {
       });
     },
     prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, occurrence}) => prepareCapturedDuckDBSource({...common,
+      sourceAccess, occurrence, requireImmediateReadAuthorization}) => prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, occurrence, transportLimits: profile.transportLimits}),
+      sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits}),
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger,
       retainedRelationOutput}) =>
