@@ -3075,8 +3075,8 @@ test('same submitted identity preserves one Run and refuses changed intent', asy
     assert.equal(error.code, 'SubmissionUnknown');
     assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
     assert.equal(error.cause?.status, undefined);
-      assert.deepEqual(host.responses.at(-1), {
-        path: '/actql/client/0.1/submit-intent', status: 409});
+    assert.deepEqual(host.responses.at(-1), {
+      path: '/actql/client/0.1/submit-intent', status: 409});
     assert.deepEqual(error.submissionRef, submissionRef);
     return true;
   });

@@ -341,18 +341,6 @@ distribution[3] = distribution[3].replace(
 distribution.splice(distribution.indexOf('node scripts/check-submission-input-mutations.mjs') + 1,
   0, 'node scripts/check-submission-check-observation-mutations.mjs');
 
-// Preserve the independently reviewed registrations already present at the
-// adopted main: retention, INFER evaluation and submission-check evidence.
-expectedGates['check:remote-site-runtime'][2] = expectedGates['check:remote-site-runtime'][2]
-  .replace('packages/coordinator-core/cancellation.test.mjs ',
-    'packages/coordinator-core/cancellation.test.mjs packages/coordinator-core/bundle-retention.test.mjs ');
-distribution[3] = distribution[3].replace('node --test ',
-  'node --test adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs examples/infer-evaluation/capture-sink.test.mjs ')
-  .replace('packages/client-wire/index.test.mjs ',
-    'packages/client-wire/index.test.mjs packages/client-wire/submission-check-semantics.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs ');
-distribution.splice(distribution.indexOf('node scripts/check-effect-uncertainty-mutations.mjs'),
-  0, 'node scripts/check-submission-check-observation-mutations.mjs');
-
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of
