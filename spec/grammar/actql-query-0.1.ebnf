@@ -156,7 +156,9 @@ table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
 terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
-relation_pipe_item = assertion_operator | where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
+(* Pipe WHERE permits supported inline window calls in its predicate. *)
+pipe_where_clause = "WHERE", expression ;
+relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
               | "EXTEND", select_list, [ window_clause ]
               | "SET", assignment, { ",", assignment }
               | "DROP", identifier, { ",", identifier }

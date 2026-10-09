@@ -398,6 +398,25 @@ This connects the selected
 to the same common analytic signatures, frames and output contracts as inline
 window specifications.
 
+Pipe WHERE accepts supported window calls inside its Boolean predicate. Each
+call observes the current input rows, including preceding filtering, grouping
+and projection, and uses the existing common analytic operation. Only rows
+whose predicate is TRUE survive; NULL predicates do not. Sequential WHERE
+operators evaluate their windows over the rows retained by preceding operators.
+The output is the unchanged current row, with the same visible columns and
+immutable range bindings. A generated window slot is private to that predicate:
+it is not available to later operators and is removed before Result publication.
+Authored names cannot be captured by generated slot names.
+
+Pipe WHERE does not declare WINDOW names or inherit declarations from a previous
+SELECT or EXTEND. Ordinary aggregates cannot introduce an implicit GROUP here;
+use the preceding AGGREGATE output. Existing analytic signature/frame limits,
+parameter typing, capacity and failure rules remain common-owner decisions.
+An explicit ORDER BY remains necessary when public row order matters. This
+connects [GoogleSQL Pipe WHERE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#where)
+to the common analytic and filter operations without changing SQL WHERE's
+restriction on window calls, rewriting Source predicates or adding an executor.
+
 QUALIFY resolves SELECT aliases to their evaluated slots before same-name
 inputs. Qualified input references retain their input meaning. A scalar alias
 needed by the condition is evaluated once against SELECT's input snapshot and

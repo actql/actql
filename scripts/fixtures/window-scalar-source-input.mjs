@@ -253,3 +253,50 @@ windowScalarRefusals.push(...[
   ['pipe-named-private-slot', 'FROM records |> SELECT ROW_NUMBER() OVER w + aql_select_window_0 AS n WINDOW w AS (ORDER BY id)'],
 ].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})));
+
+// Predicate-only windows retain the current row; no private column is exported.
+export const pipeWhereWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_where_window',
+  stages: [structuredClone(windowScalarProgram.stages[0]),
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', analytic: {partition_by: [], order_by: [
+        {field: 'amount', dir: 'desc', nulls: 'last'},
+        {field: 'id', dir: 'asc', nulls: 'first'}], functions: {position: {fn: 'row_number'}}}},
+        {filter: {lte: [{field: 'position'}, {literal: 3}]}},
+        {select: ['amount', 'id']}, {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['amount', 'id']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const whereColumns = [{name: 'amount', contract: nullable}, {name: 'id', contract: number}];
+const whereRows = [{amount: 20, id: 2}, {amount: 10, id: 3}, {amount: 20, id: 4}];
+const whereWindowHead = 'FROM records |> WHERE id > 0 |> WHERE ';
+const whereWindowDirect = whereWindowHead + `ROW_NUMBER() OVER (${window}) <= 3 |> ORDER BY id`;
+windowScalarSuccesses.push(
+  success('where-window-json', JSON.stringify(pipeWhereWindowProgram), {format: 'json', columns: whereColumns, expected: whereRows}),
+  success('where-window-direct', whereWindowDirect, {format: 'aql-text', columns: whereColumns, expected: whereRows}),
+  success('where-window-parameter', whereWindowHead + `ROW_NUMBER() OVER (${window}) <= @top |> ORDER BY id`,
+    {format: 'aql-text', parameterDeclarations: {top: number}, parameters: {top: 2}, columns: whereColumns,
+      expected: [{amount: 20, id: 2}, {amount: 20, id: 4}]}),
+  success('where-window-empty', whereWindowDirect, {format: 'aql-text', sourceRows: [], columns: whereColumns, expected: []}),
+  success('where-window-nullable', whereWindowHead + 'LAG(amount) OVER (ORDER BY id) > 15 |> ORDER BY id',
+    {format: 'aql-text', columns: whereColumns, expected: [{amount: 10, id: 3}, {amount: null, id: 5}]}),
+  success('where-window-multiple', whereWindowHead + `ROW_NUMBER() OVER (${window}) <= 3 AND ROW_NUMBER() OVER (ORDER BY id) <= 3 |> ORDER BY id`,
+    {format: 'aql-text', columns: whereColumns, expected: [{amount: 20, id: 2}, {amount: 10, id: 3}]}),
+  success('where-window-sequential', whereWindowHead + `ROW_NUMBER() OVER (${window}) <= 3 |> WHERE ROW_NUMBER() OVER (ORDER BY id) = 1 |> ORDER BY id`,
+    {format: 'aql-text', columns: whereColumns, expected: [{amount: 20, id: 2}]}),
+  success('where-window-immutable-range', 'FROM records AS before |> WHERE id > 0 |> SET amount = -amount '
+    + '|> WHERE LAG(before.amount) OVER (ORDER BY id) > 15 |> ORDER BY id',
+    {format: 'aql-text', columns: whereColumns, expected: [{amount: -10, id: 3}, {amount: null, id: 5}]}),
+  success('where-window-authored-private-name', 'FROM records |> WHERE id > 0 |> EXTEND amount AS aql_pipe_where_window_0 '
+    + '|> WHERE ROW_NUMBER() OVER (ORDER BY id) <= 2 |> SELECT id, aql_pipe_where_window_0 AS n |> ORDER BY id',
+    {format: 'aql-text', columns: [{name: 'id', contract: number}, {name: 'n', contract: nullable}],
+      expected: [{id: 1, n: null}, {id: 2, n: 20}]}),
+);
+windowScalarRefusals.push(...[
+  ['where-window-missing-input', 'FROM records |> WHERE LAG(missing) OVER (ORDER BY id) > 0'],
+  ['where-window-projected-input', 'FROM records |> SELECT id |> WHERE LAG(amount) OVER (ORDER BY id) > 0'],
+  ['where-window-private-slot', 'FROM records |> WHERE ROW_NUMBER() OVER (ORDER BY id) = 1 |> SELECT aql_pipe_where_window_0'],
+  ['where-window-dropped-range', 'FROM records AS old |> AS current |> WHERE LAG(old.amount) OVER (ORDER BY id) > 0'],
+  ['where-window-declaration-leak', 'FROM records |> SELECT id, ROW_NUMBER() OVER w AS n WINDOW w AS (ORDER BY id) |> WHERE ROW_NUMBER() OVER w = 1'],
+].map(([name, text]) => ({name: 'window-scalar-refuse-' + name, text,
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
+{name: 'window-scalar-refuse-where-window-missing-frame', format: 'aql-text',
+  text: 'FROM records |> WHERE SUM(amount) OVER (ORDER BY id) > 0', expectedCode: 'ClientProgramImplementationLimit'});

@@ -981,8 +981,13 @@ test('baseline preimages and changed normative pins independently determine the 
     valuesDependencyOracle(), barrierCid, valuesProgramOracle()), beforePipeSelect.run_preimages);
   assert.equal(beforePipeSelect.run_preimages.run.run_definition_cid,
     'sha256:436bf4c3edf01dc70bb6b1258516807ad35c4d9f9fd5485a9876c704c2aba9ec');
-  assert.equal(current.run.run_definition_cid,
+  const beforeWhere = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-where-window-grammar.json', 'utf8'));
+  assert.deepEqual(vector(beforeWhere.grammar.grammar_manifest_cid, cid(aoaContract),
+    valuesDependencyOracle(), barrierCid, valuesProgramOracle()), beforeWhere.run_preimages);
+  assert.equal(beforeWhere.run_preimages.run.run_definition_cid,
     'sha256:02061c277b626444a02a26037851c14b49ea2fd7064a423eab92f17e3bc33799');
+  assert.equal(current.run.run_definition_cid,
+    'sha256:f0fc9b3b44633c03def0118d8d40e4d34068720763fa744e1d161f57541839a5');
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
@@ -1033,7 +1038,7 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
-  assert.equal(current.run.run_definition_cid, "sha256:02061c277b626444a02a26037851c14b49ea2fd7064a423eab92f17e3bc33799");
+  assert.equal(current.run.run_definition_cid, "sha256:f0fc9b3b44633c03def0118d8d40e4d34068720763fa744e1d161f57541839a5");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

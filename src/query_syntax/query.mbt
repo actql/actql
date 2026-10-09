@@ -2684,7 +2684,24 @@ fn QueryParser::pipe_tail(
       }
     } else if self.has("WHERE") {
       self.keyword("WHERE")
-      operations.push(Where(self.expression()))
+      let (predicate, windows, calls) = self.window_expression(
+        "aql_pipe_where_window_",
+      )
+      if !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe WHERE cannot introduce ordinary aggregation",
+          self.peek().start,
+        )
+      }
+      if !windows.is_empty() {
+        operations.append(
+          self.resolve_window_operations(
+            [AnalyticExpressions(windows, windows.map(p => p.name.unwrap()))],
+            [],
+          ),
+        )
+      }
+      operations.push(Where(predicate))
     } else if self.has("EXTEND") {
       self.keyword("EXTEND")
       let windows : Array[Projection] = []
