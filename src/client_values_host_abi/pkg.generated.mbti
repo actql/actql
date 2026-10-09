@@ -10,6 +10,7 @@ import {
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
+  "actql/actql/stage_syntax",
 }
 
 // Values
@@ -243,6 +244,8 @@ pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientReq
 
 pub fn client_values_host_prepare_pre_start_failure(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 
+pub fn client_values_host_prepare_program(String, String, @program_check.CheckEnvironment, String?) -> Result[ClientValuesHostProgramPreparation, ClientValuesHostProgramPreparationIssue]
+
 pub fn client_values_host_prepare_remote_task_physical_start(@run_publication_host.ClientRemoteTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
 
 pub fn client_values_host_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise ClientValuesHostDeliveryIssue
@@ -260,6 +263,12 @@ pub fn client_values_host_prepare_retained_task_input(@run_publication_host.Clie
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
 pub fn client_values_host_prepare_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientTaskDispatchIssue]
+
+pub fn client_values_host_program_preparation_effect(ClientValuesHostProgramPreparation) -> @run_publication_host.PreparedClientEffectComputation?
+
+pub fn client_values_host_program_preparation_effect_free(ClientValuesHostProgramPreparation) -> @run_publication_host.PreparedClientProgram?
+
+pub fn client_values_host_program_preparation_kind(ClientValuesHostProgramPreparation) -> String
 
 pub fn client_values_host_project_committed_result_read_wire(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract]) -> String?
 
@@ -515,6 +524,18 @@ pub(all) enum ClientValuesHostPreparationIssue {
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
   Program(@run_publication_host.ClientProgramPreparationIssue)
+}
+
+pub enum ClientValuesHostProgramPreparation {
+  EffectFree(@run_publication_host.PreparedClientProgram)
+  Effect(@run_publication_host.PreparedClientEffectComputation)
+}
+
+pub(all) enum ClientValuesHostProgramPreparationIssue {
+  Input(ClientValuesHostPreparationIssue)
+  Syntax(@stage_syntax.SyntaxError)
+  EffectFree(@run_publication_host.ClientProgramPreparationIssue)
+  Effect(@run_publication_host.ClientEffectComputationIssue)
 }
 
 pub(all) enum ClientValuesHostPublicationSnapshotIssue {

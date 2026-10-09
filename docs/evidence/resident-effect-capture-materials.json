@@ -1,0 +1,232 @@
+{
+  "scope": "Preserve the exact admitted materials with actual Native Effect producer and retained consumer owners. This is live capture context, not Checkpoint persistence, approval or Effect execution.",
+  "implementationSource": "4207f08fcc1fba4d4a399ad42ea83d8b63e7b188",
+  "parentSource": "7bac8b3e4739a592648c7308833fcd8bb94e8917",
+  "dependency": "OSS #1167; temporary base feat/native-effect-capture-owners; final integration target main after the parent series",
+  "evidenceDirectory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594",
+  "verificationCommand": "MOON_HOME=/Users/t14i/workspace/20260822/.toolchains/moonbit-pinned PATH=/Users/t14i/workspace/20260822/.toolchains/moonbit-pinned/bin:/Users/t14i/.local/share/mise/installs/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin /Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node /Users/t14i/workspace/20260822/local-tools/actql-cloud-retained-delivery/verify-resident-effect-capture-materials.mjs 4207f08fcc1fba4d4a399ad42ea83d8b63e7b188",
+  "sourceClean": true,
+  "verification": [
+    {
+      "label": "effect-source",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect original Source producer completes*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:18:30.744Z",
+      "finishedAt": "2026-10-09T16:18:31.304Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594/effect-source.log"
+    },
+    {
+      "label": "effect-holders",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect consumer holder*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:18:31.305Z",
+      "finishedAt": "2026-10-09T16:18:34.459Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594/effect-holders.log"
+    },
+    {
+      "label": "holder-custody",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/cmd/native_remote_resident_site/holder_task_custody_wbtest.mbt\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:18:34.459Z",
+      "finishedAt": "2026-10-09T16:18:34.713Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594/holder-custody.log"
+    },
+    {
+      "label": "effect-site-process",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('node',['scripts/test-native-resident-site.mjs'],{cwd:process.cwd(),timeout:240000});"
+      ],
+      "startedAt": "2026-10-09T16:18:34.714Z",
+      "finishedAt": "2026-10-09T16:18:54.342Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594/effect-site-process.log"
+    },
+    {
+      "label": "ordinary-site-process",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('node',['scripts/test-native-resident-site.mjs'],{cwd:process.cwd(),timeout:240000});"
+      ],
+      "startedAt": "2026-10-09T16:18:54.434Z",
+      "finishedAt": "2026-10-09T16:18:59.343Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594/ordinary-site-process.log"
+    }
+  ],
+  "counts": {
+    "nativeSource": 1,
+    "nativeEffectHolders": 4,
+    "nativeCommandCustody": 5,
+    "actualPrivateEffectSiteProcess": 1,
+    "ordinaryTwoTaskSiteProcess": 1,
+    "total": 12
+  },
+  "nativeArtifact": {
+    "source": "4207f08fcc1fba4d4a399ad42ea83d8b63e7b188",
+    "sourceClean": true,
+    "scope": "Actual production Native Site binary rebuilt with --strip by the real-process harness",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-materials-1791562710594/process-native-resident-site.exe",
+    "sha256": "e486b21ce118742aea936272442594de6f0de17b5e996f4e2d8b713176f7aa75"
+  },
+  "processResults": {
+    "effect-site-process": [
+      {
+        "kind": "native-private-effect-computation-verified",
+        "runDefinitionCid": "sha256:865ae4f9c8d8202b881c58880c5cb538d3f97c66a5b770573707292db50bdcd8",
+        "producerDispatchCid": "sha256:bdec87a53746c41cf360b910072f83edfdf1bb7519a86734c75d86b2d56fc21a",
+        "consumerDispatchCid": "sha256:b94e5aefe096cc48a3da7c9ae9872534b9bc5730da0d21a0d4d3c284cc6c5fbd",
+        "checkedTasks": 2,
+        "sourceAcquisitions": 1,
+        "producerEntries": 1,
+        "consumerEntries": 1,
+        "rows": [
+          {
+            "id": 3
+          }
+        ],
+        "schemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+        "receiverCurrentQueried": true,
+        "receiverDatabaseReadForBinding": false,
+        "privateTaskCleanup": true,
+        "siteCapacity": {
+          "kind": "retained-holder-settled",
+          "active_operations": "0",
+          "active_transfers": "0",
+          "holdings": "0",
+          "cleanup_responsibilities": "0",
+          "held_bytes": "0",
+          "reserved_retention_bytes": "0",
+          "reserved_execution_bytes": "0"
+        },
+        "receiverHoldingReclaimed": true,
+        "actualComputationOwnersRetained": true,
+        "pendingIntents": 0,
+        "reservedPayloadBytes": 0,
+        "effectExecutionNotRequested": true,
+        "checkpointCaptured": false,
+        "approvalCommitted": false,
+        "publicResultPublished": false,
+        "effectRunReleased": false,
+        "publicCloudAcceptance": false
+      }
+    ],
+    "ordinary-site-process": [
+      {
+        "kind": "native-retained-consumer-verified",
+        "runDefinitionCid": "sha256:7dfed5fbd5dfd5e71622bd029c4c03d5547b101e89705352ca3c9fd69b90d50e",
+        "producerDispatchCid": "sha256:085800aaffb3aa0e508e02d50da4b777208a45f2ef177b3a3b71c98f64632946",
+        "consumerDispatchCid": "sha256:db91e0602c830437890caa02291cf35c710f6b3bd623c5cf92f8edcc999b4182",
+        "checkedTasks": 2,
+        "sourceAcquisitions": 1,
+        "producerEntries": 1,
+        "consumerEntries": 1,
+        "rows": [
+          {
+            "id": 3
+          }
+        ],
+        "typedOutputAck": true,
+        "formalRelease": true,
+        "reservedPayloadBytes": 0,
+        "pendingIntents": 0,
+        "siteCapacity": {
+          "kind": "retained-holder-settled",
+          "active_operations": "0",
+          "active_transfers": "0",
+          "holdings": "0",
+          "cleanup_responsibilities": "0",
+          "held_bytes": "0",
+          "reserved_retention_bytes": "0",
+          "reserved_execution_bytes": "0"
+        },
+        "coordinatorReconstructed": false,
+        "receiverCurrentQueried": true,
+        "receiverDatabaseReadForBinding": false,
+        "checkedRunProjection": true,
+        "checkedTaskStart": true,
+        "cloudRunStartCas": false,
+        "publicationReady": true,
+        "taskCleanup": [
+          "released",
+          "released"
+        ],
+        "producerHolderRecreated": false,
+        "middleHolderRecreated": false,
+        "completedConsumerRestored": false,
+        "retainedHandoffInterruption": null,
+        "transferResumedBeforeCommit": false,
+        "pendingReceiverAllocationsPreserved": false,
+        "committedReceiverAllocationsUnchanged": false,
+        "originalBorrowReturnedOnce": false,
+        "cancelledBeforeConsumer": false,
+        "receiverHoldingReclaimed": true,
+        "resultReread": true,
+        "publicCloudAcceptance": false
+      }
+    ]
+  },
+  "ownerAssertions": [
+    "Actual producer pins match its Runtime-admitted preparation; equal Run materials reconstructed by the fixture do not match those pins.",
+    "Actual consumer pins match its own Runtime-admitted preparation; equal Run materials proposed by the fixture do not match those pins.",
+    "Repeated access retains the same prepared owner without new Source, Compute or borrow.",
+    "A foreign real journal cannot provide producer capture context.",
+    "Formal producer and consumer cleanup make their capture materials unavailable."
+  ],
+  "preparationEvidence": "_build/resident-effect-capture-materials-1791562625377: formatting, selected Native/JS interfaces and 10 Native cases passed on the pre-commit diff; distinct from clean implementation evidence.",
+  "initialFailures": [
+    {
+      "evidence": "_build/resident-effect-capture-materials-1791562409162",
+      "reason": "Preparation rejected a positional argument for a named optional context; no test execution."
+    },
+    {
+      "evidence": "_build/resident-effect-capture-materials-1791562429112",
+      "reason": "The external forged-record test could not update a result with its new private original materials. Replaced it with an actual unrelated SQLite journal; no test execution."
+    },
+    {
+      "evidence": "_build/resident-effect-capture-materials-1791562482995",
+      "reason": "The consumer accessor compared the retained projection graph to the original graph, so the added test aborted when it unwrapped None. The accessor now retains and checks the exact already-bound checked Run instead; no identity check weakened."
+    }
+  ],
+  "unverified": [
+    "Producer semantic Artifact transfer across independently reconstructed checked preparations. Existing Artifact owner checks still refuse this boundary; this PR does not claim it is closed.",
+    "Full actual Effect capture, durable waiting commit, physical restart restoration, current-authority approval, write and reconciliation.",
+    "Formal merged-cohort Cloud adoption, public Cloud SDK and Effect Preview acceptance.",
+    "Hosted CI remains disabled; no hosted run, deployment or merge.",
+    "Historical #88 Run custody and recovery remain separate and unchanged."
+  ]
+}

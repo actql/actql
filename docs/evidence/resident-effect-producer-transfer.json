@@ -1,0 +1,270 @@
+{
+  "version": "actql-resident-effect-producer-transfer-evidence/0.1",
+  "verifiedImplementationSha": "2dc21b77e81e45fc887f857e97b509349996c227",
+  "mainAncestor": "607c0480ba8afa429bce96eb7fb601c8365dc6f1",
+  "parentPr": 1154,
+  "parentReviewedSha": "cbe202d44b97680c506aea1acdbf68ee721ae5c8",
+  "parentMergeSha": "110fcc644d444f2f9676b63bbc7837ffc70a29ec",
+  "scope": "Actual original Effect Source producer Runtime completion -> saved-material retained context -> existing Direct Transfer/independent receiver holding -> durable borrow -> original saved consumer Runtime. This is Native Owner integration, not public Cloud or Effect approval acceptance.",
+  "nativeCases": [
+    {
+      "name": "Effect actual producer bytes transfer to saved consumer without Source reacquisition",
+      "assertions": [
+        "actual Source acquisition one, producer entry one, consumer entry one in the original Run",
+        "journal Source observation/evidence/subject and original checked edge admitted by existing owners",
+        "exact producer/attempt/input/schema/order/generation retained",
+        "original Source path removed before consumer Compute",
+        "receiver commit/reopen and durable borrow reopen use original transfer",
+        "independent rows [{id:3}] and schema match",
+        "private Effect output has no public Result definition",
+        "receiver and consumer cleanup do not retire producer custody",
+        "per-owner formal cleanup returns reservations once; repeated cleanup is idempotent"
+      ]
+    },
+    {
+      "name": "Effect actual producer keeps Source custody when partial receiver holding is cancelled",
+      "assertions": [
+        "partial receiver never starts consumer",
+        "original producer holding remains until its owner confirms cleanup",
+        "receiver reservation returned only after its cleanup confirmation"
+      ]
+    },
+    {
+      "name": "Effect actual producer handoff rechecks authority after receiver admission before bytes",
+      "assertions": [
+        "revoked authority withholds chunk delivery",
+        "admitted receiver capacity retained until confirmed cleanup",
+        "no Source reacquisition or consumer execution"
+      ]
+    },
+    {
+      "name": "Effect actual producer cancellation withholds transfer while preserving completed Source custody",
+      "assertions": [
+        "journal cancellation saved through existing owner",
+        "no movement or consumer start after cancellation",
+        "completed producer record and Source custody preserved until formal cleanup",
+        "cancellation request alone does not fabricate cancellation terminal or Released"
+      ]
+    },
+    {
+      "name": "ordinary resident producer to consumer",
+      "assertions": [
+        "existing actual Runtime/Transfer/borrow path remains intact"
+      ]
+    },
+    {
+      "name": "ordinary consumer start expiry",
+      "assertions": [
+        "existing deadline and caller input custody remain intact"
+      ]
+    }
+  ],
+  "testCounts": {
+    "nativeEffectProducerTransfer": 4,
+    "nativeOrdinaryProducerConsumer": 1,
+    "nativeOrdinaryConsumerDeadline": 1,
+    "jsEffectFragment": 1,
+    "jsEffectSourceAdmission": 10
+  },
+  "expectedRows": [
+    {
+      "id": 3
+    }
+  ],
+  "expectedSchemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+  "clock": {
+    "effectAt": "2026-10-09T00:00:00.000Z",
+    "effectEpochMilliseconds": 1791504000000,
+    "ordinaryAt": "2026-10-05T00:00:00.000Z",
+    "ordinaryEpochMilliseconds": 1791158400000
+  },
+  "artifact": {
+    "source": "2dc21b77e81e45fc887f857e97b509349996c227",
+    "scope": "Native whitebox fixture, not production Site binary",
+    "artifact": "_build/resident-effect-producer-transfer-1791555365411/producer-transfer.whitebox_test.exe",
+    "sha256": "946a952abe81a95d404f78f3da765d000c915bf25ac8433a60e09092d6539f0e"
+  },
+  "nativeDuckdbLibrarySha256": "b9027d18ef3e8d960568f77e946a83ca68009cb22d71cf7f94de842afdd094d8",
+  "command": "MOON_HOME=.toolchains/moonbit-pinned node local-tools/actql-cloud-retained-delivery/verify-resident-effect-producer-transfer.mjs 2dc21b77e81e45fc887f857e97b509349996c227",
+  "wrapperLocation": "workspace-local verification helper; exact subprocess commands and bounded completion receipts follow",
+  "checks": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/remote_resident_host/retained_context.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/acquisition_transfer_runtime_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T14:16:05.555Z",
+      "finishedAt": "2026-10-09T14:16:05.669Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect actual producer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T14:16:05.670Z",
+      "finishedAt": "2026-10-09T14:16:24.318Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/tests.log"
+    },
+    {
+      "label": "ordinary-runtime",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*ordinary resident producer bytes*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:16:24.318Z",
+      "finishedAt": "2026-10-09T14:16:25.593Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/ordinary-runtime.log"
+    },
+    {
+      "label": "ordinary-expiry",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*resident consumer expiry*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:16:25.593Z",
+      "finishedAt": "2026-10-09T14:16:26.554Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/ordinary-expiry.log"
+    },
+    {
+      "label": "effect-fragment",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect checked task fragment*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:16:26.558Z",
+      "finishedAt": "2026-10-09T14:16:27.314Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/effect-fragment.log"
+    },
+    {
+      "label": "source-admission",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect Source dispatch*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T14:16:27.314Z",
+      "finishedAt": "2026-10-09T14:16:28.318Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/source-admission.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T14:16:28.318Z",
+      "finishedAt": "2026-10-09T14:16:28.451Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T14:16:28.452Z",
+      "finishedAt": "2026-10-09T14:16:28.571Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T14:16:28.680Z",
+      "finishedAt": "2026-10-09T14:18:05.020Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-producer-transfer-1791555365411/history.log"
+    }
+  ],
+  "preparatoryEvidence": [
+    {
+      "path": "_build/resident-effect-producer-transfer-1791554667092",
+      "result": "compile failure: private material enum exposed through public opaque context definition; no executed tests"
+    },
+    {
+      "path": "_build/resident-effect-producer-transfer-1791554715914",
+      "result": "initial Native cases passed; JS whitebox compilation rejected ambiguous enum constructor; not final success"
+    },
+    {
+      "path": "_build/resident-effect-producer-transfer-1791554787987",
+      "result": "initial Native and JS cases passed before durable cancellation case and main integration"
+    },
+    {
+      "path": "_build/resident-effect-producer-transfer-1791555004219",
+      "result": "integrated Native six and JS eleven passed before clean implementation commit"
+    },
+    {
+      "path": "_build/resident-effect-producer-transfer-1791555097402",
+      "result": "clean 2889f1d0b981437426f9b2a47c483327b12ed9e2 passed before aligning Effect transfer clock to original acquisition; distinct from final-SHA evidence"
+    }
+  ],
+  "limitations": [
+    "Signed runtime component and executable are Native whitebox fixtures, not production Site binary or formal package cohort.",
+    "Production parent-process poll and retained-consumer-holder routing remain ordinary-only and are not completed by this direct saved-entry integration.",
+    "Transfer/borrow reopening is tested; full Source/consumer physical Host restart inventory and reservation reconstruction remain incomplete.",
+    "Waiting transition, current-authorized approval, Effect write/unknown reconciliation and public SDK/Cloud/Preview acceptance remain incomplete.",
+    "Hosted CI stopped by instruction; full Core, all-packed and full three-target integration not run.",
+    "Historical #88 custody and recovery responsibilities retained separately; no past Run modified or closed."
+  ]
+}

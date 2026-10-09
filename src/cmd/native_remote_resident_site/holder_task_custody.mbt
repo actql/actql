@@ -9,6 +9,7 @@ priv struct HolderTaskCustody {
   consumer : @resident_host.ResidentRetainedConsumer?
   process_hold : Ref[@bundle.NativeActiveRuntimeBinding?]
   mut executed : @resident_host.ResidentExecuted?
+  mut effect_producer : @resident_host.ResidentEffectProducerExecuted?
   mut restoration : @resident_host.ResidentCompletedAttempt?
   mut restoration_cleanup : @runtime.NativeRemoteRuntime?
   mut restoration_failed : Bool
@@ -27,6 +28,7 @@ fn new_holder_task_custody(
   executed : @resident_host.ResidentExecuted?,
   consumer : @resident_host.ResidentRetainedConsumer?,
   producer_identity : String?,
+  effect_producer? : @resident_host.ResidentEffectProducerExecuted? = None,
 ) -> HolderTaskCustody {
   {
     request,
@@ -34,6 +36,7 @@ fn new_holder_task_custody(
     consumer,
     process_hold: Ref(None),
     executed,
+    effect_producer,
     restoration: None,
     restoration_cleanup: None,
     restoration_failed: false,
@@ -44,6 +47,27 @@ fn new_holder_task_custody(
     payloads: [],
     failed_cleanups: [],
     unsaved_reports: [],
+  }
+}
+
+///|
+/// This is the existing Runtime's live computation, not a restored capability
+/// from equal file bytes. Capture retains its own pins; task cleanup stays with
+/// the producer/consumer Runtime and cannot be discharged by this projection.
+fn holder_effect_computation(
+  task : HolderTaskCustody,
+  journal : @journal.Journal,
+) -> @resident_host.ResidentSourceCompute? {
+  if task.released || task.release_requested {
+    return None
+  }
+  match task.effect_producer {
+    Some(producer) => producer.source_for_capture(journal)
+    None =>
+      match task.consumer {
+        Some(consumer) => consumer.effect_computation(journal)
+        None => None
+      }
   }
 }
 
@@ -234,6 +258,9 @@ fn close_holder_task(
     ) {
     return false
   }
+  // Clear only after every existing Owner confirmed cleanup. An uncertain
+  // release keeps the same reference and responsibility for the next retry.
+  task.effect_producer = None
   true
 }
 

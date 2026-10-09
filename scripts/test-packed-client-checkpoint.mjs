@@ -4,7 +4,8 @@
 // Pre-Run positives are current recovery of independent synthetic historical-format
 // originals, not proof of old-public-producer acceptance. New submissions use
 // the current epoch-bound submission reference and retain exact refusal controls.
-// Applications use only @actql/node; they never open a journal or owner.
+// Applications use public @actql/node and @actql/sdk entries; they never
+// open a journal or owner.
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
@@ -28,8 +29,7 @@ await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch,
   'client-checkpoint-package-'));
 const environment = {...process.env,
-  npm_config_cache: packedNpmCache(root),
-  NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+  npm_config_cache: packedNpmCache(root)};
 
 function run(command, args, cwd = root) {
   const result = spawnSync(command, args, {cwd, env: environment,
@@ -58,9 +58,17 @@ assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
 const sdkFiles = (await readdir(join(root, 'node_modules/@actql/sdk'))).sort();
 assert.deepEqual(sdkFiles.filter(name => /\.(m?js|json)$/u.test(name)),
   ['check-presentation.mjs', 'check-reason-catalog.generated.js', 'checkpoints.mjs',
-    'host-port.mjs', 'index.mjs', 'json-value-wire.generated.mjs',
-    'operation-formats.mjs', 'operation-presentation.mjs', 'package.json',
-    'result-schema.mjs', 'source-query.mjs']);
+    'connection-string.mjs', 'host-port.mjs', 'index.mjs', 'json-value-wire.generated.mjs',
+    'loopback-http-unavailable.mjs', 'loopback-http.mjs', 'operation-formats.mjs',
+    'operation-presentation.mjs', 'package.json', 'result-schema.mjs', 'source-query.mjs']);
+
+// Independent fixture input from this revision's normative source. It is not
+// a runtime package asset or an identity returned by the installed Host.
+const expressionContract = await readFile(join(repository,
+  'spec/contracts/actql-expressions.json'));
+await writeFile(join(root, 'actql-expressions.json'), expressionContract);
+assert.deepEqual(await readFile(join(root, 'actql-expressions.json')), expressionContract,
+  'The external fixture retains the exact normative contract bytes');
 
 async function heldValueAcceptance() {
   for (const name of ['adapters/host-node/held-submission-value-public.test.mjs',
@@ -74,6 +82,7 @@ async function heldValueAcceptance() {
   const inputs = join(root, 'held-value-acceptance-inputs.json');
   await writeFile(inputs, JSON.stringify({scratch: root, runtime: {
     client: '@actql/node', httpHost: '@actql/local-node/http-host',
+    expressionContractUrl: pathToFileURL(join(root, 'actql-expressions.json')).href,
     root: pathToFileURL(join(root, 'node_modules/@actql/local-node/')).href}}));
   const args = nodeTestArguments(['adapters/host-node/held-submission-value-public.test.mjs']);
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
@@ -100,6 +109,15 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);
+// Keep npm on the inherited trust configuration. Only now add the generated
+// loopback certificate for child clients, retaining any inherited extra roots.
+const inheritedCa = environment.NODE_EXTRA_CA_CERTS;
+const clientCa = join(root, 'client-ca.pem');
+await writeFile(clientCa, Buffer.concat([
+  ...(inheritedCa ? [await readFile(inheritedCa), Buffer.from('\n')] : []),
+  await readFile(join(root, 'remote.crt')),
+]), {flag: 'wx'});
+environment.NODE_EXTRA_CA_CERTS = clientCa;
 
 const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
@@ -254,6 +272,7 @@ if (process.env.HISTORICAL_REQUESTS !== undefined) {
     const document = JSON.stringify(parsed);
     const options = {directory: process.env.STATE, document, requestId,
       authorization: installation.authorization,
+      expressionContractUrl: new URL('actql-expressions.json', import.meta.url),
       runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')), mode: 'remote'};
     const original = acquired
       ? await writeSyntheticHistoricalHeldQuery({...options,
@@ -281,12 +300,13 @@ process.on('SIGTERM', async () => {
 });
 `);
 
-// One application step: a separate process using only @actql/node.
+// One application step: a separate process using public Node/SDK entries.
 await writeFile(join(root, 'client.mjs'), `
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
-import {connect, getSubmissionOutcome} from '@actql/node';
+import {connect} from '@actql/node';
+import {getSubmissionAttempt, getSubmissionOutcome} from '@actql/sdk';
 const as = token => connect({mode: 'remote',
   endpoint: process.env.ENDPOINT, token, durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
@@ -375,13 +395,38 @@ const steps = {
     assert.deepEqual((await owner.startSource(text, {format: 'json', submissionRef})).ref, first.ref);
     const changed = JSON.parse(text);
     changed.stages[0].steps[0].values.rows = [{id: 999}];
-    await assert.rejects(owner.startSource(JSON.stringify(changed), {format: 'json', submissionRef}), error => {
-      assert.equal(error.code, 'SubmissionUnknown');
-      assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
-      assert.equal(error.cause?.status, 409);
-      assert.deepEqual(error.submissionRef, submissionRef);
-      return true;
-    });
+    const real = globalThis.fetch;
+    const responses = [];
+    let submittedAttemptRef;
+    globalThis.fetch = async (url, init) => {
+      const path = new URL(url).pathname;
+      if (path === '/actql/client/0.1/submit-intent') {
+        assert.equal(submittedAttemptRef, undefined);
+        submittedAttemptRef = JSON.parse(init.body).attemptRef;
+      }
+      const response = await real(url, init);
+      responses.push({path, status: response.status});
+      return response;
+    };
+    const attemptId = requestId + '-changed-intent';
+    try {
+      await assert.rejects(owner.startSource(JSON.stringify(changed), {format: 'json', submissionRef, attemptId}), error => {
+        assert.equal(error.code, 'SubmissionConflict');
+        assert.equal(error.cause, undefined);
+        const attempt = getSubmissionAttempt(error);
+        assert.equal(attempt.kind, 'conflict');
+        assert.equal(attempt.reason, 'intent');
+        assert.deepEqual(submittedAttemptRef, {operation: 'submit', attemptId});
+        assert.deepEqual(attempt.attemptRef, submittedAttemptRef);
+        assert.deepEqual(error.attemptRef, submittedAttemptRef);
+        assert.deepEqual(attempt.submissionRef, submissionRef);
+        assert.equal(getSubmissionOutcome(error), undefined);
+        assert.deepEqual(error.submissionRef, submissionRef);
+        return true;
+      });
+    } finally {globalThis.fetch = real;}
+    // A validated invocation conflict is a typed reply, not a transport failure.
+    assert.deepEqual(responses, [{path: '/actql/client/0.1/submit-intent', status: 200}]);
     assert.deepEqual(await owner.lookupSubmission(submissionRef), original);
     assert.deepEqual(await (await owner.attach(first.ref)).result('answer').all(), expected);
   },

@@ -210,6 +210,9 @@ fn prepare_client_duckdb_acquisition_parts(
 }
 
 ///|
+/// Trusted Host limits bound the same installed receiver and its declared
+/// capacity. They grant no Source authority and are enforced on actual evidence;
+/// callers must reserve the selected configuration before physical acquisition.
 pub fn prepare_client_duckdb_acquisition(
   requirement : @planning.QueryRequirement,
   database_schema : String,
@@ -217,6 +220,7 @@ pub fn prepare_client_duckdb_acquisition(
   query_contract_body : String,
   evidence_contract_body : String,
   two_receipt_contract_body : String,
+  limits? : @duckdb_host.NativeHostLimits = client_duckdb_native_limits(),
 ) -> Result[@duckdb_host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue] {
   let (_, receipts, preparation, registry) = match
     prepare_client_duckdb_acquisition_parts(
@@ -258,7 +262,15 @@ pub fn prepare_client_duckdb_acquisition(
     is Ok(@planning.Proposed(choice)) else {
     return Err(Selection)
   }
-  Ok(configure_client_duckdb_native(requirement, receipts, choice, candidate))
+  Ok(
+    configure_client_duckdb_native(
+      requirement,
+      receipts,
+      choice,
+      candidate,
+      limits~,
+    ),
+  )
 }
 
 ///|
@@ -269,13 +281,10 @@ fn configure_client_duckdb_native(
   candidate : @planning.PreparedAcquisition[
     @duckdb_query.DuckDBNativePreparation,
   ],
+  limits? : @duckdb_host.NativeHostLimits = client_duckdb_native_limits(),
 ) -> @duckdb_host.NativeHostConfiguration {
   @duckdb_host.configure_native_host(
-    receipts,
-    requirement,
-    choice,
-    candidate,
-    client_duckdb_native_limits(),
+    receipts, requirement, choice, candidate, limits,
   )
 }
 

@@ -2144,13 +2144,13 @@ export async function openLocalPublicationStore(
       // The existing durable lookup owns the logical key. Selection and grant
       // consumption stay in this one admission queue and under Store ownership;
       // no second index or process-local attempt cache substitutes for the files.
-      const retained = await findDeliveryAttempt({
+      const {match: retained, grantUses} = await scanDeliveryAttempts({
         indexKey: {namespaceId: grant.namespace_id,
           authorityScopeCid: grant.authority_scope_cid,
           runDefinitionCid: grant.run_definition_cid},
         principalId: grant.principal_id, purpose: grant.purpose,
         resultName: attempt.result_name, attemptId: attempt.attempt_id,
-      });
+      }, grantContract.identity);
       if (retained !== undefined) {
         let original;
         try {
@@ -2171,18 +2171,7 @@ export async function openLocalPublicationStore(
       }
       const target = deliveryAttemptPath(attempt.delivery_attempt_cid);
 
-      let uses = 0;
-      for (const name of await readdir(deliveriesDirectory)) {
-        if (!/^[0-9a-f]{64}$/u.test(name)) continue;
-        const existing = await readDeliveryAttemptContract(
-          `sha256:${name}`,
-        );
-        if (parseContract(existing).result_read_grant_cid ===
-            grantContract.identity) {
-          uses++;
-        }
-      }
-      if (uses >= grant.max_uses) fail('DeliveryGrantUseLimit');
+      if (grantUses >= grant.max_uses) fail('DeliveryGrantUseLimit');
 
       await putPublicationContract(
         'result_read_grant', grantContract.wire,
@@ -2332,19 +2321,23 @@ export async function openLocalPublicationStore(
         query.attemptId.length > 256) {
       fail('InvalidDeliveryAttemptLookup');
     }
-    return findDeliveryAttempt(query);
+    return (await scanDeliveryAttempts(query)).match;
   };
 
   // Both callers use this same durable scan. Admission has already checked the
   // full attempt/grant contracts; it must not acquire the lookup API's separate
   // request-size restrictions as a new writer/contract restriction.
-  const findDeliveryAttempt = async query => {
+  // Count only within this traversal. The admission queue serializes additions;
+  // metadata retirement can still remove entries after they were counted.
+  const scanDeliveryAttempts = async (query, grantCid) => {
     let match;
+    let grantUses = 0;
     for (const name of await readdir(deliveriesDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) continue;
       const attempt = parseContract(await readDeliveryAttemptContract(
         `sha256:${name}`,
       ));
+      if (attempt.result_read_grant_cid === grantCid) grantUses++;
       if (attempt.attempt_id !== query.attemptId ||
           attempt.run_definition_cid !== query.indexKey.runDefinitionCid ||
           attempt.result_name !== query.resultName) continue;
@@ -2366,7 +2359,7 @@ export async function openLocalPublicationStore(
         )).value;
       match = Object.freeze({attempt, record, hostReleaseReceipt});
     }
-    return match;
+    return {match, grantUses};
   };
 
   const confirmDeliveryRecord = async suppliedWire => {

@@ -121,7 +121,7 @@ pub fn prepare_client_composed_infer_prefix(@run_publication_host.PreparedClient
 
 pub fn prepare_client_composed_infer_suffix(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
-pub fn prepare_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue]
+pub fn prepare_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, limits? : @host.NativeHostLimits) -> Result[@host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue]
 
 pub fn prepare_client_duckdb_broad_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.BroadHostConfiguration, ClientDuckDBAcquisitionIssue]
 

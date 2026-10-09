@@ -60,7 +60,7 @@ for (const mode of ['local', 'remote']) {
   if (mode === 'local') globalThis.fetch = () => {
     throw new Error('LocalDescriptionUnexpectedNetwork');
   };
-  let host, server, release;
+  let host, server, release, unpublishedClient;
   const directory = resolve(`description-${mode}`);
   await mkdir(directory, {recursive: true});
   let options;
@@ -141,9 +141,11 @@ for (const mode of ['local', 'remote']) {
     }
     if (mode === 'remote') {
       offset = 9 * 24 * 60 * 60 * 1000;
+      // New work needs an epoch issued at the advanced Host clock.
+      unpublishedClient = await connect(options);
       const promise = new Promise(resolve => { release = {resolve}; });
       release.promise = promise;
-      const execution = await client.start(documents[0].input);
+      const execution = await unpublishedClient.start(documents[0].input);
       await assert.rejects(execution.result('answer').describe(),
         code('ResultAccessDenied'));
       const unauthorized = await fetch(new URL(
@@ -158,7 +160,8 @@ for (const mode of ['local', 'remote']) {
     }
   } finally {
     release?.resolve();
-    client.close();
+    await unpublishedClient?.close();
+    await client.close();
     globalThis.fetch = fetch;
     if (server) await new Promise(resolve => server.close(resolve));
     await host?.close();
