@@ -8,6 +8,7 @@ fn retained_effect_producer_dependency(
   @host.ClientEffectLocalManifest,
   @execution.CompletedRelationExportReceipt,
 ) {
+  println("retained-effect-evidence: producer-pins")
   let inputs = @strategy.pin_captured_effect_acquired_unit_results(
     owner.effect_run().unwrap(),
     0,
@@ -31,6 +32,7 @@ fn retained_effect_producer_dependency(
     limits.max_batch_bytes,
   ).unwrap()
   let receipt = transferred_effect_result_receipt(exported)
+  println("retained-effect-evidence: producer-export-complete")
   let (source, _) = retained_compute_acquired_evidence(owner).unwrap()
   let (observation, invocation) = producer_dependency_observation(
     materials, source,
@@ -58,6 +60,7 @@ fn retained_effect_producer_dependency(
     4096,
     64,
   ).unwrap()
+  println("retained-effect-evidence: producer-artifact-complete")
   let manifest = @host.issue_client_effect_local_manifest(
     materials.prepared,
     @host.client_effect_acquired_invocation(source),
@@ -105,11 +108,13 @@ fn retained_effect_transferred_artifact(
   common_input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
 ) -> Unit raise {
+  println("retained-effect-evidence: receiver-export")
   let root_export = consumer
     .prepare_effect_result_export(inputs, root_index, resident_compute_limits())
     .unwrap()
   let receipt = transferred_effect_result_receipt(root_export)
   let imported = @strategy.capture_effect_result_import(inputs, 1, 0, 10000).unwrap()
+  println("retained-effect-evidence: receiver-import-captured")
   // The ordinary local-view issuer still refuses the producer's distinct
   // acquired borrow. Equal bytes do not bypass that existing custody check.
   assert_true(
@@ -130,6 +135,7 @@ fn retained_effect_transferred_artifact(
       materials, inputs, imported, root_export, receipt, sender,
     )
     .unwrap()
+  println("retained-effect-evidence: receiver-artifact-bound")
   assert_eq(
     @host.client_effect_local_result_artifact_json(receiver),
     @host.client_effect_local_result_artifact_json(sender),
@@ -142,6 +148,7 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
+  println("retained-effect-evidence: receiver-manifest-complete")
   assert_eq(
     @host.client_effect_local_manifest_json(manifest),
     @host.client_effect_local_manifest_json(sender_manifest),
@@ -156,6 +163,7 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
+  println("retained-effect-evidence: import-observation-complete")
   let evidence = @host.issue_client_effect_imported_evidence(
     materials.prepared,
     inputs,
@@ -165,6 +173,7 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
+  println("retained-effect-evidence: imported-evidence-complete")
   assert_eq(@host.client_effect_imported_relation_bodies(evidence).length(), 1)
   let result_export = consumer
     .prepare_effect_result_export(
