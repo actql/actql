@@ -2632,6 +2632,24 @@ fn compile_steps(
         }
       }
       Rename(names) => {
+        // RENAME targets the pre-operator current row. Unrelated duplicate
+        // names, and ambiguities introduced by renaming, can be resolved by
+        // a later projection through the retained immutable ranges.
+        for replacement in names {
+          let matches = pipe_visible.filter(current => {
+            same_name(replacement.0, { value: current.0, quoted: false, })
+          })
+          if matches.is_empty() {
+            raise Abort(UnknownColumn)
+          }
+          if names.filter(other => same_name(other.0, replacement.0)).length() !=
+            1 {
+            raise Abort(DuplicateOutput)
+          }
+          if matches.length() > 1 {
+            raise Abort(AmbiguousColumn)
+          }
+        }
         let next : Array[(String, String)] = []
         for current in pipe_visible {
           let mut name = current.0
@@ -2640,17 +2658,7 @@ fn compile_steps(
               name = replacement.1.value
             }
           }
-          if pipe_name_exists(next, { value: name, quoted: false, }) {
-            raise Abort(DuplicateOutput)
-          }
           next.push((name, current.1))
-        }
-        for replacement in names {
-          if !pipe_name_exists(pipe_visible, replacement.0) ||
-            names.filter(other => same_name(other.0, replacement.0)).length() !=
-            1 {
-            raise Abort(UnsupportedProjection)
-          }
         }
         pipe_visible = next
         output = next.map(entry => entry.0)
@@ -5124,7 +5132,17 @@ fn compile_steps(
     output = active_fields.copy()
   } else if pipe_changed && !terminal_result {
     let selected : Array[@builder.Node] = []
+    let exported : Array[String] = []
     for field in pipe_visible {
+      if exported.any(prior => {
+          same_name({ value: prior, quoted: false, }, {
+            value: field.0,
+            quoted: false,
+          })
+        }) {
+        raise Abort(DuplicateOutput)
+      }
+      exported.push(field.0)
       selected.push(
         if field.0 == field.1 {
           construction.text(field.1)

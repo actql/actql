@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-09.1",
-  "reasonSchemaCid": "sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6"
+  "revision": "2026-10-09.3",
+  "reasonSchemaCid": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -1134,6 +1134,33 @@ const entries = freeze({
       {
         "file": "adapters/host-node/client-check.test.mjs",
         "scenario": "authored syntax locations retain exact UTF-8 input revisions"
+      }
+    ]
+  },
+  "source_selector_unregistered": {
+    "code": "source_selector_unregistered",
+    "condition": "The existing selector resolver proves no installed registration matches this authored selector in a complete unfiltered namespace at the inspected configuration revision. This does not establish Provider Resource absence.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Emit only after original installed registration custody, complete common Catalog admission, actual resolver witness and fresh namespace-specific absence disclosure. Hidden registered selectors remain protected; no private candidates or Provider existence information is disclosed.",
+    "locations": [
+      "Original structured Program selector or its existing parent; no text span or automatic edit."
+    ],
+    "default_severity": "error",
+    "family": "input",
+    "presentation": {
+      "default": {
+        "key": "reason.source_selector_unregistered",
+        "english": [
+          "The submitted Source selector has no matching installed registration in the inspected namespace.",
+          "Check the selector and the Host registration configuration, then recheck the original input. This does not prove that a Provider Resource is absent or authorize execution."
+        ]
+      },
+      "variants": []
+    },
+    "examples": [
+      {
+        "file": "adapters/host-node/source-selector-check.test.mjs",
+        "scenario": "complete registration namespace discloses only the original unregistered selector"
       }
     ]
   },
