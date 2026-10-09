@@ -748,5 +748,9 @@ test "Effect actual producer handoff rechecks authority after receiver admission
 
 ///|
 test "Effect actual producer cancellation withholds transfer while preserving completed Source custody" {
-  acquisition_runtime_case(true, effect=true, cancel_producer_before_handoff=true)
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    cancel_producer_before_handoff=true,
+  )
 }
