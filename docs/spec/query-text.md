@@ -827,6 +827,14 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+Scalar UNNEST also introduces a range name, although it has no member columns.
+Pipe RENAME cannot rename that original value-table range. SELECT or AS first
+creates an ordinary column scope; SET of the whole value column also removes
+its original range and permits a later RENAME. DROP removes the matching range.
+The range kind is retained across JOIN continuations and checked for duplicate
+UNNEST aliases. A scalar `element.*` remains invalid; scalar DISTINCT continues
+to compare the visible scalar values, rather than object-field expansions.
+
 The same expansion accepts declared parameter property paths, for example
 `FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
 names retain their ordinary expression meaning. The Frontend follows the
