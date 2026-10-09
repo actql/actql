@@ -66,7 +66,7 @@ test('set star preserves schema-supplied private names and authored row values',
   assert.equal(byName.get('order-window-set-private-duplicates').expected.length, 6);
   assert.equal(byName.get('order-window-set-private-nullable-column').expected.at(-1).aql_order_window_0, null);
   assert.equal(orderWindowRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
-  assert.equal(orderWindowSuccesses.length, 41);
+  assert.equal(orderWindowSuccesses.length, 42);
   assert.equal(orderWindowRefusals.length, 11);
 });
 
@@ -96,7 +96,7 @@ test('JOIN ORDER windows retain authored keys ceiling predicate and operand scop
   assert.deepEqual(byName.get('order-window-join-typed-empty').expected, []);
   assert.equal(byName.get('order-window-join-duplicates').expected.length, 6);
   assert.equal(byName.get('order-window-join-left-preserved').columns[1].contract.nullable, true);
-  assert.equal(orderWindowSuccesses.length, 41);
+  assert.equal(orderWindowSuccesses.length, 42);
   assert.equal(orderWindowRefusals.length, 11);
   assert.equal(orderWindowRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
 });
