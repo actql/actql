@@ -2253,8 +2253,10 @@ test "quoted column and alias spelling does not change name matching" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(relation_case, fixture_context(), construction_limits())
-    is Err(UnknownRelation),
+    exact_unresolved_relation(
+      compile(relation_case, fixture_context(), construction_limits()),
+      [("ORDERS", true)],
+    ),
   )
   let step = @wire.admit(
     @source.parse_json(

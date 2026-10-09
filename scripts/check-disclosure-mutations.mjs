@@ -22,9 +22,9 @@ const mutations = [
   ['an operation default loses its original declaration location',
     'location = Some(("parameter_declarations", prefix + relative))', 'location = None'],
   ['a protected obligation hides the disclosable violation',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) => {\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.clear()\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '        }'],
@@ -113,9 +113,9 @@ const mutations = [
     'let fallback = SuppliedViolation(pointer)',
     'let fallback = SuppliedViolation(None)'],
   ['absent declarations discard a safe violation beside a protected Source',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) => {\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          if context.parameter_declarations is None { findings.clear() }\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '        }'],
@@ -149,9 +149,9 @@ const mutations = [
     'return ExpressionViolation(code, range)',
     'return ExpressionViolation(code, None)'],
   ['an expression diagnostic fabricates a protected reference violation',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) => {\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '          findings.push(ExpressionViolation("unknown_reference", Some((7, 14))))\n' +
     '        }'],
@@ -191,9 +191,9 @@ const mutations = [
     '        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) => {\n' +
     '          findings.clear()\n          findings.push(FunctionLimit(check_authored_range(origin)))\n        }'],
   ['an unsupported function limit is fabricated behind protected resolution',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) => {\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '          findings.push(Limit("implementation_limit"))\n        }'],
 
@@ -207,9 +207,9 @@ const mutations = [
     'return ExpressionViolation("expected_boolean", None)',
     'return ExpressionViolation("expected_boolean", Some((0, 1)))'],
   ['a non-Boolean predicate is fabricated behind protected resolution',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) => {\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '          findings.push(ExpressionViolation("expected_boolean", None))\n        }'],
   ['a non-Boolean predicate exposes a private value as its code',
@@ -234,9 +234,9 @@ const mutations = [
     'UnsupportedImplementation =>\n          findings.push(Limit("implementation_limit"))',
     'UnsupportedImplementation =>\n          findings.push(Violation("program_invalid"))'],
   ['a Subgraph selector violation is fabricated behind protected resolution',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) => {\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '          findings.push(GraphViolation("subgraph", "invalid_node_selector"))\n        }'],
   ['a default type violation loses its typed explanation facts',
@@ -272,9 +272,9 @@ const mutations = [
     'findings.push(ExpressionViolation("unknown_reference", None))',
     'findings.push(ExpressionViolation("unknown_reference", Some((0, 0))))'],
   ['a bare unresolved column is inferred through protected Source resolution',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
-    'QueryLowering(UnknownRelation) =>\n' +
+    'QueryLowering(UnknownRelation | UnresolvedRelation(_)) =>\n' +
     '          findings.push(ExpressionViolation("unknown_reference", None))'],
 
   ['independent reporting failure silently substitutes a smaller context',
