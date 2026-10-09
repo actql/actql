@@ -117,3 +117,48 @@ its own target-scope review. Full Core/all-target/all-packed/performance and
 live Google conformance remain unverified locally. The full public-text
 Frontend objective remains active; parser/checker success is not public execution
 completion or CI success. No merge is requested.
+
+## Fresh packed public execution
+
+Clean product/fixture SHA: `527feaf31e73d54fb771233e96c9c88d15b4f4af`.
+Existing serialized bounded wrapper `run-2GrO5S` normally produced all five
+packages, independently verified original SHA256 digests, and ran:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-unnest-edits-527feaf31-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-unnest-edits-527feaf31-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+No overlay, manifest relabeling or prepack bypass. Both Embedded Local and
+HTTPS complete **73 positives / 29 refusal loops**. Sixteen explicit refusal
+codes per transport are logged; the older broad-code checks are not mislabeled
+as explicit-code logs. All new implicit-field and scalar-member refusals require
+ClientProgramInvalidInput with zero Run admission and Source I/O.
+
+The existing consumer compares complete rows, types/nullability/column order,
+stream completion, hidden-column absence, acquisition counts and same-Run
+resend/attach/reread without additional acquisition/execution. The independent
+JSON whole-value control agrees with text. Empty arrays, empty-object elements,
+NULL elements, object-valued replacement and sibling original-object access pass.
+Whole-value SET exposes one ordinary column; whole-value DROP exposes only the
+offset, without old members or helper slots. README Local/HTTPS and deliberate
+missing-generated-asset checks also pass.
+
+Receipt: `worktrees/.codex-scratch/public-query-evidence-pgFjlW`. Independent
+inspection confirms exact revision, passed/complete, ten zero-exit complete
+commands, no signal/error/evidence errors, all expected positive names and the
+sixteen explicit refusal codes in both transports. `artifactsRemoved=true`;
+logs/receipt retained, successful temporary installation and Stores reclaimed.
+
+| Package | Original SHA256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | f5487ba69e88efbab8e99930482c27254b8055f421280045a46c0532f8349d1b |
+| local-node | f9ef42b0d887fd169b5befb1c9263c291beb327b83c625d75d1a94bbee9ba0f9 |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+The subsequent evidence commit changes this report only. Submitted-HEAD CI
+is checked after publication; local public success is not CI success.
