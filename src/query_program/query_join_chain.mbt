@@ -4,6 +4,7 @@
 // input without reviving a dropped range or confusing equal column names.
 priv struct JoinChainScope {
   visible : Array[(String, String)]
+  columns : Array[(String, String)]
   ranges : Array[(@query.NamePart, Array[(String, String)])]
   receivers : Array[(@query.NamePart, String)]
   scalar_ranges : Array[(@query.NamePart, String)]
@@ -186,11 +187,15 @@ fn compile_join_chain_steps(
   let original = fields.map(field => (field, field))
   let source_scope = initial_scope.unwrap_or({
     visible: original,
+    columns: original.copy(),
     ranges: [(query_range_name(query), original.copy())],
     receivers: [],
     scalar_ranges: [],
   })
   let visible = source_scope.visible.map(entry => (entry.0, slots[entry.1]))
+  let first_columns = source_scope.columns.map(column => {
+    (column.0, slots[column.1])
+  })
   let first_ranges = source_scope.ranges.map(range => {
     (range.0, range.1.map(entry => (entry.0, slots[entry.1])))
   })
@@ -257,6 +262,11 @@ fn compile_join_chain_steps(
     } else {
       scope.visible.copy()
     }
+    let mut next_columns = if index == 0 {
+      first_columns.copy()
+    } else {
+      scope.columns.copy()
+    }
     for field in right_fields {
       let slot = pipe_physical_name(physical, "aql_chain_column_")
       physical.push(slot)
@@ -266,6 +276,7 @@ fn compile_join_chain_steps(
           same_name(name, { value: field, quoted: false, })
         }) {
         next_visible.push((field, slot))
+        next_columns.push((field, slot))
       }
     }
     let coalesced : Array[(String, @builder.Node)] = []
@@ -322,6 +333,12 @@ fn compile_join_chain_steps(
         }
         merged.push((display, merged_slot))
       }
+      next_columns = merged +
+        next_columns.filter(column => {
+          !part.using_columns.any(name => {
+            same_name(name, { value: column.0, quoted: false, })
+          })
+        })
       next_visible = merged +
         next_visible.filter(entry => {
           !part.using_columns.any(name => {
@@ -391,6 +408,7 @@ fn compile_join_chain_steps(
     }
     scope = {
       visible: next_visible,
+      columns: next_columns,
       ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
       [(qualifier, right_range)],
       scalar_ranges: if index == 0 {
