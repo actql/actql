@@ -1,0 +1,177 @@
+{
+  "version": "actql-resident-effect-retained-runtime-evidence/0.1",
+  "verifiedImplementationSha": "b9987a788cbcae0ab5de04e0dac955e3e065f09c",
+  "parentSha": "3da9a421cae2fbe4946eaaa3e2c749d45ca7b8e7",
+  "parentPr": 1150,
+  "implementationScope": "Original Effect checked consumer registered with the existing Native remote Runtime, physical Transfer receiver and formal task cleanup.",
+  "execution": {
+    "nativeTests": {
+      "passed": 2,
+      "cases": [
+        "Effect retained consumer Runtime",
+        "ordinary retained consumer Runtime"
+      ]
+    },
+    "portableTaskFragmentTests": 1,
+    "portableSourceAdmissionTests": 10,
+    "expectedRows": [
+      {
+        "id": 3
+      }
+    ],
+    "expectedSchemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+    "sourceAcquisitions": 1,
+    "producerCaptures": 1,
+    "consumerRuntimeEntries": 1,
+    "taskCleanup": "NativeSettled / CleanupReleased",
+    "borrow": "returned by Runtime release",
+    "receiver": "independent cleanup, reserved bytes zero after reclaim"
+  },
+  "artifact": {
+    "source": "b9987a788cbcae0ab5de04e0dac955e3e065f09c",
+    "scope": "Native whitebox fixture, not production Site binary",
+    "artifact": "_build/resident-effect-retained-runtime-1791551858160/retained-compute.whitebox_test.exe",
+    "sha256": "693152b1e307a6b9b8f3946a47e6d721fcda6fc68bef477bcf1d9d1bdcf0c804"
+  },
+  "command": "MOON_HOME=.toolchains/moonbit-pinned node local-tools/actql-cloud-retained-delivery/verify-resident-effect-retained-runtime.mjs b9987a788cbcae0ab5de04e0dac955e3e065f09c",
+  "checks": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/run_publication_host/client_effect_source_dispatch.mbt",
+        "src/platform_native/remote_resident_host/retained_executor.mbt",
+        "src/platform_native/remote_resident_host/effect_source_dispatch_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_runtime_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T13:17:38.358Z",
+      "finishedAt": "2026-10-09T13:17:38.554Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*consumer completes through Runtime claim*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T13:17:38.558Z",
+      "finishedAt": "2026-10-09T13:17:39.946Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/tests.log"
+    },
+    {
+      "label": "effect-fragment",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect checked task fragment*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:17:39.947Z",
+      "finishedAt": "2026-10-09T13:17:40.576Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/effect-fragment.log"
+    },
+    {
+      "label": "source-admission",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect Source dispatch*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:17:40.576Z",
+      "finishedAt": "2026-10-09T13:17:41.546Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/source-admission.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T13:17:41.546Z",
+      "finishedAt": "2026-10-09T13:17:41.746Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T13:17:41.746Z",
+      "finishedAt": "2026-10-09T13:17:41.856Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T13:17:41.989Z",
+      "finishedAt": "2026-10-09T13:19:24.538Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-retained-runtime-1791551858160/history.log"
+    }
+  ],
+  "earlierPreparation": {
+    "evidence": "_build/resident-effect-retained-runtime-1791551760779",
+    "sourceClean": false,
+    "result": "Native 2/2; JS 11/11; interfaces passed"
+  },
+  "notVerified": [
+    "parent-process Effect materials admission",
+    "producer remote Runtime registration",
+    "complete physical recovery inventory",
+    "waiting Run transition",
+    "Host/Coordinator restart",
+    "current approval authorization",
+    "Effect write/reconciliation",
+    "formal package adoption",
+    "public SDK/Cloud/Preview Effect acceptance",
+    "production Native Site binary",
+    "Hosted CI"
+  ],
+  "hostedCi": "Stopped by instruction; local checks do not replace CI.",
+  "completion": "This connection unit is implemented; the Resident Effect/Approval goal remains incomplete."
+}
