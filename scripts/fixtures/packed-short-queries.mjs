@@ -1,6 +1,7 @@
 // Fresh external consumers exercise the real installed Local and TLS HTTPS
 // owners. Only independently expected rows and observed Compute counts pass.
 import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
@@ -166,6 +167,21 @@ try {
     await setImmediate();
     assert.equal(remoteAuthorization.count(), 4, 'lost reply must not cause resubmission');
   } finally {globalThis.fetch = originalFetch;}
+  if (process.env.ACTQL_SDK_ONLY_ACCEPTANCE) {
+    await new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, [process.env.ACTQL_SDK_ONLY_ACCEPTANCE],
+        {stdio: 'inherit', env: {...process.env,
+          ACTQL_RELEASE_TEST_ENDPOINT: `https://127.0.0.1:${server.address().port}/`}});
+      const timeout = setTimeout(() => child.kill('SIGTERM'), 60_000);
+      child.once('error', error => {clearTimeout(timeout); reject(error);});
+      child.once('close', code => {
+        clearTimeout(timeout);
+        code === 0 ? resolve() : reject(Error(`SDKOnlyConsumerFailed:${code}`));
+      });
+    });
+    await setImmediate();
+    assert.equal(remoteAuthorization.count(), 5, 'SDK-only reads and lookup must not repeat Compute');
+  }
 } finally {
   await remote?.close(); server.closeAllConnections();
   await new Promise(resolve => server.close(resolve)); await host.close();
