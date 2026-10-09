@@ -1,6 +1,7 @@
 // Actual Native input/Artifact identity binding to the existing Preview Owner.
-// Target version, read decision and capability are explicit provider fixtures.
-// No real target I/O, approval, waiting commit or physical write is claimed.
+// Target version, read decision, capability and Store authority are fixtures.
+// Source content is issued from the actual Native local Artifact. No durable
+// private holding, target I/O, approval, waiting commit or write is claimed.
 
 ///|
 fn retained_effect_preview_inputs(
@@ -12,6 +13,71 @@ fn retained_effect_preview_inputs(
   local_result : Int,
 ) -> Unit raise {
   let owner = materials.prepared
+  let retention = retained_compute_effect_retention()
+  let source_binding = retained_compute_cid("e")
+  let store_authority = retained_compute_cid("a")
+  let source = consumer
+    .issue_effect_source_artifact(
+      materials, inputs, 0, artifact, invocation, retention, source_binding, store_authority,
+      65536, 4096, 64,
+    )
+    .unwrap()
+  println("retained-effect-source: artifact-issued")
+  assert_eq(
+    @publication.effect_source_artifact_preview_binding(
+      source,
+      @publication.publication_contract_identity(invocation),
+      "r",
+      store_authority,
+    ),
+    Ok((@publication.publication_contract_identity(source), source_binding)),
+  )
+  let foreign_invocation = @publication.seal_publication_contract(
+    "run_invocation",
+    "{\"version\":\"actql-run-invocation/0.1\",\"invocation_template_cid\":\"" +
+    retained_compute_cid("f") +
+    "\",\"observation_set_cid\":\"" +
+    retained_compute_cid("e") +
+    "\"}",
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  assert_true(
+    consumer.issue_effect_source_artifact(
+      materials, inputs, 0, artifact, foreign_invocation, retention, source_binding,
+      store_authority, 65536, 4096, 64,
+    )
+    is Err(ForeignInvocation),
+  )
+  let refreshed_retention = @publication.seal_publication_contract(
+    "result_retention_policy",
+    @publication.publication_contract_json(retention)
+    .replace_all(
+      old="\"effective_retention_policy_cid\":\"" +
+        @publication.publication_contract_identity(retention) +
+        "\",",
+      new="",
+    )
+    .replace_all(old="2026-10-10T01:00:00.000Z", new="2026-10-10T01:01:00.000Z"),
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  assert_true(
+    consumer.issue_effect_source_artifact(
+      materials, inputs, 0, artifact, invocation, refreshed_retention, source_binding,
+      store_authority, 65536, 4096, 64,
+    )
+    is Err(ForeignRetention),
+  )
+  assert_true(
+    consumer.issue_effect_source_artifact(
+      materials, inputs, 1, artifact, invocation, retention, source_binding, store_authority,
+      65536, 4096, 64,
+    )
+    is Err(ForeignInput),
+  )
   let identity = @host.issue_source_free_client_effect_local_identity(
     owner, inputs, 0, artifact, 10000, 65536, 4096, 64,
   ).unwrap()
@@ -48,6 +114,10 @@ fn retained_effect_preview_inputs(
   let raw =
     #|{"version":"actql-effect-preview/0.1","sensitivity":"private","retention_class":"authority-evidence","encryption_required":true,"program_semantics_cid":"@SEMANTICS@","program_definition_cid":"@DEFINITION@","invocation_cid":"@INVOCATION@","run_identity_cid":"@RUN@","compiled_plan_cid":"@COMPILED@","check_environment_cid":"@ENVIRONMENT@","authoring_context":@AUTHORING@,"barrier_provenance_cids":[],"model_derived":false,"model_task_contract_cids":[],"model_invocation_evidence_cids":[],"model_response_artifact_cids":[],"effects":[{"effect_id":"save","effect_kind":"update","target":"connector://crm/account","mapping":"mapping:crm.account.v1","resolved_mapping_contract_cid":"@MAPPING@","effect_identity_cid":"@EFFECT@","source_result":"r","effect_plan_logical_cid":"@PLAN@","result_artifact_cid":"@ARTIFACT@","preview_strength":"full_diff","source_binding_cid":"@FIXTURE@","capability_evidence_cid":"@FIXTURE@","authority_scope_cid":"@AUTHORITY@","write_footprint":{"kind":"exact_targets","provider_namespace":"fixture","provider_boundary_cid":"@FIXTURE@","resource_kind":"Account","resource_identity_scheme_cid":"@FIXTURE@","provider_object_identity_cids":["@FIXTURE@"]},"count":1,"max_items":1,"required_permissions":["scope:update"],"approval":"required","on_item_failure":"halt","changes":[{"target_row_identity":3,"target_guard":{"state":"version","version_cid":"@FIXTURE@"},"before":{"state":"present","value":{"Name":0}},"after":{"state":"present","value":{"Name":3}},"intended_changes":{"state":"present","value":{"Name":3}},"row_preview_cid":"@FIXTURE@","row_idempotency_key":"@FIXTURE@"}],"row_order":[],"effect_member_preview_cid":"@FIXTURE@","executed":false}],"executed":false,"effect_preview_cid":"@FIXTURE@"}
   let raw = raw
+    .replace_all(
+      old="\"source_binding_cid\":\"@FIXTURE@\"",
+      new="\"source_binding_cid\":\"" + source_binding + "\"",
+    )
     .replace_all(old="@DEFINITION@", new=definition)
     .replace_all(
       old="@SEMANTICS@",
@@ -90,6 +160,38 @@ fn retained_effect_preview_inputs(
   let (wire, preview) = @publication.author_effect_preview_semantic_wire(
     draft, run_cid, authoring_cid, 65536, 4096, 64,
   ).unwrap()
+  let result = @publication.admit_publication_contract(
+    "result_artifact",
+    @host.client_effect_local_result_artifact_json(artifact),
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  let admitted_source = @publication.admit_captured_effect_source_from_result(
+    preview, 0, invocation, source, result, store_authority,
+  ).unwrap()
+  assert_true(
+    @publication.captured_effect_source_matches_result_facts(
+      admitted_source, result, "r",
+    ),
+  )
+  assert_true(
+    @publication.effect_source_artifact_holding_cid(
+      source, "save", run_cid, store_authority,
+    )
+    is Some(_),
+  )
+  assert_true(
+    @publication.admit_captured_effect_source_from_result(
+      preview,
+      0,
+      invocation,
+      source,
+      result,
+      retained_compute_cid("b"),
+    )
+    is Err(_),
+  )
   let limits : @host.ClientCapturedEffectPreviewLimits = {
     max_work: 10000,
     max_wire_bytes: 65536,
@@ -182,6 +284,22 @@ fn retained_effect_preview_inputs(
   assert_true(
     bind({ ..materials, run_definition: another_run, }, 1, wire, [identity])
     is Err(ForeignInput),
+  )
+  assert_true(
+    consumer.issue_effect_source_artifact(
+      { ..materials, run_definition: another_run, },
+      inputs,
+      0,
+      artifact,
+      invocation,
+      retention,
+      source_binding,
+      store_authority,
+      65536,
+      4096,
+      64,
+    )
+    is Err(ForeignRun),
   )
   let changed = wire.replace(
     old="\"source_result\":\"r\"",
