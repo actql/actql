@@ -460,6 +460,10 @@ fn acquisition_runtime_case(
     ).unwrap()
     assert_true(owned.source_for_capture(foreign_journal) is None)
     assert_true(owned.materials_for_capture(foreign_journal) is None)
+    assert_true(
+      owned.invocation_for_capture(foreign_journal, 65536, 4096, 64)
+      is Err(Unavailable),
+    )
     assert_true(foreign_journal.close())
     original_effect_source.val = Some(owned.source)
     original_effect_producer.val = Some(owned)
@@ -712,6 +716,10 @@ fn acquisition_runtime_case(
   }
   if original_effect_producer.val is Some(original) {
     assert_true(original.materials_for_capture(journal) is None)
+    assert_true(
+      original.invocation_for_capture(journal, 65536, 4096, 64)
+      is Err(Unavailable),
+    )
   }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())

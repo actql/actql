@@ -185,6 +185,11 @@ pub(all) enum ResidentEffectCaptureCustodyIssue {
   Capacity(@physical_resources.LedgerIssue)
 }
 
+pub(all) enum ResidentEffectCapturedInvocationIssue {
+  Unavailable
+  Invocation(@run_publication.RunEvidenceValueIssue)
+}
+
 pub(all) enum ResidentEffectDependencyCaptureIssue {
   Unavailable
   ForeignInput
@@ -208,6 +213,7 @@ pub(all) struct ResidentEffectProducerExecuted {
   // private fields
 }
 pub fn ResidentEffectProducerExecuted::acquired_evidence_for_capture(Self, @remote_journal.Journal, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
+pub fn ResidentEffectProducerExecuted::invocation_for_capture(Self, @remote_journal.Journal, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ResidentEffectCapturedInvocationIssue]
 pub fn ResidentEffectProducerExecuted::materials_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientEffectRunMaterials?
 pub fn ResidentEffectProducerExecuted::source_for_capture(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 
@@ -222,6 +228,15 @@ pub(all) enum ResidentEffectProducerExecutionIssue {
   Dispatch(ResidentEffectSourceDispatchIssue)
   Compute(ResidentSourceComputeIssue)
   NotStartable(@remote_site_protocol.DispatchRecord)
+}
+
+pub(all) enum ResidentEffectProposalIssue {
+  Unavailable
+  ForeignInput
+  ReceiverRejected
+  NativeExport(ResidentSourceComputeIssue)
+  Export(@execution_relation.CompletedExportIssue)
+  Proposal(@physical_strategy.CapturedEffectProposalIssue)
 }
 
 pub(all) struct ResidentEffectResultCapture {
@@ -478,6 +493,7 @@ pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, Str
 pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::read_effect_proposals(Self, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int, Int, (Int, String, String) -> Result[Unit, Unit]) -> Result[Int, ResidentEffectProposalIssue]
 pub fn ResidentSourceCompute::retain_effect_source_custody(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[ResidentEffectSourceCustody, ResidentEffectSourceCustodyFailure]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
 pub fn ResidentSourceCompute::verify_effect_preview_plan(Self, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectPlanProof, ResidentEffectPreviewPlanIssue]

@@ -48,12 +48,46 @@ fn retained_holder_effect_transfer_capture(
     ),
     original.1,
   )
+  let original_invocation = producer
+    .invocation_for_capture(producer_journal, 65536, 4096, 64)
+    .unwrap()
+  let (original_observation_set, original_run_invocation) = original_invocation
+  let original_observation_set_wire = @publication.run_evidence_value_json(
+    original_observation_set,
+  )
+  assert_true(
+    original_observation_set_wire.contains(
+      "\"capture_started_at\":\"" + original.3 + "\"",
+    ),
+  )
+  assert_true(
+    original_observation_set_wire.contains(
+      "\"capture_completed_at\":\"" + original.4 + "\"",
+    ),
+  )
+  assert_true(
+    original_observation_set_wire.contains(
+      @publication.run_evidence_value_identity(
+        @host.client_effect_acquired_observation(source),
+      ),
+    ),
+  )
+  assert_eq(
+    producer.invocation_for_capture(producer_journal, 65536, 4096, 64).unwrap().1
+    |> @publication.publication_contract_identity,
+    @publication.publication_contract_identity(original_run_invocation),
+  )
+  assert_true(
+    producer.invocation_for_capture(producer_journal, 1, 4096, 64)
+    is Err(Invocation(_)),
+  )
   let (sender_inputs, sender, sender_manifest, sender_receipt, token) = retained_effect_producer_dependency(
     source_owner,
     sender_materials,
     source,
     started_at=original.3,
     completed_at=original.4,
+    original_invocation=Some(original_invocation),
   )
   let inputs = @strategy.pin_captured_effect_sources(
     consumer.effect_run().unwrap(),
@@ -232,12 +266,7 @@ fn retained_holder_effect_transfer_capture(
     @strategy.captured_effect_local_result_export_preparation(exported),
   )
   |> ignore
-  let (run_observation, invocation) = producer_dependency_observation(
-    materials,
-    source,
-    started_at=original.3,
-    completed_at=original.4,
-  )
+  let (run_observation, invocation) = original_invocation
   // Only normalization metadata is a fixture. The original Source observation,
   // transferred import and completed Native Result are actual Owner outputs.
   let normalization = @publication.seal_run_evidence_value(
