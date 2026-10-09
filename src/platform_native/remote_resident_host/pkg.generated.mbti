@@ -160,6 +160,26 @@ pub(all) enum ResidentEffectPreviewPlanIssue {
   Plan(@physical_strategy.CapturedEffectPlanVerifyIssue)
 }
 
+type ResidentEffectSourceCustody
+pub fn ResidentEffectSourceCustody::begin_payload(Self) -> Result[@publication_store.PayloadWriter, ResidentEffectSourceCustodyIssue]
+pub fn ResidentEffectSourceCustody::confirm_payload(Self) -> Result[@publication_store.NativePublicationPayloadInfo, ResidentEffectSourceCustodyIssue]
+pub fn ResidentEffectSourceCustody::open_reader(Self) -> Result[@publication_store.PayloadReader, ResidentEffectSourceCustodyIssue]
+pub fn ResidentEffectSourceCustody::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectSourceCustodyIssue]
+pub fn ResidentEffectSourceCustody::retry_cleanup(Self) -> Result[Bool, ResidentEffectSourceCustodyIssue]
+
+pub(all) struct ResidentEffectSourceCustodyFailure {
+  issue : ResidentEffectSourceCustodyIssue
+  custody : ResidentEffectSourceCustody?
+}
+
+pub(all) enum ResidentEffectSourceCustodyIssue {
+  Unavailable
+  Binding(@run_publication_host.ClientEffectSourceArtifactIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+  Capacity(@physical_resources.LedgerIssue)
+  RevokedWithCleanup(@publication_store.NativePublicationStoreIssue)
+}
+
 pub(all) enum ResidentEffectSourceDispatchIssue {
   Refused(@remote_resident_site.ResidentDispatchRefusal)
   Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
@@ -342,6 +362,7 @@ pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, Str
 pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::retain_effect_source_custody(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[ResidentEffectSourceCustody, ResidentEffectSourceCustodyFailure]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
 pub fn ResidentSourceCompute::verify_effect_preview_plan(Self, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectPlanProof, ResidentEffectPreviewPlanIssue]
 
