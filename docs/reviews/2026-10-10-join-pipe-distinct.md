@@ -1,7 +1,7 @@
 # Post-JOIN Pipe DISTINCT connection
 
-Status: implementation and focused tests complete; exact-source packed acceptance
-is pending. This is a local Frontend connection repair, not completion of the
+Status: implementation, focused tests and exact-source packed acceptance complete;
+submitted HEAD CI is not established. This is a local Frontend connection repair, not completion of the
 whole SQL/Pipe profile. Base: `040eed2b1a11a3d1f7bae81b68d956d1017fac05`.
 
 ## Existing requirement and defect
@@ -93,6 +93,49 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
   scripts/pipe-distinct-source-input.test.mjs
 ```
 
-Not yet established: clean-source five-package Local/HTTPS acceptance, submitted
-HEAD CI, Wasm/native execution or broader SQL conformance. No full Core campaign,
-manual CI rerun or merge has been performed for this repair.
+## Clean-source public acceptance
+
+Packed source: `eae059a9ed8a0cd497b839c169cde9d2670fb50b`. The source was clean
+before and after normal prepack. This report's subsequent evidence-only commit
+is separate from that tested revision; its success is not relabeled as execution
+of a later HEAD.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-join-pipe-distinct-eae059a9e-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-join-pipe-distinct-eae059a9e-pack \
+  node scripts/test-packed-public-query.mjs --pipe-distinct-only
+```
+
+These commands ran under the existing serialized `runLocalCheck` guard with a
+1200-second total deadline. Complete local evidence is
+`_build/local-checks/attempts/run-BXKiiC`; the preserved public receipt is
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-n5mHtz`.
+The receipt reports `passed`, `complete: true`, clean source and ten completed
+commands with exit 0 and complete stdout/stderr. Its temporary installation,
+Store and TLS material were removed by the existing successful-run cleanup;
+original logs and receipt remain. This is local evidence, not a CI run.
+
+Embedded Local and HTTPS each passed all 20 positive cases and all 10 refusal
+cases in the selected corpus. Seven older refusals retain the existing accepted
+input-error-class check; the two new JOIN refusals explicitly require
+`ClientProgramInvalidInput`, and the existing closed value-table refusal requires
+`ClientProgramImplementationLimit`. Refusal tests preserve zero Run admission and
+zero Source I/O. Successful cases preserve exact rows, ordered schema and
+nullability, no hidden public fields, one shared acquisition and same-Run resend
+without additional acceptance/acquisition. Both independent JSON controls and
+their unmodified text counterparts reached Named Result.
+
+All five tarballs were produced normally, installed outside the repository and
+independently matched to the source manifest and the receipt:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `063f0aff2ef8cbd3c0e280e6198d043fc5812be3b85c29bcfa3b86a03440bac5` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Not established: submitted HEAD CI, Wasm/native execution, the full ordinary
+packed corpus or broader SQL conformance. No full Core campaign, manual CI rerun
+or merge has been performed for this repair. No unmerged dependency is required.
