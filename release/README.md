@@ -22,10 +22,22 @@ the Core pin must update the matching upstream notice files together.
 The current epoch-bound installed Host deliberately refuses pre-Run delegated
 approval (`ACTQL_E_DELEGATION_UNAVAILABLE`). Release installation acceptance
 checks the typed refusal, original submission lookup after process restart and
-zero physical dispatch. This is not successful approval acceptance. That
-required positive path remains incomplete until the shared Host provides its
-complete pre-Run response/cancel/recovery contract; distribution tooling does
-not introduce an alternative Owner or restore bare request-ID submission.
+zero physical dispatch. This is not successful pre-Run approval acceptance.
+Run-scoped Effect approval is a separate, implemented path. Its finite installed
+acceptance uses the existing public Host, Client, Checkpoint and Effect owners:
+
+```sh
+node scripts/test-package-release-effect.mjs /absolute/path/to/fixed-rc
+```
+
+It checks approval before sending, Host restart, the original Run and submission,
+independent Result/provider expectations, cancellation and unknown response
+recovery without resending. Only independent local HTTPS provider fixtures are
+used; this does not establish live-service acceptance. Retained RCs are allowed
+only when package/runtime inputs are unchanged, with artifact and fixture SHAs
+recorded separately. Distribution tooling does not introduce an alternative
+Owner or restore bare request-ID submission. Standard pre-Run delegated approval
+remains dependent on its complete shared response/cancel/recovery contract.
 
 Run preparation under the existing local heavy guard, with the repository's
 Node and MoonBit toolchain pins. Use a unique, absent RC destination:
