@@ -74,3 +74,47 @@ test "set alignment composes evaluated column aliases and retains strict boundar
     }
   }
 }
+
+///|
+test "set result binding preserves bounded arguments and excludes shared steps" {
+  let text = "{\"from\":\"ordered\",\"take\":{\"count\":{\"$param\":\"count\"},\"offset\":1},\"as\":\"limited\"}"
+  for
+    (first_step, producer, rebound) in [
+      (0, "limited", true),
+      (1, "limited", false),
+      (0, "different", false),
+    ] {
+    let document = @origin.document(text, 10000).unwrap()
+    let builder = @builder.create(document, mapping_limits().source).unwrap()
+    let construction : Construction = {
+      builder,
+      generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
+      model_tasks: None,
+      parameter_names: None,
+    }
+    let parsed = @wire.admit(
+      @source.parse_json(text, mapping_limits().source.source).unwrap(),
+      mapping_limits().source.tree,
+    ).unwrap()
+    let steps = [
+      @builder.import_cursor(builder, parsed, construction.generated).unwrap(),
+    ]
+    assert_eq(
+      rebind_script_set_terminal_output(
+        construction, steps, first_step, producer, "result",
+      ),
+      rebound,
+    )
+    let saved = @builder.finish(builder, steps[0]).unwrap()
+    let object = @wire.open_object(@builder.cursor(saved)).unwrap()
+    assert_eq(@wire.text(@wire.lookup(object, "from").unwrap()), Ok("ordered"))
+    assert_eq(
+      @wire.text(@wire.lookup(object, "as").unwrap()),
+      Ok(if rebound { "result" } else { "limited" }),
+    )
+    let take = @wire.open_object(@wire.lookup(object, "take").unwrap()).unwrap()
+    let count = @wire.open_object(@wire.lookup(take, "count").unwrap()).unwrap()
+    assert_eq(@wire.text(@wire.lookup(count, "$param").unwrap()), Ok("count"))
+    assert_eq(@wire.safe_integer(@wire.lookup(take, "offset").unwrap()), Ok(1L))
+  }
+}

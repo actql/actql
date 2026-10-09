@@ -13,6 +13,7 @@ fn lower_script_set_relation(
   reserved : Array[String],
   output : String,
 ) -> Input raise Abort {
+  let first_step = steps.length()
   let first = pipe_physical_name(reserved, "aql_data_set_term_")
   reserved.push(first)
   let left = lower_script_relation_term(
@@ -181,16 +182,23 @@ fn lower_script_set_relation(
     steps,
     output + "_",
   )
-  steps.push(
-    construction.object([
-      ("from", construction.text(result)),
-      (
-        "select",
-        construction.array(fields.map(name => construction.text(name))),
-      ),
-      ("as", construction.text(output)),
-    ]),
-  )
+  let rebound = query_has_join_set_operand(query) &&
+    !set_operand_retains_result(query) &&
+    rebind_script_set_terminal_output(
+      construction, steps, first_step, result, output,
+    )
+  if !rebound {
+    steps.push(
+      construction.object([
+        ("from", construction.text(result)),
+        (
+          "select",
+          construction.array(fields.map(name => construction.text(name))),
+        ),
+        ("as", construction.text(output)),
+      ]),
+    )
+  }
   {
     relation: [],
     name: output,

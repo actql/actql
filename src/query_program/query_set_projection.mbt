@@ -88,3 +88,35 @@ fn set_operand_retains_result(query : @query.Query) -> Bool {
   }
   false
 }
+
+///|
+// The set owner has already aligned its columns and removed hidden ORDER
+// inputs. Bind that locally generated final producer without another SELECT.
+// This only changes its structural name, never the operation or its arguments.
+fn rebind_script_set_terminal_output(
+  construction : Construction,
+  steps : Array[@builder.Node],
+  first_step : Int,
+  producer : String,
+  output : String,
+) -> Bool raise Abort {
+  if steps.length() <= first_step {
+    return false
+  }
+  let source = member_construct(
+    @builder.snapshot(construction.builder, steps[steps.length() - 1]),
+  )
+  let cursor = @builder.cursor(source)
+  guard @wire.object_length(cursor) is Some(3) else { return false }
+  guard @wire.open_object(cursor) is Ok(object) else { return false }
+  guard @wire.lookup(object, "as") is Some(name) else { return false }
+  guard @wire.text(name) is Ok(name) && name == producer else { return false }
+  guard @wire.lookup(object, "from") is Some(from) else { return false }
+  guard @wire.text(from) is Ok(_) else { return false }
+  let allowed = ["append", "intersect", "except", "distinct", "sort", "take", "select"]
+  if !allowed.any(operation => @wire.lookup(object, operation) is Some(_)) {
+    return false
+  }
+  steps[steps.length() - 1] = import_script_seed(construction, cursor, output)
+  true
+}
