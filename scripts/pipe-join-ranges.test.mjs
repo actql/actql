@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {pipeJoinRangesProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
+import {pipeJoinRangesProgram, extendRangeProgram, pipeJoinRangesSuccesses, pipeJoinRangesRefusals}
   from './fixtures/pipe-join-ranges.mjs';
 
 test('range obligations distinguish current values from original slots and preserve duplicates', () => {
@@ -21,8 +21,35 @@ test('range obligations distinguish current values from original slots and prese
   assert.deepEqual(cases.get('pipe-join-ranges-parameter-slot').parameters, {increment: 10});
   assert.equal(cases.get('pipe-join-ranges-shared-source').expected.length, 6);
   assert.equal(cases.get('pipe-join-ranges-shared-source').sourceReadSessionCount, 1);
-  assert.equal(pipeJoinRangesRefusals.length, 4);
-  assert.ok(pipeJoinRangesRefusals.every(item => item.expectedCode === 'ClientProgramRejected'));
+  const originalRefusals = pipeJoinRangesRefusals.filter(item => !item.name.includes('refuse-extend-'));
+  assert.equal(originalRefusals.length, 4);
+  assert.ok(originalRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('first EXTEND preserves original range membership and explicit fresh AS binding', () => {
+  const cases = new Map(pipeJoinRangesSuccesses.map(item => [item.name, item]));
+  const control = cases.get('pipe-join-ranges-extend-independent-json');
+  const source = cases.get('pipe-join-ranges-extend-original-range');
+  assert.deepEqual(JSON.parse(control.text), extendRangeProgram);
+  assert.deepEqual(control.expected, [
+    {original: 1, current: 11, amount: null},
+    {original: 2, current: 12, amount: 20}, {original: 2, current: 12, amount: 20},
+  ]);
+  assert.deepEqual(source.expected, control.expected);
+  assert.deepEqual(source.columns, control.columns);
+  assert.deepEqual(source.columns.map(column => column.name), ['original', 'current', 'amount']);
+  assert.deepEqual(source.columns.map(column => column.contract.nullable), [false, false, true]);
+  const fresh = cases.get('pipe-join-ranges-extend-fresh-range');
+  assert.ok(fresh.text.includes('AS fresh') && fresh.text.includes('fresh.z AS current'));
+  assert.equal(source.sourceReadSessionCount, 1);
+  const empty = cases.get('pipe-join-ranges-extend-empty-typed');
+  assert.deepEqual(empty.expected, []);
+  assert.deepEqual(empty.columns, source.columns);
+  const refusals = pipeJoinRangesRefusals.filter(item => item.name.includes('refuse-extend-'));
+  assert.equal(refusals.length, 5);
+  assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  const names = [...pipeJoinRangesSuccesses, ...pipeJoinRangesRefusals].map(item => item.name);
+  assert.equal(new Set(names).size, names.length);
 });
 
 test('range corpus runs through ordinary packed acceptance and the same focused selector', async () => {
