@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {chmod, copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
@@ -45,11 +45,29 @@ export async function buildNativeCliArtifact(destination) {
   const binary = join(destination, 'actql-native-client');
   await copyFile(built, binary); await chmod(binary, 0o755);
   const bytes = await readFile(binary);
+  let httpRuntime;
+  if (platform === 'linux-x64-gnu') {
+    const library = run('ldconfig', ['-p']).split('\n').find(line => /libcurl\.so\.4 .*x86-64.*=> /u.test(line))?.split('=> ')[1]?.trim();
+    assert(library, 'No x64 libcurl.so.4 runtime available for the declared distribution');
+    const dependencies = run('ldd', [library]); assert(!dependencies.includes('not found'), 'Unresolved libcurl dependency');
+    const paths = [library, ...[...dependencies.matchAll(/(?:=>\s+|^\s*)(\/[^\s]+)\s+\(/gmu)].map(v => v[1])];
+    const files = [];
+    for (const path of [...new Set(await Promise.all(paths.map(path => realpath(path))))]) {
+      const data = await readFile(path), versionInfo = run('readelf', ['--version-info', path]);
+      const versions = [...versionInfo.matchAll(/\bGLIBC_(\d+)\.(\d+)\b/gu)]
+        .map(v => [Number(v[1]), Number(v[2])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      files.push({path, bytes: data.length, sha256: hash(data), greatestReferencedGlibc: versions.at(-1)?.join('.') ?? null});
+    }
+    httpRuntime = {library, dependencies, files, testedGlibc: glibc,
+      interpretation: 'Observed installed libcurl closure; not a promise about other libcurl distributions.'};
+  } else httpRuntime = {library: '/usr/lib/libcurl.4.dylib', provider: 'OS dyld shared cache',
+    osVersion: run('sw_vers', ['-productVersion']).trim(), osBuild: run('sw_vers', ['-buildVersion']).trim(),
+    interpretation: 'The separately installed OS libcurl is validated by actual mTLS acceptance, not bundled.'};
   const record = {version: 'actql-native-cli-artifact/0.1', sourceSha: source.revision,
     platform, binarySha256: hash(bytes), binaryBytes: bytes.length,
     generatedCSha256: hash(await readFile(c)), toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))),
     toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
-    abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null},
+    abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
     generation: ['moon', 'build', '--target', 'native', '--release', 'src/cmd/native_client']};
   await writeFile(join(destination, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});
   return record;
