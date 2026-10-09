@@ -110,6 +110,10 @@ pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInvento
 
 pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String
 
+pub fn captured_effect_source_artifact_json(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_effect_source_effect_id(CapturedEffectSourceArtifact) -> String
+
 pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn captured_effect_source_inventory_from_artifacts_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract], Array[PublicationContract]) -> Bool
@@ -123,6 +127,8 @@ pub fn captured_effect_source_matches_preview(EffectPreviewIdentity, Int, Public
 pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
 
 pub fn captured_effect_source_matches_table_input_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
+
+pub fn captured_effect_source_payload_facts(CapturedEffectSourceArtifact, PublicationContract) -> (String, String, Int64, String)?
 
 pub fn captured_effect_source_recovery_inventory_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract]) -> Bool
 

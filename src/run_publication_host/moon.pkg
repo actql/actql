@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/publication_payload" @payload,
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_strategy" @strategy,

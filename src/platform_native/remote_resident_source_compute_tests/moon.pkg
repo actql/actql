@@ -24,6 +24,8 @@ import {
   "actql/actql/platform_native/remote_transfer_client" @transfer_client,
   "actql/actql/platform_native/remote_transfer_journal" @journal,
   "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/publication_store" @store,
+  "actql/actql/publication_payload" @payload,
   "actql/actql/platform_native/remote_journal" @dispatch_journal,
   "actql/actql/platform_native/remote_runtime" @runtime,
   "actql/actql/platform_native/runtime_bundle" @bundle,

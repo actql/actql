@@ -170,6 +170,9 @@ fn retained_effect_preview_inputs(
   let admitted_source = @publication.admit_captured_effect_source_from_result(
     preview, 0, invocation, source, result, store_authority,
   ).unwrap()
+  retained_effect_source_store(
+    consumer, materials, inputs, artifact, admitted_source, local_result,
+  )
   assert_true(
     @publication.captured_effect_source_matches_result_facts(
       admitted_source, result, "r",
