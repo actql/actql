@@ -34,7 +34,7 @@ input. Save the exact admitted Run reference for subsequent operations.
 | Public SDK operation | Native Remote CLI |
 | --- | --- |
 | connect; new submission | `connect`; `new-submission` |
-| Program/source submit | `start`; `aql` with explicit format and saved submission reference |
+| Program/source submit | `start`; `aql` with explicit format, saved submission reference and explicit invocation attempt ID |
 | Original operation lookup | `lookup-submission`; `lookup-request`; `lookup-cancellation` |
 | Run attach/status/wait | `attach`; `status`; `wait` |
 | Cancel | `cancel` with saved operation ID, original revision and explicit invocation attempt ID |

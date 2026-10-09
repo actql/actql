@@ -112,6 +112,8 @@ pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Re
 
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
 
+pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue]
+
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
 pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, @effect_application.StorageMappingReference, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
@@ -822,6 +824,10 @@ pub fn prepare_client_effect_query_requirement(PreparedClientEffectComputation, 
 
 pub fn prepare_client_effect_request_identity(PreparedClientEffectComputation, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn prepare_client_effect_source_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectSourceDispatchIssue]
+
+pub fn prepare_client_effect_source_input_binding(ClientEffectCompilation) -> Result[@remote_site_protocol.RemoteInputBinding, ClientEffectSourceDispatchIssue]
+
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
 pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
@@ -1337,6 +1343,17 @@ pub(all) enum ClientEffectRunMaterialsIssue {
   Compilation(ClientEffectCompilationIssue)
   Binding(ClientEffectCompiledRunIssue)
   RunMismatch
+}
+
+pub(all) enum ClientEffectSourceDispatchIssue {
+  Binding(ClientEffectCompiledRunIssue)
+  Fragment(ClientTaskFragmentIssue)
+  Input(ClientTaskDispatchIssue)
+  UnsupportedGraph
+  ForeignRequest
+  ForeignDispatch
+  ForeignInput
+  Protocol(@remote_site_protocol.DispatchIssue)
 }
 
 pub(all) enum ClientEmptyInvocationBindingsIssue {

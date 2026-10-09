@@ -5,7 +5,7 @@ export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, WireOperationAttemptRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
-  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup, WireSubmissionRestart,
+  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup, WireSubmissionRestart, WireSubmissionAttempt,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -18,6 +18,7 @@ export type CancellationReference = WireCancellationRef;
 export type CancellationLookup = WireCancellationLookup;
 export type SubmissionReference = WireSubmissionRef;
 export type SubmissionOutcome = WireSubmissionOutcome;
+export type SubmissionAttempt = WireSubmissionAttempt;
 export type SubmissionLookup = WireSubmissionLookup;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
@@ -132,6 +133,7 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
 export type SubmissionInput = Readonly<{
   requestId: string;
   submissionRef?: WireSubmissionRef;
+  attemptRef?: WireOperationAttemptRef;
   unresolvedHistory?: WireSubmissionRestart;
   kind: 'program' | 'aql';
   input: unknown;
@@ -147,6 +149,8 @@ export declare function getSubmissionInput(result: unknown): SubmissionInput | u
 export type RequestLookupTarget = RequestObservationTarget;
 /** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
 export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
+/** Invocation-bound admission fact; distinct from the durable original receipt. */
+export declare function getSubmissionAttempt(result: unknown): SubmissionAttempt | undefined;
 /** Newly bound checking of this original source submission; never changes acceptance or grants execution. */
 export declare function getSubmissionCheckObservation(result: unknown): CheckOutcome | undefined;
 type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
@@ -434,6 +438,7 @@ export type DynamicRow = Record<string, unknown>;
 export type ResultReference = Readonly<{run: RunReference; resultName: string}>;
 export type QueryParameters = Record<string, unknown> | null;
 export type QueryOptions = SubmissionIdentityOptions & Readonly<{
+  attemptId?: string;
   signal?: AbortSignal;
   result?: string;
   parameterDeclarations?: Record<string, unknown>;
@@ -521,6 +526,7 @@ type SubmissionIdentityOptions = (
     unresolvedHistory?: WireSubmissionRestart}>
 );
 export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
+  attemptId?: string;
   parameters?: unknown;
   signal?: AbortSignal;
 }>;
