@@ -60,6 +60,21 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     if kind == "right" || kind == "full" {
       return true
     }
+    // A pre-JOIN predicate is stored on its JOIN part, rather than among
+    // continuation operations. CTE JOIN specialization does not bind explicit
+    // range receivers; use the existing shared row scope for that shape.
+    if part.pre_join_filter is Some(predicate) {
+      for node in 0..<@query.expression_node_count(predicate) {
+        if @query.expression_node(predicate, node).unwrap().kind
+          is Property(receiver, _) &&
+          group_reference_parts(predicate, receiver) is Some((path, members)) &&
+          path.length() == 1 &&
+          members.is_empty() &&
+          same_name(path[0], query_range_name(query)) {
+          return true
+        }
+      }
+    }
     let range = match part.source_alias {
       Some(name) => Some(name)
       None => part.relation.last()

@@ -45,7 +45,7 @@ test('range fixtures retain duplicate, empty and left-extension obligations', ()
   assert.doesNotMatch(ordinary.text, /others AS/u);
   assert.deepEqual(Object.keys(ordinary.parameterDeclarations), ['a', 'b', 'c']);
   assert.deepEqual(Object.keys(ordinary.parameters), ['a', 'b', 'c']);
-  assert.equal(joinPropertySuccesses.length, 27);
+  assert.equal(joinPropertySuccesses.length, 34);
 });
 
 test('missing members and displaced range fixtures retain exact pre-admission codes', () => {
@@ -53,7 +53,7 @@ test('missing members and displaced range fixtures retain exact pre-admission co
   assert.equal(refusals.length, 4);
   assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.match(refusals[3].text, /AS current \|> ORDER BY \(\(l\)\)\.payload\.score/u);
-  assert.equal(joinPropertyRefusals.length, 13);
+  assert.equal(joinPropertyRefusals.length, 15);
   const removed = joinPropertyRefusals.find(item => item.name === 'join-property-invalid-4');
   assert.match(removed.text, /SELECT DISTINCT l\.id .* ORDER BY payload\.score/u);
   assert.equal(removed.expectedCode, 'ClientProgramImplementationLimit');
