@@ -44,7 +44,7 @@ test('receiver and parameter counterexamples distinguish scope and three-valued 
   assert.equal(membershipReuseRefusals.length, 10);
   assert.ok(membershipReuseRefusals.slice(0, 6)
     .every(item => item.expectedCode === 'ClientProgramImplementationLimit'));
-  assert.equal(membershipReuseRefusals.at(-1).expectedCode, 'ClientProgramRejected');
+  assert.equal(membershipReuseRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
   assert.ok(membershipReuseSuccesses.every(item => item.sourceReadSessionCount === 1));
   const names = [...membershipReuseSuccesses, ...membershipReuseRefusals].map(item => item.name);
   assert.equal(new Set(names).size, names.length);

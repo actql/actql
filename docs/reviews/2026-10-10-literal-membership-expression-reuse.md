@@ -109,5 +109,25 @@ unrelated priority. Its existing 10 positive/7 refusal expectations are unchange
 These tests used the eventual source diff on a dirty baseline checkout. Packed
 Local/HTTPS must use normal five-package production from its clean committed SHA;
 its exact source, tarball digests, receipt and outcome will be recorded in the PR.
-They have not yet run at the time this document is committed. Full Core,
+They had not yet run at the time of the first source commit. Full Core,
 Wasm/native, performance campaigns and hosted required CI are not claimed here.
+
+
+## Public refusal fixture correction
+
+The normal clean `81a19f01f378edc2c377feb3fd4b754183c83177` five-package
+campaign passed all 14 Local positive cases and the six explicit ordering
+refusals (the parameter refusals also completed). It then stopped because the
+last Boolean-alias/numeric-list case expected ClientProgramRejected instead of
+ClientProgramInvalidInput. HTTPS was not reached. Failed evidence is retained at
+`worktrees/.codex-scratch/public-query-evidence-WphN3O` (010 stderr/stdout and
+summary), with bounded wrapper evidence `run-NNQW9T`. Temporary installations
+were removed by the existing evidence cleanup; logs and tarball digests remain.
+
+The correction follows the existing contracts rather than copying an observed
+product value: the regression asserts the common membership element-domain
+TypeMismatch, the checker classifies ordinary expression type errors as
+InvalidInput, and `adapters/host-node/client-program-preparation.mjs` maps
+check_invalid_input to ClientProgramInvalidInput. Only that refusal fixture and
+its registration test change; no product classification is changed. A new clean
+source SHA must be packed and the complete Local/HTTPS corpus rerun.

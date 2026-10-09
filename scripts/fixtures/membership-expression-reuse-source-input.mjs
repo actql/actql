@@ -82,4 +82,4 @@ membershipReuseRefusals.push(...[
 
 membershipReuseRefusals.push({name: 'membership-reuse-output-alias-type-mismatch',
   format: 'sql', text: 'SELECT DISTINCT amount IN (1,2) AS amount FROM records '
-    + 'ORDER BY amount IN UNNEST([1,2])', expectedCode: 'ClientProgramRejected'});
+    + 'ORDER BY amount IN UNNEST([1,2])', expectedCode: 'ClientProgramInvalidInput'});
