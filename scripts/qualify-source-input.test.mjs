@@ -84,6 +84,10 @@ test('aggregate OVER key oracles retain duplicate counts nullable input and orde
     [{id: 3, n: 1}, {id: 2, n: 2}, {id: 1, n: 3}]);
   assert.deepEqual(cases.get('qualify-aggregate-window-key-partition').expected,
     [{id: 1, n: 1}, {id: 2, n: 2}, {id: 3, n: 1}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-order-argument-alias').expected,
+    [{original: 3, id: -3}, {original: 2, id: -2}, {original: 1, id: -1}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-order-argument-qualified').expected,
+    [{original: 1, id: -1}, {original: 2, id: -2}, {original: 3, id: -3}]);
   assert.deepEqual(cases.get('qualify-aggregate-window-key-empty').columns,
     cases.get('qualify-aggregate-window-key-count').columns);
   for (const item of qualifySuccesses.filter(item => item.name.startsWith('qualify-aggregate-window-key-'))) {

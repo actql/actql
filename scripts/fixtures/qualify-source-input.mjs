@@ -190,6 +190,18 @@ qualifySuccesses.push(
   success('aggregate-window-key-empty', aggregateWindowHead + 'COUNT(*)' + aggregateWindowTail, {
     sourceRows: [], expected: [],
   }),
+  success('aggregate-window-key-order-argument-alias', 'SELECT records.id AS original, -records.id AS id '
+    + 'FROM records WHERE id > 0 GROUP BY records.id '
+    + 'ORDER BY ROW_NUMBER() OVER (ORDER BY SUM(id), original)', {
+    columns: [column('original'), column('id')],
+    expected: [{original: 3, id: -3}, {original: 2, id: -2}, {original: 1, id: -1}],
+  }),
+  success('aggregate-window-key-order-argument-qualified', 'SELECT records.id AS original, -records.id AS id '
+    + 'FROM records WHERE id > 0 GROUP BY records.id '
+    + 'ORDER BY ROW_NUMBER() OVER (ORDER BY SUM(records.id), original)', {
+    columns: [column('original'), column('id')],
+    expected: [{original: 1, id: -1}, {original: 2, id: -2}, {original: 3, id: -3}],
+  }),
 );
 const groupedHead = 'SELECT records.id AS original, COUNT(*) AS id, '
   + 'ROW_NUMBER() OVER (ORDER BY records.id) AS rn FROM records WHERE id > 0 GROUP BY records.id ';

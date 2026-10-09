@@ -49,6 +49,10 @@ term, count or public field.
 - The grouped window resolver uses retained input bindings and parser-owned
   aggregate references. When GROUP reuses a SELECT aggregate's evaluated slot,
   the window reads that slot without reevaluation or exposing sibling aliases.
+- Query ORDER window keys retain ORDER ownership: their aggregate arguments
+  resolve SELECT aliases before unqualified inputs, while qualified inputs
+  preserve their input binding. The private GROUP outputs are mapped back into
+  the ORDER window scope, including reused evaluated aggregates.
 - Ordinary Pipe SELECT still does not insert an implicit aggregate stage.
   Existing nested-window rejection, argument checking and all capacity limits
   remain in their original owners.
@@ -62,9 +66,21 @@ Focused JS selection: the new complete Program comparison, COUNT/SUM keys,
 computed keys, aggregate partitioning, SELECT/QUALIFY/query ORDER ownership,
 global grouping, aggregate-slot reuse, sibling-alias rejection and nested-window
 rejection, plus existing named-window, scalar-window, grouped-clause and ORDER
-window callers: **38/38**, `run-gyhDHp` / `focused-test-rYKvGx`.
+window callers: **39/39**, `run-sUIsQL` / `focused-test-Z18nOu`.
 
-Fixture checks: **4/4**, `run-4kcCjh` / `focused-test-d97z7w`.
+Before the ORDER ownership correction, `SELECT t.y AS original, -t.y AS y FROM t
+GROUP BY t.y ORDER BY ROW_NUMBER() OVER (ORDER BY SUM(y), original)` incorrectly
+lowered SUM of input y, rather than SUM of the negative SELECT value.
+`run-1kVGUo` / `focused-test-rzAD85` failed the discriminating assertion. For the
+same three input rows the expected original order is 21,20,10, whereas the
+incorrect input binding gives 10,20,21. The initial packed wrapper was stopped
+while waiting for the verified shared gate owner, before any producer or
+consumer started; it establishes no execution result.
+
+Existing ordinary aggregate ORDER and star-replacement callers: **9/9**,
+`run-xuN4wW` / `focused-test-4jqZTx`.
+
+Final fixture checks: **4/4**, `run-374GcZ` / `focused-test-OYMke8`.
 Commands use the pinned Node/MoonBit environment and existing bounded wrappers:
 
 ```sh
@@ -80,7 +96,7 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
 ```
 
 The existing ordinary and narrow packed QUALIFY consumers both include the new
-fixtures. One independent JSON control and eight source cases compare ordered
+fixtures. One independent JSON control and ten source cases compare ordered
 rows and Result.describe column contracts. COUNT(nullable amount) deliberately
 changes the expected ranking; duplicate source rows affect COUNT, while empty
 input retains typed columns. Existing source acquisition, reread/attach/resend

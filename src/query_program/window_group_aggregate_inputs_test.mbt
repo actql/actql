@@ -111,3 +111,15 @@ test "aggregate window keys do not admit nested windows or implicit Pipe groupin
     )
   }
 }
+
+///|
+test "query ORDER window aggregate arguments retain SELECT alias ownership" {
+  // SUM(y) in query ORDER consumes -t.y, so original y ranks 21,20,10.
+  // Resolving it to the input y would instead rank 10,20,21.
+  let actual = checked_window_group_input(
+    "SELECT t.y AS original, -t.y AS y FROM t GROUP BY t.y ORDER BY ROW_NUMBER() OVER (ORDER BY SUM(y), original)",
+  )
+  assert_true(actual.contains("\"aql_having_argument_"), msg=actual)
+  assert_true(actual.contains("\"negate\":{\"field\":\"y\"}"), msg=actual)
+  assert_false(actual.contains("\"field\":\"y\",\"fn\":\"sum\""), msg=actual)
+}
