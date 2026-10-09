@@ -25,7 +25,10 @@ test('Pipe private-window controls preserve predicates, assignments and immutabl
   assert.deepEqual(pipePrivateWindowProgram('where').stages[0].steps[6],
     {filter: {eq: [{field: 'private_rank'}, {literal: 1}]}});
   assert.deepEqual(pipePrivateWindowProgram('set').stages[0].steps[6],
-    {derive: {id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+    {derive: {assigned_id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+  assert.deepEqual(pipePrivateWindowProgram('set').stages[0].steps[7],
+    {select: ['aql_pipe_set_window_0', {id: 'assigned_id'}]},
+    'a derive map adds a fresh slot; SELECT performs the declared assignment');
   assert.deepEqual(get('where').expected, [{aql_pipe_where_window_0: 90, id: 1}]);
   assert.deepEqual(get('extend').expected.map(row => row.pos), [3, 2]);
   assert.deepEqual(get('set').expected.map(row => row.id), [12, 11]);

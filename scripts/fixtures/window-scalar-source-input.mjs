@@ -233,9 +233,10 @@ export function pipePrivateWindowProgram(kind, field = pipePrivateFields[kind]) 
   else if (kind === 'extend') {
     steps.push({derive: {pos: {add: [{field: 'private_rank'}, {literal: 1}]}}});
     fields = [...fields, 'pos'];
-  } else if (kind === 'set') steps.push({derive: {id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+  } else if (kind === 'set') steps.push({derive: {assigned_id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
   else throw new Error('unknown independent Pipe window control');
-  steps.push({select: fields}, {sort: [{field: 'id', dir: 'desc', nulls: 'last'}], as: 'out'});
+  steps.push({select: kind === 'set' ? [field, {id: 'assigned_id'}] : fields},
+    {sort: [{field: 'id', dir: 'desc', nulls: 'last'}], as: 'out'});
   return {version: 'actql/0.1', id: 'fixture.pipe_private_window', params: selectPrivateDeclarations(field),
     stages: [{id: 'main', inputs: {}, steps, results: {rows: {from: 'out', fields}}}],
     results: {answer: {from: {stage: 'main', result: 'rows'}}}};

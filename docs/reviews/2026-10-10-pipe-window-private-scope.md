@@ -71,6 +71,27 @@ Pinned Node 22.22.0 and MoonBit 0.10.12+1634b282e were used. Changed MoonBit
 formatting and `git diff --check` passed. The complete narrow corpus now contains
 83 positive, 40 refusal and one deliberate execution-failure case per transport.
 
+## Initial packed control correction
+
+The pristine pack at `fea0a5eac609c9da52d064cb0e3fe4b059ca8baf` passed
+the new WHERE/EXTEND controls and sources, then stopped on the SET JSON control.
+Its derive map tried to replace existing `id`, which violates the existing
+`InputCollision` rule (independently asserted in
+`src/relation_typing/typing_test.mbt`, derive-map versus ordered-derive tests).
+The control now derives a fresh `assigned_id` and explicitly projects it as
+`id`, as the existing SET control does. Source, expected rows, types, order,
+ceilings and product code are unchanged. SET source and HTTPS were not reached
+in this initial run; it is not evidence that they failed.
+
+Original logs/receipt are retained at
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-R7HKmg`;
+guard `run-oSL73e`, command `010` stderr reports
+`packed-local-window-scalar-pipe-schema-private-set-json` / invalid input.
+The pack remains at `/private/tmp/actql-b-pipe-window-private-fea0a5eac-pack`.
+
+The corrected fixture selection passed 9/9 using the same Node command at
+`run-QNbepS` / `focused-test-i8fgo5`.
+
 ## Remaining verification
 
 Pristine five-package Local/HTTPS acceptance for this child source revision is
