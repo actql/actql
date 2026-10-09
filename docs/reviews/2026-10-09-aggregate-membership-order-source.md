@@ -1,5 +1,15 @@
 # Aggregate membership and interval ordering: source connection
 
+The sections below preserve the historical source, partial Local attempt and
+common-owner handoff. After #1088 and #1081 reached main, the unchanged current
+cohort completed through packed Local/HTTPS at
+`1376a2ec4b0cb1944971b268f7c2c637fcc37e99`: 102 positives, 44 preparation
+refusals and one expected execution failure per transport. See the
+[integrated public acceptance record](2026-10-09-aggregate-membership-public-acceptance.md)
+for exact source/distribution identity, commands and evidence. Historical
+dependency/Draft/pending statements below describe their old SHAs, not current
+main status or this new completion evidence.
+
 This unit starts at `1646252bdb2f47ccb683c688b258b3ff472ea1a9`
 (PR #1080, Boolean aggregate ordering). It extends the same ordinary
 expression admission guard. The dependency is not claimed merged or reviewed.
