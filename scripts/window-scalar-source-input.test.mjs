@@ -121,3 +121,22 @@ test('named Pipe SELECT preserves independent analytic values and output contrac
   assert.equal(refusals.length, 5);
   for (const value of refusals) assert.equal(value.expectedCode, 'ClientProgramInvalidInput');
 });
+
+test('Pipe WHERE window controls preserve predicates current rows and private slots', async () => {
+  const {pipeWhereWindowProgram} = await import('./fixtures/window-scalar-source-input.mjs');
+  const get = name => windowScalarSuccesses.find(value => value.name === 'window-scalar-where-window-' + name);
+  assert.deepEqual(JSON.parse(get('json').text), pipeWhereWindowProgram);
+  assert.deepEqual(pipeWhereWindowProgram.stages[1].steps[1], {filter: {lte: [{field: 'position'}, {literal: 3}]}});
+  assert.deepEqual(pipeWhereWindowProgram.stages[1].results.rows.fields, ['amount', 'id']);
+  assert.deepEqual(get('direct').expected.map(row => row.id), [2, 3, 4]);
+  assert.deepEqual(get('parameter').expected.map(row => row.id), [2, 4]);
+  assert.deepEqual(get('parameter').parameters, {top: 2});
+  assert.deepEqual(get('empty').expected, []);
+  assert.deepEqual(get('empty').columns, get('direct').columns);
+  assert.deepEqual(get('nullable').expected, [{amount: 10, id: 3}, {amount: null, id: 5}]);
+  assert.deepEqual(get('multiple').expected.map(row => row.id), [2, 3]);
+  assert.deepEqual(get('sequential').expected, [{amount: 20, id: 2}]);
+  assert.deepEqual(get('immutable-range').expected, [{amount: -10, id: 3}, {amount: null, id: 5}]);
+  assert.deepEqual(get('authored-private-name').expected, [{id: 1, n: null}, {id: 2, n: 20}]);
+  assert.equal(windowScalarRefusals.filter(value => value.name.includes('refuse-where-window-')).length, 6);
+});

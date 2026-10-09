@@ -1116,12 +1116,11 @@ fn order_aggregate_calls(
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
     match @query.operation_at(query, index) {
-      Some(Order(terms)) => {
+      Some(Order(terms)) =>
         for term in terms {
           references.append(join_reference_paths(term.expression))
         }
-      }
-      Some(OrderAnalytic(windows, true)) => {
+      Some(OrderAnalytic(windows, true)) =>
         for projection in windows {
           guard projection.analytic is Some(call) else { continue }
           for expression in call.window.partition_by {
@@ -1138,7 +1137,6 @@ fn order_aggregate_calls(
             references.append(join_reference_paths(expression))
           }
         }
-      }
       _ => ()
     }
   }
@@ -2328,6 +2326,30 @@ fn compile_steps(
         selected_expressions = []
         deferred = true
       }
+      Where(predicate) if i > 0 &&
+        @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _)) => {
+        entries.push(
+          (
+            "filter",
+            append_pipe_expression(
+              construction,
+              predicate,
+              unnest_expression_columns(pipe_visible, value_table_receivers) +
+              analytic_expression_bindings,
+              pipe_ranges,
+              max_work,
+            ),
+          ),
+        )
+        // Predicate-owned window values cannot become columns or bindings
+        // in a later operator. Publish only the unchanged current row.
+        pipe_changed = true
+        output = pipe_visible.map(field => field.0)
+        analytic_outputs.clear()
+        analytic_expression_bindings.clear()
+        analytic_input_fields = None
+        analytic_input_scope = None
+      }
       Where(predicate) if pipe_changed || pipe_rebound =>
         entries.push(
           (
@@ -2351,8 +2373,10 @@ fn compile_steps(
           ),
         )
       Extend(projections) if i > 0 &&
-        (@query.operation_at(query, i - 1) is Some(Analytic(_)) ||
-          @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _))) => {
+        (
+          @query.operation_at(query, i - 1) is Some(Analytic(_)) ||
+          @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _))
+        ) => {
         // Window results are already evaluated slots. The public snapshot
         // excludes them until every sibling expression has been resolved.
         let snapshot = pipe_visible.copy()
@@ -2371,14 +2395,19 @@ fn compile_steps(
           } else {
             let slot = pipe_physical_name(active_fields, "aql_pipe_extend_")
             active_fields.push(slot)
-            derived.push((slot, append_pipe_expression(
-              construction,
-              projection.expression.unwrap(),
-              unnest_expression_columns(snapshot, value_table_receivers) +
-                analytic_expression_bindings,
-              pipe_ranges,
-              max_work,
-            )))
+            derived.push(
+              (
+                slot,
+                append_pipe_expression(
+                  construction,
+                  projection.expression.unwrap(),
+                  unnest_expression_columns(snapshot, value_table_receivers) +
+                  analytic_expression_bindings,
+                  pipe_ranges,
+                  max_work,
+                ),
+              ),
+            )
             slot
           }
           next.push((name.value, slot))
