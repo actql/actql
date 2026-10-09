@@ -100,10 +100,46 @@ Existing assertions include complete types/nullability/column order,
 Result.describe, complete streams, private-slot absence and same-Run
 resend/attach/reread without additional acquisition/execution.
 
-Normal clean-HEAD five-package production and execution are pending at this
-commit. Record the exact tested SHA, original tarball digests, receipt, actual
-complete transport results and cleanup after execution. No overlays, relabeled
-manifests or prepack bypasses are acceptance evidence.
+## Fresh packed Embedded Local/HTTPS evidence
+
+The serialized bounded campaign `run-SsaPbP` normally produced all five
+packages at clean product/fixture SHA
+`ce8d7c2dd07fb281f9acb29a5541a879f956358b`. The subsequent evidence commit
+changes this report only. No overlay, relabeled manifest or prepack bypass.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-offset-range-ce8d7c2dd-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-offset-range-ce8d7c2dd-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+Both transports completed **86 positives / 42 refusal loops**. The completed
+stdout independently contains all 86 positive names and 29 exact refusal-code
+lines per transport; thirteen historical broad-code refusal loops are not
+recounted as precise-code evidence. All eight new refusal sources report
+`ClientProgramInvalidInput`, zero durable admission and zero Source I/O.
+The corrected scalar-DROP positive, nullable object cases and the new DROP
+followed by legal reuse all pass without weakening their values or types.
+
+Receipt directory:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-9JDaNM`.
+Independent receipt inspection confirms the exact source SHA, passed/complete,
+ten complete zero-exit result commands, complete output, no signals/errors or
+evidence errors, and `artifactsRemoved:true` with the artifacts directory absent.
+README Local/HTTPS and the intentional missing-generated-asset child refusal
+also pass. Successful private installations and Stores were reclaimed; logs,
+receipts, original package manifest and digests remain.
+
+Original normally packed SHA-256 digests:
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f5487ba69e88efbab8e99930482c27254b8055f421280045a46c0532f8349d1b` |
+| local-node | `dc9b2dfc0e670ee882732ee85e1211b7378c3cac838e61e7378fd8235f017c88` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
 
 Required CI, full Core/Native/Wasm/Cloud, complete retained-history validation,
 broader value-table ordinal behavior and the overall Frontend objective remain
