@@ -39,7 +39,7 @@ Retained receipts: `_build/native-effect-provider-capture-1791574635826/`.
 Executed sequentially on that clean source:
 
 ```sh
-moon fmt <the eight changed Native fixture files>
+moon fmt src/platform_native/remote_resident_source_compute_tests/effect_{provider_capture,provider_preview,transferred_artifact,result_capture,dependency_capture,source_custody,complete_capture,capture_custody}_wbtest.mbt
 moon info --target native src/platform_native/credential_resource src/platform_native/salesforce_effect_preview src/platform_native/remote_resident_source_compute_tests
 moon check --target native src/platform_native/salesforce_effect_preview src/platform_native/remote_resident_source_compute_tests
 node scripts/test-native-salesforce-effect-preview.mjs --resident-preview
