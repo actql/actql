@@ -66,6 +66,8 @@ export async function startNativeBearerServers({host, key, cert, root}) {
   await symlink(join(directory, 'rotating'), join(directory, 'symlink'));
   let expected = tokenA;
   let probes = 0;
+  let effectTargetReads = 0;
+  let effectTargetWrites = 0;
   const foreignRequests = [];
   const foreign = createServer({key, cert}, async (request, response) => {
     await readBody(request);
@@ -84,6 +86,15 @@ export async function startNativeBearerServers({host, key, cert, root}) {
     const body = await readBody(request);
     const authorization = request.headers.authorization;
     const control = authorization === `Bearer ${controlToken}`;
+    if (request.url === '/services/data/v66.0/sobjects/ActQL_Test_Record__c/001000000000001') {
+      if (request.method !== 'GET') effectTargetWrites++;
+      if (!control || request.method !== 'GET') {
+        reply(response, 403, {refused: true}); return;
+      }
+      effectTargetReads++;
+      // Independent physical fixture state, never copied from the proposal.
+      reply(response, 200, {Id: '001000000000001AAA', Count__c: 7}); return;
+    }
     switch (`${request.method} ${request.url}`) {
       case 'POST /bearer/probe':
         probes += 1;
@@ -136,6 +147,7 @@ export async function startNativeBearerServers({host, key, cert, root}) {
     origin,
     foreignOrigin,
     directory,
+    effectTargets() { return {reads: effectTargetReads, writes: effectTargetWrites}; },
     // Authorization header value expected by the mutual TLS server's
     // combined-authentication route.
     controlAuthorization: `Bearer ${controlToken}`,

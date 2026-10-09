@@ -5,6 +5,8 @@ import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
+import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
+const residentProposals = process.argv.includes('--resident-proposals');
 
 const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT;
 assert(typeof scratch === 'string' && scratch.length > 0,
@@ -44,6 +46,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     Optional_Value__c: 'e\u0301\r\n'}));
 });
 let child;
+let bearer;
 try {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -82,20 +85,42 @@ try {
     ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY:
       keys.publicKey.export({type: 'spki', format: 'pem'}),
   };
+  if (residentProposals) {
+    assert(testEnv.ACTQL_TEST_DUCKDB_LIBRARY, 'Native DuckDB library is required');
+    bearer = await startNativeBearerServers({host: '127.0.0.1',
+      key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt')), root});
+    await mkdir(join(root, 'retained'), {recursive: true});
+    Object.assign(testEnv, {
+      ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearer.origin,
+      ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearer.directory,
+      ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: join(root, 'retained'),
+      ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS: '1',
+    });
+  }
+  const selection = residentProposals
+    ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
+    : 'src/platform_native/salesforce_effect_preview/target_native_wbtest.mbt';
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    "'src/platform_native/salesforce_effect_preview/target_native_wbtest.mbt'], " +
+    JSON.stringify(selection) + "], " +
     "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes,
-    scope: 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
+    provider: bearer?.effectTargets(),
+    scope: residentProposals
+      ? 'Actual retained Native consumer -> checked Provider request -> physical HTTPS target observation; no whole Preview, approval, apply or Cloud'
+      : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   assert.equal(writes, 0);
-  assert.deepEqual(paths, [
+  if (residentProposals) {
+    assert.deepEqual(paths, []);
+    assert.deepEqual(bearer.effectTargets(), {reads: 1, writes: 0});
+  } else assert.deepEqual(paths, [
     {method: 'GET', path: expected + '001000000000001'},
     {method: 'GET', path: expected + '001000000000001'},
     {method: 'GET', path: expected + '001000000000002'},
@@ -107,6 +132,7 @@ try {
     child.kill('SIGKILL');
     await closing;
   }
+  if (bearer !== undefined) await bearer.close();
   server.closeAllConnections();
   await new Promise((resolve, reject) => server.close(error =>
     error ? reject(error) : resolve()));

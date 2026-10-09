@@ -3,22 +3,45 @@ package "actql/actql/platform_native/salesforce_effect_preview"
 
 import {
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/physical_strategy",
   "actql/actql/platform_native/credential_resource",
+  "actql/actql/platform_native/remote_resident_host",
   "actql/actql/remote_credential",
+  "actql/actql/run_publication_host",
 }
 
 // Values
+pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
+
 pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
 
 // Errors
 
 // Types and methods
+pub(all) enum NativeResidentEffectTargetIssue {
+  InvalidLimits
+  ForeignMapping
+  InvalidChanges
+  Request(@catalog.RecoveredWriteRequestIssue)
+  Mapping(@catalog.DeclarationUseIssue)
+  Provider(NativeSalesforcePreviewIssue)
+  Proposal(@remote_resident_host.ResidentEffectProposalIssue)
+}
+
 pub(all) enum NativeSalesforcePreviewIssue {
   InvalidLimits
   ForeignScope
   Catalog(@catalog.WriteProjectionIssue)
   Credential(@credential_resource.NativeCredentialResourceIssue)
   Observation(@catalog.TargetObservationIssue)
+}
+
+pub(all) struct NativeSalesforceTargetAccess {
+  service : @credential_resource.NativeCredentialResourceService
+  grant : @remote_credential.RemoteCredentialGrant
+  use_id : String
+  scope : @credential_resource.NativeCredentialScope
+  credential_org_id : String
 }
 
 // Type aliases

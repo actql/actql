@@ -223,11 +223,48 @@ fn retained_compute_effect_limits() -> @host.ClientEffectComputationLimits {
 }
 
 ///|
-fn retained_compute_effect_materials() -> (
-  @host.ClientEffectRunMaterials,
-  @host.ClientRequestIdentity,
-) {
-  let prepared = resident_native_effect_prepared()
+fn retained_compute_effect_materials(
+  provider? : Bool = false,
+) -> (@host.ClientEffectRunMaterials, @host.ClientRequestIdentity) raise {
+  let (wire_environment, environment_cid, document) = if provider {
+    resident_provider_environment()
+  } else {
+    (
+      resident_effect_source_environment, "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+      resident_native_effect_document,
+    )
+  }
+  if provider {
+    println("native-effect-provider: admitting environment")
+    match
+      @environment.read(@utf8.encode(wire_environment), environment_cid, {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 64,
+        max_members: 256,
+      }) {
+      Ok(_) => ()
+      Err(issue) =>
+        fail("Provider Check Environment: " + @debug.to_string(issue))
+    }
+  }
+  let environment = @host.admit_client_check_environment(
+    wire_environment,
+    environment_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  if provider {
+    println("native-effect-provider: preparing checked Program")
+  }
+  let prepared = @host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    retained_compute_effect_limits(),
+  ).unwrap()
   let manifests = @host.admit_client_compilation_manifests(
     @environment.compiler_grammar_manifest_wire(),
     @environment.compiler_barrier_contract_manifest_wire(),
@@ -256,8 +293,8 @@ fn retained_compute_effect_materials() -> (
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let environment = @host.admit_client_check_environment(
-    resident_effect_source_environment,
-    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    wire_environment,
+    environment_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -266,8 +303,8 @@ fn retained_compute_effect_materials() -> (
     allowed,
     definition,
     environment,
-    resident_effect_source_environment,
-    resident_native_effect_document,
+    wire_environment,
+    document,
     None,
     limits,
   ).unwrap()
@@ -305,6 +342,8 @@ fn retained_compute_case(
   through_saved_effect? : Bool = false,
   expire_at_start? : Bool = false,
   probe_proposals? : Bool = false,
+  provider? : Bool = false,
+  deny_provider? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -332,7 +371,7 @@ fn retained_compute_case(
     },
   }
   let effect_materials = if effect {
-    Some(retained_compute_effect_materials())
+    Some(retained_compute_effect_materials(provider~))
   } else {
     None
   }
@@ -871,11 +910,20 @@ fn retained_compute_case(
     rows.write_string(chunk)
   }
   rows.write_string(output.finish().unwrap())
-  assert_eq(rows.to_string(), "[{\"id\":3}]")
-  assert_eq(
-    output.result_schema_wire().unwrap(),
-    "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
-  )
+  if provider {
+    assert_eq(rows.to_string(), "[{\"id\":3,\"record\":\"001000000000001\"}]")
+    // The fixed 15-byte ASCII literal has the Checker's exact finite bound.
+    assert_eq(
+      output.result_schema_wire().unwrap(),
+      "{\"id\":{\"nullable\":false,\"type\":\"number\"},\"record\":{\"max_utf8_bytes\":15,\"nullable\":false,\"type\":\"string\"}}",
+    )
+  } else {
+    assert_eq(rows.to_string(), "[{\"id\":3}]")
+    assert_eq(
+      output.result_schema_wire().unwrap(),
+      "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+    )
+  }
   let effect_inputs = if effect {
     let effect_run = consumer.effect_run().unwrap()
     let foreign_run = resident_native_effect_bound_run()
@@ -900,7 +948,22 @@ fn retained_compute_case(
   } else {
     None
   }
-  let pending_effect_export = if effect_inputs is Some(inputs) {
+  let pending_effect_export = if provider && effect_inputs is Some(inputs) {
+    resident_provider_observe(
+      consumer,
+      effect_materials.unwrap().0,
+      inputs,
+      acquired.unwrap().0,
+      dispatch,
+      root_path,
+      name,
+      deny_provider~,
+    )
+    assert_eq(acquisitions.val, 1)
+    assert_eq(producer_captures.val, 1)
+    assert_eq(entries.val, 1)
+    None
+  } else if effect_inputs is Some(inputs) {
     // Independent receiver Cells do not grant the original Native observation.
     assert_true(
       retained_compute_acquired_evidence(consumer) is Err(Unavailable),
@@ -1172,4 +1235,14 @@ test "Effect saved consumer envelope rechecks original deadline at exclusive sta
     through_saved_effect=true,
     expire_at_start=true,
   )
+}
+
+///|
+test "Native retained consumer proposals reach actual Provider target reads without applying writes" {
+  retained_compute_case(false, effect=true, provider=true)
+}
+
+///|
+test "Native retained consumer Provider observation refuses lost current permission without releasing custody" {
+  retained_compute_case(false, effect=true, provider=true, deny_provider=true)
 }
