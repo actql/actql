@@ -71,7 +71,110 @@ fn resident_native_effect_bound_run() -> @host.PreparedClientEffectRun {
     allowed, "resident-effect", "original-effect-run", "2026-10-09T00:00:00.000Z",
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
-  @host.bind_client_effect_compiled_run(prepared, allowed, definition).unwrap()
+  // The Native execution input now comes from the received original Effect
+  // materials and dispatch admission, rather than the sender's local handle.
+  let environment = @host.admit_client_check_environment(
+    resident_effect_source_environment,
+    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let effect_limits : @host.ClientEffectComputationLimits = {
+    program: @host.client_standard_program_preparation_limits(),
+    max_members: 1,
+    max_header_work: 1000,
+    mapping: {
+      max_bytes: 20000,
+      max_nodes: 2000,
+      max_depth: 100,
+      max_members: 100,
+    },
+    max_mapping_work: 1000,
+    effects: {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    },
+  }
+  let caller = @host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "original-caller",
+    @host.source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let selection : @host.ClientValuesSiteSelection = {
+    site_key: "retained-native",
+    site_generation: 1,
+    runtime_bundle_cid: "sha256:" + "d".repeat(64),
+    connector_registration: "local",
+    connector_revision: "local/1",
+    strategy_revision: "strategy/1",
+    obligations_cid: "sha256:" + "2".repeat(64),
+    budget_cid: "sha256:" + "3".repeat(64),
+    evidence_issuer_capability_cid: "sha256:" + "4".repeat(64),
+    grant_cid: "sha256:" + "5".repeat(64),
+  }
+  let request = @host.prepare_client_effect_source_dispatch(
+    allowed, definition, caller, 1, "original-effect-producer", selection,
+  ).unwrap()
+  let wire = @host.issue_client_effect_run_materials(
+    allowed,
+    definition,
+    environment,
+    resident_effect_source_environment,
+    resident_native_effect_document,
+    None,
+    effect_limits,
+  ).unwrap()
+  @resident.admit_resident_effect_source_dispatch(
+    {
+      expressions: { text_time: false, veca: false, },
+      operations: {
+        rela: true,
+        sga: false,
+        tea: false,
+        calendar: false,
+        text_rank: false,
+      },
+      manifests,
+      limits: {
+        preparation: @host.client_standard_program_preparation_limits(),
+        sequence: @host.client_standard_values_sequence_limits(),
+        max_sequence_steps: 1000,
+        max_sequence_work: 1000,
+        max_evidence_bytes: 1000000,
+        max_evidence_nodes: 100000,
+        max_evidence_depth: 100,
+      },
+      source: Some(
+        (
+          "connector://crm/main/r#v", "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
+        ),
+      ),
+    },
+    effect_limits,
+    {
+      coordinator_authority: "sha256:" + "c".repeat(64),
+      site_key: selection.site_key,
+      runtime_bundle_cid: selection.runtime_bundle_cid,
+      connector_registration: selection.connector_registration,
+      connector_revision: selection.connector_revision,
+      strategy_revision: selection.strategy_revision,
+      grant_cid: selection.grant_cid,
+      evidence_issuer_capability_cid: selection.evidence_issuer_capability_cid,
+      budget_cids: [selection.budget_cid],
+    },
+    1,
+    request,
+    wire,
+    @host.prepare_client_effect_source_input_binding(compilation).unwrap(),
+    "2026-10-09T01:00:00.000Z",
+    resident_effect_source_registry,
+    resident_effect_source_values,
+    resident_effect_source_fragment,
+  ).unwrap()
 }
 
 ///|

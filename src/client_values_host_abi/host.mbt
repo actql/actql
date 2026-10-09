@@ -32,15 +32,11 @@ pub(all) enum ClientValuesHostPreparationIssue {
 }
 
 ///|
-/// Parse one normal JSON/YAML Program and optional separately supplied
-/// Parameter Values through the ordinary MoonBit checker.
-#export_name("clientValuesHostPrepare")
-pub fn client_values_host_prepare(
-  document : String,
+/// Shared bounded input decoding for the pure and Effect preparation Owners.
+fn client_values_host_program_input(
   format : String,
-  environment : @checked.CheckEnvironment,
   parameters : String?,
-) -> Result[@host.PreparedClientProgram, ClientValuesHostPreparationIssue] {
+) -> Result[(@syntax.Format, @decode.Cursor?), ClientValuesHostPreparationIssue] {
   let selected = match format {
     "json" => @syntax.Json
     "yaml" => @syntax.Yaml
@@ -69,6 +65,23 @@ pub fn client_values_host_prepare(
         Err(issue) => return Err(SuppliedAdmission(issue))
       }
     }
+  }
+  Ok((selected, supplied))
+}
+
+///|
+/// Parse one normal JSON/YAML Program and separately supplied values.
+#export_name("clientValuesHostPrepare")
+pub fn client_values_host_prepare(
+  document : String,
+  format : String,
+  environment : @checked.CheckEnvironment,
+  parameters : String?,
+) -> Result[@host.PreparedClientProgram, ClientValuesHostPreparationIssue] {
+  let (selected, supplied) = match
+    client_values_host_program_input(format, parameters) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   match
     @host.prepare_effect_free_client_program(

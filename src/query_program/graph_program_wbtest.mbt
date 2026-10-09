@@ -65,6 +65,7 @@ fn mapping_semantic(program : @program.Program) -> String raise {
 fn mapping_issue(result : Result[@program.Program, Issue]) -> String {
   match result {
     Err(UnknownRelation) => "UnknownRelation"
+    Err(UnresolvedRelation(_)) => "UnresolvedRelation"
     Err(AmbiguousRelation) => "AmbiguousRelation"
     Err(UnknownColumn) => "UnknownColumn"
     Err(AmbiguousColumn) => "AmbiguousColumn"
@@ -199,6 +200,7 @@ fn mapping_resolved_name(
 ) -> String {
   property_mapping_input(path, known).name catch {
     Abort(UnknownRelation) => "UnknownRelation"
+    Abort(UnresolvedRelation(_)) => "UnresolvedRelation"
     Abort(AmbiguousRelation) => "AmbiguousRelation"
     Abort(_) => "OtherIssue"
   }
@@ -214,7 +216,7 @@ test "Graph producer references use the shared query name rules" {
       ("nodes", false, "nodes"),
       ("NODES", false, "nodes"),
       ("nodes", true, "nodes"),
-      ("NODES", true, "UnknownRelation"),
+      ("NODES", true, "UnresolvedRelation"),
     ] {
     assert_eq(
       mapping_resolved_name([{ value: name, quoted, }], [relation]),
@@ -276,7 +278,7 @@ test "Graph producer references use the shared query name rules" {
       [{ value: "dataset", quoted: true, }, { value: "NODES", quoted: true, }],
       [qualified],
     ),
-    "UnknownRelation",
+    "UnresolvedRelation",
   )
 }
 
@@ -327,7 +329,7 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
   for
     (text, expected) in [
       (
-        "PROPERTY GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnknownRelation",
+        "PROPERTY GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation",
       ),
       (
         "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn",
@@ -411,7 +413,7 @@ test "DATA Relation rejects forward references without substituting a source" {
       mapping_issue(
         compile_query_script(script, mapping_context(), mapping_limits()),
       ),
-      "UnknownRelation",
+      "UnresolvedRelation",
     )
   }
   let script = @query.parse_query_script(

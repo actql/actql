@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/sheets/host_node"
+
+// Values
+pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String
+
+pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String
+
+pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
+
+pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
+
+pub fn sheets_target_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

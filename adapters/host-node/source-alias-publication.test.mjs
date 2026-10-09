@@ -6,7 +6,8 @@ import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
-import {loadInstalledSource, installedSourcePublicationFacts} from './installed-source.mjs';
+const {loadInstalledSource, installedSourceIdentity, installedSourcePublicationFacts} = await import(
+  process.env.ACTQL_TEST_NAMESPACE_INSTALLED_SOURCE_MODULE ?? new URL('./installed-source.mjs', import.meta.url));
 const {observeSourceAliasNamespace, sourceAliasNamespaceObservationFacts,
   sourceAliasPublication} = await import(process.env.ACTQL_TEST_NAMESPACE_PUBLICATION_MODULE ??
     new URL('./source-alias-publication.mjs', import.meta.url));
@@ -39,7 +40,7 @@ async function authorization(t, {name = 'queries', operation = 'inspect_absence'
   return gate;
 }
 
-async function installed(t, {names = ['records'], generation = 1, changeDuringLoad,
+async function installed(t, {names = ['records'], generation = 1, changeDuringLoad, changeAliasesDuringLoad,
   identityFailure = false} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-namespace-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
@@ -59,6 +60,8 @@ async function installed(t, {names = ['records'], generation = 1, changeDuringLo
       async load() {
         counts.loads++;
         if (changeDuringLoad) await writeFile(path, JSON.stringify({...profile, generation: generation + 1}));
+        if (changeAliasesDuringLoad) await writeFile(path,
+          JSON.stringify({...profile, queryAliases: changeAliasesDuringLoad.map(alias)}));
         return Object.freeze({connectorRegistration: 'namespace_fixture', connectorRevision: 'namespace_fixture/0.1',
           open() { counts.source++; assert.fail('Checking must not acquire a Source'); },
           close() {}});
@@ -68,7 +71,7 @@ async function installed(t, {names = ['records'], generation = 1, changeDuringLo
   const source = await loadInstalledSource(path, {root: directory, principalId: 'reader', moon,
     connectorTable, resolveSecret() { counts.credential++; assert.fail('Checking must not resolve credentials'); }});
   t.after(() => source.close());
-  return {source, path, counts};
+  return {source, path, counts, connectorTable};
 }
 
 function publication(sources, paths, {name = 'queries', aliases = sources.flatMap(source => source.queryAliases)} = {}) {
@@ -121,6 +124,50 @@ test('registration failure or revision change cannot issue a namespace certifica
     assert.equal(installedSourcePublicationFacts(source), undefined);
     const selected = publication([source], [path]);
     assert.deepEqual(await observeSourceAliasNamespace(selected, gate, original), {state: 'unresolved'});
+  }
+});
+
+test('exact Unicode alias changes during installation cannot close a namespace', async t => {
+  const {source, path} = await installed(t,
+    {names: ['`cafe\u0301`'], changeAliasesDuringLoad: ['`caf\u00e9`']});
+  assert.equal(installedSourcePublicationFacts(source), undefined,
+    '[check-mutation:namespace-exact-generation]');
+  const gate = await authorization(t), original = binding();
+  const selected = publication([source], [path]);
+  assert.deepEqual(await observeSourceAliasNamespace(selected, gate, original), {state: 'unresolved'});
+});
+
+test('installed Source identity preserves exact query alias metadata', async t => {
+  const {path, connectorTable} = await installed(t, {names: ['`cafe\u0301`']});
+  const original = await installedSourceIdentity(path, {connectorTable});
+  const profile = JSON.parse(await readFile(path, 'utf8'));
+  await writeFile(path, JSON.stringify({...profile, queryAliases: [alias('`caf\u00e9`')]}));
+  assert.notEqual(await installedSourceIdentity(path, {connectorTable}), original,
+    '[check-mutation:namespace-exact-identity]');
+});
+
+test('installed Source generations match independent fixed preimages', async t => {
+  // Independently hashed UTF-8 length-framed canonical metadata, followed by
+  // the exact ordered alias row domain for a nonempty publication.
+  const vectors = [
+    [undefined, 'sha256:6e87cb5138d32798aace9e139de1dbe03acca54be20fd852f1c5fbfb1d18bfdd'],
+    ['records', 'sha256:350499593d9325deb802c7df9a0194e0c11d84aef7d361fcd999fd49fa5bcbf1'],
+    ['`caf\u00e9`', 'sha256:bf609554608439509cf60b8c1ad69bf4d8becbd784b37c86eed043a824090dc6'],
+    ['`cafe\u0301`', 'sha256:f21c531d230b22f67bb6029a46d7eaf5028482ef99c7d40f787e94507de5952a'],
+  ];
+  for (const [name, expected] of vectors) {
+    const {path, connectorTable} = await installed(t, {names: name === undefined ? [] : [name]});
+    assert.equal(await installedSourceIdentity(path, {connectorTable}), expected);
+    const profile = JSON.parse(await readFile(path, 'utf8'));
+    if (name === undefined) delete profile.queryAliases;
+    else {
+      const entry = alias(name);
+      profile.queryAliases = [{schemaContractCid: entry.schemaContractCid,
+        sourceViewContractCid: entry.sourceViewContractCid, sourceRef: entry.sourceRef, name: entry.name}];
+    }
+    await writeFile(path, JSON.stringify(profile, null, 2));
+    assert.equal(await installedSourceIdentity(path, {connectorTable}), expected,
+      'Object property order, whitespace and an omitted empty publication preserve the generation');
   }
 });
 

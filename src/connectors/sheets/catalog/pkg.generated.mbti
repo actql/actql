@@ -1,0 +1,81 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/sheets/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]
+
+pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Result[Unit, Issue]
+
+pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome
+
+pub fn excluded_blank_rows(Page) -> Int
+
+pub fn page_rows(Page) -> Array[Json]
+
+pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[Page, Issue]
+
+pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum AppendOutcome {
+  Applied
+  Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CellType {
+  Text
+  Number
+  Boolean
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Column {
+  name : String
+  cell_type : CellType
+  nullable : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GridRange {
+  sheet_id : Int
+  start_row : Int
+  end_row : Int
+  start_column : Int
+  end_column : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidRange
+  InvalidSchema
+  InvalidResponse
+  ForeignSpreadsheet
+  ForeignSheet
+  ForeignRange
+  CellError(row~ : Int, column~ : String)
+  MissingEffectiveValue(row~ : Int, column~ : String)
+  RequiredCell(row~ : Int, column~ : String)
+  InvalidCell(row~ : Int, column~ : String)
+  UnrepresentableWrite(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_cells : Int
+} derive(Eq, @debug.Debug)
+
+pub struct Page {
+  rows : Array[Json]
+  excluded_blank_rows : Int
+}
+
+// Type aliases
+
+// Traits

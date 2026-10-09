@@ -940,6 +940,12 @@ the exact alias spellings and the admitted checking environment. It describes
 that installed revision, not Provider Resource existence or a guarantee about
 a later execution.
 
+The installed Source generation separately frames the exact query-alias rows;
+their semantic names and Source references do not pass through configuration
+NFC normalization. The ordinary configuration identity domain remains unchanged.
+Omitted and explicitly empty alias arrays have the same meaning. Reordering an
+alias object's fields is not a metadata change; changing an alias value is.
+
 A separate existing authorization decision evaluates the namespace tuple
 `(actql-source-namespace, namespace, inspect_absence)` at preparation. Ordinary
 Check and Source-read permission do not substitute for this disclosure scope.

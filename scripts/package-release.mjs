@@ -52,7 +52,7 @@ export function releasePackageMetadata(original, name, cohort) {
   return manifest;
 }
 
-async function inventory(directory, prefix = '') {
+export async function inventory(directory, prefix = '') {
   const files = [];
   for (const name of (await readdir(directory)).sort()) {
     const path = join(directory, name), relative = prefix + name;
@@ -68,7 +68,7 @@ async function inventory(directory, prefix = '') {
   return files;
 }
 
-async function unpack(archive, destination) {
+export async function unpack(archive, destination) {
   const names = run('tar', ['-tzf', archive]);
   assert(names.length < 4 * 1024 * 1024, 'Archive inventory exceeds limit');
   for (const name of names.trimEnd().split('\n')) {

@@ -31,7 +31,7 @@ fn client_source_preparation_issue_code(
         Encoding => "source_encoding"
         QueryLowering(issue) =>
           match issue {
-            UnknownRelation => "source_unresolved"
+            UnknownRelation | UnresolvedRelation(_) => "source_unresolved"
             UnsupportedProjection
             | UnsupportedGrouping
             | UnsupportedAggregate

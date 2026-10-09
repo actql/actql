@@ -1,8 +1,39 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {namedWindowProgram, namedWindowSuccesses, namedWindowRefusals}
+import {namedWindowProgram, namedAggregateWindowProgram, namedLagAggregateProgram,
+  namedWindowSuccesses, namedWindowRefusals}
   from './fixtures/named-window-source-input.mjs';
+
+test('named aggregate WINDOW controls retain independent counts, NULLs and declaration ownership', () => {
+  const cases = new Map(namedWindowSuccesses.map(item => [item.name, item]));
+  const get = name => cases.get('named-window-aggregate-' + name);
+  assert.deepEqual(JSON.parse(get('independent-json').text), namedAggregateWindowProgram);
+  assert.deepEqual(namedAggregateWindowProgram.stages[1].steps[0],
+    {from: 'records', group: {by: ['id'], aggregates: {counted: {fn: 'count'}}}});
+  assert.deepEqual(namedAggregateWindowProgram.stages[1].steps[1].analytic.order_by,
+    [{field: 'counted', dir: 'desc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}]);
+  assert.deepEqual(get('order-key').expected, [{id: 3, n: 1}, {id: 1, n: 2}, {id: 2, n: 3}]);
+  assert.deepEqual(get('nullable-count').expected, [{id: 3, n: 1}, {id: 2, n: 2}, {id: 1, n: 3}]);
+  assert.deepEqual(get('reused-alias-collision').expected,
+    [{original: 3, id: 2, n: 1}, {original: 1, id: 1, n: 2}, {original: 2, id: 1, n: 3}]);
+  assert.deepEqual(get('typed-empty').columns, get('order-key').columns);
+  assert.deepEqual(get('typed-empty').expected, []);
+  assert.deepEqual(get('global-empty').expected, [{n: 1}]);
+  assert.deepEqual(get('unused-no-evaluation').expected, cases.get('named-window-bare-reference').expected);
+  assert.ok(get('unused-no-evaluation').text.includes('SUM(1 / 0)'));
+  assert.deepEqual(get('having-before-window').expected, [{id: 3, total: 2, n: 1}]);
+  assert.ok(namedWindowRefusals.some(item => item.text.includes('COUNT(invented)')));
+  assert.ok(namedWindowRefusals.some(item => item.text.includes('HAVING TRUE WINDOW unused')));
+  for (const item of namedWindowRefusals.slice(10)) assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  assert.deepEqual(JSON.parse(get('navigation-json').text), namedLagAggregateProgram);
+  assert.deepEqual(namedLagAggregateProgram.stages[1].steps[1].analytic.functions,
+    {n: {fn: 'lag', expr: {field: 'counted'}}});
+  assert.deepEqual(get('navigation-operand').expected,
+    [{id: 1, n: 2}, {id: 2, n: 1}, {id: 3, n: null}]);
+  assert.deepEqual(get('running-sum-operand').expected,
+    [{id: 1, n: 60}, {id: 2, n: 80}, {id: 3, n: 60}]);
+});
 
 test('named-window independent oracles retain NULLs multiplicity frames and scope', () => {
   const cases = new Map(namedWindowSuccesses.map(item => [item.name, item]));
