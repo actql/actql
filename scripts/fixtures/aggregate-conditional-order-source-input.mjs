@@ -36,6 +36,25 @@ export const aggregatePredicateArrayOrderProgram = {
       aggregatePropertyOrderArrayProgram.stages[1].steps[6]],
   }],
 };
+// NULL-containing membership retains the common three-valued in node.
+export const aggregateMembershipOrderProgram = {
+  ...aggregateConditionalOrderProgram, id: 'fixture.aggregate_membership_order',
+  stages: [aggregatePropertyOrderProgram.stages[0], {
+    ...aggregatePropertyOrderProgram.stages[1],
+    steps: [...aggregatePropertyOrderProgram.stages[1].steps.slice(0, 2),
+      {derive: {key: {in: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: [20, null]}]}}},
+      aggregatePropertyOrderProgram.stages[1].steps[3]],
+  }],
+};
+export const aggregateMembershipArrayOrderProgram = {
+  ...aggregatePropertyOrderArrayProgram, id: 'fixture.aggregate_membership_array_order',
+  stages: [aggregatePropertyOrderArrayProgram.stages[0], {
+    ...aggregatePropertyOrderArrayProgram.stages[1],
+    steps: [...aggregatePropertyOrderArrayProgram.stages[1].steps.slice(0, 5),
+      {derive: {key: {in: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: [20]}]}}},
+      aggregatePropertyOrderArrayProgram.stages[1].steps[6]],
+  }],
+};
 const sql = "SELECT STRING_AGG(name, '|' ORDER BY COALESCE(payload.score, 0) NULLS LAST, id) AS names FROM objects";
 const success = (name, tail = sql, extra = {}) => ({...base,
   name: 'aggregate-conditional-order-' + name, text: data + tail,
@@ -121,6 +140,49 @@ export const aggregateConditionalOrderSuccesses = [
     sourceRows: base.sourceRows.filter((row, index) => index !== 4), expected: [{ids: [1, 2, 3, 4]}],
     columns: [{name: 'ids', contract: {type: 'array', nullable: false, items: {type: 'number', nullable: false}}}],
   }),
+  success('membership-independent-json', '', {format: 'json', text: JSON.stringify(aggregateMembershipOrderProgram),
+    parameterDeclarations: undefined, expected: [{names: 'a|b|b|c'}]}),
+  success('membership-null-list', sql.replace('COALESCE(payload.score, 0)', 'payload.score IN (20, NULL)'),
+    {expected: [{names: 'a|b|b|c'}]}),
+  success('membership-in-pipe', "FROM objects AS t |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((t.payload)).`SCORE` IN (20, 20) NULLS LAST, id) AS names",
+    {expected: [{names: 'b|b|a|c'}]}),
+  success('membership-not-in', sql.replace('COALESCE(payload.score, 0)', 'payload.score NOT IN (20)'),
+    {expected: [{names: 'a|b|b|c'}]}),
+  success('membership-unnest', sql.replace('COALESCE(payload.score, 0)', 'payload.score IN UNNEST(ARRAY[20, NULL])'),
+    {expected: [{names: 'a|b|b|c'}]}),
+  success('membership-empty-list', sql.replace('COALESCE(payload.score, 0)', 'payload.score NOT IN UNNEST([])'),
+    {expected: [{names: 'a|b|b|c'}]}),
+  success('membership-between', sql.replace('COALESCE(payload.score, 0)', 'payload.score BETWEEN 5 AND 15'),
+    {expected: [{names: 'a|b|b|c'}]}),
+  success('membership-not-between', sql.replace('COALESCE(payload.score, 0)', 'payload.score NOT BETWEEN 5 AND 15'),
+    {expected: [{names: 'b|b|a|c'}]}),
+  success('membership-null-safe', sql.replace('COALESCE(payload.score, 0)', 'payload.score IS NOT DISTINCT FROM 20'),
+    {expected: [{names: 'b|b|c|a'}]}),
+  success('membership-null-safe-null', sql.replace('COALESCE(payload.score, 0)', 'payload.score IS DISTINCT FROM NULL'),
+    {expected: [{names: 'c|a|b|b'}]}),
+  success('membership-current-and-snapshot', 'FROM objects AS before |> SET payload = other '
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS current, "
+    + "STRING_AGG(name, '|' ORDER BY before.payload.score IN (25, 30) NULLS LAST, id) AS previous", {
+    expected: [{current: 'a|c|b|b', previous: 'a|b|b|c'}],
+    columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),
+  }),
+  success('membership-parameter', sql.replace('COALESCE(payload.score, 0)', 'payload.score IN (@wanted, NULL)'), {
+    parameterDeclarations: {...base.parameterDeclarations, wanted: {type: 'number', nullable: true}},
+    parameters: {...base.parameters, wanted: 20}, expected: [{names: 'a|b|b|c'}],
+  }),
+  success('membership-masked', sql.replace('COALESCE(payload.score, 0)', 'payload.score BETWEEN 5 AND 15')
+    .replace("name, '|'", "IF(id / (id - id) = 0, name, name), '|' WHERE FALSE"),
+    {expected: [{names: null}]}),
+  success('membership-independent-array-json', '', {format: 'json', text: JSON.stringify(aggregateMembershipArrayOrderProgram),
+    parameterDeclarations: undefined, sourceRows: base.sourceRows.filter((row, index) => index !== 4),
+    expected: [{ids: [2, 1, 3, 4]}],
+    columns: [{name: 'ids', contract: {type: 'array', nullable: false, items: {type: 'number', nullable: false}}}],
+  }),
+  success('membership-keyed-array', 'FROM objects |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 '
+    + '|> AGGREGATE ARRAY_AGG(id IGNORE NULLS ORDER BY payload.score IN (20) NULLS LAST, id) AS ids', {
+    sourceRows: base.sourceRows.filter((row, index) => index !== 4), expected: [{ids: [2, 1, 3, 4]}],
+    columns: [{name: 'ids', contract: {type: 'array', nullable: false, items: {type: 'number', nullable: false}}}],
+  }),
 ];
 export const aggregateConditionalOrderRefusals = [
   {name: 'condition-type', text: sql.replace('COALESCE(payload.score, 0)', 'IF(id, 0, payload.score)')},
@@ -140,6 +202,15 @@ export const aggregateConditionalOrderRefusals = [
   {name: 'predicate-removed-range', text: 'FROM objects AS old |> AS current '
     + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score IS NULL, id) AS names",
     expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'membership-operand-type', text: sql.replace('COALESCE(payload.score, 0)', "payload.score IN ('wrong')"),
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'membership-removed-range', text: 'FROM objects AS old |> AS current '
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score IN (20), id) AS names",
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'membership-unsafe-bound', text: sql.replace('COALESCE(payload.score, 0)', 'payload.score BETWEEN 0 AND id / 0'),
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'membership-distinct-key', text: sql.replace('COALESCE(payload.score, 0)', 'payload.score IN (20)')
+    .replace('STRING_AGG(name', 'STRING_AGG(DISTINCT name'), expectedCode: 'ClientProgramImplementationLimit'},
 ].map(item => ({format: 'aql-text', parameterDeclarations: base.parameterDeclarations,
   parameters: base.parameters, ...item, name: 'aggregate-conditional-order-refuse-' + item.name,
   text: data + item.text}));
