@@ -4,8 +4,10 @@ package "actql/actql/platform_native/remote_resident_host"
 import {
   "actql/actql/client_local_host",
   "actql/actql/connectors/duckdb/adapters/native",
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/duckdb/host_native",
   "actql/actql/connectors/duckdb/standard_host",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_resources",
@@ -154,6 +156,14 @@ pub(all) enum ResidentEffectSourceDispatchIssue {
   Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
   Dispatch(@run_publication_host.ClientEffectSourceDispatchIssue)
   Source(ResidentSourceIssue)
+}
+
+pub(all) enum ResidentEffectSourceEvidenceIssue {
+  Unavailable
+  Capture(@execution_query.CapturedSourceIssue)
+  Logical(@run_publication_host.ClientCapturedSourceLogicalIssue)
+  Observation(@host.NativeSourceEvidenceIssue)
+  Acquired(@run_publication_host.ClientEffectAcquiredEvidenceIssue)
 }
 
 pub(all) struct ResidentExecuted {
@@ -315,6 +325,7 @@ type ResidentSourceCompute
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, String, String, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
