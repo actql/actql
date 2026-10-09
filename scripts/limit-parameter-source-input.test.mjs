@@ -82,6 +82,8 @@ test('JOIN prefix controls distinguish filtering before and after the take', () 
     assert.deepEqual(cases.get('limit-parameter-join-prefix-where-' + position + '-take').expected, expected);
     assert.equal(program.stages[1].steps[1].join.max_output_rows, 10);
   }
+  assert.equal(cases.get('limit-parameter-join-prefix-consecutive-where').parameterDeclarations, undefined);
+  assert.equal(cases.get('limit-parameter-join-prefix-consecutive-where').parameters, undefined);
   assert.deepEqual(cases.get('limit-parameter-join-prefix-consecutive-where').expected,
     [{amount: 30, id: 3}, {amount: 30, id: 3}]);
   assert.deepEqual(cases.get('limit-parameter-join-prefix-quoted-as-nullable').expected,

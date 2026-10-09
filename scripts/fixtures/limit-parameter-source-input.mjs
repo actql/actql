@@ -170,7 +170,8 @@ limitParameterSuccesses.push(...[
     {...oneRow, expected: [{amount: 30, id: 3}]}],
   ['join-prefix-consecutive-where', currentRowJoin
     + ' |> WHERE records.id > 0 |> WHERE keys.k = 3' + selectCurrentRow + ' |> ORDER BY id',
-    {expected: [{amount: 30, id: 3}, {amount: 30, id: 3}]}],
+    {parameterDeclarations: undefined, parameters: undefined,
+      expected: [{amount: 30, id: 3}, {amount: 30, id: 3}]}],
   ['join-prefix-fresh-as', currentRowJoin + ' |> AS current'
     + ' |> ORDER BY current.id |> LIMIT @count OFFSET @skip'
     + ' |> SELECT current.amount AS amount, current.id AS id', {}],
@@ -185,9 +186,11 @@ limitParameterRefusals.push(...[
   ['join-prefix-invalid-take', currentRowOrderTake + selectCurrentRow,
     {parameters: {count: 0, skip: 0}}],
   ['join-prefix-as-removed-left', currentRowJoin
-    + ' |> AS current |> WHERE records.id = 1 |> SELECT current.id AS id', {}],
+    + ' |> AS current |> WHERE records.id = 1 |> SELECT current.id AS id',
+    {parameterDeclarations: undefined, parameters: undefined}],
   ['join-prefix-as-removed-right', currentRowJoin
-    + ' |> AS current |> ORDER BY keys.k |> SELECT current.id AS id', {}],
+    + ' |> AS current |> ORDER BY keys.k |> SELECT current.id AS id',
+    {parameterDeclarations: undefined, parameters: undefined}],
 ].map(([name, text, extra]) => ({name: 'limit-parameter-refuse-' + name,
   format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput',
   parameterDeclarations: declarations, parameters: {count: 2, skip: 1}, ...extra})));
