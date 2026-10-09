@@ -4,7 +4,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hash, snapshot } from '../inventory.mjs';
 import { fixedCorpus } from '../corpus.mjs';
-import { registry } from '../registry.mjs';
+// The restricted capacity proof retains the complete six-descriptor cohort.
+import { corpusBaseline as registry } from '../registry.mjs';
 import { registrations } from '../obligations.mjs';
 import { program, candidates, oracle, generate } from '../engine.mjs';
 import { auditFixture, payload, inputVariable } from '../fixture.mjs';

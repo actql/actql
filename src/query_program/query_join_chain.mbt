@@ -4,30 +4,102 @@
 // input without reviving a dropped range or confusing equal column names.
 priv struct JoinChainScope {
   visible : Array[(String, String)]
+  columns : Array[(String, String)]
+  value_table : Bool
+  value_columns : Array[(String, String, Array[(String, String)])]
   ranges : Array[(@query.NamePart, Array[(String, String)])]
+  star_ranges : Array[(@query.NamePart, Array[(String, String)])]
   receivers : Array[(@query.NamePart, String)]
   scalar_ranges : Array[(@query.NamePart, String)]
 }
 
 ///|
-// RIGHT/FULL JOIN, GROUP, star, DISTINCT and RENAME need the shared row scope.
-// DISTINCT ORDER expressions resolve after materialization, using evaluated
-// output aliases rather than the projection-only specialization's input scope.
+// Explicit range-property receivers need the shared expression binder. This
+// applicability check does not decide whether a same-named value or range wins;
+// the ordinary scope resolver retains that distinction.
+fn join_has_range_property(
+  expression : @query.Expression,
+  ranges : Array[@query.NamePart],
+) -> Bool {
+  for index in 0..<@query.expression_node_count(expression) {
+    guard @query.expression_node(expression, index).unwrap().kind
+      is Property(receiver, _) else {
+      continue
+    }
+    let mut current = receiver
+    while @query.expression_node(expression, current).unwrap().kind
+          is Parenthesized(child) {
+      current = child
+    }
+    if @query.expression_node(expression, current).unwrap().kind
+      is Reference(path) &&
+      path.length() == 1 &&
+      ranges.any(name => same_name(name, path[0])) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+// RIGHT/FULL JOIN, GROUP, star, DISTINCT, range properties and column edits
+// need the shared row scope. Pipe DISTINCT compares the current JOIN row;
+// SELECT DISTINCT orders through its materialized output aliases.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
+  let ranges : Array[@query.NamePart] = []
+  let primary = match @query.relation_alias(query) {
+    Some(name) => Some(name)
+    None => @query.relation(query).last()
+  }
+  if primary is Some(name) {
+    ranges.push(name)
+  }
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let kind = part.kind
     if kind == "right" || kind == "full" {
       return true
     }
+    let range = match part.source_alias {
+      Some(name) => Some(name)
+      None => part.relation.last()
+    }
+    if range is Some(name) {
+      ranges.push(name)
+    }
+  }
+  // The projection specialization consumes at most one WHERE before SELECT.
+  // Other current-row prefixes must retain their authored order in the shared
+  // compiler; moving a WHERE across LIMIT would change which rows survive.
+  let select_index = if @query.operation_at(query, 0) is Some(Where(_)) {
+    1
+  } else {
+    0
+  }
+  if !(@query.operation_at(query, select_index) is Some(Select(_, _))) {
+    return true
   }
   for index in 0..<@query.operation_count(query) {
+    let expressions = match @query.operation_at(query, index) {
+      Some(Where(expression)) => [expression]
+      Some(Select(projections, _)) =>
+        projections.filter_map(projection => projection.expression)
+      Some(Order(terms)) => terms.map(term => term.expression)
+      _ => []
+    }
+    if expressions.any(expression => join_has_range_property(expression, ranges)) {
+      return true
+    }
     if @query.operation_at(query, index)
       is Some(
         Group(_, _, _)
         | Qualify(_, _)
         | UnnestSource(_, _, _)
+        | Extend(_)
+        | Set(_)
+        | Drop(_)
         | Rename(_)
+        | Distinct
       ) {
       return true
     }
@@ -186,11 +258,18 @@ fn compile_join_chain_steps(
   let original = fields.map(field => (field, field))
   let source_scope = initial_scope.unwrap_or({
     visible: original,
+    columns: original.copy(),
+    value_table: false,
+    value_columns: [],
+    star_ranges: [],
     ranges: [(query_range_name(query), original.copy())],
     receivers: [],
     scalar_ranges: [],
   })
   let visible = source_scope.visible.map(entry => (entry.0, slots[entry.1]))
+  let first_columns = source_scope.columns.map(column => {
+    (column.0, slots[column.1])
+  })
   let first_ranges = source_scope.ranges.map(range => {
     (range.0, range.1.map(entry => (entry.0, slots[entry.1])))
   })
@@ -223,6 +302,7 @@ fn compile_join_chain_steps(
                 scope.visible,
                 scope.receivers,
                 scope.scalar_ranges,
+                scope.columns,
               ),
               scope.ranges,
               limits.max_expression_work,
@@ -257,6 +337,11 @@ fn compile_join_chain_steps(
     } else {
       scope.visible.copy()
     }
+    let mut next_columns = if index == 0 {
+      first_columns.copy()
+    } else {
+      scope.columns.copy()
+    }
     for field in right_fields {
       let slot = pipe_physical_name(physical, "aql_chain_column_")
       physical.push(slot)
@@ -266,6 +351,7 @@ fn compile_join_chain_steps(
           same_name(name, { value: field, quoted: false, })
         }) {
         next_visible.push((field, slot))
+        next_columns.push((field, slot))
       }
     }
     let coalesced : Array[(String, @builder.Node)] = []
@@ -322,6 +408,12 @@ fn compile_join_chain_steps(
         }
         merged.push((display, merged_slot))
       }
+      next_columns = merged +
+        next_columns.filter(column => {
+          !part.using_columns.any(name => {
+            same_name(name, { value: column.0, quoted: false, })
+          })
+        })
       next_visible = merged +
         next_visible.filter(entry => {
           !part.using_columns.any(name => {
@@ -391,6 +483,26 @@ fn compile_join_chain_steps(
     }
     scope = {
       visible: next_visible,
+      columns: next_columns,
+      value_table: false,
+      value_columns: if index == 0 {
+        source_scope.value_columns.map(column => {
+          (
+            column.0,
+            slots[column.1],
+            column.2.map(field => (field.0, slots[field.1])),
+          )
+        })
+      } else {
+        scope.value_columns.copy()
+      },
+      star_ranges: if index == 0 {
+        source_scope.star_ranges.map(range => {
+          (range.0, range.1.map(field => (field.0, slots[field.1])))
+        })
+      } else {
+        scope.star_ranges.copy()
+      },
       ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
       [(qualifier, right_range)],
       scalar_ranges: if index == 0 {
