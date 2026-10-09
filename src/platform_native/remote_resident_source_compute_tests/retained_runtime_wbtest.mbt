@@ -30,6 +30,7 @@ fn retained_compute_through_runtime(
   retained_site_usage? : Array[Int64] = Array::make(9, 0L),
   through_resident? : Bool = false,
   expire_at_start? : Bool = false,
+  effect_materials? : @host.ClientEffectRunMaterials? = None,
   restore_input? : (@host.ClientRunMaterials, @remote.RemoteInputBinding) -> Result[
     @output.NativeRemoteRetainedTaskInput,
     @output.NativeRemoteRetainedTaskInputIssue,
@@ -321,17 +322,32 @@ fn retained_compute_through_runtime(
     assert_true(executed.result_definition_cid is Some(_))
     (executed.runtime, executed.completion)
   } else {
-    let executor = @resident.install_resident_retained_compute_executor(
-      materials,
-      configuration,
-      input,
-      material,
-      dispatch,
-      codec,
-      retained_compute_input_limits(),
-      current,
-      limits,
-    ).unwrap()
+    let executor = match effect_materials {
+      Some(effect) =>
+        @resident.install_resident_effect_retained_compute_executor(
+          effect,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          current,
+          limits,
+        ).unwrap()
+      None =>
+        @resident.install_resident_retained_compute_executor(
+          materials,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          current,
+          limits,
+        ).unwrap()
+    }
     assert_true(@transfer_client.destination_material_use_available(material))
     assert_eq(
       destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
