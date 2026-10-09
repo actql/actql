@@ -21,6 +21,9 @@ import {residentSourceEnvironment, sourceProgram, sourceRows,
   sourceRef, sourceContractCid, retainedSourceProgram, retainedSourceRows,
   retainedSourceSchemaCid, retainedChainProgram, retainedChainRows,
   retainedChainSchemaCid} from './fixtures/resident-source.mjs';
+import {prepareResidentEffectComputation, runResidentEffectComputation,
+  residentEffectSourceContractCid} from
+  './fixtures/resident-effect-computation.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
@@ -47,7 +50,9 @@ const retainedChainMode = process.argv.includes('--retained-chain-only') ||
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CHAIN_ONLY === '1';
 const retainedMiddleRecreation =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_MIDDLE_RECREATION === '1';
-const retainedConsumerMode = retainedChainMode || process.argv.includes('--retained-consumer-only') ||
+const effectComputationMode = process.argv.includes('--effect-computation-only') ||
+  process.env.ACTQL_TEST_RESIDENT_EFFECT_COMPUTATION_ONLY === '1';
+const retainedConsumerMode = effectComputationMode || retainedChainMode || process.argv.includes('--retained-consumer-only') ||
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY === '1';
 const retainedCoordinatorReconstruction =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_COORDINATOR_RECONSTRUCTION === '1';
@@ -74,6 +79,12 @@ if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
   retainedProducerHolderRecreation || retainedCompletedConsumerRecreation ||
   retainedHandoffInterruption !== undefined) && !retainedConsumerMode) {
   throw new Error('retained fault selection requires the retained consumer case');
+}
+if (effectComputationMode && (retainedChainMode || retainedMiddleRecreation ||
+  retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
+  retainedProducerHolderRecreation || retainedCompletedConsumerRecreation ||
+  retainedHandoffInterruption !== undefined)) {
+  throw new Error('select private Effect computation independently from pure Run faults');
 }
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
 if (retainedChainMode && (retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
@@ -374,79 +385,90 @@ try {
   await writeFile(join(engineRoot, 'fragment.json'), fragment);
 
   // The issuing side (the Cloud's role) prepares and authorizes the Run.
-  const programText = retainedChainMode ? retainedChainProgram : retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
+  const programText = effectComputationMode ? await readFile(join(repository,
+    'packages/run-host-core/fixtures/source-compute-effect.program.json'), 'utf8') : retainedChainMode ? retainedChainProgram : retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
     'packages/sdk/fixtures/values.json'), 'utf8');
-  const environmentWire = sourceMode ? (await residentSourceEnvironment(repository)).wire
+  const environmentWire = effectComputationMode ? (await readFile(join(repository,
+    'packages/run-host-core/fixtures/source-compute-effect.environment.json'), 'utf8')).trimEnd() : sourceMode ? (await residentSourceEnvironment(repository)).wire
     : (await readFile(join(repository,
       'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd();
-  const environmentCid = JSON.parse(environmentWire).evidence_bundle_cid;
-  const checkEnvironment = moonModule.clientProgramCheckEnvironment(
-    environmentWire, environmentCid, false, false, true, false, false, false,
-    false);
-  assert.ok(checkEnvironment);
-  const program = installNodeClientProgramPreparation({moon: moonModule,
-    environment: checkEnvironment})({kind: 'aql',
-    input: {text: programText, format: 'json'}, parameters: null});
   const now = Date.now();
   const createdAt = new Date(now - 60_000).toISOString();
   const validUntil = new Date(now + 3_600_000).toISOString();
-  const sourcePrepared = sourceMode ? runHost.prepare(programText, 'json',
-    runHost.admitEnvironment(environmentWire, environmentCid, {rela: true})) : undefined;
-  const sourceCompilation = sourceMode ? runHost.compileTasks(sourcePrepared) : undefined;
-  const sourceAllowed = sourceMode ? runHost.issueAllowedTaskRun(sourcePrepared, sourceCompilation, {
-    executionContextCid: physicalCid('resident-execution-context'),
-    hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
+  const preparedEffect = effectComputationMode ? prepareResidentEffectComputation({
+    runHost, programText, environmentWire, createdAt, validUntil, physicalCid,
+    coordinatorAuthority,
   }) : undefined;
-  const compiled = sourceMode ? {
-    preparedEvidence: {wire: sourceAllowed.preparedInvocationWire},
-    authorization: {wire: sourceAllowed.authorizationWire},
-    compiledPlan: {wire: runHost.privateTaskCompilationWires(sourceCompilation).compiledPlan},
-  } : portable.publicationControl.prepareCheckedClientCompiledRun(
-    program, 'values', {
+  const {compiled, definition, retainedPrepared, retainedCompilation,
+    retainedAdmission, retainedDefinition, materials} = preparedEffect ?? await (async () => {
+    const environmentCid = JSON.parse(environmentWire).evidence_bundle_cid;
+    const checkEnvironment = moonModule.clientProgramCheckEnvironment(
+      environmentWire, environmentCid, false, false, true, false, false, false,
+      false);
+    assert.ok(checkEnvironment);
+    const program = installNodeClientProgramPreparation({moon: moonModule,
+      environment: checkEnvironment})({kind: 'aql',
+      input: {text: programText, format: 'json'}, parameters: null});
+    const sourcePrepared = sourceMode ? runHost.prepare(programText, 'json',
+      runHost.admitEnvironment(environmentWire, environmentCid, {rela: true})) : undefined;
+    const sourceCompilation = sourceMode ? runHost.compileTasks(sourcePrepared) : undefined;
+    const sourceAllowed = sourceMode ? runHost.issueAllowedTaskRun(sourcePrepared, sourceCompilation, {
       executionContextCid: physicalCid('resident-execution-context'),
-      hostPolicyCid: physicalCid('resident-host-policy'),
-      expiresAt: validUntil,
-    });
-  const sourceDefinition = sourceMode ? runHost.privateRunDefinition(runHost.issueTaskRunDefinition(
-    sourcePrepared, sourceCompilation, sourceAllowed.admission,
-    'resident-scope', 'resident-run-1', createdAt, validUntil)) : undefined;
-  const definition = sourceMode ? {wire: sourceDefinition.wire, identity: sourceDefinition.cid}
-    : portable.publicationControl.defineCheckedClientCompiledRun(
-    compiled, {namespaceId: 'resident-scope', runId: 'resident-run-1',
-      createdAt, validUntil});
-  // Restore the original owners from retained evidence. The new issuer only
-  // projects them: it cannot authorize, recompile or issue a replacement Run.
-  const retainedEnvironment = runHost.admitEnvironment(environmentWire,
-    environmentCid, {rela: true});
-  const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
-  const retainedCompilation = sourceMode ? runHost.compileTasks(retainedPrepared)
-    : runHost.compileValues(retainedPrepared);
-  const retainedAdmission = (sourceMode ? runHost.admitTaskRun : runHost.admitRun)(retainedPrepared, retainedCompilation,
-    compiled.preparedEvidence.wire, compiled.authorization.wire);
-  const retainedDefinition = (sourceMode ? runHost.admitTaskRunDefinition : runHost.admitSourceFreeRunDefinition)(retainedPrepared,
-    retainedCompilation, retainedAdmission, definition.wire);
-  const materialsIssuer = sourceMode ? runHost.issueTaskRunMaterials : runHost.issueSourceFreeRunMaterials;
-  const materials = materialsIssuer(retainedPrepared,
-    retainedCompilation, retainedAdmission, retainedDefinition, {
-      environment: retainedEnvironment, environmentWire,
-      document: programText, format: 'json',
-    });
-  assert.equal(runHost.privateRunDefinition(retainedDefinition).cid, definition.identity);
-  const projected = JSON.parse(materials);
-  assert.equal(projected.prepared_invocation, compiled.preparedEvidence.wire);
-  assert.equal(projected.run_authorization, compiled.authorization.wire);
-  assert.equal(projected.run_id, 'resident-run-1');
-  assert.equal(projected.scope_id, 'resident-scope');
-  assert.equal(projected.created_at, createdAt);
-  assert.equal(projected.valid_until, validUntil);
-  // Individual inputs remain valid, but quoting both makes the aggregate
-  // materials exceed the cap. Exercise this through the installed issuer too.
-  assert.throws(() => materialsIssuer(retainedPrepared,
-    retainedCompilation, retainedAdmission, retainedDefinition, {
-      environment: retainedEnvironment, environmentWire, format: 'json',
-      document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
-      parametersWire: '\t'.repeat(65534) + '{}',
-    }), {code: 'RunHostRunMaterialsRejected'});
+      hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
+    }) : undefined;
+    const compiled = sourceMode ? {
+      preparedEvidence: {wire: sourceAllowed.preparedInvocationWire},
+      authorization: {wire: sourceAllowed.authorizationWire},
+      compiledPlan: {wire: runHost.privateTaskCompilationWires(sourceCompilation).compiledPlan},
+    } : portable.publicationControl.prepareCheckedClientCompiledRun(
+      program, 'values', {
+        executionContextCid: physicalCid('resident-execution-context'),
+        hostPolicyCid: physicalCid('resident-host-policy'),
+        expiresAt: validUntil,
+      });
+    const sourceDefinition = sourceMode ? runHost.privateRunDefinition(runHost.issueTaskRunDefinition(
+      sourcePrepared, sourceCompilation, sourceAllowed.admission,
+      'resident-scope', 'resident-run-1', createdAt, validUntil)) : undefined;
+    const definition = sourceMode ? {wire: sourceDefinition.wire, identity: sourceDefinition.cid}
+      : portable.publicationControl.defineCheckedClientCompiledRun(
+      compiled, {namespaceId: 'resident-scope', runId: 'resident-run-1',
+        createdAt, validUntil});
+    // Restore the original owners from retained evidence. The new issuer only
+    // projects them: it cannot authorize, recompile or issue a replacement Run.
+    const retainedEnvironment = runHost.admitEnvironment(environmentWire,
+      environmentCid, {rela: true});
+    const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
+    const retainedCompilation = sourceMode ? runHost.compileTasks(retainedPrepared)
+      : runHost.compileValues(retainedPrepared);
+    const retainedAdmission = (sourceMode ? runHost.admitTaskRun : runHost.admitRun)(retainedPrepared, retainedCompilation,
+      compiled.preparedEvidence.wire, compiled.authorization.wire);
+    const retainedDefinition = (sourceMode ? runHost.admitTaskRunDefinition : runHost.admitSourceFreeRunDefinition)(retainedPrepared,
+      retainedCompilation, retainedAdmission, definition.wire);
+    const materialsIssuer = sourceMode ? runHost.issueTaskRunMaterials : runHost.issueSourceFreeRunMaterials;
+    const materials = materialsIssuer(retainedPrepared,
+      retainedCompilation, retainedAdmission, retainedDefinition, {
+        environment: retainedEnvironment, environmentWire,
+        document: programText, format: 'json',
+      });
+    assert.equal(runHost.privateRunDefinition(retainedDefinition).cid, definition.identity);
+    const projected = JSON.parse(materials);
+    assert.equal(projected.prepared_invocation, compiled.preparedEvidence.wire);
+    assert.equal(projected.run_authorization, compiled.authorization.wire);
+    assert.equal(projected.run_id, 'resident-run-1');
+    assert.equal(projected.scope_id, 'resident-scope');
+    assert.equal(projected.created_at, createdAt);
+    assert.equal(projected.valid_until, validUntil);
+    // Individual inputs remain valid, but quoting both makes the aggregate
+    // materials exceed the cap. Exercise this through the installed issuer too.
+    assert.throws(() => materialsIssuer(retainedPrepared,
+      retainedCompilation, retainedAdmission, retainedDefinition, {
+        environment: retainedEnvironment, environmentWire, format: 'json',
+        document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
+        parametersWire: '\t'.repeat(65534) + '{}',
+      }), {code: 'RunHostRunMaterialsRejected'});
+    return {compiled, definition, retainedPrepared, retainedCompilation,
+      retainedAdmission, retainedDefinition, materials};
+  })();
   const operationCapability = physicalCid('resident-operation-capability');
   const issuerCapability = physicalCid('resident-issuer-capability');
   const executionBytes = sourceMode ? 134217728n : 1048576n;
@@ -456,13 +478,22 @@ try {
   const retainedBytes = retainedConsumerMode ? 16777216n : 1048576n;
   const budget = siteControl.prepareBudget({retainedBytes,
     executionBytes});
-  const bindingBody = sourceMode ? runHost.taskInputBinding(retainedPrepared, 0) : '{}';
+  const bindingBody = effectComputationMode ? runHost.effectSourceInputBinding(retainedCompilation) : sourceMode ? runHost.taskInputBinding(retainedPrepared, 0) : '{}';
   const binding = siteControl.prepareInputBinding(bindingBody);
-  const taskKey = sourceMode ? runHost.taskKeys(retainedPrepared, retainedCompilation)[0]
+  const taskKey = effectComputationMode ? runHost.retainedTaskInputEdgeFacts(preparedEffect.edge).producerTaskKey : sourceMode ? runHost.taskKeys(retainedPrepared, retainedCompilation)[0]
     : JSON.parse(compiled.compiledPlan.wire).executable_plan_cid
     === undefined ? 'values_0' : 'values_0';
   const dispatchFor = (dispatchId, attempt, overrides = {}) =>
-    siteControl.prepare({
+    effectComputationMode ? siteControl.admitJson(...(() => {
+      assert.deepEqual(overrides, {}, 'Effect selection uses the original issuer');
+      const issued = runHost.issueEffectSourceDispatch(retainedAdmission, retainedDefinition,
+        preparedEffect.request, {taskAttempt: attempt, dispatchId, siteKey, siteGeneration: 1,
+          runtimeBundleCid: envelope.runtimeBundleCid, connectorRegistration: 'local',
+          connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+          obligationsCid: physicalCid('resident-obligations'), budgetCid: siteControl.budgetIdentity(budget),
+          evidenceIssuerCapabilityCid: issuerCapability, grantCid: operationCapability});
+      return [issued.wire, issued.cid];
+    })()) : siteControl.prepare({
       coordinatorAuthority,
       runDefinitionCid: definition.identity,
       taskKey,
@@ -509,9 +540,9 @@ try {
     });
   };
   // The Result the Coordinator publishes, from the ordinary Client owners.
-  const hostPrepared = runHost.prepare(programText, 'json',
-    runHost.admitEnvironment(environmentWire, environmentCid, {rela: true}));
-  const resultDefinitionCid = sourceMode ? runHost.taskResultDefinitions(hostPrepared,
+  const hostPrepared = effectComputationMode ? undefined : runHost.prepare(programText, 'json',
+    runHost.admitEnvironment(environmentWire, JSON.parse(environmentWire).evidence_bundle_cid, {rela: true}));
+  const resultDefinitionCid = effectComputationMode ? undefined : sourceMode ? runHost.taskResultDefinitions(hostPrepared,
     runHost.compileTasks(hostPrepared))[0].cid : runHost.resultDefinitions(hostPrepared,
       runHost.compileValues(hostPrepared))[0].cid;
   // The Coordinator queries until the execution settled and its output
@@ -889,8 +920,11 @@ try {
     const instance = await DuckDBInstance.create(databasePath);
     const connection = await instance.connect();
     try {
-      await connection.run('CREATE TABLE records(id DOUBLE)');
-      await connection.run('INSERT INTO records VALUES (3), (1), (2)');
+      await connection.run(effectComputationMode
+        ? 'CREATE TABLE records(id DOUBLE, amount DOUBLE)' : 'CREATE TABLE records(id DOUBLE)');
+      await connection.run(effectComputationMode
+        ? 'INSERT INTO records VALUES (3, NULL), (1, 11), (2, 22)'
+        : 'INSERT INTO records VALUES (3), (1), (2)');
     } finally { connection.closeSync(); instance.closeSync(); }
     for (const [name, contract] of [
       ['query-contract.json', 'actql-query-acquisition.json'],
@@ -900,13 +934,25 @@ try {
       await writeFile(join(engineRoot, name), await readFile(join(repository, 'spec/contracts', contract)));
     }
     const extra = ['--duckdb-library', duckdbLibrary, '--source-ref', sourceRef,
-      '--source-contract-cid', sourceContractCid, '--source-database', databasePath,
+      '--source-contract-cid', effectComputationMode ? residentEffectSourceContractCid
+        : sourceContractCid, '--source-database', databasePath,
       '--source-schema', 'main', '--source-table', 'records'];
     const configured = (changes = {}) => {
       const args = [...extra];
       for (const [flag, value] of Object.entries(changes)) args[args.indexOf(flag) + 1] = value;
       return args;
     };
+    if (effectComputationMode) {
+      await runResidentEffectComputation({runHost, siteControl, coordinator,
+        root, runtimeRoot, extra, startSite, setCurrentSite: value => { currentSite = value; },
+        within, waitFor, entries, settledQuery, gateway, ensureOutputReceiver,
+        dispatchFor, materialsEnvelope, bindingBody, materials, preparedEffect,
+        definition, validUntil, coordinatorAuthority, siteKey, runtimeBundleCid: envelope.runtimeBundleCid,
+        physicalCid, budget, issuerCapability, operationCapability,
+        expectedRows: retainedSourceRows, expectedSchemaCid: retainedSourceSchemaCid,
+        retainedCoordinatorRecords, reservedPayloadBytes, pendingIntents});
+      return;
+    }
     if (retainedConsumerMode) {
       const taskCount = retainedChainMode ? 3 : 2;
       const expectedRows = retainedChainMode ? retainedChainRows : retainedSourceRows;
@@ -3405,7 +3451,7 @@ try {
 }
 
 if (process.env.NODE_TEST_CONTEXT) {
-  await test(cancelMode ? 'Native resident cancellation and reconstruction' :
+  await test(effectComputationMode ? 'Native resident private Effect computation' : cancelMode ? 'Native resident cancellation and reconstruction' :
     'Native resident Site acceptance', runAcceptance);
 } else {
   await runAcceptance();

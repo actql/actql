@@ -56,6 +56,10 @@ struct ResidentSourceCompute {
   capture : @query.CapturedInputSource?
   effect_source : ResidentEffectSourceCapture?
   effect_retained : ResidentEffectRetainedCapture?
+  effect_materials : (
+    @host.ClientEffectRunMaterials,
+    @host.PreparedClientEffectRun,
+  )?
   run : @strategy.CapturedDAG
   effect_run : @strategy.CapturedEffectRunDAG?
   compute : @duckdb_native.NativeStandardStrategyRun
@@ -184,6 +188,7 @@ pub fn open_resident_source_compute(
     configuration,
     occurrence,
     observe,
+    None,
   )
 }
 
@@ -196,6 +201,7 @@ pub fn open_resident_effect_source_compute(
   configuration : ResidentSourceComputeConfiguration,
   occurrence : String,
   observe? : (ResidentSourceComputeEvent) -> Bool,
+  acquisition_limits? : @duckdb_host.NativeHostLimits,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -205,6 +211,7 @@ pub fn open_resident_effect_source_compute(
     configuration,
     occurrence,
     observe,
+    acquisition_limits,
   )
 }
 
@@ -214,6 +221,7 @@ fn open_resident_source_compute_owned(
   configuration : ResidentSourceComputeConfiguration,
   occurrence : String,
   observe : ((ResidentSourceComputeEvent) -> Bool)?,
+  acquisition_limits : @duckdb_host.NativeHostLimits?,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -255,6 +263,7 @@ fn open_resident_source_compute_owned(
       source.query_contract_body,
       source.evidence_contract_body,
       source.two_receipt_contract_body,
+      limits?=acquisition_limits,
     ) {
     Ok(value) => value
     Err(issue) => return reject(Source(Acquisition(issue)), () => true)
@@ -452,6 +461,36 @@ pub fn ResidentSourceCompute::effect_run(
 }
 
 ///|
+/// The retained consumer uses its own original admitted materials for capture.
+/// This is preparation context, not completion, current approval or permission
+/// to reopen a Source. Stopped or invalid destination custody is not returned.
+pub fn ResidentSourceCompute::effect_materials_for_capture(
+  self : ResidentSourceCompute,
+) -> @host.ClientEffectRunMaterials? {
+  guard !self.stopping &&
+    self.effect_run is Some(run) &&
+    self.effect_materials is Some((materials, bound)) &&
+    self.effect_retained is Some(retained) &&
+    physical_equal(
+      @host.prepared_client_effect_run_computation(bound),
+      materials.prepared,
+    ) &&
+    @strategy.captured_effect_run_matches_checked(
+      run,
+      @host.prepared_client_effect_run_graph(bound),
+    ) &&
+    @output.validate_native_remote_retained_task_input_borrow(
+      retained.input,
+      retained.material,
+      retained.current,
+    )
+    is Ok(_) else {
+    return None
+  }
+  Some(materials)
+}
+
+///|
 pub fn ResidentSourceCompute::usage(
   self : ResidentSourceCompute,
 ) -> @resources.LedgerUsage {
@@ -541,6 +580,10 @@ fn open_resident_captured_compute(
   )? = None,
   effect_source? : ResidentEffectSourceCapture? = None,
   effect_retained? : ResidentEffectRetainedCapture? = None,
+  effect_materials? : (
+    @host.ClientEffectRunMaterials,
+    @host.PreparedClientEffectRun,
+  )? = None,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -705,6 +748,7 @@ fn open_resident_captured_compute(
     effect_run,
     effect_source,
     effect_retained,
+    effect_materials,
     close_source,
     capture: captured,
     run,

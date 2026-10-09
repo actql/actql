@@ -34,7 +34,8 @@ const typedValuesProgram = {
 const typedValuesParameters = {suffix: 'e\u0301\r\n'};
 
 export async function writeSyntheticHistoricalHeldTypedValues({directory, document,
-  parameters, requestId, authorization, runtimeRootUrl, now = Date.now(), mode = 'local'}) {
+  parameters, requestId, authorization, runtimeRootUrl, now = Date.now(), mode = 'local',
+  expressionContractUrl = new URL('spec/contracts/actql-expressions.json', runtimeRootUrl)}) {
   const program = JSON.parse(document);
   assert.deepEqual(program, typedValuesProgram,
     'This independent identity vector supports only the fixed exact typed-value original');
@@ -56,10 +57,9 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
   const logicalRequestScopeCid = cid({authority_scope_cid: authorityScopeCid,
     caller_request_id: requestId, version: 'actql-logical-request/0.1'});
   // Independently authored finite semantic preimages for this exact typed-value input.
-  // Contract pins come from the selected package's normative source, never
-  // its compiler output. A changed spec closure changes these originals too.
-  const expressionCid = cid(JSON.parse(await readFile(new URL(
-    'spec/contracts/actql-expressions.json', runtimeRootUrl), 'utf8')));
+  // Contract pins come from the selected source's normative input, never
+  // compiler output. Packed callers carry its exact bytes with the fixture.
+  const expressionCid = cid(JSON.parse(await readFile(new URL(expressionContractUrl), 'utf8')));
   const stage = program.stages[0];
   const parameterReferences = [{name: 'suffix', path: '/steps/1/derive/supplied',
     type: {type: 'string'}}];

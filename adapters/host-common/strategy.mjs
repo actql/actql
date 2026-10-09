@@ -53,6 +53,7 @@ export class StrategyHostError extends Error {
 }
 
 const active = new WeakSet();
+const releasedPreflightSetups = new WeakSet();
 const publicationContract = value => value !== null &&
   typeof value === 'object' && typeof value.name === 'string' &&
   typeof value.identity === 'string' && typeof value.wire === 'string';
@@ -282,6 +283,49 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
   });
 }
 
+// This owner exists only after immutable preflight refuses, before any
+// Compute contribution has entered. It owns this exact setup, not an execution
+// or a Result. Successful stop/output-close steps are never repeated.
+function preflightSetupCleanup(core, setup) {
+  let stopped = false, outputsClosed = false, released = false;
+  let closeAttempted = false, closeFailed = false, closeFailure;
+  let cleanupFailure;
+  const settle = () => {
+    if (released) return true;
+    try {
+      if (!stopped) { core.stop(setup); stopped = true; }
+      if (!outputsClosed) { core.closeOutputs(setup); outputsClosed = true; }
+      const usage = core.usage(setup);
+      if (['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
+        'reservedExecutionBytes'].some(key => usage[key] !== 0n)) {
+        throw new StrategyHostError('PublicationPreflightCleanupPending');
+      }
+      released = true;
+      active.delete(setup);
+      releasedPreflightSetups.add(setup);
+      return true;
+    } catch (error) { cleanupFailure = error; throw error; }
+  };
+  const status = () => Object.freeze({pending: !released,
+    errors: Object.freeze(released ? [] : [cleanupFailure])});
+  return Object.freeze({
+    close() {
+      if (released) return;
+      if (closeAttempted) {
+        if (closeFailed) throw closeFailure;
+        return;
+      }
+      closeAttempted = true;
+      try { settle(); }
+      catch (error) { closeFailed = true; closeFailure = error; throw error; }
+    },
+    cleanup: settle,
+    cleanupPending: () => !released,
+    status,
+    retry() { settle(); return status(); },
+  });
+}
+
 export async function runInstalledStrategy(
   setup,
   core,
@@ -293,7 +337,11 @@ export async function runInstalledStrategy(
   authorization = missingAuthorizationGate(),
   observeTaskStart,
   taskObservation,
+  retainPreflightCleanup,
 ) {
+  if (retainPreflightCleanup !== undefined && typeof retainPreflightCleanup !== 'function') {
+    throw new StrategyHostError('InvalidPreflightCleanupReceiver');
+  }
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
   }
@@ -307,6 +355,7 @@ export async function runInstalledStrategy(
     throw new StrategyHostError('InvalidAuthorizationGate');
   }
   if (active.has(setup)) throw new StrategyHostError('StrategyAlreadyRunning');
+  if (releasedPreflightSetups.has(setup)) throw new StrategyHostError('ReleasedStrategy');
   core = Object.freeze({ ...core });
   // Seal the per-task activation requirement before any implementation can
   // start a task. Every start below consumes an exact grant for its task.
@@ -354,6 +403,27 @@ export async function runInstalledStrategy(
       signal?.throwIfAborted();
     }
   } catch (primary) {
+    if (retainPreflightCleanup !== undefined) {
+      const owner = preflightSetupCleanup(core, setup);
+      // The installed receiver consumes its pending setup synchronously, before
+      // this owner may stop it. A refused handoff grants no stop observation.
+      try { retainPreflightCleanup(owner); }
+      catch (handoffFailure) {
+        const failure = ownedStrategyFailure(primary, 'PublicationPreflightFailed');
+        failure.cleanupPending = true;
+        failure.cleanupErrors = Object.freeze([...failure.cleanupErrors, handoffFailure]);
+        throw failure;
+      }
+      try { owner.close(); }
+      catch (cleanupFailure) {
+        const failure = ownedStrategyFailure(primary, 'PublicationPreflightFailed');
+        failure.cleanupPending = true;
+        failure.cleanupErrors = Object.freeze([...failure.cleanupErrors, cleanupFailure]);
+        failure.cleanupHandle = owner;
+        throw failure;
+      }
+      throw primary;
+    }
     let stopFailed = false;
     let stopFailure;
     try { core.stop(setup); }

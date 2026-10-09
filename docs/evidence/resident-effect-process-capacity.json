@@ -1,0 +1,285 @@
+{
+  "version": "actql-resident-effect-process-capacity-evidence/0.1",
+  "verifiedImplementationSha": "1104d8faf24e85debca59b2e8d5695510345d3ac",
+  "implementationCommit": "0719b67549a26e017a3bcb8acc12a3c5597dd9a5",
+  "parentPr": 1161,
+  "parentSha": "d4af80ef2a2780d5d90a44ffaa8fbeaaa44b5d9c",
+  "dependencyOrder": [
+    1157,
+    1158,
+    1161,
+    "this PR"
+  ],
+  "finalMergeTarget": "main",
+  "scope": "Real production Native Site private Effect Source and checked consumer computation through original materials, physical retained Transfer and existing cleanup Owners. No Effect approval, external write, public Cloud Result or full Effect Run release is claimed.",
+  "capacity": {
+    "siteMaximumBytes": 268435456,
+    "perTaskRetentionBytes": 16777216,
+    "perTaskExecutionBytes": 134217728,
+    "operatorEngineBytes": 67108864,
+    "ceilingsIncreased": false,
+    "completionRecordBytes": 65536,
+    "completionRecordNodes": 4096,
+    "completionCaptureBytes": 65536,
+    "completionCaptureNodes": 4096,
+    "accounting": "The complete Native receiver enforces the selected finite profile and derives its capacity. Engine memory and acquisition scratch share the existing execution allowance."
+  },
+  "effectPrivateProcess": {
+    "kind": "native-private-effect-computation-verified",
+    "runDefinitionCid": "sha256:73d6eb55f9148152bc6425074578de3ddde6c61e2e90e2581d75d655f3e931f8",
+    "producerDispatchCid": "sha256:084c899daff3339769a512d8abcbe808dcfeb34dae0c3fb835e5bb4f79ac6090",
+    "consumerDispatchCid": "sha256:a501523a7b81da8b23e5174777c43a180196078871555430a0bdb2afb191f012",
+    "checkedTasks": 2,
+    "sourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "rows": [
+      {
+        "id": 3
+      }
+    ],
+    "schemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+    "receiverCurrentQueried": true,
+    "receiverDatabaseReadForBinding": false,
+    "privateTaskCleanup": true,
+    "siteCapacity": {
+      "kind": "retained-holder-settled",
+      "active_operations": "0",
+      "active_transfers": "0",
+      "holdings": "0",
+      "cleanup_responsibilities": "0",
+      "held_bytes": "0",
+      "reserved_retention_bytes": "0",
+      "reserved_execution_bytes": "0"
+    },
+    "receiverHoldingReclaimed": true,
+    "pendingIntents": 0,
+    "reservedPayloadBytes": 0,
+    "effectExecutionNotRequested": true,
+    "checkpointCaptured": false,
+    "approvalCommitted": false,
+    "publicResultPublished": false,
+    "effectRunReleased": false,
+    "publicCloudAcceptance": false
+  },
+  "ordinaryProcessRegression": {
+    "kind": "native-retained-consumer-verified",
+    "runDefinitionCid": "sha256:9249c809e220d09258f8148da314bb681422de337612b2f6b91c6c09cd3f523d",
+    "producerDispatchCid": "sha256:d5b9a9907a161913147829e41a5db83f38e6008d417389d099cd5a71f9b33f33",
+    "consumerDispatchCid": "sha256:4509e54982d8ac55fb551b820bdf7b55b8ef8291257251097cf799920c69e2eb",
+    "checkedTasks": 2,
+    "sourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "rows": [
+      {
+        "id": 3
+      }
+    ],
+    "typedOutputAck": true,
+    "formalRelease": true,
+    "reservedPayloadBytes": 0,
+    "pendingIntents": 0,
+    "siteCapacity": {
+      "kind": "retained-holder-settled",
+      "active_operations": "0",
+      "active_transfers": "0",
+      "holdings": "0",
+      "cleanup_responsibilities": "0",
+      "held_bytes": "0",
+      "reserved_retention_bytes": "0",
+      "reserved_execution_bytes": "0"
+    },
+    "coordinatorReconstructed": false,
+    "receiverCurrentQueried": true,
+    "receiverDatabaseReadForBinding": false,
+    "checkedRunProjection": true,
+    "checkedTaskStart": true,
+    "cloudRunStartCas": false,
+    "publicationReady": true,
+    "taskCleanup": [
+      "released",
+      "released"
+    ],
+    "producerHolderRecreated": false,
+    "middleHolderRecreated": false,
+    "completedConsumerRestored": false,
+    "retainedHandoffInterruption": null,
+    "transferResumedBeforeCommit": false,
+    "pendingReceiverAllocationsPreserved": false,
+    "committedReceiverAllocationsUnchanged": false,
+    "originalBorrowReturnedOnce": false,
+    "cancelledBeforeConsumer": false,
+    "receiverHoldingReclaimed": true,
+    "resultReread": true,
+    "publicCloudAcceptance": false
+  },
+  "checks": [
+    {
+      "command": "ACTQL_TEST_RESIDENT_EFFECT_COMPUTATION_ONLY=1 node --test scripts/test-native-resident-site.mjs",
+      "passed": 1
+    },
+    {
+      "command": "ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY=1 node --test scripts/test-native-resident-site.mjs",
+      "passed": 1
+    },
+    {
+      "command": "moon test --target native --strip src/cmd/native_remote_resident_site/effect_acquisition_profile_wbtest.mbt",
+      "passed": 1
+    },
+    {
+      "command": "moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt --filter \"*Effect consumer holder*\"",
+      "passed": 4
+    },
+    {
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "result": "passed"
+    }
+  ],
+  "productionNativeBinary": {
+    "source": "1104d8faf24e85debca59b2e8d5695510345d3ac",
+    "sourceClean": true,
+    "scope": "Actual production Native Site binary rebuilt with --strip by the real-process harness",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-process-1791560353459/process-native-resident-site.exe",
+    "sha256": "e1c22910962d039657376f3b176bb72e316dab4a499972637685530da8b0ffe4",
+    "configuration": "Native debug --strip",
+    "runtimeBundleComponentDigestMatches": true
+  },
+  "execution": {
+    "node": "24.21.0",
+    "moon": "repository-pinned toolchain",
+    "nativePlatform": "darwin-arm64",
+    "duckdbApi": "1.5.5-r.4",
+    "dependencySupply": "Existing pinned external DuckDB installation borrowed read-only; no ActQL artifact overlay"
+  },
+  "evidenceDirectories": [
+    "_build/resident-effect-process-1791560353459",
+    "_build/resident-effect-process-1791560683255"
+  ],
+  "receipts": [
+    {
+      "label": "effect-site-process",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('node',['scripts/test-native-resident-site.mjs'],{cwd:process.cwd(),timeout:240000});"
+      ],
+      "startedAt": "2026-10-09T15:39:13.586Z",
+      "finishedAt": "2026-10-09T15:39:38.757Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-process-1791560353459/effect-site-process.log"
+    },
+    {
+      "label": "ordinary-site-process",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('node',['scripts/test-native-resident-site.mjs'],{cwd:process.cwd(),timeout:240000});"
+      ],
+      "startedAt": "2026-10-09T15:39:38.828Z",
+      "finishedAt": "2026-10-09T15:39:44.040Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-process-1791560353459/ordinary-site-process.log"
+    },
+    {
+      "label": "history",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T15:39:44.040Z",
+      "finishedAt": "2026-10-09T15:41:37.194Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-process-1791560353459/history.log"
+    },
+    {
+      "label": "profile",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/cmd/native_remote_resident_site/effect_acquisition_profile_wbtest.mbt\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T15:44:43.408Z",
+      "finishedAt": "2026-10-09T15:44:43.780Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-process-1791560683255/profile.log"
+    },
+    {
+      "label": "effect-holders",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect consumer holder*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T15:44:43.781Z",
+      "finishedAt": "2026-10-09T15:44:46.870Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-process-1791560683255/effect-holders.log"
+    }
+  ],
+  "preCommitPreparation": {
+    "evidence": "_build/resident-effect-process-1791560252419",
+    "sourceClean": false,
+    "checks": [
+      "Changed MoonBit formatting",
+      "Native acquisition, resident Host and Site command interfaces",
+      "JS acquisition and resident Host interfaces",
+      "Native profile and Effect holder tests"
+    ],
+    "relationToVerifiedSource": "Implementation and generated interfaces were committed before clean-source process acceptance. Preparatory checks are not a pristine submitted-HEAD campaign."
+  },
+  "initialFailures": [
+    {
+      "evidence": "_build/resident-effect-process-1791559385028",
+      "reason": "Test Source contract mismatched the original Effect Run; rejected before Source I/O."
+    },
+    {
+      "evidence": "_build/resident-effect-process-1791559616644",
+      "reason": "Full execution allowance reserved as engine memory left no acquisition scratch capacity."
+    },
+    {
+      "evidence": "_build/resident-effect-process-1791559678038",
+      "reason": "Default complete-capture bounds exceeded existing retention allowance."
+    },
+    {
+      "evidence": "_build/resident-effect-process-1791559867264",
+      "reason": "Compilation exposed an existing four-argument caller; preserve the default through an optional limits parameter."
+    },
+    {
+      "evidence": "_build/resident-effect-process-1791559893675",
+      "reason": "Effect test database omitted a required column; corrected the independently specified fixture."
+    },
+    {
+      "evidence": "_build/resident-effect-process-1791559980085",
+      "reason": "Wrong test retained-plan limits shape; corrected caller without relaxing admission."
+    }
+  ],
+  "unverified": [
+    "Checkpoint capture from actual Source and consumer Owners, durable waiting commit and physical restart custody",
+    "Current-authority approval, Effect execution and saved-response/unknown reconciliation",
+    "Public Effect Result, formal Effect Run release and Cloud SDK/Preview acceptance",
+    "Formal merged-OSS five-package and Native binary adoption by Cloud",
+    "All-target/full Core/full packed verification and hosted CI; hosted CI remains stopped",
+    "Historical #88 Run recovery; new private computation does not resolve old Run responsibility"
+  ]
+}
