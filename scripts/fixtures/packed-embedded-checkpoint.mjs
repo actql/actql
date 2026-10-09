@@ -26,7 +26,8 @@ try {
   if (step === 'hold') {
     await client.close();
     original = await writeSyntheticHistoricalHeldValues({directory, document, requestId, authorization,
-      runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node'))});
+      runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')),
+      expressionContractUrl: new URL('actql-expressions.json', import.meta.url)});
     writeFileSync('original.json', JSON.stringify(original), {flag: 'wx', mode: 0o600});
     client = await open();
   } else if (step !== 'unsupported') original = JSON.parse(readFileSync('original.json', 'utf8'));
