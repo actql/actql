@@ -194,6 +194,7 @@ pub(all) enum ResidentEffectCapturedInvocationIssue {
 
 type ResidentEffectCheckpointCustody
 pub fn ResidentEffectCheckpointCustody::confirm(Self) -> Result[(@checkpoint_runtime.PersistedCheckpoint, String), ResidentEffectCheckpointCustodyIssue]
+pub fn ResidentEffectCheckpointCustody::report(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectCheckpointCustodyIssue]
 pub fn ResidentEffectCheckpointCustody::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectCheckpointCustodyIssue]
 pub fn ResidentEffectCheckpointCustody::retry_cleanup(Self) -> Result[Bool, ResidentEffectCheckpointCustodyIssue]
 pub fn ResidentEffectCheckpointCustody::waiting_projection(Self, String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ResidentEffectCheckpointCustodyIssue]
@@ -210,6 +211,7 @@ pub(all) enum ResidentEffectCheckpointCustodyIssue {
   Store(@publication_store.NativePublicationStoreIssue)
   Capacity(@physical_resources.LedgerIssue)
   Projection(@checkpoint_runtime.RunStateWireIssue)
+  Report(@remote_site_protocol.DispatchIssue)
 }
 
 pub(all) enum ResidentEffectDependencyCaptureIssue {
