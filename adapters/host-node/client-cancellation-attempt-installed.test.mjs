@@ -20,7 +20,7 @@ async function invoke(directory, facts, phase) {
 }
 
 for (const entrance of ['local', 'https']) {
-  test(`${entrance}: installed typed cancellation facts survive a different Host process without recancelling`,
+  test(`${entrance}: concurrent Submit/Cancel and observations retain typed facts across Host processes`,
     {timeout: 40000}, async () => {
       const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-installed-cancel-attempt-',
         label: `${entrance} typed cancellation and original lookup`});
@@ -37,6 +37,13 @@ for (const entrance of ['local', 'https']) {
       assert.equal(initial.conflict.kind, 'conflict');
       assert.equal(initial.accepted.kind, 'accepted');
       assert.equal(initial.already.kind, 'already_satisfied');
+      assert.deepEqual(initial.replayedRef, initial.ref);
+      assert.deepEqual(initial.replayAttempt.attemptRef,
+        {operation: 'submit', attemptId: 'concurrent-submission-invocation'});
+      assert.equal(initial.replayAttempt.kind, 'already_satisfied');
+      assert.deepEqual(initial.observations.ref, initial.ref);
+      assert.equal(initial.observations.consistency, 'non_atomic');
+      assert.equal(initial.observations.revision, undefined);
       assert.equal(initial.stopped.status, 'cancelled');
       assert.equal(initial.stopped.control.physical_stop, 'confirmed');
       assert.equal(initial.snapshot.issued, 2);

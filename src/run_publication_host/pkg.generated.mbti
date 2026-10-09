@@ -194,6 +194,8 @@ pub fn client_effect_acquired_dependency_bodies(ClientEffectAcquiredEvidence) ->
 
 pub fn client_effect_acquired_invocation(ClientEffectAcquiredEvidence) -> ClientEffectLocalInvocation
 
+pub fn client_effect_acquired_observation(ClientEffectAcquiredEvidence) -> @run_publication.RunEvidenceValue
+
 pub fn client_effect_acquired_request_cid(ClientEffectAcquiredEvidence) -> String
 
 pub fn client_effect_allowed_infer_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
@@ -636,6 +638,8 @@ pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputa
 
 pub fn issue_acquired_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
+pub fn issue_acquired_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectLocalUnitInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
 pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
 
 pub fn issue_captured_client_effect_local_table_definition(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalTableDefinition, ClientEffectLocalResultDefinitionIssue]
@@ -823,6 +827,10 @@ pub fn prepare_client_effect_query_acquisition(PreparedClientEffectComputation, 
 pub fn prepare_client_effect_query_requirement(PreparedClientEffectComputation, @execution_relation.GeneratedSequence, Int, Int, @query_planning.QueryLogicalGuards, @query_planning.QueryMaterialLimits) -> Result[@query_planning.QueryRequirement, ClientQueryRequirementIssue]
 
 pub fn prepare_client_effect_request_identity(PreparedClientEffectComputation, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
+
+pub fn prepare_client_effect_retained_input_edge(ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[ClientRetainedInputEdge, ClientEffectRetainedInputIssue]
+
+pub fn prepare_client_effect_retained_task_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection, ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectRetainedInputIssue]
 
 pub fn prepare_client_effect_source_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectSourceDispatchIssue]
 
@@ -1324,6 +1332,14 @@ pub(all) enum ClientEffectResultImportIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientEffectResultImportObservation
+
+pub(all) enum ClientEffectRetainedInputIssue {
+  Binding(ClientEffectCompiledRunIssue)
+  Edge(ClientRetainedInputIssue)
+  Input(ClientRetainedTaskInputIssue)
+  Dispatch(ClientEffectSourceDispatchIssue)
+  ForeignConsumer
+}
 
 pub(all) enum ClientEffectRunIssue {
   Admission(@program_check.EffectProgramRunIssue)

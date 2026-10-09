@@ -272,7 +272,7 @@ for (const transport of ['in-process', 'https']) {
       let error;
       await assert.rejects(f.execution.cancel(f.cancelOptions()), cause => {error = cause; return true;});
       if (scenario.reply === 'response_object') {
-        assert.equal(error.code, 'CancellationUnknown');
+        assert.equal(error.code, 'CancellationUnknown', '[check-mutation:cancel-format-uncertainty]');
         assert.equal(error.cause.code, 'InvalidLocalHostPortResponse');
       }
       const before = f.stored();

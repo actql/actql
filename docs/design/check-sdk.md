@@ -964,6 +964,39 @@ finding: the common name-resolution Owner must identify the exact submitted
 reference and compare it in the same namespace before a public reason can be
 issued. A bare `UnknownRelation` or filtered listing supplies no such proof.
 
+The standard Local Host opts into this boundary through `sourceNamespace` and
+its complete selected profile paths. Each text check reads the current existing
+authorization configuration through a fresh gate; a namespace declaration does
+not grant negative-membership disclosure. A failed authorization or metadata
+inspection retains the same protected unresolved envelope as an unavailable
+alias. Rechecking after a configuration or input change creates a new binding.
+Historical reports describe only their original call, never current permission.
+
+The common resolver compares its owned unresolved path with the unfiltered
+admitted context using its existing quoted-name matching rule. Only a proven
+miss emits `query_alias_absent`, whose closed facts contain the permitted
+namespace and exact submitted name parts with their quote flags. A hidden
+matching alias remains protected even when namespace inspection is allowed.
+Alias absence does not establish Provider Resource absence. Authored text
+coordinates require original provenance and are omitted when unavailable;
+this reason carries safe advice and grants no automated edit, execution or retry.
+Structured Source selectors require their own resolution facts rather than
+borrowing the query-alias namespace proof.
+
+The report's keyed context includes the admitted namespace revision and current
+authorization facts. The inspection subject is first bound to the original
+document revisions and the call's base context; the final report context also
+binds the admitted inspection. No public hash of secret input is added. Original
+publication and observation custody is process-local and bounded by the existing
+registration, alias and metadata limits. Gates close after each inspection;
+the Host adds no durable diagnostic storage or retention period.
+
+This connection extends the closed Check reason and outcome schema bodies and
+their pins, including Node/Wire, SDK presentation and Native response validation.
+It does not change `actql-diagnostics/0.1`. Consumers must agree on the current
+pins; an older response or consumer is rejected by contract validation rather
+than adapted to success or an empty diagnosis.
+
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with
 execution-value Requirements; unsupported or incomplete static paths retain
@@ -1105,8 +1138,22 @@ an unknown cancellation outcome; its existing SDK error is preserved. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
 association. For the cancellation write, local failures before the send boundary and typed Host refusals
-retain their existing errors without a fabricated cancellation observation.
+are distinct. Local failures retain their existing errors without a fabricated
+Owner observation. A validated invocation-bound `refused` or `conflict` response
+has its own explanation, separate from a durable cancellation receipt.
 The accessor performs no I/O or automatic retry and retains no provider cause.
+
+For `refused`, the explanation retains the admitted `attemptRef`, original
+`cancelRef`, typed authorization/capacity reason, and
+`attempt_uncommitted_unconsumed` guarantee. This guarantee applies only to this
+invocation; another invocation may already have committed the same cancellation
+identity. `conflict` retains the original attempt and cancellation references
+and the admitted intent/control-revision reason. It does not invent a current
+Host revision, consume the original identity or determine its durable outcome.
+Both branches offer only an authorized `lookupCancellation` target for that
+same original operation, with safe advice that grants no permission to resend,
+alter the expected revision, stop a worker or release resources. No recorded
+revision or physical-stop receipt is fabricated.
 
 The exact cancellation lookup uses the same explanation association after
 schema and operation binding admission. Its retained `found` outcome is an
@@ -1120,16 +1167,13 @@ presentation facts do not certify physical stop, Effect certainty or release.
 The association lasts only while its SDK result is retained; no timeout or
 persistent Host custody is added.
 
-This is presentation over the existing Client–Host cancellation contract.
-No wire/schema/CID, cancellation ledger or execution semantics is replaced.
-The current public Run cancellation response has no cancellation-operation
-identity or exact-operation lookup. A Run status refresh cannot reconcile a
-particular lost cancellation; it only observes current Run state under current
-authorization. The existing control owner must provide that operation's
-identity, immutable intent, revision conflicts and reconciliation contract
-before the complete cancellation-outcome design can be exposed. A recorded
-physical-start/close control fixture does not prove delayed live-worker stop
-or external Effect reconciliation.
+This is presentation over the existing Client–Host cancellation-attempt and
+exact-operation lookup contracts. No wire/schema/CID, cancellation ledger or
+execution semantics is replaced. A Run status refresh observes current Run
+state under current authorization; exact cancellation lookup observes the
+original operation instead. Neither determines an unobserved physical stop or
+external Effect outcome. A recorded physical-start/close control fixture does
+not prove delayed live-worker stop or external Effect reconciliation.
 
 
 ### Unused Parameter explanations
@@ -1560,6 +1604,25 @@ describes only its dispatch boundary, not the Owner outcome for a previously
 used identity. Only admitted Run references offer a Run-status candidate.
 Formatting consumes the same immutable SDK-owned explanation; copied DTOs and
 error messages cannot supply these facts.
+
+An admitted `SubmissionAttempt` refusal or conflict has its own explanation,
+bound to that invocation's attempt reference, original submission reference,
+connection scope and immutable SDK input snapshot. Refusal retains the Owner's
+authorization, admission-capacity or epoch reason and its invocation-local
+`attempt_uncommitted_unconsumed` guarantee. This is not a durable `not_accepted`
+receipt, nor evidence that another invocation never committed that identity.
+Conflict retains the submitted intent/restart-decision reason without revealing
+the previously stored intent or decision. It supplies no unconsumed guarantee,
+current revision or durable original-outcome conclusion.
+
+Both branches offer only a currently authorized `lookupSubmission` target for
+that same original epoch/nonce. Their safe advice does not grant resubmission,
+changed-input or restart authority. Explanation/formatting never sends a
+request, allocates a fresh submission identity or changes a Run. Caller edits,
+copied failures and borrowed response data cannot replace the retained input
+or acquire its association. No Check result is synthesized for these initial
+invocation outcomes. No public input hash, new storage, wire/pin or Native
+validation contract is added by this presentation.
 
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and
 `formatEffectUncertainty` render only the original SDK-owned observations used
