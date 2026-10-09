@@ -5942,6 +5942,12 @@ async function namespaceClient(t, entrance, configuration, installed) {
     throw error.primaryFailure ?? error;
   }
 }
+const assertNamespaceCheckOnly = client => {
+  client.assertNoExecution();
+  assert.deepEqual(client.executionCounts(), {runs: 0, dispatchReservations: 0,
+    physicalReservations: 0, sourceOpens: 0, dispatches: 0, submissions: 0,
+    issuedSubmissions: 0}, '[check-mutation:namespace-no-submission]');
+};
 
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: a complete empty namespace discloses only an authorized original alias absence`, async t => {
@@ -5969,7 +5975,7 @@ for (const entrance of ['local', 'http']) {
     }
     const corrected = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(corrected.report.verdict, 'verified');
-    client.assertNoExecution();
+    assertNamespaceCheckOnly(client);
   });
 
   test(`${entrance}: a hidden registered alias remains protected beside disclosable namespace absence`, async t => {
@@ -5986,7 +5992,26 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(absent.report.reasons, [namespaceReason('missing')]);
     assert.equal(JSON.stringify(absent).includes('connector://'), false);
     assert.equal(JSON.stringify(absent).includes('records.duckdb'), false);
-    client.assertNoExecution();
+    for (const name of ['records', 'missing']) {
+      const outcome = await client.check(`SELECT @options AS n FROM ${name}`,
+        {kind: 'text', scope: 'bound_input', format: 'sql',
+          parameterDeclarations: {options: {type: 'number'}},
+          parameters: {options: 'private-value'}});
+      const parameterInput = getCheckInput(outcome, 'parameters');
+      const mismatch = {code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'},
+        location: {kind: 'structured', document_id: 'parameters',
+          revision: parameterInput.revision, pointer: '/options'}};
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons, [mismatch,
+        ...(name === 'missing' ? [namespaceReason('missing')] : [])],
+      '[check-mutation:namespace-independent-violation]');
+      assert.deepEqual(outcome.report.coverage, {limits: [],
+        unresolved: name === 'records' ? protectedSource : []});
+      assert.equal(resolveCheckLocation(outcome, mismatch.location).input, parameterInput);
+      assert.equal(JSON.stringify(outcome).includes('private-value'), false);
+    }
+    assertNamespaceCheckOnly(client);
   });
 
   test(`${entrance}: namespace inspection rechecks current authority without reusing richer reports`, async t => {
@@ -6012,7 +6037,7 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual(changed.report.reasons, [namespaceReason('other')]);
     assert.notEqual(changed.report.context_ref, original.report.context_ref);
     assert.notEqual(changed.report.inputs[0].revision, original.report.inputs[0].revision);
-    client.assertNoExecution();
+    assertNamespaceCheckOnly(client);
   });
 
   test(`${entrance}: a different namespace grant cannot disclose negative membership`, async t => {
@@ -6024,6 +6049,6 @@ for (const entrance of ['local', 'http']) {
     assert.equal(outcome.report.verdict, 'undetermined');
     assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
     assert.equal(JSON.stringify(outcome).includes('queries'), false);
-    client.assertNoExecution();
+    assertNamespaceCheckOnly(client);
   });
 }
