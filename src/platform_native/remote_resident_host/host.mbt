@@ -136,6 +136,77 @@ pub fn accept_resident_dispatch(
     Ok(_) => ()
     Err(refusal) => return Ok(Refused(refusal))
   }
+  accept_resident_checked_dispatch(
+    journal, client, observation_url, queue, request, binding, materials,
+  )
+}
+
+///|
+/// Select the original syntactic material family before semantic admission.
+/// This creates no Run, start claim, acquisition, acceptance or reservation.
+pub fn resident_dispatch_execution_family(
+  admission : ResidentRunAdmission,
+  dispatch : @remote.RemotePollDispatch,
+) -> Result[@host.ClientRunExecutionFamily, ResidentHostIssue] {
+  guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(materials) else {
+    return Err(EnvelopeMissing)
+  }
+  @host.inspect_client_run_materials_execution_family(
+    materials,
+    admission.expressions,
+    admission.operations,
+    admission.limits.preparation,
+  ).map_err(issue => Refused(@resident.MaterialsRejected(issue)))
+}
+
+///|
+/// Effect producer admission shares the exact original Site journal/queue/ACK
+/// boundary. Source checking is configuration-only and occurs before queue
+/// reservation and physical I/O. No Preview or Effect write is authorized.
+pub fn accept_resident_effect_source_dispatch(
+  journal : @journal.Journal,
+  client : @http.Client,
+  observation_url : String,
+  delegation : @resident.ResidentSiteDelegation,
+  site_generation : Int,
+  queue : @resident.ResidentAcceptedQueue,
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits,
+  dispatch : @remote.RemotePollDispatch,
+  now : String,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String,
+) -> Result[ResidentAcceptance, ResidentEffectProducerExecutionIssue] {
+  let request = @remote.remote_poll_dispatch_request(dispatch)
+  let binding = @remote.remote_poll_dispatch_input_binding(dispatch)
+  guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(materials) else {
+    return Ok(Refused(@resident.MaterialsMissing))
+  }
+  match
+    admit_resident_effect_source_dispatch_owned(
+      admission, effect_limits, delegation, site_generation, request, materials,
+      binding, now, registry_body, values_body, fragment_body,
+    ) {
+    Ok(_) => ()
+    Err(Refused(issue)) => return Ok(Refused(issue))
+    Err(issue) => return Err(Dispatch(issue))
+  }
+  accept_resident_checked_dispatch(
+    journal, client, observation_url, queue, request, binding, materials,
+  ).map_err(issue => ResidentEffectProducerExecutionIssue::Host(issue))
+}
+
+///|
+fn accept_resident_checked_dispatch(
+  journal : @journal.Journal,
+  client : @http.Client,
+  observation_url : String,
+  queue : @resident.ResidentAcceptedQueue,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  materials : String,
+) -> Result[ResidentAcceptance, ResidentHostIssue] {
   let attempt = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))

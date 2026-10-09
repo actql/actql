@@ -32,7 +32,7 @@ const snapshot = () => ({ sources: { [sourcePath]: hash(source()),
 module('inventory.mjs', { hash, snapshot });
 module('sites.mjs', { applyMutation: (_code, variant) => variant.name });
 module('corpus.mjs', { fixedCorpus: () => cases });
-module('registry.mjs', { registry: [] });
+module('registry.mjs', { registry: [], corpusBaseline: [] });
 module('obligations.mjs', { registrations: [] });
 module('capacity/census.mjs', { checkCensus() {} });
 module('capacity/audit.mjs', { validateCapacityPart() {} });

@@ -31,6 +31,7 @@ async function runCapturedStrategyTarget(
   loadRuntime,
   install,
   taskObservation,
+  retainPreflightCleanup,
 ) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
@@ -83,6 +84,7 @@ async function runCapturedStrategyTarget(
     authorization,
     taskStartObserver(observer),
     taskObservation,
+    retainPreflightCleanup,
   );
 }
 
@@ -133,6 +135,9 @@ async function runPublishedCapturedStrategyTarget(
     loadRuntime,
     install,
     taskObservation,
+    // Reuse the installed custody receiver for a setup cleanup owner only.
+    // Preflight failure never constructs a Compute or publication result.
+    retainExecution,
   );
   try {
     // Transfer cleanup responsibility before publication can fail. The

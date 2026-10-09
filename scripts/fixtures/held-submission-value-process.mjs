@@ -67,6 +67,7 @@ try {
     await open(); await close();
     original = await writeSyntheticHistoricalHeldTypedValues({directory: join(root, 'host'),
       document: text, parameters, requestId, authorization, runtimeRootUrl: runtime.root,
+      expressionContractUrl: runtime.expressionContractUrl,
       mode: entrance === 'https' ? 'remote' : 'local'});
     await writeFile(join(root, 'original.json'), JSON.stringify(original));
   } else original = JSON.parse(await readFile(join(root, 'original.json'), 'utf8'));
