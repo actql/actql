@@ -29,18 +29,18 @@ const env = {...process.env, npm_config_registry: registry.url, npm_config_userc
   npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_cache: join(root, 'cache'),
   npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost', npm_config_update_notifier: 'false'};
 delete env.NODE_PATH;
-async function run(command, args, cwd = root, expectedCode = 0) {
+async function run(command, args, cwd = root, expectedCode = 0, timeoutMs = 180_000) {
   const started = Date.now();
   const record = await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']}); let stdout = '', stderr = '', length = 0;
-    const timer = setTimeout(() => child.kill('SIGTERM'), 180_000);
+    const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']}); let stdout = '', stderr = '', length = 0, terminationReason = null;
+    const timer = setTimeout(() => {terminationReason = 'timeout'; child.kill('SIGTERM');}, timeoutMs);
     for (const [stream, append] of [[child.stdout, v => {stdout += v;}], [child.stderr, v => {stderr += v;}]]) {
-      stream.on('data', chunk => {length += chunk.length; if (length > 8 * 1024 * 1024) child.kill('SIGTERM'); else append(chunk.toString());});
+      stream.on('data', chunk => {length += chunk.length; if (length > 8 * 1024 * 1024) {terminationReason = 'output-limit'; child.kill('SIGTERM');} else append(chunk.toString());});
     }
     child.once('error', error => {clearTimeout(timer); reject(error);});
-    child.once('close', (code, signal) => {clearTimeout(timer); resolve({command, args, code, signal, stdout, stderr, elapsedMs: Date.now() - started});});
+    child.once('close', (code, signal) => {clearTimeout(timer); resolve({command, args, code, signal, terminationReason, timeoutMs, stdout, stderr, elapsedMs: Date.now() - started});});
   });
-  records.push(record); assert.equal(record.code, expectedCode, `${command}: ${record.stdout}\n${record.stderr}`);
+  records.push(record); assert.equal(record.code, expectedCode, `${command}: code=${record.code} signal=${record.signal} reason=${record.terminationReason}\n${record.stdout}\n${record.stderr}`);
   console.log(record.stdout.trimEnd()); return record;
 }
 try {
@@ -74,7 +74,9 @@ try {
   // The same installed launcher/executable must preserve all existing mTLS
   // auth, response-loss, identity and no-resend regressions. Mock Host evidence
   // is separate from the actual Host acceptance above.
-  await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')]);
+  // Hundreds of independently checked wire cases also run under x64 emulation.
+  // Keep a finite budget without truncating that required refusal coverage.
+  await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')], root, 0, 420_000);
   const receipt = {version: 'actql-native-cli-install-acceptance/0.1', cliSourceSha: cli.sourceSha, hostSourceSha: sdk.sourceSha,
     runtimeSourceDelta: [],
     platform: key, node: process.version, glibc: process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : null,
