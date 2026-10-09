@@ -474,6 +474,8 @@ pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenc
 
 pub fn model_source_observation_originals(ModelSourceObservation) -> (RunEvidenceValue, RunEvidenceValue, String, String)
 
+pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEffectSourceArtifact, String, String, String, Int64, Bool, Int) -> Result[String, PublicationContractIssue]
+
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
