@@ -415,6 +415,34 @@ fn acquisition_runtime_case(
       return
     }
     let owned = outcome.unwrap()
+    assert_true(
+      physical_equal(owned.source_for_capture(journal).unwrap(), owned.source),
+    )
+    let foreign_execution = {
+      ..owned.executed,
+      request: @remote.prepare_dispatch_request(
+        "foreign-coordinator",
+        retained_compute_cid("a"),
+        "other-task",
+        1,
+        "foreign-dispatch",
+        selected.site_key,
+        1,
+        selected.runtime_bundle_cid,
+        "local",
+        "local/1",
+        "strategy/1",
+        retained_compute_cid("a"),
+        selected.budget_cid,
+        selected.evidence_issuer_capability_cid,
+        selected.grant_cid,
+        retained_compute_cid("a"),
+      ).unwrap(),
+    }
+    assert_true(
+      { ..owned, executed: foreign_execution, }.source_for_capture(journal)
+      is None,
+    )
     original_effect_source.val = Some(owned.source)
     assert_eq(owned.executed.result_definition_cid, None)
     assert_true(owned.source.usage().held_bytes > 0L)

@@ -226,6 +226,7 @@ fn retained_consumer_holder_case(
   let (bundles, fixture_active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
+  assert_true(owner.effect_computation(journal) is None)
   let active = if chain_task is Some(_) {
     let role = "consumer:" + @remote.dispatch_request_identity(dispatch)
     let exact = bundles
@@ -308,6 +309,7 @@ fn retained_consumer_holder_case(
   }
   if cancel_after_borrow {
     assert_true(run() is Err(_))
+    assert_true(owner.effect_computation(journal) is None)
     assert_eq(borrows.val, 1)
     assert_eq(entries.val, 0)
     assert_eq(journal.start_claimant(dispatch).unwrap(), None)
@@ -377,6 +379,7 @@ fn retained_consumer_holder_case(
     let revision = @remote.dispatch_record_revision(cancelled)
     assert_false(@remote.remote_runtime_record_startable(cancelled))
     assert_true(run() is Err(_))
+    assert_true(owner.effect_computation(journal) is None)
     assert_eq(entries.val, 0)
     assert_eq(@site.site_status(site), before)
     assert_eq(
@@ -431,6 +434,7 @@ fn retained_consumer_holder_case(
   }
   if output_unavailable {
     assert_true(run() is Err(_))
+    assert_true(owner.effect_computation(journal) is None)
     assert_eq(entries.val, 1)
     // Missing physical output is not permission to enter Compute again.
     assert_true(run() is Err(_))
@@ -480,6 +484,20 @@ fn retained_consumer_holder_case(
   )
   assert_eq(entries.val, 1)
   assert_eq(borrows.val, 1)
+  if effect_materials is Some(_) {
+    assert_true(owner.effect_computation(producer_journal) is None)
+    assert_true(
+      physical_equal(
+        owner.effect_computation(journal).unwrap(),
+        duplicate.effect_computation(journal).unwrap(),
+      ),
+    )
+    retained_holder_effect_capture(owner, journal)
+    assert_eq(entries.val, 1)
+    assert_eq(borrows.val, 1)
+  } else {
+    assert_true(owner.effect_computation(journal) is None)
+  }
   // Saved-report preparation uses this real completed consumer. Missing
   // Output custody is a refusal, never permission to enter Compute again.
   let delegated : @resident_protocol.ResidentSiteDelegation = {
@@ -784,6 +802,7 @@ fn retained_consumer_holder_case(
     .open_output_reader(dispatch, fields[1], 128)
     .unwrap()
   assert_false(owner.close())
+  assert_true(owner.effect_computation(journal) is None)
   assert_true(file_root.verify_generation("output-" + occurrence, generation))
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
@@ -819,6 +838,7 @@ fn retained_consumer_holder_case(
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())
   assert_true(owner.close())
+  assert_true(owner.effect_computation(journal) is None)
   let file_root = @filesystem.open_root(root_path).unwrap()
   assert_false(file_root.verify_generation("output-" + occurrence, generation))
   assert_true(run() is Err(_))
