@@ -845,9 +845,15 @@ error, rather than a guessed or truncated output schema.
 
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
-rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
-current columns while a surviving original range retains its value slots, with
-the same-name target exceptions defined above. SELECT or AS
+rows; a declared OFFSET can be used for ordering. Implicitly exposed object
+fields are expression/star names, not Pipe SET/DROP/RENAME column targets.
+Project them with SELECT first to create ordinary editable columns. SET can
+replace the whole value-table column named by its range; the replacement is an
+ordinary column and its old implicit fields are no longer current columns.
+DROP of that value-table column removes its implicit fields and range. RENAME
+cannot rename the value-table range. Other current columns remain editable and
+surviving ranges retain original value slots, with the same-name target
+exceptions defined above. SELECT or AS
 establishes the ordinary new Relation scope and removes that original range,
 except for the existing directly following SELECT-owned ORDER boundary.
 No witness, array, element or property implementation slot is publicly exported.
