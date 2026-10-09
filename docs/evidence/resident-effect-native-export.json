@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "scope": "Actual Native retained consumer output to exact Effect local Result export and checked proposal. Not full Preview, approval, physical write, public Cloud or formal Run release.",
+  "verifiedSource": "1090cc812cca1d84c70072f9db588eab1d5cbd6a",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1112",
+    "head": "8a8754a2c2d63b448aabc4ec3192fd5d3dcb153d",
+    "finalTarget": "main"
+  },
+  "files": {
+    "src/physical_strategy/effect_dependency_ports.mbt": "d961e7f64d18c0f02a5308c73e2a0e2d30555f71e35bf2b0d51d3adf7a6f6da1",
+    "src/physical_strategy/effect_input.mbt": "0254915d9d4299225d8e12fa2a5e20fd37577a07f6575c88548b8504a2374a94",
+    "src/physical_strategy/pkg.generated.mbti": "cdd9c30851e2c29d96cdd63db918400de0cf3262a0027b02ec9a0741a306bb7b",
+    "src/physical_strategy/retention.mbt": "a8a38662bfc9ac5d5bb13a24bfb8f7ba199db86cc649660cb39d27350419444e",
+    "src/platform_native/remote_resident_host/effect_result_export.mbt": "beaa52cdcf57aecc0422c09ae616c43f5d140022cbcd7374cf040658b17d8ed7",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "1f1431fad86331ebed897b062897274707c22f055882c5e6f031abce199fe8ab",
+    "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt": "18b1724d54f965f6962626beb29f1bc50709b46208e0cf9efee08fa2499f2401",
+    "src/query_integration/client_effect_local_export_wbtest.mbt": "910d64e0d0a0a06f16b06eccc7b715329356c610b044bb69c70a7b3aa5d6f742"
+  },
+  "receipt": "_build/resident-effect-retained-native-1791533840443/receipt.json",
+  "sourceRecord": "_build/resident-effect-retained-native-1791533840443/source.json",
+  "inputs": "_build/resident-effect-retained-native-1791533840443/inputs.json",
+  "artifact": {
+    "source": "1090cc812cca1d84c70072f9db588eab1d5cbd6a",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-retained-native-1791533840443/retained-compute.whitebox_test.exe",
+    "sha256": "876d768e56dffd5f6347a2c5906d295d7c611f530bbab4b22bbda72ac6f985f4"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "Same Native file: existing retained Direct holding and retained Native cancellation filters",
+      "tests": 2,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "Bounded/nonzero moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "tests": 1,
+      "passed": 1,
+      "result": "passed"
+    },
+    {
+      "command": "moon info --target native src/platform_native/remote_resident_host src/physical_strategy; node proofs/relation-pipeline/history.mjs --write; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "normalEvidence": {
+    "sourceAcquisitions": 1,
+    "producerCaptures": 1,
+    "consumerEntries": 1,
+    "privateProducerRows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ],
+    "privateConsumerRows": [
+      {
+        "id": 3
+      }
+    ],
+    "expectedProposal": {
+      "selector": "3",
+      "changes": {
+        "state": "present",
+        "value": {
+          "Name": 3
+        }
+      }
+    }
+  },
+  "refusals": [
+    "An equal opened Run cannot adopt another Run input inventory",
+    "A producer completion with the same schema cannot replace the consumer completion",
+    "A different export receipt cannot complete the private Result export",
+    "Returning the Effect pins revokes a pending private Result export"
+  ],
+  "cleanupEvidence": [
+    "Consumer close remains pending while the Effect input inventory is live",
+    "Borrow return does not return the independent receiver holding reservation",
+    "After pin return, each existing owner cleanup returns its reservation once",
+    "No Source reacquisition or second consumer entry during private exports"
+  ],
+  "limitations": [
+    "Producer protocol completion is an explicit fixture; this is not a polled journal/start-claim acceptance",
+    "Full semantic Preview needs the checked local dependency evidence and actual target observation, not just a proposed value",
+    "Checkpoint sealing, public waiting transition, authenticated approval, physical Effect and public Cloud/Preview remain unverified",
+    "Whitebox Native executable is not the production Site binary",
+    "Formal package and Native cohort adoption waits for merged OSS main",
+    "Hosted CI remains stopped by user instruction",
+    "Old failed Run custody remains unresolved separately"
+  ]
+}

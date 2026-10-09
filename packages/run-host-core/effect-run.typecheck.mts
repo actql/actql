@@ -1,6 +1,8 @@
 import {prepareEffect, compileEffect, issueAllowedEffectRun, issueEffectRunDefinition,
   issueEffectRunMaterials, admitEffectRunMaterials, effectExecutionShape, compileValues,
-  type CheckEnvironment, type PreparedEffectProgram, type EffectCompilation,
+  prepareEffectRequest, effectSourceInputBinding, issueEffectSourceDispatch,
+  prepareEffectRetainedTaskInputEdge, issueEffectRetainedTaskDispatch,
+  type ValuesSiteSelection, type RetainedTaskInput, type CheckEnvironment, type PreparedEffectProgram, type EffectCompilation,
   type AllowedEffectRun} from '@actql/run-host-core';
 declare const environment: CheckEnvironment;
 const prepared = prepareEffect('{}', 'json', environment);
@@ -21,3 +23,15 @@ const copiedCompilation: EffectCompilation = {};
 // @ts-expect-error A preparation is not an allowed Run or approval.
 const copiedAllowed: AllowedEffectRun = prepared;
 void [copiedPreparation, copiedCompilation, copiedAllowed];
+
+declare const selection: ValuesSiteSelection;
+declare const retainedInput: RetainedTaskInput;
+const caller = prepareEffectRequest(prepared, compiled, 'authority', 'caller');
+effectSourceInputBinding(compiled);
+prepareEffectRetainedTaskInputEdge(allowed, definition);
+issueEffectSourceDispatch(allowed, definition, caller, selection);
+issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, retainedInput);
+// @ts-expect-error A preparation is not the original allowed Effect Run.
+issueEffectSourceDispatch(prepared, definition, caller, selection);
+// @ts-expect-error Raw binding bytes cannot replace the admitted receiver owner.
+issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, {wire: '{}', cid: 'cid'});
