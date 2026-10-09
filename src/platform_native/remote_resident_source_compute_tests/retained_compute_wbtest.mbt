@@ -113,7 +113,11 @@ fn retained_compute_producer_fixture(
   edge : @host.ClientRetainedInputEdge,
   request : @remote.DispatchRequest,
   physical : @manifest.PhysicalManifest,
-) -> (@host.ClientRetainedInputProducer, @site.ExecutionSite) {
+) -> (
+  @host.ClientRetainedInputProducer,
+  @site.ExecutionSite,
+  @remote.DispatchRecord,
+) {
   let site = @site.create_site(
     "retained-native",
     1,
@@ -173,6 +177,7 @@ fn retained_compute_producer_fixture(
       edge, record, evidence, subject,
     ).unwrap(),
     site,
+    record,
   )
 }
 
@@ -191,6 +196,29 @@ fn retained_compute_input_limits() -> @output.NativeRemoteStandardTransferSource
       max_work: 200000,
     },
     wire: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+  }
+}
+
+///|
+fn retained_compute_effect_limits() -> @host.ClientEffectComputationLimits {
+  {
+    program: @host.client_standard_program_preparation_limits(),
+    max_members: 1,
+    max_header_work: 1000,
+    mapping: {
+      max_bytes: 20000,
+      max_nodes: 2000,
+      max_depth: 100,
+      max_members: 100,
+    },
+    max_mapping_work: 1000,
+    effects: {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    },
   }
 }
 
@@ -233,25 +261,7 @@ fn retained_compute_effect_materials() -> (
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
-  let limits : @host.ClientEffectComputationLimits = {
-    program: @host.client_standard_program_preparation_limits(),
-    max_members: 1,
-    max_header_work: 1000,
-    mapping: {
-      max_bytes: 20000,
-      max_nodes: 2000,
-      max_depth: 100,
-      max_members: 100,
-    },
-    max_mapping_work: 1000,
-    effects: {
-      max_members: 1,
-      max_work: 1000,
-      max_admission_nodes: 100,
-      max_admission_depth: 10,
-      max_admission_text_bytes: 1000,
-    },
-  }
+  let limits = retained_compute_effect_limits()
   let wire = @host.issue_client_effect_run_materials(
     allowed,
     definition,
@@ -292,6 +302,8 @@ fn retained_compute_case(
   cancel_before_start : Bool,
   through_runtime? : Bool = false,
   effect? : Bool = false,
+  through_saved_effect? : Bool = false,
+  expire_at_start? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -483,7 +495,7 @@ fn retained_compute_case(
         prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
       ).unwrap()
   }
-  let (producer, site) = retained_compute_producer_fixture(
+  let (producer, site, producer_record) = retained_compute_producer_fixture(
     edge, producer_dispatch, physical,
   )
   let current = @output.install_native_remote_retained_input_current(
@@ -712,6 +724,38 @@ fn retained_compute_case(
       cleanup_owner,
       bytes,
       effect_materials=effect_materials.map(pair => pair.0),
+      through_resident=through_saved_effect,
+      expire_at_start~,
+      restore_effect_input=(rebuilt, saved) => {
+        let rebuilt_edge = match
+          @host.prepare_client_effect_retained_input_edge(
+            rebuilt.allowed,
+            rebuilt.run_definition,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(@output.InvalidBinding)
+        }
+        if @host.client_retained_input_edge_projection(rebuilt_edge) !=
+          @host.client_retained_input_edge_projection(edge) ||
+          @host.client_retained_input_edge_schema_cid(rebuilt_edge) !=
+          @host.client_retained_input_edge_schema_cid(edge) {
+          return Err(@output.InvalidBinding)
+        }
+        let restored_producer = match
+          @host.prepare_client_retained_input_producer(
+            rebuilt_edge,
+            producer_record,
+            @host.client_retained_input_producer_evidence(producer),
+            @host.client_retained_input_producer_subject(producer),
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(@output.ProducerUnavailable)
+        }
+        @output.admit_native_remote_retained_task_input(
+          saved, restored_producer, committed, destination, "direct-destination",
+          current, 262144,
+        )
+      },
     )
     @execution.cancel_completed_relation_export_receipt(receipt)
     @execution.cancel_completed_output_export(source_export)
@@ -1096,4 +1140,25 @@ test "Effect retained consumer cancellation returns its borrow before holding cl
 ///|
 test "Effect retained consumer completes through Runtime claim evidence readers and formal cleanup" {
   retained_compute_case(false, through_runtime=true, effect=true)
+}
+
+///|
+test "Effect saved consumer envelope rebuilds original Run through journal and Runtime" {
+  retained_compute_case(
+    false,
+    through_runtime=true,
+    effect=true,
+    through_saved_effect=true,
+  )
+}
+
+///|
+test "Effect saved consumer envelope rechecks original deadline at exclusive start" {
+  retained_compute_case(
+    false,
+    through_runtime=true,
+    effect=true,
+    through_saved_effect=true,
+    expire_at_start=true,
+  )
 }
