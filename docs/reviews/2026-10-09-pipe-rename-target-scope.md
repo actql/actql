@@ -156,3 +156,19 @@ recorded separately in the PR; neither the earlier SHA nor local packed success
 is a CI claim. Full Core/all-target/full-packed/performance and live Google
 differential execution were not run. Keep Draft pending dependency integration,
 review and applicable verification. No manual retry or merge is requested.
+
+## Integration after the parent merged
+
+Parent #1135 merged while this unit was being verified. Main
+`b83ea53c63e3d5aadfddc6c9ef5a8583f9d48ff8` was normally merged as
+`7fe1165faddba7bba5f0029c9258fc2c6ccdc660` without conflicts. The merge imports
+only three existing foundation declarations; none is removed, rewritten or
+duplicated. Product, adapter, package, script/fixture, contract and toolchain
+paths have no diff from the tested 7cda2f6a SHA. Read-only document metadata
+generation reports no changes and `git diff --check` passes.
+
+No heavy campaign was repeated for this history-only integration. The original
+tarball manifest and receipt retain their tested SHA, rather than being relabeled
+as the submitted HEAD. The PR now targets main with no unmerged parent. Exact
+submitted-HEAD CI and full retained-history verification remain separate checks;
+Draft and the broader unfinished Frontend objective are maintained.
