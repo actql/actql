@@ -388,8 +388,10 @@ fn retained_effect_transferred_artifact(
   }
   println("retained-effect-evidence: consumer-artifact-issued")
   if provider is Some(facts) {
-    resident_provider_preview(
-      consumer, materials, inputs, result_index, result, invocation, facts,
+    retained_effect_provider_capture(
+      consumer, materials, inputs, invocation, run_observation, result, result_index,
+      receiver, root_index, result_export, result_receipt, evidence, source, acquired_bodies,
+      facts, public_result, stop_custodies,
     )
     @execution.cancel_completed_relation_export_receipt(receipt)
     @execution.cancel_completed_relation_export_receipt(result_receipt)
