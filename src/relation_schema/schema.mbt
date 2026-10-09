@@ -52,6 +52,7 @@ struct Schema {
   representation : Representation
   all_required : Bool
   qualified : Bool
+  name_bytes : Int
 }
 
 ///|
@@ -66,6 +67,7 @@ pub fn from_object(row : @contract.Contract) -> Result[Schema, Issue] {
           representation: Flat(row, fields),
           all_required: true,
           qualified: false,
+          name_bytes: @contract.field_name_bytes(fields),
         })
       }
     _ => Err(InvalidRowContract)
@@ -87,6 +89,12 @@ pub fn field_count(schema : Schema) -> Int {
     Flat(_, fields) => @contract.field_count(fields)
     Scoped(fields) => fields.length()
   }
+}
+
+///|
+/// Exact admitted UTF-8 reference spelling, including qualified prefixes.
+pub fn field_reference_name_bytes(schema : Schema) -> Int {
+  schema.name_bytes
 }
 
 ///|
@@ -282,6 +290,7 @@ pub fn from_presence_fields(
       representation: Scoped(output),
       all_required: !conditional,
       qualified,
+      name_bytes: max_name_bytes - remaining,
     })
   }
 }

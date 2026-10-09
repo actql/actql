@@ -6,6 +6,9 @@ import {prepareCapturedDuckDBSource, capturedDuckDBConfiguration,
   capturedDuckDBPhysicalCapacity} from '../../../../host-node/captured-duckdb-source.mjs';
 import {installNodeClientDispatchOwner} from '../../../../host-node/client-dispatch-owner.mjs';
 import {acquisitionFailure} from '../../../../host-common/acquisition-outcome.mjs';
+import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
+import * as cancellationMoon from
+  '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const ok = value => ({$tag: 1, _0: value});
 const limits = {maxRows: 100, maxCells: 200, maxTransportBytes: 10000,
@@ -96,12 +99,17 @@ test('resumed two-input preparations size one ledger before opening and keep fir
     authorization: {authorize: async () => ({action: 'dispatch'})}}));
   const preparedSources = [];
   const order = [], closes = [], stopped = [], ledger = {}, ref = {runDefinitionCid: 'run'};
+  const capacities = [Object.freeze({}), Object.freeze({})];
   let cleanupBlocked = true, selections;
+  let physicalCloseConfirmed = false;
   for (let task = 0; task < 2; task++) {
     const occurrence = {stage: task, input: 0, task};
     preparedSources.push({occurrence, sourceAccess,
       prepared: await prepareCapturedDuckDBSource({...f.options, occurrence}),
-      adapter: {async open(options) {
+      adapter: {ledgerCapacity(prepared) {
+        assert.deepEqual(capturedDuckDBConfiguration(prepared), {kind: 'broad', value: f.broad});
+        return {...capturedDuckDBPhysicalCapacity(prepared), capacity: capacities[task]};
+      }, async open(options) {
         order.push(`open-${task}`); assert.equal(options.ledger, ledger);
         assert.equal(options.sourceAccess, accesses[task]);
         assert.equal(capturedDuckDBConfiguration(options.preparedSource).value, f.broad);
@@ -112,7 +120,7 @@ test('resumed two-input preparations size one ledger before opening and keep fir
           async close() { closes.push(0); if (cleanupBlocked) throw new Error('cleanup pending'); }};
       }}});
   }
-  f.moon.clientProgramPrepareMultiCapturedLocalAcquisitionLedger = (_owner, configurations, transfers, execution) => {
+  f.moon.clientProgramPrepareMultiCapturedLocalInstalledLedger = (_owner, configurations, transfers, execution) => {
     order.push('ledger'); selections = configurations;
     assert.equal(configurations.length, 2);
     assert.ok(transfers.every(value => value > 0n));
@@ -120,8 +128,14 @@ test('resumed two-input preparations size one ledger before opening and keep fir
     return ledger;
   };
   f.moon.clientProgramMultiCapturedLedgerUsage = value => { assert.equal(value, ledger); return Array(10).fill(0n); };
-  const owner = installNodeClientDispatchOwner({moon: f.moon, control: {},
-    journal: {reservePhysicalStart: () => true, markPhysicalClose: (...args) => stopped.push(args)},
+  const owner = installNodeClientDispatchOwner({moon: f.moon,
+    control: {runDefinitionRunId: () => 'run',
+      runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
+    journal: {reservePhysicalStart: () => true,
+      lookupRunDefinition: () => ({cancellationRequested: false, revision: 1,
+        physicalCloseConfirmed, runDefinition: {wire: 'definition'}}),
+      lookupReconciliationState: () => undefined,
+      markPhysicalClose(...args) { stopped.push(args); physicalCloseConfirmed = true; }},
     store: {confirmCommittedIndex: async () => undefined},
     startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
     observed() {}, planFor: () => ({runDefinition: {wire: 'definition'}}),
@@ -141,7 +155,10 @@ test('resumed two-input preparations size one ledger before opening and keep fir
     dispatchReserved: false, cancellationRequested: false}, {preparedSources}), 'started');
   await owner.operation(ref);
   assert.deepEqual(order, ['prepare-0', 'prepare-1', 'ledger', 'open-0', 'open-1']);
-  assert.ok(selections.every(value => value.kind === 'broad' && value.value === f.broad));
+  assert.equal(selections.length, capacities.length);
+  for (const [index, capacity] of capacities.entries()) {
+    assert.equal(selections[index], capacity);
+  }
   assert.deepEqual(stopped, []);
   await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
   cleanupBlocked = false;

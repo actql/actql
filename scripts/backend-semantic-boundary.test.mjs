@@ -47,6 +47,23 @@ test('Local ownership exception cannot hide operation or schema reconstruction',
   assert.deepEqual(semanticBoundaryViolations('@lower.kernel_dedupe_key_at(k, 0); @lower.projection_fields(p); @op.InputField(f)', aliases), []);
 });
 
+test('private Table ownership exception accepts only the exact identity comparison', () => {
+  const aliases = new Map([['lower', 'lowering_relation'], ['pipeline', 'pipeline_typing']]);
+  const identity = `physical_equal(
+    @results.table_inputs_pipeline(declarations),
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )`;
+  assert.deepEqual(semanticBoundaryViolations(identity, aliases, false, true), []);
+  assert.deepEqual(semanticBoundaryViolations(identity, aliases), ['lower.pipeline']);
+  for (const source of [
+    '@lower.pipeline(@lower.bound_preparation(owner))',
+    identity.replace('table_inputs_pipeline(declarations)', 'table_inputs_pipeline(other)'),
+    identity.replace('physical_equal', 'inspect_pipeline'),
+  ]) assert.deepEqual(semanticBoundaryViolations(source, aliases, false, true), ['lower.pipeline']);
+  assert.deepEqual(semanticBoundaryViolations(identity + '; @pipeline.step_at(p, 0)',
+    aliases, false, true), ['pipeline.step_at']);
+});
+
 test('family kernels cannot re-read checked Carrier or operation semantics', () => {
   const root = mkdtempSync(join(tmpdir(), 'actql-family-semantic-boundary-'));
   try {

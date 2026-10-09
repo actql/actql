@@ -185,7 +185,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan,
       objectNameScan, fieldNameScan, inputNameScan, jsonNameScan));
-    const options = {format: 'json', requestId: fixtureId};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId})};
     const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
@@ -206,7 +206,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     cancelling = true;
     const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
       objectNameScan, fieldNameScan, inputNameScan, jsonNameScan)),
-      {format: 'json', requestId: fixtureId + '-cancel'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId + '-cancel'})});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
         throw new Error(`Pool missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);

@@ -178,8 +178,8 @@ const mutations = [
     "{operation: 'submit', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
     'request-record-loss', 'request-record-loss-advice'],
   ['request cancellation malformed body becomes an exchange failure',
-    '      try { answer = await controlValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }',
-    "      try { answer = await controlValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
+    "      try { answer = await responseValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }",
+    "      try { answer = await responseValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
     'request-cancel-parse', 'request-cancel-parse'],
   ['request cancellation raw causes leak private values',
     "}) : new ClientError('CancellationUnknown', {requestId, cause: requestCancellationCause(cause)});",
@@ -218,9 +218,9 @@ const mutations = [
     '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
     '  const retained = error;', 'request-error-custody', 'request-failure-custody'],
   ['request observation loses detached checkpoint custody',
-    "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
+    "      try {\n        answer = structuredClone(answer);\n        if (!validRequestLookup(answer, requestId)", "      try {\n        answer = answer;\n        if (!validRequestLookup(answer, requestId)", 'request-snapshot', 'request-lookup-detached'],
   ['request observation skips copied-response revalidation',
-    "      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');", '', 'request-admission', 'request-lookup-admission'],
+    "        if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) fail('InvalidHostRequestLookup');", '', 'request-admission', 'request-lookup-admission'],
   ['submission observation permits a copied durable reply to change its branch',
     "  const copy = structuredClone(value);\n  if (structuralKey(copy) !== observedKey || structuralKey(value) !== observedKey) {\n    throw new TypeError('ChangedHostResponse');\n  }",
     "  const copy = structuredClone(value);", 'submission-copy', 'request-held-admission'],
@@ -268,8 +268,8 @@ const mutations = [
       "    const report = reportExplanation(outcome.report, 'complete');",
     'check-locale-snapshot', 'check-locale-snapshot'],
   ['unknown submit loses its original input',
-    '  if (input) submissionInputs.set(result, input);\n  if (input) submissionExplanations.set(result,',
-    '  if (input) submissionExplanations.set(result,', 'after-commit'],
+    "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);\n  if (input) submissionInputs.set(result, input);",
+    "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);", 'after-commit'],
   ['original supplied parameters are replaced by null',
     'const snapshot = freezeInput({...body, requestId, connection: selected.wire,',
     'const snapshot = freezeInput({...body, parameters: null, requestId, connection: selected.wire,',
@@ -300,12 +300,12 @@ const mutations = [
     "cancellationExplanations.set(result, freezeInput({observation: observation === 'outcome_unknown' ? 'accepted' : observation,",
     'cancellation-unknown', 'cancel-unknown-explanation'],
   ['cancellation observation advice targets another Run',
-    "next: {operation: 'status', ref: context.ref}",
-    "next: {operation: 'status', ref: {...context.ref, runDefinitionCid: 'sha256:' + '0'.repeat(64)}}",
+    ": {operation: 'status', ref: context.ref}",
+    ": {operation: 'status', ref: {...context.ref, runDefinitionCid: 'sha256:' + '0'.repeat(64)}}",
     'cancellation-recorded', 'cancel-explanation'],
   ['unknown cancellation recommends another cancellation write',
-    "next: {operation: 'status', ref: context.ref}",
-    "next: {operation: 'cancel', ref: context.ref}",
+    "? {operation: 'lookupCancellation', cancelRef: context.cancelRef}",
+    "? {operation: 'cancel', ref: context.ref}",
     'cancellation-unknown', 'cancel-unknown-explanation'],
   ['cancellation explanation exposes a private transport message',
     '...(revision === undefined ? {} : {revision}), summary: summaries[observation],',
@@ -316,10 +316,17 @@ const mutations = [
     "          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),\n" +
     "            cancellationContext, 'outcome_unknown');\n        }",
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
-    'cancellation-unknown', 'cancel-unknown-explanation'],
+    'cancellation-unknown', 'cancel-unknown-explanation', [
+      ["throw refusal ? error : retainCancellationExplanation(error, context, 'outcome_unknown');",
+        "throw refusal || cause?.code === 'InvalidLocalHostPortResponse' ? error\n" +
+        "            : retainCancellationExplanation(error, context, 'outcome_unknown');"],
+    ]],
   ['cancellation response reuse changes an earlier Run observation',
     'received = detachResponse(received);', 'received = response;',
-    'cancellation-custody', 'cancel-custody'],
+    'cancellation-custody', 'cancel-custody', [
+      ["return retainCancellationExplanation(freezeInput(received), context, received.kind, received.revision);",
+        "return retainCancellationExplanation(received, context, received.kind, received.revision);"],
+    ]],
   ['cancellation clone failure leaks an unassociated error',
     "        let received;\n        try {\n          received = captureResponse(response);",
     "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
@@ -340,7 +347,7 @@ const mutations = [
     'The reporting budget could not produce a complete bound check report.',
     'The submitted input is invalid.', 'check-outcome-reporting', 'check-outcome-explanation'],
   ['check verification is presented as execution and release success',
-    'The report verifies only its bound checking scope and context.',
+    "The report verifies only its selected checking scope and context.",
     'Execution and release succeeded.', 'check-outcome-reporting', 'check-outcome-explanation'],
   ['check partial report is presented as complete',
     "reportExplanation(outcome.partial_report, 'partial')",
@@ -446,7 +453,7 @@ const originals = new Map(selected.map(([, , , phase]) => mutationPath(phase))
 const captureFaults = {
   'request-snapshot': ["try { answer = captureResponse(answer); }", "catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }"],
   'request-cancel-snapshot': ["try { answer = captureResponse(answer); }", 'catch { throw uninterpretableRequestCancellation(context); }'],
-  'cancellation-custody': ['try { response = captureResponse(response); }'],
+  'cancellation-custody': ["received = captureResponse(response);"],
   'check-custody': ['try { outcome = captureResponse(outcome); }'],
 };
 // A parent local gate already owns the worktree lock. Keep this bounded
@@ -456,11 +463,16 @@ const buildOperationInputRuntime = () => execFileSync('moon',
   {stdio: 'inherit', timeout: 120000});
 const results = [];
 try {
-  for (const [name, from, to, phase, assertion] of selected) {
+  for (const [name, from, to, phase, assertion, additional = []] of selected) {
     const file = mutationPath(phase);
     const original = originals.get(file);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     let altered = original.replace(from, to);
+    // Some faults must bypass a second current defense to reach the same named assertion.
+    for (const [anchor, replacement] of additional) {
+      if (altered.split(anchor).length !== 2) throw new Error(`Additional fault anchor not unique: ${name}`);
+      altered = altered.replace(anchor, replacement);
+    }
     if (phase === 'unresolvable-restart') {
       for (const [anchor, replacement] of [
         ['  const submitIntent = (kind, input, options) => {',

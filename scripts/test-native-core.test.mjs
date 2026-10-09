@@ -20,7 +20,7 @@ function fixture(t) {
   const bin = join(root, 'bin');
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
-  for (const name of ['test-native-core.mjs', 'owned-scratch.mjs',
+  for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
@@ -34,12 +34,44 @@ function fixture(t) {
   const moon = join(bin, 'moon');
   writeFileSync(moon, `#!${process.execPath}
 const assert = require('node:assert/strict');
-const {writeFileSync, existsSync} = require('node:fs');
+const {writeFileSync, existsSync, statSync} = require('node:fs');
+const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
 const root = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT;
 console.log('CHILD_ROOT=' + root);
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
+assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
+  'Core must not activate unrelated shared Store fixtures');
+for (const [variable, child] of [
+  ['ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT', 'standard'],
+  ['ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT', 'bundles'],
+  ['ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT', 'executor-slot'],
+]) {
+  assert.equal(process.env[variable], join(root, child));
+  const info = statSync(process.env[variable]);
+  assert.equal(info.isDirectory(), true);
+  assert.equal(info.mode & 0o777, 0o700);
+}
+const body = process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY;
+const cid = 'sha256:' + createHash('sha256').update(body).digest('hex');
+assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID, cid);
+assert.deepEqual(JSON.parse(body), {
+  bundle_name: 'native-runtime',
+  components: [{bytes: '14',
+    cid: 'sha256:' + createHash('sha256').update('native-runtime').digest('hex'),
+    role: 'runtime_executable'}],
+  connector_registration: 'local', connector_revision: 'local/1',
+  issuer_authority: 'bundle-authority-a', revision: 'native/1',
+  strategy_revision: 'strategy/1', target_triple: 'aarch64-apple-darwin',
+  version: 'actql-remote-runtime-bundle/0.1',
+});
+assert.equal(verify(null, Buffer.from(
+  'actql-remote-runtime-bundle-signature/0.1' + String.fromCharCode(0) +
+  cid + String.fromCharCode(0) + body),
+  process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
+  Buffer.from(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE, 'base64url')), true);
 const db = join(root, 'trusted-clock.sqlite');
 assert.equal(existsSync(db), false, 'stale lower bound reused');
 writeFileSync(db, '1002');
@@ -53,7 +85,11 @@ setTimeout(() => console.log('child stopped'), 100);
   chmodSync(moon, 0o755);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
-    ACTQL_TEST_PRESERVE_SCRATCH: ''};
+    ACTQL_TEST_PRESERVE_SCRATCH: '',
+    ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: parent,
+    ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: parent,
+    ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: parent};
+  delete env.ACTQL_TEST_NATIVE_STORE_ROOT;
   delete env.NODE_TEST_CONTEXT;
   function verifyExternal() {
     for (const name of originals) {

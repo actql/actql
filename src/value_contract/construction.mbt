@@ -162,7 +162,10 @@ pub fn object_contract(
     values.push({ name, contract, })
   }
   values.sort_by((a, b) => @canonical.compare_utf16(a.name, b.name))
-  Ok({ nullable, shape: Object({ values, }), })
+  Ok({
+    nullable,
+    shape: Object({ values, name_bytes: max_name_bytes - remaining, }),
+  })
 }
 
 ///|
@@ -178,4 +181,10 @@ pub fn field_at(fields : Fields, index : Int) -> Field? {
 ///|
 pub fn field_count(fields : Fields) -> Int {
   fields.values.length()
+}
+
+///|
+/// Exact original UTF-8 name bytes; no normalization or repeated traversal.
+pub fn field_name_bytes(fields : Fields) -> Int {
+  fields.name_bytes
 }

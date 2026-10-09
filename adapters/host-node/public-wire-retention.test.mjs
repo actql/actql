@@ -70,7 +70,7 @@ test('public retained wire preserves long column and Object keys across consumer
     let client = await connectEmbeddedLocal(configuration);
     t.after(() => client.close());
     const source = JSON.stringify(program);
-    const options = {format: 'json', requestId: 'public-wire'};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-wire'})};
     const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });

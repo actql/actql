@@ -7,7 +7,7 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
@@ -79,7 +79,7 @@ for (const mode of ['local', 'https']) {
     {timeout: 90_000}, async t => {
       const {client, dispatches} = await fixture(t, mode);
       for (const item of cases) {
-        const options = {format: 'sql', requestId: item.name,
+        const options = {format: 'sql', submissionRef: client.newSubmission({nonce: item.name}),
           ...(item.parameterDeclarations ? {parameterDeclarations: item.parameterDeclarations,
             parameters: item.parameters} : {})};
         const run = await client.startSource(item.text, options);
@@ -97,11 +97,22 @@ for (const mode of ['local', 'https']) {
   test(`${mode}: different aggregate filters retain validation and demanded errors`,
     {timeout: 45_000}, async t => {
       const {client, dispatches} = await fixture(t, mode);
+      const submissionRef = client.newSubmission({nonce: 'invalid-filter'});
+      let outcome;
       await assert.rejects(client.startSource('SELECT COUNT(*) AS n, COUNT(* WHERE 1) + 0 AS invalid',
-        {format: 'sql', requestId: 'invalid-filter'}), {code: 'ClientProgramRejected'});
+        {format: 'sql', submissionRef}), error => {
+        assert.equal(error.code, 'SubmissionNotAccepted');
+        outcome = getSubmissionOutcome(error);
+        assert.equal(outcome.kind, 'not_accepted');
+        assert.deepEqual(outcome.submissionRef, submissionRef);
+        // The common aggregate predicate checker requires Boolean here.
+        assert.equal(outcome.problem.code, 'ClientProgramInvalidInput');
+        return true;
+      });
+      assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
       assert.equal(dispatches(), 0, 'invalid filter must fail before dispatch');
       const run = await client.startSource('SELECT SUM(1 / 0 WHERE FALSE) AS skipped, SUM(1 / 0 WHERE TRUE) + 0 AS demanded',
-        {format: 'sql', requestId: 'demanded-error'});
+        {format: 'sql', submissionRef: client.newSubmission({nonce: 'demanded-error'})});
       const state = await run.wait({signal: AbortSignal.timeout(15_000)});
       assert.equal(state.status, 'failed', JSON.stringify(state));
       await assert.rejects(run.result('answer').all());

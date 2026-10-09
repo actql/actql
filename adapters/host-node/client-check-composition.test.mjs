@@ -31,7 +31,9 @@ function fixture(states = [], publication = aliases) {
     clientProgramCheckSource: (...args) => {
       checked.push(args);
       return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
-        outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])}],
+        outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])},
+          ...(args[4] === undefined ? [] : [{document_id: 'parameter_declarations', revision: args[8], kind: 'structured', byte_length: Buffer.byteLength(args[4])}]),
+          ...(args[5] === undefined ? [] : [{document_id: 'parameters', revision: args[9], kind: 'structured', byte_length: Buffer.byteLength(args[5])}])],
           requirements: [], scope: {kind: args[11]}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
     },

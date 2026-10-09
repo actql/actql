@@ -15,10 +15,10 @@ fn hold_lifecycle_fixture(
     "connector/0.1",
     "strategy/0.1",
   ).unwrap()
-  let member = bundle_manifest_identity(manifest)
+  let runtime_bundle_cid = bundle_manifest_identity(manifest)
   let scope = hold_fixture_scope(
-    distribution=prepare_bundle_distribution([member]).unwrap(),
-    member~,
+    distribution=prepare_bundle_distribution([runtime_bundle_cid]).unwrap(),
+    runtime_bundle_cid~,
   )
   let binding = prepare_bundle_hold_binding_from_scope(
     scope,

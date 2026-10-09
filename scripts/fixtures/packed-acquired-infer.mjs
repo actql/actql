@@ -163,7 +163,12 @@ const program = {version: 'actql/0.1', id: 'packed-acquired-infer',
       fields: ['id', 'outcome', 'value']}}}],
   results: {answer: {from: {stage: 'main', result: 'captured'}}}};
 try {
-  run = await client.start(program, {requestId: 'packed-acquired-infer'});
+  const submissionPath = join(root, 'submission.json');
+  const submissionRef = mode === 'replay'
+    ? JSON.parse(readFileSync(submissionPath, 'utf8'))
+    : client.newSubmission({nonce: 'packed-acquired-infer'});
+  if (mode !== 'replay') writeFileSync(submissionPath, JSON.stringify(submissionRef));
+  run = await client.start(program, {submissionRef});
   started();
   const terminal = await run.wait();
   assert.equal(terminal.status, mode === 'cancel' ? 'cancelled' : 'succeeded');
