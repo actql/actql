@@ -117,9 +117,62 @@ distinguishes all invalid ordinal reasons from unsupported order expressions.
 Existing broad ordinal refusal fixtures are unchanged.
 
 This failed attempt preserved stdout/stderr, statuses and the clean revision;
-artifactsRemoved=true, evidenceErrors=[]. A fresh normal clean-SHA attempt is
-required after the fixture correction. Full Core, all targets, complete packed suites,
-performance, hosted artifact transport and final required CI are not claimed.
+artifactsRemoved=true, evidenceErrors=[]. Its partial result is not combined
+with the successful fresh attempt below.
+
+## Fresh packed Embedded Local/HTTPS evidence
+
+Clean product/fixture SHA: **ff9b5cde6825a2296a594b89403cf211aec14f71**.
+The final evidence commit changes this report only. MoonBit product sources
+are identical to f59ea4df0, where the affected JS selection was completed;
+the intervening commit corrects only the refusal fixture, its Node test and
+the report. No prior manifest is relabeled or reused across SHAs.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-value-table-ordinal-ff9b5cde6-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-value-table-ordinal-ff9b5cde6-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+Serialized bounded run-LnOk6I normally produces all five packages, independently
+verifies the original digests, and completes with exit 0. One other live
+heavy-check process was observed through its PID/cwd before the existing
+guard admitted this campaign; execution did not overlap that slot.
+
+Each transport completes **111 positives / 49 refusal loops**, including all
+twelve new positives and three new precise refusals. **36 exact-code refusals**
+are logged per transport; thirteen older broad-code loops are separate. The
+original offset order, post-projection member order, reordered output columns,
+same-named offset, whole-column DROP, EXTEND/SET, JOIN remapping, empty objects
+and typed NULL array all agree with independent rows and full schema contracts.
+Result.describe, stream completion, private-column absence and same-Run
+resend/attach/reread without extra acquisition/execution pass. New refusals
+require the existing typed implementation-limit code, zero durable Run
+admission and zero Source I/O.
+
+Receipt: **public-query-evidence-rk0BAg**, retained at
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-rk0BAg`.
+Independent inspection confirms the exact clean revision, passed/complete,
+ten complete zero-exit commands, no signals/errors/evidence errors, every
+expected positive name and exact refusal code, artifactsRemoved=true and
+the artifacts directory absent. README Local/HTTPS and the intentional
+missing-generated-asset child refusal also pass. Private installations and
+Stores were reclaimed by the existing consumer; original evidence remains.
+
+| Original package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | f5487ba69e88efbab8e99930482c27254b8055f421280045a46c0532f8349d1b |
+| local-node | 630f8409113de6ee983a60c437628374ebad80a01942b26f9238765e2ab3efa4 |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+## Remaining coverage
+
+Full Core, all targets, complete packed suites, performance, hosted artifact
+transport and final required CI are not claimed. Exact submitted-HEAD PR CI
+is queried after publication; local success is not CI success.
 General value-table AS receiver preservation remains a separate unverified
 boundary; this repair does not claim to complete that feature or the full
 GoogleSQL value-table profile.
