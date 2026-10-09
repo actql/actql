@@ -79,6 +79,11 @@ fn acquisition_runtime_transfer_consumer(
   } else {
     "2026-10-05T00:00:00.000Z"
   }
+  let now_milliseconds = if effect_pair is Some(_) {
+    1791504000000L
+  } else {
+    1791158400000L
+  }
   let context = match effect_pair {
     Some(_) =>
       @resident.prepare_resident_effect_retained_producer_context(
@@ -153,7 +158,7 @@ fn acquisition_runtime_transfer_consumer(
   let planner_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, request) => {
       @resident.resident_retained_producer_authorized(
         context,
@@ -182,7 +187,7 @@ fn acquisition_runtime_transfer_consumer(
   let denied = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => false,
   )
   assert_true(
@@ -194,7 +199,7 @@ fn acquisition_runtime_transfer_consumer(
   let stale = @host.install_client_retained_input_owner_current(
     (_, _, _) => false,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => true,
   )
   assert_true(
@@ -307,7 +312,7 @@ fn acquisition_runtime_transfer_consumer(
   let common_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => {
       // Observe delegation first, then inject an actual concurrent producer
       // release before returning that earlier authorization observation.
@@ -600,7 +605,7 @@ fn acquisition_runtime_transfer_consumer(
   let current = @output.install_native_remote_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => true,
   )
   let input = @output.prepare_native_remote_retained_task_input(
