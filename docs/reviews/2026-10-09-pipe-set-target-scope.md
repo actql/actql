@@ -247,3 +247,52 @@ Focused JS and direct callers pass 18/18 after that correction (`run-doZFin`,
 `focused-test-gWfnWs`), using the same five-file command above plus the new case.
 The previous 17/17 and failed packed run remain evidence for their own states;
 fresh combined-SHA Local/HTTPS acceptance remains necessary.
+
+## Final combined public acceptance
+
+Tested clean product/fixture SHA:
+`989bc136d13594dc3b2b878e423a363c12806a94`.
+The normal producer, independent five-digest/revision verification and focused
+public cohort completed successfully in `run-tgDfEj`:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-pipe-set-target-989bc136d-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-pipe-set-target-989bc136d-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --join-star-only
+```
+
+The existing shared-lock wrapper limits this campaign to 1,200 seconds.
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-86pNnr`.
+It records passed/complete status, all ten child commands at exit 0 with complete
+streams and no signal/error, and no evidence errors. Both Embedded Local and HTTPS
+complete all 15 positives and 16 exact-code input refusals, including the four
+projection-only INNER/LEFT/RIGHT/FULL duplicate USING cases, eight ambiguous SET
+refusals and the repeated-ON positive control. There are no excluded known failures.
+
+The unchanged public assertions compare independent Named Result rows and describe
+contracts (type, nullability and declaration order), multiplicity/NULLs, private
+field absence, Source acquisition once, same-Run resend/attach/reread and no extra
+admission/acquisition. Every preparation refusal is ClientProgramInvalidInput and
+leaves Run admission and Source I/O counters unchanged; lookup agrees with refusal.
+README Local/HTTPS and the deliberate missing-generated-asset check also pass.
+This is public execution evidence, unlike the earlier incomplete Local attempts.
+
+| Package | Original tarball SHA-256 |
+|---|---|
+| client-wire | `4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f` |
+| sdk | `e4d0fff729f53b3cd96f97997c2bd052069d2de4152e083d84d4201852b46be6` |
+| run-host-core | `41a71cbf8c1deb5b4b7a136d9596af60f335a8cac4fbde7f0643494af5597dfc` |
+| local-node | `566e956cf39b59e909bb26cf5e06880d022f84206c431f0eefcb92ad85b3b6c2` |
+| node | `aa96b83e047cf3fc42b560b578fc2a32b9a38fa3f32c62dcf9f5eaff26891f4b` |
+
+The original five tarballs and receipts remain available; the helper removed its
+external installation and temporary Store after retaining evidence
+(`artifactsRemoved: true`). The following submission commit changes only this
+English evidence record. Its CI is separate from the tested clean SHA. Full Core,
+full packed/performance, Wasm/Native runtime execution and live Google differential
+validation are not established here. Draft CI is preparation only. No manual CI
+retry, Ready transition, merge, runtime-owner duplication or compatibility fallback
+was performed. Parent #1125 remains an unmerged dependency; final target is main.
+The wider Frontend goal remains active beyond this completed correction unit.
