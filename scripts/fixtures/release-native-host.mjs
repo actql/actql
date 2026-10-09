@@ -68,11 +68,14 @@ try {
   assert.deepEqual((await execution.result('answer').describe()).columns,
     [{name: 'id', contract: {type: 'number', nullable: false}}]);
   const cancellation = JSON.parse(await run('cancel', '--ref-file', 'run.json', '--cancel-id', 'native-release-terminal-cancel',
-    '--expected-revision', String(attached.revision)));
-  assert.equal(cancellation.kind, 'already_terminal');
+    '--expected-revision', String(attached.revision),
+    '--operation-attempt-id', 'native-release-terminal-invocation'));
+  assert.equal(cancellation.kind, 'already_satisfied');
+  assert.deepEqual(cancellation.attemptRef, {operation: 'cancel', attemptId: 'native-release-terminal-invocation'});
+  assert.equal(cancellation.cancellation.kind, 'already_terminal');
   const cancelled = JSON.parse(await run('lookup-cancellation', '--ref-file', 'run.json', '--cancel-id', 'native-release-terminal-cancel',
     '--expected-revision', String(attached.revision)));
-  assert.equal(cancelled.kind, 'found'); assert.deepEqual(cancelled.cancellation, cancellation);
+  assert.equal(cancelled.kind, 'found'); assert.deepEqual(cancelled.cancellation, cancellation.cancellation);
   assert.equal(computes, 1, 'Lookup, reads and terminal cancel must not start another Compute');
   await writeFile('native-host-acceptance.json', JSON.stringify({version: 'actql-native-release-host-acceptance/0.1',
     rows, computes, operations: records}, null, 2));

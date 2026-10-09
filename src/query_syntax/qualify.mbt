@@ -75,7 +75,12 @@ fn QueryParser::window_expression(
         },
       )
       if parser.has("OVER") {
-        let window = parser.over()
+        // Ordinary aggregates in OVER are evaluated by GROUP before ANALYTIC.
+        // Keep their parser-owned references in the same clause's call list.
+        let window = parser.over(
+          calls=Some(calls),
+          aggregate_prefix=aggregate_prefix.unwrap_or(prefix),
+        )
         windows.push({
           expression: None,
           aggregate: None,

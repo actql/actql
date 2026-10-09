@@ -17,7 +17,7 @@ const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'subm
   'lookup_found', 'lookup_not_found', 'lookup_unknown', 'held',
   'checkpoint_summary', 'checkpoint_review', 'resolve_item',
   'resolve_result', 'submit_preparation_error', 'cancellation',
-  'cancellation_ref', 'cancellation_lookup',
+  'cancellation_ref', 'cancellation_lookup', 'operation_attempt_ref', 'cancellation_attempt',
   'request_cancellation', 'resource_listing', 'resource_inspection',
   'resource_peek', 'result_description'];
 const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'SubmissionLookup', 'SubmissionRestart',
@@ -25,7 +25,7 @@ const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'Submi
   'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
   'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',
   'SubmitPreparationError', 'Cancellation', 'CancellationRef',
-  'CancellationLookup', 'RequestCancellation',
+  'CancellationLookup', 'OperationAttemptRef', 'CancellationAttempt', 'RequestCancellation',
   'ResourceListing', 'ResourceInspection', 'ResourcePeek', 'ResultDescription'];
 
 export function buildClientHostWire(registry, protocol) {

@@ -687,20 +687,22 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       revision: accepted.revision, outcome: accepted.outcome});
     return accepted;
   };
-  const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+  const cancel = async ({ref, cancelId, expectedRevision, attemptRef, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
-      throw clientOperationError('ClientCancellationDenied');
+      return journal.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
+        currentAuthorization: false, publicationCommitted: false}, moon, control);
     }
     const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
     // Recheck current connection authority after the publication observation.
     // The journal then compares the original revision under its write lock.
     if (!hostConnection({principalId: actual, connection, ref})) {
-      throw clientOperationError('ClientCancellationDenied');
+      return journal.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
+        currentAuthorization: false, publicationCommitted: false}, moon, control);
     }
     let recorded;
     try {
-      recorded = journal.recordCancellationOperation(ref, {
-        cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+      recorded = journal.recordCancellationAttempt(ref, {
+        attemptRef, cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
         modelCancellationOwner: checkpoints?.journal,
       }, moon, control);
     } catch (cause) {
@@ -720,11 +722,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       }
       throw cause;
     }
+    if (recorded.kind === 'refused' || recorded.kind === 'conflict') return recorded;
     const accepted = recorded.cancellation;
     if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
     observation?.emit('run', 'cancellation_requested', {ref,
       revision: accepted.revision, outcome: accepted.outcome});
-    return accepted;
+    const {recorded: _recorded, ...outcome} = recorded;
+    return Object.freeze(outcome);
   };
   const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {

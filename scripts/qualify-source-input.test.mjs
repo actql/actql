@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {qualifyProgram, groupedQualifyProgram, nullableGroupedQualifyProgram,
-  groupedOrderWindowProgram, qualifySuccesses, qualifyRefusals, qualifyExecutionFailures}
+  groupedOrderWindowProgram, aggregateWindowKeyProgram,
+  qualifySuccesses, qualifyRefusals, qualifyExecutionFailures}
   from './fixtures/qualify-source-input.mjs';
 
 test('QUALIFY oracles distinguish aliases inputs NULLs duplicates and output demand', () => {
@@ -68,4 +69,34 @@ test('QUALIFY runs in both the ordinary and narrow packed public corpora', async
   assert.ok(driver.includes("['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--qualify-only'/u);
   assert.match(driver, /if \(process\.argv\.includes\('--qualify-only'\)\) return;/u);
+});
+
+test('aggregate OVER key oracles retain duplicate counts nullable input and ordered columns', () => {
+  const cases = new Map(qualifySuccesses.map(item => [item.name, item]));
+  assert.deepEqual(JSON.parse(cases.get('qualify-aggregate-window-key-json').text), aggregateWindowKeyProgram);
+  assert.deepEqual(aggregateWindowKeyProgram.stages[1].steps[0],
+    {from: 'records', group: {by: ['id'], aggregates: {counted: {fn: 'count'}}}});
+  assert.deepEqual(aggregateWindowKeyProgram.stages[1].steps[1].analytic.order_by,
+    [{field: 'counted', dir: 'desc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-count').expected,
+    [{id: 3, n: 1}, {id: 1, n: 2}, {id: 2, n: 3}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-nullable-count').expected,
+    [{id: 3, n: 1}, {id: 2, n: 2}, {id: 1, n: 3}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-partition').expected,
+    [{id: 1, n: 1}, {id: 2, n: 2}, {id: 3, n: 1}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-order-argument-alias').expected,
+    [{original: 3, id: -3}, {original: 2, id: -2}, {original: 1, id: -1}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-order-argument-qualified').expected,
+    [{original: 1, id: -1}, {original: 2, id: -2}, {original: 3, id: -3}]);
+  assert.deepEqual(cases.get('qualify-aggregate-window-key-empty').columns,
+    cases.get('qualify-aggregate-window-key-count').columns);
+  for (const item of qualifySuccesses.filter(item => item.name.startsWith('qualify-aggregate-window-key-'))) {
+    assert.equal(item.sourceReadSessionCount, 1);
+    assert.deepEqual(Object.keys(item.expected[0] ?? Object.fromEntries(item.columns.map(c => [c.name, null]))),
+      item.columns.map(c => c.name));
+  }
+  for (const name of ['sibling', 'nested-window']) {
+    assert.equal(qualifyRefusals.find(item => item.name === 'qualify-aggregate-window-key-' + name).expectedCode,
+      'ClientProgramInvalidInput');
+  }
 });

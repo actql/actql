@@ -267,19 +267,52 @@ fn valid_cancellation_reply(
     return false
   }
   if !lookup {
-    return valid_cancellation_outcome(value, expected)
-  }
-  guard wire_cancellation_lookup_shape(value) && value is Object(fields) else {
-    return false
-  }
-  match json_text(fields, "kind") {
-    Some("found") =>
-      fields.get("cancellation") is Some(outcome) &&
-      valid_cancellation_outcome(outcome, expected)
-    Some("unknown") =>
-      fields.get("cancelRef") is Some(reference) &&
-      same_cancellation_reference(reference, expected)
-    _ => false
+    let request_text = @utf8.decode(request_wire) catch { _ => return false }
+    let request = @json.parse(request_text) catch { _ => return false }
+    guard wire_cancellation_attempt_shape(value) &&
+      value is Object(fields) &&
+      request is Object(requested) &&
+      requested.get("attemptRef") is Some(attempt) &&
+      fields.get("attemptRef") == Some(attempt) else {
+      return false
+    }
+    match json_text(fields, "kind") {
+      Some("accepted") | Some("already_satisfied") => {
+        guard fields.get("cancellation") is Some(outcome) &&
+          valid_cancellation_outcome(outcome, expected) &&
+          outcome is Object(original) else {
+          return false
+        }
+        if json_text(fields, "kind") == Some("accepted") {
+          json_text(original, "kind") == Some("accepted")
+        } else {
+          json_text(original, "kind") == Some("already_requested") ||
+          json_text(original, "kind") == Some("already_terminal")
+        }
+      }
+      Some("refused") =>
+        match fields.get("cancelRef") {
+          None => true
+          Some(reference) => same_cancellation_reference(reference, expected)
+        }
+      Some("conflict") =>
+        fields.get("cancelRef") is Some(reference) &&
+        same_cancellation_reference(reference, expected)
+      _ => false
+    }
+  } else {
+    guard wire_cancellation_lookup_shape(value) && value is Object(fields) else {
+      return false
+    }
+    match json_text(fields, "kind") {
+      Some("found") =>
+        fields.get("cancellation") is Some(outcome) &&
+        valid_cancellation_outcome(outcome, expected)
+      Some("unknown") =>
+        fields.get("cancelRef") is Some(reference) &&
+        same_cancellation_reference(reference, expected)
+      _ => false
+    }
   }
 }
 
@@ -592,6 +625,18 @@ fn request_body(
       fields["ref"] = reference
       fields["cancelId"] = cancel_id
       fields["expectedRevision"] = revision
+      if operation == "cancel" {
+        let attempt = Json::object(
+          Map([
+            ("operation", Json::string("cancel")),
+            ("attemptId", Json::string(required(child, "operation-attempt-id"))),
+          ]),
+        )
+        if !wire_operation_attempt_ref_shape(attempt) {
+          stop("InvalidOperationAttemptReference")
+        }
+        fields["attemptRef"] = attempt
+      }
     }
     "wait" => {
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
@@ -721,6 +766,7 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("cancel-id", required=true),
         @argparse.OptionArg("expected-revision", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("lookup-cancellation", options=[
         @argparse.OptionArg("ref-file", required=true),
