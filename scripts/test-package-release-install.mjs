@@ -68,7 +68,7 @@ async function run(command, args, cwd) {
     process.once('close', (code, signal) => {
       clearTimeout(timer);
       if (code !== 0) {reject(Error(`${command} ${args.join(' ')}: ${code}/${signal}\n${stdout}\n${stderr}`)); return;}
-      console.log(stdout.trimEnd()); resolve({command, args, code, elapsedMs: Date.now()-started});
+      console.log(stdout.trimEnd()); resolve({command, args, code, elapsedMs: Date.now()-started, stdout});
     });
   });
 }
@@ -89,6 +89,13 @@ try {
     auditPackedPackages(consumer, names);
   }
   const local = join(root, 'node');
+  const localReadme = await readFile(join(local, 'node_modules/@actql/node/README.md'), 'utf8');
+  const localExample = /## Short Local queries[\s\S]*?```js\n([\s\S]*?)```/u.exec(localReadme)?.[1];
+  assert(localExample, 'Missing standalone Local README example');
+  await writeFile(join(local, 'readme-example.mjs'), localExample);
+  const readmeResult = await run(process.execPath, ['readme-example.mjs'], local);
+  assert.equal(readmeResult.stdout.trim(), '[ { id: 1 } ]', 'Independent README result');
+  results.push(readmeResult);
   await copyFile(join(repository, 'packages/sdk/fixtures/values.json'), join(local, 'values.json'));
   await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mjs'), join(local, 'acceptance.mjs'));
   results.push(await run(process.execPath, ['acceptance.mjs', 'initial'], local));

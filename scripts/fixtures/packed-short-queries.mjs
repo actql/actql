@@ -180,7 +180,7 @@ try {
       });
     });
     await setImmediate();
-    assert.equal(remoteAuthorization.count(), 5, 'SDK-only reads and lookup must not repeat Compute');
+    assert.equal(remoteAuthorization.count(), 6, 'SDK-only README, reads and lookup must not repeat Compute');
   }
 } finally {
   await remote?.close(); server.closeAllConnections();
