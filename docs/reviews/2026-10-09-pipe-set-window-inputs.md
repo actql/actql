@@ -1,7 +1,8 @@
 # Pipe SET: inline window assignment inputs
 
-Date: 2026-10-09. Status: implemented Frontend connection; focused checks passed.
-Fresh packed Local/HTTPS acceptance and submitted-HEAD CI are not yet established.
+Date: 2026-10-09. Status: implemented Frontend connection; focused checks and
+fresh packed Local/HTTPS acceptance passed at the product SHA below.
+Submitted-HEAD CI remains unverified. The submission adds only this evidence record.
 
 ## Counterexample and selected meaning
 
@@ -110,7 +111,7 @@ independent fixture authorship.
   382 canonical identities match and metadata needs no writes.
 
 Fresh normal five-package production and focused packed Local/HTTPS acceptance
-remain to be executed. Submitted-HEAD required CI, three-target runtime coverage,
+passed as recorded below. Submitted-HEAD required CI, three-target runtime coverage,
 full Core/full packed/performance and live Google differential validation are
 unverified. Draft preparation is not merge CI. The broader Frontend goal remains
 active; this connection is not complete standard analytic coverage.
@@ -141,3 +142,56 @@ type, order, target validity rule or public refusal code was weakened.
 The target-diagnostic correction and its direct scalar/SET/JOIN-range callers
 passed 16/16 (`run-oP6Ofj`, `focused-test-ZWhwt0`). This is focused local evidence,
 not completion of the previously interrupted Local/HTTPS packed campaign.
+
+## Successful fresh packed acceptance
+
+Tested clean product/fixture SHA:
+`6b0dad1b725a9316c63180699daea728b7c3bf3a`. The later submission commit changes
+only this English evidence record; its CI is not established by this local run.
+The earlier `99f112fc...` failure remains separate evidence, not relabeled success.
+
+Outer bounded heavy execution `run-IcHhXl` completed successfully. With the pinned
+Node/MoonBit environment and the shared heavy slot, it ran these steps in order:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-pipe-set-window-6b0dad1b7-pack
+# Independently compare manifest.revision with the clean checkout HEAD and
+# SHA-256 of each original tarball with the manifest's five digest entries.
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-pipe-set-window-6b0dad1b7-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --window-scalar-only
+```
+
+Exact bounded invocation: `/private/tmp/actql-b-pipe-set-window-6b0dad1b7-packed.mjs`.
+Normal prepack was used; no compiled overlay, producer bypass, repaired Program or
+manifest relabeling was involved. The five original tarball digests are:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f` |
+| sdk | `e4d0fff729f53b3cd96f97997c2bd052069d2de4152e083d84d4201852b46be6` |
+| run-host-core | `41a71cbf8c1deb5b4b7a136d9596af60f335a8cac4fbde7f0643494af5597dfc` |
+| local-node | `48b8b35b24045f0976a46bccff87d8376b0216dbc85b70d4293a682a3819446b` |
+| node | `aa96b83e047cf3fc42b560b578fc2a32b9a38fa3f32c62dcf9f5eaff26891f4b` |
+
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-llsVbm`.
+Its summary is passed/complete at the exact product SHA: all ten child commands
+exit 0 with complete streams, null signals/errors and no evidence errors.
+Successful external installations were removed after evidence preservation
+(`artifactsRemoved: true`); logs and the original pack remain available.
+
+Each Embedded Local/HTTPS entrance completed 58 positives, 36 preparation
+refusals and one expected execution failure, including all nine new SET positives
+and eight exact-code refusals. Of the complete refusal cohort, 31 cases emit
+per-case exact-code log lines; five older cases run their existing input-code-set,
+zero-admission/I/O and submission-lookup assertions without per-case log lines.
+The successful complete acceptance process covers those five as well. README
+Local/HTTPS quickstarts and deliberate missing-generated-asset refusal also pass.
+
+Named Result rows, stream completion, type/nullability/column order, private-field
+absence, one acquisition and same-Run resend/attach/reread counters agree with
+independent expectations. This is the focused window-scalar cohort, not the full
+packed campaign, all-target verification or a live Google differential test.
+Parent #1121 remains unmerged, so the Draft base retains that dependency; final
+integration target is main. No manual CI rerun, Ready transition or merge was made.
