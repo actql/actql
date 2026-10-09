@@ -134,6 +134,8 @@ pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
 pub fn captured_effect_inputs_match_computation(CapturedEffectInputs, CheckedEffectComputationDAG) -> Bool
 
+pub fn captured_effect_inputs_match_run(CapturedEffectInputs, CapturedEffectRunDAG) -> Bool
+
 pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String?
 
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
@@ -760,11 +762,11 @@ pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @
 
 pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
 
-pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn start_captured_effect_input_export(CapturedEffectInput, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
-pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
 pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
 
