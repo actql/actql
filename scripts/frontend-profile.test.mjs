@@ -70,11 +70,14 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     structural_text_rules_sha256: rules,
     query_text_grammar_sha256: queryGrammar,
     query_text_rules_sha256: queryRules, source_grammar_cid: sourceGrammar,
+    expression_text_grammar_sha256: expressionGrammar,
     expression_text_rules_sha256: expressionRules,
     operations: currentOperations, expression_contract_cid: currentExpression,
     ...unchangedBody} = manifest;
   const expressions = json('spec/contracts/actql-expressions.json');
   assert.equal(currentExpression, machineCid(expressions));
+  assert.equal(expressionGrammar, hash(read(expressions.grammar)));
+  assert.equal(expressionGrammar, expressions.grammar_sha256);
   // Read the original PR-0 body. Subtracting known additions from today's
   // schema silently contaminates this historical oracle when another law lands.
   const priorExpressions = JSON.parse(execFileSync('git', ['show',
@@ -101,6 +104,9 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     for (const child of Object.values(node)) removeTypedJson(child);
   };
   assert.equal(oldExpression, machineCid(priorExpressions));
+  assert.equal(oldBody.expression_text_grammar_sha256,
+    priorExpressions.grammar_sha256);
+  unchangedBody.expression_text_grammar_sha256 = priorExpressions.grammar_sha256;
   removeTypedJson(priorProgram);
   Object.assign(priorProgram.properties.steps.items.properties, baseGraphOperationSchemas());
   delete priorProgram.properties.steps.items.properties.property_graph;
