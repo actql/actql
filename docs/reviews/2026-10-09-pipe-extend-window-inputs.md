@@ -100,6 +100,50 @@ are refreshed using the existing generators, never by editing generated bodies.
   `focused-test-rSzQHg`, including all five public refusal fixtures.
 - Existing compilation-manifest, metadata, spec-family and canonical-vector
   read-only checks pass; no metadata writes remain and 382 vectors match.
-- Fresh five-package Local/HTTPS acceptance, submitted-HEAD CI and three-target
-  runtime execution are not yet established by these compiler/fixture checks.
+- Submitted-HEAD CI and three-target runtime execution remain unverified.
   Full Core, full packed and performance campaigns were not run.
+
+
+## Fresh public execution evidence
+
+Tested product/fixture SHA: `f7fe036c59d7467475614ebefdf93b96ba5c3e01`.
+Normal five-package packing and the focused public cohort completed through the
+bounded serialized wrapper (`run-f5MyCG`):
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-pipe-extend-window-f7fe036c5-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-pipe-extend-window-f7fe036c5-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --window-scalar-only
+```
+
+Both Embedded Local and HTTPS executed all 32 positives, 17 preparation refusals
+and one expected demanded-expression failure. The new EXTEND cases contribute
+eight positives and five exact ClientProgramInvalidInput refusals. The receipt
+is `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-9xF4g7`:
+passed/complete, all ten child commands exit 0, no signals or evidence errors.
+Existing untyped refusal helpers execute their input-error and zero-admission/I/O
+assertions without printing the typed-refusal marker; 12 printed markers per
+entrance are therefore not the total 17 refusal cases.
+The same fixture loop checks describe contracts, rows/NULLs/column order, private
+column absence, Named Result/stream completion, one Source acquisition and
+unchanged counters on same-Run resend/attach/reread. README public quickstarts
+and deliberate missing-generated-asset refusal also passed.
+
+Before consumption, the manifest revision and all five original tarball digests
+were independently verified against the committed checkout. SHA-256:
+
+| Package | Digest |
+|---|---|
+| client-wire | `4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f` |
+| sdk | `e4d0fff729f53b3cd96f97997c2bd052069d2de4152e083d84d4201852b46be6` |
+| run-host-core | `dababbb612dc99d62a7d4f3b8d1d27e3b8ac88c1b54fdccb64469c0508e07103` |
+| local-node | `29bdca8c62d76ae49581723f16901092db5eecd3e0d9a607c0e66f48ebcd4f62` |
+| node | `aa96b83e047cf3fc42b560b578fc2a32b9a38fa3f32c62dcf9f5eaff26891f4b` |
+
+Successful external installations were removed after evidence persistence;
+original logs/receipts and the identified five-package pack remain. This public
+execution proves the selected EXTEND connection, not full GoogleSQL window
+coverage. A subsequent evidence-only commit does not turn these runs into
+submitted-HEAD CI success. Parent #1111 remains unmerged; Draft CI preparation,
+required CI and content review are separate from these local results.
