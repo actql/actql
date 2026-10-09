@@ -4232,13 +4232,21 @@ fn compile_steps(
         }
         let expression_scope = if sql_group_projection {
           let scope = sql_group_select_scope.unwrap()
-          { ..scope, visible: scope.visible + analytic_expression_bindings, }
+          {
+            ..scope,
+            visible: private_expression_columns(
+              scope.visible,
+              analytic_expression_bindings,
+            ),
+          }
         } else {
           {
-            visible: unnest_expression_columns(
-              pipe_visible, value_table_receivers, scalar_value_table_ranges,
-            ) +
-            analytic_expression_bindings,
+            visible: private_expression_columns(
+              unnest_expression_columns(
+                pipe_visible, value_table_receivers, scalar_value_table_ranges,
+              ),
+              analytic_expression_bindings,
+            ),
             ranges: pipe_ranges,
             columns: pipe_columns.copy(),
             receivers: [],
@@ -4251,13 +4259,14 @@ fn compile_steps(
         ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let input_scope = sql_group_expression_input_scope.unwrap()
-            append_grouped_expression(
+            append_private_grouped_expression(
               construction,
               expression,
               grouped_keys,
               path => pipe_slot(path, input_scope.visible, input_scope.ranges),
               expression_scope.visible + private_columns,
               expression_scope.ranges,
+              analytic_expression_bindings + private_columns,
               max_work,
             )
           } else {
@@ -4560,15 +4569,16 @@ fn compile_steps(
           if sql_group_projection {
             let scope = sql_group_select_scope.unwrap()
             let original_scope = sql_group_expression_input_scope.unwrap()
-            append_grouped_expression(
+            append_private_grouped_expression(
               construction,
               expression,
               grouped_keys,
               path => {
                 pipe_slot(path, original_scope.visible, original_scope.ranges)
               },
-              scope.visible + analytic_expression_bindings + private_columns,
+              scope.visible,
               scope.ranges,
+              analytic_expression_bindings + private_columns,
               max_work,
             )
           } else {
