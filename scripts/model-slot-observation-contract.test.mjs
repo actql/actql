@@ -223,13 +223,26 @@ test('dedicated slot field is optional, unique and retained in embedded schemas'
   assert.deepEqual(applyModelSlotObservationSchema(registry), registry);
 });
 
-test('only the optional slot field changes existing embedded schema identities', () => {
-  const registry = read('spec/contracts/actql-protocol-schemas.json');
+test('optional slot adoption changes only the frozen predecessor embedded schemas', () => {
+  // Exact schemas from the adoption parent, before later Run/Checkpoint changes.
+  // Keep both historical identities rather than subtracting from today's schema.
+  const historical = read('scripts/fixtures/pre-model-slot-embedded-schemas.json');
+  assert.equal(historical.source_revision,
+    'fb5b893320a04f8ca88e3ee674cf9ad66157f682');
+  assert.equal(historical.source_blob_sha,
+    'bcff6497ddc3499af3303bae78bf5da390cd9206');
+  const registry = applyModelSlotObservationSchema({
+    artifact_schemas: historical.artifact_schemas,
+    artifact_schema_cids: {},
+  });
   const previousPins = {
     run_receipt: 'sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526',
     captured_run: 'sha256:7b3d173c3a078431c99352e3bac4e5a2341ea2217c1995ab8c97dd9c56027ac1',
   };
   for (const [name, pin] of Object.entries(previousPins)) {
+    assert.equal(machineCid(historical.artifact_schemas[name]), pin, name);
+    assert.equal(machineCid(registry.artifact_schemas[name]),
+      historical.introduced_schema_cids[name], name);
     const previous = structuredClone(registry.artifact_schemas[name]);
     function removeOptionalSlotField(value) {
       if (value === null || typeof value !== 'object') return;
@@ -239,6 +252,7 @@ test('only the optional slot field changes existing embedded schema identities',
       for (const child of Object.values(value)) removeOptionalSlotField(child);
     }
     removeOptionalSlotField(previous);
+    assert.deepEqual(previous, historical.artifact_schemas[name], name);
     assert.equal(machineCid(previous), pin, name);
   }
 });

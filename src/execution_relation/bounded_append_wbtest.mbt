@@ -37,6 +37,8 @@ fn bounded_append_fixture(
   input_nodes? : Int = 1000,
   name_bytes? : Int = 1000,
   output_values? : ValueLimits = run_limits().output_values,
+  selected? : Bool = false,
+  left_live? : Ref[Bool]? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedAppendExecution, BoundedAppendIssue],
@@ -46,6 +48,10 @@ fn bounded_append_fixture(
     left_rows,
     schema=left_schema,
   )
+  let left_output = match left_live {
+    Some(live) => restrict_completed_output(left_output, fn() { live.val })
+    None => left_output
+  }
   let (right_owner, right_output) = bounded_append_source(
     right_rows,
     schema=right_schema,
@@ -94,6 +100,11 @@ fn bounded_append_fixture(
     10000,
     1000,
   ).unwrap()
+  let generated = if selected {
+    select_generated_sequence_step(generated, 0).unwrap()
+  } else {
+    generated
+  }
   let left = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, left_owner, left_output).unwrap(),

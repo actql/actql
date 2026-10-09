@@ -151,7 +151,7 @@ pub fn open_resident_retained_compute(
     Err(issue) => return reject(Capacity(issue), close_borrow)
   }
   open_resident_captured_compute(
-    prepared,
+    Pure(prepared),
     configuration,
     None,
     ledger,

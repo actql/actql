@@ -143,21 +143,16 @@ fn stopped_cleanup_fixture(
   producer_claim? : Bool = false,
   deliver_consumer? : Bool = true,
 ) -> StoppedCleanupFixture {
-  let sqlite_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap_or_else(() => {
-      abort("SQLite required")
-    },
-  )
-  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap_or_else(() => {
-      abort("private SQLite root required")
-    },
-  )
+  let (sqlite_path, parent, files) = match cleanup_storage_configuration(name) {
+    Ok(configuration) => configuration
+    Err(message) => abort(message)
+  }
   // The Native core runner owns this per-invocation namespace. These local
   // files do not need the HTTP harness's separate Store configuration.
   // Each case can preserve the same original occurrence without colliding
   // with another case's retained file under this invocation's private Root.
   let parent_root = @filesystem.open_root(parent).unwrap()
   parent_root.create_directory(name).unwrap() |> ignore
-  let files = parent + "/" + name
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let (admission, producer, wire, producer_binding, _) = resident_source_dispatch_fixture()
   let materials = rebuild_materials(admission, producer, wire).unwrap()
@@ -201,13 +196,15 @@ fn stopped_cleanup_fixture(
   )
   .unwrap()
   let chunk = b"[{\"id\":3}]"
+  // SHA-256 of these exact ten bytes, calculated independently of the Host.
+  let chunk_cid = "sha256:7a4b037facb8a43d18989c0530806d5c8a3f23afd0c4be6bb7f4a0d2bf31b8bb"
   let manifest = @cleanup_manifest.admit(
     "actql-managed-physical-manifest/0.1",
     @host.client_retained_input_edge_schema_cid(edge),
     cleanup_cid("7"),
     cleanup_cid("8"),
     1,
-    ["sha256:" + @cleanup_sha.hex(chunk)],
+    [chunk_cid],
     [chunk.length().to_int64()],
     [1],
     4,
@@ -220,7 +217,7 @@ fn stopped_cleanup_fixture(
       files, occurrence, 1024L,
     ).unwrap()
     file.append("[{\"id\":3}]").unwrap()
-    let cid = "sha256:" + @cleanup_sha.hex(chunk)
+    let cid = chunk_cid
     file.seal(cid, chunk.length()).unwrap()
     Some(
       @journal.prepare_native_output_file_custody(

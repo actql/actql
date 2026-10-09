@@ -159,7 +159,7 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
     installation: {directory, retainedRelationOutput: true, authorization}});
   const fixtureId = `public-events-record-${kind}`;
   const source = JSON.stringify(program(fixtureId, kind));
-  const options = {format: 'json', requestId: fixtureId};
+  const options = {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId})};
   const execution = await client.startSource(source, options).catch(cause => {
     assert.fail(inspect(cause, {depth: 8}));
   });
@@ -217,7 +217,7 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
 
   cancelling = true;
   const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', kind)),
-    {format: 'json', requestId: fixtureId + '-cancel'});
+    {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId + '-cancel'})});
   await Promise.race([barrier.promise,
     cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
       throw new Error(`Events emission missed barrier: ${inspect({state, trace}, {depth: 6})}`);

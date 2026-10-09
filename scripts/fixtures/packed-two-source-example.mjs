@@ -28,10 +28,12 @@ async function run(command, args) {
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
 }
-async function verify(mode, options, directory) {
+async function verify(mode, options, directory, submissionPath) {
   const rows = (await readFile('joined.jsonl', 'utf8')).trimEnd().split('\n').map(JSON.parse);
   const description = JSON.parse(await readFile('joined.schema.json', 'utf8'));
   const ref = JSON.parse(await readFile('joined.run.json', 'utf8'));
+  const submission = JSON.parse(await readFile(submissionPath, 'utf8'));
+  const {submissionRef} = submission;
   assert.deepEqual(rows, expected.rows);
   assert.deepEqual(description.columns, expected.columns);
   const before = readTwoSourceJournal(directory);
@@ -45,7 +47,10 @@ async function verify(mode, options, directory) {
     inventory.acquisitions[1].physicalBinding.database);
   const client = await connect(options);
   try {
-    assert.deepEqual((await client.lookupRequest('two-source-join-example')).ref, ref);
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, ref);
     const execution = await client.attach(ref);
     assert.equal((await execution.status()).status, 'succeeded');
     assert.deepEqual(await execution.result('joined').all(), expected.rows);
@@ -53,11 +58,11 @@ async function verify(mode, options, directory) {
     assert.deepEqual(await Array.fromAsync(reader), expected.rows);
     assert.equal(reader.state(), 'complete');
     const repeated = await client.startSource(await readFile(resolve(example, 'two-source-join.program.json'), 'utf8'),
-      {format: 'json', requestId: 'two-source-join-example'});
+      {format: 'json', submissionRef});
     assert.deepEqual(repeated.ref, ref);
   } finally { client.close(); }
   assert.deepEqual(readTwoSourceJournal(directory), before);
-  report.cases.push({mode, rows, columns: description.columns, ref,
+  report.cases.push({mode, rows, columns: description.columns, ref, submissionRef,
     acceptedRuns: before.length, sourceInventory: inventory});
   await persist();
   console.log(`Packed two-source documented example passed: ${mode}`);
@@ -67,11 +72,14 @@ try {
   await run('bash', ['-eu', '-c', commands[1]]);
   const localOptions = JSON.parse(await readFile('two-source-example-data/connection.json', 'utf8'));
   const firstRef = JSON.parse(await readFile('joined.run.json', 'utf8'));
+  const localSubmissionPath = 'two-source-example-data/connection.json.submission.json';
+  const originalSubmission = await readFile(localSubmissionPath, 'utf8');
   // Reexecute the exact public script without running setup twice.
   await run(process.execPath, ['two-source-example/run-example.mjs']);
   assert.deepEqual((await readFile('joined.jsonl', 'utf8')).trimEnd().split('\n').map(JSON.parse), expected.rows);
   assert.deepEqual(JSON.parse(await readFile('joined.run.json', 'utf8')), firstRef);
-  await verify('local', localOptions, localOptions.installation.directory);
+  assert.equal(await readFile(localSubmissionPath, 'utf8'), originalSubmission);
+  await verify('local', localOptions, localOptions.installation.directory, localSubmissionPath);
   const directory = resolve('two-source-example-http-state');
   const provider = observeTwoSourceProvider(duckdb, {
     left: resolve('two-source-example-data/left.duckdb'),
@@ -92,7 +100,12 @@ try {
     assert.equal(afterExecution.sourceReadSessions, 2);
     assert.deepEqual([...new Set(afterExecution.sourceReadCommands.map(item => item.database))].sort(),
       [resolve('two-source-example-data/left.duckdb'), resolve('two-source-example-data/right.duckdb')].sort());
-    await verify('https', options, directory);
+    const remoteSubmissionPath = 'example-http-connection.json.submission.json';
+    const remoteSubmission = JSON.parse(await readFile(remoteSubmissionPath, 'utf8'));
+    assert.notDeepEqual(remoteSubmission.submissionRef, JSON.parse(originalSubmission).submissionRef);
+    assert.equal(remoteSubmission.connectionContext.endpoint, options.endpoint);
+    assert.equal(JSON.stringify(remoteSubmission).includes(options.token), false);
+    await verify('https', options, directory, remoteSubmissionPath);
     assert.deepEqual(provider.snapshot(), afterExecution, 'retained access and resubmission do not reopen sources');
     report.provider = afterExecution;
   } finally {

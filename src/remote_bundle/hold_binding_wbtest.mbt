@@ -11,13 +11,13 @@ fn hold_fixture_scope(
   authority? : String = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   environment? : String = "production",
   revision? : String = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-  member? : String = hold_fixture_cid_a(),
+  runtime_bundle_cid? : String = hold_fixture_cid_a(),
   site? : String = "site-a",
   generation? : Int = 7,
   attempt? : String = "hold-a",
 ) -> RemoteBundleHoldScope {
   prepare_bundle_hold_scope(
-    distribution, coordinator, workspace, authority, environment, revision, member,
+    distribution, coordinator, workspace, authority, environment, revision, runtime_bundle_cid,
     site, generation, attempt,
   ).unwrap()
 }
@@ -206,7 +206,7 @@ test "bundle hold identities bind every scope dimension using exact text" {
       hold_fixture_scope(
         distribution=prepare_bundle_distribution([hold_fixture_cid_a()]).unwrap(),
       ),
-      hold_fixture_scope(member=hold_fixture_cid_b()),
+      hold_fixture_scope(runtime_bundle_cid=hold_fixture_cid_b()),
       hold_fixture_scope(site="site-b"),
       hold_fixture_scope(generation=8),
       hold_fixture_scope(attempt="hold-b"),

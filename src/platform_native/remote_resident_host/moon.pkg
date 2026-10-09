@@ -39,7 +39,6 @@ import {
 
 import {
   "actql/actql/check_environment" @environment,
-  "actql/actql/sha256" @cleanup_sha,
   "moonbitlang/core/env",
 } for "wbtest"
 

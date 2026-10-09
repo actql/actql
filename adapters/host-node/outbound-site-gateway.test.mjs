@@ -1142,6 +1142,72 @@ test('Coordinator restores a committed output without repeating transport',
     assert.equal(repeated, false);
   });
 
+test('Accepted status can resolve dispatch before execution starts',
+  {timeout: 30_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'outbound-accepted-status-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]),
+      control,
+    });
+    t.after(() => gateway.close());
+    const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+      key: material.siteKey};
+    const path = '/v1/sites/site-a/generations/1/outbound';
+    const request = dispatch({dispatchId: 'accepted-status-before-start'});
+    let resolved = false;
+    const dispatched = gateway.dispatch({dispatch: request,
+      inputBindingBody: '{}'}).then(value => {
+      resolved = true;
+      return value;
+    }, error => error);
+    const offered = await post(gateway.origin, `${path}/poll`, siteMaterial);
+    assert.equal(offered.status, 200);
+    const envelope = control.admitPollDispatch(offered.body);
+    const received = control.pollDispatchRequest(envelope);
+    assert.equal(control.identity(received), control.identity(request));
+    assert.equal(control.pollDispatchBindingBody(envelope), '{}');
+    assert.equal(JSON.parse(control.requestJson(received)).run_definition_cid,
+      cid('0'));
+    const site = runtime.siteControl.create({
+      key: 'site-a', generation: 1, runtimeRevision: cid('a'),
+      maxConcurrentOperations: 4, maxConcurrentTransfers: 4,
+      maxRetainedBytes: 1_048_576n, maxExecutionBytes: 1_048_576n,
+    });
+    const siteStore = openSqliteDispatchJournal(join(root, 'site'), {
+      siteKey: 'site-a', siteGeneration: 1, runtimeRevision: cid('a'),
+    });
+    t.after(() => siteStore.close());
+    const accepted = siteStore.accept(control.prepareAdmission(
+      control.createJournal(site), received), received, control);
+    const originalRevision = control.revision(accepted);
+    const originalState = siteStore.inspectState(received, control);
+    assert.equal((await post(gateway.origin, `${path}/observations`,
+      siteMaterial, control.replyJson(accepted))).status, 200);
+    assert.equal(resolved, false, 'initial acceptance keeps dispatch pending');
+    assert.equal(gateway.pending(), 1);
+    // A resident parent may report the same durable revision before its
+    // spawned holder claims Provisioning. No query competes for this reply.
+    assert.equal((await post(gateway.origin, `${path}/observations`,
+      siteMaterial, control.statusJson(accepted,
+        undefined, undefined, undefined))).status, 200);
+    assert.equal(resolved, true, 'status resolves the exact dispatch waiter');
+    const observation = await dispatched;
+    assert.equal(observation.dispatchRequestCid, control.identity(request));
+    assert.equal(observation.revision, originalRevision);
+    assert.deepEqual(observation.state, [0, 0, 0, 0, 0]);
+    assert.equal(observation.evidence, undefined);
+    assert.equal(observation.subject, undefined);
+    assert.equal(observation.measurement, undefined);
+    assert.equal(control.revision(accepted), originalRevision);
+    assert.deepEqual(siteStore.inspectState(received, control), originalState);
+    assert.equal(gateway.pending(), 0);
+  });
+
 test('exact query is delivered and answered ahead of an unresolved dispatch',
   {timeout: 30_000}, async t => {
     await mkdir(scratch, {recursive: true});

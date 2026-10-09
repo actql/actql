@@ -17,7 +17,7 @@ import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
-import {connect, RequestHeld} from '../../../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
@@ -29,6 +29,9 @@ import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
 import {numberText, openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
+import {writeSyntheticHistoricalHeldSalesforce}
+  from '../../../../scripts/fixtures/synthetic-historical-held-salesforce.mjs';
+import {syntheticHeldSnapshot} from '../../../../scripts/fixtures/synthetic-historical-held-values.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'salesforce-standard-host');
@@ -226,7 +229,7 @@ test('public Client reads a published Salesforce source to a Named Result',
     // Check used only the published Catalog.
     assert.equal(setup.org.seen.length, published);
     const execution = await client.startSource(program, {format: 'json',
-      requestId: 'salesforce-read-1'});
+      submissionRef: client.newSubmission({nonce: 'salesforce-read-1'})});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const rows = await execution.result('records').all();
@@ -265,8 +268,9 @@ test('non-first Salesforce source view retains two public consumer Results',
       steps: [{select: ['Name'], as: 'out'}],
       results: {r: {from: 'out', fields: ['Name']}}});
     document.results.audit = {from: {stage: 'audit', result: 'r'}};
+    const submissionRef = client.newSubmission({nonce: 'salesforce-retained-multi-view'});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId: 'salesforce-retained-multi-view'});
+      {format: 'json', submissionRef});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(await execution.result('records').all(), [
@@ -286,7 +290,7 @@ test('non-first Salesforce source view retains two public consumer Results',
     ]);
     const reads = setup.queries().length;
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId: 'salesforce-retained-multi-view'});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, reads);
     await close();
@@ -356,8 +360,9 @@ test('two Salesforce views retain a joined public Result', async t => {
     observe: (name, detail) => diagnostics.push({name, detail}),
   })});
   const document = twoViewJoinProgram();
+  const submissionRef = client.newSubmission({nonce: 'salesforce-two-view-join'});
   const execution = await client.startSource(JSON.stringify(document),
-    {format: 'json', requestId: 'salesforce-two-view-join'}).catch(error => {
+    {format: 'json', submissionRef}).catch(error => {
       assert.fail(`${error.stack}\n${error.cause?.stack ?? ''}\n${JSON.stringify(diagnostics)}`);
     });
   const state = await execution.wait();
@@ -393,7 +398,7 @@ test('two Salesforce views retain a joined public Result', async t => {
   }
   assert.equal(setup.queries().length, 2);
   const resent = await client.startSource(JSON.stringify(document),
-    {format: 'json', requestId: 'salesforce-two-view-join'});
+    {format: 'json', submissionRef});
   assert.deepEqual(resent.ref, execution.ref);
   assert.equal(setup.queries().length, 2);
   await close();
@@ -425,8 +430,9 @@ test('two installed Salesforce sources retain exact Join input ports',
     document.id = 'salesforce-two-installations-join';
     document.stages[1].inputs.remote.connector = 'crm-other';
     const requestId = 'salesforce-two-installations-join';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('joined').all(), [
       {key: 'key-1', left_name: 'record-1', right_name: 'other-1'},
@@ -444,7 +450,7 @@ test('two installed Salesforce sources retain exact Join input ports',
     assert.deepEqual(observations.filter(item => item.name ===
       'acquisition_completed').map(item => item.detail.task), [0, 1]);
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
     await close();
@@ -469,8 +475,9 @@ test('one Salesforce view can fill two distinct acquisition slots',
     const document = twoViewJoinProgram();
     document.id = 'salesforce-repeat-view-join';
     document.stages[1].inputs.remote.resource = 'Test_Record__c';
+    const submissionRef = client.newSubmission({nonce: 'salesforce-repeat-view-join'});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId: 'salesforce-repeat-view-join'});
+      {format: 'json', submissionRef});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('joined').all(), [
       {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
@@ -491,7 +498,7 @@ test('one Salesforce view can fill two distinct acquisition slots',
       'acquisition_completed').map(item => item.detail.task), [0, 1]);
     assert.equal(setup.queries().length, 2);
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId: 'salesforce-repeat-view-join'});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
     await close();
@@ -540,13 +547,14 @@ test('two-view capture stays owned when cancellation precedes the second read',
     })});
     const document = twoViewJoinProgram();
     const requestId = 'salesforce-two-view-cancel';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     await firstCaptured;
     assert.equal(setup.queries().length, 1);
     assert.equal(observations.filter(item => item.name ===
       'acquisition_cleanup_completed').length, 0);
-    await client.cancelRequest(requestId);
+    await execution.cancel();
     releaseFirst();
     const state = await execution.wait();
     assert.equal(state.status, 'cancelled', JSON.stringify(state));
@@ -558,7 +566,7 @@ test('two-view capture stays owned when cancellation precedes the second read',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal((await resent.wait()).status, 'cancelled');
     assert.equal(setup.queries().length, 1);
@@ -589,8 +597,9 @@ test('second Salesforce view failure releases the first retained capture',
       })});
     const document = twoViewJoinProgram();
     const requestId = 'salesforce-second-view-fails';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -611,7 +620,7 @@ test('second Salesforce view failure releases the first retained capture',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
     await close();
@@ -642,8 +651,9 @@ test('two-view failure after both captures publishes nothing or reacquires',
     const {client, close} = await setup.open({authorization});
     const document = twoViewJoinProgram();
     const requestId = 'salesforce-two-view-failure';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -662,7 +672,7 @@ test('two-view failure after both captures publishes nothing or reacquires',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
     await close();
@@ -699,7 +709,7 @@ test('two-view cleanup retry retains both capture owners without rereading',
       })});
     const document = twoViewJoinProgram();
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId: 'salesforce-two-view-cleanup-retry'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'salesforce-two-view-cleanup-retry'})});
     await firstCleanup;
     const reads = setup.queries().length;
     assert.equal(reads, 2);
@@ -735,7 +745,8 @@ test('retained Salesforce acquisition failure publishes nothing or rereads',
     await setup.publish();
     const {client, close} = await setup.open();
     const requestId = 'salesforce-retained-source-failure';
-    const execution = await client.startSource(program, {format: 'json', requestId});
+    const submissionRef = client.newSubmission({nonce: requestId});
+    const execution = await client.startSource(program, {format: 'json', submissionRef});
     const state = await execution.wait();
     assert.equal(state.status, 'failed');
     assert.equal(state.result_available, false);
@@ -743,7 +754,7 @@ test('retained Salesforce acquisition failure publishes nothing or rereads',
     assert.equal(setup.queries().length, 1);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.startSource(program, {format: 'json', requestId});
+    const resent = await client.startSource(program, {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 1);
     await close();
@@ -773,10 +784,11 @@ test('retained Salesforce capture survives cancellation until cleanup',
     });
     const {client, close} = await setup.open({authorization});
     const requestId = 'salesforce-retained-cancel-after-capture';
-    const execution = await client.startSource(program, {format: 'json', requestId});
+    const submissionRef = client.newSubmission({nonce: requestId});
+    const execution = await client.startSource(program, {format: 'json', submissionRef});
     await captured;
     assert.equal(setup.queries().length, 1);
-    await client.cancelRequest(requestId);
+    await execution.cancel();
     releaseCapture();
     const state = await execution.wait();
     assert.equal(state.status, 'cancelled', JSON.stringify(state));
@@ -903,7 +915,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       'generation restoration performs no provider request');
     const ownerClient = await first.as('owner-token');
     const read = await ownerClient.startSource(program, {format: 'json',
-      requestId: 'coinstalled-salesforce-read'});
+      submissionRef: ownerClient.newSubmission({nonce: 'coinstalled-salesforce-read'})});
     assert.equal((await read.wait()).status, 'succeeded');
     assert.deepEqual((await read.result('records').all()).map(row =>
       [row.External_Key__c, row.Name]).sort(),
@@ -925,10 +937,12 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       id: 'External_Key__c', set: {Name: {field: 'Name'}},
     }}};
     const queriesBefore = setup.queries().length;
+    const acquiredEffectSubmissionRef = ownerClient.newSubmission({nonce: 'unsupported-acquire-and-effect'});
     const admitted = await ownerClient.startSource(JSON.stringify(formerlyRefused), {
-      format: 'json', requestId: 'unsupported-acquire-and-effect'});
-    assert.equal((await ownerClient.lookupRequest(
-      'unsupported-acquire-and-effect')).kind, 'found');
+      format: 'json', submissionRef: acquiredEffectSubmissionRef});
+    const acquiredEffectLookup = await ownerClient.lookupSubmission(acquiredEffectSubmissionRef);
+    assert.equal(acquiredEffectLookup.kind, 'ready');
+    assert.deepEqual(acquiredEffectLookup.admission.ref, admitted.ref);
     await waitFor(() => diagnostics.some(item =>
       item.name === 'effect_start_failed'));
     assert.equal((await admitted.status()).status, 'failed');
@@ -941,7 +955,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       set: {Name: {field: 'id'}}}}},
     [{id: 'a00000000000001'}, {id: 'a00000000000002'}]);
     const execution = await ownerClient.startSource(JSON.stringify(effectDocument), {
-      format: 'json', requestId: 'installed-effect-http'});
+      format: 'json', submissionRef: ownerClient.newSubmission({nonce: 'installed-effect-http'})});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
     assert.equal(setup.org.seen.filter(item => item.method === 'PATCH').length,
@@ -1086,17 +1100,37 @@ test('a Program outside the published declaration fails Check without I/O',
       '"External_Key__c", "Missing__c"]')
       .replaceAll('External_Key__c', 'Missing__c');
     await assert.rejects(client.startSource(undeclared, {format: 'json',
-      requestId: 'undeclared-1'}), {code: 'ClientProgramRejected'});
-    // An acquisition the local planner cannot generate is refused as
-    // unsupported, before any Run.
-    const unsupported = program.replace("Name <> 'record-2'",
-      "External_Key__c IN ('key-1', 'key-3')");
-    await assert.rejects(client.startSource(unsupported, {format: 'json',
-      requestId: 'unsupported-1'}), {code: 'ClientProgramUnsupported'});
-    assert.deepEqual(await client.lookupRequest('unsupported-1'),
-      {kind: 'not_found'});
+      submissionRef: client.newSubmission({nonce: 'undeclared-1'})}), error => {
+        assert.equal(error.code, 'SubmissionNotAccepted');
+        const outcome = getSubmissionOutcome(error);
+        // Missing projected fields are an invalid bound Program under the
+        // published schema (check_invalid_input), before any Run acceptance.
+        assert.equal(outcome.kind, 'not_accepted');
+        assert.deepEqual(outcome.problem,
+          {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+        assert.equal(Object.hasOwn(outcome, 'admission'), false);
+        return true;
+      });
     assert.equal(setup.org.seen.length, before);
+    // The IN input previously used as an unsupported sentinel now has its
+    // own succeeded-Result/one-read test below. Unsupported pre-Run waiting
+    // remains covered by "new epoch Salesforce read delegation fails before
+    // provider work": exact terminal refusal, zero Run/Checkpoint/provider
+    // I/O, and the same original outcome after restart.
   });
+
+test('a supported Salesforce IN filter reaches the Named Result with one read', async t => {
+  const setup = await installation(t);
+  await setup.publish();
+  const {client} = await setup.open();
+  const membership = program.replace("Name <> 'record-2'", "External_Key__c IN ('key-1', 'key-3')");
+  const execution = await client.startSource(membership, {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'membership-filter'})});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual((await execution.result('records').all())
+    .map(row => [row.External_Key__c, row.Name]).sort(), [['key-1', 'record-1'], ['key-3', 'record-3']]);
+  assert.equal(setup.queries().length, 1);
+});
 
 test('a lost read permission acquires nothing and discloses nothing',
   async t => {
@@ -1113,11 +1147,17 @@ test('a lost read permission acquires nothing and discloses nothing',
     await assert.rejects(client.inspectResource(setup.connection,
       'Test_Record__c'), {code: 'ResourceDiscoveryDenied'});
     // The read is refused at submit: no Run, no provider request.
-    await assert.rejects(client.startSource(program, {format: 'json',
-      requestId: 'revoked-1'}), error =>
-      /^ACTQL_E_ACCOUNT_/u.test(error.code));
-    assert.deepEqual(await client.lookupRequest('revoked-1'),
-      {kind: 'not_found'});
+    const submissionRef = client.newSubmission({nonce: 'revoked-1'});
+    let deniedOutcome;
+    await assert.rejects(client.startSource(program, {format: 'json', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      deniedOutcome = getSubmissionOutcome(error);
+      assert.match(deniedOutcome.problem.code, /^ACTQL_E_ACCOUNT_/u);
+      assert.equal(deniedOutcome.problem.classification, 'operation_failed');
+      assert.equal(Object.hasOwn(deniedOutcome, 'admission'), false);
+      return true;
+    });
+    assert.deepEqual(await client.lookupSubmission(submissionRef), deniedOutcome);
     assert.equal(setup.org.seen.length, before);
     assert.equal(setup.queries().length, 0);
   });
@@ -1177,10 +1217,13 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
 }
 
 async function assertEndedRun(setup, client, requestId) {
-  const execution = await client.startSource(program, {format: 'json', requestId});
+  const submissionRef = client.newSubmission({nonce: requestId});
+  const execution = await client.startSource(program, {format: 'json', submissionRef});
   assert.equal((await execution.wait()).status, 'failed');
   const requests = setup.org.seen.length;
-  assert.equal((await client.lookupRequest(requestId)).kind, 'found');
+  const found = await client.lookupSubmission(submissionRef);
+  assert.equal(found.kind, 'ready');
+  assert.deepEqual(found.admission.ref, execution.ref);
   assert.equal((await execution.wait()).status, 'failed');
   assert.equal(setup.org.seen.length, requests);
 }
@@ -1334,7 +1377,7 @@ test('long text in several columns and many rows reaches the Named Result',
     await setup.publish();
     const {client, close} = await setup.open();
     const execution = await client.startSource(program, {format: 'json',
-      requestId: 'long-rows'});
+      submissionRef: client.newSubmission({nonce: 'long-rows'})});
     assert.equal((await execution.wait()).status, 'succeeded');
     const rows = await execution.result('records').all();
     assert.deepEqual(rows.map(row => [row.External_Key__c, row.Name]).sort(),
@@ -1350,7 +1393,7 @@ test('an acquisition over its capture bound publishes nothing and ends once',
     await setup.publish();
     const {client, close} = await setup.open();
     const execution = await client.startSource(program, {format: 'json',
-      requestId: 'over-capture'});
+      submissionRef: client.newSubmission({nonce: 'over-capture'})});
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
     assert.equal(setup.queries().length, 1);
@@ -1358,14 +1401,16 @@ test('an acquisition over its capture bound publishes nothing and ends once',
     await close();
   });
 
-// A held read: submitting it returns the held request.
-async function heldRead(client, requestId) {
-  try { await client.startSource(program, {format: 'json', requestId}); }
-  catch (error) {
-    assert.equal(error instanceof RequestHeld, true, String(error?.code));
-    return error.held;
-  }
-  assert.fail('expected a held request');
+// Current recovery of an independently authored historical-format held read.
+// New epoch submissions are not used as an old-public-producer oracle.
+async function heldRead(client, original) {
+  const held = await client.lookupRequest(original.requestId);
+  assert.equal(held.kind, 'held');
+  assert.equal(held.state, 'waiting_checkpoint');
+  assert.equal(held.prepareAttemptId, original.prepareAttemptId);
+  assert.equal(held.checkpoint.checkpointCid, original.checkpointCid);
+  assert.equal(Object.hasOwn(held, 'ref'), false);
+  return held;
 }
 
 async function waitFor(check) {
@@ -1385,23 +1430,77 @@ async function delegatedInstallation(t, options) {
   await writeFile(setup.profilePath, JSON.stringify({...setup.profile,
     accountConfigurationWire: accountConfiguration(setup.org.orgId,
       ['Test_Record__c'], 'delegate')}));
+  setup.openHeld = async (requestId, {authorization}) => {
+    const before = setup.org.seen.length;
+    // Initial public construction owns the empty journal/root. Close all its
+    // handles before storing synthetic originals; recovery admits them anew.
+    const bootstrap = await setup.open({authorization});
+    await bootstrap.client.close(); await bootstrap.close();
+    const original = await writeSyntheticHistoricalHeldSalesforce({directory: join(setup.root, 'state'),
+      document: program, requestId, authorization,
+      sourceProfile: JSON.parse(await readFile(setup.profilePath, 'utf8')),
+      siteProfile: setup.siteDocument, runtimeRootUrl: new URL('../../../../', import.meta.url)});
+    const waiting = await setup.open({authorization});
+    assert.equal(setup.org.seen.length, before, 'Historical setup and admission perform no provider I/O');
+    const snapshot = await syntheticHeldSnapshot(join(setup.root, 'state'), original);
+    assert.deepEqual(snapshot.runs, []); assert.deepEqual(snapshot.accepted, []);
+    assert.equal(snapshot.intents, 0);
+    return {...waiting, original};
+  };
   return setup;
 }
 
-test('a held read is approved across a Host restart and reaches the Named Result',
+test('new epoch Salesforce read delegation fails before provider work', async t => {
+  const setup = await delegatedInstallation(t);
+  const first = await setup.open({authorization: checkpointAuthorization({})});
+  const before = setup.org.seen.length;
+  const submissionRef = first.client.newSubmission({nonce: 'new-epoch-salesforce-read'});
+  let outcome;
+  await assert.rejects(first.client.startSource(program, {format: 'json', submissionRef}), error => {
+    assert.equal(error.code, 'SubmissionPreparationFailed');
+    outcome = getSubmissionOutcome(error);
+    assert.equal(outcome.kind, 'preparation_failed');
+    assert.equal(outcome.problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
+    assert.deepEqual(outcome.submissionRef, submissionRef);
+    assert.equal(Object.hasOwn(outcome, 'admission'), false);
+    return true;
+  });
+  const journal = new DatabaseSync(join(setup.root, 'state/checkpoints/journal/checkpoint-journal.sqlite3'), {readOnly: true});
+  const requests = new DatabaseSync(join(setup.root, 'state/requests/client-requests.sqlite3'), {readOnly: true});
+  try {
+    for (const table of ['runs', 'preparations', 'checkpoints']) {
+      assert.equal(journal.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);
+    }
+    assert.equal(requests.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+    assert.deepEqual(requests.prepare('SELECT phase FROM client_submitted_intents').all().map(row => row.phase),
+      ['preparation_failed']);
+  } finally {journal.close(); requests.close();}
+  assert.deepEqual((await first.client.checkpoints()).items, []);
+  assert.equal(setup.org.seen.length, before);
+  await first.close();
+  const second = await setup.open({authorization: checkpointAuthorization({})});
+  assert.deepEqual(await second.client.lookupSubmission(submissionRef), outcome);
+  assert.equal(setup.org.seen.length, before);
+});
+
+test('a synthetic historical held read is approved across a Host restart and reaches the Named Result',
   async t => {
     const setup = await delegatedInstallation(t);
-    const first = await setup.open({authorization:
-      checkpointAuthorization({resumeAfterAnswer: false})});
+    const first = await setup.openHeld('held-read', {authorization:
+      checkpointAuthorization({resumeAfterAnswer: false, reviewReaders: ['reviewer-principal']})});
     const before = setup.org.seen.length;
-    const hold = await heldRead(first.client, 'held-read');
+    const hold = await heldRead(first.client, first.original);
     assert.equal(hold.checkpoint.kind, 'read_access');
     const reviewer = await first.as('reviewer-token');
     const {items: [summary]} = await reviewer.checkpoints();
+    const summaryReview = await reviewer.reviewCheckpoint(summary);
+    assert.equal(new TextDecoder().decode(summaryReview.bytes), first.original.reviewWire);
     await reviewer.resolveCheckpoints([{checkpoint: summary,
       decision: 'approved'}], {signer});
     // Nothing was read while the request was held and answered.
     assert.equal(setup.org.seen.length, before);
+    const approvedSnapshot = await syntheticHeldSnapshot(join(setup.root, 'state'), first.original);
+    assert.deepEqual(approvedSnapshot.runs, []); assert.deepEqual(approvedSnapshot.accepted, []);
     await first.close();
     const second = await setup.open({authorization:
       checkpointAuthorization({})});
@@ -1421,17 +1520,43 @@ test('a held read is approved across a Host restart and reaches the Named Result
       [['key-1', 'record-1'], ['key-3', 'record-3']]);
     // The approved read described its Resource and queried once.
     assert.equal(setup.queries().length, 1);
+    const finished = await waitFor(async () => {
+      const snapshot = await syntheticHeldSnapshot(join(setup.root, 'state'), first.original);
+      return snapshot.runs[0]?.status === 'succeeded' &&
+        Object.entries(snapshot.holdings).every(([name, state]) =>
+          state === (name === 'invocation_request' ? 'held' : 'retired')) &&
+        Object.entries(snapshot.physicalHoldings).every(([name, present]) =>
+          present === (name === 'invocation_request')) && snapshot.pendingPhysicalDeletions === 0 && snapshot;
+    });
+    assert.equal(finished.runs.length, 1);
+    assert.equal(finished.intents, 0);
+    assert.deepEqual(finished.accepted, [{caller_request_id: first.original.requestId,
+      logical_request_scope_cid: first.original.logicalRequestScopeCid,
+      intent_fingerprint_cid: first.original.intentFingerprintCid,
+      program_definition_cid: first.original.programDefinitionCid,
+      parameter_values_cid: first.original.parameterValuesCid,
+      caller_input_intent_cid: first.original.callerInputIntentCid,
+      run_definition_cid: found.ref.runDefinitionCid, physical_start_reserved: 1}]);
+    await second.close();
+    const readsBeforeRestart = setup.org.seen.length;
+    const third = await setup.open({authorization: checkpointAuthorization({})});
+    const restored = await third.client.lookupRequest(first.original.requestId);
+    assert.deepEqual(restored.ref, found.ref);
+    assert.deepEqual(await (await third.client.attach(restored.ref)).result('records').all(), rows);
+    assert.equal(setup.org.seen.length, readsBeforeRestart, 'Result recovery must not reread the provider');
   });
 
-test('an expired, cancelled or retargeted approval reads nothing',
+test('a synthetic historical expired, cancelled or retargeted approval reads nothing',
   async t => {
     // Expired: the approval lapses before the Host resumes the read.
     const expired = await delegatedInstallation(t);
-    const e1 = await expired.open({authorization: checkpointAuthorization({
-      checkpointTtlMs: 8000, resumeAfterAnswer: false})});
-    await heldRead(e1.client, 'expired-read');
+    const e1 = await expired.openHeld('expired-read', {authorization: checkpointAuthorization({
+      checkpointTtlMs: 8000, resumeAfterAnswer: false, reviewReaders: ['reviewer-principal']})});
+    await heldRead(e1.client, e1.original);
     const eReviewer = await e1.as('reviewer-token');
     const {items: [eSummary]} = await eReviewer.checkpoints();
+    const eSummaryReview = await eReviewer.reviewCheckpoint(eSummary);
+    assert.equal(new TextDecoder().decode(eSummaryReview.bytes), e1.original.reviewWire);
     await eReviewer.resolveCheckpoints([{checkpoint: eSummary,
       decision: 'approved'}], {signer});
     await e1.close();
@@ -1446,11 +1571,13 @@ test('an expired, cancelled or retargeted approval reads nothing',
 
     // Cancelled: the request is cancelled after approval, before resuming.
     const cancelled = await delegatedInstallation(t);
-    const c1 = await cancelled.open({authorization:
-      checkpointAuthorization({resumeAfterAnswer: false})});
-    await heldRead(c1.client, 'cancelled-read');
+    const c1 = await cancelled.openHeld('cancelled-read', {authorization:
+      checkpointAuthorization({resumeAfterAnswer: false, reviewReaders: ['reviewer-principal']})});
+    await heldRead(c1.client, c1.original);
     const cReviewer = await c1.as('reviewer-token');
     const {items: [cSummary]} = await cReviewer.checkpoints();
+    const cSummaryReview = await cReviewer.reviewCheckpoint(cSummary);
+    assert.equal(new TextDecoder().decode(cSummaryReview.bytes), c1.original.reviewWire);
     await cReviewer.resolveCheckpoints([{checkpoint: cSummary,
       decision: 'approved'}], {signer});
     await c1.client.cancelRequest('cancelled-read');
@@ -1465,11 +1592,13 @@ test('an expired, cancelled or retargeted approval reads nothing',
     // Retargeted: the declaration is republished after approval with another
     // field set, so the same Program would read another declared target.
     const retargeted = await delegatedInstallation(t);
-    const r1 = await retargeted.open({authorization:
-      checkpointAuthorization({resumeAfterAnswer: false})});
-    await heldRead(r1.client, 'retargeted-read');
+    const r1 = await retargeted.openHeld('retargeted-read', {authorization:
+      checkpointAuthorization({resumeAfterAnswer: false, reviewReaders: ['reviewer-principal']})});
+    await heldRead(r1.client, r1.original);
     const rReviewer = await r1.as('reviewer-token');
     const {items: [rSummary]} = await rReviewer.checkpoints();
+    const rSummaryReview = await rReviewer.reviewCheckpoint(rSummary);
+    assert.equal(new TextDecoder().decode(rSummaryReview.bytes), r1.original.reviewWire);
     await rReviewer.resolveCheckpoints([{checkpoint: rSummary,
       decision: 'approved'}], {signer});
     await r1.close();
@@ -1551,8 +1680,9 @@ test('retained Salesforce rows feed the formal Events Bridge', async t => {
     observe(name, detail) { observations.push({name, detail}); },
   })});
   const document = retainedSalesforceEventsDocument();
+  const submissionRef = client.newSubmission({nonce: 'salesforce-retained-events'});
   const execution = await client.startSource(JSON.stringify(document),
-    {format: 'json', requestId: 'salesforce-retained-events'});
+    {format: 'json', submissionRef});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('published').all(), [
     {Id: 'a00000000000001', Due_At__c: '2012-07-12T17:49:01.123Z',
@@ -1571,7 +1701,7 @@ test('retained Salesforce rows feed the formal Events Bridge', async t => {
   ]);
   assert.equal(setup.queries().length, 1);
   const resent = await client.startSource(JSON.stringify(document),
-    {format: 'json', requestId: 'salesforce-retained-events'});
+    {format: 'json', submissionRef});
   assert.deepEqual(resent.ref, execution.ref);
   assert.equal(setup.queries().length, 1);
   await close();
@@ -1608,8 +1738,9 @@ test('retained Salesforce Events failure publishes no partial Result',
     document.id = 'salesforce-retained-events-duplicate';
     document.stages[1].steps[1].to_events.id = 'Name';
     const requestId = 'salesforce-retained-events-duplicate';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -1618,7 +1749,7 @@ test('retained Salesforce Events failure publishes no partial Result',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 1);
     await close();
@@ -1639,8 +1770,9 @@ test('retained Salesforce Events later filter failure keeps no Result',
     document.id = 'salesforce-retained-events-later-failure';
     document.stages[1].steps[4].filter = 'clock / (clock - clock) > 0';
     const requestId = 'salesforce-retained-events-later-failure';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -1676,11 +1808,12 @@ test('retained Salesforce Events input stays owned through cancellation',
     const document = retainedSalesforceEventsDocument();
     document.id = 'salesforce-retained-events-cancel';
     const requestId = 'salesforce-retained-events-cancel';
+    const submissionRef = client.newSubmission({nonce: requestId});
     const execution = await client.startSource(JSON.stringify(document),
-      {format: 'json', requestId});
+      {format: 'json', submissionRef});
     await captured;
     assert.equal(setup.queries().length, 1);
-    await client.cancelRequest(requestId);
+    await execution.cancel();
     releaseCapture();
     const state = await execution.wait();
     assert.equal(state.status, 'cancelled', JSON.stringify(state));
@@ -1697,7 +1830,7 @@ test('Salesforce dates and UTC datetimes reach the Named Result as the same valu
     await setup.publish();
     const {client, close} = await setup.open();
     const execution = await client.startSource(temporalProgram, {format: 'json',
-      requestId: 'temporal-read'});
+      submissionRef: client.newSubmission({nonce: 'temporal-read'})});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const rows = await execution.result('records').all();
@@ -1727,7 +1860,7 @@ test('a datetime outside its declared type fails the acquisition, typed',
     await setup.publish();
     const {client, close} = await setup.open();
     const execution = await client.startSource(temporalProgram, {format: 'json',
-      requestId: 'temporal-violation'});
+      submissionRef: client.newSubmission({nonce: 'temporal-violation'})});
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
     assert.equal(setup.queries().length, 1);
@@ -1809,10 +1942,10 @@ test('Salesforce Numbers reach the Named Result as their exact declared decimals
     // fails Check before any provider I/O.
     const before = setup.org.seen.length;
     await assert.rejects(client.startSource(numberProgram.replaceAll('Amount__c',
-      'Wide_Amount__c'), {format: 'json', requestId: 'wide-number'}));
+      'Wide_Amount__c'), {format: 'json', submissionRef: client.newSubmission({nonce: 'wide-number'})}));
     assert.equal(setup.org.seen.length, before);
     const execution = await client.startSource(numberProgram, {format: 'json',
-      requestId: 'number-read'});
+      submissionRef: client.newSubmission({nonce: 'number-read'})});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const rows = await execution.result('records').all();
@@ -1838,7 +1971,7 @@ test('a Number beyond its declared scale fails the acquisition, typed',
     await setup.publish();
     const {client, close} = await setup.open();
     const execution = await client.startSource(numberProgram, {format: 'json',
-      requestId: 'number-violation'});
+      submissionRef: client.newSubmission({nonce: 'number-violation'})});
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
     await close();
@@ -1952,7 +2085,7 @@ test('the neutral Salesforce capture spans the complete locator chain', async t 
   const setup = await installation(t, {queryPageSize: 2});
   await setup.publish();
   const {client, close} = await setup.open();
-  const execution = await client.startSource(program, {format: 'json', requestId: 'paged-read'});
+  const execution = await client.startSource(program, {format: 'json', submissionRef: client.newSubmission({nonce: 'paged-read'})});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('records').all(), [
     {External_Key__c: 'key-1', Name: 'record-1'},
@@ -1990,11 +2123,14 @@ test('a refused later page cancels the already-admitted rows without replay', as
     }});
   await setup.publish();
   const {client, close} = await setup.open();
-  const execution = await client.startSource(program, {format: 'json', requestId: 'bad-later-page'});
+  const submissionRef = client.newSubmission({nonce: 'bad-later-page'});
+  const execution = await client.startSource(program, {format: 'json', submissionRef});
   assert.equal((await execution.wait()).status, 'failed');
   await assert.rejects(execution.result('records').all());
   const reads = setup.org.seen.length;
-  assert.equal((await client.lookupRequest('bad-later-page')).kind, 'found');
+  const found = await client.lookupSubmission(submissionRef);
+  assert.equal(found.kind, 'ready');
+  assert.deepEqual(found.admission.ref, execution.ref);
   assert.equal((await execution.wait()).status, 'failed');
   assert.equal(setup.org.seen.length, reads);
   assert.equal(setup.queries().length, 2);

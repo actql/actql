@@ -48,8 +48,13 @@ that column order. The independently authored
 rows and column contracts. [`two-source-join.program.json`](../../adapters/host-node/fixtures/two-source/two-source-join.program.json)
 owns the JOIN and its output ordering.
 
-`joined.run.json` retains the Run reference. Running only `run-example.mjs` again
-uses the same request ID and Program and reads the same Run. Both scripts close
+`joined.run.json` retains the Run reference. Before submitting, the script saves
+the complete submission reference (epoch and nonce), exact Program, and non-secret
+connection context in `two-source-example-data/connection.json.submission.json`.
+Running only `run-example.mjs` again reuses that saved submission and reads the
+same Run. It refuses a changed endpoint, Workspace, installed owner, or Program;
+it never replaces a saved submission with a new one after an error. Keep this
+record for recovery even when a submission response is lost. Both scripts close
 their normal Client or database owner in `finally`; keep `two-source-example-data`
 while its Run and Results are needed. All generated databases, state and output
 files belong to this example's consumer directory, which can be removed once
@@ -71,4 +76,7 @@ live Salesforce or warehouse integration. It reuses the capability described in
 The existing packed acceptance executes these exact files through both Embedded
 Local and HTTPS using one shared tarball set; it also verifies Result schema,
 stream completion and request reuse. HTTPS accepts an explicit connection file
-as the optional argument to `run-example.mjs`; no replacement executor is used.
+as the optional argument to `run-example.mjs`; its submission record uses that
+file's path with `.submission.json` appended. The path selects the record, while
+the saved connection context and current Host scope establish its binding. No
+token is copied into the submission record, and no replacement executor is used.

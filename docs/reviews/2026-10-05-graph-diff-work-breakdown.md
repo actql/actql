@@ -160,3 +160,42 @@ All seven preserved Graph diff provider cases passed on the integrated JSON
 diagnostic source through the bounded JS wrapper (`run-25K9cE`). This is a
 working-tree diagnostic; it does not replace the old mutation receipts or
 establish a published-head, packed, cross-target or hosted-CI pass.
+
+## Current bounded parser and decoder ledger
+
+The 2,858 and 2,873 observations above remain historical. Current initial-0.1
+snapshot spelling has 806 ASCII bytes rather than 824, and commit
+`9b6687a6942cc240b949ea9993a4d855647dabff` (#921) adds bounded JSON lexical
+and decode continuations. The independent empty fixture therefore requires
+**3,091** physical work units on the current source. This is derived from its
+authored tree and the continuation rules, not calibrated from an execution.
+
+The same tree has 41 values, 22 containers, 23 commas, 12 array children and
+28 object fields. Its 14 String values and 28 keys include four 71-unit CIDs;
+all other spellings fit one 64-scalar lexical poll.
+
+| Current component | Independent arithmetic | Work |
+| --- | --- | ---: |
+| Parser grammar | 41 value starts + 40 child starts + 28 colons + 46 lexical polls + 22 closes + 23 commas + 1 root delivery | 201 |
+| Parser including preflight | 806 scalar visits + 1 end check + 201 grammar | 1008 |
+| Decode | Original 103 + four CIDs times (1 replay + 2 UTF-8 polls) | 115 |
+| Kernel | `2*(2 + 3 + 1008 + 115 + 355) + 1 + 42` | 3009 |
+| Row start / row admission / trusted completion | `1 + 80 + 1` | 82 |
+| Total | `3009 + 82` | **3091** |
+
+The fixed test keeps kernel-only, row-start, one-short and exact admission,
+whole/selected providers, quantum-one and batching, independent output bytes,
+cumulative deltas and repeated cleanup. Its poll watchdog now derives from the
+independent total plus one terminal observation; the obsolete 3,000-poll bound
+could not reach a valid quantum-one completion. No logical workspace, value,
+search or configured production ceiling changes here.
+
+Source owners are `source_value/json_parser.mbt` (separate child, colon, lexical
+and root transitions), `source_value/lexical.mbt` (64-scalar fragments),
+`decode_core/admission.mbt` (long-text replay), and `decode_scalar/text_steps.mbt`
+(bounded UTF-8 measurement). Snapshot emission, JSON admission, Delta recheck
+and typed row admission retain the previously itemized quantities. The selected
+Append/Filter metadata reuse does not apply to this Graph provider.
+
+This section records a source-derived fixture correction. Its focused runtime
+verification is separate from the historical execution and mutation receipts.

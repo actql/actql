@@ -71,7 +71,7 @@ combined inventory remains bounded to 128 read bindings, 64 per member,
 member's declaration and physical binding is checked; installing a member
 does not read it or resolve its credentials. Each Run retains the existing
 maximum of two checked acquisition occurrences, selected by SourceRef.
-See the [current implementation status](../../docs/reviews/current-product-status.md)
+See the [current implementation status](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md)
 for merged capabilities and work that is still in a PR. Salesforce requires
 explicit declaration publication through the packaged `publishSource` export;
 Host startup restores the publication without provider I/O.
@@ -115,7 +115,7 @@ The existing two-Source Effect profile still requires two distinct DuckDB
 owners; an unused member neither becomes an acquisition nor changes that
 selected pair's continuation support. Host admission and each selected
 Source's own read authorization remain separate. See the
-[installation and recovery evidence](../../docs/reviews/current-product-status.md#source-and-effect-installation).
+[installation and recovery evidence](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md#source-and-effect-installation).
 
 Preparation, compilation, and Run evidence issuance retain the same checked
 owner in the installed runtime. Local does not load a second Run Host Core

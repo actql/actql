@@ -36,6 +36,24 @@ void ignored;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
+// The effective-policy contract preserves missing provenance as unknown.
+// Hash this authored original independently of compiled Run or Model output.
+const resultDataPolicyBody = {
+  version: 'actql-effective-data-policy/0.1', classification: 'unknown',
+  source_data_policy_cids: [], source_response_policy_cids: [],
+  unknown_provenance: true,
+};
+const resultDataPolicy = Object.freeze({kind: 'data_policy',
+  cid: cid(resultDataPolicyBody), wire: canonicalText(resultDataPolicyBody)});
+const inferPollKind = poll => moon.clientProgramInferExecutionPollKind(poll);
+
+// Fixed id/outcome/value(reason,risk) schema: each scalar emission takes 15
+// steps and the two-field object takes 68 (value_contract/encode.mbt). Each
+// schema pass adds two object delimiters and six steps per top-level field;
+// relation_schema_identity.mbt makes two passes, then copies three names.
+// Keep the original 200-step projection/order/metadata watchdog separately.
+const fixedInferResultSchemaPolls = 2 * (2 + 3 * 6 + 2 * 15 + 68) + 4;
+
 function environment(installTask = true, hostItems, installedTask = task,
   capacityOverrides = {}) {
   const body = {...baseEnvironment,
@@ -182,7 +200,7 @@ test('normal Program emits a model barrier without pretending it is pure AoA', (
   const control = runtimeCore(moon).publicationControl;
   const policy = {executionContextCid: `sha256:${'d'.repeat(64)}`,
     hostPolicyCid: `sha256:${'e'.repeat(64)}`,
-    expiresAt: '2099-01-01T00:00:00.000Z'};
+    expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
   const run = control.prepareCheckedClientCompiledRun(
     prepared, 'infer', policy, compiled);
   assert.deepEqual(JSON.parse(run.template.wire).required_profile_contracts,
@@ -299,7 +317,7 @@ async function acceptedModel() {
     });
   const active = checked(moon.clientProgramStartModelExecution(rows, provider,
     `sha256:${'1'.repeat(64)}`));
-  assert.equal((await modelTerminal(active)).$tag, 1);
+  assert.ok(moon.clientProgramModelCapture(await modelTerminal(active)));
   return {prepared, input, rows, active, calls: () => calls};
 }
 
@@ -392,12 +410,14 @@ test('a macrotask cancellation stops nested response admission without replaying
   const active = checked(moon.clientProgramStartInferExecution(
     prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
   for (let poll = 0; poll < 2000 && calls === 0; poll++) {
-    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(inferPollKind(checked(
+      moon.clientProgramAdvanceInferExecution(active, 1))), 'continue');
     await new Promise(resolve => setImmediate(resolve));
   }
   assert.equal(calls, 1);
   for (let poll = 0; poll < 64; poll++) {
-    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(inferPollKind(checked(
+      moon.clientProgramAdvanceInferExecution(active, 1))), 'continue');
     assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
     await new Promise(resolve => setImmediate(resolve));
   }
@@ -406,7 +426,8 @@ test('a macrotask cancellation stops nested response admission without replaying
     assert.equal(moon.clientProgramCancelInferExecution(active), true);
     resolve();
   }));
-  assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 3);
+  assert.equal(inferPollKind(checked(
+    moon.clientProgramAdvanceInferExecution(active, 1))), 'stopped');
   assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
   assert.equal(moon.clientProgramInferExecutionOutput(active), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
@@ -418,11 +439,18 @@ async function ownedInferTerminal(active, atYield, maxPolls = 2000) {
   let lastWork = 0n;
   for (let poll = 0; poll < maxPolls; poll++) {
     const value = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-    const work = value.$tag === 0 || value.$tag === 3 ? value._0 : value._1;
+    const kind = inferPollKind(value);
+    // client_infer_host.Poll carries work alone for Continue/Waiting/Stopped;
+    // Settling/Complete/Failed also carry a slot, output or issue before work.
+    assert.ok(['continue', 'waiting', 'settling', 'complete', 'failed', 'stopped']
+      .includes(kind), inspect(value));
+    const work = ['continue', 'waiting', 'stopped'].includes(kind)
+      ? value._0 : value._1;
+    assert.equal(typeof work, 'bigint');
     assert.ok(work >= lastWork && work - lastWork <= 1n,
       'child transitions preserve cumulative work and the quantum');
     lastWork = work;
-    if (value.$tag !== 0) return value;
+    if (kind !== 'continue') return value;
     atYield?.();
     await new Promise(resolve => setImmediate(resolve));
   }
@@ -434,7 +462,7 @@ test('actual Host request ceilings reject a late row before any dispatch', async
   const exact = ownedInfer(source, undefined, {capacityOverrides: {
     max_model_request_bytes_per_item: 16,
   }});
-  assert.equal((await ownedInferTerminal(exact.active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(exact.active)), 'complete');
   assert.equal(exact.calls(), 1);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(exact.active)), true);
   const late = structuredClone(source);
@@ -444,7 +472,7 @@ test('actual Host request ceilings reject a late row before any dispatch', async
       max_model_request_bytes_per_item: requestBytes,
     }});
     const failed = await ownedInferTerminal(active);
-    assert.equal(failed.$tag, 2, inspect(failed));
+    assert.equal(inferPollKind(failed), 'failed', inspect(failed));
     assert.equal(failed._0.$tag, 2, 'the common model owner rejects preflight');
     assert.equal(failed._0._0.$tag, 12, 'exact Model(RequestLimit) cause');
     assert.equal(calls(), 0);
@@ -486,7 +514,7 @@ test('macrotask cancellation stops nested request preflight before model access'
   let last = 0n;
   for (let poll = 0; poll < 50000; poll++) {
     const observation = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-    assert.equal(observation.$tag, 0, inspect(observation));
+    assert.equal(inferPollKind(observation), 'continue', inspect(observation));
     assert.ok(observation._0 >= last && observation._0 - last <= 1n);
     last = observation._0;
     if (moon.clientProgramInferRequestPreflightPending(active)) {
@@ -498,7 +526,7 @@ test('macrotask cancellation stops nested request preflight before model access'
   assert.equal(reached, true, 'the normal Program reached model preflight');
   for (let poll = 0; poll < 64; poll++) {
     const observation = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-    assert.equal(observation.$tag, 0);
+    assert.equal(inferPollKind(observation), 'continue');
     assert.ok(observation._0 >= last && observation._0 - last <= 1n);
     last = observation._0;
     assert.equal(moon.clientProgramInferRequestPreflightPending(active), true);
@@ -513,7 +541,7 @@ test('macrotask cancellation stops nested request preflight before model access'
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false,
     'a cancellation request is not physical stop confirmation');
   const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-  assert.equal(stopped.$tag, 3);
+  assert.equal(inferPollKind(stopped), 'stopped');
   assert.equal(moon.clientProgramInferRequestPreflightPending(active), false);
   assert.equal(moon.clientProgramInferExecutionOutput(stopped), undefined);
   assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
@@ -530,7 +558,7 @@ test('one MoonBit owner executes the checked prefix, model and Result output', a
   assert.equal(calls(), 0);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
   const terminal = await ownedInferTerminal(active);
-  assert.equal(terminal.$tag, 1, inspect(terminal));
+  assert.equal(inferPollKind(terminal), 'complete', inspect(terminal));
   const completed = moon.clientProgramInferExecutionOutput(terminal);
   assert.ok(completed);
   const a = moon.clientProgramAcquireInferOutput(active);
@@ -540,10 +568,14 @@ test('one MoonBit owner executes the checked prefix, model and Result output', a
   assert.equal(moon.clientProgramInferOutputUse(b), completed);
   const transform = checked(moon.clientProgramInferResultExportBegin(
     prepared, 0, moon.clientProgramInferOutputUse(a)));
-  for (let poll = 0; poll < 200; poll++) {
-    if (checked(moon.clientProgramInferResultExportAdvance(transform, 1))._0) break;
+  let ready = false;
+  for (let poll = 0; poll < 200 + fixedInferResultSchemaPolls; poll++) {
+    const state = checked(moon.clientProgramInferResultExportAdvance(transform, 1));
+    assert.equal(state._1, 1, 'one physical preparation step per poll');
+    if (state._0) { ready = true; break; }
     await new Promise(resolve => setImmediate(resolve));
   }
+  assert.equal(ready, true, 'fixed Result preparation must complete before finish');
   const stream = checked(moon.clientProgramInferResultExportFinish(transform));
   let wire = '';
   for (let chunk = 0; chunk < 20; chunk++) {
@@ -577,7 +609,7 @@ test('scoped normal inference reconstructs a stable slot from its completed inpu
   for (let reconstruction = 0; reconstruction < 2; reconstruction++) {
     const {active, calls} = ownedInfer(undefined, undefined, {scoped: true});
     const terminal = await ownedInferTerminal(active);
-    assert.equal(terminal.$tag, 1, inspect(terminal));
+    assert.equal(inferPollKind(terminal), 'complete', inspect(terminal));
     assert.equal(calls(), 1);
     const capture = JSON.parse(moon.clientProgramModelCaptureJson(
       moon.clientProgramInferExecutionCapture(active)));
@@ -876,7 +908,7 @@ test('Node Infer binds existing account authority and reads common issued attemp
     const control = runtimeCore(moon).publicationControl;
     const root = cid({fixture: 'infer-component-policy'});
     const policy = {executionContextCid: root, hostPolicyCid: root,
-      expiresAt: '2099-01-01T00:00:00.000Z'};
+      expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
     const compiled = control.prepareCheckedClientCompiledRun(prepared,
       'infer', policy, graph);
     const runDefinition = control.defineCheckedClientCompiledRun(compiled,
@@ -949,7 +981,7 @@ test('Node Infer rechecks account and clock observations immediately before mode
     const control = runtimeCore(moon).publicationControl;
     const root = cid({fixture: 'infer-component-policy'});
     const policy = {executionContextCid: root, hostPolicyCid: root,
-      expiresAt: '2099-01-01T00:00:00.000Z'};
+      expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
     const compiled = control.prepareCheckedClientCompiledRun(prepared,
       'infer', policy, graph);
     const runDefinition = control.defineCheckedClientCompiledRun(compiled,
@@ -1001,7 +1033,7 @@ test('issued Infer Result custody outlives Store cancellation and cleanup retry'
   const control = runtimeCore(moon).publicationControl;
   const root = cid({fixture: 'infer-result-custody'});
   const policy = {executionContextCid: root, hostPolicyCid: root,
-    expiresAt: '2099-01-01T00:00:00.000Z'};
+    expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
   const compiled = control.prepareCheckedClientCompiledRun(prepared,
     'infer', policy, graph);
   const runDefinition = control.defineCheckedClientCompiledRun(compiled,
@@ -1162,7 +1194,7 @@ test('compiled Run binding retains the actual Infer output without preparing or 
     }).publicationControl;
     const root = cid({fixture: 'symbolic-invocation-external-root'});
     const policy = {executionContextCid: root, hostPolicyCid: root,
-      expiresAt: '2099-01-01T00:00:00.000Z'};
+      expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
     const compiled = control.prepareCheckedClientCompiledRun(prepared,
       'infer', policy, graph);
     const runDefinition = control.defineCheckedClientCompiledRun(compiled,
@@ -1212,7 +1244,7 @@ test('compiled Run binding retains the actual Infer output without preparing or 
       version: 'actql-observation-set/0.1',
       invocation_template_cid: compiled.template.identity,
       captured_input_artifact_cids: [call.input_artifact_cid],
-      source_evidence_cids: [], data_policy_cid: root,
+      source_evidence_cids: [], data_policy_cid: resultDataPolicy.cid,
       consistency: 'independent_snapshots',
       capture_started_at: '2026-10-02T00:00:00.000Z',
       capture_completed_at: '2026-10-02T00:00:00.000Z',
@@ -1235,7 +1267,7 @@ test('compiled Run binding retains the actual Infer output without preparing or 
     verification = checked(moon.clientProgramStartInferObservationVerification(
       capture, observation, [slot], 1, 16384, 2));
     const args = {compiled, runDefinition, verification, invocation,
-      dataPolicyCid: root};
+      dataPolicyCid: resultDataPolicy.cid};
     assert.throws(() => operation.bindInvocation(control, args), error =>
       error.code === 'MoonBitHostFailure' && error.cause?.$tag === 2);
     assert.equal(checked(moon.clientProgramAdvanceInferObservationVerification(
@@ -1478,7 +1510,7 @@ test('failed slot custody survives encrypted Store reopen and replays without di
   const control = runtimeCore(moon).publicationControl;
   const root = cid({fixture: 'stored-infer-component-policy'});
   const policy = {executionContextCid: root, hostPolicyCid: root,
-    expiresAt: '2099-01-01T00:00:00.000Z'};
+    expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
   const compiled = control.prepareCheckedClientCompiledRun(original.prepared,
     'infer', policy, original.graph);
   const runDefinition = control.defineCheckedClientCompiledRun(compiled,
@@ -1530,7 +1562,7 @@ test('failed slot custody survives encrypted Store reopen and replays without di
     version: 'actql-observation-set/0.1',
     invocation_template_cid: compiled.template.identity,
     captured_input_artifact_cids: [call.input_artifact_cid], source_evidence_cids: [],
-    data_policy_cid: task.data_handling.contract_cid, consistency: 'no_external_sources',
+    data_policy_cid: resultDataPolicy.cid, consistency: 'no_external_sources',
     capture_started_at: null, capture_completed_at: null,
     replayability: {materialized: false, availability_evidence_cids: []},
     model_slot_capture_cids: [identity],
@@ -1771,7 +1803,7 @@ async function exportedModelCapture(saved, {maxBytes = 100000, maxWork = 10000} 
 
 test('checked capture serializes its formal bundle and survives encrypted Store reopen', async t => {
   const original = ownedInfer(undefined, undefined, {scoped: true});
-  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(original.active)), 'complete');
   const saved = moon.clientProgramAcquireInferCapture(original.active);
   assert.ok(saved);
   const exported = await exportedModelCapture(saved);
@@ -1980,7 +2012,8 @@ test('a macrotask stops nested capture serialization without releasing its owner
     scoped: true, installedTask,
     responseBody: canonicalText({reason: null, risk: Array(512).fill(0)}),
   });
-  assert.equal((await ownedInferTerminal(original.active, undefined, 100000)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(
+    original.active, undefined, 100000)), 'complete');
   const saved = moon.clientProgramAcquireInferCapture(original.active);
   const stream = checked(moon.clientProgramStartInferCaptureExport(saved, 100000, 10000));
   assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
@@ -2017,7 +2050,7 @@ test('a macrotask stops nested capture serialization without releasing its owner
 
 test('restored replay validates records and typed responses rather than accepting a matching slot', async () => {
   const original = ownedInfer(undefined, undefined, {scoped: true});
-  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(original.active)), 'complete');
   const capture = moon.clientProgramAcquireInferCapture(original.active);
   const exported = await exportedModelCapture(capture);
   const baseline = JSON.parse(exported.wire);
@@ -2062,7 +2095,7 @@ test('restored replay validates records and typed responses rather than acceptin
       scopedInferGraph(prepared), registry, values, read, fragment, ordered));
     assert.equal(moon.clientProgramReleaseInferCaptureBundle(read), true);
     const terminal = await ownedInferTerminal(replay);
-    assert.equal(terminal.$tag, 2, name);
+    assert.equal(inferPollKind(terminal), 'failed', name);
     assert.equal(terminal._0.$tag, 2, `${name}: model cause`);
     assert.equal(terminal._0._0.$tag, cause, `${name}: exact typed cause`);
     assert.equal(moon.clientProgramInferExecutionOutput(terminal), undefined);
@@ -2083,7 +2116,8 @@ test('restored nested response remains private and cancellable during reconstruc
   installedTask.contract_cid = cid(installedTask);
   const original = ownedInfer(undefined, undefined, {scoped: true, installedTask,
     responseBody: canonicalText({reason: null, risk: Array(512).fill(0)})});
-  assert.equal((await ownedInferTerminal(original.active, undefined, 100000)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(
+    original.active, undefined, 100000)), 'complete');
   const capture = moon.clientProgramAcquireInferCapture(original.active);
   const exported = await exportedModelCapture(capture);
   const saved = checked(moon.clientProgramReadInferCaptureBundle(exported.wire, exported.identity));
@@ -2099,13 +2133,14 @@ test('restored nested response remains private and cancellable during reconstruc
   let reached = false;
   for (let poll = 0; poll < 2000; poll++) {
     const observed = checked(moon.clientProgramAdvanceInferExecution(replay, 1));
-    assert.equal(observed.$tag, 0);
+    assert.equal(inferPollKind(observed), 'continue');
     if (moon.clientProgramInferExecutionRestoring(replay)) { reached = true; break; }
     await new Promise(resolve => setImmediate(resolve));
   }
   assert.equal(reached, true);
   for (let poll = 0; poll < 64; poll++) {
-    assert.equal(checked(moon.clientProgramAdvanceInferExecution(replay, 1)).$tag, 0);
+    assert.equal(inferPollKind(checked(
+      moon.clientProgramAdvanceInferExecution(replay, 1))), 'continue');
     assert.equal(moon.clientProgramInferExecutionRestoring(replay), true);
     await new Promise(resolve => setImmediate(resolve));
   }
@@ -2117,7 +2152,7 @@ test('restored nested response remains private and cancellable during reconstruc
   }));
   assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), false);
   const stopped = checked(moon.clientProgramAdvanceInferExecution(replay, 1));
-  assert.equal(stopped.$tag, 3);
+  assert.equal(inferPollKind(stopped), 'stopped');
   assert.equal(moon.clientProgramInferExecutionOutput(stopped), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
@@ -2127,7 +2162,7 @@ test('restored nested response remains private and cancellable during reconstruc
 test('a fresh normal preparation replays opaque checked observations without dispatch', async () => {
   const original = ownedInfer(undefined, undefined, {scoped: true});
   assert.equal(moon.clientProgramAcquireInferCapture(original.active), undefined);
-  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(original.active)), 'complete');
   const saved = moon.clientProgramAcquireInferCapture(original.active);
   assert.ok(saved);
   const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
@@ -2140,7 +2175,7 @@ test('a fresh normal preparation replays opaque checked observations without dis
   assert.equal(moon.clientProgramReleaseInferCapture(saved), false);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false);
   const terminal = await ownedInferTerminal(replay);
-  assert.equal(terminal.$tag, 1, inspect(terminal));
+  assert.equal(inferPollKind(terminal), 'complete', inspect(terminal));
   assert.deepEqual(await inferExportRows(prepared,
     moon.clientProgramInferExecutionOutput(terminal)), [
     {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
@@ -2164,7 +2199,7 @@ test('scoped execution and restored replay evaluate a filtered input prefix', as
   const step = moon.clientProgramSelectedInferStep(original.prepared);
   assert.equal(step, 4);
   const terminal = await ownedInferTerminal(original.active);
-  assert.equal(terminal.$tag, 1, inspect(terminal));
+  assert.equal(inferPollKind(terminal), 'complete', inspect(terminal));
   assert.equal(original.calls(), 1, 'the filtered-out row never dispatches');
   assert.deepEqual(await inferExportRows(original.prepared,
     moon.clientProgramInferExecutionOutput(terminal)), [
@@ -2187,7 +2222,7 @@ test('scoped execution and restored replay evaluate a filtered input prefix', as
     scopedInferGraph(fresh), registry, values, read, fragment, ordered));
   assert.equal(moon.clientProgramReleaseInferCaptureBundle(read), true);
   const replayed = await ownedInferTerminal(replay);
-  assert.equal(replayed.$tag, 1, inspect(replayed));
+  assert.equal(inferPollKind(replayed), 'complete', inspect(replayed));
   assert.deepEqual(await inferExportRows(fresh,
     moon.clientProgramInferExecutionOutput(replayed)), [
     {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
@@ -2198,7 +2233,7 @@ test('scoped execution and restored replay evaluate a filtered input prefix', as
 
 test('replay rejects changed input and task instead of redispatching a model', async () => {
   const original = ownedInfer(undefined, undefined, {scoped: true});
-  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(original.active)), 'complete');
   const saved = moon.clientProgramAcquireInferCapture(original.active);
   assert.ok(saved);
   const changedTask = structuredClone(task);
@@ -2215,7 +2250,7 @@ test('replay rejects changed input and task instead of redispatching a model', a
       scopedInferGraph(prepared, installedTask), registry, values, saved,
       fragment, ordered));
     const terminal = await ownedInferTerminal(replay);
-    assert.equal(terminal.$tag, 2, inspect(terminal));
+    assert.equal(inferPollKind(terminal), 'failed', inspect(terminal));
     assert.equal(terminal._0.$tag, 2, 'Model issue');
     assert.equal(terminal._0._0.$tag, 6, 'exact OutputIdentity cause');
     assert.equal(moon.clientProgramAcquireInferOutput(replay), undefined);
@@ -2231,7 +2266,8 @@ test('stopping between checked response and sealed observation issues no complet
   const {active, calls} = ownedInfer(undefined, undefined, {scoped: true});
   let reached = false;
   for (let poll = 0; poll < 20000; poll++) {
-    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(inferPollKind(checked(
+      moon.clientProgramAdvanceInferExecution(active, 1))), 'continue');
     if (moon.clientProgramInferObservationPending(active)) {
       reached = true;
       break;
@@ -2247,7 +2283,8 @@ test('stopping between checked response and sealed observation issues no complet
     resolve();
   }));
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
-  assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 3);
+  assert.equal(inferPollKind(checked(
+    moon.clientProgramAdvanceInferExecution(active, 1))), 'stopped');
   assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
   assert.equal(moon.clientProgramInferInvocationEvidence(active, 0), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
@@ -2264,7 +2301,8 @@ test('a macrotask stops unused nested input identity before scoped model dispatc
     capacityOverrides: {max_nested_value_bytes: 10000, max_artifact_bytes: 10000}});
   let reached = false;
   for (let poll = 0; poll < 20000; poll++) {
-    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(inferPollKind(checked(
+      moon.clientProgramAdvanceInferExecution(active, 1))), 'continue');
     if (moon.clientProgramInferIdentityPending(active)) {
       reached = true;
       break;
@@ -2273,7 +2311,8 @@ test('a macrotask stops unused nested input identity before scoped model dispatc
   }
   assert.equal(reached, true);
   for (let poll = 0; poll < 100; poll++) {
-    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(inferPollKind(checked(
+      moon.clientProgramAdvanceInferExecution(active, 1))), 'continue');
     assert.equal(moon.clientProgramInferIdentityPending(active), true);
     await new Promise(resolve => setImmediate(resolve));
   }
@@ -2283,7 +2322,8 @@ test('a macrotask stops unused nested input identity before scoped model dispatc
     resolve();
   }));
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
-  assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 3);
+  assert.equal(inferPollKind(checked(
+    moon.clientProgramAdvanceInferExecution(active, 1))), 'stopped');
   assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
@@ -2310,7 +2350,7 @@ test('owned inference observes cancellation at model and output handoffs', async
       }
     });
     assert.equal(requested, true, where);
-    assert.equal(terminal.$tag, 3, `${where}: ${inspect(terminal)}`);
+    assert.equal(inferPollKind(terminal), 'stopped', `${where}: ${inspect(terminal)}`);
     assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
     assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
     const stoppedCalls = calls();
@@ -2325,7 +2365,7 @@ test('owned inference closes an empty checked input without model dispatch', asy
   const source = program();
   source.stages[0].steps[0].values.rows = [];
   const {active, calls} = ownedInfer(source);
-  assert.equal((await ownedInferTerminal(active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(active)), 'complete');
   assert.equal(calls(), 0);
   assert.deepEqual(JSON.parse(moon.clientProgramModelCaptureJson(
     moon.clientProgramInferExecutionCapture(active))).captures, []);
@@ -2347,7 +2387,7 @@ test('normal Infer dispatch respects actual Host and bound author item ceilings'
   ]) {
     const {active, calls} = ownedInfer(source, undefined, options);
     const terminal = await ownedInferTerminal(active);
-    assert.equal(terminal.$tag, 2, inspect(terminal, {depth: 4}));
+    assert.equal(inferPollKind(terminal), 'failed', inspect(terminal, {depth: 4}));
     // Exact typed Model(ItemLimit), not a coincidental downstream failure.
     assert.equal(terminal._0.$tag, 2);
     assert.equal(terminal._0._0.$tag, 2);
@@ -2358,7 +2398,7 @@ test('normal Infer dispatch respects actual Host and bound author item ceilings'
     assert.equal(calls(), 0);
   }
   const {active, calls} = ownedInfer(two, undefined, {hostItems: 2});
-  assert.equal((await ownedInferTerminal(active)).$tag, 1);
+  assert.equal(inferPollKind(await ownedInferTerminal(active)), 'complete');
   assert.equal(calls(), 2);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
   assert.equal(calls(), 2);
@@ -2389,8 +2429,9 @@ test('only accepted model output enters the original checked Result transform', 
   const transform = checked(moon.clientProgramInferResultExportBegin(
     prepared, 0, completed));
   let ready = false;
-  for (let poll = 0; poll < 200; poll++) {
+  for (let poll = 0; poll < 200 + fixedInferResultSchemaPolls; poll++) {
     const state = checked(moon.clientProgramInferResultExportAdvance(transform, 1));
+    assert.equal(state._1, 1, 'one physical preparation step per poll');
     assert.equal(typeof state._0, 'boolean', inspect(state));
     if (state._0) { ready = true; break; }
     await new Promise(resolve => setImmediate(resolve));
@@ -2453,7 +2494,7 @@ test('model output refuses unaccepted executions and a foreign prepared input ow
     `sha256:${'1'.repeat(64)}`));
   assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
   assert.equal(calls, 0);
-  assert.equal((await modelTerminal(active)).$tag, 1);
+  assert.ok(moon.clientProgramModelCapture(await modelTerminal(active)));
   const foreignInput = startInput();
   const foreignRows = await mappedRows(foreignInput);
   assert.equal(moon.clientProgramStartModelOutput(foreignInput,
@@ -2484,7 +2525,9 @@ test('a response arriving after cancellation cannot authorize model output', asy
   assert.equal(reservation.$tag, 0,
     'reserve attempts in bounded steps before the first call');
   assert.equal(calls, 0);
-  assert.equal((await modelTerminal(active, reservation._2 ?? reservation._1)).$tag, 3,
+  // ModelObservation has Continue, Waiting, Settling, Completed, Failed, Stopped.
+  // Unlike Infer Poll, this bridge has no kind accessor for its stop observation.
+  assert.equal((await modelTerminal(active, reservation._2 ?? reservation._1)).$tag, 5,
     'preflight reaches the provider before its cancellation stops the owner');
   assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
   assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false,

@@ -3,9 +3,16 @@
 /// of single-input tasks. Other legal DAG shapes need their own custody
 /// composition; checked graph admission alone does not install that support.
 fn resident_linear_graph(graph : @strategy.CheckedDAG) -> Bool {
+  !@strategy.graph_program_has_effects(graph) &&
+  resident_linear_computation_graph(graph)
+}
+
+///|
+/// Shape only. Effect callers must also retain their bound Effect Run owner;
+/// this projection neither admits a dispatch nor authorizes an Effect write.
+fn resident_linear_computation_graph(graph : @strategy.CheckedDAG) -> Bool {
   let count = @strategy.graph_task_count(graph)
   if count < 1 ||
-    @strategy.graph_program_has_effects(graph) ||
     @strategy.graph_result_count(graph) != 1 ||
     @strategy.graph_result_task(graph, 0) != Some(count - 1) ||
     @strategy.graph_task_target(graph, 0) is Some(_) ||

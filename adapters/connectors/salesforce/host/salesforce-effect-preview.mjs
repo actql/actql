@@ -98,7 +98,9 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
         effect_identity_cid: identity.identity,
         ...(descriptor._6 === undefined ? {} :
           {source_result: descriptor._6}),
-        result_artifact_cid: source._0,
+        // Semantic local Result identity is distinct from the run-custody
+        // Effect source Artifact; its source binding remains checked above.
+        result_artifact_cid: member.localResultArtifact.identity,
         preview_strength: member.previewStrength,
         source_binding_cid: source._1,
         capability_evidence_cid: capability.identity,

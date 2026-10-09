@@ -140,8 +140,9 @@ test "source-free scalar chain uses independent exact work and workspace limits"
   // Filter: six input steps + three retained roots + three seven-step
   // rows (begin/snapshot/two literal steps/build/check/commit) + finish = 31.
   // Select: six input steps + three four-step output rows + finish = 19.
-  // Add completion-port scans for the three fixed lowered IDs and names,
-  // independently of the execution meter. Handoffs cost one each.
+  // Values still scans its fixed completion ID/names. Selected Filter and
+  // Select reuse admitted metadata and perform no separate name scans.
+  // These quantities are independent of the meter; handoffs cost one each.
   // Each child's semantic control charges also fit the chain ceiling.
   // Filter workspace peaks at three metadata entries + three input roots
   // + one snapshot + two predicate slots = 9; Values and Select need less.
@@ -149,11 +150,9 @@ test "source-free scalar chain uses independent exact work and workspace limits"
   let values_work = 1 + 3 * (1 + 1 + (1 + 1 + 1 + 1)) + 1
   let filter_work = 6 + 3 + 3 * 7 + 1
   let select_work = 6 + 3 * 4 + 1
-  let preparation = expected_ascii_completion_port_work("values_0", ["id"]) +
-    expected_ascii_completion_port_work("where_1", ["id"]) +
-    expected_ascii_completion_port_work("select_2", ["id"])
+  let preparation = expected_ascii_completion_port_work("values_0", ["id"])
   let exact = values_work + filter_work + select_work + preparation + 2
-  assert_eq((preparation, exact), (90, 162))
+  assert_eq((preparation, exact), (31, 103))
   let registry = search_registry()
   let generated = task_test_generated(
     zero_input_request_owner(
@@ -162,14 +161,20 @@ test "source-free scalar chain uses independent exact work and workspace limits"
   )
   assert_source_free_child_work(generated, [
     values_work + 31,
-    filter_work + 28,
-    select_work + 31,
+    filter_work,
+    select_work,
   ])
   for quantum in [1, 7, 256] {
     for
       (max_work, max_entries, expected) in [
+        // Former physical-scan budgets remain admitted compatibility cases.
+        (162, 9, "complete"),
+        (161, 9, "complete"),
+        (134, 9, "complete"),
+        (133, 9, "complete"),
         (exact, 9, "complete"),
         (exact - 1, 9, "work"),
+        (162, 8, "workspace"),
         (exact, 8, "workspace"),
       ] {
       let limits : @execution.SequenceExecutionLimits = {

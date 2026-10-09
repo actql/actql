@@ -37,6 +37,8 @@ pub struct Field {
 ///|
 struct Fields {
   values : Array[Field]
+  // Immutable aggregate from the constructor's original UTF-8 admission.
+  name_bytes : Int
 }
 
 ///|

@@ -9939,7 +9939,7 @@ fn wire_check_report_contract(value : Json) -> Bool {
   for reason in limits {
     occurrences.push(reason)
   }
-  if documents.size() != inputs.length() {
+  if documents.length() != inputs.length() {
     return false
   }
   if documents.get("program") is Some(program) {
