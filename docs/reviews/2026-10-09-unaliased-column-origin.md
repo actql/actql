@@ -94,9 +94,30 @@ not full Core, Wasm/native, proof, performance or GitHub CI results.
 
 ## Packed verification and E handoff
 
-Normal five-package production and the existing `--source-free-only` consumer
-are the next check. Until their receipt is recorded, external tarball acceptance
-is unverified. No package payload is overlaid and no checker is mocked.
+The first normal five-package producer used clean source
+`d2a4432462205a456e7109f147db5cf7a3d279d0`. The existing
+`--source-free-only` consumer passed the new Local diagnostics and all 23
+source-free positive cases, then stopped at the old generic refusal-code check
+for `SELECT *`. Receipt: `../.codex-scratch/public-query-evidence-Wts9eI`,
+command `010`; bounded wrapper `local-checks/attempts/run-UpLyX1`. HTTPS was
+not reached. This is retained failed evidence, not a passing campaign.
+
+A minimal public Local probe against those normal packages (`run-2HX9x7`)
+and the retained pre-origin packages from
+`5552c96a9716eb40d5038c3db20f68f42fb0f09c` (`run-CLh3Mr`) independently
+confirmed the same star result: undetermined, implementation-limit coverage,
+and `ClientProgramImplementationLimit`. The earlier source is the reviewed
+JOIN/set unit over the same main, not an assertion that it is pristine main.
+The unaliased missing-column refusal remained `ClientProgramInvalidInput`
+in both; only the new source carries its authored location.
+
+The existing check owner classifies `UnsupportedProjection` as an implementation
+limit. The fixture now requires that exact code for source-free star, instead
+of accepting one of several unrelated generic input codes. No product category,
+row/type/order expectation or resource bound was changed. Unexpected refusal
+messages now identify their case. The augmented fixture checks passed 3/3
+(`run-QJofqh`, `focused-test-yW5SjY`). The rerun remains necessary to establish both
+entrances; no package payload is overlaid and no checker is mocked.
 
 E can continue using the existing `source_frontend::unknown_column_origin`
 accessor and public report location contract. The B change supplies the missing

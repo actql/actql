@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {unaliasedColumnOrigins} from './fixtures/unaliased-column-origin.mjs';
+import {sourceFreeRefusals} from './fixtures/public-query-input.mjs';
 
 test('authored origin expectations retain exact original bytes and repeated spellings', () => {
   assert.equal(unaliasedColumnOrigins.length, 8);
@@ -19,4 +20,10 @@ test('the normal packed public check uses the origin fixture at both existing en
   assert.ok(app.includes('await exerciseUnaliasedColumnOrigins(client, publicCheckSdk)'));
   assert.ok(driver.includes("['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs']"));
   assert.ok(app.includes('packed public check ${options.mode} passed'));
+});
+
+test('source-free star retains the existing explicit implementation-limit refusal', () => {
+  assert.deepEqual(sourceFreeRefusals.find(value => value.name === 'source-free-star'),
+    {name: 'source-free-star', format: 'sql', text: 'SELECT *',
+      expectedCode: 'ClientProgramImplementationLimit'});
 });
