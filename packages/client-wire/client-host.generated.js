@@ -3730,11 +3730,7 @@ const schemas = {
                 }
               },
               "kind": {
-                "enum": [
-                  "accepted",
-                  "already_requested",
-                  "already_terminal"
-                ]
+                "const": "accepted"
               },
               "revision": {
                 "type": "integer",
@@ -3851,7 +3847,6 @@ const schemas = {
               },
               "kind": {
                 "enum": [
-                  "accepted",
                   "already_requested",
                   "already_terminal"
                 ]

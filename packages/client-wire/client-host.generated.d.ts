@@ -714,7 +714,7 @@ export type WireCancellationAttemptShape = Readonly<{
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
-  kind: "accepted" | "already_requested" | "already_terminal";
+  kind: "accepted";
   revision: number;
   cancelRef: Readonly<{
   namespaceId: string;
@@ -736,7 +736,7 @@ export type WireCancellationAttemptShape = Readonly<{
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
-  kind: "accepted" | "already_requested" | "already_terminal";
+  kind: "already_requested" | "already_terminal";
   revision: number;
   cancelRef: Readonly<{
   namespaceId: string;

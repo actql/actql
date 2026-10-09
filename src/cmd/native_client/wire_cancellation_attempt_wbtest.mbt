@@ -88,5 +88,6 @@ test "Native cancellation attempt: contradictory AlreadySatisfied" {
   ) catch {
     _ => fail("InvalidIndependentFixture")
   }
+  assert_eq(wire_cancellation_attempt_shape(value), false)
   assert_eq(valid_cancellation_reply(value, request, false), false)
 }

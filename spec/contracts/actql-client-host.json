@@ -4186,11 +4186,7 @@
                   }
                 },
                 "kind": {
-                  "enum": [
-                    "accepted",
-                    "already_requested",
-                    "already_terminal"
-                  ]
+                  "const": "accepted"
                 },
                 "revision": {
                   "type": "integer",
@@ -4307,7 +4303,6 @@
                 },
                 "kind": {
                   "enum": [
-                    "accepted",
                     "already_requested",
                     "already_terminal"
                   ]

@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as wire from './index.mjs';
+import {validCancellationAttemptShape} from './client-host.generated.js';
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 19};
 const cancellation = {ref, cancelRef, kind: 'accepted', revision: 20};
 const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
+
+for (const [outer, inner] of [['accepted', 'already_terminal'], ['already_satisfied', 'accepted']]) {
+  test(`generated cancellation contract refuses ${outer} over contradictory ${inner}`, () => {
+    const value = {kind: outer, attemptRef: {operation: 'cancel', attemptId: 'this-invocation'},
+      cancellation: {...cancellation, kind: inner}};
+    assert.equal(validCancellationAttemptShape(value), false);
+    assert.equal(wire.validCancellationAttempt(value, cancelRef, value.attemptRef), false);
+  });
+}
 
 test('public cancellation admission requires its immutable operation reference', () => {
   assert.equal(wire.validCancellation(cancellation, cancelRef), true);
