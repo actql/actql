@@ -6,7 +6,8 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentProposals = process.argv.includes('--resident-proposals');
+const residentPreview = process.argv.includes('--resident-preview');
+const residentProposals = residentPreview || process.argv.includes('--resident-proposals');
 
 const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT;
 assert(typeof scratch === 'string' && scratch.length > 0,
@@ -129,7 +130,7 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + "], " +
+    JSON.stringify(selection) + (residentPreview ? ", '--filter', 'Native retained consumer*'" : "") + "], " +
     "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
@@ -138,7 +139,7 @@ try {
     code, signal, requests: paths, writes,
     provider: bearer?.effectTargets(),
     scope: residentProposals
-      ? 'Actual retained Native consumer -> checked Provider request -> physical HTTPS target observation; no whole Preview, approval, apply or Cloud'
+      ? 'Actual retained Native consumer -> physical HTTPS target observation -> original Artifact and checked Preview plan; no Store commit, approval, apply or Cloud'
       : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   assert.equal(writes, 0);

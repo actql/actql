@@ -948,17 +948,58 @@ fn retained_compute_case(
   } else {
     None
   }
+  let provider_artifact_bound = Ref(false)
   let pending_effect_export = if provider && effect_inputs is Some(inputs) {
-    resident_provider_observe(
+    let facts = resident_provider_observe(
       consumer,
       effect_materials.unwrap().0,
       inputs,
       acquired.unwrap().0,
       dispatch,
+      effect_materials.unwrap().1,
       root_path,
       name,
       deny_provider~,
     )
+    if facts is Some(facts) {
+      let mut effect_index = -1
+      let mut root_index = -1
+      for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+        if @strategy.captured_effect_local_result_matches_member(
+            inputs, index, 0,
+          ) {
+          effect_index = index
+        } else {
+          root_index = index
+        }
+      }
+      assert_true(effect_index >= 0 && root_index >= 0)
+      let (earlier, earlier_bodies) = acquired.unwrap()
+      let (again, again_bodies) = retained_compute_acquired_evidence(
+        source_owner,
+      ).unwrap()
+      assert_eq(again_bodies, earlier_bodies)
+      retained_effect_transferred_artifact(
+        consumer,
+        effect_materials.unwrap().0,
+        inputs,
+        root_index,
+        effect_index,
+        earlier,
+        earlier_bodies,
+        @host.client_effect_acquired_invocation(again),
+        producer_dependency.unwrap().0,
+        producer_dependency.unwrap().1,
+        producer_dependency.unwrap().2,
+        producer_dependency.unwrap().4,
+        common_input,
+        site,
+        output,
+        stop_custodies,
+        provider=Some(facts),
+      )
+      provider_artifact_bound.val = true
+    }
     assert_eq(acquisitions.val, 1)
     assert_eq(producer_captures.val, 1)
     assert_eq(entries.val, 1)
@@ -1165,7 +1206,7 @@ fn retained_compute_case(
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(source_export)
   if producer_dependency is Some((pins, _, _, dependency_receipt, _)) {
-    if provider {
+    if provider && !provider_artifact_bound.val {
       // This observation case retains the producer pin itself instead of
       // passing it through the complete Effect capture helper above.
       assert_true(@strategy.release_captured_effect_local_unit_inputs(pins))
