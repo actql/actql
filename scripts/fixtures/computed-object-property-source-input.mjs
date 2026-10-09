@@ -318,3 +318,49 @@ export const computedObjectStarRefusals = [
   sourceRows, expectedCode}));
 computedObjectPropertySuccesses.push(...computedObjectStarSuccesses);
 computedObjectPropertyRefusals.push(...computedObjectStarRefusals);
+
+// Independent complete-row controls. DISTINCT compares the object before the
+// member projection; the duplicated id=2 input contributes just one set row.
+export const setObjectMemberProgram = operation => ({version: 'actql/0.1',
+  id: 'fixture.set_object_member', params: parameterDeclarations,
+  stages: [computedObjectPropertyProgram.stages[0],
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', derive: {payload: parameterCase('p'), other: parameterCase('o')}},
+        {select: ['id', 'payload', 'other'], as: 'objects'},
+        {from: 'objects', filter: {not: {eq: [{field: 'id'}, {literal: 1}]}}},
+        {select: ['id', 'payload'], as: 'right'},
+        {from: 'objects', select: ['id', 'payload'], as: 'left'},
+        {from: 'left', [operation]: {with: 'right', duplicates: 'distinct'}},
+        {derive: {score: {property: {value: {field: 'payload'}, name: 'score'}}}},
+        {select: ['id', 'score']},
+        {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['id', 'score']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}});
+export const setObjectMemberSuccesses = ['intersect', 'except'].flatMap(operation => {
+  const keyword = operation.toUpperCase();
+  const expected = operation === 'intersect'
+    ? [{id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]
+    : [{id: 1, score: 20}];
+  const cte = 'WITH chosen AS (SELECT id, payload FROM objects ' + keyword
+    + ' DISTINCT SELECT id, payload FROM objects WHERE id <> 1) '
+    + 'SELECT id, payload.SCORE AS score FROM chosen ORDER BY id';
+  return [
+    success('set-' + operation + '-json', '', {format: 'json',
+      text: JSON.stringify(setObjectMemberProgram(operation)), parameterDeclarations: undefined, expected}),
+    success('set-' + operation + '-cte', cte, {expected}),
+    success('set-' + operation + '-data-quoted',
+      'DATA chosen = FROM objects |> SELECT id, payload |> ' + keyword
+      + ' DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload); '
+      + 'FROM chosen |> SELECT id, payload.`SCORE` AS score |> ORDER BY id', {expected}),
+    success('set-' + operation + '-empty', cte, {sourceRows: [], expected: []}),
+  ];
+});
+export const setObjectMemberRefusals = ['intersect', 'except'].map(operation => ({
+  name: 'computed-object-property-set-' + operation + '-missing-member', format: 'aql-text',
+  text: data + 'WITH chosen AS (SELECT id, payload FROM objects ' + operation.toUpperCase()
+    + ' DISTINCT SELECT id, payload FROM objects WHERE id <> 1) '
+    + 'SELECT payload.MISSING AS score FROM chosen',
+  parameterDeclarations, parameters, expectedCode: 'ClientProgramInvalidInput',
+}));
+computedObjectPropertySuccesses.push(...setObjectMemberSuccesses);
+computedObjectPropertyRefusals.push(...setObjectMemberRefusals);
