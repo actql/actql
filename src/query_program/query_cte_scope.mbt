@@ -51,7 +51,7 @@ fn validate_cte_scope(
         }
       }
       if !known_relation {
-        raise Abort(UnknownRelation)
+        raise Abort(unresolved_relation_issue(body_relation))
       }
       for join_index in 0..<@query.join_part_count(term) {
         let right = @query.join_part_at(term, join_index).unwrap().relation

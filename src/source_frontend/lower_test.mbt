@@ -166,7 +166,7 @@ test "unresolved column projection exposes only retained authored identifier ori
       Err(issue) => issue
       Ok(_) => fail("an unpublished Source must remain unresolved")
     }
-    assert_true(issue is QueryLowering(UnknownRelation))
+    assert_true(issue is QueryLowering(UnresolvedRelation(_)))
     assert_true(unknown_column_origin(issue) is None)
   }
   // The fast column-projection path retains its actual authored occurrence.
@@ -174,7 +174,9 @@ test "unresolved column projection exposes only retained authored identifier ori
     Err(issue) => issue
     Ok(_) => fail("the existing lowerer must reject an unknown column")
   }
-  assert_true(unaliased is QueryLowering(Expression({ issue: UnknownReference, .. })))
+  assert_true(
+    unaliased is QueryLowering(Expression({ issue: UnknownReference, .. })),
+  )
   let span = @origin.span(unknown_column_origin(unaliased).unwrap())
   assert_eq(span.start_byte, 7)
   assert_eq(span.end_byte, 14)
