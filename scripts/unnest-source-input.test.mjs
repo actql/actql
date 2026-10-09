@@ -4,6 +4,30 @@ import test from 'node:test';
 import {unnestSuccesses, unnestRefusals, unnestReceiverProgram,
   unnestReceiverSuccesses, unnestReceiverRefusals} from './fixtures/unnest-source-input.mjs';
 
+test('OFFSET keeps its range until ordinary projection or a whole-column edit', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-offset-rename-json-control');
+  assert.deepEqual(JSON.parse(control.text).stages[0].steps.at(-1).select,
+    ['element', {next: 'position'}]);
+  assert.deepEqual(control.expected,
+    [{element: 2, next: 0}, {element: null, next: 1}, {element: 2, next: 2}]);
+  for (const name of ['rename-after-select', 'rename-after-as', 'default-after-select']) {
+    const actual = byName.get('unnest-offset-' + name);
+    assert.equal(actual.format, 'aql-text');
+    assert.deepEqual(actual.expected, control.expected);
+    assert.deepEqual(actual.columns, control.columns);
+  }
+  assert.deepEqual(byName.get('unnest-offset-rename-after-set').expected.map(row => row.next), [10, 11, 12]);
+  assert.deepEqual(byName.get('unnest-offset-rename-empty').expected, []);
+  assert.deepEqual(byName.get('unnest-offset-rename-empty').columns, control.columns);
+  assert.ok(byName.get('unnest-scalar-drop-removes-range').text.includes('DROP element |> SELECT position |> RENAME'));
+  for (let index = 0; index < 8; index++) {
+    const actual = unnestRefusals.find(item => item.name === 'unnest-refusal-offset-range-' + index);
+    assert.equal(actual.format, 'aql-text');
+    assert.equal(actual.expectedCode, 'ClientProgramInvalidInput');
+  }
+});
+
 test('scalar value-table RENAME distinguishes range names from projected columns', () => {
   const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
   const control = byName.get('unnest-scalar-rename-json-control');

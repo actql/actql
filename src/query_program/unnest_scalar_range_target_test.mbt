@@ -83,7 +83,8 @@ test "scalar UNNEST range replacement does not disable ordinary edits or DISTINC
   for
     tail in [
       "AS row |> RENAME element AS next |> ORDER BY position", "SET element = 100 |> RENAME element AS next |> SELECT * |> ORDER BY position",
-      "DROP element |> RENAME position AS next |> SELECT * |> ORDER BY next", "DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST",
+      "DROP element |> SELECT position |> RENAME position AS next |> SELECT * |> ORDER BY next",
+      "DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST",
     ] {
     let actual = compile_query_script(
       @query.parse_query_script(
@@ -117,7 +118,8 @@ test "scalar UNNEST public single-query entry checks ordinary edited columns" {
     tail in [
       "SELECT element, position |> RENAME element AS next |> ORDER BY position",
       "AS row |> RENAME element AS next |> ORDER BY position", "SET element = 100 |> RENAME element AS next |> SELECT * |> ORDER BY position",
-      "DROP element |> RENAME position AS next |> SELECT * |> ORDER BY next", "DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST",
+      "DROP element |> SELECT position |> RENAME position AS next |> SELECT * |> ORDER BY next",
+      "DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST",
     ] {
     let actual = compile(
       @query.parse_query(
