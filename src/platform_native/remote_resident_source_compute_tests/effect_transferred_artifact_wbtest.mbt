@@ -5,6 +5,10 @@ fn retained_effect_producer_dependency(
   source : @host.ClientEffectAcquiredEvidence,
   started_at? : String = "2026-10-09T01:00:00.000Z",
   completed_at? : String = "2026-10-09T01:00:01.000Z",
+  original_invocation? : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  )? = None,
 ) -> (
   @strategy.CapturedEffectLocalUnitInputs,
   @host.ClientEffectLocalResultArtifact,
@@ -37,12 +41,16 @@ fn retained_effect_producer_dependency(
   ).unwrap()
   let receipt = transferred_effect_result_receipt(exported)
   println("retained-effect-evidence: producer-export-complete")
-  let (observation, invocation) = producer_dependency_observation(
-    materials,
-    source,
-    started_at~,
-    completed_at~,
-  )
+  let (observation, invocation) = match original_invocation {
+    Some(value) => value
+    None =>
+      producer_dependency_observation(
+        materials,
+        source,
+        started_at~,
+        completed_at~,
+      )
+  }
   let definition = @host.issue_client_effect_local_result_definition(
     materials.prepared,
     0,
