@@ -29,16 +29,6 @@ pub fn client_effect_imported_result_evidence_refs(
     Some(imported.invocation.unit) else {
     return Err(ForeignDefinition)
   }
-  for observed in imported.observations {
-    if !@strategy.captured_effect_result_import_matches(
-        observed.captured,
-        inputs,
-        imported.invocation.unit,
-        @strategy.captured_effect_result_import_producer(observed.captured),
-      ) {
-      return Err(ForeignOwner)
-    }
-  }
   let admission = materials.allowed.admission
   if @strategy.captured_effect_inputs_run_definition_cid(inputs) !=
     Some(@publication.publication_contract_identity(materials.run_definition)) ||
@@ -62,6 +52,28 @@ pub fn client_effect_imported_result_evidence_refs(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Context(issue))
+  }
+  for observed in imported.observations {
+    if !@strategy.captured_effect_result_import_matches(
+        observed.captured,
+        inputs,
+        imported.invocation.unit,
+        @strategy.captured_effect_result_import_producer(observed.captured),
+      ) {
+      return Err(ForeignOwner)
+    }
+    if client_effect_local_artifact_run_definition_cid(observed.artifact) !=
+      Some(@publication.publication_contract_identity(materials.run_definition)) {
+      return Err(ForeignRun)
+    }
+    // A valid Invocation of the same Template can still refresh the captured
+    // observation. Public evidence must use the producer's original Invocation.
+    if @publication.publication_contract_identity(
+        observed.artifact.run_invocation,
+      ) !=
+      @publication.publication_contract_identity(invocation) {
+      return Err(ForeignInvocation)
+    }
   }
   Ok(
     (

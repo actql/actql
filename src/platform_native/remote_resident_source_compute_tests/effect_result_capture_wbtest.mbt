@@ -78,6 +78,60 @@ fn retained_effect_result_capture(
     })
     is Err(Context(Context(ForeignInvocation))),
   )
+  // Even a valid new observation and Invocation of this same Template must
+  // not refresh the already-transferred producer's original capture identity.
+  let refreshed_observation = @publication.seal_run_evidence_value(
+    "observation_set",
+    @publication.run_evidence_value_json(observation)
+    .replace_all(
+      old="\"observation_set_cid\":\"" +
+        @publication.run_evidence_value_identity(observation) +
+        "\",",
+      new="",
+    )
+    .replace_all(old="2026-10-09T01:00:01.000Z", new="2026-10-09T01:00:02.000Z"),
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  let refreshed_invocation = @publication.issue_run_invocation(
+    @host.client_effect_compilation_template(materials.compilation),
+    refreshed_observation,
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  @publication.resolve_run_local_result_evidence_refs(
+    @host.client_effect_allowed_run_admission(materials.allowed),
+    materials.run_definition,
+    refreshed_invocation,
+    refreshed_observation,
+    retention,
+  ).unwrap()
+  |> ignore
+  assert_true(
+    @publication.publication_contract_identity(refreshed_invocation) !=
+    @publication.publication_contract_identity(invocation),
+  )
+  assert_true(
+    consumer.capture_effect_result(
+      materials,
+      inputs,
+      imported,
+      refreshed_invocation,
+      refreshed_observation,
+      retention,
+      journal,
+      [],
+      [],
+      [observed],
+      { ..resident_compute_limits(), max_rows: 0, },
+      65536,
+      4096,
+      64,
+    )
+    is Err(Context(ForeignInvocation)),
+  )
   // The already-completed public probe and the retained Effect input occupy
   // the existing pin ceiling. A second capture must refuse rather than raise
   // that ceiling. Retire the finished probe before transferring this boundary
