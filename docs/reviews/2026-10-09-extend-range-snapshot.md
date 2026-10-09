@@ -160,5 +160,20 @@ The earlier partial campaign remains historical evidence, not HTTPS success.
 | local-node | `5a064a6f77c25dbd53a2b0e9bb77dc5beea9f314c819f81e767d5e8d270e2c2e` |
 | node | `029a16952028cf162eeb31a9ef2ee9074c337389569e23e8e4a7750d5adf5487` |
 
-Submitted-HEAD CI remains separate from this clean-product local evidence. Keep
-Draft and the unmerged parent dependency; no merge GO follows from local success.
+Submitted-HEAD CI remains separate from this clean-product local evidence.
+
+## Main integration after the parent merged
+
+Parent #1134 is now merged. Main `321db1b2c82f7c584e64920fa007c56204862a2c`
+was normally merged as `1e97dabcc5d8338805140812574477f4c55c2a72` without conflicts.
+The diff against main contains only the five authored Frontend/test/evidence
+files. The read-only document metadata generator reports no changes.
+
+At that integration SHA, the bounded JS selection of
+`extend_range_snapshot_test.mbt` and `pipe_join_ranges_test.mbt` passes **8/8**:
+`run-e0AFDn` / `focused-test-Qow4CH`. `git diff --check` also passes.
+No fresh packed campaign or full target/CI verification was repeated just for
+the merge. The packed evidence above belongs to its recorded earlier clean SHA,
+not the integrated submission. Retarget this PR to main, keep Draft, and record
+the exact submitted-HEAD workflow state independently; local success is not CI
+success or merge GO.
