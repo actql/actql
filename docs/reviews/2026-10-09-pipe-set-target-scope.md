@@ -228,3 +228,22 @@ The independent Node fixture checks pass 4/4 (`run-6WVZBy`,
 `focused-test-0ES3Jk`) through `node scripts/local-checks.mjs test node
 --timeout-seconds 120 -- scripts/join-star-source-input.test.mjs`. These checks
 establish authored expectations and normal-cohort registration, not Host execution.
+
+### Captured Source entry ordering
+
+The first combined clean SHA `5592356e6d5b55a017eab696fa1b251770057ea5`
+produced all five normal packages and passed independent digests (`run-pFwyXy`).
+Receipt `public-query-evidence-veIDaD` records all 15 Local positives and the four
+existing exact-code refusals, then a failure at the first new projection-only
+USING refusal. Later refusals and the main HTTPS cohort were not reached.
+The standalone JOIN entry returned UnsupportedJoin for a captured context before
+validating the authored USING list. This differs from the Values-only test route.
+The new captured-context regression failed 3/4 before correction (`run-UhZ4t7`,
+`focused-test-4l8XMs`). The entry now invokes the same validation before its
+existing coverage checks. It does not accept additional captured JOIN shapes or
+change their execution, predicates, bounds, acquisition or ownership.
+
+Focused JS and direct callers pass 18/18 after that correction (`run-doZFin`,
+`focused-test-gWfnWs`), using the same five-file command above plus the new case.
+The previous 17/17 and failed packed run remain evidence for their own states;
+fresh combined-SHA Local/HTTPS acceptance remains necessary.

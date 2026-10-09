@@ -72,3 +72,23 @@ test "duplicate ON predicates keep their existing ordinary JOIN meaning" {
     _ => fail("repeated ON conditions do not become duplicate USING names")
   }
 }
+
+///|
+test "invalid USING keys retain input refusal before captured JOIN coverage checks" {
+  for kind in ["INNER", "LEFT", "RIGHT", "FULL"] {
+    let query = @query.parse_query(
+      "SELECT l.x AS original FROM t AS l " +
+      kind +
+      " JOIN t AS r USING (x, `X`) MAX_OUTPUT_ROWS 10",
+      syntax_limits(),
+    ).unwrap()
+    assert_true(
+      compile(
+        query,
+        { ..join_order_context(), captured_stage: Some("capture"), },
+        construction_limits(),
+      )
+      is Err(DuplicateOutput),
+    )
+  }
+}

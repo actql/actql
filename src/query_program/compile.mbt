@@ -8066,6 +8066,11 @@ fn compile_join_query(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.join_part_count(query) == 1 {
+    validate_join_using_names(@query.join_part_at(query, 0).unwrap()) catch {
+      Abort(issue) => return Err(issue)
+    }
+  }
   if @query.join_part_count(query) != 1 ||
     @query.operation_count(query) < 1 ||
     (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
