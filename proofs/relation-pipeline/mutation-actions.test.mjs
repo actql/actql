@@ -14,7 +14,7 @@ import {mutationNamesByPart} from './proof-parts.mjs';
 import {variants} from './mutation-registry.mjs';
 import {fixturePath} from './fixture.mjs';
 import {cohort, inputTree, snapshot} from './fixtures/mutation-action-sample.mjs';
-import {mutationActions, mutationSourceInputs, mutationActionObservation, mutationActionRecords} from './mutation-actions.mjs';
+import {mutationActions, mutationSourceInputs, mutationActionObservation, mutationActionRecords, archivedMutationActionObservations} from './mutation-actions.mjs';
 
 const digest = value => hash(JSON.stringify(value));
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -149,14 +149,26 @@ test('scientific identity preserves row identity, Unicode, order, NULL, schema, 
   assert.throws(() => mutationActionObservation(report, {...action, phase: 'pristine'}), /Unregistered/);
 });
 
-test('the immutable historical part projects nine phase/target observations without rewriting its execution', () => {
+test('the exact archived mutation part projects nine historical observations without current-plan acceptance', () => {
   const bytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-06-pipeline-main-37198759659-L-M0-fixed.json.gz', import.meta.url)),
     {maxOutputLength: 4 * 1024 * 1024});
   assert.equal(hash(bytes), '5ce6b98807105317e43a3496e08045ff403afad2081d9e8dfeca61ea146d9e22');
   const report = JSON.parse(bytes), before = JSON.stringify(report);
   const selected = mutationActions(report.decision).filter(action => action.part === 'L-M0' && action.mode === 'fixed');
   assert.equal(selected.length, 9);
-  const observations = selected.map(action => mutationActionObservation(report, action));
+  // Current-plan admission must continue refusing this older plan unchanged.
+  for (const action of selected) assert.throws(() => mutationActionObservation(report, action), /Wrong mutation part plan/);
+  const historical = archivedMutationActionObservations(bytes);
+  assert.equal(historical.authority, 'immutable-historical-projection');
+  assert.equal(historical.revision, '7c4bcb61b8d7e7c37b4be8eb986e1811842d345b');
+  assert.equal(historical.planDigest, '2bf06c72bdcf5f92cc5f24517a8aaab7186aa9570f5c16512d8c103f9d6dc42c');
+  const observations = historical.observations;
+  assert.equal(observations.length, 9);
+  assert(observations.every(entry => entry.action.profile.planDigest === historical.planDigest));
+  assert.throws(() => archivedMutationActionObservations(Buffer.from(before)), /historical mutation bytes/);
+  const relabeled = structuredClone(report); relabeled.part.planDigest = selected[0].profile.planDigest;
+  assert.throws(() => archivedMutationActionObservations(Buffer.from(JSON.stringify(relabeled, null, 2) + '\n')),
+    /historical mutation bytes/);
   assert(observations.every(entry => entry.units === 4));
   assert.equal(observations.flatMap(entry => entry.selected.flatMap(row => row.executions)).length, 36);
   assert.equal(new Set(observations.map(entry => entry.scientificDigest)).size, 9);

@@ -84,10 +84,29 @@ fn append_pipe_range_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
 ) -> @builder.Node raise Abort {
-  let (lowered, slots, remaining) = bind_range_property_expression(
+  append_resolved_range_expression(
+    construction,
     expression,
     path => pipe_slot(path, visible, ranges),
     name => pipe_name_exists(visible, name),
+    max_work,
+  )
+}
+
+///|
+// ORDER supplies an alias-first resolver over its actual available slots.
+// Use the same range binding and work budget as ordinary Pipe expressions.
+fn append_resolved_range_expression(
+  construction : Construction,
+  expression : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  value_name_exists : (@query.NamePart) -> Bool,
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  let (lowered, slots, remaining) = bind_range_property_expression(
+    expression,
+    resolve,
+    value_name_exists,
     max_work,
   )
   match
@@ -101,7 +120,7 @@ fn append_pipe_range_expression(
             }
           }
         }
-        pipe_slot(path, visible, ranges)
+        resolve(path)
       },
       construction.builder,
       remaining,
