@@ -247,6 +247,8 @@ pub fn client_effect_imported_scope_json(ClientEffectImportedEvidence) -> String
 
 pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
 
+pub fn client_effect_local_artifact_invocation(ClientEffectLocalResultArtifact) -> ClientEffectLocalInvocation
+
 pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_identity_cid(ClientEffectLocalIdentity) -> String

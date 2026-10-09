@@ -641,6 +641,7 @@ fn acquisition_runtime_case(
       root_path,
       name,
       effect_pair~,
+      effect_producer=original_effect_producer.val,
       through_consumer_holder~,
       cancel_consumer_before_start~,
       cancel_consumer_after_borrow~,

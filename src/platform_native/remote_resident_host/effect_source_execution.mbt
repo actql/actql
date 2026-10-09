@@ -43,6 +43,67 @@ pub fn ResidentEffectProducerExecuted::materials_for_capture(
 }
 
 ///|
+/// Reuse the acquisition interval and evidence already saved by the producer
+/// Runtime. Retention is supplied by the trusted publication Owner. This reads
+/// the retained capture only; it never queries the Source or refreshes its
+/// observation, authority or original Run expiry.
+pub fn ResidentEffectProducerExecuted::acquired_evidence_for_capture(
+  self : ResidentEffectProducerExecuted,
+  journal : @journal.Journal,
+  retention : @publication.PublicationContract,
+  limits : @host.PublicationOutputExportLimits,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@host.ClientEffectAcquiredEvidence, (String, String)),
+  ResidentEffectSourceEvidenceIssue,
+] {
+  guard self.source_for_capture(journal) is Some(source) &&
+    source.effect_source is Some(original) &&
+    journal.observation(self.executed.request) is Ok(saved) &&
+    @journal.recovered_site_dispatch_source_observation(saved)
+    is Some(observation) &&
+    @remote.remote_source_observation_matches_dispatch(
+      observation,
+      self.executed.request,
+    ) &&
+    @planning.query_requirement_source_evidence_facts(original.requirement)
+    is Some(facts) else {
+    return Err(Unavailable)
+  }
+  let projection = @remote.remote_source_observation_projection(observation)
+  if projection.0 != 0 {
+    return Err(Acquired(Invocation(ForeignSourceObservation)))
+  }
+  let (evidence, bodies) = match
+    source.prepare_effect_acquired_evidence(
+      @remote.dispatch_request_journal_key(self.executed.request)[0],
+      @planning.query_source_evidence_fact_values(facts)[3],
+      projection.4,
+      retention,
+      limits,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let original_bodies = @host.client_effect_acquired_dependency_bodies(evidence)
+  if !original_bodies.contains(("source_evidence", projection.1)) ||
+    !original_bodies.contains(("source_input_logical", projection.2)) {
+    return Err(Acquired(Invocation(ForeignSourceObservation)))
+  }
+  // Identity calculation must not make a concurrently stopped acquisition
+  // available to the caller. The journal and Runtime remain the same Owners.
+  if self.source_for_capture(journal) is None {
+    return Err(Unavailable)
+  }
+  Ok((evidence, bodies))
+}
+
+///|
 /// Return the actual acquired Owner only while this original completed Runtime
 /// and its journal evidence remain current. It is not reconstructed from output
 /// bytes, and it grants no approval or permission to close Runtime's Source.

@@ -20,6 +20,7 @@ fn acquisition_runtime_transfer_consumer(
   root_path : String,
   name : String,
   effect_pair? : (@host.ClientEffectRunMaterials, @host.ClientRequestIdentity)? = None,
+  effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
   through_consumer_holder? : Bool = false,
   consumer_task? : Int = 1,
   chain_context? : RetainedNativeChainContext? = None,
@@ -676,6 +677,7 @@ fn acquisition_runtime_transfer_consumer(
       chain_context~,
       output_unavailable=consumer_output_unavailable,
       effect_materials=effect_pair.map(pair => pair.0),
+      effect_producer~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     if chain_context is Some(_) ||
