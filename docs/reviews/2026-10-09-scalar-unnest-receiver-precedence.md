@@ -107,3 +107,54 @@ will be appended after execution; preparation and unit success are not public
 execution evidence. Full Core/Native/Wasm/Cloud, full retained-history validation,
 value-table ORDER ordinals and overall Frontend completion remain unverified.
 CI is separate; no manual retry or merge. runtime_conformance:false remains.
+
+## Completed clean-package public acceptance
+
+Normal producer/fixture SHA: **2aecf46b520817fcf66ec1521affa5c32fc547bf**.
+The later evidence commit changes this report only. The producer ran the normal
+five prepack paths at this clean SHA; no overlay, relabeling or prepack bypass.
+An independent verifier compared git HEAD and manifest revision, then calculated
+each original tarball SHA256 before the existing public consumer ran.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-scalar-receiver-2aecf46b5-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-scalar-receiver-2aecf46b5-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+The existing serialized bounded wrapper, run-vgt4E7, completed all three steps
+with exit 0 and complete streams. Both Embedded Local and HTTPS complete
+**99 positives / 46 refusal loops**. **33 exact-code refusals** per transport
+are logged; thirteen older broad-code loops remain separate. Every one of the
+thirteen new positives and four new precise refusals is present in each log.
+The ordinary named rows, complete types/nullability/column order, describe,
+stream completion, private-column absence, resend/attach/reread and no-extra-
+execution assertions pass. New refusal logs explicitly record zero durable
+admission and zero Source I/O. README Local/HTTPS and the intentional missing-
+generated-asset child refusal also pass.
+
+Receipt: `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-EH0brE`.
+Independent inspection confirms revision above, status=passed, complete=true,
+ten result commands with status 0, complete/outputComplete=true, no errors or
+signals, every command source clean and bound to that exact revision,
+evidenceErrors=[], artifactsRemoved=true and the artifacts directory absent.
+Successful private installations/Stores were reclaimed; original receipt/logs
+and exact producer packages are retained. Local success is not CI success.
+
+Original tarball SHA256:
+
+| Package | SHA256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f5487ba69e88efbab8e99930482c27254b8055f421280045a46c0532f8349d1b` |
+| local-node | `b2bd60c76e164e22ab8ad2887b7baa2435b3ae89b091bbf1847a95a828567c65` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+No full Core/all-target/all-packed/performance campaign, Cloud, complete retained
+history validation or live Google conformance was run. Value-table ORDER ordinals
+remain a separate observed source/profile gap, not resolved by receiver precedence.
+The full public-text Frontend objective remains active. Keep parent dependencies
+and Draft; exact submitted-HEAD PR CI is recorded after publication. No manual
+retry, Ready transition or merge.
