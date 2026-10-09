@@ -6003,8 +6003,9 @@ for (const entrance of ['local', 'http']) {
         location: {kind: 'structured', document_id: 'parameters',
           revision: parameterInput.revision, pointer: '/options'}};
       assert.equal(outcome.report.verdict, 'invalid');
-      assert.deepEqual(outcome.report.reasons, [mismatch,
-        ...(name === 'missing' ? [namespaceReason('missing')] : [])],
+      // The existing projection orders distinct reason codes lexically.
+      assert.deepEqual(outcome.report.reasons, [
+        ...(name === 'missing' ? [namespaceReason('missing')] : []), mismatch],
       '[check-mutation:namespace-independent-violation]');
       assert.deepEqual(outcome.report.coverage, {limits: [],
         unresolved: name === 'records' ? protectedSource : []});
