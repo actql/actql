@@ -63,7 +63,8 @@ UnsupportedOrdering issue, not an arbitrary error.
 - Expanded affected selection: **40/40**, run-yEkIs1 / focused-test-X5289x.
   These selections overlap and are not summed.
 - Node fixture/corpus/import checks: **15/15**, run-o17epL /
-  focused-test-iJsY5C.
+  focused-test-iJsY5C. After the exact-code correction below, the changed
+  fixture selection is **10/10**, run-HfVISY / focused-test-GyJhNs.
 - Pinned MoonBit formatting and git diff --check pass.
 - Read-only document metadata validation: changes=[], writes=false.
 - One sandboxed guard invocation could not inspect its owned process group;
@@ -87,8 +88,8 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
 
 The ordinary corpus and its existing --unnest-source-only consumer register
 twelve new positives and three precise refusals. Intended cohort: **111
-positives / 49 refusal loops** per Embedded Local/HTTPS, with 36 exact
-ClientProgramInvalidInput refusals and 13 older broad refusal checks recorded
+positives / 49 refusal loops** per Embedded Local/HTTPS, with 36 exact-code
+refusals and 13 older broad refusal checks recorded
 separately. Independent JSON control, signed/quoted position, post-SELECT
 member ordering, reordered projection, colliding offset/member name, DROP,
 EXTEND, SET, JOIN remapping, empty objects and NULL arrays fix expected values,
@@ -99,8 +100,25 @@ private-column absence and same-Run resend/attach/reread without extra
 acquisition/execution. Exact refusals require durable Run admission zero and
 Source I/O zero. No fixture patches the lowered Program.
 
-Normal clean-SHA five-package production and Local/HTTPS execution are still
-pending at this source commit. Full Core, all targets, complete packed suites,
+Initial clean f59ea4df04759553c6ce10461322360b182e0286 packed attempt
+run-AgBnWb / public-query-evidence-cltoAj completed all **111 Local positives**,
+including all twelve new cases, but failed at the first new exact refusal.
+HTTPS was not reached. The expected public error code in the new fixture was
+incorrect: the existing source preparation projection maps UnsupportedOrdering
+to source_unsupported (`client_source_preparation.mbt` and its owner test).
+The public bound-input checker reports an implementation-limit fact, which
+the existing admitted disclosure path in client-program-preparation.mjs and
+its disclosure tests maps to ClientProgramImplementationLimit. Without that
+admitted fact the same projection remains non-disclosing. The corrected fixture checks that exact
+existing code; it does not weaken the assertion to an arbitrary refusal or
+change the diagnostic Owner. Internal tests still require UnsupportedOrdering.
+This is a precise record of current classification, not a claim that it
+distinguishes all invalid ordinal reasons from unsupported order expressions.
+Existing broad ordinal refusal fixtures are unchanged.
+
+This failed attempt preserved stdout/stderr, statuses and the clean revision;
+artifactsRemoved=true, evidenceErrors=[]. A fresh normal clean-SHA attempt is
+required after the fixture correction. Full Core, all targets, complete packed suites,
 performance, hosted artifact transport and final required CI are not claimed.
 General value-table AS receiver preservation remains a separate unverified
 boundary; this repair does not claim to complete that feature or the full

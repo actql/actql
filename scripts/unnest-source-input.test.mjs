@@ -54,7 +54,7 @@ test('value-table ordinal fixtures distinguish physical columns from projected m
   assert.deepEqual(get('null-array').columns, control.columns);
   for (const name of ['outside-actual-columns', 'without-offset', 'after-drop']) {
     const value = unnestRefusals.find(item => item.name === 'unnest-refusal-ordinal-' + name);
-    assert.equal(value.expectedCode, 'ClientProgramInvalidInput');
+    assert.equal(value.expectedCode, 'ClientProgramImplementationLimit');
     assert.equal(value.format, 'aql-text');
   }
 });
