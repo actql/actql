@@ -84,7 +84,7 @@ test('public retained sequence orders long identities and compound Text keys',
       if (empty) submitted.stages[0].steps[0].values.rows = [];
       submitted.id = empty ? 'public-sequence-empty' : 'public-sequence';
       const source = JSON.stringify(submitted);
-      const options = {format: 'json', requestId: submitted.id};
+      const options = {format: 'json', submissionRef: client.newSubmission({nonce: submitted.id})};
       const execution = await client.startSource(source, options).catch(error => {
         assert.fail(inspect(error, {depth: 8}));
       });

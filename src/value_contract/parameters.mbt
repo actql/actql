@@ -48,7 +48,7 @@ pub struct ParameterSyntax {
 priv enum ParameterWork {
   ReadParameter(@decode.Cursor, Int)
   ParameterArray(Bool, Int64?, Int64?)
-  ParameterObject(Bool, Array[String])
+  ParameterObject(Bool, Array[String], Int)
 }
 
 ///|
@@ -92,7 +92,7 @@ fn parameter_decode(
           rule: Items(child, length~),
         })
       }
-      ParameterObject(nullable, names) => {
+      ParameterObject(nullable, names, name_bytes) => {
         let entries : Array[(String, ParameterType)] = []
         for index = names.length() - 1; index >= 0; index = index - 1 {
           entries.push((names[index], values.pop().unwrap()))
@@ -100,7 +100,10 @@ fn parameter_decode(
         entries.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
         let fields = entries.map(e => { name: e.0, contract: e.1.contract, })
         values.push({
-          contract: { nullable, shape: Object({ values: fields, }), },
+          contract: {
+            nullable,
+            shape: Object({ values: fields, name_bytes, }),
+          },
           rule: Properties({ values: entries, }),
         })
       }
@@ -205,6 +208,7 @@ fn parameter_decode(
               (!names.is_empty() && depth == budget.max_depth) {
               invalid(f, BudgetExceeded)
             }
+            let name_budget = budget.text
             for name in names {
               let child = required(children, name)
               charge_text(name, child, budget) catch {
@@ -220,7 +224,9 @@ fn parameter_decode(
               }
             }
             budget.scheduled += names.length()
-            work.push(ParameterObject(nullable, names))
+            work.push(
+              ParameterObject(nullable, names, name_budget - budget.text),
+            )
             for index = names.length() - 1; index >= 0; index = index - 1 {
               work.push(
                 ReadParameter(required(children, names[index]), depth + 1),

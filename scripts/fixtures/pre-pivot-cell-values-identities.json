@@ -1,0 +1,208 @@
+{
+  "source_revision": "2fa91dd62fc300f509687f34a9990a7d76c3e031",
+  "values_dependencies": {
+    "unit": "sha256:d1962490d7dde1e5da1d312769b09f0b33d90ad90f6236efeb34432fe71212b7",
+    "proof": "sha256:e943cfd2cf850385d5d0340cf7d2cbdf72e66ebb48585b3717a6941d9f1b7fca",
+    "resultPlan": "sha256:b62abb78c2bdb1acb6b8b372537686256d194a751e23be44ea1656f18f885315",
+    "contracts": [
+      "sha256:005b1d81fafe78867af12e7d23e72a02fdd14dec1ef198c82d5e47a202e6b314",
+      "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911",
+      "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551",
+      "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a",
+      "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2",
+      "sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72",
+      "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971",
+      "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
+      "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
+      "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
+      "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1",
+      "sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4",
+      "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f",
+      "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325",
+      "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574",
+      "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164",
+      "sha256:62c052d6afb178a08620019253b091c83fc54f7c6d0f32c05b269a06c194a264",
+      "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
+      "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      "sha256:8483e1535239becdd53d31d361967e0e29a3f27234ad83d419b47535c858844c",
+      "sha256:8e4b432a6b975be3876db964d8c9cf2a623b1f08b914dc6f852912cad5325332",
+      "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
+      "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
+      "sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78",
+      "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621",
+      "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
+      "sha256:a55a1f56a5f19d0d118a6ff6d161f34c6d239d54f473ff84a95592a7c03e31eb",
+      "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
+      "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+      "sha256:cc114653eb3db3bdf94bf233f34c0baa5f4c5bc305aeb07ed66283706054d3d9",
+      "sha256:d896f22c236f6af9d99f0666f1dbf72c208df69a5dfa083d89d653e7b8a1cde0",
+      "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28"
+    ],
+    "local": {
+      "version": "actql-stage-semantics/0.1",
+      "binding_references": [],
+      "bindings": {},
+      "parameter_references": [],
+      "parameters": {},
+      "expression_contract_cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+      "local_body": {
+        "effects": {},
+        "inputs": {},
+        "results": {
+          "rows": {
+            "fields": [
+              "id"
+            ],
+            "from": "selected"
+          }
+        },
+        "steps": [
+          {
+            "as": "selected",
+            "values": {
+              "rows": [
+                {
+                  "id": 1
+                },
+                {
+                  "id": 2
+                }
+              ],
+              "schema": {
+                "id": {
+                  "nullable": false,
+                  "type": "number"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "program_identity": {
+    "semantics": {
+      "version": "actql-program-semantics/0.1",
+      "actql_version": "actql/0.1",
+      "expression_contract_cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+      "parameters": {},
+      "parameter_references": [],
+      "bindings": {},
+      "binding_references": [],
+      "program_template": {
+        "stages": [
+          {
+            "id": "source",
+            "after": "initial",
+            "imports": {},
+            "stage_semantics_cid": "sha256:7e9ebfcdd059299e0e8d07c2505450f4381410a967d7dab478676ba4d1831137"
+          }
+        ],
+        "exports": {
+          "answer": {
+            "from": {
+              "stage": "source",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    "semanticsCid": "sha256:3fcd69e5d4f243505da508a12dfca09b5bb9e0104fcc8f0027d88a052fc317bf",
+    "definition": {
+      "version": "actql-program-definition/0.1",
+      "id": "client-values",
+      "program_semantics_cid": "sha256:3fcd69e5d4f243505da508a12dfca09b5bb9e0104fcc8f0027d88a052fc317bf"
+    },
+    "programCid": "sha256:5b60d2728eeab010cd8cb2ce2efe9f1df250e16bea9826703c2157a6c4a7de34"
+  },
+  "aoa_contract_cid": "sha256:57f0690b7861a2b4ba45c0d1ec76a0f99389886cacdd78fdd6ff44f777efeaaa",
+  "grammar": {
+    "version": "actql-grammar-manifest/0.1",
+    "source_grammar_cid": "sha256:005b1d81fafe78867af12e7d23e72a02fdd14dec1ef198c82d5e47a202e6b314",
+    "operations": [
+      "analytic",
+      "append",
+      "apply_graph_delta",
+      "asof_join",
+      "assert_rows",
+      "calendar_bucket",
+      "calendar_series",
+      "components",
+      "cross_join",
+      "dedupe_events",
+      "dedupe_rows",
+      "degree",
+      "derive",
+      "distinct",
+      "drop",
+      "edge_rows",
+      "events",
+      "except",
+      "filter",
+      "graft_graph",
+      "graph",
+      "graph_bounds",
+      "graph_diff",
+      "graphs_equal",
+      "group",
+      "infer",
+      "intersect",
+      "interval_join",
+      "join",
+      "json_pick",
+      "lag",
+      "match_edges",
+      "match_nodes",
+      "mean_graphs",
+      "merge_rankings",
+      "nearest",
+      "nest",
+      "node_rows",
+      "normalize_graph",
+      "normalize_vectors",
+      "pivot",
+      "pool_vectors",
+      "reach",
+      "rename",
+      "row_window",
+      "score_vectors",
+      "search_candidates",
+      "select",
+      "sequence",
+      "serialize",
+      "session",
+      "shortest_path",
+      "sort",
+      "subgraph",
+      "subtract_graphs",
+      "take",
+      "text_rank",
+      "time_series",
+      "to_events",
+      "to_vectors",
+      "top_k",
+      "top_k_by",
+      "traverse",
+      "union_graphs",
+      "unnest",
+      "unpivot",
+      "values",
+      "vectors",
+      "watermark_events",
+      "watermark_rows",
+      "window_events",
+      "window_group"
+    ],
+    "expression_contract_cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d",
+    "expression_text_grammar_sha256": "636e7fc36702063f1320e108624c7b90ac93b1be61967fb25cf6f70651bbe0f9",
+    "expression_text_rules_sha256": "689f1434735f3d2eaf538f8a2b953bbd65ee43b249be71a5d6a58c819a8b6d3e",
+    "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
+    "structural_text_rules_sha256": "209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762",
+    "query_text_grammar_sha256": "1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db",
+    "query_text_rules_sha256": "831de7808000326fdc2e0fe4d8b6224d7bc34495692455e6ff4f85aa026df10a",
+    "grammar_manifest_cid": "sha256:a85a3517afd7a705e99e746f5a08332370b072ddc77868372db19b977ee87ecb"
+  },
+  "barrier_contract_manifest_cid": "sha256:8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818",
+  "description": "Frozen normative Values closure from 2fa91dd6 before correcting pivot CellValue. Historical vectors use these complete selected identities, never the installed corrected Program schema."
+}

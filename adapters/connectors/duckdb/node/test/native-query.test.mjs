@@ -10,6 +10,9 @@ import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.m
 import {acquisitionOutcome} from '../../../../host-common/acquisition-outcome.mjs';
 import {installNodeClientDispatchOwner} from '../../../../host-node/client-dispatch-owner.mjs';
 import {createInstalledHostShutdown} from '../../../../host-node/installed-host-cleanup.mjs';
+import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
+import * as cancellationMoon from
+  '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 100, maxTransportBytes: 10000,
@@ -151,12 +154,17 @@ test('native coordinator requires both exact settled receipts and revokes failed
       const ref = {runDefinitionCid: 'physical-source-cleanup'};
       const stopped = [];
       let computes = 0;
+      let cancellationRequested = false, revision = 1, physicalCloseConfirmed = false;
       const access = {};
       const owner = installNodeClientDispatchOwner({
         moon: {clientProgramAcquisitionCount: () => 1},
-        control: {},
+        control: {runDefinitionRunId: () => 'physical-source-cleanup',
+          runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
         journal: {reservePhysicalStart: () => true,
-          markPhysicalClose: (...args) => stopped.push(args)},
+          lookupRunDefinition: () => ({cancellationRequested, revision,
+            physicalCloseConfirmed, runDefinition: {wire: 'definition'}}),
+          lookupReconciliationState: () => undefined,
+          markPhysicalClose(...args) { stopped.push(args); physicalCloseConfirmed = true; }},
         store: {confirmCommittedIndex: async () => undefined},
         startRun: async () => ({kind: 'reserved', ref}),
         hostConnection: () => true, observed: () => {},
@@ -169,7 +177,11 @@ test('native coordinator requires both exact settled receipts and revokes failed
         runPublished: async () => { computes++; assert.fail('Compute must not start'); },
         now: () => '2026-10-01T00:00:00.000Z', namespaceId: 'namespace-a',
       });
-      return {owner, ref, stopped, computes: () => computes,
+      return {owner: {...owner, cancel(ref) {
+        cancellationRequested = true;
+        revision++;
+        return owner.cancel(ref);
+      }}, ref, stopped, computes: () => computes,
         async start() {
           assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner',
             connection: {}, requestId: 'source-cleanup'}, {},

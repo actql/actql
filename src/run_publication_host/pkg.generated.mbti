@@ -38,6 +38,8 @@ pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication
 
 pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
+pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+
 pub fn admit_client_infer_captured_input(PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.ModelSourceObservation) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
 pub fn admit_client_infer_composed_sources(ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue]
@@ -667,6 +669,8 @@ pub fn issue_client_effect_multi_captured_invocation(PreparedClientEffectComputa
 pub fn issue_client_effect_result_import_observation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, ClientEffectLocalManifest, ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[ClientEffectResultImportObservation, ClientEffectResultImportIssue]
 
 pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientEffectCompiledRunIssue]
+
+pub fn issue_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?, ClientEffectComputationLimits) -> Result[String, ClientEffectRunMaterialsIssue]
 
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
@@ -1318,6 +1322,21 @@ type ClientEffectResultImportObservation
 pub(all) enum ClientEffectRunIssue {
   Admission(@program_check.EffectProgramRunIssue)
   Binding(@physical_strategy.RunIssue)
+}
+
+pub(all) struct ClientEffectRunMaterials {
+  prepared : PreparedClientEffectComputation
+  compilation : ClientEffectCompilation
+  allowed : ClientEffectAllowedRun
+  run_definition : @run_publication.PublicationContract
+}
+
+pub(all) enum ClientEffectRunMaterialsIssue {
+  Input(ClientValuesRunMaterialsIssue)
+  Program(ClientEffectComputationIssue)
+  Compilation(ClientEffectCompilationIssue)
+  Binding(ClientEffectCompiledRunIssue)
+  RunMismatch
 }
 
 pub(all) enum ClientEmptyInvocationBindingsIssue {

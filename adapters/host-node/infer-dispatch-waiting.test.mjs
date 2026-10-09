@@ -6,21 +6,57 @@ import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 // explicit doubles; this does not establish public Model approval acceptance.
 function fixture({checkpoint, failClose = false} = {}) {
   const ref = {runDefinitionCid: 'infer-definition'};
+  const runDefinition = {wire: 'definition'};
   const stopped = [];
   const events = [];
   let waiting = checkpoint;
   let closes = 0;
   let recover = !failClose;
+  let physicalCloseConfirmed = false;
   const owner = installNodeClientDispatchOwner({
-    moon: {}, control: {runDefinitionRunId: () => 'infer-run'},
+    moon: {}, control: {runDefinitionRunId: definition => {
+        assert.equal(definition, runDefinition);
+        return 'infer-run';
+      }, runCancellationConfirmed(facts) {
+        // This fixture never requests cancellation or creates dispatch records.
+        assert.deepEqual(facts, {
+          cancellationRequested: false, modelFenceRequired: false,
+          modelFenced: false, unresolvedModelCalls: false,
+          unresolvedEffects: false, reconciliationRequired: false,
+          publicationCommitted: false, physicalStopConfirmed: true,
+          cleanupConfirmed: true, revisionUnchanged: true,
+        });
+        return false;
+      }},
     journal: {
       reservePhysicalStart: () => true,
-      markPhysicalClose: (_ref, outcome) => stopped.push(outcome),
+      lookupRunDefinition(ownerRef) {
+        assert.equal(ownerRef, ref);
+        return {runDefinition, revision: 1, cancellationRequested: false,
+          physicalCloseConfirmed};
+      },
+      lookupReconciliationState(ownerRef) {
+        assert.equal(ownerRef, ref);
+        return undefined;
+      },
+      markPhysicalClose(ownerRef, outcome) {
+        assert.equal(ownerRef, ref);
+        assert.equal(physicalCloseConfirmed, false);
+        stopped.push(outcome);
+        physicalCloseConfirmed = true;
+      },
       markPreDispatchFailure: () => assert.fail('preparation already started'),
     },
     checkpoints: {journal: {inspect(cid) {
         assert.equal(cid, 'model-checkpoint');
         return waiting;
+      }, discoverModelCallSets({runId, limit}) {
+        assert.equal(runId, 'infer-run');
+        assert.equal(limit, 1);
+        return [];
+      }, hasUnresolvedModelCalls(runId) {
+        assert.equal(runId, 'infer-run');
+        return false;
       }}, heldOrigin: () => false,
       acquisitionAccess: () => undefined, releaseAcquisition() {},
       effectRunState(runId, definitionCid) {
@@ -31,7 +67,7 @@ function fixture({checkpoint, failClose = false} = {}) {
     store: {confirmCommittedIndex: async () => undefined},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
-    planFor: () => ({kind: 'infer', runDefinition: {wire: 'definition'}}),
+    planFor: () => ({kind: 'infer', runDefinition}),
     namespaceId: 'namespace',
     observed: name => events.push(name),
     runInfer: async ({retainExecution}) => {
@@ -45,7 +81,7 @@ function fixture({checkpoint, failClose = false} = {}) {
     state: value => { waiting = value; },
     start: () => owner.start({preparedProgram: {}, principalId: 'owner',
       connection: {}, requestId: 'infer-request'}, {}, {ref,
-      runDefinition: {wire: 'definition'}, dispatchReserved: false,
+      runDefinition, dispatchReserved: false,
       cancellationRequested: false}, {})};
 }
 

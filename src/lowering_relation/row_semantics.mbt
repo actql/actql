@@ -73,6 +73,13 @@ pub fn kernel_is_sort(kernel : PreparedKernel) -> Bool {
 }
 
 ///|
+/// Allocation-free inspection of the resolved kernel, without exposing its
+/// frontend checked operation or copying an unrelated kernel view.
+pub fn kernel_is_filter(kernel : PreparedKernel) -> Bool {
+  kernel.body is Filter(_)
+}
+
+///|
 pub fn kernel_is_dedupe(kernel : PreparedKernel) -> Bool {
   kernel.body is DedupeRows
 }

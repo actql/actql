@@ -553,7 +553,12 @@ test('portable delivery owner binds grants attempts and receipts', () => {
   const {artifact, manifest, index} = deliveryRoot(control);
   assert.equal(
     control.resultSerializationContractCid('json', limits),
-    'sha256:f8a9922a194323d7b0f33733eb29753a6b68b48becee913cedb30a23a97cedf8',
+    // Fixed profile preimage from portability/corpus/typed-json-literals.json.
+    canonicalCid({
+      json_value_wire_contract_cid:
+        'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b',
+      version: 'actql-json/0.1',
+    }),
   );
   const grant = control.issueResultReadGrant(index, manifest, {
     resultNames: ['answer'],

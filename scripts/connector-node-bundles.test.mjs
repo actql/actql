@@ -106,12 +106,12 @@ test('connector host manifests generate the installed connector table and refuse
   const {mkdtempSync, mkdirSync, writeFileSync, rmSync} = await import('node:fs');
   const {join} = await import('node:path');
   const {tmpdir} = await import('node:os');
-  const {checkHostBundle, generateInstallations} = await import('./connector-node-bundles.mjs');
   const root = fileURLToPath(new URL('../', import.meta.url));
   if (!existsSync(join(root, 'src/connectors/salesforce/host-bundle.json'))) {
     t.skip('the JS-only Host subset intentionally omits connector manifests');
     return;
   }
+  const {checkHostBundle, generateInstallations} = await import('./connector-node-bundles.mjs');
   const salesforce = checkHostBundle(root, 'salesforce',
     join(root, 'src/connectors/salesforce/host-bundle.json'));
   assert.equal(salesforce.source.profileVersion, 'actql-installed-salesforce-source/0.1');

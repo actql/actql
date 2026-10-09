@@ -11,26 +11,45 @@ const home = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.v
 const env = { ...process.env, MOON_HOME: home, PATH: `${home}/bin:${process.env.PATH}` };
 const path = 'src/connectors/local/selected_relation_provider.mbt';
 const cases = [
-  ['max-child-instead-of-overlap', path, 'live_children += child.retained_bytes + child.execution_bytes',
-    'live_children = Int64::max(live_children, child.retained_bytes + child.execution_bytes)', fixture, 1],
-  ['omit-child-retained', path, 'live_children += child.retained_bytes + child.execution_bytes',
-    'live_children += child.execution_bytes', fixture, 1],
-  ['omit-parent-handles', path, 'let handles = count.to_int64() * 256L', 'let handles = count.to_int64() * 0L', fixture, 1],
-  ['unchecked-handle-overflow', path, 'if live_children > 9223372036854775807L - handles {',
-    'if live_children < 0L {', fixture, 1],
-  ['pending-cleanup-is-complete', path, 'Ok(false) => return Ok(false)', 'Ok(false) => return Ok(true)', fixture, 1],
+  // Keep the original max(child retained + execution) fault after capacity
+  // split retained outputs from either overlapping or reclaimable scratch.
+  ['max-child-instead-of-overlap', path, [
+    ['let mut scratch = 0L', 'let mut scratch = 0L\n  let mut maximum_child = 0L'],
+    ['retained_children += child.retained_bytes',
+      'retained_children += child.retained_bytes\n' +
+      '    maximum_child = Int64::max(maximum_child, child.retained_bytes + child.execution_bytes)'],
+    ['let live_children = retained_children + scratch', 'let live_children = maximum_child'],
+  ], fixture, 1],
+  ['omit-child-retained', path, [
+    ['retained_children += child.retained_bytes', 'retained_children += 0L'],
+  ], fixture, 1],
+  ['omit-parent-handles', path, [
+    ['let handles = count.to_int64() * 256L', 'let handles = count.to_int64() * 0L'],
+  ], fixture, 1],
+  ['unchecked-handle-overflow', path, [
+    ['if handles > 9223372036854775807L - preparation ||\n' +
+      '    live_children > 9223372036854775807L - handles - preparation {',
+      'if live_children < 0L {'],
+  ], fixture, 1],
+  ['pending-cleanup-is-complete', path, [
+    ['Ok(false) => return Ok(false)', 'Ok(false) => return Ok(true)'],
+  ], fixture, 1],
   ['copy-occurrence-arrays-as-aliases', 'src/execution_relation/managed_independent_output.mbt',
-    'rows: rows.rows.map(row => row.copy()),', 'rows: rows.rows,', identityFixture, 2],
+    [['rows: rows.rows.map(row => row.copy()),', 'rows: rows.rows,']], identityFixture, 2],
 ];
 const before = snapshot(root), directory = join(root, '.artifacts/relation-capacity');
 mkdirSync(directory, { recursive: true });
 const results = [];
-for (const [id, path, original, changed, suite, sites] of cases) {
+for (const [id, path, replacements, suite, sites] of cases) {
   const file = join(root, path), text = readFileSync(file, 'utf8');
-  if (text.split(original).length !== sites + 1) throw new Error(`Review mutation sites: ${id}`);
+  let mutated = text;
+  for (const [original, changed] of replacements) {
+    if (mutated.split(original).length !== sites + 1) throw new Error(`Review mutation sites: ${id}`);
+    mutated = mutated.replaceAll(original, changed);
+  }
   let result;
   try {
-    writeFileSync(file, text.replaceAll(original, changed));
+    writeFileSync(file, mutated);
     result = spawnSync(join(home, 'bin/moon'), ['test', suite, '--target', 'js', '--deny-warn'], {
       cwd: root, env, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
     });

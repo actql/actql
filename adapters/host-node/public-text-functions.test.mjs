@@ -69,7 +69,7 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
     ]) {
       const source = JSON.stringify(program(id, rows, search, replacement));
       const priorAdvances = advances;
-      const options = {format: 'json', requestId: 'text-' + id};
+      const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'text-' + id})};
       const run = await client.startSource(source, options);
       const state = await run.wait({signal: AbortSignal.timeout(45_000)});
       assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -118,7 +118,7 @@ test('public Text call cancellation is delivered after charged progress',
           }
         })}});
     const source = JSON.stringify(program('cancel', [{id: 1, payload: 'a'.repeat(4096)}], 'a', 'bb'));
-    const options = {format: 'json', requestId: 'text-cancel'};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'text-cancel'})};
     const run = await client.startSource(source, options);
     await reached.promise;
     const before = advances;

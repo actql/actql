@@ -76,13 +76,29 @@ fn start_effect_context_preparation(
   }
   Ok({
     inputs: Some({
-      snapshots, sources, local_sources, dependencies, advances, authoring,
-      models, preview, plans,
+      snapshots,
+      sources,
+      local_sources,
+      dependencies,
+      advances,
+      authoring,
+      models,
+      preview,
+      plans,
     }),
-    max_wire_bytes, max_nodes, max_depth, max_workspace,
-    ids: [], sorted: None, writer: Some(writer), value: None,
-    phase: CollectIds(0), continuation: None,
-    live: 12, peak: 12, closed: false,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    ids: [],
+    sorted: None,
+    writer: Some(writer),
+    value: None,
+    phase: CollectIds(0),
+    continuation: None,
+    live: 12,
+    peak: 12,
+    closed: false,
   })
 }
 
@@ -128,10 +144,16 @@ fn EffectContextPreparation::parse(
 ) -> Unit raise @encode.EncodeFailure {
   guard @source.start_json_parse(
       wire,
-      { max_input_bytes: self.max_wire_bytes,
-        max_nodes: self.max_nodes, max_depth: self.max_depth, },
+      {
+        max_input_bytes: self.max_wire_bytes,
+        max_nodes: self.max_nodes,
+        max_depth: self.max_depth,
+      },
       data_keys=body,
-    ) is Ok(parser) else { raise @encode.OutputLimit }
+    )
+    is Ok(parser) else {
+    raise @encode.OutputLimit
+  }
   self.phase = Parse(parser, body)
 }
 
@@ -175,10 +197,14 @@ fn EffectContextPreparation::step(
   let writer = self.writer.unwrap()
   match self.phase {
     CollectIds(index) => {
-      let count = inputs.preview.map(p => p.member_effect_ids.length()).unwrap_or(0)
+      let count = inputs.preview
+        .map(p => p.member_effect_ids.length())
+        .unwrap_or(0)
       if index == count {
         guard @sort.prepare_deferred(self.ids, self.ids.length() * 2)
-          is Ok(sort) else { raise @encode.OutputLimit }
+          is Ok(sort) else {
+          raise @encode.OutputLimit
+        }
         self.sorted = Some(sort)
         self.phase = SortIds(sort)
       } else {
@@ -198,7 +224,7 @@ fn EffectContextPreparation::step(
       @encode.begin_ordered_object(writer)
       self.phase = Field(0)
     }
-    Field(index) => {
+    Field(index) =>
       if index == 15 {
         @encode.end_object(writer)
         let wire = @encode.finish(writer)
@@ -206,7 +232,6 @@ fn EffectContextPreparation::step(
       } else {
         self.key(effect_context_field(index), SectionStart(index))
       }
-    }
     Key(cursor) =>
       if @encode.advance_ordered_key(cursor) {
         self.live -= 1
@@ -255,7 +280,8 @@ fn EffectContextPreparation::step(
         self.phase = Field(kind + 1)
       } else {
         let name = match kind {
-          2 | 7 => self.ids[@sort.index_at(self.sorted.unwrap(), index).unwrap()][0]
+          2 | 7 =>
+            self.ids[@sort.index_at(self.sorted.unwrap(), index).unwrap()][0]
           3 => inputs.plans[index].0
           4 | 5 => inputs.sources[index].effect_id
           6 => inputs.local_sources[index].effect_id
@@ -277,7 +303,10 @@ fn EffectContextPreparation::step(
       match kind {
         2 => {
           let position = @sort.index_at(self.sorted.unwrap(), index).unwrap()
-          self.text(inputs.preview.unwrap().member_effect_plan_cids[position].unwrap(), next)
+          self.text(
+            inputs.preview.unwrap().member_effect_plan_cids[position].unwrap(),
+            next,
+          )
         }
         3 => self.emit(inputs.plans[index].1, next)
         4 => self.emit(inputs.sources[index].artifact.value, next)
@@ -326,10 +355,14 @@ fn EffectContextPreparation::step(
         Ok(@source.JsonParseContinue(..)) => ()
         Ok(@source.JsonParseComplete(parsed, ..)) => {
           guard @decode.start_admission(parsed.node, {
-              max_nodes: self.max_nodes, max_depth: self.max_depth,
+              max_nodes: self.max_nodes,
+              max_depth: self.max_depth,
               max_string_bytes: self.max_wire_bytes,
               max_total_string_bytes: self.max_wire_bytes,
-            }) is Ok(admission) else { raise @encode.OutputLimit }
+            })
+            is Ok(admission) else {
+            raise @encode.OutputLimit
+          }
           self.phase = Decode(admission, body)
         }
         _ => raise @encode.OutputLimit
@@ -338,9 +371,17 @@ fn EffectContextPreparation::step(
       match @decode.advance_admission(admission, 1) {
         Ok(@decode.AdmissionContinue(..)) => ()
         Ok(@decode.AdmissionComplete(cursor, ..)) => {
-          guard @json.start_cursor_admission(cursor, self.max_nodes, self.max_depth,
-              self.max_wire_bytes, self.max_wire_bytes, data_keys=body)
-            is Some(admission) else { raise @encode.OutputLimit }
+          guard @json.start_cursor_admission(
+              cursor,
+              self.max_nodes,
+              self.max_depth,
+              self.max_wire_bytes,
+              self.max_wire_bytes,
+              data_keys=body,
+            )
+            is Some(admission) else {
+            raise @encode.OutputLimit
+          }
           self.phase = Canonical(admission, body)
         }
         _ => raise @encode.OutputLimit
@@ -351,7 +392,11 @@ fn EffectContextPreparation::step(
         @json.CursorAdmissionComplete(value, _, _) =>
           if body {
             self.value = Some(value)
-            let writer = @encode.hashing_writer(self.max_wire_bytes, self.max_nodes, self.max_depth)
+            let writer = @encode.hashing_writer(
+              self.max_wire_bytes,
+              self.max_nodes,
+              self.max_depth,
+            )
             self.writer = Some(writer)
             self.reserve(1)
             self.phase = Hash(@json.start_emit(value, writer))
@@ -368,8 +413,14 @@ fn EffectContextPreparation::step(
       if done {
         let (digest, _, _) = @encode.finish_hash_usage(writer)
         self.writer = None
-        guard @json.object_with_string_field(self.value.unwrap(), "effect_context_cid",
-            "sha256:" + digest) is Some(value) else { raise @encode.InvalidStructure }
+        guard @json.object_with_string_field(
+            self.value.unwrap(),
+            "effect_context_cid",
+            "sha256:" + digest,
+          )
+          is Some(value) else {
+          raise @encode.InvalidStructure
+        }
         self.value = Some(value)
         self.phase = Done
       }
@@ -388,7 +439,7 @@ fn EffectContextPreparation::advance(
   }
   let mut used = 0
   while used < quantum && !(self.phase is Done) {
-    try { self.step() } catch {
+    self.step() catch {
       _ => {
         self.cancel()
         return Err(CaptureIssuanceEncoding)
@@ -413,7 +464,9 @@ fn EffectContextPreparation::finish(
 
 ///|
 fn EffectContextPreparation::cancel(self : EffectContextPreparation) -> Unit {
-  if self.closed { return }
+  if self.closed {
+    return
+  }
   self.closed = true
   match self.phase {
     Key(cursor) => @encode.cancel_ordered_key(cursor)
@@ -424,8 +477,12 @@ fn EffectContextPreparation::cancel(self : EffectContextPreparation) -> Unit {
     Canonical(admission, _) => @json.cancel_cursor_admission(admission)
     _ => ()
   }
-  if self.writer is Some(writer) { @encode.cancel_writer(writer) }
-  if self.sorted is Some(sort) { ignore(@sort.cleanup(sort)) }
+  if self.writer is Some(writer) {
+    @encode.cancel_writer(writer)
+  }
+  if self.sorted is Some(sort) {
+    ignore(@sort.cleanup(sort))
+  }
   self.inputs = None
   self.writer = None
   self.sorted = None

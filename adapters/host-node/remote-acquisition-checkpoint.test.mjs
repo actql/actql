@@ -1,11 +1,12 @@
-// D-next-2: a Program that reads the installed DuckDB source, through the
+import {writeSyntheticHistoricalHeldQuery} from '../../scripts/fixtures/synthetic-historical-held-query.mjs';
+// Synthetic historical-format recovery: a Program that reads the installed DuckDB source, through the
 // public Client and a real Remote Host. The source's own account decides the
 // Host-resolved read tuple before any Run or provider I/O; a delegated read
 // is held, answered later and resumed by the Host to a Named Result.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, readdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {Readable} from 'node:stream';
@@ -15,7 +16,7 @@ import {DatabaseSync} from 'node:sqlite';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
-import {connect, RequestHeld} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome, RequestHeld} from '../../packages/sdk/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {machineCid} from '../../scripts/actql-spec-family.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -102,16 +103,15 @@ const tokens = new Map([['owner-token', owner],
   ['reviewer-token', 'reviewer-principal'],
   ['reader-token', 'reader-principal']]);
 
+const historicalQueryWriters = new WeakMap();
+const historicalQueryRoots = new WeakMap();
+
 async function acquiringHost(t, {readOutcome = 'delegate',
   runOutcome = 'allow', extra = {}, directory, profile} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   const source = profile ?? await installedSource(root, readOutcome);
   const steps = [];
-  const host = await openInstalledRemoteHttpHost({
-    directory: join(root, 'state'),
-    authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
-    sourceProfilePath: source.path,
-    authorization: {
+  const authorization = {
       accountConfiguration: accountConfiguration(runOutcome, 'write',
         'host-account'),
       reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -127,10 +127,23 @@ async function acquiringHost(t, {readOutcome = 'delegate',
         steps.push(name);
         await extra.faultInjection?.(name, detail);
       },
-    },
+    };
+  const openHost = () => openInstalledRemoteHttpHost({
+    directory: join(root, 'state'),
+    authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
+    sourceProfilePath: source.path, authorization,
   });
+  let host = await openHost();
+  const seedHistorical = async (requestId, {runHeld} = {}) => {
+    await host.close();
+    const original = await writeSyntheticHistoricalHeldQuery({directory: join(root, 'state'), document: program,
+      requestId, authorization, sourceProfile: JSON.parse(await readFile(source.path, 'utf8')),
+      runtimeRootUrl: new URL('../../', import.meta.url), runHeld});
+    await writeFile(join(root, 'synthetic-original.json'), JSON.stringify(original), {flag: 'wx', mode: 0o600});
+    host = await openHost();
+  };
   const server = createServer({key: tlsKey, cert: tlsCertificate},
-    host.handler);
+    (request, response) => host.handler(request, response));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -145,9 +158,15 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     if (directory === undefined) await rm(root, {recursive: true, force: true});
   });
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
-  const as = token => connect({mode: 'remote', endpoint, token,
-    durability: 'durable'});
-  return {root, steps, close, source, as, handler: host.handler,
+  const as = async token => {
+    const client = await connect({mode: 'remote', endpoint, token, durability: 'durable'});
+    if (token === 'owner-token') {
+      historicalQueryWriters.set(client, seedHistorical);
+      historicalQueryRoots.set(client, root);
+    }
+    return client;
+  };
+  return {root, steps, close, source, as, handler: (request, response) => host.handler(request, response),
     diagnose: () => journalState(root, steps),
     count: name => steps.filter(item => item === name).length};
 }
@@ -184,15 +203,18 @@ function journalState(root, steps) {
     };
   } finally { database.close(); }
 }
-const submit = (client, requestId) => client.startSource(program, {format: 'json',
-  requestId, parameters: {minimum: 1}});
-async function held(client, requestId) {
-  try { await submit(client, requestId); }
-  catch (error) {
-    assert.equal(error instanceof RequestHeld, true, String(error?.code));
-    return error.held;
-  }
-  assert.fail('expected a held request');
+// Synthetic historical-format originals are seeded while every Host owner
+// is closed, then admitted by a newly opened ordinary public Host. This does
+// not claim that new epoch-bound submissions support preparation waits.
+async function held(client, requestId, original = {}) {
+  const seed = historicalQueryWriters.get(client);
+  assert.equal(typeof seed, 'function');
+  await seed(requestId, original);
+  const lookup = await client.lookupRequest(requestId);
+  assert.equal(lookup.kind, 'held');
+  assert.equal(lookup.state, 'waiting_checkpoint');
+  assert.equal(Object.hasOwn(lookup, 'ref'), false);
+  return lookup;
 }
 // The independent expectation: rows of `records` with amount >= minimum
 // (1): ids 3, 2, 3 for `b`, and those with id >= 3 for `c`.
@@ -208,6 +230,24 @@ async function assertResults(client, requestId, describe) {
       ? current : undefined;
   }, describe);
   assert.equal(state.status, 'succeeded');
+  const root = historicalQueryRoots.get(client);
+  const original = JSON.parse(await readFile(join(root, 'synthetic-original.json'), 'utf8'));
+  assert.equal(original.requestId, requestId);
+  assert.equal(found.ref.authorityScopeCid, original.authorityScopeCid);
+  const journal = new DatabaseSync(join(root, 'state/requests/client-requests.sqlite3'), {readOnly: true});
+  try {
+    const rows = journal.prepare(`SELECT caller_request_id, logical_request_scope_cid,
+      intent_fingerprint_cid, program_definition_cid, parameter_values_cid,
+      caller_input_intent_cid, run_definition_cid, physical_start_reserved FROM client_requests`).all();
+    assert.deepEqual(rows.map(row => ({...row})), [{caller_request_id: requestId,
+      logical_request_scope_cid: original.logicalRequestScopeCid,
+      intent_fingerprint_cid: original.intentFingerprintCid,
+      program_definition_cid: original.programDefinitionCid,
+      parameter_values_cid: original.parameterValuesCid,
+      caller_input_intent_cid: original.callerInputIntentCid,
+      run_definition_cid: found.ref.runDefinitionCid, physical_start_reserved: 1}]);
+    assert.equal(journal.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n, 0);
+  } finally {journal.close();}
   assert.deepEqual((await execution.result('b').all()).map(row => row.id)
     .sort(), [2, 3, 3]);
   assert.deepEqual((await execution.result('c').all()).map(row => row.id)
@@ -217,20 +257,36 @@ async function assertResults(client, requestId, describe) {
 test('A1: an allowed read runs; a denied read acquires nothing', async t => {
   const allowed = await acquiringHost(t, {readOutcome: 'allow'});
   const client = await allowed.as('owner-token');
-  const execution = await submit(client, 'allow-a');
+  const submissionRef = client.newSubmission({nonce: 'allow-a'});
+  const execution = await client.startSource(program, {format: 'json', submissionRef,
+    parameters: {minimum: 1}});
   assert.equal((await execution.wait()).status, 'succeeded');
-  await assertResults(client, 'allow-a');
+  const original = await client.lookupSubmission(submissionRef);
+  assert.equal(original.kind, 'ready');
+  assert.deepEqual(original.submissionRef, submissionRef);
+  assert.deepEqual(original.admission.ref, execution.ref);
+  const attached = await client.attach(original.admission.ref);
+  assert.deepEqual((await attached.result('b').all()).map(row => row.id).sort(), [2, 3, 3]);
+  assert.deepEqual((await attached.result('c').all()).map(row => row.id).sort(), [3, 3]);
   assert.equal(allowed.count('acquisition_started'), 1);
   assert.deepEqual((await (await allowed.as('reviewer-token')).checkpoints())
     .items, []);
   const denied = await acquiringHost(t, {readOutcome: 'deny'});
   const deniedClient = await denied.as('owner-token');
-  await assert.rejects(submit(deniedClient, 'deny-a'),
-    {code: 'ACTQL_E_ACCOUNT_DENIED'});
+  const deniedRef = deniedClient.newSubmission({nonce: 'deny-a'});
+  let refusal;
+  await assert.rejects(deniedClient.startSource(program, {format: 'json', submissionRef: deniedRef,
+    parameters: {minimum: 1}}), error => {
+    assert.equal(error.code, 'SubmissionPreparationFailed');
+    refusal = getSubmissionOutcome(error);
+    assert.equal(refusal.kind, 'preparation_failed');
+    assert.deepEqual(refusal.submissionRef, deniedRef);
+    assert.equal(refusal.problem.code, 'ACTQL_E_ACCOUNT_DENIED');
+    return true;
+  });
   assert.equal(denied.count('dispatch_reserved'), 0);
   assert.equal(denied.count('acquisition_started'), 0);
-  assert.deepEqual(await deniedClient.lookupRequest('deny-a'),
-    {kind: 'not_found'});
+  assert.deepEqual(await deniedClient.lookupSubmission(deniedRef), refusal);
 });
 
 test('A2: a delegated read is permitted or rejected at once by the Host',
@@ -241,11 +297,20 @@ test('A2: a delegated read is permitted or rejected at once by the Host',
         authority: 'host-policy'}),
       answeringAuthorities: ['host-policy']}});
     const client = await host.as('owner-token');
-    const execution = await submit(client, 'permit-a');
+    const execution = await client.startSource(program, {format: 'json',
+      submissionRef: client.newSubmission({nonce: 'permit-a'}), parameters: {minimum: 1}});
     assert.equal((await execution.wait()).status, 'succeeded');
     answer = 'reject';
-    await assert.rejects(submit(client, 'reject-a'),
-      {code: 'ACTQL_E_DELEGATION_REJECTED'});
+    const rejectedRef = client.newSubmission({nonce: 'reject-a'});
+    await assert.rejects(client.startSource(program, {format: 'json', submissionRef: rejectedRef,
+      parameters: {minimum: 1}}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      const outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'preparation_failed');
+      assert.deepEqual(outcome.submissionRef, rejectedRef);
+      assert.equal(outcome.problem.code, 'ACTQL_E_DELEGATION_REJECTED');
+      return true;
+    });
     assert.equal(host.count('acquisition_started'), 1);
   });
 
@@ -444,7 +509,7 @@ test('A2: Run acceptance and the read combine immediate and later answers',
         await reviewer.resolveCheckpoints([{checkpoint,
           decision: 'approved'}], {signer});
       };
-      const first = await held(client, name);
+      const first = await held(client, name, {runHeld: preparation === 'defer'});
       assert.equal(first.checkpoint.kind,
         preparation === 'defer' ? 'run_scope' : 'read_access', name);
       if (preparation === 'defer') await approve('run_scope');
@@ -469,8 +534,12 @@ async function holdingStates(root) {
   for (const file of (await readdir(ledgers)).filter(name =>
     name.endsWith('.json'))) {
     const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
-    states.push(...ledger.holdings.filter(item =>
-      item.name !== 'invocation_request').map(item => item.state));
+    for (const item of ledger.holdings.filter(item => item.name !== 'invocation_request')) {
+      states.push(item.state);
+      if (item.state === 'retired') await assert.rejects(stat(join(root,
+        'state/checkpoints/private-store/physical-holdings', `${item.holding_cid.slice(7)}.json`)),
+      {code: 'ENOENT'});
+    }
   }
   return [...new Set(states)];
 }
@@ -669,7 +738,9 @@ test('Remote Host close waits for a read recording its delivery attempt',
     t.after(() => rm(directory, {recursive: true, force: true}));
     const host = await acquiringHost(t, {directory, readOutcome: 'allow'});
     const client = await host.as('owner-token');
-    const execution = await submit(client, 'close-a');
+    const submissionRef = client.newSubmission({nonce: 'close-a'});
+    const execution = await client.startSource(program, {format: 'json', submissionRef,
+      parameters: {minimum: 1}});
     await waitFor(async () => (await execution.wait()).status ===
       'succeeded', host.diagnose);
     // The exact connection this Client sends, reused by a raw request.
@@ -679,7 +750,7 @@ test('Remote Host close waits for a read recording its delivery attempt',
       connection ??= JSON.parse(init.body).connection;
       return real(url, init);
     };
-    try { await client.lookupRequest('close-a'); }
+    try { await client.lookupSubmission(submissionRef); }
     finally { globalThis.fetch = real; }
     const raw = (operation, body) => Object.assign(Readable.from([
       Buffer.from(JSON.stringify({connection, ...body}))]), {
@@ -714,7 +785,7 @@ test('Remote Host close waits for a read recording its delivery attempt',
     assert.equal(closed, false);
     // While closing, a new request is refused before it touches the Store.
     const late = response();
-    await host.handler(raw('lookup-request', {requestId: 'close-a'}), late);
+    await host.handler(raw('lookup-submission', {submissionRef}), late);
     assert.equal(late.status, 503);
     assert.deepEqual(JSON.parse(Buffer.concat(late.chunks).toString()),
       {code: 'ClientHostClosing'});

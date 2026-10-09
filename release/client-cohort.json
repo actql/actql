@@ -1,0 +1,8 @@
+{
+  "version": "actql-package-release-cohort/0.1",
+  "packageVersion": "0.0.1",
+  "registry": "https://registry.npmjs.org/",
+  "access": "public",
+  "tag": "latest",
+  "packages": ["client-wire", "sdk", "local-node", "node"]
+}

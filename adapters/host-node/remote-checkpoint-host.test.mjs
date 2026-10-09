@@ -1,10 +1,14 @@
+import {writeSyntheticHistoricalHeldQuery} from '../../scripts/fixtures/synthetic-historical-held-query.mjs';
+import {writeSyntheticHistoricalHeldValues} from '../../scripts/fixtures/synthetic-historical-held-values.mjs';
 // The installed Remote Host with Run-acceptance protection, driven through
 // the public Client over HTTPS: allow, deny and missing configuration,
 // immediate Host answers, and a held request that is reviewed, answered and
 // resumed by the Host. The packed, multi-process acceptance is
 // scripts/test-packed-client-checkpoint.mjs.
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
+import {nodeTestArguments} from '../../scripts/test-execution.mjs';
+import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
@@ -600,11 +604,13 @@ const tokens = new Map([['owner-token', owner],
   ['reader-token', 'reader-principal'],
   ['stranger-token', 'stranger-principal']]);
 
+const historicalFixtureWriters = new WeakMap();
+
 async function remoteHost(t, authorization, {directory,
   effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret, beforeDispatch} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
-  const host = await openInstalledRemoteHttpHost({
+  const openHost = () => openInstalledRemoteHttpHost({
     directory: join(root, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     beforeDispatch: async ref => {
@@ -613,8 +619,36 @@ async function remoteHost(t, authorization, {directory,
     },
     authorization, effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   });
+  let host = await openHost();
+  const seedHistorical = async originals => {
+    assert.equal(sourceProfilePaths, undefined);
+    await host.close();
+    const authored = [];
+    for (const [index, original] of originals.entries()) {
+      if (sourceProfilePath !== undefined) {
+        assert.equal(originals.length, 1, 'Only one finite historical Source original is authored');
+        authored.push(await writeSyntheticHistoricalHeldQuery({directory: join(root, 'state'),
+          document: original.document, requestId: original.requestId, authorization,
+          sourceProfile: JSON.parse(await readFile(sourceProfilePath, 'utf8')),
+          runtimeRootUrl: new URL('../../', import.meta.url),
+          effectEnvironmentWire: effectInstallation?.environmentWire}));
+        continue;
+      }
+      authored.push(await writeSyntheticHistoricalHeldValues({directory: join(root, 'state'),
+        document: original.document, requestId: original.requestId, authorization, mode: 'remote',
+        append: index !== 0, runtimeRootUrl: new URL('../../', import.meta.url),
+        effectEnvironmentWire: effectInstallation?.environmentWire}));
+    }
+    host = await openHost();
+    return authored;
+  };
+  const responses = [];
   const server = createServer({key: tlsKey, cert: tlsCertificate},
-    host.handler);
+    (request, response) => {
+      response.once('finish', () => responses.push({
+        path: request.url, status: response.statusCode}));
+      return host.handler(request, response);
+    });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -634,8 +668,12 @@ async function remoteHost(t, authorization, {directory,
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
   const options = token => ({mode: 'remote', endpoint, token,
     durability: 'durable'});
-  const as = token => connect(options(token));
-  return {as, options, dispatches: () => dispatches, close};
+  const as = async token => {
+    const client = await connect(options(token));
+    if (token === 'owner-token') historicalFixtureWriters.set(client, seedHistorical);
+    return client;
+  };
+  return {as, options, dispatches: () => dispatches, responses, close};
 }
 
 const reviewers = [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -660,12 +698,26 @@ async function waitFor(check) {
   throw new Error('Timeout');
 }
 
+async function assertPreparationRefused(client, text, submissionRef, code, options = {}) {
+  let outcome;
+  await assert.rejects(client.startSource(text, {format: 'json', ...options, submissionRef}), error => {
+    assert.equal(error.code, 'SubmissionPreparationFailed');
+    outcome = getSubmissionOutcome(error);
+    assert.equal(outcome.kind, 'preparation_failed');
+    assert.deepEqual(outcome.submissionRef, submissionRef);
+    assert.equal(outcome.problem.code, code);
+    assert.equal(Object.hasOwn(outcome, 'admission'), false);
+    return true;
+  });
+  assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
+}
+
 test('allow runs without a Checkpoint; deny and missing configuration start nothing',
   async t => {
     const allowed = await remoteHost(t, protectedHost('allow'));
     const client = await allowed.as('owner-token');
     const execution = await client.startSource(document, {format: 'json',
-      requestId: 'allow-a'});
+      submissionRef: client.newSubmission({nonce: 'allow-a'})});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 1}, {id: 2}]);
@@ -677,41 +729,65 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
     ]) {
       const host = await remoteHost(t, authorization);
       const denied = await host.as('owner-token');
-      await assert.rejects(denied.startSource(document, {format: 'json',
-        requestId: `${label}-a`}), {code}, label);
+      const submissionRef = denied.newSubmission({nonce: `${label}-a`});
+      await assertPreparationRefused(denied, document, submissionRef, code);
       assert.equal(host.dispatches(), 0, label);
-      assert.deepEqual(await denied.lookupRequest(`${label}-a`),
-        {kind: 'not_found'}, label);
     }
   });
 
 test('a claimed start with lost execution observation reconciles after restart',
   async t => {
-    const directory = await mkdtemp(join(scratch, 'unknown-run-'));
+    const childDirectory = process.env.ACTQL_TEST_CLAIMED_START_CRASH_DIRECTORY;
+    const directory = childDirectory ?? await mkdtemp(join(scratch, 'unknown-run-'));
+    if (childDirectory !== undefined) {
+      const first = await remoteHost(t, protectedHost('allow', {
+        faultInjection(name, detail) {
+          if (name === 'physical_start_reserved') {
+            writeFileSync(join(directory, 'reserved-run.json'), JSON.stringify(detail.ref));
+            // A real process loss leaves the durable reservation unresolved.
+            // Throwing here instead lets the setup owner confirm cleanup.
+            process.exit(77);
+          }
+        },
+      }), {directory});
+      const client = await first.as('owner-token');
+      const submissionRef = client.newSubmission({nonce: 'unknown-start'});
+      writeFileSync(join(directory, 'original-submission.json'), JSON.stringify(submissionRef));
+      await client.startSource(document, {format: 'json', submissionRef});
+      await new Promise(resolve => setTimeout(resolve, 20000));
+      assert.fail('The child must terminate at the physical reservation');
+    }
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const first = await remoteHost(t, protectedHost('allow', {
-      faultInjection(name) {
-        if (name === 'physical_start_reserved') {
-          throw new Error('LostExecutionObservation');
-        }
-      },
-    }), {directory});
-    const client = await first.as('owner-token');
-    const execution = await client.startSource(document, {format: 'json',
-      requestId: 'unknown-start'});
-    const unknown = await waitFor(async () => {
-      const state = await execution.status();
-      return state.status === 'needs_reconciliation' ? state : undefined;
-    });
+    const file = fileURLToPath(import.meta.url);
+    const keyFile = join(directory, 'host-crash-keys.json');
+    await writeFile(keyFile, JSON.stringify({host: pem(hostKeys.privateKey),
+      reviewer: pem(reviewerKeys.privateKey)}), {mode: 0o600});
+    const {NODE_TEST_CONTEXT: _outerContext, ...environment} = process.env;
+    const crashed = spawnSync(process.execPath, nodeTestArguments([
+      '--test-name-pattern', '^a claimed start with lost execution observation reconciles after restart$', file]),
+    {cwd: repository, encoding: 'utf8', timeout: 90000, killSignal: 'SIGKILL',
+      maxBuffer: 4 * 1024 * 1024,
+      env: {...environment, ACTQL_TEST_CLAIMED_START_CRASH_DIRECTORY: directory,
+        ACTQL_TEST_HOST_CRASH_KEYS: keyFile}});
+    assertPartialEffectSeedExit(crashed, file);
+    const ref = JSON.parse(await readFile(join(directory, 'reserved-run.json'), 'utf8'));
+    const submissionRef = JSON.parse(await readFile(join(directory, 'original-submission.json'), 'utf8'));
+    const db = new DatabaseSync(join(directory, 'state/requests/client-requests.sqlite3'), {readOnly: true});
+    try {
+      const rows = db.prepare('SELECT run_definition_cid, physical_start_reserved, physical_close_confirmed FROM client_requests').all();
+      assert.deepEqual(rows.map(row => ({...row})), [{run_definition_cid: ref.runDefinitionCid,
+        physical_start_reserved: 1, physical_close_confirmed: 0}]);
+    } finally {db.close();}
+    const restarted = await remoteHost(t, protectedHost('allow'), {directory});
+    const client = await restarted.as('owner-token');
+    const original = await client.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.admission.ref, ref);
+    const attached = await client.attach(ref);
+    const unknown = await attached.status();
+    assert.equal(unknown.status, 'needs_reconciliation');
     assert.deepEqual(unknown.next_action,
       {kind: 'reconcile_run', reason: 'execution_unknown'});
-    assert.equal(first.dispatches(), 1);
-    await first.close();
-    const restarted = await remoteHost(t, protectedHost('allow'),
-      {directory});
-    const attached = await (await restarted.as('owner-token'))
-      .attach(execution.ref);
-    assert.equal((await attached.status()).status, 'needs_reconciliation');
     assert.equal(restarted.dispatches(), 0);
     await restarted.close();
   });
@@ -725,7 +801,7 @@ test('a late Host observation failure does not overwrite publication',
     }));
     const client = await host.as('owner-token');
     const execution = await client.startSource(document, {format: 'json',
-      requestId: 'late-observation'});
+      submissionRef: client.newSubmission({nonce: 'late-observation'})});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 1}, {id: 2}]);
@@ -745,16 +821,15 @@ test('installed Host bounds unfinished decisions across distinct requests',
     }));
     const client = await host.as('owner-token');
     for (const requestId of ['unfinished-one', 'unfinished-two']) {
-      await assert.rejects(client.startSource(document, {format: 'json', requestId}),
-        {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
+      const submissionRef = client.newSubmission({nonce: requestId});
+      await assertPreparationRefused(client, document, submissionRef, 'ACTQL_E_DELEGATION_UNAVAILABLE');
     }
     assert.equal(calls, 1);
     assert.equal(host.dispatches(), 0);
     finish({decision: 'unavailable'});
     await new Promise(resolve => setImmediate(resolve));
-    await assert.rejects(client.startSource(document, {format: 'json',
-      requestId: 'unfinished-three'}),
-    {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
+    await assertPreparationRefused(client, document,
+      client.newSubmission({nonce: 'unfinished-three'}), 'ACTQL_E_DELEGATION_UNAVAILABLE');
     assert.equal(calls, 2);
     finish({decision: 'unavailable'});
   });
@@ -770,44 +845,40 @@ test('delegate immediate permit runs and immediate reject records nothing',
       answeringAuthorities: ['host-policy']}));
     const client = await host.as('owner-token');
     const permitted = await client.startSource(document, {format: 'json',
-      requestId: 'permit-a'});
+      submissionRef: client.newSubmission({nonce: 'permit-a'})});
     assert.equal((await permitted.wait()).status, 'succeeded');
     answer = 'reject';
-    await assert.rejects(client.startSource(document, {format: 'json',
-      requestId: 'reject-a'}), {code: 'ACTQL_E_DELEGATION_REJECTED'});
-    assert.deepEqual(await client.lookupRequest('reject-a'),
-      {kind: 'not_found'});
+    await assertPreparationRefused(client, document,
+      client.newSubmission({nonce: 'reject-a'}), 'ACTQL_E_DELEGATION_REJECTED');
     assert.deepEqual((await (await host.as('reviewer-token'))
       .checkpoints()).items, []);
   });
 
-test('a held request is reviewed, answered and resumed by the Host',
+test('a synthetic historical held request is reviewed, answered and resumed by the Host',
   async t => {
     const host = await remoteHost(t, protectedHost('delegate'));
     const client = await host.as('owner-token');
-    let held;
-    try {
-      await client.startSource(document, {format: 'json', requestId: 'held-a'});
-    } catch (error) { held = error; }
-    assert.equal(held instanceof RequestHeld, true);
-    assert.equal(held.held.state, 'waiting_checkpoint');
+    await historicalFixtureWriters.get(client)([{requestId: 'held-a', document}]);
+    const held = await client.lookupRequest('held-a');
+    assert.equal(held.kind, 'held');
+    assert.equal(held.state, 'waiting_checkpoint');
     assert.equal(host.dispatches(), 0);
-    // The same request again is the same held request, not a new one.
-    await assert.rejects(client.startSource(document, {format: 'json',
-      requestId: 'held-a'}), error => error instanceof RequestHeld &&
-      error.held.checkpoint.checkpointCid ===
-        held.held.checkpoint.checkpointCid);
-    // The same request ID with another intent conflicts.
+    // The original can be observed repeatedly; current ingress cannot create
+    // new work or an epoch from its historical bare request ID.
+    assert.deepEqual(await client.lookupRequest('held-a'), held);
+    await assert.rejects(client.startSource(document, {format: 'json', requestId: 'held-a'}),
+      {code: 'SubmissionReferenceRequired'});
+    // The separate same-submitted-identity test below preserves the actual
+    // changed-intent conflict control; bare-ID rejection is not that evidence.
     const changed = JSON.parse(document);
     changed.stages[0].steps[0].values.rows = [{id: 9}];
-    await assert.rejects(client.startSource(JSON.stringify(changed),
-      {format: 'json', requestId: 'held-a'}),
-    {code: 'ClientRequestIntentConflict'});
+    await assert.rejects(client.startSource(JSON.stringify(changed), {format: 'json', requestId: 'held-a'}),
+      {code: 'SubmissionReferenceRequired'});
     const waitingLookup = await client.lookupRequest('held-a');
     assert.equal(waitingLookup.state, 'waiting_checkpoint');
     const waitingExplanation = explainRequestLookup(waitingLookup);
     assert.equal(waitingExplanation.preparationState, 'waiting_checkpoint', '[check-mutation:request-held-public]');
-    assert.equal(explainSubmission(held).preparationState, 'waiting_checkpoint');
+    assert.equal(explainRequestLookup(held).preparationState, 'waiting_checkpoint');
     assert.deepEqual(waitingExplanation.next, {operation: 'lookupRequest', requestId: 'held-a',
       lookupContext: {endpoint: host.options('owner-token').endpoint, scopeRef: client.profile.scopeRef}});
     assert.equal(explainRequestLookup({...waitingLookup}), undefined);
@@ -815,15 +886,24 @@ test('a held request is reviewed, answered and resumed by the Host',
     const reviewer = await host.as('reviewer-token');
     const reader = await host.as('reader-token');
     const {items: [summary]} = await reviewer.checkpoints();
-    assert.equal(summary.checkpointCid, held.held.checkpoint.checkpointCid);
+    assert.equal(summary.checkpointCid, held.checkpoint.checkpointCid);
     assert.equal(summary.subject.requestId, 'held-a');
     assert.equal(JSON.stringify(summary).includes('"rows"'), false);
     // Status, review and answer permissions are separate.
     await assert.rejects(host.as('stranger-token'), {code:
       'ClientConnectionDenied'});
     // A reviewer is not the request owner: no Run operation.
+    const reviewerRef = client.newSubmission({nonce: 'reviewer-own'});
     await assert.rejects(reviewer.startSource(document, {format: 'json',
-      requestId: 'reviewer-own'}), {code: 'ClientConnectionDenied'});
+      submissionRef: reviewerRef}), error => {
+      assert.equal(error.code, 'SubmissionUnknown');
+      assert.equal(error.cause?.code, 'ClientConnectionDenied');
+      assert.equal(error.cause?.status, undefined);
+      assert.deepEqual(host.responses.at(-1), {
+        path: '/actql/client/0.1/submit-intent', status: 403});
+      assert.deepEqual(error.submissionRef, reviewerRef);
+      return true;
+    });
     await assert.rejects(reviewer.lookupRequest('held-a'),
       {code: 'ClientConnectionDenied'});
     await assert.rejects(reviewer.reviewCheckpoint(summary),
@@ -868,13 +948,14 @@ test('a held request is reviewed, answered and resumed by the Host',
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 1}, {id: 2}]);
     assert.equal(host.dispatches(), 1);
-    // The submit is now the existing Run.
-    assert.deepEqual((await client.startSource(document, {format: 'json',
-      requestId: 'held-a'})).ref, found.ref);
+    // Recovery returns the existing Run without authorizing another start.
+    assert.deepEqual((await client.lookupRequest('held-a')).ref, found.ref);
+    assert.deepEqual((await client.attach(found.ref)).ref, found.ref);
+    assert.equal(host.dispatches(), 1);
     assert.deepEqual((await reviewer.checkpoints()).items, []);
   });
 
-test('installed Effect owner resumes one approved Run acceptance',
+test('installed Effect owner recovers one synthetic historical Run acceptance',
   async t => {
     const fixture = await effectFixture();
     const registry = await readFile(join(repository,
@@ -902,8 +983,8 @@ test('installed Effect owner resumes one approved Run acceptance',
     const first = await remoteHost(t, protectedHost('delegate',
       {resumeAfterAnswer: false}), {directory, effectInstallation});
     const client = await first.as('owner-token');
-    await assert.rejects(client.startSource(fixture.document, {format: 'json',
-      requestId: 'effect-held-a'}), error => error instanceof RequestHeld);
+    const [original] = await historicalFixtureWriters.get(client)([
+      {requestId: 'effect-held-a', document: fixture.document}]);
     assert.equal(starts, 0);
     assert.equal((await client.lookupRequest('effect-held-a')).state,
       'waiting_checkpoint');
@@ -923,8 +1004,11 @@ test('installed Effect owner resumes one approved Run acceptance',
     await waitFor(async () => (await execution.status()).status ===
       'needs_reconciliation');
     assert.equal(starts, 1);
-    assert.deepEqual((await ownerClient.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-held-a'})).ref, found.ref);
+    assert.equal(found.ref.authorityScopeCid, original.authorityScopeCid);
+    assert.deepEqual((await ownerClient.lookupRequest('effect-held-a')).ref, found.ref);
+    assert.deepEqual((await ownerClient.attach(found.ref)).ref, found.ref);
+    await assert.rejects(ownerClient.startSource(fixture.document,
+      {format: 'json', requestId: 'effect-held-a'}), {code: 'SubmissionReferenceRequired'});
     assert.equal(starts, 1);
     await restarted.close();
 });
@@ -965,8 +1049,9 @@ test('installed Effect factory resumes an approved captured Set',
         observe: (name, detail) => diagnostics.push({name, detail})}),
     {directory, effectInstallation});
     const client = await host.as('owner-token');
+    const submissionRef = client.newSubmission({nonce: 'effect-factory-a'});
     const execution = await client.startSource(fixture.document, {format: 'json',
-      requestId: 'effect-factory-a'});
+      submissionRef});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint').catch(async error => {
       error.message = JSON.stringify({state: await execution.status(),
@@ -1027,7 +1112,7 @@ test('installed Effect factory resumes an approved captured Set',
     assert.deepEqual(await attached.result('answer').all(),
       [{id: 1}, {id: 2}]);
     assert.deepEqual((await resumedClient.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-factory-a'})).ref,
+      {format: 'json', submissionRef})).ref,
     execution.ref);
     assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
     const duplicate = await (await resumed.as('reviewer-token'))
@@ -1145,9 +1230,9 @@ test('installed Effect retries a transient capture read without recompute',
     });
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
-    const submitted = await (await first.as('owner-token'))
-      .startSource(fixture.document, {format: 'json',
-        requestId: 'effect-read-retry'});
+    const submissionClient = await first.as('owner-token');
+    const submitted = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'effect-read-retry'})});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
     await first.close();
@@ -1258,7 +1343,7 @@ for (const readDecision of ['deny']) {
       const first = await remoteHost(t, authorization(), options);
       const client = await first.as('owner-token');
       const submitted = await client.startSource(canonicalJson(program), {
-        format: 'json', requestId: `acquired-effect-${readDecision}`});
+        format: 'json', submissionRef: client.newSubmission({nonce: `acquired-effect-${readDecision}`})});
       await waitFor(async () => (await submitted.status()).status === 'failed');
       assert.equal(providerPreparations, 0);
       assert.deepEqual((await (await first.as('reviewer-token'))
@@ -1802,11 +1887,11 @@ test(`a ${damage} acquired input rejects only its Run after Host restart`,
     };
     const first = await remoteHost(t, account(), options);
     const client = await first.as('owner-token');
-    const healthy = await client.startSource(document, {format: 'json', requestId: 'healthy'});
+    const healthy = await client.startSource(document, {format: 'json', submissionRef: client.newSubmission({nonce: 'healthy'})});
     assert.equal((await healthy.wait()).status, 'succeeded');
     const expectedRows = await healthy.result('answer').all();
     const damaged = await client.startSource(canonicalJson(program),
-      {format: 'json', requestId: 'damaged'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'damaged'})});
     await waitFor(async () => (await damaged.status()).status === 'waiting_checkpoint');
     await first.close();
     const publication = join(directory, 'state', 'publication');
@@ -1876,12 +1961,12 @@ test('one installed Host reads and applies independent Effects', async t => {
   const first = await remoteHost(t, account(), options);
   const client = await first.as('owner-token');
   const read = await client.startSource(readDocument, {format: 'json',
-    requestId: 'coinstalled-read', parameters: {minimum: 1}});
+    submissionRef: client.newSubmission({nonce: 'coinstalled-read'}), parameters: {minimum: 1}});
   assert.equal((await read.wait()).status, 'succeeded');
   assert.deepEqual((await read.result('b').all()).map(row => row.id)
     .sort(), [2, 3, 3]);
   const effect = await client.startSource(fixture.document, {format: 'json',
-    requestId: 'coinstalled-effect'});
+    submissionRef: client.newSubmission({nonce: 'coinstalled-effect'})});
   await waitFor(async () => (await effect.status()).status === 'succeeded');
   assert.deepEqual(await effect.result('answer').all(),
     [{id: 1}, {id: 2}]);
@@ -1895,7 +1980,7 @@ test('one installed Host reads and applies independent Effects', async t => {
   await restarted.close();
 });
 
-test('coinstalled read and commit approvals survive the same Host restart',
+test('coinstalled historical read and current commit approvals survive the same Host restart',
   async t => {
     const directory = await mkdtemp(join(scratch, 'source-effect-held-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
@@ -1921,11 +2006,14 @@ test('coinstalled read and commit approvals survive the same Host restart',
     const first = await remoteHost(t, account({resumeAfterAnswer: false}),
       options);
     const client = await first.as('owner-token');
-    await assert.rejects(client.startSource(readDocument, {format: 'json',
-      requestId: 'coinstalled-held-read', parameters: {minimum: 1}}),
-    RequestHeld);
-    const effect = await client.startSource(fixture.document, {format: 'json',
-      requestId: 'coinstalled-held-effect'});
+    const [historicalRead] = await historicalFixtureWriters.get(client)([
+      {requestId: 'coinstalled-held-read', document: readDocument}]);
+    const waitingRead = await client.lookupRequest(historicalRead.requestId);
+    assert.equal(waitingRead.state, 'waiting_checkpoint');
+    assert.equal(waitingRead.checkpoint.checkpointCid, historicalRead.checkpointCid);
+    assert.deepEqual(journalRows(directory, 'SELECT run_id FROM runs'), []);
+    const effectSubmissionRef = client.newSubmission({nonce: 'coinstalled-held-effect'});
+    const effect = await client.startSource(fixture.document, {format: 'json', submissionRef: effectSubmissionRef});
     await waitFor(async () => (await effect.status()).status ===
       'waiting_checkpoint');
     assert.deepEqual(sends, []);
@@ -1953,6 +2041,8 @@ test('coinstalled read and commit approvals survive the same Host restart',
       const found = await resumedClient.lookupRequest('coinstalled-held-read');
       return found.kind === 'found' ? found : undefined;
     });
+    assert.equal(readLookup.ref.authorityScopeCid, historicalRead.authorityScopeCid);
+    assert.deepEqual((await resumedClient.lookupSubmission(effectSubmissionRef)).admission.ref, effect.ref);
     const read = await resumedClient.attach(readLookup.ref);
     assert.equal((await read.wait()).status, 'succeeded');
     assert.deepEqual((await read.result('b').all()).map(row => row.id)
@@ -1988,13 +2078,11 @@ test('coinstalled read denial cannot authorize or suppress independent commit',
       {accountConfiguration: canonicalJson(configuration)}),
     {directory, sourceProfilePath, effectInstallation});
     const client = await host.as('owner-token');
-    await assert.rejects(client.startSource(readDocument, {format: 'json',
-      requestId: 'coinstalled-denied-read', parameters: {minimum: 1}}),
-    {code: 'ACTQL_E_ACCOUNT_DENIED'});
-    assert.deepEqual(await client.lookupRequest('coinstalled-denied-read'),
-      {kind: 'not_found'});
+    await assertPreparationRefused(client, readDocument,
+      client.newSubmission({nonce: 'coinstalled-denied-read'}), 'ACTQL_E_ACCOUNT_DENIED',
+      {parameters: {minimum: 1}});
     const applied = await client.startSource(fixture.document, {format: 'json',
-      requestId: 'coinstalled-allowed-effect'});
+      submissionRef: client.newSubmission({nonce: 'coinstalled-allowed-effect'})});
     await waitFor(async () => (await applied.status()).status ===
       'succeeded');
     assert.deepEqual(sends, [[0, 0], [0, 1]]);
@@ -2024,8 +2112,9 @@ test('public Effect dispatch waits for and obeys the Host barrier',
       {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
     const first = await remoteHost(t, account, {directory,
       effectInstallation: installed, beforeDispatch: () => barrier});
-    const run = await (await first.as('owner-token')).startSource(fixture.document,
-      {format: 'json', requestId: 'effect-barrier-wait'});
+    const submissionClient = await first.as('owner-token');
+    const run = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'effect-barrier-wait'})});
     assert.equal(captures, 0);
     assert.deepEqual(sends, []);
     release();
@@ -2050,9 +2139,9 @@ test('public Effect dispatch waits for and obeys the Host barrier',
       effectInstallation: refused, beforeDispatch() {
         throw new Error('ExecutionBarrierDenied');
       }});
-    const rejected = await (await denied.as('owner-token'))
-      .startSource(fixture.document, {format: 'json',
-        requestId: 'effect-barrier-refused'});
+    const deniedClient = await denied.as('owner-token');
+    const rejected = await deniedClient.startSource(fixture.document, {format: 'json',
+      submissionRef: deniedClient.newSubmission({nonce: 'effect-barrier-refused'})});
     await waitFor(async () => (await rejected.status()).status === 'failed');
     assert.equal(refusedCaptures, 0);
     assert.deepEqual(sends, [[0, 0], [0, 1]]);
@@ -2076,9 +2165,9 @@ test('installed Effect deny sends nothing and reclaims captured inputs',
       {accountConfiguration: effectCommitConfiguration('allow', 'deny')});
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
-    const submitted = await (await first.as('owner-token'))
-      .startSource(fixture.document, {format: 'json',
-        requestId: 'effect-direct-deny-a'});
+    const submissionClient = await first.as('owner-token');
+    const submitted = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'effect-direct-deny-a'})});
     await waitFor(async () => (await submitted.status()).status === 'failed');
     assert.deepEqual(sends, []);
     assert.deepEqual((await (await first.as('reviewer-token'))
@@ -2117,9 +2206,9 @@ test('terminal Checkpoints retire captured Effect payloads after restart',
         });
         const first = await remoteHost(child, account(), {directory,
           effectInstallation});
-        const run = await (await first.as('owner-token'))
-          .startSource(fixture.document, {format: 'json',
-            requestId: `effect-retire-${outcome}`});
+        const submissionClient = await first.as('owner-token');
+        const run = await submissionClient.startSource(fixture.document, {format: 'json',
+          submissionRef: submissionClient.newSubmission({nonce: `effect-retire-${outcome}`})});
         await waitFor(async () => (await run.status()).status ===
           'waiting_checkpoint');
         const publication = join(directory, 'state', 'publication');
@@ -2173,9 +2262,9 @@ test('an expired Effect Checkpoint retires the captured payload',
     });
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
-    const run = await (await first.as('owner-token'))
-      .startSource(fixture.document, {format: 'json',
-        requestId: 'effect-expiry-retirement'});
+    const submissionClient = await first.as('owner-token');
+    const run = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'effect-expiry-retirement'})});
     await waitFor(async () => (await run.status()).status ===
       'waiting_checkpoint');
     const publication = join(directory, 'state', 'publication');
@@ -2223,8 +2312,9 @@ test('installed Effect rechecks account denial after an approved answer',
         accountConfiguration: effectCommitConfiguration('allow', commit)});
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
-    const submitted = await (await first.as('owner-token'))
-      .startSource(fixture.document, {format: 'json', requestId: 'current-deny-a'});
+    const submissionClient = await first.as('owner-token');
+    const submitted = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'current-deny-a'})});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
     assert.deepEqual(sends, []);
@@ -2289,9 +2379,9 @@ test('installed Effect reply loss retains the unknown row after restart',
     });
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
-    const submitted = await (await first.as('owner-token'))
-      .startSource(fixture.document, {format: 'json',
-        requestId: 'effect-reply-loss-a'});
+    const submissionClient = await first.as('owner-token');
+    const submitted = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'effect-reply-loss-a'})});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
     const [checkpoint] = (await (await first.as('reviewer-token'))
@@ -2364,8 +2454,9 @@ test('installed Effect keeps independent members after a halted row',
       {accountConfiguration: effectCommitConfiguration()});
     const first = await remoteHost(t, account(), {directory,
       effectInstallation});
-    const submitted = await (await first.as('owner-token'))
-      .startSource(fixture.document, {format: 'json', requestId: 'row-failure-a'});
+    const submissionClient = await first.as('owner-token');
+    const submitted = await submissionClient.startSource(fixture.document, {format: 'json',
+      submissionRef: submissionClient.newSubmission({nonce: 'row-failure-a'})});
     await waitFor(async () => (await submitted.status()).status ===
       'waiting_checkpoint');
     assert.deepEqual(sends, []);
@@ -2503,8 +2594,9 @@ test('installed Effect commit resumes the same Run without resending',
         throw error.primaryFailure ?? error;
       });
     const client = await first.as('owner-token');
+    const submissionRef = client.newSubmission({nonce: 'effect-commit-a'});
     const execution = await client.startSource(fixture.document, {format: 'json',
-      requestId: 'effect-commit-a'});
+      submissionRef});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
     assert.equal(computes, 1);
@@ -2529,8 +2621,10 @@ test('installed Effect commit resumes the same Run without resending',
       {directory, effectInstallation});
     const thirdReviewer = await third.as('reviewer-token');
     const restartedClient = await third.as('owner-token');
-    const found = await restartedClient.lookupRequest('effect-commit-a');
-    assert.deepEqual(found.ref, originalRef);
+    const found = await restartedClient.lookupSubmission(submissionRef);
+    assert.equal(found.kind, 'ready');
+    assert.deepEqual(found.submissionRef, submissionRef);
+    assert.deepEqual(found.admission.ref, originalRef);
     await waitFor(async () => (await (await restartedClient.attach(
       originalRef)).status()).status === 'needs_reconciliation').catch(
       async error => {
@@ -2545,7 +2639,7 @@ test('installed Effect commit resumes the same Run without resending',
     assert.deepEqual(duplicate.results.map(item => item.status),
       ['duplicate']);
     assert.deepEqual((await restartedClient.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-commit-a'})).ref, originalRef);
+      {format: 'json', submissionRef})).ref, originalRef);
     await third.close();
     const fourth = await remoteHost(t, authorization,
       {directory, effectInstallation});
@@ -2555,7 +2649,7 @@ test('installed Effect commit resumes the same Run without resending',
     assert.equal(sends, 1);
     assert.equal(computes, 1);
     const cancelledRun = await lastClient.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-cancel-a'});
+      {format: 'json', submissionRef: lastClient.newSubmission({nonce: 'effect-cancel-a'})});
     await waitFor(async () => (await cancelledRun.status()).status ===
       'waiting_checkpoint');
     const waiting = (await (await fourth.as('reviewer-token'))
@@ -2569,7 +2663,7 @@ test('installed Effect commit resumes the same Run without resending',
     assert.equal(sends, 1);
     assert.equal(computes, 2);
     const approvedThenCancelled = await lastClient.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-approved-cancel-a'});
+      {format: 'json', submissionRef: lastClient.newSubmission({nonce: 'effect-approved-cancel-a'})});
     await waitFor(async () => (await approvedThenCancelled.status()).status ===
       'waiting_checkpoint');
     await fourth.close();
@@ -2641,7 +2735,7 @@ test('deferred target read starts no Effect and leaves no held Checkpoint',
       {directory, effectInstallation});
     const client = await host.as('owner-token');
     const run = await client.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-target-read-deferred'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'effect-target-read-deferred'})});
     const state = await waitFor(async () => {
       const current = await run.status();
       return current.status === 'running' ? false : current;
@@ -2666,12 +2760,7 @@ test('rejected answers end the request without a Run; answers are per item',
   async t => {
     const host = await remoteHost(t, protectedHost('delegate'));
     const client = await host.as('owner-token');
-    for (const requestId of ['batch-a', 'batch-b']) {
-      const changed = JSON.parse(document);
-      changed.id = requestId;
-      await assert.rejects(client.startSource(JSON.stringify(changed),
-        {format: 'json', requestId}), error => error instanceof RequestHeld);
-    }
+    await heldRequests(client, ['batch-a', 'batch-b']);
     const reviewer = await host.as('reviewer-token');
     const {items} = await reviewer.checkpoints({limit: 1});
     assert.equal(items.length, 1);
@@ -2705,12 +2794,21 @@ test('rejected answers end the request without a Run; answers are per item',
     assert.equal(host.dispatches(), 0);
   });
 
+// These finite originals are synthetic historical-format recovery inputs.
+// Current public ingress cannot produce a new pre-Run hold from a bare ID.
 async function heldRequests(client, ids) {
-  for (const requestId of ids) {
+  const seed = historicalFixtureWriters.get(client);
+  assert.equal(typeof seed, 'function');
+  await seed(ids.map(requestId => {
     const changed = JSON.parse(document);
     changed.id = requestId;
-    await assert.rejects(client.startSource(JSON.stringify(changed),
-      {format: 'json', requestId}), error => error instanceof RequestHeld);
+    return {requestId, document: JSON.stringify(changed)};
+  }));
+  for (const requestId of ids) {
+    const original = await client.lookupRequest(requestId);
+    assert.equal(original.kind, 'held');
+    assert.equal(original.state, 'waiting_checkpoint');
+    assert.equal(Object.hasOwn(original, 'ref'), false);
   }
 }
 async function allCheckpoints(reviewer) {
@@ -2883,10 +2981,9 @@ test('closing during a resumed dispatch records its end before releasing',
     }
   });
 
-// DCI-R7: submitting a held request again never starts it outside the
-// resumed authorization. The Host's resume is stalled after the Run
-// Definition exists and before its physical start; meanwhile the owner
-// submits the same request.
+// DCI-R7 current recovery: observing and attaching the historical original
+// never starts it outside resumed authorization. Bare-ID new submission is
+// separately refused; no legacy submission acceptance is claimed.
 async function resubmittedWhileStalled(t, {leaseMs = 60_000,
   checkpointTtlMs, wait = 0, untilExpired = false}) {
   const steps = [];
@@ -2914,11 +3011,12 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
     : Date.now() + wait;
   await new Promise(resolve => setTimeout(resolve,
     Math.max(0, until - Date.now())));
-  const changed = JSON.parse(document);
-  changed.id = 'again-a';
-  const again = await client.startSource(JSON.stringify(changed), {format: 'json',
-    requestId: 'again-a'});
-  // The resubmit returns the existing Run and starts nothing by itself.
+  const found = await client.lookupRequest('again-a');
+  assert.equal(found.kind, 'found');
+  const again = await client.attach(found.ref);
+  await assert.rejects(client.startSource(document, {format: 'json', requestId: 'again-a'}),
+    {code: 'SubmissionReferenceRequired'});
+  // Original lookup/attach starts nothing outside the approved resume claim.
   await new Promise(resolve => setTimeout(resolve, 200));
   assert.equal(steps.filter(name => name === 'physical_start_reserved')
     .length, 0);
@@ -2933,7 +3031,7 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
     name === 'physical_start_reserved').length, steps};
 }
 
-test('a resubmit of a held request after its approval expired starts nothing',
+test('historical lookup after approval expiry starts nothing',
   async t => {
     const {state, starts} = await resubmittedWhileStalled(t,
       {checkpointTtlMs: 8000, untilExpired: true});
@@ -2941,14 +3039,14 @@ test('a resubmit of a held request after its approval expired starts nothing',
     assert.equal(state.status, 'failed');
   });
 
-test('a resubmit during a valid resume starts the Run at most once',
+test('historical lookup during a valid resume starts the Run at most once',
   async t => {
     const {state, starts} = await resubmittedWhileStalled(t, {});
     assert.equal(starts, 1);
     assert.equal(state.status, 'succeeded');
   });
 
-test('a resubmit while the resuming claim lapses starts the Run once',
+test('historical lookup while the resuming claim lapses starts the Run once',
   async t => {
     const {state, starts, steps} = await resubmittedWhileStalled(t,
       {leaseMs: 1000, wait: 1300});
@@ -2958,88 +3056,92 @@ test('a resubmit while the resuming claim lapses starts the Run once',
     assert.ok(steps.filter(name => name === 'resume_claimed').length >= 2);
   });
 
-// DCI-R8: a held request's intent is always compared before its held state
-// or Run is returned, and unavailable evidence is an error, never a pass.
-test('a held request resubmit is matched to its intent, whatever the evidence',
-  async t => {
-    const directory = await mkdtemp(join(scratch, 'intent-'));
-    const host = await remoteHost(t, protectedHost('delegate'),
-      {directory});
-    // Registered after the Host's own cleanup, so it runs after close.
-    t.after(async () => {
-      await chmod(join(directory, 'state', 'checkpoints', 'attempts'), 0o700)
-        .catch(() => {});
-      await rm(directory, {recursive: true, force: true});
-    });
-    const client = await host.as('owner-token');
-    const reviewer = await host.as('reviewer-token');
-    const variant = (id, rows) => {
-      const value = JSON.parse(document);
-      value.id = id;
-      if (rows !== undefined) value.stages[0].steps[0].values.rows = rows;
-      return JSON.stringify(value);
-    };
-    await heldRequests(client, ['done-a', 'held-b']);
-    const items = await allCheckpoints(reviewer);
-    await approveAll(reviewer, items.filter(item =>
-      item.subject.requestId === 'done-a'));
-    assert.equal(await succeeded(client, 'done-a'), true);
-    const ledgers = join(directory, 'state', 'checkpoints', 'attempts');
-    const ledgerOf = async requestId => {
-      for (const file of await readdir(ledgers)) {
-        const summary = items.find(item =>
-          item.subject.requestId === requestId);
-        if (file === `${summary.subject.prepareAttemptId}.json`) {
-          return join(ledgers, file);
-        }
-      }
-      throw new Error('LedgerNotFound');
-    };
-    // Normal: the same request returns the same Run; another intent conflicts.
-    const found = await client.lookupRequest('done-a');
-    const again = await client.startSource(variant('done-a'), {format: 'json',
-      requestId: 'done-a'});
-    assert.deepEqual(again.ref, found.ref);
-    await assert.rejects(client.startSource(variant('done-a', [{id: 999}]),
-      {format: 'json', requestId: 'done-a'}),
-    {code: 'ClientRequestIntentConflict'});
-    // A Run exists: the request journal's identity decides, even with the
-    // held evidence ledger corrupt.
-    await writeFile(await ledgerOf('done-a'), '{broken');
-    await assert.rejects(client.startSource(variant('done-a', [{id: 999}]),
-      {format: 'json', requestId: 'done-a'}),
-    {code: 'ClientRequestIntentConflict'});
-    assert.deepEqual((await client.startSource(variant('done-a'), {format: 'json',
-      requestId: 'done-a'})).ref, found.ref);
-    // No Run yet: the held request's durable fingerprint must be readable.
-    const held = await ledgerOf('held-b');
-    const original = await readFile(held);
-    await assert.rejects(client.startSource(variant('held-b', [{id: 999}]),
-      {format: 'json', requestId: 'held-b'}),
-    {code: 'ClientRequestIntentConflict'});
-    const unavailable = error => error.code === 'SubmissionUnknown' &&
-      error.cause?.code === 'HeldRequestEvidenceUnavailable';
+// DCI-R8 intent conflict belongs to the supported epoch-bound operation.
+// Historical bare lookup is observation only and cannot replace this control.
+test('same submitted identity preserves one Run and refuses changed intent', async t => {
+  const host = await remoteHost(t, protectedHost('allow'));
+  const client = await host.as('owner-token');
+  const submissionRef = client.newSubmission({nonce: 'same-original-intent'});
+  const first = await client.startSource(document, {format: 'json', submissionRef});
+  assert.equal((await first.wait()).status, 'succeeded');
+  assert.deepEqual(await first.result('answer').all(), [{id: 1}, {id: 2}]);
+  const original = await client.lookupSubmission(submissionRef);
+  assert.equal(original.kind, 'ready');
+  assert.deepEqual(original.admission.ref, first.ref);
+  assert.deepEqual((await client.startSource(document, {format: 'json', submissionRef})).ref, first.ref);
+  const changed = JSON.parse(document);
+  changed.stages[0].steps[0].values.rows = [{id: 999}];
+  await assert.rejects(client.startSource(JSON.stringify(changed), {format: 'json', submissionRef}), error => {
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
+    assert.equal(error.cause?.status, undefined);
+    assert.deepEqual(host.responses.at(-1), {
+      path: '/actql/client/0.1/submit-intent', status: 409});
+    assert.deepEqual(error.submissionRef, submissionRef);
+    return true;
+  });
+  assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+  assert.deepEqual(await (await client.attach(first.ref)).result('answer').all(), [{id: 1}, {id: 2}]);
+  assert.equal(host.dispatches(), 1);
+});
+
+test('historical original recovery refuses damaged private evidence without dispatch', async t => {
+  const directory = await mkdtemp(join(scratch, 'intent-'));
+  const host = await remoteHost(t, protectedHost('delegate'), {directory});
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const client = await host.as('owner-token');
+  const reviewer = await host.as('reviewer-token');
+  const reader = await host.as('reader-token');
+  await heldRequests(client, ['done-a', 'held-b']);
+  const items = await allCheckpoints(reviewer);
+  await approveAll(reviewer, items.filter(item => item.subject.requestId === 'done-a'));
+  assert.equal(await succeeded(client, 'done-a'), true);
+  const ledgers = join(directory, 'state', 'checkpoints', 'attempts');
+  const ledgerOf = requestId => join(ledgers, `${items.find(item =>
+    item.subject.requestId === requestId).subject.prepareAttemptId}.json`);
+  const found = await client.lookupRequest('done-a');
+  assert.deepEqual(await (await client.attach(found.ref)).result('answer').all(), [{id: 1}, {id: 2}]);
+  // This completed Run retains its original request journal identity; private
+  // continuation evidence is no longer needed to observe the published Run.
+  const completedLedger = await readFile(ledgerOf('done-a'));
+  await writeFile(ledgerOf('done-a'), '{broken');
+  assert.deepEqual((await client.lookupRequest('done-a')).ref, found.ref);
+  assert.deepEqual(await (await client.attach(found.ref)).result('answer').all(), [{id: 1}, {id: 2}]);
+  await writeFile(ledgerOf('done-a'), completedLedger);
+  const heldPath = ledgerOf('held-b');
+  const original = await readFile(heldPath);
+  const summary = items.find(item => item.subject.requestId === 'held-b');
+  const review = await reader.reviewCheckpoint(summary);
+  try {
     for (const [label, damage] of [
-      ['corrupt', () => writeFile(held, '{broken')],
-      ['missing', () => rm(held)],
-      ['unreadable', async () => {
-        await writeFile(held, original);
-        await chmod(held, 0o000);
-      }],
+      ['corrupt', () => writeFile(heldPath, '{broken')],
+      ['missing', () => rm(heldPath)],
+      ['unreadable', async () => {await writeFile(heldPath, original); await chmod(heldPath, 0o000);}],
     ]) {
       await damage();
-      for (const text of [variant('held-b'), variant('held-b', [{id: 999}])]) {
-        await assert.rejects(client.startSource(text, {format: 'json',
-          requestId: 'held-b'}), unavailable, label);
+      await assert.rejects(reader.reviewCheckpoint(summary),
+        {code: 'CheckpointReviewUnavailable', status: 410}, label);
+      assert.equal(host.dispatches(), 1, label);
+      assert.equal((await client.lookupRequest('held-b')).state, 'waiting_checkpoint', label);
+      // No supplied alternate intent may become a new submission from this ID.
+      const changed = JSON.parse(document);
+      changed.stages[0].steps[0].values.rows = [{id: 999}];
+      for (const text of [document, JSON.stringify(changed)]) {
+        await assert.rejects(client.startSource(text, {format: 'json', requestId: 'held-b'}),
+          {code: 'SubmissionReferenceRequired'});
       }
     }
-    await chmod(held, 0o600);
-    await writeFile(held, original);
-    await assert.rejects(client.startSource(variant('held-b'), {format: 'json',
-      requestId: 'held-b'}), error => error instanceof RequestHeld);
-    // Nothing was started by any of these submits.
-    assert.equal(host.dispatches(), 1);
-  });
+  } finally {
+    await chmod(heldPath, 0o600).catch(() => {});
+    await writeFile(heldPath, original);
+  }
+  assert.deepEqual((await reader.reviewCheckpoint(summary)).bytes, review.bytes);
+  await approveAll(reviewer, [summary]);
+  assert.equal(await succeeded(client, 'held-b'), true);
+  const restored = await client.lookupRequest('held-b');
+  assert.deepEqual(await (await client.attach(restored.ref)).result('answer').all(), [{id: 1}, {id: 2}]);
+  assert.equal(host.dispatches(), 2);
+});
 
 // DCI-R9: a Run from a held request cancelled through the public Client
 // before its physical start ends the held request too: no start, no more
@@ -3468,8 +3570,11 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     });
     if (phase === 'seed') {
       let host = await remoteHost(t, account(), {directory, effectInstallation});
-      const run = await (await host.as('owner-token')).startSource(fixture.document,
-        {format: 'json', requestId: 'partial-effect-refusal'});
+      const client = await host.as('owner-token');
+      const submissionRef = client.newSubmission({nonce: 'partial-effect-refusal'});
+      writeFileSync(join(directory, 'partial-effect-submission.json'), JSON.stringify(submissionRef));
+      const run = await client.startSource(fixture.document,
+        {format: 'json', submissionRef});
       await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
       const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
       await (await host.as('reviewer-token')).resolveCheckpoints([
@@ -3488,7 +3593,13 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
       refusal === 'answer_deadline' ? Date.parse(saved.checkpoint.expiresAt) + 50 : Date.now());
     await new Promise(resolve => setTimeout(resolve, Math.max(0, readyAt - Date.now())));
     const host = await remoteHost(t, {...account(), resumeAfterAnswer: true}, {directory, effectInstallation});
-    const run = await (await host.as('owner-token')).attach(saved.ref);
+    const client = await host.as('owner-token');
+    const submissionRef = JSON.parse(await readFile(join(directory, 'partial-effect-submission.json'), 'utf8'));
+    const original = await client.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.submissionRef, submissionRef);
+    assert.deepEqual(original.admission.ref, saved.ref);
+    const run = await client.attach(saved.ref);
     let state;
     await waitFor(async () => {
       state = await run.status();
