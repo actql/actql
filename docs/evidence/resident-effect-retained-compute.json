@@ -77,5 +77,13 @@
     "Physical Effect Preview, Checkpoint and approval/application",
     "Public Cloud SDK and real Preview",
     "Old failed Runs remain separate unresolved custody obligations"
-  ]
+  ],
+  "history": {
+    "verifiedSource": "ae30c31f011622072e7766a491c5ebd408279cbb",
+    "command": "node proofs/relation-pipeline/history.mjs --write",
+    "result": "passed",
+    "receipt": "_build/resident-effect-worker-dispatch-packed-1791532744344/receipt.json",
+    "declaration": "proofs/relation-pipeline/foundation-declarations/retained-effect-main-fd139749-root.json",
+    "scope": "Append-only declaration for the actual fd139749 merge. Native and portable executable inputs are unchanged from the earlier verified source."
+  }
 }
