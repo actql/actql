@@ -64,3 +64,14 @@ test('SDK leaves acquisition and cursor gaps distinct and never refreshes by res
   assert.equal((await f.run.observeOwners()).owners[0].history.kind,'retention_expired');
   assert.deepEqual(f.requests.map(value=>value.operation),['connect','attach','owner-observations']);
 });
+
+// Fixed SHA-256 preimage uses raw data keys/strings, independently authored
+// from the public snapshot domain; no product serializer supplies this CID.
+test('SDK preserves decomposed result names and CRLF in a snapshot identity',async t=>{
+  const original=JSON.parse("{\"ref\":{\"namespaceId\":\"original\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"consistency\":\"non_atomic\",\"ordering\":\"owner_local\",\"owners\":[{\"owner\":\"run\",\"ownerRef\":{\"kind\":\"run\",\"scopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"streamCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"kind\":\"observed\",\"snapshot\":{\"value\":{\"version\":\"actql-run-state/0.1\",\"run_id\":\"original\",\"status\":\"failed\",\"updated_at\":\"2026-10-09T00:00:00.000Z\",\"next_action\":{\"kind\":\"none\"},\"result_available\":false,\"result_availability\":{\"e\u0301\":{\"state\":\"unknown\",\"observed_at\":\"2026-10-09T00:00:00.000Z\",\"reason\":\"store_query_failed\"}},\"terminal_error\":{\"code\":\"ACTQL_E_FIXTURE\",\"message\":\"e\u0301\\r\\n\"}}},\"history\":{\"kind\":\"not_provided\"}}],\"revisionVector\":[{\"owner\":{\"kind\":\"run\",\"scopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"streamCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"snapshotCid\":\"sha256:bd37f22b2b0b0ff8ea93c6cb2fda3d1eed0f823790a40b97e7a6e852b3ba1e02\"}]}");
+  const f=await fixture(t,()=>original);
+  const value=await f.run.observeOwners();
+  assert.deepEqual(Object.keys(value.owners[0].snapshot.value.result_availability),['e\u0301']);
+  assert.equal(value.owners[0].snapshot.value.terminal_error.message,'e\u0301\r\n');
+  assert.deepEqual(f.requests.map(request=>request.operation),['connect','attach','owner-observations']);
+});
