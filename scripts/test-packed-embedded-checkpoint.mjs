@@ -47,6 +47,14 @@ run('npm', ['install', '--ignore-scripts', '--no-save', ...[
   'client-wire', 'sdk', 'run-host-core', 'local-node', 'node'].map(name =>
   join(root, `actql-${name}-0.0.0-development.tgz`))]);
 
+// Independent fixture input from this revision's normative source. It is not
+// a runtime package asset or an identity returned by the installed Host.
+const expressionContract = await readFile(join(repository,
+  'spec/contracts/actql-expressions.json'));
+await writeFile(join(root, 'actql-expressions.json'), expressionContract);
+assert.deepEqual(await readFile(join(root, 'actql-expressions.json')), expressionContract,
+  'The external fixture retains the exact normative contract bytes');
+
 const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
 await writeFile(join(root, 'values.json'), document);
@@ -78,6 +86,10 @@ await writeFile(join(root, 'authorization.json'), JSON.stringify({
   hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)},
   leaseMs: 10000,
 }));
+
+// A valid held original performs no dispatch and may emit no events.
+// Initialize its observation sink once, before any child can append to it.
+await writeFile(join(root, 'embedded-events.log'), '', {flag: 'wx'});
 
 // Deliberately remove MoonBit and the checkout from the child's lookup path.
 const childEnvironment = {...environment,
