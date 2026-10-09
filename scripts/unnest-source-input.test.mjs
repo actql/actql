@@ -28,6 +28,37 @@ test('OFFSET keeps its range until ordinary projection or a whole-column edit', 
   }
 });
 
+test('value-table ordinal fixtures distinguish physical columns from projected members', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const get = name => byName.get('unnest-struct-ordinal-' + name);
+  const control = get('json-control');
+  const program = JSON.parse(control.text);
+  assert.deepEqual(program.stages[0].steps[2],
+    {unnest: {column: 'array', as: 'whole', with_index: 'position'}});
+  assert.deepEqual(program.stages[0].steps[4],
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]});
+  assert.deepEqual(control.expected.map(row => row.position), [0, 1, 2]);
+  for (const name of ['offset-before-select', 'signed-quoted']) {
+    assert.deepEqual(get(name).expected, control.expected);
+    assert.deepEqual(get(name).columns, control.columns);
+  }
+  assert.deepEqual(get('projected-members').expected.map(row => row.position), [1, 2, 0]);
+  assert.deepEqual(get('reordered-projection').columns.map(column => column.name), ['position', 'id', 'label']);
+  assert.deepEqual(get('same-named-offset').expected,
+    [{original: 2, position: 0}, {original: null, position: 1}, {original: 1, position: 2}]);
+  assert.deepEqual(get('extend-column').expected.map(row => row.position), [2, 1, 0]);
+  assert.deepEqual(get('set-offset').expected.map(row => row.position), [8, 9, 10]);
+  assert.deepEqual(get('join-remapping').expected.map(row => row.position), [0, 2]);
+  assert.deepEqual(get('empty-objects').expected, [{position: 1}, {position: 0}]);
+  assert.deepEqual(get('null-array').expected, []);
+  assert.deepEqual(get('null-array').columns, control.columns);
+  for (const name of ['outside-actual-columns', 'without-offset', 'after-drop']) {
+    const value = unnestRefusals.find(item => item.name === 'unnest-refusal-ordinal-' + name);
+    assert.equal(value.expectedCode, 'ClientProgramImplementationLimit');
+    assert.equal(value.format, 'aql-text');
+  }
+});
+
 test('scalar value-table RENAME distinguishes range names from projected columns', () => {
   const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
   const control = byName.get('unnest-scalar-rename-json-control');
@@ -218,5 +249,41 @@ test('scalar receivers distinguish elements and offsets from parent columns', ()
   }
   for (const item of unnestRefusals.filter(value => value.name.startsWith('unnest-refusal-scalar-receiver-'))) {
     assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  }
+});
+
+
+test('AS independently preserves whole values, star layouts and nullable empty schemas', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const get = name => byName.get('unnest-struct-as-' + name);
+  const scalar = byName.get('unnest-as-scalar-json-control');
+  assert.deepEqual(JSON.parse(scalar.text).stages[0].steps[2],
+    {unnest: {column: 'array', as: 'element'}});
+  assert.deepEqual(byName.get('unnest-as-scalar-repeated').expected, scalar.expected);
+  const control = get('whole-json-control');
+  assert.deepEqual(JSON.parse(control.text).stages[0].steps.at(-1).select,
+    [{original: 'element'}, 'position']);
+  for (const name of ['mixed-qualified-whole', 'mixed-renamed-whole',
+    'qualified-original-after-rename', 'repeated-object']) {
+    assert.deepEqual(get(name).expected, control.expected);
+    assert.deepEqual(get(name).columns, control.columns);
+  }
+  assert.deepEqual(get('single-whole').expected.map(row => row.id), [1, 2, null]);
+  const star = get('star-0');
+  assert.deepEqual(star.columns.map(item => item.name), ['id', 'label', 'position']);
+  assert.deepEqual(get('star-1').expected, star.expected);
+  assert.deepEqual(get('immutable-star-after-set').expected, star.expected);
+  assert.deepEqual(get('set-whole-current-star').columns.map(item => item.name), ['element', 'position']);
+  assert.deepEqual(get('qualified-star-after-join').expected, [star.expected[0]]);
+  for (const name of ['typed-empty', 'typed-null-array']) {
+    assert.deepEqual(get(name).expected, []);
+    assert.deepEqual(get(name).columns, control.columns);
+  }
+  assert.deepEqual(get('empty-objects').expected, [{original: {}, position: 0}, {original: null, position: 1}]);
+  assert.equal(get('empty-objects').columns[0].contract.nullable, true);
+  assert.deepEqual(get('empty-objects').columns[0].contract.fields, {});
+  for (const name of ['single-rename-range', 'implicit-member-edit', 'select-removed-range']) {
+    assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-as-' + name).expectedCode,
+      'ClientProgramInvalidInput');
   }
 });
