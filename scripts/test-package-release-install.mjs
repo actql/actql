@@ -3,14 +3,16 @@
 // This proves registry installation mechanics, not public npm publication.
 import assert from 'node:assert/strict';
 import {spawn, execFileSync} from 'node:child_process';
+import {generateKeyPairSync} from 'node:crypto';
 import {createServer} from 'node:http';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
-import {tmpdir} from 'node:os';
+import {tmpdir, userInfo} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const input = process.argv[2];
@@ -100,6 +102,32 @@ try {
   await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mjs'), join(local, 'acceptance.mjs'));
   results.push(await run(process.execPath, ['acceptance.mjs', 'initial'], local));
   results.push(await run(process.execPath, ['acceptance.mjs', 'restart'], local));
+  // Reuse the actual public Checkpoint fixture in four distinct processes,
+  // without adding the unrelated Host-implementer package to the consumer.
+  const approval = join(local, 'approval'); await mkdir(approval);
+  await copyFile(join(local, 'values.json'), join(approval, 'values.json'));
+  const document = JSON.parse(await readFile(join(approval, 'values.json'), 'utf8'));
+  await writeFile(join(approval, 'expected.json'), JSON.stringify(document.stages[0].steps[0].values.rows));
+  await copyFile(join(repository, 'scripts/fixtures/packed-embedded-checkpoint.mjs'), join(approval, 'client.mjs'));
+  const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
+  const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
+  await writeFile(join(approval, 'reviewer.key'), pem(reviewer.privateKey), {mode: 0o600});
+  await writeFile(join(approval, 'authorization.json'), JSON.stringify({
+    accountConfiguration: canonicalText({version: 'actql-execution-account-config/0.1',
+      account_id: 'packed-embedded-account', entries: [{entry_id: 'run-acceptance', exclusions: [],
+        connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['write']},
+        outcome: 'delegate', principal: {all: true}, resource: {any_of: ['source-free-values']}}]}),
+    reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: userInfo().username,
+      publicKey: pem(reviewer.publicKey)}], reviewReaders: [userInfo().username],
+    hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)}, leaseMs: 10000,
+  }), {mode: 0o600});
+  for (const [step, expected] of [['hold', 'held'], ['approve', 'approved'], ['resume', 'published'], ['recheck', 'published']]) {
+    const observed = await run(process.execPath, ['client.mjs', step], approval);
+    assert.equal(observed.stdout.trim(), expected); results.push(observed);
+  }
+  const events = (await readFile(join(approval, 'embedded-events.log'), 'utf8')).split('\n');
+  assert.equal(events.filter(v => v === 'computed').length, 1);
+  assert.equal(events.filter(v => v === 'physical_start_reserved').length, 1);
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'), join(local, 'short-queries.mjs'));
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'), join(local, 'short-queries.typecheck.mts'));
   results.push(await run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
