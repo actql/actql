@@ -12,8 +12,8 @@ priv struct JoinChainScope {
 
 ///|
 // RIGHT/FULL JOIN, GROUP, star, DISTINCT and RENAME need the shared row scope.
-// DISTINCT ORDER expressions resolve after materialization, using evaluated
-// output aliases rather than the projection-only specialization's input scope.
+// Pipe DISTINCT compares the current JOIN row before a later projection;
+// SELECT DISTINCT orders through its materialized output aliases.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
@@ -29,6 +29,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
         | Qualify(_, _)
         | UnnestSource(_, _, _)
         | Rename(_)
+        | Distinct
       ) {
       return true
     }
