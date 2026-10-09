@@ -11,18 +11,72 @@ priv struct JoinChainScope {
 }
 
 ///|
-// RIGHT/FULL JOIN, GROUP, star, DISTINCT and RENAME need the shared row scope.
+// Explicit range-property receivers need the shared expression binder. This
+// applicability check does not decide whether a same-named value or range wins;
+// the ordinary scope resolver retains that distinction.
+fn join_has_range_property(
+  expression : @query.Expression,
+  ranges : Array[@query.NamePart],
+) -> Bool {
+  for index in 0..<@query.expression_node_count(expression) {
+    guard @query.expression_node(expression, index).unwrap().kind
+      is Property(receiver, _) else {
+      continue
+    }
+    let mut current = receiver
+    while @query.expression_node(expression, current).unwrap().kind
+          is Parenthesized(child) {
+      current = child
+    }
+    if @query.expression_node(expression, current).unwrap().kind
+      is Reference(path) &&
+      path.length() == 1 &&
+      ranges.any(name => same_name(name, path[0])) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+// RIGHT/FULL JOIN, GROUP, star, DISTINCT, range properties and RENAME need
+// the shared row scope.
 // DISTINCT ORDER expressions resolve after materialization, using evaluated
 // output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
+  let ranges : Array[@query.NamePart] = []
+  let primary = match @query.relation_alias(query) {
+    Some(name) => Some(name)
+    None => @query.relation(query).last()
+  }
+  if primary is Some(name) {
+    ranges.push(name)
+  }
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let kind = part.kind
     if kind == "right" || kind == "full" {
       return true
     }
+    let range = match part.source_alias {
+      Some(name) => Some(name)
+      None => part.relation.last()
+    }
+    if range is Some(name) {
+      ranges.push(name)
+    }
   }
   for index in 0..<@query.operation_count(query) {
+    let expressions = match @query.operation_at(query, index) {
+      Some(Where(expression)) => [expression]
+      Some(Select(projections, _)) =>
+        projections.filter_map(projection => projection.expression)
+      Some(Order(terms)) => terms.map(term => term.expression)
+      _ => []
+    }
+    if expressions.any(expression => join_has_range_property(expression, ranges)) {
+      return true
+    }
     if @query.operation_at(query, index)
       is Some(
         Group(_, _, _)

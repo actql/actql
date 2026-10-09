@@ -4988,25 +4988,21 @@ fn compile_steps(
                         max_work,
                       )
                     } else {
-                      match
-                        @expression.append_with_properties(
-                          expression,
-                          resolve,
-                          construction.builder,
-                          max_work,
-                          resolve_parameter=construction.parameter_resolver(),
-                        ) {
-                        Ok(node) => node
-                        Err(error) =>
-                          if distinct_order_scope &&
-                            join_reference_paths(expression).any(path => {
-                              resolve(path) is None
-                            }) {
-                            raise Abort(UnsupportedOrdering)
-                          } else {
-                            raise Abort(Expression(error))
-                          }
-                      }
+                      append_resolved_range_expression(
+                        construction,
+                        expression,
+                        resolve,
+                        name => {
+                          resolve([name]) is Some(_) ||
+                          pipe_name_exists(
+                            unnest_expression_columns(
+                              pipe_visible, value_table_receivers, scalar_value_table_ranges,
+                            ),
+                            name,
+                          )
+                        },
+                        max_work,
+                      )
                     }
                     derives.push((slot, value))
                     hidden.push((expression, slot))

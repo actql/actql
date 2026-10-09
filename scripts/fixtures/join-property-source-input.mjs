@@ -86,6 +86,30 @@ const cteCase = (name, tail, extra = {}) => ({
   parameterDeclarations, parameters, expected: propertyAliasRows,
   columns: propertyAliasColumns, sourceReadCount: 0, ...extra,
 });
+// Independently authored order control: keep both receivers, derive the
+// original score once, sort the input score (then the peer for duplicate IDs),
+// and only afterward replace the public payload with the peer object.
+export const joinRangeOrderProgram = {version: 'actql/0.1',
+  id: 'fixture.join_range_order', stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload}, rows: leftRows}, as: 'objects'},
+    {values: {schema: {id: number, other}, rows: rightRows}, as: 'others'},
+    {from: 'objects', join: {with: 'others', kind: 'inner',
+      on: [{left: 'id', right: 'id'}], max_output_rows: 12,
+      select: {id: 'left.id', payload: 'left.payload', other: 'right.other'}}, as: 'matched'},
+    {from: 'matched', derive: {
+      original_score: {property: {value: {field: 'payload'}, name: 'score'}},
+      peer_score: {property: {value: {field: 'other'}, name: 'score'}},
+    }},
+    {sort: [{field: 'original_score', dir: 'asc', nulls: 'last'},
+      {field: 'peer_score', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'original_score', {payload: 'other'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['id', 'original_score', 'payload']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const rangeCase = (name, tail, extra = {}) => ({
+  name: 'join-property-range-' + name, format: 'aql-text', text: ctes + tail,
+  parameterDeclarations, parameters, expected: idScoreRows,
+  columns: idScoreColumns, sourceReadCount: 0, ...extra,
+});
 export const joinPropertySuccesses = [
   {name: 'join-property-independent-json', format: 'json', text: JSON.stringify(program),
     expected: idScoreRows, columns: idScoreColumns, sourceReadCount: 0},
@@ -126,6 +150,52 @@ export const joinPropertySuccesses = [
   cteCase('empty',
     `SELECT (l.payload).score, l.id ${join} WHERE FALSE ORDER BY score NULLS LAST, id`,
     {expected: []}),
+  {name: 'join-property-range-independent-json', format: 'json',
+    text: JSON.stringify(joinRangeOrderProgram),
+    expected: [aliasRows[2], aliasRows[3], aliasRows[0], aliasRows[1]],
+    columns: receiverColumns, sourceReadCount: 0},
+  rangeCase('sql-select', `SELECT l.id, ((l)).payload.score ${join} ORDER BY l.id`),
+  rangeCase('pipe-quoted-select', pipeJoin
+    + ' |> SELECT l.id, ((`L`)).`payload`.`score` |> ORDER BY id'),
+  rangeCase('where-input',
+    `SELECT l.id, r.other AS payload ${join} WHERE ((l)).payload.score > 15 ORDER BY payload.score`,
+    {expected: [{id: 1, payload: {score: 5}}], columns: [idColumn, receiverColumns[2]]}),
+  rangeCase('order-qualified-input',
+    `SELECT l.id, l.payload.score AS original_score, r.other AS payload ${join}`
+      + ' ORDER BY ((l)).payload.score NULLS LAST, ((r)).other.score',
+    {expected: [aliasRows[2], aliasRows[3], aliasRows[0], aliasRows[1]], columns: receiverColumns}),
+  rangeCase('order-output-receiver',
+    `SELECT l.id, ((l)).payload.score AS original_score, r.other AS payload ${join}`
+      + ' ORDER BY (payload).score NULLS LAST',
+    {expected: aliasRows, columns: receiverColumns}),
+  rangeCase('value-range-collision',
+    'SELECT payload.id AS id, (payload).score AS score '
+      + 'FROM (SELECT id, payload, 90 AS score FROM objects) AS payload '
+      + 'JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY id'),
+  rangeCase('dotted-range-collision-control',
+    'SELECT payload.id AS id, payload.score AS score '
+      + 'FROM (SELECT id, payload, 90 AS score FROM objects) AS payload '
+      + 'JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY id',
+    {expected: [{id: 1, score: 90}, {id: 2, score: 90}, {id: 2, score: 90}, {id: 3, score: 90}],
+      columns: [idColumn, {name: 'score', contract: number}]}),
+  rangeCase('typed-empty',
+    `SELECT l.id, ((l)).payload.score ${join} WHERE ((r)).other.score < 0 ORDER BY l.id`,
+    {expected: []}),
+  rangeCase('left-null-extension',
+    'SELECT l.id, ((r)).other.score FROM objects AS l '
+      + 'LEFT JOIN (SELECT id, other FROM others WHERE id <> 3) AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY l.id, ((r)).other.score',
+    {expected: [{id: 1, score: 5}, {id: 2, score: 30}, {id: 2, score: 40}, {id: 3, score: null}]}),
+  rangeCase('ordinary-scoped-order',
+    'FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST'
+      + ' |> SELECT current.id AS id, current.payload.score AS score',
+    {expected: [{id: 2, score: 10}, {id: 1, score: 20}, {id: 3, score: null}]}),
+  rangeCase('current-range-order', pipeJoin
+    + ' |> SELECT l.id, l.payload |> AS current'
+    + ' |> ORDER BY ((current)).payload.score NULLS LAST, ((current)).id',
+    {expected: [{id: 2, payload: {score: 10}}, {id: 2, payload: {score: 10}},
+      {id: 1, payload: {score: 20}}, {id: 3, payload: null}],
+      columns: [idColumn, {name: 'payload', contract: {...payload, additional_properties: false}}]}),
 ];
 export const joinPropertyRefusals = [
   `SELECT id.score ${join}`,
@@ -140,4 +210,11 @@ export const joinPropertyRefusals = [
   `SELECT (l.payload).missing ${join}`,
   `SELECT (l.id).score ${join}`,
 ].map((tail, index) => ({name: 'join-property-implicit-invalid-' + index,
-  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters})));
+  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters}))).concat([
+  `SELECT ((l)).missing AS score ${join}`,
+  `SELECT ((l)).payload.missing AS score ${join}`,
+  `SELECT ((l)).id.score AS score ${join}`,
+  pipeJoin + ' |> SELECT l.id, l.payload |> AS current |> ORDER BY ((l)).payload.score',
+].map((tail, index) => ({name: 'join-property-range-invalid-' + index,
+  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters,
+  expectedCode: 'ClientProgramInvalidInput'})));
