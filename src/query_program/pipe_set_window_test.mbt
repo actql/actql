@@ -66,20 +66,31 @@ test "Pipe SET window assignments share the immutable input snapshot" {
 }
 
 ///|
-test "Pipe SET window targets retain existing column checks" {
+test "Pipe SET missing and duplicate targets are invalid input" {
   for
-    source in [
-      "FROM orders |> SET missing = ROW_NUMBER() OVER (ORDER BY id)", "FROM orders |> SET amount = ROW_NUMBER() OVER (ORDER BY id), amount = 1",
+    (source, expected) in [
+      (
+        "FROM orders |> SET missing = ROW_NUMBER() OVER (ORDER BY id)", "UnknownColumn",
+      ),
+      (
+        "FROM orders |> SET amount = ROW_NUMBER() OVER (ORDER BY id), amount = 1",
+        "DuplicateOutput",
+      ),
+      ("FROM orders |> SET missing = 1", "UnknownColumn"),
+      ("FROM orders |> SET amount = 1, amount = 2", "DuplicateOutput"),
     ] {
-    assert_true(
-      compile(
-        @query.parse_query(source, syntax_limits()).unwrap(),
-        values_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedProjection),
-      msg=source,
+    let result = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      values_context(),
+      construction_limits(),
     )
+    let actual = match result {
+      Err(UnknownColumn) => "UnknownColumn"
+      Err(DuplicateOutput) => "DuplicateOutput"
+      Err(UnsupportedProjection) => "UnsupportedProjection"
+      _ => fail("unexpected target acceptance or refusal: " + source)
+    }
+    assert_eq(actual, expected)
   }
 }
 

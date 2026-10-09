@@ -2495,11 +2495,13 @@ fn compile_steps(
         let targets : Array[String] = []
         let replacements : Array[(String, String)] = []
         for assignment in assignments {
-          if !pipe_name_exists(snapshot, assignment.0) ||
-            targets.any(name => {
+          if !pipe_name_exists(snapshot, assignment.0) {
+            raise Abort(UnknownColumn)
+          }
+          if targets.any(name => {
               same_name(assignment.0, { value: name, quoted: false, })
             }) {
-            raise Abort(UnsupportedProjection)
+            raise Abort(DuplicateOutput)
           }
           let physical = pipe_physical_name(active_fields, "aql_pipe_set_")
           active_fields.push(physical)

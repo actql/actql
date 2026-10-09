@@ -114,3 +114,30 @@ remain to be executed. Submitted-HEAD required CI, three-target runtime coverage
 full Core/full packed/performance and live Google differential validation are
 unverified. Draft preparation is not merge CI. The broader Frontend goal remains
 active; this connection is not complete standard analytic coverage.
+
+
+## First packed attempt and target-diagnostic correction
+
+Normal five-package production and digest verification at
+`99f112fc9a91758eea32d31c644b046d77b0b49a` succeeded. The packed Local cohort
+completed all 58 positive fixtures, including all nine new SET fixtures, and
+one expected execution failure. It stopped on the first SET target refusal:
+expected ClientProgramInvalidInput, actual ClientProgramImplementationLimit.
+The existing SET missing/duplicate-target branch returned UnsupportedProjection,
+which the public diagnostic owner correctly classifies as unsupported coverage.
+A missing current column or repeated assignment is an invalid authored target,
+not unimplemented SET semantics.
+
+Failed receipt `public-query-evidence-149k9k` and outer `run-pzjljR` are retained;
+command 010 exited 1 with complete stdout/stderr. Later refusals and HTTPS are
+not established by that attempt. Independent exact-reason regression
+`run-aXvpqy` / `focused-test-N2ld2w` failed 1/7 before the diagnostic correction.
+It covers both plain scalar and window assignments. The lowerer now returns
+existing UnknownColumn for a missing target and DuplicateOutput for a repeated
+target; the shared public diagnostic owner remains unchanged. No expected row,
+type, order, target validity rule or public refusal code was weakened.
+
+
+The target-diagnostic correction and its direct scalar/SET/JOIN-range callers
+passed 16/16 (`run-oP6Ofj`, `focused-test-ZWhwt0`). This is focused local evidence,
+not completion of the previously interrupted Local/HTTPS packed campaign.
