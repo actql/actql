@@ -164,3 +164,25 @@ not change tested product or fixture inputs. Submitted-HEAD CI is separate;
 no full Core, Wasm/native, Cloud, proof/performance campaign, manual CI rerun or
 merge is performed. The broader Frontend goal and existing common capacity
 blockers remain incomplete.
+
+## Latest-main integration
+
+Normally merged main `54ea974e0839efadfdaf2003185683c5edbf31fa` after the
+initial submission. The merge had no conflicts and retains the merged Pipe
+private-window and immutable EXTEND sibling-input repairs, Graph vocabulary
+updates, current CI configuration and all existing history declarations.
+The window-key repair and independent row/Program expectations are unchanged.
+
+At clean integration commit `88fa19bfe0bdd3cd34346a4c4c7aed5944bb84f7`, bounded JS verification runs
+the seven files above plus `src/query_program/pipe_window_private_scope_test.mbt`:
+49/49 pass in `run-ipGcWm`, `focused-test-6rYwGO`. Targeted Node verification
+runs the two files above plus `scripts/window-scalar-source-input.test.mjs`:
+13/13 pass in `run-hwk4lZ`, `focused-test-7mZn9B`. Both wrappers terminate with
+status zero. No broad local suite or repeated packed campaign is run merely
+for the main merge.
+
+The Local/HTTPS five-package results above remain evidence for
+`ca4dcf6a52370424ca3965b9bc1b498df9853d96`, not for the integrated HEAD.
+Integrated public acceptance and required CI are not established by these
+focused checks. Keep the PR Draft pending their applicable review/gates; no
+manual CI rerun or merge is performed.
