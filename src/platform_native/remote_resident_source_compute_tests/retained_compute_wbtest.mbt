@@ -715,11 +715,13 @@ fn retained_compute_case(
   let output = consumer
     .prepare_result_export(resident_compute_limits())
     .unwrap()
+  println("retained-check: Result export opened")
   let rows = StringBuilder()
   while output.next().unwrap() is Some(chunk) {
     rows.write_string(chunk)
   }
   rows.write_string(output.finish().unwrap())
+  println("retained-check: Result export finished")
   assert_eq(rows.to_string(), "[{\"id\":3}]")
   assert_eq(
     output.result_schema_wire().unwrap(),
