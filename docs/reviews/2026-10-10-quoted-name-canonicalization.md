@@ -67,3 +67,16 @@ Fresh exact-SHA five-package Local/HTTPS execution is pending at this recorded
 preparation point. The PR body will retain its final source revision, manifest,
 digests, receipt and counts after execution. Full Core, proof, performance and
 Native/Wasm execution are not claimed by these focused checks.
+
+
+The first fresh packed execution at
+`f5e1f08b2aa99c0de078b200cd8e1f8c63b8062c` passed 15 Local cases, then stopped
+at the exact-STRING fixture's `describe()` assertion: the authored expected
+contracts omitted their literal `max_utf8_bytes`. The ordinary literal rule
+(`expression_typing/signatures.mbt`) retains those exact checked extents. The
+independent UTF-8 calculation is 1 byte for `e`, 2 for U+0301 and 1 each for
+CR/LF, totaling 5; the standalone CR is 1. The corrected fixture adds only
+these bounds; source, values, rows and names are unchanged. It does not infer
+expectations from a product serializer. Remaining cases and HTTPS were not
+reached by that attempt. Preserve its logs at
+`worktrees/.codex-scratch/public-query-evidence-rsqObX`, guard `run-03BarO`.

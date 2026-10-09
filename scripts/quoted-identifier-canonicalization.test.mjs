@@ -19,8 +19,10 @@ test('canonical names and complete JSON control use independent common contracts
 test('STRING values keep decomposed Unicode and CR while their column names canonicalize', () => {
   const fixture = canonicalQuotedIdentifierSuccesses.find(item => item.name.endsWith('exact-string-values'));
   assert.deepEqual(fixture.expected, [{'é': 'e\u0301\r\n', 'line\nname': '\r'}]);
-  assert.deepEqual(fixture.columns, ['é', 'line\nname'].map(name => ({name,
-    contract: {type: 'string', nullable: false}})));
+  assert.deepEqual(fixture.columns, [
+    {name: 'é', contract: {type: 'string', nullable: false, max_utf8_bytes: 5}},
+    {name: 'line\nname', contract: {type: 'string', nullable: false, max_utf8_bytes: 1}},
+  ]);
   const pipe = canonicalQuotedIdentifierSuccesses.find(item => item.name.endsWith('pipe-rename-filter-order'));
   assert.deepEqual(pipe.expected, [{'line\nname': 2}, {'line\nname': 3}, {'line\nname': 3}]);
   assert.equal(pipe.sourceReadSessionCount, 1);

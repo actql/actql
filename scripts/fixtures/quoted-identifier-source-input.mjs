@@ -79,7 +79,9 @@ export const canonicalQuotedIdentifierSuccesses = [
   }),
   canonical('exact-string-values', 'SELECT "e\\u0301\\r\\n" AS `e\\u0301`, "\\r" AS `line\\rname`', {
     expected: [{'é': 'e\u0301\r\n', 'line\nname': '\r'}],
-    columns: canonicalNames.map(name => ({name, contract: {type: 'string', nullable: false}})),
+    // e + U+0301 + CR + LF is 1 + 2 + 1 + 1 bytes; CR is one byte.
+    columns: [{name: 'é', contract: {type: 'string', nullable: false, max_utf8_bytes: 5}},
+      {name: 'line\nname', contract: {type: 'string', nullable: false, max_utf8_bytes: 1}}],
   }),
   canonical('empty', 'SELECT 1 AS `e\\u0301`, 2 AS `line\\rname` WHERE FALSE', {expected: []}),
   canonical('range', 'SELECT `é`.id AS `é` FROM records AS `e\\u0301` ORDER BY `e\\u0301`', {
