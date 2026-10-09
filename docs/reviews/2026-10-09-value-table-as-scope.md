@@ -1,10 +1,13 @@
 # Pipe AS preserves value-table kind and whole-column scope
 
 This is a Frontend repair, not a new execution owner or a complete GoogleSQL
-value-table implementation. The branch normally integrates main
+value-table implementation. The repair and fresh packed source is
+`a80fe13141f4f03c91fc5ac30c61a8f391ed882f`, initially integrating main
 `1f0c7edb49dac517cfd451f1686aa2df79fb0c53` at
-`69ae5ef67f8e2934e1dc69b0d5c744e97bb713af`. Its unmerged parent is PR #1155,
-with PR #1152 beneath it. The final merge destination remains main.
+`69ae5ef67f8e2934e1dc69b0d5c744e97bb713af`. PR #1152 and #1155 are now
+merged. Main `040eed2b1a11a3d1f7bae81b68d956d1017fac05` was normally merged
+without conflicts at `894b2f9a93086c31df69add1cad7927a813709a6`.
+There is no unmerged parent; the new PR base and final destination are main.
 
 ## Counterexamples and reference
 
@@ -117,11 +120,66 @@ typed code, zero durable Run admission and zero Source I/O.
 
 ## Public acceptance and remaining coverage
 
-Fresh normal five-package production and external Local/HTTPS acceptance are
-pending at this checkpoint. The new corpus is 129 positives / 52 refusal loops
-per transport. Rows, Result.describe contracts/nullability/column order,
-stream completion, private-column absence and same-Run replay without extra
-acquisition/execution remain required; fixture construction is not execution.
+Fresh normal five-package production and external Embedded Local/HTTPS
+acceptance pass at clean `a80fe13141f4f03c91fc5ac30c61a8f391ed882f`.
+The serialized bounded campaign `run-3GKmzk` exits 0. Commands:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-value-table-as-a80fe1314-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-value-table-as-a80fe1314-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+Each transport completes **129 positives / 52 refusal loops**. The log
+separately records **39 exact-code refusals** per transport; thirteen older
+broad-code loops are not represented as precise-code evidence. All eighteen
+new positives and three new precise refusals occur in both transports.
+Independent JSON controls, scalar/object whole values, fields, stars, scope
+edits, JOIN remapping and empty/NULL arrays agree with authored expectations.
+The consumer checks rows, Result.describe contracts/nullability/column order,
+stream completion, private-column absence and same-Run resend/attach/reread
+without additional acquisition/execution. New refusals require
+ClientProgramInvalidInput, zero durable Run admission and zero Source I/O.
+
+Original five-package SHA-256 digests:
+
+| Package | Digest |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `deb4e892fce3df6ddacef0cddc087567abda703a50af5af4ce127c918e9ae7cc` |
+| local-node | `5781f2752d346f5d9f708d9450323f03f973c94c61ca37259b54a3f109f57228` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Receipt `worktrees/.codex-scratch/public-query-evidence-ndhJCh/summary.json`
+and `010.stdout.log` are independently inspected: exact clean source SHA,
+passed/complete, ten complete zero-exit commands, no errors/signals/evidence
+errors, all expected new case names/codes, and original tarball digest matches.
+`artifactsRemoved:true` and absence of its artifacts directory confirm private
+installations/Stores were reclaimed. Original receipts and logs remain.
+
+The later normal main merge changes native Effect execution and common Effect
+publication, but not this repair's frontend, public corpus, grammar, independent
+vectors, or JS adapter files. Its new common publication inputs justify a
+limited post-integration check, not relabeling the earlier packed evidence:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
+  src/query_program/unnest_as_value_scope_test.mbt \
+  src/run_publication_host/client_values_run_materials_wbtest.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- \
+  scripts/unnest-source-input.test.mjs scripts/compilation-manifests.test.mjs \
+  scripts/client-values-run-materials-vector.test.mjs \
+  scripts/sga-query-call-contract.test.mjs
+```
+
+At integrated `894b2f9a93086c31df69add1cad7927a813709a6`, these pass **11/11**
+JS tests (`run-NOkCd0` / `focused-test-aUnDkT`) and **27/27** Node tests
+(`run-hvN6WG` / `focused-test-NlV2u5`). The first sandboxed wrapper invocation
+could not inspect its owned process group and ran no test; the ordinary bounded
+wrapper then completed with the required process inspection. These are local
+results, not submitted-HEAD CI or a new integrated-SHA packed campaign.
 
 Full Core, all-target execution, complete packed suites, hosted artifact
 transport, performance and final required CI are not claimed. Exact submitted
