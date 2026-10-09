@@ -992,7 +992,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforeSet.run_preimages.run.run_definition_cid,
     'sha256:f0fc9b3b44633c03def0118d8d40e4d34068720763fa744e1d161f57541839a5');
   assert.equal(current.run.run_definition_cid,
-    'sha256:71a90eff92faeb07d1efe6c8bbe56bdcaac3d87a04b6a6c2f3e314a52503e069');
+    'sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf');
 
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
@@ -1043,7 +1043,16 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
-  assert.equal(current.run.run_definition_cid, "sha256:71a90eff92faeb07d1efe6c8bbe56bdcaac3d87a04b6a6c2f3e314a52503e069");
+  // Preserve the preceding complete grammar-bound Run. This AS correction
+  // changes the compiler rules pin, never the Values Unit or Result Plan.
+  const beforeAs = JSON.parse(readFileSync('scripts/fixtures/pre-value-table-as-grammar.json', 'utf8'));
+  const {grammar_manifest_cid: beforeAsCid, ...beforeAsBody} = beforeAs.grammar;
+  assert.equal(cid(beforeAsBody), beforeAsCid);
+  assert.deepEqual(vector(beforeAsCid, cid(aoa), dependencies,
+    barrier.barrier_contract_manifest_cid, identity), beforeAs.run_preimages);
+  assert.equal(beforeAs.run_preimages.run.run_definition_cid,
+    'sha256:71a90eff92faeb07d1efe6c8bbe56bdcaac3d87a04b6a6c2f3e314a52503e069');
+  assert.equal(current.run.run_definition_cid, "sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
