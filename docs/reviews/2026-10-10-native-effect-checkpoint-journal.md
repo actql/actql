@@ -27,3 +27,9 @@ formal package/binary adoption are still separate connections. This change does
 not claim a public SDK waiting/approval or a complete Effect execution/recovery.
 Protocol-authored journal fixtures are distinguished from #1208's genuine Native
 Provider/Checkpoint Store fixture; neither substitutes for public Cloud acceptance.
+
+The existing Native HTTP fixture composes a small authenticated HTTPS peer for
+this boundary. The focused case uses real curl/SQLite and checks missing retained
+report (zero sends), malformed 200, a foreign ACK, connection loss, ACK-save
+failure, reopen/replay and no send after saved acceptance. The peer is a
+protocol-authored fixture, not a substitute for Cloud waiting commit.
