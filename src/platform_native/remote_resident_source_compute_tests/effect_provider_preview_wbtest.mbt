@@ -11,7 +11,10 @@ fn resident_provider_preview(
   artifact : @host.ClientEffectLocalResultArtifact,
   invocation : @publication.PublicationContract,
   facts : ResidentProviderFacts,
-) -> Unit raise {
+) -> (
+  @effect_provider.NativeResidentEffectPreview,
+  @publication.CapturedEffectSourceArtifact,
+) raise {
   let limits : @host.ClientCapturedEffectPreviewLimits = {
     max_work: 10000,
     max_wire_bytes: 65536,
@@ -204,4 +207,5 @@ fn resident_provider_preview(
   println(
     "native-effect-provider: original retained Result and physical target Preview plan verified",
   )
+  (prepared, source)
 }
