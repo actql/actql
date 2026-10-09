@@ -77,6 +77,15 @@ pub fn client_effect_acquired_invocation(
 }
 
 ///|
+/// The Source observation was admitted with the exact live acquisition. It is
+/// an immutable dependency fact, not permission to repeat the original read.
+pub fn client_effect_acquired_observation(
+  value : ClientEffectAcquiredEvidence,
+) -> @publication.RunEvidenceValue {
+  value.observation
+}
+
+///|
 pub fn issue_client_effect_acquired_evidence(
   owner : PreparedClientEffectComputation,
   captured : @query.CapturedInputSource,
@@ -222,7 +231,42 @@ pub fn issue_acquired_client_effect_local_result_artifact(
     ) {
     return Err(ForeignExport)
   }
-  let borrow = @strategy.captured_effect_local_result_borrow(result)
+  build_client_effect_acquired_result_artifact(
+    EffectInputs(inputs),
+    owner,
+    @strategy.captured_effect_local_result_borrow(result),
+    source,
+    definition,
+    receipt,
+    admission,
+    run_definition,
+    run_invocation,
+    observation,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn build_client_effect_acquired_result_artifact(
+  custody : ClientEffectLocalArtifactCustody,
+  owner : PreparedClientEffectComputation,
+  borrow : @strategy.CapturedAnyResultBorrow,
+  source : ClientEffectAcquiredEvidence,
+  definition : ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
   if !client_effect_local_result_definition_matches(
       definition,
       owner,
@@ -233,7 +277,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
     ) {
     return Err(ForeignDefinition)
   }
-  if @strategy.captured_effect_inputs_run_definition_cid(inputs) !=
+  if client_effect_local_custody_run_definition_cid(custody) !=
     Some(@publication.publication_contract_identity(run_definition)) ||
     @publication.check_run_publication_program_binding(
       admission,
@@ -257,7 +301,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
     Err(issue) => return Err(Context(issue))
   }
   build_client_effect_local_result_artifact(
-    inputs,
+    custody,
     ResultSource(borrow, definition),
     source.invocation,
     receipt,
