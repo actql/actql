@@ -421,6 +421,31 @@ export function explainCancellation(result, options) {
   return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
 
+const retainCancellationAttemptExplanation = (result, context) => {
+  // The response has already been captured, detached and twice admitted against
+  // this invocation. A refusal is not a fact about another invocation's commit.
+  if (result.kind !== 'refused' && result.kind !== 'conflict') {
+    return retainCancellationExplanation(result, context,
+      result.cancellation.kind, result.cancellation.revision);
+  }
+  const summaries = result.kind === 'refused' ? {
+    authorization: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
+    admission_capacity: 'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original cancellation identity.',
+    control_revision: 'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
+  };
+  cancellationExplanations.set(result, freezeInput({
+    observation: result.kind, reason: result.reason,
+    attemptRef: context.attemptRef, cancelRef: context.cancelRef,
+    ...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),
+    summary: summaries[result.reason],
+    hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
+    next: {operation: 'lookupCancellation', cancelRef: context.cancelRef},
+  }));
+  return result;
+};
+
 const retainCancellationExplanation = (result, context, observation, revision) => {
   if (!context) return result;
   const summaries = {
@@ -2044,9 +2069,7 @@ async function connectSelected(selected, port) {
           }), context, 'outcome_unknown');
         }
         received = freezeInput(received);
-        return received.cancellation === undefined ? received :
-          retainCancellationExplanation(received, context,
-            received.cancellation.kind, received.cancellation.revision);
+        return retainCancellationAttemptExplanation(received, context);
       },
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
