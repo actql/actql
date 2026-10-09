@@ -2024,6 +2024,11 @@ fn compile_steps(
         if correlated && pipe_ranges.any(range => same_name(range.0, element)) {
           raise Abort(AmbiguousColumn)
         }
+        if correlated &&
+          offset is Some(name) &&
+          pipe_ranges.any(range => same_name(range.0, name)) {
+          raise Abort(AmbiguousColumn)
+        }
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
@@ -2180,6 +2185,11 @@ fn compile_steps(
         }
         if offset is Some(name) && index_slot is Some(slot) {
           pipe_visible.push((name.value, slot))
+          // WITH OFFSET is a scalar value-table column and range, just like
+          // the array alias. Ordinary projection or whole-column edits end
+          // that range through the existing scope transitions.
+          pipe_ranges.push((name, []))
+          scalar_value_table_ranges.push(name)
         }
         pipe_rebound = true
         pipe_changed = true
