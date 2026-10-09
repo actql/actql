@@ -1,7 +1,8 @@
 # Pipe SET: reject ambiguous current targets
 
 Date: 2026-10-09. Status: minimal Frontend correction and focused checks passed;
-fresh packed Embedded Local/HTTPS and submitted-HEAD CI are not yet established.
+fresh packed Local completed all 14 positives but stopped on an existing JOIN
+refusal. Complete Local refusals, HTTPS and submitted-HEAD CI are not established.
 
 ## Existing requirement and counterexample
 
@@ -84,7 +85,8 @@ JS: 16/16 (`run-pgpy4Z`, `focused-test-9AfvMt`). Node: 3/3 (`run-YyeCnR`,
 window refusal coverage (`run-orZbpP`). Formatting and diff whitespace checked.
 
 Fresh normal five-package packing and the existing `--join-star-only` Local/HTTPS
-consumer remain to be executed. Submitted-HEAD CI, three-target runtime coverage,
+consumer were executed as recorded below; their complete acceptance remains
+unverified. Submitted-HEAD CI, three-target runtime coverage,
 full Core/full packed/performance and live Google differential execution remain
 unverified. Draft preparation is not merge CI; the broader Frontend goal remains
 active. No other worktree, D's CTE/assert/Effect code or common execution owner
@@ -125,3 +127,55 @@ typing control). Final direct JS callers pass 17/17 (`run-sbV1h8`,
 `focused-test-iFM45d`), including the script route. The corrected public-format
 fixtures pass Node 3/3 (`run-df5M6G`, `focused-test-XRNMal`). Common JOIN type
 checks were not relaxed to admit the earlier mismatched diagnostic fixture.
+
+## Final packed attempt and unresolved public refusal
+
+Tested clean product/fixture SHA:
+`94bacea700f9f28ddbffecbb770cc74c6302074b`. Normal five-package production and
+independent exact revision/digest checks passed (`run-55paeq`). Invocation:
+`/private/tmp/actql-b-pipe-set-target-94bacea70-packed.mjs`, using the pinned
+environment and shared heavy slot. Its producer and consumer steps were:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-pipe-set-target-94bacea70-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-pipe-set-target-94bacea70-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-group-key-slot-collision-integrated-pack/npm-cache \
+node scripts/test-packed-public-query.mjs --join-star-only
+```
+
+The original tarballs, with SHA-256 checked against the manifest and receipt:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `4105321db630741cba8d4573d9800f554af51b1b7eff46cdf17f651128ebcc9f` |
+| sdk | `e4d0fff729f53b3cd96f97997c2bd052069d2de4152e083d84d4201852b46be6` |
+| run-host-core | `41a71cbf8c1deb5b4b7a136d9596af60f335a8cac4fbde7f0643494af5597dfc` |
+| local-node | `562a24a1e77088efa53e0c03c574afa6193d60c1d7780dab4623e7fb58faf9f9` |
+| node | `aa96b83e047cf3fc42b560b578fc2a32b9a38fa3f32c62dcf9f5eaff26891f4b` |
+
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-0ioEor`.
+All 14 Local positives passed, including all four new controls, unchanged rows,
+describe schemas, multiplicity, NULLs, ranges, private-field absence, acquisition
+once and same-Run replay/read counters. README Local/HTTPS and intentional missing
+asset checks also passed. The main acceptance command then exited 1, with complete
+streams and no signal, on old fixture join-star-refuse-1:
+
+```aql
+SELECT * FROM records AS l JOIN records AS r
+USING (id, `ID`) MAX_OUTPUT_ROWS 10
+```
+
+Actual public code: ClientProgramImplementationLimit. The existing refusal
+expects an input-error code. The existing shared JOIN lowerer recognizes repeated
+case-insensitive USING keys but raises UnsupportedJoin, which the unchanged
+diagnostic owner classifies as a coverage refusal. That code path was not changed
+by the SET correction. Reclassifying an invalid authored USING list is a separate
+Frontend diagnostic correction; do not weaken the fixture to hide it.
+
+This run establishes the 14 Local positives, not complete cohort acceptance.
+Later old refusals, the eight new exact-code SET refusals and the main HTTPS
+cohort were not reached. Failed logs, Store and original package artifacts are
+retained for diagnosis. The Draft remains incomplete for public acceptance.
+The submitted commit adds only this evidence record; its CI remains separate
+from the tested SHA. No Ready transition, manual CI retry or merge was made.
