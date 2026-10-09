@@ -264,6 +264,8 @@ fn QueryParser::resolve_window_operations(
             self.resolve_window_projections(projections, definitions),
             names,
           )
+        Extend(projections) =>
+          Extend(self.resolve_window_projections(projections, definitions))
         Select(projections, distinct) =>
           Select(
             self.resolve_window_projections(projections, definitions),

@@ -19,14 +19,14 @@ const names = ['submission_epoch', 'submission_ref', 'submission_outcome', 'subm
   'resolve_result', 'submit_preparation_error', 'cancellation',
   'cancellation_ref', 'cancellation_lookup', 'operation_attempt_ref', 'cancellation_attempt',
   'request_cancellation', 'resource_listing', 'resource_inspection',
-  'resource_peek', 'result_description'];
+  'resource_peek', 'result_description', 'owner_ref', 'owner_cursor', 'owner_observations'];
 const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'SubmissionLookup', 'SubmissionRestart', 'SubmissionAttempt',
   'RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
   'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',
   'SubmitPreparationError', 'Cancellation', 'CancellationRef',
   'CancellationLookup', 'OperationAttemptRef', 'CancellationAttempt', 'RequestCancellation',
-  'ResourceListing', 'ResourceInspection', 'ResourcePeek', 'ResultDescription'];
+  'ResourceListing', 'ResourceInspection', 'ResourcePeek', 'ResultDescription', 'OwnerRef', 'OwnerCursor', 'OwnerObservations'];
 
 export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||

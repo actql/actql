@@ -58,7 +58,7 @@ test "JOIN star keeps duplicate output refusal and validates duplicate USING nam
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedJoin),
+    is Err(DuplicateOutput),
   )
 }
 

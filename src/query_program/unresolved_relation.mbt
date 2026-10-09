@@ -20,3 +20,22 @@ pub fn unresolved_relation_reference(issue : Issue) -> Array[@query.NamePart]? {
     _ => None
   }
 }
+
+///|
+/// Reconcile the retained resolver witness against a separately admitted
+/// publication using the resolver's own matching rule. This is only membership;
+/// namespace completeness and permission to disclose require their own facts.
+pub fn unresolved_relation_namespace_presence(
+  issue : Issue,
+  context : Context,
+) -> Bool? {
+  match issue {
+    UnresolvedRelation(reference) =>
+      Some(
+        context.inputs.any(input => {
+          input_relation_matches(reference.path, input)
+        }),
+      )
+    _ => None
+  }
+}
