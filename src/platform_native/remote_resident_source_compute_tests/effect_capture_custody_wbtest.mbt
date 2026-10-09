@@ -185,6 +185,39 @@ fn retained_effect_capture_store(
   assert_eq(terminal_row.revision, 1L)
   assert_true(terminal_row.body != encrypted_row.body)
   assert_false(@utf8.decode(terminal_row.body).contains("ciphertext"))
+  // A pre-persistence cleanup must fence another already prepared handle.
+  // Use a distinct Store so the earlier persisted tombstone cannot mask it.
+  @filesystem.open_root(root_path)
+  .unwrap()
+  .create_directory(child + "-empty")
+  .unwrap()
+  |> ignore
+  let empty_path = path + "-empty"
+  let empty_store = @store.open_store(
+    sqlite, empty_path, authority, 536870912L, 8L, 262144L,
+  ).unwrap()
+  let early = empty_store
+    .prepare_effect_capture_custody(original_binding, crypto, key)
+    .unwrap()
+  let late = empty_store
+    .prepare_effect_capture_custody(original_binding, crypto, key)
+    .unwrap()
+  early.retry_cleanup().unwrap() |> ignore
+  assert_true(
+    late.persist() is Err(RecoveryRequired),
+    msg="cleanup before persistence must prevent revival",
+  )
+  assert_eq(empty_store.capacity_usage().unwrap().reserved_bytes, 0L)
+  empty_store.close().unwrap() |> ignore
+  let reopened = @store.open_store(
+    sqlite, empty_path, authority, 536870912L, 8L, 262144L,
+  ).unwrap()
+  let restored_empty = reopened
+    .restore_effect_capture_custody(original_binding, crypto, key)
+    .unwrap()
+  assert_true(restored_empty.persist() is Err(RecoveryRequired))
+  assert_true(restored_empty.retry_cleanup() is Ok(false))
+  reopened.close().unwrap() |> ignore
   inspection.close()
   assert_true(custody.retry_cleanup() is Ok(false))
   let terminal = store
