@@ -54,6 +54,12 @@ try {
   const rows = (await run('read', '--ref-file', 'run.json', '--result-name', 'answer', '--attempt-id', 'native-release-read'))
     .trimEnd().split('\n').map(JSON.parse);
   assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+  const delivery = JSON.parse(await run('delivery-attempt', '--ref-file', 'run.json',
+    '--result-name', 'answer', '--attempt-id', 'native-release-read'));
+  assert.equal(delivery.kind, 'found');
+  assert.equal(delivery.attempt.attempt_id, 'native-release-read');
+  assert.equal(delivery.record.state, 'succeeded');
+  assert(delivery.hostReleaseReceipt, 'The real Host must retain its Result release evidence');
   client = await connect({mode: 'remote', endpoint, token: 'fixture-token', durability: 'durable'});
   const execution = await client.attach(accepted.ref);
   assert.deepEqual((await execution.result('answer').describe()).columns,
