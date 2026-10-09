@@ -105,7 +105,13 @@ pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -
 
 pub fn client_values_host_effect_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
+pub fn client_values_host_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
+pub fn client_values_host_effect_retained_input_edge(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.ClientRetainedInputEdge, @run_publication_host.ClientEffectRetainedInputIssue]
+
 pub fn client_values_host_effect_shape(@run_publication_host.ClientEffectCompilation) -> Array[Int]
+
+pub fn client_values_host_effect_source_input_binding(@run_publication_host.ClientEffectCompilation) -> Result[String, @run_publication_host.ClientEffectSourceDispatchIssue]
 
 pub fn client_values_host_effect_start_current(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
@@ -228,6 +234,10 @@ pub fn client_values_host_prepare_dispatch(@run_publication_host.PreparedClientP
 pub fn client_values_host_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_prepare_effect(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientValuesHostEffectPreparationIssue]
+
+pub fn client_values_host_prepare_effect_retained_task_dispatch(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String, ClientValuesHostRetainedTaskInput) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientEffectRetainedInputIssue]
+
+pub fn client_values_host_prepare_effect_source_dispatch(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientEffectSourceDispatchIssue]
 
 pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 
