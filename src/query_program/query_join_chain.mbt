@@ -14,7 +14,7 @@ priv struct JoinChainScope {
 }
 
 ///|
-// RIGHT/FULL JOIN, GROUP, star, DISTINCT and RENAME need the shared row scope.
+// RIGHT/FULL JOIN, GROUP, star, DISTINCT and column edits need the shared row scope.
 // Pipe DISTINCT compares the current JOIN row before a later projection;
 // SELECT DISTINCT orders through its materialized output aliases.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
@@ -31,6 +31,9 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
         Group(_, _, _)
         | Qualify(_, _)
         | UnnestSource(_, _, _)
+        | Extend(_)
+        | Set(_)
+        | Drop(_)
         | Rename(_)
         | Distinct
       ) {
