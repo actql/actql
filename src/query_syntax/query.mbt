@@ -1312,10 +1312,18 @@ fn QueryParser::value_projection(
       root = child
     }
     if extracted.length() == 1 &&
-      calls.is_empty() &&
       expression.nodes[root].kind is Reference(path) &&
       path == [extracted[0].name.unwrap()] {
-      self.synthetic_sources = serial
+      if !aggregate_expressions && !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe SELECT requires scalar or window expressions",
+          self.peek().start,
+        )
+      }
+      if calls.is_empty() {
+        self.synthetic_sources = serial
+      }
+      embedded.append(calls)
       embedded_analytic = extracted[0].analytic
       (None, None)
     } else if calls.length() == 1 &&
@@ -1484,9 +1492,13 @@ fn QueryParser::frame_boundary(
 }
 
 ///|
-fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
+fn QueryParser::over(
+  self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+  aggregate_prefix? : String = "aql_window_aggregate_",
+) -> AnalyticWindow raise QueryAbort {
   self.keyword("OVER")
-  self.window_specification()
+  self.window_specification(calls~, aggregate_prefix~)
 }
 
 ///|
@@ -1698,6 +1710,7 @@ fn QueryParser::order(
   self : QueryParser,
   calls? : Array[(NamePart, AggregateCall)]? = None,
   windows? : Array[Projection]? = None,
+  aggregate_prefix? : String = "aql_order_aggregate_",
 ) -> Array[SortTerm] raise QueryAbort {
   let terms : Array[SortTerm] = []
   while true {
@@ -1727,7 +1740,7 @@ fn QueryParser::order(
       match calls {
         Some(calls) => {
           let (expression, embedded) = self.aggregate_expression(
-            "aql_order_aggregate_",
+            aggregate_prefix,
           )
           calls.append(embedded)
           expression
