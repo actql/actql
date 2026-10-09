@@ -16,6 +16,7 @@ pub struct ResidentRetainedConsumer {
   mut material : @transfer_client.NativeRemoteDestinationMaterialUse?
   mut executed : ResidentExecuted?
   mut pending_runtime : @runtime.NativeRemoteRuntime?
+  mut effect_computation : ResidentSourceCompute?
   mut failure : ResidentRetainedExecutionIssue?
   mut closing : Bool
   mut closed : Bool
@@ -429,6 +430,7 @@ fn prepare_resident_retained_consumer_owned(
     material: None,
     executed: None,
     pending_runtime: None,
+    effect_computation: None,
     failure: None,
     closing: false,
     closed: false,
@@ -627,6 +629,7 @@ pub fn ResidentRetainedConsumer::execute(
         claimant,
         current_time,
         executor_entry,
+        retain_computation=owner => self.effect_computation = Some(owner),
       )
     None =>
       execute_resident_retained_attempt(
@@ -713,5 +716,48 @@ pub fn ResidentRetainedConsumer::close(self : ResidentRetainedConsumer) -> Bool 
     }
   }
   self.closed = true
+  self.effect_computation = None
   true
+}
+
+///|
+/// Access the original completed Effect computation for trusted capture work.
+/// Runtime still owns its lifetime and cleanup; callers must not independently
+/// close it. This acquires no borrow and grants no current approval authority.
+/// Missing completion, cancelled custody or pending cleanup cannot supply an
+/// Owner, and equal file bytes cannot reconstruct this process-local reference.
+pub fn ResidentRetainedConsumer::effect_computation(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> ResidentSourceCompute? {
+  guard !self.closing &&
+    !self.closed &&
+    self.failure is None &&
+    self.effect_limits is Some(_) &&
+    self.executed is Some(executed) &&
+    self.effect_computation is Some(owner) &&
+    owner.effect_run() is Some(_) &&
+    journal.cancellation_requested(self.request) is Ok(false) else {
+    return None
+  }
+  guard journal.observation(self.request) is Ok(saved) &&
+    @journal.recovered_site_dispatch_evidence(saved) is Some(evidence) &&
+    @remote.remote_execution_evidence_cid(evidence) ==
+    executed.completion.evidence_cid &&
+    @journal.recovered_site_dispatch_subject(saved) is Some(subject) &&
+    executed.runtime.inspect_output_facts(
+      self.request,
+      @remote.remote_managed_output_subject_projection(subject)[1],
+    )
+    is Ok(_) &&
+    owner.effect_retained is Some(retained) &&
+    @output.validate_native_remote_retained_task_input_borrow(
+      retained.input,
+      retained.material,
+      retained.current,
+    )
+    is Ok(_) else {
+    return None
+  }
+  Some(owner)
 }

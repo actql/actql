@@ -238,6 +238,7 @@ fn execute_holder_source(
   clock : () -> String,
   entry : ((String) -> Bool)?,
   observe : (@resident_host.ResidentSourceComputeEvent) -> Bool,
+  retain_effect_producer? : (@resident_host.ResidentEffectProducerExecuted) -> Unit,
 ) -> Result[@resident_host.ResidentExecuted, HolderExecutionFailure] {
   let family = match saved_dispatch_family(journal, admission, attempt) {
     Ok(value) => value
@@ -280,7 +281,13 @@ fn execute_holder_source(
         source_observe=observe,
         acquisition_limits=resident_effect_acquisition_limits(),
       )
-      .map(value => value.executed)
+      .map(value => {
+        match retain_effect_producer {
+          Some(retain) => retain(value)
+          None => ()
+        }
+        value.executed
+      })
       .map_err(issue => Effect(issue))
     }
   }

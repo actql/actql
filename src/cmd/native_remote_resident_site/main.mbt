@@ -2559,6 +2559,7 @@ fn serve_holder_output(
   claimant : String,
   executor_entry : ((String) -> Bool)?,
   exclusive_current : () -> Bool,
+  effect_producer? : @resident_host.ResidentEffectProducerExecuted? = None,
 ) -> Unit {
   let request = executed.request
   let control = resources.control
@@ -2574,8 +2575,17 @@ fn serve_holder_output(
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
   let order : Array[String] = [identity]
-  let original = new_holder_task_custody(request, Some(executed), None, None)
+  let original = new_holder_task_custody(
+    request,
+    Some(executed),
+    None,
+    None,
+    effect_producer~,
+  )
   tasks.set(identity, original)
+  if holder_effect_computation(original, environment.journal) is Some(_) {
+    report("effect-computation-custody-retained", [("request_cid", identity)])
+  }
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -2775,6 +2785,15 @@ fn serve_holder_output(
                     Ok(completed) => {
                       task.process_hold.val = None
                       task.executed = Some(completed)
+                      if holder_effect_computation(task, environment.journal)
+                        is Some(_) {
+                        report("effect-computation-custody-retained", [
+                          (
+                            "request_cid",
+                            completed.completion.dispatch_request_cid,
+                          ),
+                        ])
+                      }
                       report("consumer-executed", [
                         (
                           "request_cid",
@@ -3765,6 +3784,9 @@ fn run_holder(
     _ => false
   }
   let holder_delegation = delegation(matches, budget(matches))
+  let effect_producer : Ref[@resident_host.ResidentEffectProducerExecuted?] = Ref(
+    None,
+  )
   let result = if saved_completion {
     restore_holder_attempt(
       matches, environment, execution, resources, slot, attempt,
@@ -3799,6 +3821,7 @@ fn run_holder(
         }
         true
       },
+      retain_effect_producer=owner => effect_producer.val = Some(owner),
     )
   }
   let code = match result {
@@ -3838,6 +3861,7 @@ fn run_holder(
         claimant,
         observer,
         () => slot.verify_current_hold() == Ok(()),
+        effect_producer=effect_producer.val,
       )
       0
     }

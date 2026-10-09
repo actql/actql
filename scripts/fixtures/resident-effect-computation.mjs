@@ -162,6 +162,9 @@ export async function runResidentEffectComputation({runHost, siteControl, coordi
   assert.equal(pendingIntents().length, 0);
   assert.equal((await entries()).length, 2);
   assert.equal(new Set((await entries()).map(line => line.split(' ')[1])).size, 2);
+  const retainedOwners = site.lines.filter(line => line.kind === 'effect-computation-custody-retained');
+  assert.deepEqual(new Set(retainedOwners.map(line => line.request_cid)),
+    new Set([siteControl.identity(producerDispatch), issued.cid]));
   site.child.kill('SIGTERM');
   await within(site.exited, 'private Effect control shutdown');
   const bundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'), {readOnly: true});
@@ -177,6 +180,7 @@ export async function runResidentEffectComputation({runHost, siteControl, coordi
     producerEntries: 1, consumerEntries: 1, rows: expectedRows, schemaCid: expectedSchemaCid,
     receiverCurrentQueried: true, receiverDatabaseReadForBinding: false,
     privateTaskCleanup: true, siteCapacity: capacity, receiverHoldingReclaimed: true,
+    actualComputationOwnersRetained: true,
     pendingIntents: 0, reservedPayloadBytes: 0, effectExecutionNotRequested: true,
     checkpointCaptured: false, approvalCommitted: false, publicResultPublished: false,
     effectRunReleased: false, publicCloudAcceptance: false}));
