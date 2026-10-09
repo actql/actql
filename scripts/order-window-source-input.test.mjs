@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {orderWindowProgram, orderWindowSuccesses, orderWindowRefusals} from './fixtures/order-window-source-input.mjs';
+import {orderWindowProgram, joinOrderWindowProgram, joinOrderAliasProgram, joinOrderQualifiedProgram, orderWindowSuccesses, orderWindowRefusals} from './fixtures/order-window-source-input.mjs';
 
 test('ORDER window controls distinguish alias, qualified input and pre-QUALIFY scopes', () => {
   const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
@@ -36,4 +36,35 @@ test('ordinary packed acceptance includes ORDER windows; narrow selection retain
   assert.ok(driver.slice(driver.indexOf('const narrowPublicQuery =')).split('];')[0].includes("'--order-window-only'"));
   assert.match(driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||')),
     /process\.argv\.includes\('--order-window-only'\).*?return;/su);
+});
+
+test('JOIN ORDER windows retain authored keys ceiling predicate and operand scopes', () => {
+  const byName = new Map(orderWindowSuccesses.map(item => [item.name, item]));
+  for (const [name, program] of [
+    ['join-independent-json', joinOrderWindowProgram],
+    ['join-alias-independent-json', joinOrderAliasProgram],
+    ['join-qualified-independent-json', joinOrderQualifiedProgram],
+  ]) {
+    assert.deepEqual(JSON.parse(byName.get('order-window-' + name).text), program);
+    assert.equal(program.stages[1].steps[1].join.max_output_rows, 10);
+    assert.deepEqual(program.stages[1].steps[1].join.on, [{left: 'id', right: 'k'}]);
+    assert.deepEqual(program.stages[1].steps[2].filter, {gt: [{field: 'id'}, {literal: 0}]});
+  }
+  const alias = byName.get('order-window-join-alias-priority');
+  const qualified = byName.get('order-window-join-qualified-input');
+  assert.deepEqual(alias.expected, [{id: 5, amount: null}, {id: 1, amount: null},
+    {id: 3, amount: -10}, {id: 4, amount: -20}, {id: 2, amount: -20}]);
+  assert.deepEqual(qualified.expected, [{id: 5, amount: null}, {id: 1, amount: null},
+    {id: 4, amount: -20}, {id: 2, amount: -20}, {id: 3, amount: -10}]);
+  assert.notDeepEqual(alias.expected, qualified.expected);
+  assert.deepEqual(alias.expected, byName.get('order-window-join-alias-independent-json').expected);
+  assert.deepEqual(qualified.expected, byName.get('order-window-join-qualified-independent-json').expected);
+  assert.deepEqual(byName.get('order-window-join-pipe-projected-alias').expected, alias.expected);
+  assert.deepEqual(byName.get('order-window-join-parameter-offset').expected, [{id: 1}, {id: 3}, {id: 4}]);
+  assert.deepEqual(byName.get('order-window-join-typed-empty').expected, []);
+  assert.equal(byName.get('order-window-join-duplicates').expected.length, 6);
+  assert.equal(byName.get('order-window-join-left-preserved').columns[1].contract.nullable, true);
+  assert.equal(orderWindowSuccesses.length, 25);
+  assert.equal(orderWindowRefusals.length, 8);
+  assert.equal(orderWindowRefusals.at(-1).expectedCode, 'ClientProgramInvalidInput');
 });

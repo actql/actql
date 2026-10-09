@@ -174,3 +174,55 @@ The five receipt digests match the normal producer manifest:
 The subsequent evidence-recording commit changes only this document. Its
 submitted SHA and exact workflow observation belong in the PR body; this
 packed evidence remains attributed to the source SHA above.
+
+## Additional caller: JOIN ORDER-only analytic input scope
+
+An additional caller audit used the same current main,
+`040eed2b1a11a3d1f7bae81b68d956d1017fac05`. Three SQL JOIN sources with an
+ORDER-only ROW_NUMBER window failed in script compilation. The independently
+written common JOIN/analytic/sort Program and a projected Pipe counterpart
+passed: 2/5 at main (`run-0TFQeF`, `focused-test-73RirS`). This is a
+lowering failure, not evidence of a publicly executed failed Run.
+
+The SQL parser inserts OrderAnalytic before SELECT so it can resolve
+unselected input fields and evaluated SELECT aliases in the proper clause
+scope. It therefore reaches the same unsupported specialization prefix. The
+existing repair closes this caller without any additional implementation:
+5/5 on the repair branch (`run-hZgdbp`, `focused-test-Zk675I`).
+
+Further tests keep projected-away Pipe input ranges rejected with the exact
+UnknownColumn issue in both query/script compilers. The common OVER-key
+resolver owns this direct-column issue; it is not the property-expression
+UnknownReference diagnostic. An initial test incorrectly assumed the latter
+(14/15 in `run-q71O9g` / `focused-test-s1c2uB`); an attempted generic Debug
+probe then failed to compile because Issue has no Debug implementation
+(`run-GFdzMh` / `focused-test-aNJHZR`, no tests executed). Neither altered the
+product. Source inspection and the final precise test establish the existing
+UnknownColumn contract. Final focused checks:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
+  src/query_program/join_order_window_test.mbt \
+  src/query_program/order_window_expression_test.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
+  scripts/order-window-source-input.test.mjs
+```
+
+- JS 15/15: `run-U8DOK1`, `focused-test-HWXVb9`.
+- Node 3/3: `run-Lddain`, `focused-test-suAGth`.
+
+The existing ORDER-window corpus receives eleven positives (including three
+independent complete JSON Programs) and one exact-code projected-input
+refusal. There are now 25 positives / 8 refusals per Local/HTTPS. The authored
+WHERE, JOIN key, ceiling 10, parameter operand, LIMIT/OFFSET and Result
+columns are preserved. The alias control orders the evaluated negative amount;
+the qualified control orders the original amount. Their independent orders
+differ (after the two NULL rows, id 3/4/2 versus id 4/2/3), so wrong reuse
+cannot pass both. LEFT JOIN keeps unmatched right keys nullable. Duplicate
+Source rows and typed empty input are separate obligations. The original
+ORDER-window corpus remains unchanged, and the additions are included by its
+normal packed registration.
+
+The previous LIMIT-prefix public receipt remains evidence for its own source
+SHA. Fresh normal-package ORDER-window public execution is pending here; the
+new scoped compiler checks are not presented as public success.
