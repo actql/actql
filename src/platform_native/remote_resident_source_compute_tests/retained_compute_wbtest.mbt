@@ -280,7 +280,11 @@ fn retained_compute_case(
       },
     },
   }
-  let effect_materials = if effect { Some(retained_compute_effect_materials()) } else { None }
+  let effect_materials = if effect {
+    Some(retained_compute_effect_materials())
+  } else {
+    None
+  }
   let acquisitions = Ref(0)
   let producer_captures = Ref(0)
   let source_observe = event => {
@@ -291,19 +295,31 @@ fn retained_compute_case(
     }
     true
   }
-  let source_owner = match match effect_materials {
-    Some((materials, _)) => @resident.open_resident_effect_source_compute(
-      @host.bind_client_effect_compiled_run(
-        materials.prepared, materials.allowed, materials.run_definition,
-      ).unwrap(), configuration, name, observe=source_observe,
-    )
-    None => @resident.open_resident_source_compute(
-      prepared, configuration, name, observe=source_observe,
-    )
-  } {
+  let source_open = match effect_materials {
+    Some((materials, _)) =>
+      @resident.open_resident_effect_source_compute(
+        @host.bind_client_effect_compiled_run(
+          materials.prepared,
+          materials.allowed,
+          materials.run_definition,
+        ).unwrap(),
+        configuration,
+        name,
+        observe=source_observe,
+      )
+    None =>
+      @resident.open_resident_source_compute(
+        prepared,
+        configuration,
+        name,
+        observe=source_observe,
+      )
+  }
+  let source_owner = match source_open {
     Ok(value) => value
     Err((_, failure)) => {
-      @output.retry_native_remote_standard_input_failure_cleanup(failure) |> ignore
+      @output.retry_native_remote_standard_input_failure_cleanup(failure)
+      |> ignore
       fail("actual producer Source acquisition failed")
     }
   }
@@ -328,12 +344,15 @@ fn retained_compute_case(
   )
   let admission = @host.client_compiled_run_admission(allowed)
   let edge = match effect_materials {
-    Some((materials, _)) => @host.prepare_client_effect_retained_input_edge(
-      materials.allowed, materials.run_definition,
-    ).unwrap()
-    None => @host.prepare_client_retained_input_edge(
-      prepared, compilation, admission, definition, 1, 0,
-    ).unwrap()
+    Some((materials, _)) =>
+      @host.prepare_client_effect_retained_input_edge(
+        materials.allowed,
+        materials.run_definition,
+      ).unwrap()
+    None =>
+      @host.prepare_client_retained_input_edge(
+        prepared, compilation, admission, definition, 1, 0,
+      ).unwrap()
   }
   let bytes = chunks.fold(init=0L, (sum, chunk) => {
     sum + chunk.length().to_int64()
@@ -366,12 +385,19 @@ fn retained_compute_case(
     retained_compute_selection()
   }
   let producer_dispatch = match effect_materials {
-    Some((materials, caller)) => @host.prepare_client_effect_source_dispatch(
-      materials.allowed, materials.run_definition, caller, 1, "producer", selected,
-    ).unwrap()
-    None => @host.prepare_client_task_dispatch(
-      prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
-    ).unwrap()
+    Some((materials, caller)) =>
+      @host.prepare_client_effect_source_dispatch(
+        materials.allowed,
+        materials.run_definition,
+        caller,
+        1,
+        "producer",
+        selected,
+      ).unwrap()
+    None =>
+      @host.prepare_client_task_dispatch(
+        prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
+      ).unwrap()
   }
   let (producer, site) = retained_compute_producer_fixture(
     edge, producer_dispatch, physical,
@@ -442,14 +468,22 @@ fn retained_compute_case(
     producer, committed, destination, "direct-destination", common_current, 262144,
   ).unwrap()
   let dispatch = match effect_materials {
-    Some((materials, caller)) => @host.prepare_client_effect_retained_task_dispatch(
-      materials.allowed, materials.run_definition, caller, 1, "consumer", selected,
-      common_input, common_current,
-    ).unwrap()
-    None => @host.prepare_client_retained_task_dispatch(
-      prepared, compilation, admission, definition, caller, 1, 1, "consumer", selected,
-      common_input, common_current,
-    ).unwrap()
+    Some((materials, caller)) =>
+      @host.prepare_client_effect_retained_task_dispatch(
+        materials.allowed,
+        materials.run_definition,
+        caller,
+        1,
+        "consumer",
+        selected,
+        common_input,
+        common_current,
+      ).unwrap()
+    None =>
+      @host.prepare_client_retained_task_dispatch(
+        prepared, compilation, admission, definition, caller, 1, 1, "consumer", selected,
+        common_input, common_current,
+      ).unwrap()
   }
   let material = @transfer_client.pin_durable_direct_destination_material(
     journal,
@@ -517,15 +551,33 @@ fn retained_compute_case(
     () => 1791504000000L,
     (_, _) => true,
   )
-  let open_consumer = (selected_current, observe) => match effect_materials {
-    Some((materials, _)) => @resident.open_resident_effect_retained_compute(
-      materials, configuration, input, material, dispatch, codec,
-      retained_compute_input_limits(), selected_current, observe~,
-    )
-    None => @resident.open_resident_retained_compute(
-      prepared, configuration, input, material, dispatch, codec,
-      retained_compute_input_limits(), selected_current, observe~,
-    )
+  let open_consumer = (selected_current, observe) => {
+    match effect_materials {
+      Some((materials, _)) =>
+        @resident.open_resident_effect_retained_compute(
+          materials,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          selected_current,
+          observe~,
+        )
+      None =>
+        @resident.open_resident_retained_compute(
+          prepared,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          selected_current,
+          observe~,
+        )
+    }
   }
   let (issue, failed) = open_consumer(stale, _ => true).unwrap_err()
   assert_true(
@@ -574,14 +626,16 @@ fn retained_compute_case(
     return
   }
   let entries = Ref(0)
-  let consumer = match open_consumer(current, event => {
-    match event {
-      @resident.AcquisitionEntered => abort("retained consumer attempted Source acquisition")
-      @resident.ConsumerEntered(1) => entries.val += 1
-      _ => ()
-    }
-    true
-  }) {
+  let consumer = match
+    open_consumer(current, event => {
+      match event {
+        @resident.AcquisitionEntered =>
+          abort("retained consumer attempted Source acquisition")
+        @resident.ConsumerEntered(1) => entries.val += 1
+        _ => ()
+      }
+      true
+    }) {
     Ok(value) => value
     Err((issue, failure)) => {
       @output.retry_native_remote_standard_input_failure_cleanup(failure)
@@ -664,8 +718,12 @@ fn retained_compute_case(
     "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
   )
   let effect_inputs = if effect {
-    Some(@strategy.pin_captured_effect_sources(consumer.effect_run().unwrap(), 4).unwrap())
-  } else { None }
+    Some(
+      @strategy.pin_captured_effect_sources(consumer.effect_run().unwrap(), 4).unwrap(),
+    )
+  } else {
+    None
+  }
   assert_false(consumer.close())
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
@@ -673,7 +731,10 @@ fn retained_compute_case(
   if effect_inputs is Some(inputs) {
     assert_false(consumer.close())
     assert_true(consumer.usage().held_bytes > 0L)
-    assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
+    assert_eq(
+      journal.destination_capacity_usage().unwrap().reserved_bytes,
+      bytes,
+    )
     assert_true(@strategy.release_captured_effect_inputs(inputs))
     assert_false(@strategy.release_captured_effect_inputs(inputs))
   }
