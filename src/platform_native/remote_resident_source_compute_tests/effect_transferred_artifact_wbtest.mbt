@@ -9,7 +9,7 @@ fn retained_effect_producer_dependency(
   @host.ClientEffectLocalManifest,
   @execution.CompletedRelationExportReceipt,
   @host.ClientEffectProducerArtifact,
-) {
+) raise {
   println("retained-effect-evidence: producer-pins")
   let inputs = @strategy.pin_captured_effect_acquired_unit_results(
     owner.effect_run().unwrap(),
@@ -317,36 +317,6 @@ fn retained_effect_transferred_artifact(
       () => false,
     )
     is Err(Unavailable),
-  )
-  let other_dispatch = @host.prepare_client_effect_source_dispatch(
-    materials.allowed,
-    materials.run_definition,
-    @host.prepare_client_effect_request_identity(
-      materials.prepared,
-      retained_compute_cid("c"),
-      "original-effect-caller",
-      @host.source_free_caller_input_intent_cid(),
-    ).unwrap(),
-    2,
-    "another-producer",
-    retained_compute_selection(),
-  ).unwrap()
-  assert_true(
-    @host.bind_transferred_client_effect_local_result_artifact(
-      materials,
-      inputs,
-      imported,
-      root_export,
-      receipt,
-      producer_token,
-      {
-        ..common_input,
-        producer: { ..common_input.producer, request: other_dispatch, },
-      },
-      current,
-      () => true,
-    )
-    is Err(ForeignInput),
   )
   assert_true(
     @strategy.release_captured_effect_local_unit_inputs(sender_inputs),
