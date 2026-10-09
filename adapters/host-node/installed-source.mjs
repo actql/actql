@@ -118,10 +118,10 @@ export async function installedSourceIdentity(path, {connectorTable} = {}) {
   if (queryAliases.length === 0) delete profile.queryAliases;
   const {entry, module} = await selectInstallation(profile, connectorTable);
   const parts = await module.identityParts(profile, providerProfile, read, entry);
-  return sourceIdentityFromParts(parts);
+  return sourceIdentityFromParts(parts, queryAliases);
 }
 
-function sourceIdentityFromParts(parts) {
+function sourceIdentityFromParts(parts, queryAliases) {
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
@@ -131,6 +131,17 @@ function sourceIdentityFromParts(parts) {
     hash.update(String(Buffer.byteLength(canonical)));
     hash.update('\0');
     hash.update(canonical);
+  }
+  if (queryAliases.length !== 0) {
+    // Query alias names and Source references are semantic values. Keep their
+    // exact spelling outside the configuration canonicalizer's NFC domain.
+    // Fixed member order avoids treating JSON object key order as a change.
+    const exact = JSON.stringify(['actql-installed-query-alias-generation/0.1',
+      queryAliases.map(entry => [entry.name, entry.sourceRef,
+        entry.sourceViewContractCid, entry.schemaContractCid])]);
+    hash.update(String(Buffer.byteLength(exact)));
+    hash.update('\0');
+    hash.update(exact);
   }
   return `sha256:${hash.digest('hex')}`;
 }
@@ -226,7 +237,7 @@ export async function loadInstalledSource(path, {root, principalId, moon,
     const identityProfile = {...profile};
     if (queryAliases.length === 0) delete identityProfile.queryAliases;
     publicationRevision = sourceIdentityFromParts(await module.identityParts(
-      identityProfile, providerProfile, readSourceProfileJson, entry));
+      identityProfile, providerProfile, readSourceProfileJson, entry), queryAliases);
   } catch {
     // Usable positive installation metadata alone cannot prove completeness.
   }

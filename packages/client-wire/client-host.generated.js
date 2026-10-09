@@ -3639,6 +3639,426 @@ const schemas = {
       }
     ]
   },
+  "operation_attempt_ref": {
+    "type": "object",
+    "required": [
+      "operation",
+      "attemptId"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "operation": {
+        "enum": [
+          "submit",
+          "cancel"
+        ]
+      },
+      "attemptId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    }
+  },
+  "cancellation_attempt": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "attemptRef",
+          "cancellation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "accepted"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "cancel"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "cancellation": {
+            "type": "object",
+            "required": [
+              "ref",
+              "kind",
+              "revision",
+              "cancelRef"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "ref": {
+                "type": "object",
+                "required": [
+                  "namespaceId",
+                  "authorityScopeCid",
+                  "runDefinitionCid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "namespaceId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "authorityScopeCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "kind": {
+                "const": "accepted"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "cancelRef": {
+                "type": "object",
+                "required": [
+                  "namespaceId",
+                  "authorityScopeCid",
+                  "runDefinitionCid",
+                  "cancelId",
+                  "expectedRevision"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "namespaceId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "authorityScopeCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "cancelId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "attemptRef",
+          "cancellation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "already_satisfied"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "cancel"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "cancellation": {
+            "type": "object",
+            "required": [
+              "ref",
+              "kind",
+              "revision",
+              "cancelRef"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "ref": {
+                "type": "object",
+                "required": [
+                  "namespaceId",
+                  "authorityScopeCid",
+                  "runDefinitionCid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "namespaceId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "authorityScopeCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "kind": {
+                "enum": [
+                  "already_requested",
+                  "already_terminal"
+                ]
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "cancelRef": {
+                "type": "object",
+                "required": [
+                  "namespaceId",
+                  "authorityScopeCid",
+                  "runDefinitionCid",
+                  "cancelId",
+                  "expectedRevision"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "namespaceId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "authorityScopeCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "cancelId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "attemptRef",
+          "guarantee",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "refused"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "cancel"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "guarantee": {
+            "const": "attempt_uncommitted_unconsumed"
+          },
+          "reason": {
+            "enum": [
+              "authorization",
+              "admission_capacity"
+            ]
+          },
+          "cancelRef": {
+            "type": "object",
+            "required": [
+              "namespaceId",
+              "authorityScopeCid",
+              "runDefinitionCid",
+              "cancelId",
+              "expectedRevision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "namespaceId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "authorityScopeCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "runDefinitionCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "cancelId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "expectedRevision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "attemptRef",
+          "reason",
+          "cancelRef"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "conflict"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "cancel"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "reason": {
+            "enum": [
+              "intent",
+              "control_revision"
+            ]
+          },
+          "cancelRef": {
+            "type": "object",
+            "required": [
+              "namespaceId",
+              "authorityScopeCid",
+              "runDefinitionCid",
+              "cancelId",
+              "expectedRevision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "namespaceId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "authorityScopeCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "runDefinitionCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "cancelId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "expectedRevision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
   "request_cancellation": {
     "type": "object",
     "required": [
@@ -13097,7 +13517,8 @@ const operationKeys = {
     "connection",
     "ref",
     "cancelId",
-    "expectedRevision"
+    "expectedRevision",
+    "attemptRef"
   ],
   "lookup-cancellation": [
     "connection",
@@ -13247,6 +13668,8 @@ export const validSubmitPreparationErrorShape = value => valid(value, schemas.su
 export const validCancellationShape = value => valid(value, schemas.cancellation);
 export const validCancellationRefShape = value => valid(value, schemas.cancellation_ref);
 export const validCancellationLookupShape = value => valid(value, schemas.cancellation_lookup);
+export const validOperationAttemptRefShape = value => valid(value, schemas.operation_attempt_ref);
+export const validCancellationAttemptShape = value => valid(value, schemas.cancellation_attempt);
 export const validRequestCancellationShape = value => valid(value, schemas.request_cancellation);
 export const validResourceListingShape = value => valid(value, schemas.resource_listing);
 export const validResourceInspectionShape = value => valid(value, schemas.resource_inspection);

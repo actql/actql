@@ -53,11 +53,110 @@ struct ResidentSourceCompute {
   close_source : () -> Bool
   capture : @query.CapturedInputSource?
   run : @strategy.CapturedDAG
+  effect_run : @strategy.CapturedEffectRunDAG?
   compute : @duckdb_native.NativeStandardStrategyRun
   mut stopping : Bool
   source_closed : Ref[Bool]
   mut released : Bool
   observe : ((ResidentSourceComputeEvent) -> Bool)?
+}
+
+///|
+// Both paths retain their existing checked owner. The Effect owner is never
+// turned into an Effect-free Program or admitted by a second planner.
+priv enum ResidentSourceOwner {
+  Pure(@host.PreparedClientProgram)
+  Effect(@host.PreparedClientEffectRun)
+}
+
+///|
+fn resident_source_owner_graph(
+  owner : ResidentSourceOwner,
+) -> @strategy.CheckedDAG {
+  match owner {
+    Pure(prepared) => @host.prepared_client_graph(prepared)
+    Effect(run) =>
+      @strategy.checked_effect_run_graph(
+        @host.prepared_client_effect_run_graph(run),
+      )
+  }
+}
+
+///|
+fn resident_source_owner_supported(owner : ResidentSourceOwner) -> Bool {
+  let graph = resident_source_owner_graph(owner)
+  match owner {
+    Pure(prepared) =>
+      resident_linear_graph(graph) &&
+      @host.prepared_client_acquisition_count(prepared) == 1 &&
+      @host.prepared_client_result_count(prepared) == 1
+    Effect(run) =>
+      resident_linear_computation_graph(graph) &&
+      @strategy.graph_captured_prefix(graph) == 1 &&
+      @strategy.graph_task_count(graph) == 2 &&
+      @strategy.graph_result_count(graph) == 1 &&
+      @strategy.checked_effect_run_source_count(
+        @host.prepared_client_effect_run_graph(run),
+      ) ==
+      1
+  }
+}
+
+///|
+fn resident_source_owner_requirement(
+  owner : ResidentSourceOwner,
+  configuration : ResidentSourceComputeConfiguration,
+) -> Result[@planning.QueryRequirement, ResidentSourceIssue] {
+  let source = configuration.source
+  match owner {
+    Pure(prepared) =>
+      @local.prepare_local_query_requirement(
+        prepared,
+        0,
+        0,
+        configuration.registry_body,
+        configuration.values_body,
+        Some(source.fragment_contract_body),
+        None,
+      ).map_err(issue => Query(issue))
+    Effect(run) =>
+      prepare_resident_effect_source_requirement(
+        @host.prepared_client_effect_run_computation(run),
+        0,
+        0,
+        configuration.registry_body,
+        configuration.values_body,
+        Some(source.fragment_contract_body),
+        source.source_ref,
+        source.source_contract_cid,
+      )
+  }
+}
+
+///|
+fn resident_source_owner_sequences(
+  owner : ResidentSourceOwner,
+  configuration : ResidentSourceComputeConfiguration,
+) -> Array[@execution.GeneratedSequence]? {
+  let fragment = Some(configuration.source.fragment_contract_body)
+  match owner {
+    Pure(prepared) =>
+      @local.prepare_client_local_sequences(
+        prepared,
+        configuration.registry_body,
+        configuration.values_body,
+        fragment,
+        None,
+      )
+    Effect(run) =>
+      @local.prepare_client_effect_local_sequences(
+        @host.prepared_client_effect_run_computation(run),
+        configuration.registry_body,
+        configuration.values_body,
+        fragment,
+        None,
+      )
+  }
 }
 
 ///|
@@ -74,6 +173,45 @@ pub fn open_resident_source_compute(
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
 ] {
+  open_resident_source_compute_owned(
+    Pure(prepared),
+    configuration,
+    occurrence,
+    observe,
+  )
+}
+
+///|
+/// Acquire and compute the original bound Effect Run using the same Native
+/// owners. The caller still needs current Source authority and an exclusive
+/// start claim. This creates no approval and performs no Effect write.
+pub fn open_resident_effect_source_compute(
+  run : @host.PreparedClientEffectRun,
+  configuration : ResidentSourceComputeConfiguration,
+  occurrence : String,
+  observe? : (ResidentSourceComputeEvent) -> Bool,
+) -> Result[
+  ResidentSourceCompute,
+  (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
+] {
+  open_resident_source_compute_owned(
+    Effect(run),
+    configuration,
+    occurrence,
+    observe,
+  )
+}
+
+///|
+fn open_resident_source_compute_owned(
+  prepared : ResidentSourceOwner,
+  configuration : ResidentSourceComputeConfiguration,
+  occurrence : String,
+  observe : ((ResidentSourceComputeEvent) -> Bool)?,
+) -> Result[
+  ResidentSourceCompute,
+  (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
+] {
   let reject = fn(issue : ResidentSourceComputeIssue, cleanup : () -> Bool) {
     Err(
       (
@@ -84,25 +222,15 @@ pub fn open_resident_source_compute(
       ),
     )
   }
-  let graph = @host.prepared_client_graph(prepared)
-  if !resident_linear_graph(graph) ||
-    @host.prepared_client_acquisition_count(prepared) != 1 ||
-    @host.prepared_client_result_count(prepared) != 1 {
+  let graph = resident_source_owner_graph(prepared)
+  if !resident_source_owner_supported(prepared) {
     return reject(UnsupportedGraph, () => true)
   }
   let source = configuration.source
   let requirement = match
-    @local.prepare_local_query_requirement(
-      prepared,
-      0,
-      0,
-      configuration.registry_body,
-      configuration.values_body,
-      Some(source.fragment_contract_body),
-      None,
-    ) {
+    resident_source_owner_requirement(prepared, configuration) {
     Ok(value) => value
-    Err(issue) => return reject(Source(Query(issue)), () => true)
+    Err(issue) => return reject(Source(issue), () => true)
   }
   match
     require_resident_source_identity(
@@ -134,13 +262,7 @@ pub fn open_resident_source_compute(
     Ok(value) => value
     Err(issue) => return reject(Source(Binding(issue)), () => true)
   }
-  guard @local.prepare_client_local_sequences(
-      prepared,
-      configuration.registry_body,
-      configuration.values_body,
-      Some(source.fragment_contract_body),
-      None,
-    )
+  guard resident_source_owner_sequences(prepared, configuration)
     is Some(generated) &&
     generated.length() == @strategy.graph_task_count(graph) else {
     return reject(UnsupportedGraph, () => true)
@@ -301,6 +423,19 @@ pub fn ResidentSourceCompute::prepare_result_export(
 }
 
 ///|
+/// The original checked Effect closure shares the same captured Compute DAG.
+/// The existing Effect owner must pin/return its inputs; this grants no write.
+pub fn ResidentSourceCompute::effect_run(
+  self : ResidentSourceCompute,
+) -> @strategy.CapturedEffectRunDAG? {
+  if self.stopping {
+    None
+  } else {
+    self.effect_run
+  }
+}
+
+///|
 pub fn ResidentSourceCompute::usage(
   self : ResidentSourceCompute,
 ) -> @resources.LedgerUsage {
@@ -375,7 +510,7 @@ pub fn ResidentSourceCompute::close(self : ResidentSourceCompute) -> Bool {
 /// Both acquisition and independent Transfer captures enter the same checked
 /// graph, selection, Native execution and cleanup Owners.
 fn open_resident_captured_compute(
-  prepared : @host.PreparedClientProgram,
+  prepared : ResidentSourceOwner,
   configuration : ResidentSourceComputeConfiguration,
   captured : @query.CapturedInputSource?,
   ledger : @resources.Ledger,
@@ -392,7 +527,7 @@ fn open_resident_captured_compute(
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
 ] {
-  let graph = @host.prepared_client_graph(prepared)
+  let graph = resident_source_owner_graph(prepared)
   let source = configuration.source
   let reject = fn(issue : ResidentSourceComputeIssue, cleanup : () -> Bool) {
     Err(
@@ -422,21 +557,36 @@ fn open_resident_captured_compute(
     configuration.estimates.length() != @strategy.graph_task_count(graph) - 1 {
     return reject(UnsupportedGraph, close_unbound)
   }
-  let opened = match (captured, retained_input) {
-    (Some(source), None) => @strategy.open_captured_dag(graph, source, ledger)
-    (None, Some((projection, output, wire_bytes))) =>
+  let opened : Result[
+    (@strategy.CapturedDAG, @strategy.CapturedEffectRunDAG?),
+    @host.ClientRunOpenIssue,
+  ] = match (prepared, captured, retained_input) {
+    (Pure(_), Some(source), None) =>
+      @strategy.open_captured_dag(graph, source, ledger)
+      .map(run => (run, None))
+      .map_err(issue => Run(issue))
+    (Pure(_), None, Some((projection, output, wire_bytes))) =>
       @strategy.open_retained_task_dag(
         projection,
         output,
         ledger,
         canonical_wire_bytes=wire_bytes,
       )
+      .map(run => (run, None))
+      .map_err(issue => Run(issue))
+    (Effect(bound), Some(source), None) =>
+      @strategy.open_captured_effect_run_dag(
+        @host.prepared_client_effect_run_graph(bound),
+        source,
+        ledger,
+      )
+      .map(run => (@strategy.captured_effect_run_dag(run), Some(run)))
+      .map_err(issue => Run(issue))
     _ => return reject(UnsupportedGraph, close_unbound)
   }
-  let run = match opened {
+  let (run, effect_run) = match opened {
     Ok(value) => value
-    Err(issue) =>
-      return reject(Run(@host.ClientRunOpenIssue::Run(issue)), close_unbound)
+    Err(issue) => return reject(Run(issue), close_unbound)
   }
   match
     @strategy.retain_captured_task_allocation(run, 0, holding, release_confirmed=() => {
@@ -524,6 +674,7 @@ fn open_resident_captured_compute(
     Err(issue) => return reject(Compute(issue), close_run)
   }
   let owner : ResidentSourceCompute = {
+    effect_run,
     close_source,
     capture: captured,
     run,
