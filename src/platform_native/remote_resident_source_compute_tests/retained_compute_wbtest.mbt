@@ -8,6 +8,44 @@ fn retained_compute_cid(unit : String) -> String {
 }
 
 ///|
+fn retained_compute_effect_retention() -> @publication.PublicationContract {
+  @publication.seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
+    retained_compute_cid("7") +
+    "\",\"effective_data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"available_until\":\"2026-10-10T01:00:00.000Z\",\"delete_by\":\"2026-10-10T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-10-10T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
+    retained_compute_cid("8") +
+    "\",\"metadata_delete_by\":\"2026-10-10T04:00:00.000Z\",\"clock_contract_cid\":\"" +
+    retained_compute_cid("9") +
+    "\"}",
+    32768,
+    1000,
+    32,
+  ).unwrap()
+}
+
+///|
+fn retained_compute_acquired_evidence(
+  owner : @resident.ResidentSourceCompute,
+  policy? : String = "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf",
+  max_bytes? : Int = 65536,
+) -> Result[
+  (@host.ClientEffectAcquiredEvidence, (String, String)),
+  @resident.ResidentEffectSourceEvidenceIssue,
+] {
+  owner.prepare_effect_acquired_evidence(
+    retained_compute_cid("a"),
+    policy,
+    "2026-10-09T01:00:01.000Z",
+    retained_compute_effect_retention(),
+    resident_compute_limits(),
+    max_bytes,
+    4096,
+    64,
+  )
+}
+
+///|
 fn retained_compute_run(
   prepared : @host.PreparedClientProgram,
 ) -> (
@@ -285,6 +323,16 @@ fn retained_compute_case(
   } else {
     None
   }
+  let effect_producer_dispatch = effect_materials.map(pair => {
+    @host.prepare_client_effect_source_dispatch(
+      pair.0.allowed,
+      pair.0.run_definition,
+      pair.1,
+      1,
+      "producer",
+      retained_compute_selection(),
+    ).unwrap()
+  })
   let acquisitions = Ref(0)
   let producer_captures = Ref(0)
   let source_observe = event => {
@@ -298,10 +346,12 @@ fn retained_compute_case(
   let source_open = match effect_materials {
     Some((materials, _)) =>
       @resident.open_resident_effect_source_compute(
-        @host.bind_client_effect_compiled_run(
-          materials.prepared,
-          materials.allowed,
-          materials.run_definition,
+        @host.bind_client_effect_source_dispatch(
+          materials,
+          effect_producer_dispatch.unwrap(),
+          @host.prepare_client_effect_source_input_binding(
+            materials.compilation,
+          ).unwrap(),
         ).unwrap(),
         configuration,
         name,
@@ -339,6 +389,48 @@ fn retained_compute_case(
   assert_eq(chunks.length(), 3)
   assert_eq(acquisitions.val, 1)
   assert_eq(producer_captures.val, 1)
+  let acquired = if effect {
+    let (evidence, bodies) = retained_compute_acquired_evidence(source_owner).unwrap()
+    // Logical Source identity preserves the fixture's (3, 1, 2) acquired
+    // sequence. The checked Result projection sorts its exported root view;
+    // that view must not silently replace the acquisition observation.
+    assert_eq(
+      bodies.0,
+      "{\"sort\":\"relation\",\"value\":[{\"id\":3},{\"id\":1},{\"id\":2}]}",
+    )
+    assert_eq(bodies.1, "{\"id\":{\"nullable\":false,\"type\":\"number\"}}")
+    let dependencies = @host.client_effect_acquired_dependency_bodies(evidence)
+    assert_eq(dependencies.length(), 6)
+    let observations = dependencies.filter(entry => entry.0 == "source_evidence")
+    assert_eq(observations.length(), 1)
+    assert_true(observations[0].1.contains("\"completeness\":\"complete\""))
+    assert_true(observations[0].1.contains("\"snapshot_ref\":\"sha256:"))
+    assert_true(
+      @host.client_effect_acquired_catalog_bodies(evidence, 65536, 4096, 64)
+      .unwrap()
+      .length() >
+      0,
+    )
+    // A failed evidence projection retains the same acquisition and capacity.
+    assert_true(
+      retained_compute_acquired_evidence(
+        source_owner,
+        policy=retained_compute_cid("f"),
+      )
+      is Err(Observation(InvalidPolicy)),
+    )
+    assert_true(
+      retained_compute_acquired_evidence(source_owner, max_bytes=1)
+      is Err(Capture(DependencyBodyLimit)),
+    )
+    assert_true(source_owner.usage().held_bytes > 0L)
+    Some((evidence, bodies))
+  } else {
+    assert_true(
+      retained_compute_acquired_evidence(source_owner) is Err(Unavailable),
+    )
+    None
+  }
   let (compilation, allowed, definition, caller) = retained_compute_run(
     prepared,
   )
@@ -385,15 +477,7 @@ fn retained_compute_case(
     retained_compute_selection()
   }
   let producer_dispatch = match effect_materials {
-    Some((materials, caller)) =>
-      @host.prepare_client_effect_source_dispatch(
-        materials.allowed,
-        materials.run_definition,
-        caller,
-        1,
-        "producer",
-        selected,
-      ).unwrap()
+    Some(_) => effect_producer_dispatch.unwrap()
     None =>
       @host.prepare_client_task_dispatch(
         prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
@@ -688,6 +772,18 @@ fn retained_compute_case(
     assert_true(journal.close())
     return
   }
+  let producer_dependency = match effect_materials {
+    Some((materials, _)) =>
+      Some(
+        retained_effect_producer_dependency(
+          source_owner,
+          materials,
+          acquired.unwrap().0,
+        ),
+      )
+    None => None
+  }
+  assert_eq(entries.val, 0)
   resident_compute_execute(consumer) |> ignore
   let source_usage = source_owner.usage()
   let consumer_usage = consumer.usage()
@@ -741,6 +837,145 @@ fn retained_compute_case(
   } else {
     None
   }
+  let pending_effect_export = if effect_inputs is Some(inputs) {
+    // Independent receiver Cells do not grant the original Native observation.
+    assert_true(
+      retained_compute_acquired_evidence(consumer) is Err(Unavailable),
+    )
+    let (earlier, earlier_bodies) = acquired.unwrap()
+    let (again, again_bodies) = retained_compute_acquired_evidence(source_owner).unwrap()
+    assert_eq(again_bodies, earlier_bodies)
+    assert_eq(
+      @host.client_effect_acquired_dependency_bodies(again),
+      @host.client_effect_acquired_dependency_bodies(earlier),
+    )
+    assert_eq(acquisitions.val, 1)
+    let limits = resident_compute_limits()
+    let plan = @strategy.prepare_captured_effect_proposal_plan(
+      inputs, 0, 16, 10000,
+    ).unwrap()
+    let mut effect_local_index = -1
+    let mut root_local_index = -1
+    for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+      if @strategy.captured_effect_local_result_matches_member(inputs, index, 0) {
+        effect_local_index = index
+      } else {
+        root_local_index = index
+      }
+    }
+    assert_true(effect_local_index >= 0 && root_local_index >= 0)
+    let root_result = @strategy.captured_effect_local_result_at(
+      inputs, root_local_index,
+    ).unwrap()
+    let root_output = @strategy.captured_any_result_borrow_cell_output(
+      @strategy.captured_effect_local_result_borrow(root_result),
+    ).unwrap()
+    // A producer completion in this same Run cannot stand in for the
+    // consumer's pinned Result, even though both have the same schema.
+    assert_true(
+      @strategy.start_captured_effect_local_result_export(
+        inputs,
+        effect_local_index,
+        {
+          max_fields: limits.max_result_fields,
+          max_mapping_work: limits.max_result_mapping_work,
+          max_order_work: limits.max_result_order_work,
+          max_workspace_entries: limits.max_result_workspace_entries,
+        },
+        limits.max_rows,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+        converted_output=root_output,
+      )
+      is Err(
+        @strategy.CapturedEffectLocalResultExportIssue::Export(ForeignMaterial)
+      ),
+    )
+    for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+      let exported = consumer
+        .prepare_effect_result_export(inputs, index, limits)
+        .unwrap()
+      let preparation = @strategy.captured_effect_local_result_export_preparation(
+        exported,
+      )
+      while !@execution.advance_completed_result_relation_export(
+              preparation, 16,
+            ).unwrap().0 {
+        continue
+      }
+      let stream = @execution.finish_completed_result_relation_export_preparation(
+        preparation,
+      ).unwrap()
+      let observed = StringBuilder()
+      let mut count = 0
+      while @execution.next_completed_output_export_canonical_row(
+              stream, 100, 20, 100,
+            ).unwrap()
+            is Some((row_index, wire, row)) {
+        observed.write_string(wire)
+        if index == effect_local_index {
+          let (selector, changes) = @strategy.project_captured_effect_proposal_row(
+            plan, row, row_index, 16, 10000, 4096, 100, 20,
+          ).unwrap()
+          assert_eq(selector, "3")
+          assert_eq(changes, "{\"state\":\"present\",\"value\":{\"Name\":3}}")
+        }
+        count += 1
+      }
+      let (private_receipt, end) = @execution.finish_completed_relation_export(
+        stream,
+      ).unwrap()
+      observed.write_string(end)
+      assert_true(
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, private_receipt,
+        ),
+      )
+      assert_false(
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, receipt,
+        ),
+      )
+      if index == effect_local_index {
+        assert_eq(count, 1)
+        assert_eq(observed.to_string(), "[{\"id\":3}]")
+        @strategy.finish_captured_effect_proposal_plan(plan, count).unwrap()
+      } else {
+        assert_eq(count, 3)
+        assert_eq(observed.to_string(), "[{\"id\":1},{\"id\":2},{\"id\":3}]")
+      }
+      @execution.cancel_completed_relation_export_receipt(private_receipt)
+      @execution.cancel_completed_output_export(stream)
+      @execution.cancel_completed_result_relation_export(preparation) |> ignore
+    }
+    retained_effect_transferred_artifact(
+      consumer,
+      effect_materials.unwrap().0,
+      inputs,
+      root_local_index,
+      effect_local_index,
+      earlier,
+      @host.client_effect_acquired_invocation(again),
+      producer_dependency.unwrap().0,
+      producer_dependency.unwrap().1,
+      producer_dependency.unwrap().2,
+      producer_dependency.unwrap().4,
+      common_input,
+      site,
+    )
+    assert_eq(acquisitions.val, 1)
+    assert_eq(entries.val, 1)
+    Some(
+      consumer
+      .prepare_effect_result_export(inputs, effect_local_index, limits)
+      .unwrap(),
+    )
+  } else {
+    None
+  }
   assert_false(consumer.close())
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
@@ -754,6 +989,16 @@ fn retained_compute_case(
     )
     assert_true(@strategy.release_captured_effect_inputs(inputs))
     assert_false(@strategy.release_captured_effect_inputs(inputs))
+    if pending_effect_export is Some(exported) {
+      let preparation = @strategy.captured_effect_local_result_export_preparation(
+        exported,
+      )
+      assert_true(
+        @execution.advance_completed_result_relation_export(preparation, 16)
+        is Err(_),
+      )
+      @execution.cancel_completed_result_relation_export(preparation) |> ignore
+    }
   }
   assert_true(consumer.close())
   assert_true(consumer.close())
@@ -773,10 +1018,17 @@ fn retained_compute_case(
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_objects, 0L)
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(source_export)
+  if producer_dependency is Some((pins, _, _, dependency_receipt, _)) {
+    assert_false(@strategy.release_captured_effect_local_unit_inputs(pins))
+    @execution.cancel_completed_relation_export_receipt(dependency_receipt)
+  }
   assert_true(source_owner.close())
   assert_true(source_owner.close())
   assert_eq(source_owner.usage().held_bytes, 0L)
   assert_eq(source_owner.usage().reserved_execution_bytes, 0L)
+  assert_true(
+    retained_compute_acquired_evidence(source_owner) is Err(Unavailable),
+  )
   assert_eq(acquisitions.val, 1)
   assert_eq(producer_captures.val, 1)
   assert_eq(entries.val, 1)

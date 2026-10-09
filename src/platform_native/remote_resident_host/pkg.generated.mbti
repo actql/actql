@@ -4,8 +4,10 @@ package "actql/actql/platform_native/remote_resident_host"
 import {
   "actql/actql/client_local_host",
   "actql/actql/connectors/duckdb/adapters/native",
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/duckdb/host_native",
   "actql/actql/connectors/duckdb/standard_host",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_resources",
@@ -149,11 +151,28 @@ pub(all) struct ResidentDelivery {
   result : Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
 }
 
+pub(all) enum ResidentEffectPreviewPlanIssue {
+  Unavailable
+  ForeignInput
+  NativeExport(ResidentSourceComputeIssue)
+  Export(@execution_relation.CompletedExportIssue)
+  Preparation(@execution_relation.CompletedExportIssue)
+  Plan(@physical_strategy.CapturedEffectPlanVerifyIssue)
+}
+
 pub(all) enum ResidentEffectSourceDispatchIssue {
   Refused(@remote_resident_site.ResidentDispatchRefusal)
   Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
   Dispatch(@run_publication_host.ClientEffectSourceDispatchIssue)
   Source(ResidentSourceIssue)
+}
+
+pub(all) enum ResidentEffectSourceEvidenceIssue {
+  Unavailable
+  Capture(@execution_query.CapturedSourceIssue)
+  Logical(@run_publication_host.ClientCapturedSourceLogicalIssue)
+  Observation(@host.NativeSourceEvidenceIssue)
+  Acquired(@run_publication_host.ClientEffectAcquiredEvidenceIssue)
 }
 
 pub(all) struct ResidentExecuted {
@@ -312,12 +331,18 @@ pub fn ResidentSavedOutput::is_current(Self) -> Bool
 pub fn ResidentSavedOutput::recover(Self, @publication_store.Store, @remote_transfer_journal.Journal, @http_client.Client, String, Int) -> ResidentDelivery
 
 type ResidentSourceCompute
+pub fn ResidentSourceCompute::bind_effect_preview_inputs(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], @run_publication_host.ClientCapturedEffectPreviewLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, @run_publication_host.ClientCapturedEffectPreviewIssue]
+pub fn ResidentSourceCompute::bind_effect_producer_artifact(Self, @run_publication_host.ClientEffectLocalResultArtifact) -> Result[@run_publication_host.ClientEffectProducerArtifact, @run_publication_host.ClientEffectTransferredArtifactIssue]
+pub fn ResidentSourceCompute::bind_effect_retained_result_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, @run_publication_host.ClientEffectProducerArtifact) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectTransferredArtifactIssue]
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, String, String, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
+pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
+pub fn ResidentSourceCompute::verify_effect_preview_plan(Self, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectPlanProof, ResidentEffectPreviewPlanIssue]
 
 pub(all) struct ResidentSourceComputeConfiguration {
   source : ResidentSourceConfiguration

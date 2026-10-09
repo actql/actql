@@ -304,6 +304,8 @@ pub fn selected_reference_count(ResolvedInput) -> Int
 
 pub fn selection(ResolvedInput) -> Selection
 
+pub fn unresolved_selector_declaration(Issue, @sourceview_input.Inputs, @check_environment.SourceRequestContracts) -> @sourceview_input.Declaration?
+
 pub fn work(Resolved) -> Int
 
 // Errors
@@ -342,6 +344,7 @@ type DirectRequest
 pub(all) struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor?
+  // private fields
 }
 
 pub(all) enum IssueKind {

@@ -748,6 +748,16 @@ pub fn captured_effect_inputs_match_computation(
 }
 
 ///|
+/// Physical input custody belongs to this exact opened Run, even when another
+/// opened Run has identical semantic identities and the same checked graph.
+pub fn captured_effect_inputs_match_run(
+  value : CapturedEffectInputs,
+  run : CapturedEffectRunDAG,
+) -> Bool {
+  value.live && !run.captured.stopped && physical_equal(value.run, run)
+}
+
+///|
 /// Keep the exact admitted Run with a live source pin. A matching checked
 /// Program alone cannot transfer this captured input to another Run.
 pub fn captured_effect_inputs_run_definition_cid(
