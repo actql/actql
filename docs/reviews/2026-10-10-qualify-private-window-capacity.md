@@ -158,3 +158,28 @@ whole-cohort receipt and remains an integration blocker under investigation.
 Original receipt: /private/tmp/.codex-scratch/public-query-evidence-blFRci.
 Guard: run-74impe. Tarballs: /private/tmp/actql-root1182-fcb59b93-pack.
 CI was not started. No full-target or Native success is claimed.
+
+## Closed public acceptance
+
+The remaining SET failure was a fixture contract mismatch. The normative
+UNNEST value-table contract distinguishes implicit members from ordinary
+columns; existing `AS does not authorize editing implicit object members`
+regression rejects that target. SET positives now explicitly SELECT the
+ordinary columns before AS/SET, preserving independent rows/schema and
+immutable-range checks. The original unprojected source remains an exact
+ClientProgramInvalidInput refusal, not a silently removed case.
+No product admission was loosened. Fixture Node checks: 11/11 (run-uwtbE4).
+
+Clean source 43aba53bc62cb3265e67ee454eb70d8905ba2adb was normally packed
+into five distributions. The complete unchanged window-scalar selection,
+with the corrected SET contract and added refusal, passed Local and HTTPS:
+94 positives and 38 preparation refusals per transport. Receipt:
+/private/tmp/.codex-scratch/public-query-evidence-YnxtJ5; guard run-uJQ9k6.
+All five package digests independently match the consuming receipt.
+Earlier failed receipts remain preserved and are not relabeled successful.
+
+After normal latest-main integration, the focused analytic lifetime,
+cleanup, QUALIFY, repeated GROUP key and window receiver tests passed 35/35:
+run-Vm4Fgi / focused-test-s6z93M. Public packed execution belongs to the
+clean source above, not this later integration/documentation commit.
+CI, full Core and all-target acceptance remain unexecuted.
