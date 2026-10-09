@@ -6,8 +6,8 @@ const declarationRevision = 'rev:' + '6'.repeat(64);
 const location = {kind: 'text', document_id: 'source', revision,
   start_byte: 6, end_byte: 6, precision: 'exact'};
 const observation = {version: 'actql-check-outcome/0.1',
-  reason_schema_cid: 'sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6',
-  outcome_schema_cid: 'sha256:b1062306669a530f532faa3b7fc5d24e34bd72aeae712c177cee7557216ea464',
+  reason_schema_cid: 'sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac',
+  outcome_schema_cid: 'sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6}],
     reasons: [{code: 'query_syntax_invalid', location}], requirements: [],
@@ -115,16 +115,48 @@ export const submissionCheckWireCorpus = [
 // Program cases are fixed independently of either checker or response producer.
 const programFixed = (name, expected, change = () => {}, options = {}) => {
   const checked = structuredClone(observation);
-  checked.report.inputs = [{document_id: 'program', kind: 'structured', revision, byte_length: 32}];
+  const program = options.program ?? {version: 'actql/0.1', id: 'p'};
+  checked.report.inputs = [{document_id: 'program', kind: 'structured', revision,
+    byte_length: Buffer.byteLength(JSON.stringify(program), 'utf8')}];
   checked.report.reasons = [{code: 'program_structure_invalid', facts: {issue: 'missing_field'},
     location: {kind: 'structured', document_id: 'program', revision, pointer: ''}}];
   change(checked.report, checked);
   return {name: `submission Program check: ${name}`, expected, kind: 'submission', operation: 'start',
-    failureCode: 'SubmissionUnknown', program: {version: 'actql/0.1', id: 'p'},
+    failureCode: 'SubmissionUnknown', program,
     value: {kind: options.phase ?? 'not_accepted', problem:
       {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, checkObservation: checked}};
 };
+const selectorProgram = {version: 'actql/0.1', id: 'p', inputs: {
+  'e\u0301/~': {kind: 'Source', connector: 'fixture', resource: 'absent', view: 'records'}}};
+const unregisteredSelector = report => {
+  report.reasons = [{code: 'source_selector_unregistered',
+    facts: {namespace: 'test', connector: 'fixture', resource: 'absent', view: 'records'},
+    location: {kind: 'structured', document_id: 'program', revision,
+      pointer: '/inputs/e\u0301~1~0/view'}}];
+};
 export const submissionProgramCheckWireCorpus = [
+  programFixed('unregistered selector original Unicode pointer', true, unregisteredSelector,
+    {program: selectorProgram}),
+  programFixed('unregistered selector omitted view uses parent', true, report => {
+    unregisteredSelector(report); delete report.reasons[0].facts.view;
+    report.reasons[0].location.pointer = '/inputs/e\u0301~1~0';
+  }, {program: {version: 'actql/0.1', id: 'p', inputs: {
+    'e\u0301/~': {kind: 'Source', connector: 'fixture', resource: 'absent'}}}}),
+  programFixed('unregistered selector cannot borrow text location', false, report => {
+    unregisteredSelector(report); report.reasons[0].location = {...location};
+  }, {program: selectorProgram}),
+  programFixed('unregistered selector cannot expose private metadata', false, report => {
+    unregisteredSelector(report); report.reasons[0].facts.registration_revision = 'private';
+  }, {program: selectorProgram}),
+  programFixed('unregistered selector cannot borrow another revision', false, report => {
+    unregisteredSelector(report); report.reasons[0].location.revision = otherRevision;
+  }, {program: selectorProgram}),
+  programFixed('unregistered selector cannot authorize a fix', false, report => {
+    unregisteredSelector(report); report.reasons[0].fixes = [{code: 'close_block_comment',
+      applicability: 'requires_review', risk: 'syntax_structure',
+      target: {document_id: 'program', revision},
+      edits: [{start_byte: 0, end_byte: 0, replacement: '*/'}]}];
+  }, {program: selectorProgram}),
   programFixed('missing field uses original parent', true),
   programFixed('preparation failure retains original parent', true, () => {}, {phase: 'preparation_failed'}),
   programFixed('Program must be structured', false, report => {report.inputs[0].kind = 'text';}),

@@ -295,6 +295,12 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     Registration(Declarations(WorkLimit | OrderLimit))
     | Registration(Registration(WorkLimit))
     | Registration(LocalInputs(BudgetExceeded)) => CompileLimit
+    // These failures precede Catalog selection and concern authored selector
+    // structure only. Decode budgets/settings retain their existing categories.
+    Registration(Declarations(Decode(error))) =>
+      decode_diagnostic_category(error.kind)
+    Registration(Declarations(InvalidValue(_) | InvalidMetadata(_))) =>
+      InvalidInput
     Declarations(Declarations(error)) => parameter_diagnostic_category(error)
     SourceView(Binding(Binding(error))) => parameter_diagnostic_category(error)
     SourceView(

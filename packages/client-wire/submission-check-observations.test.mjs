@@ -9,8 +9,8 @@ const submissionRef = {epoch: {version: 'actql-submission-epoch/0.1',
   notBefore: 1, expiresAt: 2, authenticator: 'c'.repeat(64)}, nonce: 'original'};
 const intentCid = 'sha256:' + 'd'.repeat(64);
 const observation = {version: 'actql-check-outcome/0.1',
-  reason_schema_cid: 'sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6',
-  outcome_schema_cid: 'sha256:b1062306669a530f532faa3b7fc5d24e34bd72aeae712c177cee7557216ea464',
+  reason_schema_cid: 'sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac',
+  outcome_schema_cid: 'sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f',
   outcome: 'completed', report: {context_ref: 'ctx:independent', scope: {kind: 'bound_input'},
     verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text',
       revision: 'rev:' + '4'.repeat(64), byte_length: 6}],

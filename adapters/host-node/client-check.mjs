@@ -9,7 +9,8 @@ import {validCheckOutcome, checkReasonSchemaCid, checkOutcomeSchemaCid} from '..
 // The common value encoding: String values stay exact (CR, LF and composed
 // or decomposed spellings differ); only object member names are canonical.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-import {observeSourceAliasNamespace, sourceAliasNamespaceObservationFacts} from './source-alias-publication.mjs';
+import {observeSourceSelectorNamespace, sourceSelectorNamespaceObservationFacts,
+  observeSourceAliasNamespace, sourceAliasNamespaceObservationFacts} from './source-alias-publication.mjs';
 
 const version = 'actql-check-outcome/0.1';
 // Revisions bound into every context reference. A change to what an audience
@@ -45,6 +46,7 @@ export function installNodeClientCheck({moon, environment, publication,
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
       typeof moon.clientProgramCheckContextIdentity !== 'function' ||
       typeof moon.clientProgramCheckSourceNamespace !== 'function' ||
+      typeof moon.clientProgramCheckSourceSelectorNamespace !== 'function' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
@@ -140,9 +142,8 @@ export function installNodeClientCheck({moon, environment, publication,
       compiler, reason_schema_cid: checkReasonSchemaCid,
       outcome_schema_cid: checkOutcomeSchemaCid,
       checking_context: checkingContext, visible_aliases: visible,
-      ...(namespace === undefined ? {} : {source_namespace: {
-        name: namespace.namespace, revision: namespace.revision,
-        authority: namespace.authority}}),
+      ...(namespace === undefined ? {} : {[kind === 'program' ? 'source_selector_namespace' : 'source_namespace']: {
+        name: namespace.namespace, revision: namespace.revision, authority: namespace.authority}}),
       ...(visibleWrites.length === 0 ? {} : {visible_table_writes: visibleWrites})};
     let preimage;
     try {
@@ -188,10 +189,32 @@ export function installNodeClientCheck({moon, environment, publication,
       const supplied = parameters == null ? undefined : JSON.stringify(parameters);
       const original = documentBinding('program', 'structured', document);
       const bindings = supplied === undefined ? undefined : documentBinding('parameters', 'structured', supplied);
+      let namespace;
+      if (namespaceAuthorizationFor !== undefined) {
+        const binding = Object.freeze({principalId, contextCid: `sha256:${context.slice(4)}`,
+          inputs: Object.freeze([original, ...(bindings ? [bindings] : [])]
+            .map(value => Object.freeze({...value})))});
+        let gate;
+        try {
+          gate = await namespaceAuthorizationFor({principalId, signal});
+          const observation = await observeSourceSelectorNamespace(publication, gate, binding, {signal});
+          const facts = sourceSelectorNamespaceObservationFacts(publication, observation, binding);
+          if (facts !== undefined) {
+            context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope, facts);
+            namespace = moon.clientProgramCheckSourceSelectorNamespace(facts.range,
+              facts.namespace, facts.revision, context, original.revision);
+          }
+        } catch (cause) {
+          if (signal?.aborted) throw cause;
+          // Insufficient metadata or current authorization cannot prove absence.
+        } finally {
+          gate?.close();
+        }
+      }
       const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
         JSON.stringify({environmentCid, aliases: visible,
           ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
-        context, original.revision, bindings?.revision, correlationRef, scope));
+        context, original.revision, bindings?.revision, correlationRef, scope, namespace));
       return validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])
         ? outcome : failed('check_internal', correlationRef);
     }
