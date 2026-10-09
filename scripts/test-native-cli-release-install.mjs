@@ -1,6 +1,6 @@
 // Actual global npm installation, installed Native/mTLS Host and wire failures.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {execFileSync, spawn} from 'node:child_process';
 import {copyFile, mkdir, readFile, writeFile, rename} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -14,6 +14,9 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const [cliInput, sdkInput] = process.argv.slice(2); assert(cliInput && sdkInput, 'usage: test-native-cli-release-install.mjs <CLI-RC> <SDK-RC>');
 const cliDirectory = resolve(cliInput), sdkDirectory = resolve(sdkInput);
 const cli = await verifyNativeCliRelease(cliDirectory), sdk = await verifyPackageRelease(sdkDirectory);
+const runtimeSourceDelta = execFileSync('git', ['diff', '--name-only', sdk.sourceSha, cli.sourceSha, '--',
+  'src', 'adapters', 'spec', 'moon.mod', 'toolchain.json'], {cwd: repository, encoding: 'utf8'}).trim();
+assert.equal(runtimeSourceDelta, '', 'This combined acceptance requires unchanged Host/protocol runtime inputs between its distinct fixed sources');
 const key = process.platform === 'darwin' && process.arch === 'arm64' ? 'darwin-arm64' : 'linux-x64-gnu';
 assert(cli.platforms[key], 'No fixed artifact for this actual platform');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-cli-install-', label: 'Native CLI fixed release installation'});
@@ -74,6 +77,7 @@ try {
   // is separate from the actual Host acceptance above.
   await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')]);
   const receipt = {version: 'actql-native-cli-install-acceptance/0.1', cliSourceSha: cli.sourceSha, hostSourceSha: sdk.sourceSha,
+    runtimeSourceDelta: [],
     platform: key, node: process.version, glibc: process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : null,
     artifact, cliPackages: cli.packages.map(({name, version, sha256}) => ({name, version, sha256})),
     hostPackages: sdk.packages.map(({name, version, sha256}) => ({name, version, sha256})),

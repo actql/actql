@@ -2,13 +2,15 @@ import {submissionEpoch, originalSubmission, readySubmission, heldSubmission} fr
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
-import {chmod, copyFile, mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {validHeldRequest} from '../packages/client-wire/index.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
-const root = await mkdtemp(join(tmpdir(), 'actql-native-client-'));
+const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-client-', label: 'Native Client transport fixture'});
+const root = scratch.path;
 const openssl = (...args) => execFileSync('openssl', args,
   {cwd: root, stdio: 'ignore'});
 openssl('genrsa', '-out', 'ca.key', '2048');
@@ -550,3 +552,4 @@ try {
 
 // Keep the independent shared-contract corpus on the normal Native CI entry.
 await import('./test-native-client-wire.test.mjs');
+scratch.passed();

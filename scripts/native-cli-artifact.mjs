@@ -56,7 +56,7 @@ export async function buildNativeCliArtifact(destination) {
       const data = await readFile(path), versionInfo = run('readelf', ['--version-info', path]);
       const versions = [...versionInfo.matchAll(/\bGLIBC_(\d+)\.(\d+)\b/gu)]
         .map(v => [Number(v[1]), Number(v[2])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-      files.push({path, bytes: data.length, sha256: hash(data), greatestReferencedGlibc: versions.at(-1)?.join('.') ?? null});
+      files.push({path, bytes: data.length, sha256: hash(data), greatestListedGlibc: versions.at(-1)?.join('.') ?? null});
     }
     httpRuntime = {library, dependencies, files, testedGlibc: glibc,
       interpretation: 'Observed installed libcurl closure; not a promise about other libcurl distributions.'};
