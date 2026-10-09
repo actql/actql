@@ -21,7 +21,7 @@ scheduler, approval system, credential owner or Ledger.
 | Recovery and uncertainty | Existing installed Effect continuation and saved response owners | Lost reply, 503 and pending-response cancellation do not resend; separate-process reconstruction |
 | Current authorization and target binding | Account gate, common commit admission, Sheets numeric metadata check | Revoked account and modified numeric tab refuse approved sends |
 | Cleanup | Existing initialization/shutdown/Ledger retry handles | Failed publication removes its own temporary file; Ledger close retry retains same owner and append count |
-| Distribution | Manifest-driven runtime/module inventory and normal five-package cohort | External `@actql/node`, `@actql/sdk`, `@actql/local-node` exports; independent fixture Programs; tarball digests |
+| Distribution | Manifest-driven inventory and the official four-package release recipe | External `@actql/node`, `@actql/sdk`, `@actql/local-node` exports; independent fixture Programs; release SHA and tarball digests |
 
 Provider transport is deliberately weaker than settlement authority. Append has
 no idempotency key or authoritative row lookup. Repeated equality checks cannot

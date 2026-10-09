@@ -143,9 +143,10 @@ node scripts/local-checks.mjs test node -- \
 node scripts/test-packed-sheets.mjs
 ```
 
-The packed command requires clean committed build inputs, uses normal prepack,
-verifies the exact cohort/digests, and copies only test support to an external
-installation. It exercises the same authored cases through public exports,
+The packed command requires clean committed build inputs, uses the existing
+four-package release recipe with normal prepack, verifies the exact source SHA,
+frozen runtime bytes and tarball digests, and copies only test support to an
+external installation. It exercises the same authored cases through public exports,
 including separate-process saved-success and unknown reconstruction.
 
 Real Google service acceptance remains pending until an explicitly authorized
