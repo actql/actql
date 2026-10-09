@@ -62,6 +62,7 @@ import {havingAggregateSuccesses, havingAggregateRefusals, havingAggregateExecut
   from './having-aggregate-source-input.mjs';
 import {setByNameListSuccesses, setByNameListRefusals} from './set-by-name-list-source-input.mjs';
 import {setCorrespondingSuccesses, setCorrespondingRefusals} from './set-corresponding-source-input.mjs';
+import {setJoinSuccesses, setJoinRefusals} from './set-join-source-input.mjs';
 import {setInnerByNameSuccesses, setInnerByNameRefusals} from './set-inner-by-name-source-input.mjs';
 import {shortRowsSuccesses, shortRowsRefusals} from './short-rows-source-input.mjs';
 import {orderWindowSuccesses, orderWindowRefusals} from './order-window-source-input.mjs';
@@ -91,6 +92,8 @@ import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
+import * as publicCheckSdk from '@actql/sdk';
+import {exerciseUnaliasedColumnOrigins} from './unaliased-column-origin.mjs';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
@@ -325,7 +328,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : characterLengthOnly ? {successes: characterLengthSuccesses, refusals: characterLengthRefusals}
   : selectAllOnly ? {successes: selectAllSuccesses, refusals: selectAllRefusals} : starExclusionOnly ? {successes: starExclusionSuccesses, refusals: starExclusionRefusals} : typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals} : analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses, refusals: analyticPartitionExpressionRefusals, executionFailures: analyticPartitionExpressionExecutionFailures} : graphSubtractionOnly ? {successes: graphSubtractionSourceSuccesses, refusals: graphSubtractionSourceRefusals, executionFailures: graphSubtractionSourceExecutionFailures} : graphUnionOnly ? {successes: graphUnionSourceSuccesses, refusals: graphUnionSourceRefusals, executionFailures: graphUnionSourceExecutionFailures} : statisticalAggregateOnly ? {successes: statisticalAggregateSuccesses, refusals: statisticalAggregateRefusals, executionFailures: statisticalAggregateExecutionFailures} : limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals} : havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses, refusals: havingObjectPropertyRefusals, executionFailures: havingObjectPropertyExecutionFailures}
   : analyticPartitionPropertyOnly ? {successes: analyticPartitionPropertySuccesses, refusals: analyticPartitionPropertyRefusals}
-  : setCorrespondingOnly ? {successes: setCorrespondingSuccesses, refusals: setCorrespondingRefusals}
+  : setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}
   : setInnerByNameOnly ? {successes: setInnerByNameSuccesses, refusals: setInnerByNameRefusals}
   : setByNameListOnly ? {successes: setByNameListSuccesses, refusals: setByNameListRefusals}
   : shortRowsOnly ? {successes: shortRowsSuccesses, refusals: shortRowsRefusals}
@@ -510,8 +513,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...aggregatePropertyOrderSuccesses);
   scopeInputs.refusals.push(...aggregatePropertyOrderRefusals);
   scopeInputs.executionFailures.push(...aggregatePropertyOrderExecutionFailures);
-  scopeInputs.successes.push(...setCorrespondingSuccesses);
-  scopeInputs.refusals.push(...setCorrespondingRefusals);
+  scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses);
+  scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals);
   scopeInputs.successes.push(...setInnerByNameSuccesses);
   scopeInputs.refusals.push(...setInnerByNameRefusals);
   scopeInputs.successes.push(...setByNameListSuccesses);
@@ -775,6 +778,11 @@ async function exercisePublicCheck(options) {
   const invalid = await client.check('SELECT missing AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(invalid.report.verdict, 'invalid');
   assert.notEqual(invalid.report.context_ref, first.report.context_ref);
+  const directory = options.mode === 'remote' ? remoteDirectory : localDirectory;
+  const beforeColumnChecks = observe(directory)();
+  await exerciseUnaliasedColumnOrigins(client, publicCheckSdk);
+  assert.deepEqual(observe(directory)(), beforeColumnChecks,
+    'column diagnostics must not admit a Run or perform provider I/O');
   for (const pair of [['e\u0301', 'é'], ['\r', '\n']]) {
     const refs = [];
     for (const x of pair) {
@@ -895,7 +903,10 @@ try {
   DuckDBExtractedStatements.prototype.prepare = prepare;
 }
 if (retainedStrings.local && retainedStrings.remote) {
-  await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
+  // Reopening this installation must preserve its explicitly selected policy.
+  await writeFile('retained-string-results.json', JSON.stringify({
+    ...retainedStrings, hostCapacityPolicy,
+  }));
 
 }
 }
