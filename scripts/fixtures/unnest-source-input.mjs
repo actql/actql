@@ -120,7 +120,7 @@ unnestSuccesses.push(
       additional_properties: false}}, column('position')]),
   structSuccess('predicate-except', 'SELECT element.* EXCEPT (label), position FROM UNNEST(@items) element WITH OFFSET position WHERE id IS NOT NULL ORDER BY position',
     [{id: 2, position: 0}, {id: 2, position: 2}], [column('id', true), column('position')]),
-  structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SET id = id + 10 |> SELECT id AS current, element.id AS original, position |> ORDER BY position',
+  structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS current, input.id AS original, position |> ORDER BY position',
     [{current: 12, original: 2, position: 0}, {current: null, original: null, position: 1}, {current: 12, original: 2, position: 2}],
     [column('current', true), column('original', true), column('position')], {format: 'aql-text'}),
   structSuccess('data-binding', 'DATA expanded = FROM UNNEST(@items) element WITH OFFSET position |> SELECT *; FROM expanded |> ORDER BY position |> RESULT answer',
@@ -202,17 +202,73 @@ export const unnestReceiverSuccesses = [
     {expected: receiverStarRows, columns: receiverStarColumns}),
   receiverSuccess('qualified-star', 'SELECT element.*, position FROM UNNEST(@items) element '
     + 'WITH OFFSET position ORDER BY position', {expected: receiverStarRows, columns: receiverStarColumns}),
-  receiverSuccess('set-retains-original', receiverPipe.replace('|> SELECT', '|> SET element = 100 |> SELECT'),
-    {format: 'aql-text'}),
+  receiverSuccess('set-retains-original', receiverPipe.replace('|> SELECT', '|> SET position = position + 10 |> SELECT'),
+    {format: 'aql-text', expected: receiverRows.map(row => ({...row, position: row.position + 10}))}),
   receiverSuccess('set-current-star', 'FROM UNNEST(@items) element WITH OFFSET position '
     + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
-    expected: [{element: 100, id: 2, position: 0}, {element: 100, id: null, position: 1},
-      {element: 100, id: 1, position: 2}, {element: 100, id: 1, position: 3}],
-    columns: [column('element'), column('id', true), column('position')]}),
+    expected: [0, 1, 2, 3].map(position => ({element: 100, position})),
+    columns: [column('element'), column('position')]}),
+  // Independent normal Program: replace the UNNEST value column, then select
+  // that one column and the offset. No object member remains in the current row.
+  receiverSuccess('set-json-control', JSON.stringify({version: 'actql/0.1',
+    id: 'fixture.unnest.set.value', params: receiverDeclarations, stages: [{id: 'main',
+      inputs: {}, steps: [
+        {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+        {from: 'seed', derive: {array: {$param: 'items'}}},
+        {unnest: {column: 'array', as: 'element', with_index: 'position'}},
+        {derive: {replacement: {literal: 100}}},
+        {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+        {select: [{element: 'replacement'}, 'position'], as: 'selected'},
+      ], results: {rows: {from: 'selected', fields: ['element', 'position']}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}}),
+    {format: 'json', parameterDeclarations: undefined,
+      expected: [0, 1, 2, 3].map(position => ({element: 100, position})),
+      columns: [column('element'), column('position')]}),
+  receiverSuccess('set-quoted-whole', 'FROM UNNEST(@items) `element` WITH OFFSET position '
+    + '|> SET `ELEMENT` = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [0, 1, 2, 3].map(position => ({element: 100, position})),
+    columns: [column('element'), column('position')]}),
+  receiverSuccess('set-noncolliding-name', 'FROM UNNEST(@items) row WITH OFFSET position '
+    + '|> SET row = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [0, 1, 2, 3].map(position => ({row: 100, position})),
+    columns: [column('row'), column('position')]}),
+  receiverSuccess('set-empty', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    parameters: {items: []}, expected: [], columns: [column('element'), column('position')]}),
+  receiverSuccess('set-empty-object-elements', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    parameterDeclarations: {items: {type: 'array', nullable: true, max_items: 4,
+      items: {type: 'object', nullable: true, fields: {}}}},
+    parameters: {items: [{}, null]}, expected: [{element: 100, position: 0}, {element: 100, position: 1}],
+    columns: [column('element'), column('position')]}),
+  receiverSuccess('set-object-value', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = @replacement |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    parameterDeclarations: {...receiverDeclarations, replacement: {type: 'object', nullable: false,
+      fields: {id: {type: 'number', nullable: false}}}},
+    parameters: {...receiverParameters, replacement: {id: 99}},
+    expected: [0, 1, 2, 3].map(position => ({element: {id: 99}, position})),
+    columns: [{name: 'element', contract: {type: 'object', nullable: false,
+      additional_properties: false, fields: {id: {type: 'number', nullable: false}}}}, column('position')]}),
+  receiverSuccess('set-siblings-original-object', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100, position = element.id |> SELECT * |> ORDER BY position NULLS LAST',
+    {format: 'aql-text', expected: [{element: 100, position: 1}, {element: 100, position: 1},
+      {element: 100, position: 2}, {element: 100, position: null}],
+    columns: [column('element'), column('position', true)]}),
+  receiverSuccess('drop-whole', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> DROP element |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [0, 1, 2, 3].map(position => ({position})), columns: [column('position')]}),
   receiverSuccess('empty', receiverSql, {parameters: {items: []}, expected: []}),
   receiverSuccess('null-array', receiverSql, {parameters: {items: null}, expected: []}),
 ];
 export const unnestReceiverRefusals = [
+  ...[
+    ['set-implicit-field', 'SET id = 100'],
+    ['drop-implicit-field', 'DROP id'],
+    ['rename-implicit-field', 'RENAME id AS next'],
+    ['set-scalar-member', 'SET element = 100 |> WHERE element.element IS NULL'],
+  ].map(([name, operation]) => ({name: 'unnest-receiver-refusal-' + name,
+    format: 'aql-text', text: 'FROM UNNEST(@items) element WITH OFFSET position |> '
+      + operation + ' |> SELECT position'})),
   {name: 'unnest-receiver-refusal-select-ends-range', format: 'aql-text',
     text: 'FROM UNNEST(@items) element |> SELECT id |> WHERE element IS NOT NULL'},
   {name: 'unnest-receiver-refusal-as-ends-range', format: 'aql-text',
