@@ -25,6 +25,17 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
       return true
     }
   }
+  // The projection specialization consumes at most one WHERE before SELECT.
+  // Other current-row prefixes must retain their authored order in the shared
+  // compiler; moving a WHERE across LIMIT would change which rows survive.
+  let select_index = if @query.operation_at(query, 0) is Some(Where(_)) {
+    1
+  } else {
+    0
+  }
+  if !(@query.operation_at(query, select_index) is Some(Select(_, _))) {
+    return true
+  }
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index)
       is Some(
