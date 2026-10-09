@@ -183,3 +183,40 @@ test('value-table edits preserve one column, sibling input scope and exact refus
       'ClientProgramInvalidInput');
   }
 });
+
+
+test('scalar receivers distinguish elements and offsets from parent columns', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-scalar-receiver-json-control');
+  const program = JSON.parse(control.text);
+  assert.deepEqual(program.stages[0].steps[4],
+    {unnest: {column: 'array', as: 'element', with_index: 'position'}});
+  assert.deepEqual(program.stages[0].steps.at(-1).select,
+    ['element', 'original', 'position', 'original_position']);
+  assert.deepEqual(control.expected.map(row => row.element), [2, null, 1]);
+  assert.deepEqual(control.expected.map(row => row.position), [0, 1, 2]);
+  for (const name of ['pipe', 'sql', 'quoted']) {
+    const item = byName.get('unnest-scalar-receiver-' + name);
+    assert.deepEqual(item.expected, control.expected);
+    assert.deepEqual(item.columns, control.columns);
+  }
+  for (const name of ['predicate', 'computed-predicate', 'join-remapping']) {
+    assert.deepEqual(byName.get('unnest-scalar-receiver-' + name).expected,
+      [{element: 2, original: 100, position: 0, original_position: 50}]);
+  }
+  assert.deepEqual(byName.get('unnest-scalar-receiver-offset-predicate').expected,
+    [{element: null, original: 100, position: 1, original_position: 50}]);
+  assert.deepEqual(byName.get('unnest-scalar-receiver-receiver-order').expected.map(row => row.position), [2, 0, 1]);
+  for (const name of ['empty', 'null-parent-array']) {
+    const item = byName.get('unnest-scalar-receiver-' + name);
+    assert.deepEqual(item.expected, []);
+    assert.deepEqual(item.columns, control.columns);
+  }
+  for (const name of ['group-sql', 'group-pipe']) {
+    assert.deepEqual(byName.get('unnest-scalar-receiver-' + name).expected,
+      [{element: 1, n: 1}, {element: 2, n: 1}, {element: null, n: 1}]);
+  }
+  for (const item of unnestRefusals.filter(value => value.name.startsWith('unnest-refusal-scalar-receiver-'))) {
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  }
+});
