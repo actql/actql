@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {unaryPlusSuccesses, unaryPlusRefusals, unaryPlusExecutionFailures}
+import {unaryPlusSuccesses, unaryPlusRefusals, unaryPlusExecutionFailures,
+  groupedUnaryPlusSuccesses, groupedUnaryPlusRefusals}
   from './fixtures/unary-plus-source-input.mjs';
 
 test('numeric identity fixtures retain NULL, duplicates, negative values and ordered contracts', () => {
@@ -46,4 +47,22 @@ test('normal packed corpus and focused invocation execute the same authored case
   assert.ok(driver.includes("['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^;]*'--unary-plus-only'/u);
   assert.ok(driver.includes("if (process.argv.includes('--unary-plus-only')) return;"));
+});
+
+test('grouped numeric identity retains admission, NULL keys, multiplicity and alias direction', () => {
+  const cases = new Map(groupedUnaryPlusSuccesses.map(item => [item.name, item]));
+  const control = cases.get('unary-plus-group-json-control');
+  const program = JSON.parse(control.text);
+  assert.deepEqual(program.stages[0].steps[0].filter, {gt: [{field: 'id'}, {literal: 0}]});
+  assert.deepEqual(program.stages[1].steps[0].derive.key, {negate: {negate: {field: 'amount'}}});
+  assert.deepEqual(program.stages[1].steps[1].group,
+    {by: ['key'], aggregates: {n: {fn: 'count'}}});
+  assert.deepEqual(control.expected, [{bucket: -4, n: 1}, {bucket: 0, n: 2}, {bucket: null, n: 1}]);
+  assert.deepEqual(cases.get('unary-plus-group-empty').columns, control.columns);
+  assert.deepEqual(cases.get('unary-plus-group-empty').expected, []);
+  assert.deepEqual(cases.get('unary-plus-group-head-pipe-consumer').expected, [{bucket: 0, n: 2}]);
+  assert.deepEqual(cases.get('unary-plus-group-order-output-alias').expected.map(row => row.amount), [0, 4, null]);
+  assert.deepEqual(cases.get('unary-plus-group-order-qualified-input').expected.map(row => row.amount), [4, 0, null]);
+  assert.ok(groupedUnaryPlusRefusals.every(item => item.code === 'ClientProgramInvalidInput'));
+  assert.ok(groupedUnaryPlusSuccesses.every(item => item.sourceReadSessionCount === 1));
 });
