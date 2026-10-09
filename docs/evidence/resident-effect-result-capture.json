@@ -1,0 +1,153 @@
+{
+  "verified_source_sha": "999608c787159d91309670b3508f8d94a3629a67",
+  "adopted_main_sha": "aa083f961917a3822c359a4c01d544ffef4af548",
+  "merged_prerequisites": [
+    1137,
+    1139
+  ],
+  "scope": "Actual Native completed Named Result -> public Artifact, snapshot, Manifest and pre-Effect computation Receipt using the original Run and retained imported input owner. No waiting commit, approval or Effect execution.",
+  "commands": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/remote_resident_host/effect_result_capture.mbt",
+        "src/run_publication_host/client_effect_result_context.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_result_capture_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_transferred_artifact_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "owned_group_absent": true,
+      "log": "_build/resident-effect-result-capture-1791546161852/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*Effect retained consumer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "owned_group_absent": true,
+      "log": "_build/resident-effect-result-capture-1791546161852/tests.log"
+    },
+    {
+      "label": "effect-artifact",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/query_integration/client_effect_local_export_wbtest.mbt\",\"--filter\",\"*shared local Artifact issuer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "owned_group_absent": true,
+      "log": "_build/resident-effect-result-capture-1791546161852/effect-artifact.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/platform_native/remote_resident_host",
+        "src/platform_native/publication_store",
+        "src/run_publication",
+        "src/run_publication_host"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "owned_group_absent": true,
+      "log": "_build/resident-effect-result-capture-1791546161852/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/platform_native/publication_store",
+        "src/platform_native/remote_resident_host"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "owned_group_absent": true,
+      "log": "_build/resident-effect-result-capture-1791546161852/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "owned_group_absent": true,
+      "log": "_build/resident-effect-result-capture-1791546161852/history.log"
+    }
+  ],
+  "test_results": {
+    "actual_native_retained_consumer": {
+      "tests": 2,
+      "passed": 2,
+      "capture_api_exercised_by_transferred_consumer": true
+    },
+    "related_js_local_artifact_caller": {
+      "tests": 1,
+      "passed": 1
+    }
+  },
+  "native_artifact": {
+    "path": "_build/resident-effect-result-capture-1791546161852/retained-compute.whitebox_test.exe",
+    "sha256": "a3c184e120958ae1ec97480cc49216420927c52a7bdbb241f668fbbb8665c17e",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "source_sha": "999608c787159d91309670b3508f8d94a3629a67"
+  },
+  "assertions": [
+    "Independent public rows [{id:3}], id non-null number schema and normal replay termination",
+    "Public answer Definition distinct from private local r Definition",
+    "Original Run, global Invocation and actual acquired Source observation remain bound by existing publication chain/Receipt owners",
+    "Foreign Run/Invocation refuse before a zero-row Native output read",
+    "Missing Source evidence refuses; subsequent correct preparation succeeds with the original retained inputs",
+    "Existing HoldingLimit refuses concurrent probe/capture; completed probe is retired through its Owner, without raising the ceiling",
+    "Actual Source acquisition and consumer entry stay one; original custody cleanup regressions remain active",
+    "A valid refreshed observation/Invocation of the same admitted Template is refused before Native output I/O because it differs from the transferred producer Artifact original Invocation"
+  ],
+  "initial_failures": [
+    {
+      "source_sha": "6decacb67ba8c1f8ba4015fa7bb4977a59e4166b",
+      "log": "_build/resident-effect-result-capture-1791545509586/tests.log",
+      "result": "1 passed, 1 failed: missing Source evidence assertion stopped before Receipt because the finished public probe still retained a Result pin"
+    },
+    {
+      "log": "_build/resident-effect-result-capture-preparation-1791545623772/tests.log",
+      "result": "Native public Result borrow refusal isolated; final test asserts HoldingLimit and retires the completed probe before capture"
+    },
+    {
+      "log": "_build/resident-effect-result-capture-preparation-1791546023048/tests.log",
+      "result": "SIGABRT in counterexample fixture construction: its original observation_set_cid had not been removed before the existing sealer. Corrected fixture construction passes independently admitted Run context before asserting exact producer Invocation refusal."
+    }
+  ],
+  "unverified": [
+    "Production Native Site binary and formal Cloud package cohort",
+    "Full captured-run dependency inventory and encrypted private evidence storage",
+    "Cloud durable waiting commit, Resolution/current approval and Effect execution",
+    "Host/Coordinator restart and unknown Effect reconciliation",
+    "Public SDK/Cloud Worker and real Preview acceptance",
+    "Hosted CI (stopped; no manual start)"
+  ],
+  "fixtures": [
+    "Normalization journal metadata",
+    "Provider Preview/target version/capability evidence in the surrounding Native fixture"
+  ],
+  "ownership": "The returned existing PublicationOutputExport retains its own Result borrow until caller cancellation after persistence. Failed capture cancels only new export/snapshot work; original private input/payload custody stays with its existing owners.",
+  "preceding_verified_source_sha": "f3a7bcdc14eb0b854f7b677b7c27b617ab05867e"
+}

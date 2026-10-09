@@ -150,6 +150,7 @@ fn retained_effect_transferred_artifact(
   producer_token : @host.ClientEffectProducerArtifact,
   common_input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
+  public_result : @host.PublicationOutputExport,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
 ) -> Unit raise {
   println("retained-effect-evidence: receiver-export")
@@ -341,6 +342,9 @@ fn retained_effect_transferred_artifact(
   )
   let (run_observation, invocation) = producer_dependency_observation(
     materials, source,
+  )
+  retained_effect_result_capture(
+    consumer, materials, inputs, evidence, invocation, run_observation, source, public_result,
   )
   let definition = @host.issue_client_effect_local_result_definition(
     materials.prepared,
