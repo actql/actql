@@ -326,7 +326,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       progress({step, stage: 'requested'});
       const child = execFile(process.execPath, [fileURLToPath(new URL(
         './read-compute-effect.embedded-child.mjs', import.meta.url)),
-      step, path], {timeout: step === 'observe-effect' ? 30_000 : 120_000, env: {...process.env,
+      step, path], {timeout: ['observe-effect','observe-owners','replay-owners','cursor-cases','partial-owners'].includes(step) ? 30_000 : 120_000, env: {...process.env,
         ...(failFirstClose === undefined ? {}
           : {ACTQL_EMBEDDED_FAIL_FIRST_CLOSE: failFirstClose})}},
       (error, stdout, stderr) => {
@@ -340,7 +340,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
           const report = JSON.parse(stdout.trim().split('\n').at(-1));
           assert.equal(child.exitCode, 0);
           assert.equal(child.signalCode, null);
-          if (step === 'observe-effect') assert.equal(report.pid, child.pid);
+          if (['observe-effect','observe-owners','replay-owners','cursor-cases','partial-owners'].includes(step)) assert.equal(report.pid, child.pid);
           const completed = Object.freeze({step, pid: child.pid, exitCode: child.exitCode, signalCode: child.signalCode});
           progress({stage: 'completed', ...completed});
           processes.push(completed);

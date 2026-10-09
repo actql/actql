@@ -368,6 +368,8 @@ export interface RequestRecovery {
 }
 
 export type RunState = WireRunState;
+export type OwnerObservations = import('@actql/client-wire').WireOwnerObservations;
+export type OwnerCursor = import('@actql/client-wire').WireOwnerCursor;
 export type RunNextAction = WireRunState['next_action'];
 
 export type EffectUncertaintyExplanation = Readonly<{
@@ -519,6 +521,9 @@ export interface Execution {
   readonly ref: RunReference;
   readonly profile: ConfirmedProfile;
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
+  /** Independent Owner-local views; cursors are not authority or control revisions. */
+  observeOwners(options?: {signal?:AbortSignal;cursors?:readonly OwnerCursor[];
+    maxEntries?:number;maxWireBytes?:number}): Promise<OwnerObservations>;
   wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
   /** A new operation observes the current control revision when omitted.
    * A lost response retains cancelRef; lookup never resends the cancellation. */

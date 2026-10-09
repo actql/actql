@@ -419,12 +419,11 @@ pub fn borrow_captured_any_result_output(
   if task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
   }
-  if task < run.graph.captured_prefix {
+  if task < run.graph.captured_prefix && run.sources[task] is Some(source) {
     if max_pins <= 0 || !run.lifetimes[task].live {
       return Err(NotReady)
     }
-    guard run.sources[task] is Some(source) &&
-      @query.captured_source_matches_result(source, occurrence) else {
+    guard @query.captured_source_matches_result(source, occurrence) else {
       return Err(ForeignCandidate)
     }
     if run.lifetimes[task].pins >= max_pins {
@@ -432,6 +431,12 @@ pub fn borrow_captured_any_result_output(
     }
     run.lifetimes[task].pins += 1
     return Ok({ kind: Source({ run, task, source, occurrence, live: true, }), })
+  }
+  // A restored Transfer root has an admitted materialized completion rather
+  // than a live acquisition handle. Borrow its exact checked occurrence via
+  // the existing cell owner; never reopen the original Source to obtain a pin.
+  if task < run.graph.captured_prefix && run.outputs[task] is None {
+    return Err(ForeignCandidate)
   }
   match run.outputs[task] {
     Some(Materialized(_)) =>
@@ -576,10 +581,36 @@ pub fn start_captured_any_result_borrow_export(
   logical_wire : @execution.RowWireLimits,
   schema_limits : @execution.RelationSchemaIdentityLimits,
   max_batch_bytes : Int,
+  converted_output? : @execution.CompletedOutput,
 ) -> Result[
   @execution.CompletedResultRelationExportPreparation,
   @execution.CompletedExportIssue,
 ] {
+  if converted_output is Some(converted) {
+    guard value.kind is Cells(borrow) &&
+      captured_result_borrow_available(borrow) &&
+      @execution.completed_output_same_occurrence(
+        captured_result_borrow_output(borrow),
+        converted,
+      ) else {
+      return Err(ForeignMaterial)
+    }
+    // A physical reader keeps the existing completion occurrence. Revoking
+    // this exact pin also revokes every subsequent advance of its export.
+    return @execution.start_completed_result_relation_export(
+      @execution.restrict_completed_output(converted, () => {
+        captured_any_result_borrow_available(value)
+      }),
+      captured_any_result_borrow_occurrence(value),
+      result_view,
+      max_rows,
+      values,
+      payload_wire,
+      logical_wire,
+      schema_limits,
+      max_batch_bytes,
+    )
+  }
   match value.kind {
     Cells(borrow) =>
       start_captured_result_borrow_export(

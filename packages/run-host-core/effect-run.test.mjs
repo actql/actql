@@ -3,7 +3,8 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {buildSync} from 'esbuild';
 import {admitEnvironment, prepare, compileValues, prepareEffect, compileEffect,
-  prepareRequest, requestFields,
+  prepareRequest, requestFields, prepareEffectRequest, effectSourceInputBinding,
+  issueEffectSourceDispatch, prepareEffectRetainedTaskInputEdge, retainedTaskInputEdgeFacts,
   effectExecutionShape, privateEffectCompilationWires, issueAllowedEffectRun,
   privateEffectRunEvidence, issueEffectRunDefinition, privateRunDefinition,
   issueEffectRunMaterials, admitEffectRunMaterials, effectRunStartCurrent} from '@actql/run-host-core';
@@ -20,13 +21,13 @@ const fixed = character => 'sha256:' + character.repeat(64);
 const originalPolicy = {executionContextCid: fixed('a'), hostPolicyCid: fixed('b'),
   expiresAt: '2099-01-01T00:00:00.000Z'};
 
-function issued() {
-  const prepared = prepareEffect(document, 'json', environment);
+function issued(program = document) {
+  const prepared = prepareEffect(program, 'json', environment);
   const compilation = compileEffect(prepared);
   const allowed = issueAllowedEffectRun(prepared, compilation, originalPolicy);
   const definition = issueEffectRunDefinition(allowed, 'resident-effect', 'original-run',
     '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
-  const retained = {document, format: 'json', environment, environmentWire};
+  const retained = {document: program, format: 'json', environment, environmentWire};
   const wire = issueEffectRunMaterials(allowed, definition, retained);
   return {prepared, compilation, allowed, definition, retained, wire};
 }
@@ -122,11 +123,86 @@ test('Effect input parsing preserves the bounded Parameter Values rejection', ()
 
 test('formal Effect exports bundle for a Worker without a physical runtime', () => {
   const result = buildSync({stdin: {contents:
-    "export {prepareEffect, compileEffect, admitEffectRunMaterials} from '@actql/run-host-core';",
+    "export {prepareEffect, compileEffect, admitEffectRunMaterials, issueEffectSourceDispatch, issueEffectRetainedTaskDispatch} from '@actql/run-host-core';",
   resolveDir: import.meta.dirname}, bundle: true, write: false,
   platform: 'browser', format: 'esm', target: 'es2022', metafile: true});
   const inputs = Object.keys(result.metafile.inputs);
   assert(inputs.some(path => path.endsWith('/dist/client_values_host_abi.js')));
   assert(inputs.every(path => !path.includes('host-node') &&
     !path.includes('local-node') && !path.startsWith('node:')));
+});
+
+const effectSelection = {taskAttempt: 1, dispatchId: 'original-producer',
+  siteKey: 'site-a', siteGeneration: 1, runtimeBundleCid: fixed('a'),
+  connectorRegistration: 'local', connectorRevision: 'local/1',
+  strategyRevision: 'strategy/1', obligationsCid: fixed('1'), budgetCid: fixed('2'),
+  evidenceIssuerCapabilityCid: fixed('3'), grantCid: fixed('4')};
+
+test('formal Effect Source dispatch preserves original caller Run and checked edge on reconstruction', () => {
+  const original = issued();
+  const request = prepareEffectRequest(original.prepared, original.compilation,
+    fixed('c'), 'original-caller');
+  const dispatch = issueEffectSourceDispatch(original.allowed, original.definition,
+    request, effectSelection);
+  const body = JSON.parse(dispatch.wire);
+  const edge = prepareEffectRetainedTaskInputEdge(original.allowed, original.definition);
+  const facts = retainedTaskInputEdgeFacts(edge);
+  assert.equal(body.run_definition_cid, privateRunDefinition(original.definition).cid);
+  assert.equal(body.task_key, facts.producerTaskKey);
+  assert.equal(facts.consumerInputPort, 'x');
+  assert.notEqual(facts.producerTaskKey, facts.consumerTaskKey);
+  assert.equal(facts.runDefinitionCid, body.run_definition_cid);
+  assert.deepEqual(JSON.parse(effectSourceInputBinding(original.compilation)), {
+    source_ref: 'connector://crm/main/r#v',
+    source_contract_cid: 'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  });
+  const restored = admitEffectRunMaterials(original.wire, body.run_definition_cid, profiles);
+  const restoredCaller = prepareEffectRequest(restored.prepared, restored.compilation,
+    fixed('c'), 'original-caller');
+  assert.deepEqual(requestFields(restoredCaller), requestFields(request));
+  assert.deepEqual(issueEffectSourceDispatch(restored.allowed, restored.definition,
+    restoredCaller, effectSelection), dispatch);
+  assert.deepEqual(retainedTaskInputEdgeFacts(prepareEffectRetainedTaskInputEdge(
+    restored.allowed, restored.definition)), facts);
+  assert.equal(effectSourceInputBinding(restored.compilation), effectSourceInputBinding(original.compilation));
+  assert.equal(JSON.parse(issueEffectSourceDispatch(original.allowed, original.definition,
+    request, {...effectSelection, siteGeneration: 0}).wire).site_generation, 0);
+});
+
+test('formal Effect dispatch rejects foreign Program bindings and lossy Site selection before delivery', () => {
+  const original = issued();
+  const other = issued(document.replace('id > 2', 'id > 1'));
+  assert.throws(() => prepareEffectRequest(other.prepared, original.compilation,
+    fixed('c'), 'original-caller'), /ForeignRunHostCompilation/u);
+  assert.throws(() => effectSourceInputBinding({...original.compilation}), /ForeignRunHostHandle/u);
+  assert.throws(() => prepareEffectRetainedTaskInputEdge({...original.allowed}, original.definition),
+    /ForeignRunHostHandle/u);
+  const request = prepareEffectRequest(original.prepared, original.compilation,
+    fixed('c'), 'original-caller');
+  const different = issueEffectRunDefinition(original.allowed, 'resident-effect',
+    'another-run', '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  assert.throws(() => issueEffectSourceDispatch(other.allowed, different,
+    request, effectSelection), {code: 'RunHostEffectSourceDispatchRejected'});
+  for (const change of [{taskAttempt: 0}, {taskAttempt: 2147483648},
+    {siteGeneration: -1}, {siteGeneration: 1.5}, {extra: 'unchecked'}]) {
+    assert.throws(() => issueEffectSourceDispatch(original.allowed,
+      original.definition, request, {...effectSelection, ...change}), /InvalidRunHostSiteSelection/u);
+  }
+});
+
+
+test('Effect Site selection validates the same snapshot that reaches dispatch', () => {
+  const original = issued();
+  const request = prepareEffectRequest(original.prepared, original.compilation,
+    fixed('c'), 'original-caller');
+  let reads = 0;
+  const selection = {...effectSelection, get taskAttempt() {
+    return ++reads <= 3 ? 1 : 2147483648;
+  }};
+  const actual = issueEffectSourceDispatch(original.allowed, original.definition,
+    request, selection);
+  const expected = issueEffectSourceDispatch(original.allowed, original.definition,
+    request, effectSelection);
+  assert.deepEqual(actual, expected);
+  assert.equal(reads, 1);
 });

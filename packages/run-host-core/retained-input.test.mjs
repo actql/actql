@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {residentSourceEnvironment} from '../../scripts/fixtures/resident-source.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -20,7 +21,9 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   admitRetainedInputCurrentReply, retainedInputCurrentReplyFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
   retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun,
-  prepareTaskPhysicalStart}
+  prepareTaskPhysicalStart, prepareEffect, compileEffect, issueAllowedEffectRun,
+  issueEffectRunDefinition, prepareEffectRequest, prepareEffectRetainedTaskInputEdge,
+  issueEffectSourceDispatch, issueEffectRetainedTaskDispatch}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -113,7 +116,7 @@ function coordinatorProducerFixture(original, taskAttempt = 1, manifestCid = cid
     connectorRegistration: 'local', connectorRevision: 'local/1',
     strategyRevision: 'strategy/1', obligationsCid: cid('1'),
     budgetCid: cid('2'), evidenceIssuerCapabilityCid: cid('3'), grantCid: cid('4')};
-  const issued = issuedOverride ?? issueTaskDispatch(original.prepared, original.compilation,
+  const issued = issuedOverride ?? original.issueSourceDispatch?.(selection) ?? issueTaskDispatch(original.prepared, original.compilation,
     original.admission, original.definition,
     prepareTaskRequest(original.prepared, original.compilation, authority,
       'original-request'), 0, selection);
@@ -1053,4 +1056,56 @@ test('retained current query joins actual durable protocol record and rejects st
       {message: 'InvalidRunHostRetainedInputCurrentLimits'});
   }
   assert.deepEqual(retainedInputCurrentReplyFacts(reply).transferRecordWire, before);
+});
+
+
+test('Effect retained dispatch uses the original checked edge and current committed Transfer owner', () => {
+  const read = name => readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8').trimEnd();
+  const environmentWire = read('source-compute-effect.environment.json');
+  const effectEnvironment = admitEnvironment(environmentWire,
+    JSON.parse(environmentWire).evidence_bundle_cid, {rela: true});
+  const prepared = prepareEffect(read('source-compute-effect.program.json'), 'json', effectEnvironment);
+  const compilation = compileEffect(prepared);
+  const allowed = issueAllowedEffectRun(prepared, compilation, {
+    executionContextCid: cid('a'), hostPolicyCid: cid('b'), expiresAt: '2099-01-01T00:00:00.000Z',
+  });
+  const definition = issueEffectRunDefinition(allowed, 'retained-effect', 'original-run',
+    '2026-10-09T00:00:00.000Z', '2099-01-01T00:00:00.000Z');
+  const caller = prepareEffectRequest(prepared, compilation, cid('c'), 'original-request');
+  const original = {definition, edge: () => prepareEffectRetainedTaskInputEdge(allowed, definition),
+    issueSourceDispatch: selection => issueEffectSourceDispatch(allowed, definition, caller, selection)};
+  // Reuse the actual common Coordinator and Transfer admission/transition
+  // owners. Their explicit protocol fixtures do not claim physical Site I/O.
+  const fixture = retainedTransferFixture(original);
+  const prepareInput = () => prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'effect-receiver-use', fixture.current, inputLimits);
+  assert.throws(prepareInput, {code: 'RunHostRetainedTaskInputRejected'});
+  fixture.commit();
+  const input = prepareInput();
+  const saved = retainedTaskInputFacts(input);
+  const selection = {...fixture.completed.selection, dispatchId: 'original-effect-consumer'};
+  const dispatch = issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, input);
+  const facts = retainedTaskInputEdgeFacts(original.edge());
+  const body = JSON.parse(dispatch.wire);
+  assert.equal(body.run_definition_cid, facts.runDefinitionCid);
+  assert.equal(body.task_key, facts.consumerTaskKey);
+  assert.equal(body.input_binding_cid, saved.cid);
+  const restored = admitRetainedTaskInput(fixture.producer, saved, fixture.receipt,
+    'effect-receiver-use', fixture.current, inputLimits);
+  assert.deepEqual(issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, restored), dispatch);
+  for (const [change, denied] of [[fixture.siteCurrent, false], [fixture.authorized, false],
+    [fixture.clock, 2000000000000n]]) {
+    change(denied);
+    assert.throws(() => issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, input),
+      {code: 'RunHostEffectRetainedTaskDispatchRejected'});
+    fixture.siteCurrent(true); fixture.authorized(true); fixture.clock(1900000000000n);
+  }
+  assert.throws(() => issueEffectRetainedTaskDispatch(allowed, definition, caller,
+    {...selection, siteGeneration: 2}, input), {code: 'RunHostEffectRetainedTaskDispatchRejected'});
+  assert.throws(() => issueEffectRetainedTaskDispatch(allowed, definition, caller,
+    selection, {...input}), /ForeignRunHostHandle/u);
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.throws(() => issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, input),
+    {code: 'RunHostEffectRetainedTaskDispatchRejected'});
+  assert.deepEqual(retainedTaskInputFacts(input), saved);
 });

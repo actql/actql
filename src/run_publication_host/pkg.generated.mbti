@@ -824,6 +824,10 @@ pub fn prepare_client_effect_query_requirement(PreparedClientEffectComputation, 
 
 pub fn prepare_client_effect_request_identity(PreparedClientEffectComputation, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn prepare_client_effect_retained_input_edge(ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[ClientRetainedInputEdge, ClientEffectRetainedInputIssue]
+
+pub fn prepare_client_effect_retained_task_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection, ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectRetainedInputIssue]
+
 pub fn prepare_client_effect_source_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectSourceDispatchIssue]
 
 pub fn prepare_client_effect_source_input_binding(ClientEffectCompilation) -> Result[@remote_site_protocol.RemoteInputBinding, ClientEffectSourceDispatchIssue]
@@ -1324,6 +1328,14 @@ pub(all) enum ClientEffectResultImportIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientEffectResultImportObservation
+
+pub(all) enum ClientEffectRetainedInputIssue {
+  Binding(ClientEffectCompiledRunIssue)
+  Edge(ClientRetainedInputIssue)
+  Input(ClientRetainedTaskInputIssue)
+  Dispatch(ClientEffectSourceDispatchIssue)
+  ForeignConsumer
+}
 
 pub(all) enum ClientEffectRunIssue {
   Admission(@program_check.EffectProgramRunIssue)
