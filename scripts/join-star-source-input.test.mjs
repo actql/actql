@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {joinStarProgram, pipeSetTargetProgram, joinStarSuccesses, joinStarRefusals}
+import {joinStarProgram, pipeSetTargetProgram, joinStarSuccesses, joinStarRefusals, joinStarExecutionFailures}
   from './fixtures/join-star-source-input.mjs';
 
 test('JOIN-star independent oracles distinguish USING order from input order', () => {
@@ -85,4 +85,32 @@ test('captured projection uses independent JSON ports and unchanged NULL/multipl
   assert.equal(controls.get('join-star-captured-projection-filtered').expected.length, 4);
   assert.deepEqual(controls.get('join-star-captured-projection-limited').expected,
     [{id: 2, amount: 20}, {id: 3, amount: 30}]);
+});
+
+test('Values JOIN ceiling controls distinguish complete output from exceeded guards', () => {
+  const controls = new Map(joinStarSuccesses.map(item => [item.name, item]));
+  const json = controls.get('join-star-values-ceiling-json');
+  const source = controls.get('join-star-values-ceiling-source');
+  const program = JSON.parse(json.text);
+  assert.equal(program.stages[2].steps[0].join.max_output_rows, 5);
+  assert.deepEqual(json.expected, [{x: 1}, {x: 2}]);
+  assert.deepEqual(source.expected, json.expected);
+  assert.deepEqual(source.columns, json.columns);
+  assert.ok(source.text.endsWith('MAX_OUTPUT_ROWS 5'));
+  assert.equal(json.sourceReadSessionCount, 0);
+  assert.equal(source.sourceReadSessionCount, 0);
+  assert.equal(joinStarExecutionFailures.length, 2);
+  const failed = JSON.parse(joinStarExecutionFailures[0].text);
+  assert.equal(failed.stages[2].steps[0].join.max_output_rows, 1);
+  failed.stages[2].steps[0].join.max_output_rows = 5;
+  assert.deepEqual(failed, program);
+  assert.equal(joinStarExecutionFailures[1].text,
+    source.text.replace('MAX_OUTPUT_ROWS 5', 'MAX_OUTPUT_ROWS 1'));
+  assert.ok(joinStarExecutionFailures.every(item => item.sourceReadSessionCount === 0));
+});
+
+test('Values JOIN exceeded guards remain in normal and focused public execution', async () => {
+  const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  assert.ok(fixture.includes('executionFailures: joinStarExecutionFailures}'));
+  assert.ok(fixture.includes('scopeInputs.executionFailures.push(...joinStarExecutionFailures)'));
 });
