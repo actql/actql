@@ -689,6 +689,40 @@ fn MemberResolution::operation_schema(
     }
     return None
   }
+  if tag == "intersect" || tag == "except" {
+    guard member_text(body, "with").bind(name => {
+        names.get(name).bind(value => value).bind(member_rows)
+      })
+      is Some(right) else {
+      return None
+    }
+    let operation : @set_shape.Operation = if tag == "intersect" {
+      Intersect
+    } else {
+      Except
+    }
+    match
+      @set_shape.check(operation, cursor, rows, right, {
+        max_work: self.work,
+        max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+        max_nodes: self.limits.source.tree.max_nodes,
+        max_depth: self.limits.source.tree.max_depth,
+      }) {
+      Ok(checked) => {
+        self.spend(body, @set_shape.usage(checked).work)
+        return Some(@set_shape.output_schema(checked))
+      }
+      Err({ kind: BudgetExceeded, .. }) =>
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @builder.origin(self.source, body),
+          }),
+        )
+      Err(_) => self.defer_refusal()
+    }
+    return None
+  }
   let operation : @relation.Operation = match tag {
     "derive" => Derive
     "filter" => Filter

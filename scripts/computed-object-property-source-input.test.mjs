@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {computedObjectPropertyProgram, computedObjectPropertySuccesses as successes,
   computedObjectPropertyRefusals as refusals, computedObjectPropertyExecutionFailures as failures,
+  setObjectMemberProgram, setObjectMemberSuccesses, setObjectMemberRefusals,
   objectColumnStarProgram, objectColumnStarSuccesses, objectColumnStarRefusals,
   computedObjectStarProgram, computedObjectStarSuccesses, computedObjectStarRefusals,
   parenthesizedSourceRangeProgram, parenthesizedSourceRangeSuccesses, parenthesizedSourceRangeRefusals}
@@ -69,9 +70,10 @@ test('independent machine control uses existing typed property and checked param
     'parenthesized-source-range-empty', 'computed-object-property-parenthesized-range-nested',
     'computed-object-property-parenthesized-value-range-collision',
   ]).concat(objectColumnStarSuccesses.map(item => item.name))
-    .concat(computedObjectStarSuccesses.map(item => item.name)));
+    .concat(computedObjectStarSuccesses.map(item => item.name))
+    .concat(setObjectMemberSuccesses.map(item => item.name)));
   assert.deepEqual(['refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [16, 1]);
+    .map(kind => groups[0].inputs[kind].length), [18, 1]);
   const lazy = successes.find(item => item.name.endsWith('lazy-case-receiver'));
   assert.deepEqual(Object.keys(lazy.parameterDeclarations).sort(), ['o1', 'p1', 'p2']);
   assert.deepEqual(Object.keys(lazy.parameters).sort(), ['o1', 'p1', 'p2']);
@@ -172,5 +174,37 @@ test('computed object stars preserve receiver nullability, duplicate rows and on
     assert.equal(refusals.filter(candidate => candidate === item).length, 1);
     assert.equal(item.expectedCode, item.name === 'computed-object-star-scalar'
       ? 'ClientProgramImplementationLimit' : 'ClientProgramInvalidInput');
+  }
+});
+
+
+test('set member fixtures preserve independent complete-row equality, NULL and declared output order', () => {
+  for (const operation of ['intersect', 'except']) {
+    const cases = setObjectMemberSuccesses.filter(item => item.name.includes('-' + operation + '-'));
+    const [control, cte, data, empty] = cases;
+    assert.deepEqual(JSON.parse(control.text), setObjectMemberProgram(operation));
+    assert.equal(control.parameterDeclarations, undefined);
+    const steps = setObjectMemberProgram(operation).stages[1].steps;
+    assert.deepEqual(steps[2].filter, {not: {eq: [{field: 'id'}, {literal: 1}]}});
+    assert.deepEqual(steps[5][operation], {with: 'right', duplicates: 'distinct'});
+    assert.deepEqual(steps[6].derive.score, {property: {value: {field: 'payload'}, name: 'score'}});
+    const expected = operation === 'intersect'
+      ? [{id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]
+      : [{id: 1, score: 20}];
+    for (const item of [control, cte, data]) assert.deepEqual(item.expected, expected);
+    assert.ok(cte.text.includes('payload.SCORE'));
+    assert.ok(data.text.includes('payload.`SCORE`'));
+    assert.deepEqual(empty.expected, []);
+    assert.deepEqual(empty.sourceRows, []);
+    for (const item of cases) {
+      assert.deepEqual(item.columns, [{name: 'id', contract: {type: 'number', nullable: false}},
+        {name: 'score', contract: {type: 'number', nullable: true}}]);
+      assert.equal(item.sourceReadSessionCount, 1);
+      assert.equal(successes.filter(candidate => candidate === item).length, 1);
+    }
+  }
+  for (const item of setObjectMemberRefusals) {
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+    assert.equal(refusals.filter(candidate => candidate === item).length, 1);
   }
 });
