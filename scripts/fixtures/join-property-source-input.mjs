@@ -65,6 +65,12 @@ const ctes = 'WITH seed AS (SELECT 1 AS unit), '
   + 'UNION ALL SELECT 2 AS id, @ob AS other FROM seed '
   + 'UNION ALL SELECT 3 AS id, @oc AS other FROM seed '
   + 'UNION ALL SELECT 2 AS id, @od AS other FROM seed) ';
+// The ordinary Relation control has no JOIN peer: declare only its actual
+// producers. The unused-CTE refusal is retained separately in compiler tests.
+const ordinaryCtes = 'WITH seed AS (SELECT 1 AS unit), '
+  + 'objects AS (SELECT 2 AS id, @a AS payload FROM seed '
+  + 'UNION ALL SELECT 1 AS id, @b AS payload FROM seed '
+  + 'UNION ALL SELECT 3 AS id, @c AS payload FROM seed) ';
 const propertyAliasColumns = [scoreColumn, idColumn];
 const propertyAliasRows = [{score: 10, id: 2}, {score: 10, id: 2},
   {score: 20, id: 1}, {score: null, id: 3}];
@@ -189,7 +195,12 @@ export const joinPropertySuccesses = [
   rangeCase('ordinary-scoped-order',
     'FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST'
       + ' |> SELECT current.id AS id, current.payload.score AS score',
-    {expected: [{id: 2, score: 10}, {id: 1, score: 20}, {id: 3, score: null}]}),
+    {text: ordinaryCtes + 'FROM objects |> AS current'
+      + ' |> ORDER BY ((current)).payload.score NULLS LAST'
+      + ' |> SELECT current.id AS id, current.payload.score AS score',
+      parameterDeclarations: {a: payload, b: payload, c: payload},
+      parameters: {a: parameters.a, b: parameters.b, c: parameters.c},
+      expected: [{id: 2, score: 10}, {id: 1, score: 20}, {id: 3, score: null}]}),
   rangeCase('current-range-order', pipeJoin
     + ' |> SELECT l.id, l.payload |> AS current'
     + ' |> ORDER BY ((current)).payload.score NULLS LAST, ((current)).id',

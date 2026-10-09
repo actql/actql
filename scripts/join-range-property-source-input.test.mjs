@@ -41,6 +41,10 @@ test('range fixtures retain duplicate, empty and left-extension obligations', ()
   assert.equal(find('left-null-extension').columns[1].contract.nullable, true);
   assert.deepEqual(find('current-range-order').expected.map(row => row.id), [2, 2, 1, 3]);
   assert.deepEqual(find('ordinary-scoped-order').expected.map(row => row.id), [2, 1, 3]);
+  const ordinary = find('ordinary-scoped-order');
+  assert.doesNotMatch(ordinary.text, /others AS/u);
+  assert.deepEqual(Object.keys(ordinary.parameterDeclarations), ['a', 'b', 'c']);
+  assert.deepEqual(Object.keys(ordinary.parameters), ['a', 'b', 'c']);
   assert.equal(joinPropertySuccesses.length, 27);
 });
 

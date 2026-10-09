@@ -156,3 +156,56 @@ test "ordinary scoped ORDER uses the same existing range-property binder" {
   )
   assert_true(semantic(actual).contains("\"fields\":[\"x\"]"))
 }
+
+///|
+test "CTE current-range property ORDER retains ordinary Relation scope" {
+  let declarations = @parameters.read_declarations(
+    Some(
+      @wire.admit(
+        @source.parse_json(
+          (
+            #|{"a":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}},"b":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}},"c":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}},"oa":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}},"ob":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}},"oc":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}},"od":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}}}
+          ),
+          construction_limits().source.source,
+        ).unwrap(),
+        construction_limits().source.tree,
+      ).unwrap(),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let query = @query.parse_query(
+    "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed), others AS (SELECT 1 AS id, @oa AS other FROM seed UNION ALL SELECT 2 AS id, @ob AS other FROM seed UNION ALL SELECT 3 AS id, @oc AS other FROM seed UNION ALL SELECT 2 AS id, @od AS other FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
+    syntax_limits(),
+  ).unwrap()
+  let context = {
+    ..join_property_context(),
+    parameter_declarations: Some(declarations),
+  }
+  // The first packed diagnostic also declared an unused peer CTE. Its
+  // existing scope refusal is independent of current-range ORDER binding.
+  assert_true(
+    compile(query, context, construction_limits()) is Err(UnsupportedCte),
+  )
+  let used = @query.parse_query(
+    "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
+    syntax_limits(),
+  ).unwrap()
+  match compile(used, context, construction_limits()) {
+    Ok(program) =>
+      assert_true(semantic(program).contains("\"fields\":[\"id\",\"score\"]"))
+    Err(UnsupportedOrdering) =>
+      fail("CTE current-range ORDER: UnsupportedOrdering")
+    Err(UnsupportedProjection) =>
+      fail("CTE current-range ORDER: UnsupportedProjection")
+    Err(UnsupportedCte) => fail("CTE current-range ORDER: UnsupportedCte")
+    Err(Expression(_)) => fail("CTE current-range ORDER: Expression")
+    Err(ExpressionTyping(_)) =>
+      fail("CTE current-range ORDER: ExpressionTyping")
+    Err(_) => fail("CTE current-range ORDER: other issue")
+  }
+}

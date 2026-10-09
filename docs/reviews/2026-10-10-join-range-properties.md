@@ -102,6 +102,34 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
 
 ## Remaining verification
 
+The first normal five-package attempt used clean source
+`80b4fe5900928e5ddd8a773d194fb87abd71d045` and original receipt
+`worktrees/.codex-scratch/public-query-evidence-H5GgP8` (guard `run-HyB2iF`).
+Local passed the existing fifteen and ten new positives, then preparation of
+`join-property-range-ordinary-scoped-order` returned
+`ClientProgramImplementationLimit`. The remainder and HTTPS did not execute;
+this attempt is failed, not partial completion of the whole cohort.
+
+A focused compiler reproduction identifies `UnsupportedCte`: the non-JOIN
+control unnecessarily declared the unused `others` CTE. The existing
+`query_cte_scope.mbt::validate_cte_scope` explicitly refuses unused declarations
+until they can be checked without scheduling acquisition. This is a separate
+profile gap, not evidence that JOIN or range ORDER execution failed. No CTE
+implementation or refusal is changed here. The complete failed query remains
+in a precise compiler-refusal assertion; a second assertion checks the same
+ORDER/projection with only the used `seed` and `objects` declarations. The
+public ordinary control now declares those producers and their three object
+parameters only. Its input rows, expected rows, ordering and column contracts
+are unchanged. All JOIN cases and their authored guards remain unchanged.
+
+The diagnostic failure is `run-4Hpumq` / `focused-test-p3Siir` (8/9).
+After separating the unused-declaration refusal from the valid control,
+changed JS tests pass 9/9: `run-ymy827` / `focused-test-0bcPxM`.
+The adjusted public control's four Node fixture assertions pass:
+`run-NDa2Rv` / `focused-test-r6M7fc`.
+The first diagnostic attempted to display the private Issue type and failed
+compilation, executing no tests (`run-9wu6TK`, `focused-test-86ml4p`).
+
 Use the normal five-package producer and existing `--join-property-only`
 consumer at a clean source SHA. Compare Named Result rows and describe
 contracts/column order, hidden-slot absence, and same-request resend/reattach
