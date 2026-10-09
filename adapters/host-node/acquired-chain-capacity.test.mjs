@@ -169,7 +169,7 @@ for (const transport of ['local', 'https']) {
           const selected = variant === 'empty' ? {...item, rows: [], expected: []} : item;
           const f = await fixture(t, transport, selected, cancel);
           const document = await readFile(new URL('./fixtures/' + item.file, import.meta.url), 'utf8');
-          const options = {format: 'json', requestId: `${item.name}-${variant}`,
+          const options = {format: 'json', submissionRef: f.client.newSubmission({nonce: `${item.name}-${variant}`}),
             ...(item.parameters === undefined ? {} : {parameters: item.parameters})};
           const run = await f.client.startSource(document, options);
           if (cancel) {
@@ -204,7 +204,10 @@ for (const transport of ['local', 'https']) {
           const attached = await f.client.attach(run.ref);
           const repeated = await f.client.startSource(document, options);
           assert.deepEqual(repeated.ref, run.ref);
-          assert.deepEqual((await f.client.lookupRequest(options.requestId)).ref, run.ref);
+          const original = await f.client.lookupSubmission(options.submissionRef);
+          assert.equal(original.kind, 'ready');
+          assert.deepEqual(original.submissionRef, options.submissionRef);
+          assert.deepEqual(original.admission.ref, run.ref);
           assert.equal((await attached.status()).status, state.status);
           if (!cancel) assert.deepEqual(await attached.result('answer').all(), selected.expected);
           assert.deepEqual(f.counts(), counts, 'read/attach/replay cannot reacquire or recompute');

@@ -152,8 +152,18 @@
       "path": "src/execution_relation/trusted_output.mbt",
       "struct": "TrustedOutputPreparation",
       "fields": [
-        "generated", "target", "schema", "id", "input_bindings", "names", "max_entries",
-        "bytes", "phase", "column", "offset", "closed"
+        "generated",
+        "target",
+        "schema",
+        "id",
+        "input_bindings",
+        "names",
+        "max_entries",
+        "bytes",
+        "phase",
+        "column",
+        "offset",
+        "closed"
       ],
       "fieldTypes": {
         "names": "Array[String]",
@@ -254,6 +264,34 @@
         "offset": "Int",
         "closed": "Bool"
       }
+    },
+    {
+      "path": "src/value_contract/types.mbt",
+      "struct": "Fields",
+      "fields": [
+        "values",
+        "name_bytes"
+      ],
+      "fieldTypes": {
+        "values": "Array[Field]",
+        "name_bytes": "Int"
+      }
+    },
+    {
+      "path": "src/relation_schema/schema.mbt",
+      "struct": "Schema",
+      "fields": [
+        "representation",
+        "all_required",
+        "qualified",
+        "name_bytes"
+      ],
+      "fieldTypes": {
+        "representation": "Representation",
+        "all_required": "Bool",
+        "qualified": "Bool",
+        "name_bytes": "Int"
+      }
     }
   ],
   "metadataCursorScope": "The numeric/NULL short-name DISTINCT pilot has empty row_sources, false stepped_metadata and no metadata_projection, metadata_lookup or name_charge. The observer rejects nonempty/active values as unmodeled; these records do not extend the pilot's byte bound.",
@@ -278,5 +316,6 @@
     "chain parent count*256 allowance",
     "base/other-child allocation byte bounds",
     "final Host reservation-to-holding transfer for every internal allocation"
-  ]
+  ],
+  "selectedCompletionMetadataScope": "Exact selected Append/Filter preparation reuses the immutable Fields/Schema UTF-8 name totals and the existing selected-step retention identity. Each cached total is one Int in its existing configuration record; no per-field array or new execution owner is allocated. These retained scalar fields are included in this structural census, not treated as zero-byte allocations or as a new Native byte upper. First-advance policy validation precedes input work. Canonical kernel names transfer to the existing completion port and the kernel drops its reference without clearing the shared array. Other operations retain their existing completion cursor."
 }

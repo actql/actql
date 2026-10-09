@@ -112,7 +112,7 @@ fn nonblank(text : String) -> Bool {
 priv enum Work {
   Read(@decode.Cursor, Int)
   BuildArray(Bool, Int64?)
-  BuildObject(Bool, Array[String])
+  BuildObject(Bool, Array[String], Int)
 }
 
 ///|
@@ -135,13 +135,16 @@ fn decode(
         let child = values.pop().unwrap()
         values.push({ nullable, shape: Array(child, max_items~), })
       }
-      BuildObject(nullable, names) => {
+      BuildObject(nullable, names, name_bytes) => {
         let entries : Array[Field] = []
         for i = names.length() - 1; i >= 0; i = i - 1 {
           entries.push({ name: names[i], contract: values.pop().unwrap(), })
         }
         entries.sort_by((a, b) => @canonical.compare_utf16(a.name, b.name))
-        values.push({ nullable, shape: Object({ values: entries, }), })
+        values.push({
+          nullable,
+          shape: Object({ values: entries, name_bytes, }),
+        })
       }
       Read(cursor, depth) => {
         budget.scheduled -= 1
@@ -260,6 +263,7 @@ fn decode(
               (!names.is_empty() && depth == budget.max_depth) {
               invalid(f, BudgetExceeded)
             }
+            let name_budget = budget.text
             for name in names {
               let child = required(children, name)
               charge_text(name, child, budget) catch {
@@ -274,7 +278,7 @@ fn decode(
                 field_invalid(f, names, name, InvalidFieldName(name))
               }
             }
-            work.push(BuildObject(nullable, names))
+            work.push(BuildObject(nullable, names, name_budget - budget.text))
             budget.scheduled += names.length()
             for i = names.length() - 1; i >= 0; i = i - 1 {
               work.push(Read(required(children, names[i]), depth + 1))

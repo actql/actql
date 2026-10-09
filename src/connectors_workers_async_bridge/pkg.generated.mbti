@@ -62,6 +62,14 @@ pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Byte
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
+pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
+
+pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
+
+pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
+
+pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
+
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
@@ -83,6 +91,14 @@ pub fn strategy_captured_effect_source_matches_preview(@run_publication.EffectPr
 pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
 
 pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_run_advance(@run_publication.CapturedRunIssuancePreparation, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_captured_run_cancel(@run_publication.CapturedRunIssuancePreparation) -> Unit
+
+pub fn strategy_captured_run_finish(@run_publication.CapturedRunIssuancePreparation) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_captured_run_fixture_phase(@run_publication.CapturedRunIssuancePreparation) -> String
 
 pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
@@ -119,6 +135,22 @@ pub fn strategy_effect_computation_record_holding_cid(@run_publication.Publicati
 pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
+
+pub fn strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Int
+
+pub fn strategy_effect_free_chain_check_cancel(@run_publication.ComputationEvidenceCheck) -> Unit
+
+pub fn strategy_effect_free_chain_check_finish(@run_publication.ComputationEvidenceCheck) -> Bool
+
+pub fn strategy_effect_free_chain_check_fixture_phase(@run_publication.ComputationEvidenceCheck) -> String
+
+pub fn strategy_effect_free_commit_check_advance(@run_publication.PublicationCommitPreparation, Int) -> Int
+
+pub fn strategy_effect_free_commit_check_cancel(@run_publication.PublicationCommitPreparation) -> Unit
+
+pub fn strategy_effect_free_commit_check_finish(@run_publication.PublicationCommitPreparation) -> Bool
+
+pub fn strategy_effect_free_commit_check_fixture_phase(@run_publication.PublicationCommitPreparation) -> String
 
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
@@ -560,6 +592,8 @@ pub fn strategy_publication_contract_json(@run_publication.PublicationContract) 
 
 pub fn strategy_publication_contract_name(@run_publication.PublicationContract) -> String
 
+pub fn strategy_publication_evidence_workspace(Int) -> Int
+
 pub fn strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
 
 pub fn strategy_publication_prepared_release_action(Int, Int, Bool, Bool, Bool) -> Int
@@ -618,11 +652,105 @@ pub fn strategy_remote_bundle_activation_transition_at(@remote_bundle.RemoteBund
 
 pub fn strategy_remote_bundle_activation_transition_count(@remote_bundle.RemoteBundleActivation) -> Int
 
+pub fn strategy_remote_bundle_catalog_incarnation_valid(String) -> Bool
+
 pub fn strategy_remote_bundle_component_prepare(String, String, Int64) -> @remote_bundle.RemoteBundleComponent
 
 pub fn strategy_remote_bundle_component_projection(@remote_bundle.RemoteBundleComponent) -> Array[String]
 
+pub fn strategy_remote_bundle_custody_context_query_prepare(@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleHoldScope) -> @remote_bundle.RemoteBundleCustodyRequest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_context_response_prepare(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleHoldBinding) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_admit_json(String, String) -> @remote_bundle.RemoteBundleCustodyRequest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_binding(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleHoldBinding?
+
+pub fn strategy_remote_bundle_custody_request_distribution(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleDistribution
+
+pub fn strategy_remote_bundle_custody_request_identity(@remote_bundle.RemoteBundleCustodyRequest) -> String
+
+pub fn strategy_remote_bundle_custody_request_json(@remote_bundle.RemoteBundleCustodyRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_operation(@remote_bundle.RemoteBundleCustodyRequest) -> String
+
+pub fn strategy_remote_bundle_custody_request_prepare(@remote_bundle.RemoteBundleDistribution, @remote_bundle.RemoteBundleHoldBinding, String) -> @remote_bundle.RemoteBundleCustodyRequest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_request_scope(@remote_bundle.RemoteBundleCustodyRequest) -> @remote_bundle.RemoteBundleHoldScope
+
+pub fn strategy_remote_bundle_custody_response_admit_json(@remote_bundle.RemoteBundleCustodyRequest, String, String) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_binding(@remote_bundle.RemoteBundleCustodyResponse) -> @remote_bundle.RemoteBundleHoldBinding
+
+pub fn strategy_remote_bundle_custody_response_catalog_incarnation(@remote_bundle.RemoteBundleCustodyResponse) -> String?
+
+pub fn strategy_remote_bundle_custody_response_catalog_incarnation_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_fields_prepare(@remote_bundle.RemoteBundleCustodyRequest, String, Bool, String, Bool, Int) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_identity(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_json(@remote_bundle.RemoteBundleCustodyResponse) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_kind(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_observation(@remote_bundle.RemoteBundleCustodyResponse) -> @remote_bundle.RemoteBundleHoldObservation?
+
+pub fn strategy_remote_bundle_custody_response_observation_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_custody_response_prepare(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleHoldObservation, String?, Int?) -> @remote_bundle.RemoteBundleCustodyResponse raise NodeHostFailure
+
+pub fn strategy_remote_bundle_custody_response_record_revision(@remote_bundle.RemoteBundleCustodyResponse) -> Int?
+
+pub fn strategy_remote_bundle_custody_response_record_revision_text(@remote_bundle.RemoteBundleCustodyResponse) -> String
+
+pub fn strategy_remote_bundle_distribution_admit_json(String, String) -> @remote_bundle.RemoteBundleDistribution raise NodeHostFailure
+
+pub fn strategy_remote_bundle_distribution_contains(@remote_bundle.RemoteBundleDistribution, String) -> Bool
+
+pub fn strategy_remote_bundle_distribution_identity(@remote_bundle.RemoteBundleDistribution) -> String
+
+pub fn strategy_remote_bundle_distribution_json(@remote_bundle.RemoteBundleDistribution) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_distribution_prepare(Array[String]) -> @remote_bundle.RemoteBundleDistribution raise NodeHostFailure
+
+pub fn strategy_remote_bundle_distribution_projection(@remote_bundle.RemoteBundleDistribution) -> Array[String]
+
 pub fn strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_admit_json(@remote_bundle.RemoteBundleDistribution, String, String) -> @remote_bundle.RemoteBundleHoldBinding raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_from_scope(@remote_bundle.RemoteBundleHoldScope, String, Int) -> @remote_bundle.RemoteBundleHoldBinding raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_identity(@remote_bundle.RemoteBundleHoldBinding) -> String
+
+pub fn strategy_remote_bundle_hold_binding_json(@remote_bundle.RemoteBundleHoldBinding) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_matches_scope(@remote_bundle.RemoteBundleHoldBinding, @remote_bundle.RemoteBundleHoldScope) -> Bool
+
+pub fn strategy_remote_bundle_hold_binding_prepare(@remote_bundle.RemoteBundleDistribution, String, String, String, String, String, String, String, String, Int, Int, String) -> @remote_bundle.RemoteBundleHoldBinding raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_binding_projection(@remote_bundle.RemoteBundleHoldBinding) -> Array[String]
+
+pub fn strategy_remote_bundle_hold_binding_scope(@remote_bundle.RemoteBundleHoldBinding) -> @remote_bundle.RemoteBundleHoldScope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_fence_prepare(String, @remote_bundle.RemoteBundleRecord, @remote_bundle.RemoteBundleHoldBinding, Bool) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_observation_projection(@remote_bundle.RemoteBundleHoldObservation) -> String
+
+pub fn strategy_remote_bundle_hold_observe(String, @remote_bundle.RemoteBundleRecord?, @remote_bundle.RemoteBundleHoldBinding, Bool) -> @remote_bundle.RemoteBundleHoldObservation
+
+pub fn strategy_remote_bundle_hold_retain_prepare(String, String?, @remote_bundle.RemoteBundleRecord, @remote_bundle.RemoteBundleHoldBinding, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_admit_json(@remote_bundle.RemoteBundleDistribution, String, String) -> @remote_bundle.RemoteBundleHoldScope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_identity(@remote_bundle.RemoteBundleHoldScope) -> String
+
+pub fn strategy_remote_bundle_hold_scope_json(@remote_bundle.RemoteBundleHoldScope) -> String raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_prepare(@remote_bundle.RemoteBundleDistribution, String, String, String, String, String, String, String, Int, String) -> @remote_bundle.RemoteBundleHoldScope raise NodeHostFailure
+
+pub fn strategy_remote_bundle_hold_scope_projection(@remote_bundle.RemoteBundleHoldScope) -> Array[String]
 
 pub fn strategy_remote_bundle_manifest_admit_json(String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
 

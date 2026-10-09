@@ -1,0 +1,378 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.aggregate_between_order",
+  "params": {
+    "p1": {
+      "type": "object",
+      "nullable": true,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    },
+    "p2": {
+      "type": "object",
+      "nullable": true,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    },
+    "p3": {
+      "type": "object",
+      "nullable": true,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    },
+    "p4": {
+      "type": "object",
+      "nullable": true,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    },
+    "o1": {
+      "type": "object",
+      "nullable": false,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    },
+    "o2": {
+      "type": "object",
+      "nullable": false,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    },
+    "o3": {
+      "type": "object",
+      "nullable": false,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    },
+    "o4": {
+      "type": "object",
+      "nullable": false,
+      "fields": {
+        "score": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "from": "remote",
+          "filter": {
+            "gt": [
+              {
+                "field": "id"
+              },
+              {
+                "literal": 0
+              }
+            ]
+          }
+        },
+        {
+          "select": [
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "captured",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "records": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "records",
+          "derive": {
+            "name": {
+              "case": {
+                "when": [
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "literal": "a"
+                    }
+                  },
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 2
+                        }
+                      ]
+                    },
+                    "then": {
+                      "literal": "b"
+                    }
+                  },
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "literal": "c"
+                    }
+                  }
+                ],
+                "else": {
+                  "literal": null
+                }
+              }
+            },
+            "payload": {
+              "case": {
+                "when": [
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$param": "p1"
+                    }
+                  },
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 2
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$param": "p2"
+                    }
+                  },
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$param": "p3"
+                    }
+                  }
+                ],
+                "else": {
+                  "$param": "p4"
+                }
+              }
+            },
+            "other": {
+              "case": {
+                "when": [
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$param": "o1"
+                    }
+                  },
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 2
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$param": "o2"
+                    }
+                  },
+                  {
+                    "when": {
+                      "eq": [
+                        {
+                          "field": "id"
+                        },
+                        {
+                          "literal": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$param": "o3"
+                    }
+                  }
+                ],
+                "else": {
+                  "$param": "o4"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            "name",
+            "payload",
+            "other"
+          ]
+        },
+        {
+          "derive": {
+            "key": {
+              "between": [
+                {
+                  "property": {
+                    "name": "score",
+                    "value": {
+                      "field": "payload"
+                    }
+                  }
+                },
+                {
+                  "literal": 5
+                },
+                {
+                  "literal": 15
+                }
+              ]
+            }
+          }
+        },
+        {
+          "group": {
+            "by": [],
+            "aggregates": {
+              "names": {
+                "fn": "string_agg",
+                "field": "name",
+                "order_by": [
+                  {
+                    "field": "key",
+                    "dir": "asc",
+                    "nulls": "last"
+                  },
+                  {
+                    "field": "id",
+                    "dir": "asc",
+                    "nulls": "first"
+                  }
+                ],
+                "max_bytes": 65536,
+                "delimiter": "|"
+              }
+            }
+          },
+          "as": "out"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "out",
+          "fields": [
+            "names"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

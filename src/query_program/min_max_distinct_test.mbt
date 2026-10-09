@@ -27,7 +27,7 @@ test "grouped DISTINCT extrema match an independent checked Program" {
 test "grouped DISTINCT extrema preserve calls filters and input scopes" {
   for
     text in [
-      "SELECT `mIn`(DISTINCT amount) AS low, `MAX`(DISTINCT orders.amount) AS high FROM orders",
+      "SELECT MIN(DISTINCT amount) AS n FROM orders", "SELECT `mIn`(DISTINCT amount) AS low, `MAX`(DISTINCT orders.amount) AS high FROM orders",
       "SELECT MIN(DISTINCT amount WHERE id = 'a') AS low, MAX(DISTINCT amount WHERE id = 'b') AS high FROM orders",
       "SELECT customer_id, MIN(DISTINCT amount) AS low FROM orders GROUP BY customer_id HAVING MAX(DISTINCT amount) > 0 ORDER BY MIN(DISTINCT amount)",
       "FROM orders |> AS t |> AGGREGATE MIN(DISTINCT t.amount) AS low, MAX(DISTINCT t.amount) AS high GROUP BY t.customer_id AS customer |> ORDER BY high DESC",

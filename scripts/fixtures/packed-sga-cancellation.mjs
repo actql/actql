@@ -69,8 +69,8 @@ for (const mode of ['local', 'remote']) {
         endpoint: `https://127.0.0.1:${server.address().port}/`};
     }
     client = await connect(options);
-    const requestId = `sga-cancel-${mode}-${randomUUID()}`;
-    submission = client.startSource(source, {format: 'json', requestId});
+    const submissionRef = client.newSubmission({nonce: `sga-cancel-${mode}-${randomUUID()}`});
+    submission = client.startSource(source, {format: 'json', submissionRef});
     // Record a rejection immediately, even if intake fails before the hook.
     const submitFailure = submission.then(() => new Promise(() => {}),
       error => { throw error; });
@@ -78,9 +78,10 @@ for (const mode of ['local', 'remote']) {
       delay(30000, undefined, {ref: false}).then(() => {
         throw new Error('SgaCancellationBoundaryNotReached');
       })]);
-    const lookup = await client.lookupRequest(requestId);
-    assert.equal(lookup.kind, 'found');
-    const execution = await client.attach(lookup.ref);
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    const execution = await client.attach(lookup.admission.ref);
     assert.equal((await execution.status()).status, 'running');
     const cancelled = await execution.cancel();
     assert.equal(cancelled.kind, 'accepted');
@@ -97,8 +98,8 @@ for (const mode of ['local', 'remote']) {
     await assert.rejects(execution.result('answer').all(),
       error => error.code === 'ResultAccessDenied');
     assert.deepEqual((await client.startSource(source,
-      {format: 'json', requestId})).ref, execution.ref);
-    assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+      {format: 'json', submissionRef})).ref, execution.ref);
+    assert.deepEqual((await client.lookupSubmission(submissionRef)).admission.ref, execution.ref);
     assert.equal((await (await client.attach(execution.ref)).status()).status,
       'cancelled');
     if (mode === 'local') {
@@ -106,11 +107,11 @@ for (const mode of ['local', 'remote']) {
       // Host. Reconnect reads the durable cancelled Run instead of dispatching.
       await client.close();
       client = await connect(options);
-      assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+      assert.deepEqual((await client.lookupSubmission(submissionRef)).admission.ref, execution.ref);
       const restored = await client.attach(execution.ref);
       assert.equal((await restored.status()).status, 'cancelled');
       assert.deepEqual((await client.startSource(source,
-        {format: 'json', requestId})).ref, execution.ref);
+        {format: 'json', submissionRef})).ref, execution.ref);
     }
     assert.equal(steps.filter(name => name === 'dispatch_reserved').length, 1);
     assert.equal(steps.filter(name => name === 'physical_start_reserved').length,

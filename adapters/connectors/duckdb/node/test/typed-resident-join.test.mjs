@@ -102,7 +102,10 @@ test('typed composite join and count preserve fixed capture across Local fresh a
           capture.close();
           for (const task of [1, 2, 3]) moon.strategyFixtureCloseOutput(f, task);
           assert.equal(moon.strategyFixtureCid(f, 4), expected, `${name} independent completion`);
-        } finally { execution?.close(); capture.close(); }
+        } finally {
+          try { await execution?.close(); }
+          finally { capture.close(); }
+        }
         assert.equal(execution.usage().heldBytes, 0n);
         assert.equal(execution.usage().reservedExecutionBytes, 0n);
         assert.equal(execution.cleanupPending(), false);

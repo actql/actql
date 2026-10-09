@@ -82,6 +82,7 @@ priv enum Continuation {
     Int,
     @lower.Expression
   )
+  BetweenArguments(BetweenArgumentsState)
   TextArguments(TextArgumentsState)
 }
 
@@ -98,6 +99,7 @@ priv enum Evaluation {
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
   MeasureResult(Value, LogicalMeasureCursor)
+  CompareBetween(BetweenArgumentsState, BinaryComparisonState, Value?)
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
@@ -474,6 +476,7 @@ fn advance_expression_frame_impl(
     // work. The next semantic Return still pays its usual transition.
     if !(frame.state is CompareBinary(_) ||
       frame.state is CompareMembership(_, _) ||
+      frame.state is CompareBetween(_, _, _) ||
       frame.state is PropertyName(_) ||
       frame.state is FieldName(_) ||
       frame.state is ObjectName(_) ||
@@ -682,6 +685,22 @@ fn advance_expression_frame_impl(
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
+            if op == @lower.Between {
+              if children.length() != 3 || !reserve_slots(workspace, 6) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                BetweenArguments({
+                  expression: expr,
+                  children,
+                  values: [],
+                  roots: [],
+                  index: 0,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
             if op == @lower.Replace {
               if children.length() != 3 || !reserve_slots(workspace, 6) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
@@ -701,7 +720,7 @@ fn advance_expression_frame_impl(
             let initial = match op {
               And => Boolean(true)
               Or => Boolean(false)
-              Coalesce => Null
+              Coalesce | Between => Null
               Concat | ConcatStrict | Replace => Text("")
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
@@ -796,6 +815,35 @@ fn advance_expression_frame_impl(
           return Ok(Some({ value, root: retained, }))
         }
         match continuation {
+          BetweenArguments(args) => {
+            frame.active = args.expression
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: args.expression,
+              })
+            }
+            args.values.push(value)
+            args.roots.push(frame.current_root)
+            frame.current_root = None
+            args.index += 1
+            if args.children.get(args.index) is Some(next) {
+              frame.stack.push(BetweenArguments(args))
+              frame.state = Enter(next)
+            } else {
+              if !reserve_slots(workspace, 2) {
+                return Err({
+                  kind: WorkspaceLimit,
+                  expression: args.expression,
+                })
+              }
+              frame.state = CompareBetween(
+                args,
+                between_comparison(args, false),
+                None,
+              )
+            }
+          }
           TextArguments(args) => {
             frame.active = args.expression
             if charge_value(value, frame.current_root) is Some(issue) {
@@ -1254,7 +1302,7 @@ fn advance_expression_frame_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let combined = match op {
-              Replace =>
+              Replace | Between =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               And | Or =>
@@ -1720,6 +1768,49 @@ fn advance_expression_frame_impl(
             frame.current_root = Some(root)
             frame.state = Return(value)
           }
+        }
+      }
+      CompareBetween(args, comparison, first) => {
+        frame.active = args.expression
+        match advance_binary_comparison(comparison, budget) {
+          Err(issue) => return Err(issue)
+          Ok(None) => {
+            if !drain {
+              return Ok(None)
+            }
+            continue
+          }
+          Ok(Some(value)) =>
+            match first {
+              None =>
+                frame.state = CompareBetween(
+                  args,
+                  between_comparison(args, true),
+                  Some(value),
+                )
+              Some(low) => {
+                let result = match boolean_pair(@lower.And, low, value) {
+                  Ok(result) => result
+                  Err(issue) =>
+                    return Err({
+                      kind: Scalar(issue),
+                      expression: args.expression,
+                    })
+                }
+                for root in args.roots {
+                  if release(root) is Some(issue) {
+                    return Err({
+                      kind: LogicalValue(issue),
+                      expression: args.expression,
+                    })
+                  }
+                }
+                // Three child views, one continuation, six operand slots and
+                // two comparison handles were reserved before construction.
+                release_slots(workspace, 12)
+                frame.state = Return(result)
+              }
+            }
         }
       }
       CompareBinary(state) => {

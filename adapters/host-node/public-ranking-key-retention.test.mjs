@@ -150,7 +150,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(fixture(fixtureId));
-    const options = {format: 'json', requestId: fixtureId};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId})};
     const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
@@ -170,7 +170,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
 
     cancelling = true;
     const cancel = await client.startSource(JSON.stringify(fixture(fixtureId + '-cancel')),
-      {format: 'json', requestId: fixtureId + '-cancel'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId + '-cancel'})});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
         throw new Error(`ranking missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);

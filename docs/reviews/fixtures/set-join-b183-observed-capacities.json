@@ -1,0 +1,58 @@
+{
+  "source_revision": "b1832bd42fac1dd879dc23a6f7257dbd984ac749",
+  "classification": "observed generated Programs and dispatch capacities; not independent expected Programs",
+  "execution_ceiling_bytes": 536870912,
+  "cases": [
+    {
+      "name": "set-join-cte-set-body",
+      "first_refusal": "Physical(ExecutionLimit)",
+      "dispatch": {
+        "task": 1,
+        "siteCapacity": {
+          "retainedBytes": "14240000",
+          "executionBytes": "563431936"
+        },
+        "inputs": [
+          {
+            "task": 0,
+            "capturedRelation": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "set-join-parameter-limit",
+      "first_refusal": "Physical(ExecutionLimit)",
+      "dispatch": {
+        "task": 1,
+        "siteCapacity": {
+          "retainedBytes": "14240000",
+          "executionBytes": "563431936"
+        },
+        "inputs": [
+          {
+            "task": 0,
+            "capturedRelation": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "set-join-distinct",
+      "first_refusal": "Physical(ExecutionLimit)",
+      "dispatch": {
+        "task": 1,
+        "siteCapacity": {
+          "retainedBytes": "14240000",
+          "executionBytes": "563431936"
+        },
+        "inputs": [
+          {
+            "task": 0,
+            "capturedRelation": true
+          }
+        ]
+      }
+    }
+  ]
+}
