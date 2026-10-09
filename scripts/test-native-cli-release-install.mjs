@@ -14,6 +14,12 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const [cliInput, sdkInput] = process.argv.slice(2); assert(cliInput && sdkInput, 'usage: test-native-cli-release-install.mjs <CLI-RC> <SDK-RC>');
 const cliDirectory = resolve(cliInput), sdkDirectory = resolve(sdkInput);
 const cli = await verifyNativeCliRelease(cliDirectory), sdk = await verifyPackageRelease(sdkDirectory);
+const acceptanceSourceSha = execFileSync('git', ['--no-replace-objects', 'rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+assert.equal(sharedRuntimeSourceDelta(repository, cli.sourceSha, acceptanceSourceSha), '',
+  'Retained CLI acceptance requires unchanged runtime inputs');
+assert.equal(execFileSync('git', ['--no-replace-objects', 'diff', '--name-only', cli.sourceSha, acceptanceSourceSha,
+  '--', 'packages/native-cli', 'scripts/native-cli-artifact.mjs', 'scripts/native-cli-release.mjs'],
+{cwd: repository, encoding: 'utf8'}).trim(), '', 'Retained CLI artifact/launcher inputs changed');
 const runtimeSourceDelta = sharedRuntimeSourceDelta(repository, sdk.sourceSha, cli.sourceSha);
 assert.equal(runtimeSourceDelta, '', 'This combined acceptance requires unchanged Host/protocol runtime inputs between its distinct fixed sources');
 const key = process.platform === 'darwin' && process.arch === 'arm64' ? 'darwin-arm64' : 'linux-x64-gnu';
@@ -33,7 +39,9 @@ async function run(command, args, cwd = root, expectedCode = 0) {
   const started = Date.now();
   const record = await new Promise((resolve, reject) => {
     const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', 'pipe']}); let stdout = '', stderr = '', length = 0;
-    const timer = setTimeout(() => child.kill('SIGTERM'), 180_000);
+    // The finite wire corpus is unchanged. amd64 emulation needs a separate
+    // bounded wall-time allowance; a timeout is never accepted as a pass.
+    const timer = setTimeout(() => child.kill('SIGTERM'), process.platform === 'linux' ? 300_000 : 180_000);
     for (const [stream, append] of [[child.stdout, v => {stdout += v;}], [child.stderr, v => {stderr += v;}]]) {
       stream.on('data', chunk => {length += chunk.length; if (length > 8 * 1024 * 1024) child.kill('SIGTERM'); else append(chunk.toString());});
     }
@@ -75,7 +83,7 @@ try {
   // auth, response-loss, identity and no-resend regressions. Mock Host evidence
   // is separate from the actual Host acceptance above.
   await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')]);
-  const receipt = {version: 'actql-native-cli-install-acceptance/0.1', cliSourceSha: cli.sourceSha, hostSourceSha: sdk.sourceSha,
+  const receipt = {version: 'actql-native-cli-install-acceptance/0.1', cliSourceSha: cli.sourceSha, hostSourceSha: sdk.sourceSha, acceptanceSourceSha,
     runtimeSourceDelta: [],
     platform: key, node: process.version, glibc: process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : null,
     artifact, cliPackages: cli.packages.map(({name, version, sha256}) => ({name, version, sha256})),
