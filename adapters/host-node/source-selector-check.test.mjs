@@ -113,14 +113,14 @@ async function fixture(t, entrance, {registered = false, namespace = 'registrati
     client = await sdk.connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'selector-token'});
   }
   t.after(async () => {await client.close(); await rm(root, {recursive: true, force: true});});
-  const assertCheckOnly = () => {
+  const assertCheckOnly = (submitted = 0) => {
     const db = new DatabaseSync(join(root, 'state/requests/client-requests.sqlite3'), {readOnly: true});
     try {
       assert.deepEqual({...db.prepare(`SELECT COUNT(*) AS runs, COALESCE(SUM(dispatch_reserved),0) AS dispatch,
         COALESCE(SUM(physical_start_reserved),0) AS physical FROM client_requests`).get(),
         submissions: db.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n,
         issued: db.prepare('SELECT issued_count AS n FROM client_submitted_intent_custody').get().n},
-      {runs: 0, dispatch: 0, physical: 0, submissions: 0, issued: 0});
+      {runs: 0, dispatch: 0, physical: 0, submissions: submitted, issued: submitted});
     } finally {db.close();}
     assert.deepEqual(counts, {sourcePages: 0, physicalTarget: 0, credentials: 0, model: 0, effect: 0, resume: 0, dispatch: 0},
       '[check-mutation:selector-public-no-execution]');
@@ -129,6 +129,32 @@ async function fixture(t, entrance, {registered = false, namespace = 'registrati
 }
 
 for (const entrance of ['local', 'https']) {
+  test(`${entrance}: original Program refusal exposes passive selector diagnostics without Run admission`, async t => {
+    const f = await fixture(t, entrance), input = program();
+    let rejection;
+    try {await f.client.start(input);} catch (error) {rejection = error;}
+    assert.equal(rejection?.code, 'SubmissionNotAccepted');
+    const outcome = sdk.getSubmissionOutcome(rejection);
+    assert.equal(outcome.kind, 'not_accepted');
+    const checked = sdk.getSubmissionCheckObservation(rejection);
+    assert.equal(checked.report.verdict, 'invalid');
+    assert.deepEqual(checked.report.reasons, [absentReason(checked, input.stages[0].inputs.rows)]);
+    const original = sdk.getCheckInput(checked, 'program');
+    assert.deepEqual(original.value, input);
+    assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, original);
+    sdk.explainCheckReason(checked.report.reasons[0]);
+    assert.deepEqual(sdk.getCheckFixes(checked), []);
+    assert.equal(sdk.getSubmissionCheckObservation({...rejection}), undefined);
+    assert.equal(sdk.getCheckInput(structuredClone(checked), 'program'), undefined);
+    f.assertCheckOnly(1);
+    const retained = await f.client.lookupSubmission(outcome.submissionRef);
+    assert.deepEqual(retained, outcome);
+    assert.equal(Object.hasOwn(retained, 'checkObservation'), false);
+    assert.equal(sdk.getSubmissionCheckObservation(retained), undefined);
+    assert.deepEqual(sdk.getSubmissionOutcome(rejection), outcome);
+    f.assertCheckOnly(1);
+  });
+
   test(`${entrance}: complete registration namespace discloses only the original unregistered selector`, {timeout: 20000}, async t => {
     const f = await fixture(t, entrance);
     const input = program(), result = await f.client.check(input, options);
