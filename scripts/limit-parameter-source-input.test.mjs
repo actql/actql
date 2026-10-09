@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {limitParameterProgram, joinLimitTailProgram, limitParameterSuccesses, limitParameterRefusals}
+import {limitParameterProgram, joinLimitTailProgram, joinCurrentRowAfterTakeProgram, joinCurrentRowBeforeTakeProgram, joinCurrentRowVisibleProgram, limitParameterSuccesses, limitParameterRefusals}
   from './fixtures/limit-parameter-source-input.mjs';
 
 test('LIMIT fixture binds different take roles in an independent Program', () => {
@@ -22,8 +22,8 @@ test('LIMIT fixture keeps NULL duplicates column order and empty schemas', () =>
 test('LIMIT public cases have distinct names and ordinary refusal inputs', () => {
   const cases = [...limitParameterSuccesses, ...limitParameterRefusals];
   assert.equal(new Set(cases.map(item => item.name)).size, cases.length);
-  assert.equal(limitParameterSuccesses.length, 21);
-  assert.equal(limitParameterRefusals.length, 16);
+  assert.equal(limitParameterSuccesses.length, 32);
+  assert.equal(limitParameterRefusals.length, 19);
   assert.ok(limitParameterRefusals.some(item => item.parameters?.count === 0));
   assert.ok(limitParameterRefusals.some(item => item.parameters?.skip === null));
 });
@@ -60,4 +60,45 @@ test('JOIN continuation retains both take operand pairs and independent multipli
   assert.ok(limitParameterRefusals.some(item => item.name.endsWith('join-tail-removed-input-range')));
   assert.ok(limitParameterRefusals.filter(item => item.name.includes('join-tail-'))
     .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('JOIN prefix controls distinguish filtering before and after the take', () => {
+  const cases = new Map(limitParameterSuccesses.map(item => [item.name, item]));
+  assert.deepEqual(joinCurrentRowAfterTakeProgram.stages[1].steps.slice(2, 5), [
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}]},
+    {take: {count: {$param: 'count'}, offset: {$param: 'skip'}}},
+    {filter: {eq: [{field: 'k'}, {literal: 3}]}}]);
+  assert.deepEqual(joinCurrentRowBeforeTakeProgram.stages[1].steps.slice(2, 5), [
+    {filter: {eq: [{field: 'k'}, {literal: 3}]}},
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}]},
+    {take: {count: {$param: 'count'}, offset: {$param: 'skip'}}}]);
+  for (const [position, program, expected] of [
+    ['after', joinCurrentRowAfterTakeProgram, []],
+    ['before', joinCurrentRowBeforeTakeProgram, [{amount: 30, id: 3}]],
+  ]) {
+    const control = cases.get('limit-parameter-join-prefix-' + position + '-take-independent-json');
+    assert.deepEqual(JSON.parse(control.text), program);
+    assert.deepEqual(control.expected, expected);
+    assert.deepEqual(cases.get('limit-parameter-join-prefix-where-' + position + '-take').expected, expected);
+    assert.equal(program.stages[1].steps[1].join.max_output_rows, 10);
+  }
+  assert.deepEqual(cases.get('limit-parameter-join-prefix-consecutive-where').expected,
+    [{amount: 30, id: 3}, {amount: 30, id: 3}]);
+  assert.deepEqual(cases.get('limit-parameter-join-prefix-quoted-as-nullable').expected,
+    [{amount: null, id: 1}]);
+  assert.deepEqual(cases.get('limit-parameter-join-prefix-typed-empty').expected, []);
+  assert.ok(limitParameterRefusals.filter(item => item.name.includes('join-prefix-'))
+    .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('JOIN without projection retains all current columns in authored order', () => {
+  const cases = new Map(limitParameterSuccesses.map(item => [item.name, item]));
+  const control = cases.get('limit-parameter-join-prefix-visible-independent-json');
+  const source = cases.get('limit-parameter-join-prefix-visible-without-select');
+  assert.deepEqual(JSON.parse(control.text), joinCurrentRowVisibleProgram);
+  assert.deepEqual(control.expected, [{amount: 20, id: 2, k: 2}, {amount: 30, id: 3, k: 3}]);
+  assert.deepEqual(source.expected, control.expected);
+  assert.deepEqual(source.columns, control.columns);
+  assert.deepEqual(source.columns.map(column => column.name), ['amount', 'id', 'k']);
+  assert.deepEqual(joinCurrentRowVisibleProgram.stages[1].steps.at(-1).select, ['amount', 'id', 'k']);
 });
