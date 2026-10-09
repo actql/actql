@@ -42,6 +42,32 @@ export const pipeSetTargetProgram = {version: 'actql/0.1', id: 'fixture.pipe_set
         {sort: [{field: 'original', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
       results: {rows: {from: 'ordered', fields: ['current', 'original', 'matched']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// Independent machine input for the standalone Values compiler contract.
+export const valuesJoinCeilingProgram = {version: 'actql/0.1', id: 'fixture.values_join_ceiling',
+  stages: [{id: 'aql_join_left', inputs: {}, steps: [{values: {
+    schema: {x: number, y: number}, rows: [{x: 1, y: 20}, {x: 2, y: 10}],
+  }, as: 't'}], results: {aql_join_left: {from: 't', fields: ['x', 'y']}}},
+  {id: 'aql_join_right', inputs: {}, steps: [{values: {
+    schema: {k: number}, rows: [{k: 1}, {k: 2}],
+  }, as: 'r'}], results: {aql_join_right: {from: 'r', fields: ['k']}}},
+  {id: 'main', inputs: {l: {result: {stage: 'aql_join_left', result: 'aql_join_left'}},
+    r: {result: {stage: 'aql_join_right', result: 'aql_join_right'}}},
+    steps: [{from: 'l', join: {with: 'r', kind: 'inner', on: [{left: 'x', right: 'k'}],
+      max_output_rows: 5, select: {x: 'left.x'}}, as: 'aql_join_output'}],
+    results: {rows: {from: 'aql_join_output', fields: ['x']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const valuesJoinCeilingSql = 'WITH t AS (SELECT 1 AS x, 20 AS y UNION ALL SELECT 2 AS x, 10 AS y), '
+  + 'r AS (SELECT 1 AS k UNION ALL SELECT 2 AS k) SELECT t.x AS x FROM t JOIN r '
+  + 'ON t.x = r.k MAX_OUTPUT_ROWS 5';
+const exceededValuesJoin = structuredClone(valuesJoinCeilingProgram);
+exceededValuesJoin.stages[2].steps[0].join.max_output_rows = 1;
+export const joinStarExecutionFailures = [
+  {name: 'join-star-values-ceiling-json-exceeded', format: 'json',
+    text: JSON.stringify(exceededValuesJoin), resultNames: ['answer'], sourceReadSessionCount: 0},
+  {name: 'join-star-values-ceiling-source-exceeded', format: 'sql',
+    text: valuesJoinCeilingSql.replace('MAX_OUTPUT_ROWS 5', 'MAX_OUTPUT_ROWS 1'),
+    resultNames: ['answer'], sourceReadSessionCount: 0},
+];
 const sql = 'SELECT * FROM records AS l JOIN (SELECT 2 AS k) AS r '
   + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ORDER BY id';
 const success = (name, text, extra = {}) => ({name: 'join-star-' + name,
@@ -53,6 +79,14 @@ const preserved = [{id: 1, amount: null}, {id: 2, amount: 20},
 export const joinStarSuccesses = [
   success('independent-json', JSON.stringify(joinStarProgram), {format: 'json'}),
   success('on-unique-columns', sql),
+  success('values-ceiling-json', JSON.stringify(valuesJoinCeilingProgram), {
+    format: 'json', sourceReadSessionCount: 0, columns: [column('x')],
+    expected: [{x: 1}, {x: 2}], unordered: true,
+  }),
+  success('values-ceiling-source', valuesJoinCeilingSql, {
+    sourceReadSessionCount: 0, columns: [column('x')],
+    expected: [{x: 1}, {x: 2}], unordered: true,
+  }),
   success('captured-projection-json', JSON.stringify(capturedJoinProjectionProgram), {
     format: 'json', columns: [column('id'), column('amount', nullable)],
     expected: [{id: 1, amount: null}, {id: 2, amount: 20},
