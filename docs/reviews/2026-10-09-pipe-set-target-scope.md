@@ -175,7 +175,10 @@ Frontend diagnostic correction; do not weaken the fixture to hide it.
 
 This run establishes the 14 Local positives, not complete cohort acceptance.
 Later old refusals, the eight new exact-code SET refusals and the main HTTPS
-cohort were not reached. Failed logs, Store and original package artifacts are
-retained for diagnosis. The Draft remains incomplete for public acceptance.
+cohort were not reached. The receipt records failed/incomplete campaign status,
+complete child-command streams and no evidence errors. Failed logs, command
+metadata and original pack artifacts are retained for diagnosis; the helper
+removed the external installation and temporary Store after preserving evidence
+(`artifactsRemoved: true`). The Draft remains incomplete for public acceptance.
 The submitted commit adds only this evidence record; its CI remains separate
 from the tested SHA. No Ready transition, manual CI retry or merge was made.
