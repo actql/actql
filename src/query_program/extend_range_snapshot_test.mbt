@@ -75,3 +75,36 @@ test "AS after EXTEND explicitly binds the derived column" {
   ).unwrap()
   assert_eq(semantic(actual), semantic(extend_range_snapshot_expected()))
 }
+
+///|
+test "existing JOIN range refusals retain exact current invalid-input causes" {
+  for prefix in ["DROP x", "RENAME x AS current", "SET x = x + 10 |> AS fresh"] {
+    assert_true(
+      compile(
+        @query.parse_query(
+          "FROM t |> AS l |> " +
+          prefix +
+          " |> JOIN r AS rr ON " +
+          (if prefix == "SET x = x + 10 |> AS fresh" { "l.x" } else { "x" }) +
+          " = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+          syntax_limits(),
+        ).unwrap(),
+        join_order_context(),
+        construction_limits(),
+      )
+      is Err(AmbiguousColumn),
+      msg=prefix,
+    )
+  }
+  assert_true(
+    compile(
+      @query.parse_query(
+        "WITH chosen AS (FROM t |> AS l |> SET x = x + 10) FROM chosen |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+        syntax_limits(),
+      ).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    )
+    is Err(AmbiguousColumn),
+  )
+}

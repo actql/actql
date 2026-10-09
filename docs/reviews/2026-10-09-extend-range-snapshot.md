@@ -82,8 +82,9 @@ expected ordered rows are (original,current,amount)=(1,11,NULL),(2,12,20),
 number amount. Bare/backtick original ranges, explicit fresh AS and empty
 typed output are positive controls. Five invalid old.z consumers require
 ClientProgramInvalidInput, zero Run admission and zero Source I/O.
-All previous range/JOIN cases remain unchanged, including their existing exact
-refusal codes. These cases run in normal packed CI and its same focused cohort;
+All previous range/JOIN source, rows, types and limits remain unchanged. Their
+four old generic refusal-code expectations need the current diagnostic mapping,
+as recorded below. These cases run in normal packed CI and its same focused cohort;
 no new acceptance framework or post-lowering Program rewrite is added.
 
 Fresh exact-SHA normal five-package production and Local/HTTPS execution remain
@@ -91,3 +92,29 @@ pending at this commit. Compilation and fixture success are not execution
 success. Full Core, full packed/performance, other targets, CI and live Google
 differential validation remain unverified. No manual retry, Ready transition or
 merge is performed. The full Frontend completion objective remains active.
+
+## First packed campaign and stale diagnostic expectations
+
+Clean SHA `045e741e6e783f5cfa3012b76f8d79d488dbc58a` normally produced all five
+packages (`run-iAS51P`, receipt `public-query-evidence-IYcJTT`). Local completed
+all 16 positive cases, including the five new independent/source/quoted/fresh-AS/
+empty controls. The first old dropped-current refusal then stopped the campaign:
+its fixture expected generic ClientProgramRejected, while the current preparation
+returned ClientProgramInvalidInput. HTTPS and later refusals were not reached.
+
+The correction is derived from existing contracts, not by copying the failure
+value: query_join_chain resolves missing/displaced JOIN references as
+AmbiguousColumn; client_source_preparation_issue_code projects that typed fact to
+source_invalid_input; client-program-preparation.mjs maps it to
+ClientProgramInvalidInput. Exact common-lowerer controls cover all four original
+DROP/RENAME/displaced-range/CTE-range shapes. Only those obsolete public code
+expectations change; source, independent rows, types, limits and zero-admission/
+I/O assertions remain intact. This is separate from the first-EXTEND product fix.
+
+Exact refusal controls and existing JOIN callers pass JS 8/8 (`run-RLIHoO`,
+`focused-test-8fpFFH`), selecting extend_range_snapshot_test.mbt and
+pipe_join_ranges_test.mbt. The corrected public fixture/registration checks pass
+Node 3/3 (`run-YDw6rR`, `focused-test-2qaRkG`). The earlier 25/25 and 6/6 checks
+retain their own source-state scope; the new diagnostic expectation does not
+change product implementation. A new exact-SHA packed run must finish before
+public completion can be claimed.

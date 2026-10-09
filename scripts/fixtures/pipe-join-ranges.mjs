@@ -92,7 +92,7 @@ export const pipeJoinRangesRefusals = [
   {name: 'renamed-current', text: 'FROM records |> AS l |> RENAME id AS current ' + join.replace('l.id', 'id') + projection},
   {name: 'displaced-range', text: source.replace('SET id = id + 10', 'SET id = id + 10 |> AS fresh')},
   {name: 'authored-cte-range', text: 'WITH chosen AS (FROM records |> AS l |> SET id = id + 10) FROM chosen ' + join + projection},
-].map(item => ({format: 'aql-text', expectedCode: 'ClientProgramRejected', ...item,
+].map(item => ({format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', ...item,
   name: 'pipe-join-ranges-refuse-' + item.name}));
 pipeJoinRangesRefusals.push(...[
   ['select', 'SELECT old.z'],

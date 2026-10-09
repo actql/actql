@@ -23,7 +23,7 @@ test('range obligations distinguish current values from original slots and prese
   assert.equal(cases.get('pipe-join-ranges-shared-source').sourceReadSessionCount, 1);
   const originalRefusals = pipeJoinRangesRefusals.filter(item => !item.name.includes('refuse-extend-'));
   assert.equal(originalRefusals.length, 4);
-  assert.ok(originalRefusals.every(item => item.expectedCode === 'ClientProgramRejected'));
+  assert.ok(originalRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });
 
 test('first EXTEND preserves original range membership and explicit fresh AS binding', () => {
