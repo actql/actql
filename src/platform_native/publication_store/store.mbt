@@ -1,6 +1,7 @@
 ///|
 pub(all) enum NativePublicationStoreIssue {
   UnsupportedTarget
+  PreviewAdmission(@publication.EffectPreviewIdentityIssue)
   PrivateEvidence(@signature.NativePrivateEvidenceIssue)
   PrivateCaptureRollback(NativePublicationStoreIssue, @sqlite.NativeSqliteIssue)
   Closed

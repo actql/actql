@@ -3,10 +3,12 @@ package "actql/actql/platform_native/salesforce_effect_preview"
 
 import {
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/effect_application",
   "actql/actql/physical_strategy",
   "actql/actql/platform_native/credential_resource",
   "actql/actql/platform_native/remote_resident_host",
   "actql/actql/remote_credential",
+  "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
 
@@ -15,9 +17,47 @@ pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSour
 
 pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
 
+pub fn prepare_native_resident_effect_preview(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, Int, String, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, @catalog.ExecutionMapping, String, @catalog.CatalogObservation, Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], @run_publication_host.ClientCapturedEffectPreviewLimits, @run_publication_host.PublicationOutputExportLimits, NativeEffectDispatchKeyLimits) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue]
+
 // Errors
 
 // Types and methods
+pub(all) struct NativeEffectDispatchKeyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) struct NativeResidentEffectPreview {
+  wire : String
+  authoring : @run_publication.RunEvidenceValue
+  source : @run_publication.PublicationContract
+  preview : @physical_strategy.CapturedEffectPreviewInputs
+  proof : @physical_strategy.CapturedEffectPlanProof
+  identity : @run_publication_host.ClientEffectLocalIdentity
+  keys : Array[@effect_application.EffectDispatchKey]
+  capability : @catalog.WriteCapabilityEvidence
+}
+
+pub(all) enum NativeResidentEffectPreviewIssue {
+  InvalidLimits
+  ForeignEvidence
+  Encoding
+  Request(@run_publication_host.ClientRequestIdentityIssue)
+  Source(@run_publication_host.ClientEffectSourceArtifactIssue)
+  Identity(@run_publication_host.ClientEffectLocalIdentityIssue)
+  Capability(@catalog.WriteCapabilityIssue)
+  Mapping(@catalog.DeclarationUseIssue)
+  Target(@catalog.TargetObservationIssue)
+  Footprint(@catalog.WriteCollectionRequestIssue)
+  Draft(@run_publication.PublicationContractIssue)
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+  Dispatch(@effect_application.EffectIdentityIssue)
+  Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+  Binding(@run_publication_host.ClientCapturedEffectPreviewIssue)
+  Plan(@remote_resident_host.ResidentEffectPreviewPlanIssue)
+}
+
 pub(all) enum NativeResidentEffectTargetIssue {
   InvalidLimits
   ForeignMapping

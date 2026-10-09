@@ -3045,6 +3045,21 @@ fn compile_steps(
           PipeAggregate(_, names) => names
         }
         let by : Array[@builder.Node] = []
+        let mut key_reuse_work = max_work
+        let resolve_key_input = path => {
+          if scoped {
+            pipe_slot(
+              path,
+              unnest_expression_columns(
+                input_visible, value_table_receivers, scalar_value_table_ranges,
+                pipe_columns,
+              ),
+              input_ranges,
+            )
+          } else {
+            resolve_column(path, query, input, input_fields)
+          }
+        }
         for index in 0..<keys.length() {
           // Inferred SELECT expressions already name the input snapshot.
           // Applying explicit GROUP alias/ordinal resolution would change them.
@@ -3062,11 +3077,45 @@ fn compile_steps(
           let expression = match key {
             Expression(expression) => expression
             StarColumn(column) => {
+              if key_names.contains(column.1) {
+                continue
+              }
               key_names.push(column.1)
               key_display_names.push(column.0)
               by.push(construction.text(column.1))
               // A positional reference is not the literal expression at that
               // position. Never add it to SELECT-expression reuse evidence.
+              continue
+            }
+          }
+          if sql_group_projection {
+            // SQL repeats a grouping value, not a new output column. Use the
+            // resolved input meaning rather than authored alias/path spelling.
+            // Pipe AGGREGATE retains its separate named-output contract.
+            let mut reused = false
+            for (previous, _) in grouped_keys {
+              for charge in [
+                1, @query.expression_node_count(previous),
+                @query.expression_node_count(expression),
+              ] {
+                if charge > key_reuse_work {
+                  raise Abort(Expression({
+                    issue: @expression.WorkLimit,
+                    origin: @query.expression_origin(
+                      expression, @query.expression_root(expression),
+                    ),
+                  }))
+                }
+                key_reuse_work -= charge
+              }
+              if same_group_expression_in_scopes(
+                  previous, expression, resolve_key_input, resolve_key_input,
+                ) {
+                reused = true
+                break
+              }
+            }
+            if reused {
               continue
             }
           }
@@ -3091,6 +3140,12 @@ fn compile_steps(
                 resolve_column(path, query, input, active_fields)
               }
             _ => None
+          }
+          if sql_group_projection && direct is Some(field) && key_names.contains(field) {
+            // A prior expanded-star ordinal has no expression tree, but its
+            // checked physical field still proves this direct key's identity.
+            grouped_keys.push((expression, field))
+            continue
           }
           let name = match direct {
             Some(field) => field
@@ -3959,7 +4014,10 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               expression,
-              input_scope.visible + analytic_expression_bindings,
+              private_expression_columns(
+                input_scope.visible,
+                analytic_expression_bindings,
+              ),
               input_scope.ranges,
               max_work,
             )
