@@ -964,6 +964,39 @@ finding: the common name-resolution Owner must identify the exact submitted
 reference and compare it in the same namespace before a public reason can be
 issued. A bare `UnknownRelation` or filtered listing supplies no such proof.
 
+The standard Local Host opts into this boundary through `sourceNamespace` and
+its complete selected profile paths. Each text check reads the current existing
+authorization configuration through a fresh gate; a namespace declaration does
+not grant negative-membership disclosure. A failed authorization or metadata
+inspection retains the same protected unresolved envelope as an unavailable
+alias. Rechecking after a configuration or input change creates a new binding.
+Historical reports describe only their original call, never current permission.
+
+The common resolver compares its owned unresolved path with the unfiltered
+admitted context using its existing quoted-name matching rule. Only a proven
+miss emits `query_alias_absent`, whose closed facts contain the permitted
+namespace and exact submitted name parts with their quote flags. A hidden
+matching alias remains protected even when namespace inspection is allowed.
+Alias absence does not establish Provider Resource absence. Authored text
+coordinates require original provenance and are omitted when unavailable;
+this reason carries safe advice and grants no automated edit, execution or retry.
+Structured Source selectors require their own resolution facts rather than
+borrowing the query-alias namespace proof.
+
+The report's keyed context includes the admitted namespace revision and current
+authorization facts. The inspection subject is first bound to the original
+document revisions and the call's base context; the final report context also
+binds the admitted inspection. No public hash of secret input is added. Original
+publication and observation custody is process-local and bounded by the existing
+registration, alias and metadata limits. Gates close after each inspection;
+the Host adds no durable diagnostic storage or retention period.
+
+This connection extends the closed Check reason and outcome schema bodies and
+their pins, including Node/Wire, SDK presentation and Native response validation.
+It does not change `actql-diagnostics/0.1`. Consumers must agree on the current
+pins; an older response or consumer is rejected by contract validation rather
+than adapted to success or an empty diagnosis.
+
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with
 execution-value Requirements; unsupported or incomplete static paths retain
