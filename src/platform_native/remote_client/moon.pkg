@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/remote_site_protocol" @remote,

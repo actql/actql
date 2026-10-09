@@ -126,3 +126,16 @@ pub fn acknowledge_retained_input_current(
 ) -> Result[Unit, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn acknowledge_retained_effect_checkpoint(
+  _journal : @journal.Journal,
+  _client : @http.Client,
+  _url : String,
+  _request : @remote.DispatchRequest,
+  _limits : @checkpoint.WireLimits,
+  checkpoint? : (String) -> Unit = fn(_) {  },
+) -> Result[Unit, NativeRemoteClientIssue] {
+  ignore(checkpoint)
+  Err(UnsupportedTarget)
+}
