@@ -130,6 +130,71 @@ nonexecution or settlement. Reconciliation and restart preserve that custody
 without repeating Source, Compute or append. Revoked authorization or a changed
 numeric target refuses an approved write before physical send.
 
+## Ordinary Programs
+
+For the installation above, set the Source profile's `connectorId` to
+`sheet-book`. This JSON Program is the supported read shape; the publishing
+stage consumes the already captured input without another provider read:
+
+```json
+{
+  "version": "actql/0.1",
+  "id": "sheets-read",
+  "stages": [
+    {
+      "id": "read",
+      "inputs": {"sheet": {"connector": "sheet-book", "resource": "rows"}},
+      "steps": [
+        {"filter": "true", "as": "scanned"},
+        {"select": ["text", "number", "flag"], "as": "out"}
+      ],
+      "results": {"rows": {"from": "out", "fields": ["text", "number", "flag"]}}
+    },
+    {
+      "id": "compute",
+      "inputs": {"captured": {"result": {"stage": "read", "result": "rows"}}},
+      "steps": [{"select": ["text", "number", "flag"], "as": "out"}],
+      "results": {"rows": {"from": "out", "fields": ["text", "number", "flag"]}}
+    }
+  ],
+  "results": {"answer": {"from": {"stage": "compute", "result": "rows"}}}
+}
+```
+
+After opening the read installation, submit that document using the ordinary
+`client.startSource(readDocument, {format: 'json', submissionRef})`. Allocate
+and retain `submissionRef = client.newSubmission()` before submission. Observe
+the original execution rather than creating another submission after a lost
+reply. On success, read `execution.result('answer').all()`; an all-blank grid
+produces an empty array, while a cell error fails without publishing a Result.
+
+For append, use the real Mapping returned by `publishEffect`. The Program
+uses Values and a Result-referencing create, not an internal driver call:
+
+```js
+const [mapping] = mappings;
+const writeDocument = JSON.stringify({version: 'actql/0.1', id: 'sheets-append',
+  stages: [{id: 'write', inputs: {}, steps: [{values: {schema: {
+    text: {type: 'string', nullable: false},
+    number: {type: 'number', nullable: true},
+    flag: {type: 'boolean', nullable: true}
+  }, rows: [{text: '=literal', number: 0, flag: false}]}, as: 'out'}],
+  results: {rows: {from: 'out', fields: ['text', 'number', 'flag']}},
+  effects: {append: {create: {target: mapping.target, mapping: mapping.mappingRef,
+    from: {result: 'rows'}}}}
+  }], results: {answer: {from: {stage: 'write', result: 'rows'}}}});
+const submissionRef = client.newSubmission();
+const execution = await client.startSource(writeDocument,
+  {format: 'json', submissionRef});
+console.log(execution.ref, await execution.status());
+```
+
+The authorized reviewer resolves the existing Effect Set Checkpoint. This
+example does not grant its own approval. Retain the original reference across
+restarts and use `client.attach(execution.ref)` and the advertised next action.
+On success, read the Named Result; unknown remains unavailable and reconciliation
+does not resend it. Closing a Client releases its lease, not the Run's custody.
+
 ## Verification and remaining work
 
 The typed codec/bridge, normal Host tests and external packed acceptance are
