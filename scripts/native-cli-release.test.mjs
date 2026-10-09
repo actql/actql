@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {platformKey, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
-import {admitNativeArtifact} from './native-cli-release.mjs';
+import {admitNativeArtifact, sharedRuntimeSourceDelta} from './native-cli-release.mjs';
 import {inspectNativeAbi} from './native-cli-artifact.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -93,4 +94,29 @@ test('source CLI metadata has no install hook and only exact OS binary dependenc
   const packageJson = JSON.parse(await readFile(new URL('../packages/native-cli/package.json', import.meta.url), 'utf8'));
   assert.equal(packageJson.name, 'actql'); assert.equal(packageJson.version, '0.0.2'); assert.equal(packageJson.scripts, undefined);
   assert.deepEqual(packageJson.optionalDependencies, {'@actql/cli-darwin-arm64': '0.0.2', '@actql/cli-linux-x64-gnu': '0.0.2'});
+});
+
+
+test('combined CLI acceptance detects SDK and generated wire changes outside src', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-cli-cohort-source-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const git = (...args) => execFileSync('git', ['-c', 'user.name=Fixture',
+    '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', ...args],
+    {cwd: root, encoding: 'utf8'}).trim();
+  const commit = () => {git('add', '.'); git('commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD');};
+  await mkdir(join(root, 'packages/sdk'), {recursive: true});
+  await mkdir(join(root, 'packages/client-wire'), {recursive: true});
+  await writeFile(join(root, 'packages/sdk/index.mjs'), 'export const protocol = 1;\n');
+  await writeFile(join(root, 'packages/client-wire/client-host.generated.js'), 'export const schema = 1;\n');
+  git('init', '-q'); const original = commit();
+  await writeFile(join(root, 'README.md'), 'Documentation-only CLI handoff.\n');
+  const docs = commit();
+  assert.equal(sharedRuntimeSourceDelta(root, original, docs), '');
+  await writeFile(join(root, 'packages/sdk/index.mjs'), 'export const protocol = 2;\n');
+  const sdk = commit();
+  assert.equal(sharedRuntimeSourceDelta(root, docs, sdk), 'packages/sdk/index.mjs');
+  await writeFile(join(root, 'packages/client-wire/client-host.generated.js'), 'export const schema = 2;\n');
+  const wire = commit();
+  assert.equal(sharedRuntimeSourceDelta(root, sdk, wire), 'packages/client-wire/client-host.generated.js');
+  assert.throws(() => sharedRuntimeSourceDelta(root, '--help', wire));
 });
