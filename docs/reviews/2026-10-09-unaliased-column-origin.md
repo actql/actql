@@ -119,6 +119,23 @@ messages now identify their case. The augmented fixture checks passed 3/3
 (`run-QJofqh`, `focused-test-yW5SjY`). The rerun remains necessary to establish both
 entrances; no package payload is overlaid and no checker is mocked.
 
+The second clean-source campaign at
+`e221efdcd83d9ac68a30a9210667a88618dc10ee` passed all new checks and the existing
+23 positive / 27 refusal cases at both Local and HTTPS, then failed its fresh
+String Result process. Receipt: `../.codex-scratch/public-query-evidence-uzw0Pi`,
+command `010` passed, command `011` failed; wrapper `run-z2nEJU`.
+`InstalledHostInitializationFailed` retained primary
+`InstalledCheckEnvironmentConflict` with cause `EnvironmentBase`.
+
+The initial fixture explicitly selects `hostCapacityPolicy` and binds its Source
+publication to it, but `string-values-restart.mjs` omitted that policy at both
+reopened Hosts. The fixture now carries the same authored installation policy
+alongside the retained Result references and passes it to both reopen calls.
+No policy value, Host conflict check, Result row/schema expectation, owner or
+recovery mechanism is changed. The failure is preserved separately from the
+successful public diagnostic/Named Result checks; the full selected campaign
+still requires a rerun.
+
 E can continue using the existing `source_frontend::unknown_column_origin`
 accessor and public report location contract. The B change supplies the missing
 origin at `query_program::output_name`; E's diagnostic response and SDK remain

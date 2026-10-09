@@ -902,7 +902,10 @@ try {
   DuckDBExtractedStatements.prototype.prepare = prepare;
 }
 if (retainedStrings.local && retainedStrings.remote) {
-  await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
+  // Reopening this installation must preserve its explicitly selected policy.
+  await writeFile('retained-string-results.json', JSON.stringify({
+    ...retainedStrings, hostCapacityPolicy,
+  }));
 
 }
 }
