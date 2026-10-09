@@ -112,8 +112,12 @@ export const fullJoinScopeSuccesses = [
   ...fullUsingScopeSuccesses,
 ];
 export const fullJoinScopeRefusals = [
-  prefix + body.replace('ON l.id = r.id', 'USING (id, `ID`)'),
-  prefix + body.replace('ON l.id = r.id', 'ON l.id > r.id'),
-  prefix + body.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 0'),
-  prefix + body.replace('SELECT l.*, r.id AS rid', 'SELECT id'),
-].map((text, index) => ({name: 'full-join-scope-refuse-' + index, format: 'aql-text', text}));
+  // UnsupportedJoin projects a public implementation-limit fact; malformed
+  // syntax and ambiguous columns project violations. Keep exact classifications
+  // instead of broadening the shared input-code set for unrelated refusals.
+  [prefix + body.replace('ON l.id = r.id', 'USING (id, `ID`)'), 'ClientProgramImplementationLimit'],
+  [prefix + body.replace('ON l.id = r.id', 'ON l.id > r.id'), 'ClientProgramImplementationLimit'],
+  [prefix + body.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 0'), 'ClientProgramInvalidInput'],
+  [prefix + body.replace('SELECT l.*, r.id AS rid', 'SELECT id'), 'ClientProgramInvalidInput'],
+].map(([text, expectedCode], index) => ({name: 'full-join-scope-refuse-' + index,
+  format: 'aql-text', text, expectedCode}));

@@ -88,6 +88,28 @@ pending at this commit; it must use a normal five-package producer from a clean
 fixed source revision with independently verified tarball digests. Full Core,
 Wasm, Native, Cloud, performance and manual CI reruns were not executed.
 
+## First packed attempt and refusal-contract correction
+
+Normal five-package production and independent digest verification succeeded
+at `62bd1ca5797492d16062448a1c9d57e4a305c717` (`run-1b2ryw`). The external
+receipt is `worktrees/.codex-scratch/public-query-evidence-WiOYQN`; all twenty
+Local positive cases passed, including every new explicit SELECT case. Command
+010 then stopped at the first refusal's obsolete broad fixture allowlist:
+the Host returned `ClientProgramImplementationLimit`, which that allowlist
+omits. HTTPS was not reached. The failed attempt's receipt and stdout/stderr
+are retained; its owned expanded installation was removed by the normal runner.
+
+The correction follows existing public contracts rather than replacing an
+expected code with an arbitrary measured result. The common public check in
+`connectors_builtin_node/client_check.mbt` projects `UnsupportedJoin` as
+`Limit("implementation_limit")`, and ambiguous columns as a violation. The
+audience-checked submission adapter projects these respectively to
+`ClientProgramImplementationLimit` and `ClientProgramInvalidInput`. The query
+parser refuses `MAX_OUTPUT_ROWS 0` as invalid syntax. The FULL fixture now
+requires those exact codes for its two UnsupportedJoin cases, zero ceiling
+and ambiguous column. The shared generic refusal allowlist is unchanged, as
+are the expected rows, bounds, Run-admission and provider-I/O assertions.
+
 ## Remaining boundaries
 
 This report supersedes only the explicit FULL SELECT routing gap. Prior FULL
