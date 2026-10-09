@@ -23,6 +23,22 @@ const prefix = 'FROM records |> AS l |> SET id = id + 10 ';
 const join = '|> JOIN (SELECT 2 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10 ';
 const projection = '|> SELECT id AS current, l.id AS original, amount, r.k AS matched |> ORDER BY original';
 const source = prefix + join + projection;
+// Ordinary EXTEND changes the current row without extending an old range.
+export const extendRangeProgram = {version: 'actql/0.1', id: 'fixture.extend_range_snapshot',
+  stages: [structuredClone(pipeJoinRangesProgram.stages[0]),
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', derive: {z: {add: [{field: 'id'}, {literal: 10}]}}},
+        {filter: {gt: [{field: 'z'}, {literal: 0}]}},
+        {sort: [{field: 'id', dir: 'asc', nulls: 'first'}]},
+        {select: [{original: 'id'}, {current: 'z'}, 'amount'], as: 'out'}],
+      results: {rows: {from: 'out', fields: ['original', 'current', 'amount']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const extendSource = 'FROM records AS old |> EXTEND id + 10 AS z |> WHERE z > 0 '
+  + '|> SELECT old.id AS original, z AS current, old.amount AS amount |> ORDER BY original';
+const extendColumns = [{name: 'original', contract: number}, {name: 'current', contract: number},
+  {name: 'amount', contract: nullable}];
+const extendRows = [{original: 1, current: 11, amount: null},
+  {original: 2, current: 12, amount: 20}, {original: 2, current: 12, amount: 20}];
 const success = (name, text, extra = {}) => ({name: 'pipe-join-ranges-' + name,
   format: 'aql-text', text, sourceRows, sourceReadSessionCount: 1, columns, expected, ...extra});
 export const pipeJoinRangesSuccesses = [
@@ -45,6 +61,17 @@ export const pipeJoinRangesSuccesses = [
     {current: 2, original: 2, amount: 20, matched: 2}]}),
   success('quoted-range', source.replaceAll('AS l', 'AS `L`').replaceAll('l.id', '`L`.id')),
   success('empty-typed', source, {sourceRows: [], expected: []}),
+  ...[
+    ['extend-independent-json', JSON.stringify(extendRangeProgram), {format: 'json'}],
+    ['extend-original-range', extendSource, {}],
+    ['extend-quoted-range', extendSource.replace('AS old', 'AS `old`')
+      .replaceAll('old.id', '`OLD`.`ID`').replaceAll('old.amount', '`old`.`AMOUNT`'), {}],
+    ['extend-fresh-range', extendSource.replace('|> WHERE', '|> AS fresh |> WHERE')
+      .replace('old.id', 'fresh.id').replace('z AS current', 'fresh.z AS current')
+      .replace('old.amount', 'fresh.amount'), {}],
+    ['extend-empty-typed', extendSource, {sourceRows: [], expected: []}],
+  ].map(([name, text, extra]) => success(name, text,
+    {columns: extendColumns, expected: extendRows, ...extra})),
   success('nullable-left', prefix + join.replace('|> JOIN', '|> LEFT JOIN') + projection,
   {columns: [...columns.slice(0, 3), {name: 'matched', contract: nullable}],
     expected: [{current: 11, original: 1, amount: null, matched: null}, ...expected]}),
@@ -67,3 +94,12 @@ export const pipeJoinRangesRefusals = [
   {name: 'authored-cte-range', text: 'WITH chosen AS (FROM records |> AS l |> SET id = id + 10) FROM chosen ' + join + projection},
 ].map(item => ({format: 'aql-text', expectedCode: 'ClientProgramRejected', ...item,
   name: 'pipe-join-ranges-refuse-' + item.name}));
+pipeJoinRangesRefusals.push(...[
+  ['select', 'SELECT old.z'],
+  ['quoted-select', 'SELECT `OLD`.`Z`'],
+  ['where', 'WHERE old.z > 0 |> SELECT z'],
+  ['extend', 'EXTEND old.z + 1 AS another |> SELECT another'],
+  ['order', 'ORDER BY old.z |> SELECT z'],
+].map(([name, tail]) => ({name: 'pipe-join-ranges-refuse-extend-' + name,
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput',
+  text: 'FROM records AS old |> EXTEND id + 10 AS z |> ' + tail})));
