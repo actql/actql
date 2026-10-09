@@ -116,12 +116,17 @@ fn unnest_source_element(
 
 ///|
 // A STRUCT value-table range denotes its original value, but is not an extra
-// visible column. Current columns take precedence over a bare range name.
+// visible column. A range name takes precedence over an exposed field of the
+// same name in expression scope. Star expansion retains the visible fields.
 fn unnest_expression_columns(
   visible : Array[(String, String)],
   receivers : Array[(@query.NamePart, String)],
 ) -> Array[(String, String)] {
-  let columns = visible.copy()
+  let columns = visible.filter(entry => {
+    !receivers.any(receiver => {
+      same_name(receiver.0, { value: entry.0, quoted: false, })
+    })
+  })
   for (name, slot) in receivers {
     if !pipe_name_exists(columns, name) {
       columns.push((name.value, slot))

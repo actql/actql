@@ -150,3 +150,76 @@ unnestRefusals.push(...unnestParameterPathRefusals);
 
 unnestSuccesses.push(...unnestCheckedArraySuccesses);
 unnestRefusals.push(...unnestCheckedArrayRefusals);
+
+// Independent range/field collision obligations. A value-table range denotes
+// its original object even when the object exposes a same-named scalar field.
+const receiverItem = {type: 'object', nullable: true, fields: {
+  element: {type: 'number', nullable: true}, id: {type: 'number', nullable: false},
+}};
+const receiverDeclarations = {items: {type: 'array', nullable: true, max_items: 4, items: receiverItem}};
+const receiverParameters = {items: [{element: null, id: 2}, null,
+  {element: 9, id: 1}, {element: 9, id: 1}]};
+const receiverColumns = [{name: 'original', contract: {...receiverItem, additional_properties: false}},
+  column('field_value', true), column('position')];
+const receiverRows = [
+  {original: {element: null, id: 2}, field_value: null, position: 0},
+  {original: null, field_value: null, position: 1},
+  {original: {element: 9, id: 1}, field_value: 9, position: 2},
+  {original: {element: 9, id: 1}, field_value: 9, position: 3},
+];
+export const unnestReceiverProgram = {version: 'actql/0.1', id: 'fixture.unnest.receiver',
+  params: receiverDeclarations, stages: [{id: 'main', inputs: {}, steps: [
+    {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+    {from: 'seed', derive: {array: {$param: 'items'}}},
+    {unnest: {column: 'array', as: 'receiver', with_index: 'position'}},
+    {derive: {member: {property: {value: {field: 'receiver'}, name: 'element'}}}},
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: [{original: 'receiver'}, {field_value: 'member'}, 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['original', 'field_value', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const receiverSql = 'SELECT element AS original, element.element AS field_value, position '
+  + 'FROM UNNEST(@items) element WITH OFFSET position ORDER BY position';
+const receiverPipe = 'FROM UNNEST(@items) element WITH OFFSET position '
+  + '|> SELECT element AS original, element.element AS field_value, position |> ORDER BY position';
+const receiverSuccess = (name, text, extra = {}) => ({name: 'unnest-receiver-' + name,
+  format: 'sql', text, parameterDeclarations: receiverDeclarations, parameters: receiverParameters,
+  expected: receiverRows, columns: receiverColumns, sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
+const receiverStarColumns = [column('element', true), column('id', true), column('position')];
+const receiverStarRows = [{element: null, id: 2, position: 0},
+  {element: null, id: null, position: 1}, {element: 9, id: 1, position: 2},
+  {element: 9, id: 1, position: 3}];
+export const unnestReceiverSuccesses = [
+  receiverSuccess('json-control', JSON.stringify(unnestReceiverProgram),
+    {format: 'json', parameterDeclarations: undefined}),
+  receiverSuccess('sql', receiverSql),
+  receiverSuccess('pipe', receiverPipe, {format: 'aql-text'}),
+  receiverSuccess('quoted', receiverSql.replaceAll('element', '`ELEMENT`')),
+  receiverSuccess('parenthesized', receiverSql.replace('element AS original, element.element',
+    '(element) AS original, (element).element')),
+  receiverSuccess('null-predicate', receiverSql.replace('ORDER BY', 'WHERE element IS NOT NULL ORDER BY'),
+    {expected: [receiverRows[0], receiverRows[2], receiverRows[3]]}),
+  receiverSuccess('star', 'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position',
+    {expected: receiverStarRows, columns: receiverStarColumns}),
+  receiverSuccess('qualified-star', 'SELECT element.*, position FROM UNNEST(@items) element '
+    + 'WITH OFFSET position ORDER BY position', {expected: receiverStarRows, columns: receiverStarColumns}),
+  receiverSuccess('set-retains-original', receiverPipe.replace('|> SELECT', '|> SET element = 100 |> SELECT'),
+    {format: 'aql-text'}),
+  receiverSuccess('set-current-star', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [{element: 100, id: 2, position: 0}, {element: 100, id: null, position: 1},
+      {element: 100, id: 1, position: 2}, {element: 100, id: 1, position: 3}],
+    columns: [column('element'), column('id', true), column('position')]}),
+  receiverSuccess('empty', receiverSql, {parameters: {items: []}, expected: []}),
+  receiverSuccess('null-array', receiverSql, {parameters: {items: null}, expected: []}),
+];
+export const unnestReceiverRefusals = [
+  {name: 'unnest-receiver-refusal-select-ends-range', format: 'aql-text',
+    text: 'FROM UNNEST(@items) element |> SELECT id |> WHERE element IS NOT NULL'},
+  {name: 'unnest-receiver-refusal-as-ends-range', format: 'aql-text',
+    text: 'FROM UNNEST(@items) element |> AS current |> SELECT (element).id AS id'},
+  {name: 'unnest-receiver-refusal-missing-member', format: 'sql',
+    text: 'SELECT (element).missing AS missing FROM UNNEST(@items) element'},
+].map(value => ({...value, parameterDeclarations: receiverDeclarations,
+  parameters: receiverParameters, expectedCode: 'ClientProgramInvalidInput'}));
+unnestSuccesses.push(...unnestReceiverSuccesses);
+unnestRefusals.push(...unnestReceiverRefusals);
