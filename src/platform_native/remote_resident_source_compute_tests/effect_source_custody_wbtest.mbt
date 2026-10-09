@@ -372,10 +372,17 @@ fn retained_effect_source_store(
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   // Leave an original custody live until the caller stops this same consumer.
   // Its retained input is still borrowed while physical cleanup remains pending.
-  let stop_custody = consumer.retain_effect_source_custody(
-    store, materials, inputs, 0, artifact, source,
-    request("stop-before-payload", schema, 64L),
-  ).unwrap()
+  let stop_custody = consumer
+    .retain_effect_source_custody(
+      store,
+      materials,
+      inputs,
+      0,
+      artifact,
+      source,
+      request("stop-before-payload", schema, 64L),
+    )
+    .unwrap()
   stop_custodies.push((stop_custody, store))
   println(
     "retained-effect-custody: exact Native bytes restored; pending cleanup retried once",
