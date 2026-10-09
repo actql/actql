@@ -75,6 +75,7 @@ function responseCode(error) {
   if (error?.code === 'ResultDescriptionUnavailable') return 410;
   if (error?.code === 'ResultDescriptionTooLarge') return 413;
   if (error?.code === 'ClientRequestTooLarge' ||
+      error?.code === 'ClientOwnerObservationLimit' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
       error?.code === 'ClientSubmissionReferenceRequired' ||

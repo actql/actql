@@ -109,6 +109,10 @@ for (const path of support) {
         "import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';",
         "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
         "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
+      text = text.replace(
+        "import {connectEmbeddedLocal,openInstalledRemoteHttpHost} from './embedded-local.mjs';",
+        "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
+        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
     }
     text = text.replace(/from\s+(['"])([^'"]+)\1/gu, (original, quote, specifier) => {
       if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;

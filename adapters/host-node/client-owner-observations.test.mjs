@@ -168,6 +168,14 @@ test('undisclosable and unbound cursor positions have the same unavailable proje
   }
 });
 
+test('generic unavailable details do not expose the number of protected streams',async()=>{
+  const f=await fixture();f.denyOwner();
+  f.sources.push({...f.sources[1],owner:{...effectOwner,streamCid:cid('e')}});
+  const value=await f.read();
+  assert.deepEqual(value.owners.filter(view=>view.owner==='effect'),[{owner:'effect',kind:'unavailable'}]);
+  assert.equal(value.revisionVector.length,1);
+});
+
 test('snapshot identity preserves data keys, decomposed Unicode and each newline form', async () => {
   const f=await fixture();
   let data={'e\u0301':'e\u0301\r\n'};

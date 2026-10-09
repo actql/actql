@@ -19,6 +19,7 @@ const ownerKey = value => JSON.stringify([value.kind,value.scopeCid,value.stream
 const ownerRef = value => exact(value,['kind','scopeCid','streamCid']) &&
   kinds.has(value.kind) && cid(value.scopeCid) && cid(value.streamCid);
 const denied = () => Object.assign(new Error('RunObservationAccessDenied'), {code:'RunObservationAccessDenied'});
+const limited = () => Object.assign(new Error('ClientOwnerObservationLimit'),{code:'ClientOwnerObservationLimit'});
 const own = value => {
   const copy = snapshotClientRequest(value);
   const freeze = item => {
@@ -35,7 +36,7 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
   if (typeof authorizeRun !== 'function' || typeof sourcesFor !== 'function' ||
       codec !== undefined && (typeof codec.issue !== 'function' || typeof codec.read !== 'function') ||
       !positive(installedMaxEntries) || installedMaxEntries > 1000 ||
-      !positive(installedMaxWireBytes) || installedMaxWireBytes < 1024) {
+      !positive(installedMaxWireBytes) || installedMaxWireBytes < 1024 || installedMaxWireBytes > 65536) {
     throw new TypeError('InvalidClientOwnerObservationInstallation');
   }
   return async request => {
@@ -82,17 +83,23 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
     // Per-Owner limits alone do not bound the composite response.
     const slotBytes = Math.floor((maxWireBytes-wireBytes(envelope)-2*sources.length)/
       Math.max(1,sources.length));
-    if (slotBytes < 256) throw new TypeError('ClientOwnerObservationLimit');
+    if (slotBytes < 256) throw limited();
+    const unavailable=kind=>{
+      // Denied streams expose neither their identities nor their count.
+      if(!owners.some(view=>view.owner===kind && view.kind==='unavailable' && view.problem===undefined)){
+        owners.push({owner:kind,kind:'unavailable'});
+      }
+    };
     for (const source of sources) {
       const permitted = async () => await authorizeRun(selected) === true &&
         await source.authorize(selected) === true;
       if (source.kind === 'problem') {
-        owners.push({owner:source.ownerKind,kind:'unavailable',...(await permitted()
-          ? {problem:{kind:source.problem}} : {})});
+        if(await permitted())owners.push({owner:source.ownerKind,kind:'unavailable',problem:{kind:source.problem}});
+        else unavailable(source.ownerKind);
         continue;
       }
       const owner = own(source.owner);
-      if (!await permitted()) {owners.push({owner:owner.kind,kind:'unavailable'}); continue;}
+      if (!await permitted()) {unavailable(owner.kind); continue;}
       let snapshot, snapshotProblem;
       try {
         const value = await source.readSnapshot({...selected,maxWireBytes:slotBytes});
@@ -102,7 +109,7 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
         if (wireBytes(value) > slotBytes) snapshotProblem = {kind:'limit_exceeded'};
         else snapshot = own(value);
       } catch {snapshotProblem = {kind:'acquisition_failed'};}
-      if (!await permitted()) {owners.push({owner:owner.kind,kind:'unavailable'}); continue;}
+      if (!await permitted()) {unavailable(owner.kind); continue;}
       const matching = (selected.cursors ?? []).filter(cursor => ownerKey(cursor.owner) === ownerKey(owner));
       let history = {kind:matching.length && source.history === 'not_provided'
         ? 'cursor_mismatch' : 'not_provided'};
@@ -155,7 +162,7 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
       }
       // Authorization may have changed during either asynchronous Owner read.
       // Discard all buffered details instead of revealing a protected gap.
-      if (!await permitted()) {owners.push({owner:owner.kind,kind:'unavailable'}); continue;}
+      if (!await permitted()) {unavailable(owner.kind); continue;}
       const view = {owner:owner.kind,ownerRef:owner,kind:'observed',...(snapshot === undefined
         ? {snapshotProblem} : {snapshot}),history};
       // A current-only view has no semantic replay revision. Bind its exact
@@ -170,7 +177,7 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
         delete view.snapshot; view.snapshotProblem = {kind:'limit_exceeded'};
         delete vector.snapshotCid;
       }
-      if (wireBytes(view)+wireBytes(vector) > slotBytes) throw new TypeError('ClientOwnerObservationLimit');
+      if (wireBytes(view)+wireBytes(vector) > slotBytes) throw limited();
       owners.push(view); revisionVector.push(vector);
     }
     if (await authorizeRun(selected) !== true) throw denied();
@@ -179,7 +186,7 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
       disclosedKeys.has(ownerKey(cursor.owner)) ? [] : [{index,kind:'unavailable'}]);
     if(undisclosed.length)envelope.unmatchedCursors=undisclosed;
     else delete envelope.unmatchedCursors;
-    if (wireBytes(envelope) > maxWireBytes) throw new TypeError('ClientOwnerObservationLimit');
+    if (wireBytes(envelope) > maxWireBytes) throw limited();
     return own(envelope);
   };
 }
