@@ -45,6 +45,13 @@ export async function buildNativeCliArtifact(destination) {
   const binary = join(destination, 'actql-native-client');
   await copyFile(built, binary); await chmod(binary, 0o755);
   const bytes = await readFile(binary);
+  const notices = {};
+  for (const [filename, coreFile] of [['MOONBIT-CORE-LICENSE', 'LICENSE'], ['MOONBIT-CORE-NOTICE', 'NOTICE']]) {
+    const text = await readFile(join(repository, 'packages/local-node', filename));
+    assert(process.env.MOON_HOME, 'Set MOON_HOME to the selected pinned toolchain');
+    assert.deepEqual(text, await readFile(join(process.env.MOON_HOME, 'lib/core', coreFile)), 'Distribution notices must match the compiler Core');
+    notices[filename] = hash(text);
+  }
   let httpRuntime;
   if (platform === 'linux-x64-gnu') {
     const library = run('ldconfig', ['-p']).split('\n').find(line => /libcurl\.so\.4 .*x86-64.*=> /u.test(line))?.split('=> ')[1]?.trim();
@@ -65,7 +72,7 @@ export async function buildNativeCliArtifact(destination) {
     interpretation: 'The separately installed OS libcurl is validated by actual mTLS acceptance, not bundled.'};
   const record = {version: 'actql-native-cli-artifact/0.1', sourceSha: source.revision,
     platform, binarySha256: hash(bytes), binaryBytes: bytes.length,
-    generatedCSha256: hash(await readFile(c)), toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))),
+    generatedCSha256: hash(await readFile(c)), toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))), notices,
     toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
     abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
     generation: ['moon', 'build', '--target', 'native', '--release', 'src/cmd/native_client']};

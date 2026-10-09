@@ -16,6 +16,7 @@ const sourceSha = 'a'.repeat(40);
 const metadata = {version: 'actql-native-cli-artifact/0.1', sourceSha,
   platform: 'darwin-arm64', binarySha256: digest(binary), binaryBytes: binary.length,
   generatedCSha256: 'b'.repeat(64), toolchainPinSha256: 'c'.repeat(64),
+  notices: {'MOONBIT-CORE-LICENSE': 'd'.repeat(64), 'MOONBIT-CORE-NOTICE': 'e'.repeat(64)},
   toolchain: {diagnostic: 'synthetic fixture, not compiled Native evidence'},
   abi: {format: 'Mach-O'}, testedHost: {}, generation: []};
 const expected = {sourceSha, binarySha256: metadata.binarySha256, binaryBytes: binary.length};

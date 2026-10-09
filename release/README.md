@@ -13,6 +13,20 @@ tarballs. Every other payload byte and file mode must remain identical. There
 is no install-time compiler, downloader, daemon or implicit Connector install.
 Package version is independent of the wire and semantic contract versions.
 
+The Local runtime package preserves the pinned MoonBit Core `LICENSE` and
+`NOTICE` verbatim as `MOONBIT-CORE-LICENSE` and `MOONBIT-CORE-NOTICE`; these are
+normal prepack payload files, not a replacement for ActQL's own license. The
+lightweight SDK also retains its existing Standard Schema license. Updating
+the Core pin must update the matching upstream notice files together.
+
+The current epoch-bound installed Host deliberately refuses pre-Run delegated
+approval (`ACTQL_E_DELEGATION_UNAVAILABLE`). Release installation acceptance
+checks the typed refusal, original submission lookup after process restart and
+zero physical dispatch. This is not successful approval acceptance. That
+required positive path remains incomplete until the shared Host provides its
+complete pre-Run response/cancel/recovery contract; distribution tooling does
+not introduce an alternative Owner or restore bare request-ID submission.
+
 Run preparation under the existing local heavy guard, with the repository's
 Node and MoonBit toolchain pins. Use a unique, absent RC destination:
 

@@ -16,6 +16,9 @@ The producer records the source SHA, compiler/toolchain pin, generated C
 digest, executable digest and size, and actual ABI inspection. Keep the record
 and executable together. Linux must use a real x64 Linux environment; emulation
 must be disclosed. Host-side package-selection simulation is not acceptance.
+Set `MOON_HOME` to the pinned toolchain. Each binary package preserves its
+Core license/notice files verbatim, checked against that compiler's installed
+Core and bound to the artifact record.
 The executable's greatest required GLIBC symbol version is its minimum bound,
 not a guarantee for arbitrary separately installed libcurl/transitive libraries.
 The tested OS/glibc/library set and an older untested bound are distinct.

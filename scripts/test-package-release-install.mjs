@@ -91,6 +91,10 @@ try {
     auditPackedPackages(consumer, names);
   }
   const local = join(root, 'node');
+  for (const filename of ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']) {
+    assert.deepEqual(await readFile(join(local, 'node_modules/@actql/local-node', filename)),
+      await readFile(join(repository, 'packages/local-node', filename)), 'Pinned Core notice bytes must survive installation');
+  }
   const localReadme = await readFile(join(local, 'node_modules/@actql/node/README.md'), 'utf8');
   const localExample = /## Short Local queries[\s\S]*?```js\n([\s\S]*?)```/u.exec(localReadme)?.[1];
   assert(localExample, 'Missing standalone Local README example');
@@ -102,13 +106,14 @@ try {
   await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mjs'), join(local, 'acceptance.mjs'));
   results.push(await run(process.execPath, ['acceptance.mjs', 'initial'], local));
   results.push(await run(process.execPath, ['acceptance.mjs', 'restart'], local));
-  // Reuse the actual public Checkpoint fixture in four distinct processes,
-  // without adding the unrelated Host-implementer package to the consumer.
+  // Preserve the current explicit pre-Run deferral refusal across restart.
+  // A successful approval remains a separate acceptance requirement; the
+  // closed epoch-bound Host contract does not currently provide that path.
   const approval = join(local, 'approval'); await mkdir(approval);
   await copyFile(join(local, 'values.json'), join(approval, 'values.json'));
   const document = JSON.parse(await readFile(join(approval, 'values.json'), 'utf8'));
   await writeFile(join(approval, 'expected.json'), JSON.stringify(document.stages[0].steps[0].values.rows));
-  await copyFile(join(repository, 'scripts/fixtures/packed-embedded-checkpoint.mjs'), join(approval, 'client.mjs'));
+  await copyFile(join(repository, 'scripts/fixtures/release-pre-run-refusal.mjs'), join(approval, 'client.mjs'));
   const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
   const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
   await writeFile(join(approval, 'reviewer.key'), pem(reviewer.privateKey), {mode: 0o600});
@@ -121,13 +126,15 @@ try {
       publicKey: pem(reviewer.publicKey)}], reviewReaders: [userInfo().username],
     hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)}, leaseMs: 10000,
   }), {mode: 0o600});
-  for (const [step, expected] of [['hold', 'held'], ['approve', 'approved'], ['resume', 'published'], ['recheck', 'published']]) {
+  for (const [step, expected] of [['submit', 'delegation-refused'], ['lookup', 'original-refusal-preserved']]) {
     const observed = await run(process.execPath, ['client.mjs', step], approval);
     assert.equal(observed.stdout.trim(), expected); results.push(observed);
   }
-  const events = (await readFile(join(approval, 'embedded-events.log'), 'utf8')).split('\n');
-  assert.equal(events.filter(v => v === 'computed').length, 1);
-  assert.equal(events.filter(v => v === 'physical_start_reserved').length, 1);
+  const {existsSync} = await import('node:fs');
+  const events = existsSync(join(approval, 'embedded-events.log'))
+    ? (await readFile(join(approval, 'embedded-events.log'), 'utf8')).split('\n') : [];
+  assert.equal(events.filter(v => v === 'computed').length, 0);
+  assert.equal(events.filter(v => v === 'physical_start_reserved').length, 0);
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'), join(local, 'short-queries.mjs'));
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'), join(local, 'short-queries.typecheck.mts'));
   results.push(await run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
@@ -144,7 +151,8 @@ try {
   const receipt = {version: 'actql-release-install-acceptance/0.1', sourceSha: manifest.sourceSha,
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
     consumer: root, node: process.version, platform: process.platform, arch: process.arch,
-    registry: 'private-loopback-fixed-RC', publicRegistryPublication: 'not-tested', results};
+    registry: 'private-loopback-fixed-RC', publicRegistryPublication: 'not-tested',
+    approvalAcceptance: {status: 'incomplete', reason: 'epoch-bound-pre-run-deferral-explicitly-unsupported', code: 'ACTQL_E_DELEGATION_UNAVAILABLE'}, results};
   await writeFile(join(directory, `install-${process.platform}-${process.arch}-${Date.now()}.json`),
     `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
   scratch.passed();
