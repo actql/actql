@@ -35,6 +35,8 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
+pub fn admit_resident_effect_source_dispatch(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest, String, @remote_site_protocol.RemoteInputBinding, String, String, String, String) -> Result[@run_publication_host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue]
+
 pub fn begin_resident_output_release(@remote_journal.Journal, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest) -> Result[Unit, ResidentOutputIssue]
 
 pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_payload.PublicationPayloadRequest) -> Result[Unit, ResidentOutputIssue]
@@ -143,6 +145,13 @@ pub(all) enum ResidentCompletedRestoration {
 pub(all) struct ResidentDelivery {
   payload : @publication_payload.PublicationPayloadRequest?
   result : Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
+}
+
+pub(all) enum ResidentEffectSourceDispatchIssue {
+  Refused(@remote_resident_site.ResidentDispatchRefusal)
+  Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
+  Dispatch(@run_publication_host.ClientEffectSourceDispatchIssue)
+  Source(ResidentSourceIssue)
 }
 
 pub(all) struct ResidentExecuted {
