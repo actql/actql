@@ -152,3 +152,18 @@ same existing GROUP/ANALYTIC contracts. The ordinary named-window regression
 selection above is preservation evidence, not execution evidence for aggregates
 in those declarations. This PR is not a claim of complete window coverage or
 completion of the overall text-to-Program goal.
+
+## Subsequent main integration
+
+Main `b987da2eae17e75dd76f641e6810cff7a252d053` was normally merged at
+`5d7192a4b1de32b7be5759164450e3fe9353db17`. The merge preserves the current
+recovery, value/field-name, managed completion, analytic-shape and immutable
+release contracts from main. It changes no query_syntax source or this unit's
+product lowerer/fixtures; existing query_program test updates from main remain.
+
+The integrated grouped/window and ordinary ORDER caller selection passed
+**48/48 JS tests**, `run-guPFlR` / `focused-test-SwOo0T`, using the same eight
+selected test files above and the existing 180-second wrapper. This is the
+integrated source's focused result, not a full Core or public execution result.
+The c43263ac9 packed receipt remains historical exact-source evidence; no
+integrated-HEAD packed/target CI success is claimed by this update.
