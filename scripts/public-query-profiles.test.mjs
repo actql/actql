@@ -234,3 +234,9 @@ test('full corpus pins every authored occurrence independently of worker selecti
   const coordinator = await readFile(new URL('./fixtures/packed-query-transports.mjs', import.meta.url), 'utf8');
   assert.ok(coordinator.includes("registered.inventorySha256, 'full worker inventory must match the independent authored pin'"));
 });
+import './public-query-refusal-classifications.test.mjs';
+
+// These independent fixture policies run in the ordinary packed preflight.
+import './graph-refusal-classification-source-input.test.mjs';
+import './full-join-scope-source-input.test.mjs';
+import './pipe-join-input.test.mjs';
