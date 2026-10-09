@@ -997,6 +997,19 @@ It does not change `actql-diagnostics/0.1`. Consumers must agree on the current
 pins; an older response or consumer is rejected by contract validation rather
 than adapted to success or an empty diagnosis.
 
+Structured Source selectors have a separate resolution domain. The existing
+SourceView resolver retains an opaque association between an unresolved Issue,
+its admitted Inputs, SourceRequestContracts and declaration. The
+`unresolved_selector_declaration` accessor checks these exact owners before
+returning the declaration; identical reconstructed inputs or Catalogs do not
+inherit the association. Limits and ambiguous selection do not issue it.
+Its diagnostic cursor belongs to the admitted Program: normalized grammar keys
+must pass through the existing original-document pointer mapping before public
+presentation. An omitted view points at its actual enclosing input; a NULL view
+fails declaration admission and is not an omitted selector. This resolution
+association alone proves neither installed registration completeness nor
+Provider Resource absence, and carries no read or execution authority.
+
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with
 execution-value Requirements; unsupported or incomplete static paths retain
