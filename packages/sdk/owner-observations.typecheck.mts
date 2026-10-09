@@ -1,4 +1,5 @@
-import {type Execution, type OwnerCursor, type OwnerObservations} from './index.js';
+import {explainOwnerObservations, formatOwnerObservations, type OwnerObservationsExplanation,
+  type Execution, type OwnerCursor, type OwnerObservations} from './index.js';
 
 declare const run: Execution;
 declare const cursor: OwnerCursor;
@@ -17,3 +18,23 @@ for(const owner of views.owners){
 views.control.revision;
 // @ts-expect-error A cursor is not a Run reference or a read capability.
 run.observeOwners({cursors:[run.ref]});
+
+const explained: OwnerObservationsExplanation | undefined = explainOwnerObservations(views);
+if (explained) {
+  const observation: 'owner_views' = explained.observation;
+  void observation;
+  explained.requested.cursors[0]?.owner.streamCid;
+  for (const view of explained.owners) {
+    if (view.kind === 'observed') {
+      view.history.summary;
+      if ('snapshotProblem' in view) view.snapshotProblem.hint;
+      if (view.history.kind === 'page') view.history.entries[0]?.entryCid;
+    } else view.hint;
+  }
+  // @ts-expect-error Observations do not carry write retry permission.
+  explained.retryAllowed;
+  // @ts-expect-error The composite vector is not a Run control revision.
+  explained.controlRevision;
+}
+const output: string | undefined = formatOwnerObservations(views, {format: 'json'});
+void output;

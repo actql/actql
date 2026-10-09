@@ -680,3 +680,22 @@ export type RunObservationFailureExplanation = Readonly<{
   Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response' | 'stale_observation'}>);
 export declare function explainRunObservationFailure(error: unknown,
   options?: OperationExplanationOptions): RunObservationFailureExplanation | undefined;
+
+/** Passive explanation bound to an original SDK-admitted multi-Owner observation. */
+export type OwnerObservationAdvice = Readonly<{summary: string; hint: string}>;
+type ExplainedOwnerView<T> = T extends {history: infer H}
+  ? Omit<T, 'history' | 'snapshotProblem'> & Readonly<{history: H & OwnerObservationAdvice}> &
+    (T extends {snapshotProblem: infer P}
+      ? Readonly<{snapshotProblem: P & OwnerObservationAdvice}> : {})
+  : T & OwnerObservationAdvice;
+export type OwnerObservationsExplanation = Omit<OwnerObservations, 'owners'> & OwnerObservationAdvice & Readonly<{
+  observation: 'owner_views';
+  owners: readonly ExplainedOwnerView<OwnerObservations['owners'][number]>[];
+  requested: Readonly<{cursors: readonly OwnerCursor[]; maxEntries: number; maxWireBytes: number}>;
+  lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+}>;
+/** Copies, foreign responses and rejected observations have no explanation custody. */
+export declare function explainOwnerObservations(result: unknown,
+  options?: OperationExplanationOptions): OwnerObservationsExplanation | undefined;
+export declare function formatOwnerObservations(result: unknown,
+  options?: OperationFormatOptions): string | undefined;
