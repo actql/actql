@@ -6,7 +6,7 @@ import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,
-  prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
+  prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome,
@@ -222,8 +222,8 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'cancel') {
         const answer = await invoke(cancel);
-        if (!validCancellation(answer, {...ref, cancelId: body.cancelId,
-          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellation');
+        if (!validCancellationAttempt(answer, {...ref, cancelId: body.cancelId,
+          expectedRevision: body.expectedRevision}, body.attemptRef)) fail('InvalidClientHostCancellation');
         return answer;
       }
       if (operation === 'lookup-cancellation') {

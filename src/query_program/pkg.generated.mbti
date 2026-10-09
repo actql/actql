@@ -23,6 +23,8 @@ pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
 
+pub fn unresolved_relation_reference(Issue) -> Array[@query_syntax.NamePart]?
+
 // Errors
 
 // Types and methods
@@ -72,6 +74,7 @@ pub(all) enum InputSource {
 pub(all) enum Issue {
   InvalidContext
   UnknownRelation
+  UnresolvedRelation(RelationResolutionReference)
   AmbiguousRelation
   UnknownColumn
   AmbiguousColumn
@@ -104,6 +107,10 @@ pub(all) struct Limits {
   max_join_output_rows : Int64
   max_collection_items : Int64
   max_collection_bytes : Int64
+}
+
+pub struct RelationResolutionReference {
+  // private fields
 }
 
 pub(all) enum TableWriteAction {

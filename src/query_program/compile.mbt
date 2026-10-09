@@ -65,6 +65,9 @@ pub(all) struct Limits {
 pub(all) enum Issue {
   InvalidContext
   UnknownRelation
+  // The existing relation resolver exhausted the admitted inputs for this
+  // exact semantic path. This witness alone is not a Source absence proof.
+  UnresolvedRelation(RelationResolutionReference)
   AmbiguousRelation
   UnknownColumn
   AmbiguousColumn
@@ -553,7 +556,7 @@ fn resolve_relation_input(
   }
   match found {
     Some(input) => input
-    None => raise Abort(UnknownRelation)
+    None => raise Abort(unresolved_relation_issue(relation))
   }
 }
 

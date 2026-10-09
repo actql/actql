@@ -1,0 +1,92 @@
+// Run under the existing heavy guard in a clean, platform-native checkout.
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {chmod, copyFile, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
+import {join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {checkoutState} from './packed-client-packages.mjs';
+import {platformKey} from '../packages/native-cli/bin/actql.mjs';
+
+const repository = fileURLToPath(new URL('../', import.meta.url));
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const run = (command, args) => execFileSync(command, args, {cwd: repository,
+  encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024});
+
+export function inspectNativeAbi(binary, platform, execute = execFileSync) {
+  const inspect = (tool, args) => execute(tool, args, {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
+  if (platform === 'darwin-arm64') {
+    const loadCommands = inspect('otool', ['-l', binary]);
+    const minimumMacOS = /\bcmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos (\d+\.\d+(?:\.\d+)?)/u.exec(loadCommands)?.[1];
+    assert(minimumMacOS, 'No observed macOS executable deployment requirement');
+    return {format: 'Mach-O', minimumMacOS,
+      sharedLibraries: inspect('otool', ['-L', binary]).split('\n').slice(1).filter(Boolean).map(v => v.trim()),
+      loadCommands, httpLibrary: '/usr/lib/libcurl.4.dylib', httpLibraryBundled: false};
+  }
+  const versionInfo = inspect('readelf', ['--version-info', binary]);
+  const versions = [...versionInfo.matchAll(/\bGLIBC_(\d+)\.(\d+)\b/gu)]
+    .map(v => [Number(v[1]), Number(v[2])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  assert(versions.length, 'No observed executable glibc symbol requirements');
+  const dynamic = inspect('readelf', ['-d', binary]);
+  return {format: 'ELF', minimumGlibc: versions.at(-1).join('.'),
+    sharedLibraries: [...dynamic.matchAll(/\(NEEDED\).*?\[([^\]]+)\]/gu)].map(v => v[1]),
+    versionInfo, dynamic, httpLibrary: 'libcurl.so.4', httpLibraryBundled: false,
+    httpLibraryRequirements: 'Separately supplied libcurl and its transitive dependencies may require a newer glibc than the executable.'};
+}
+
+export async function buildNativeCliArtifact(destination) {
+  const source = checkoutState(repository); assert(source.clean, 'Native artifact requires clean source HEAD');
+  const pins = JSON.parse(await readFile(join(repository, 'toolchain.json'), 'utf8'));
+  const moon = run('moon', ['version']).trim(), moonc = run('moonc', ['-v']).trim();
+  assert(moon.includes(pins.moon)); assert(moonc.includes(pins.moonc));
+  const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+  const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
+  run('moon', ['build', '--target', 'native', '--release', 'src/cmd/native_client']);
+  assert.deepEqual(checkoutState(repository), source);
+  const built = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
+  const c = join(repository, '_build/native/release/build/cmd/native_client/native_client.c');
+  destination = resolve(destination); await mkdir(destination);
+  const binary = join(destination, 'actql-native-client');
+  await copyFile(built, binary); await chmod(binary, 0o755);
+  const bytes = await readFile(binary);
+  const notices = {};
+  for (const [filename, coreFile] of [['MOONBIT-CORE-LICENSE', 'LICENSE'], ['MOONBIT-CORE-NOTICE', 'NOTICE']]) {
+    const text = await readFile(join(repository, 'packages/local-node', filename));
+    assert(process.env.MOON_HOME, 'Set MOON_HOME to the selected pinned toolchain');
+    assert.deepEqual(text, await readFile(join(process.env.MOON_HOME, 'lib/core', coreFile)), 'Distribution notices must match the compiler Core');
+    notices[filename] = hash(text);
+  }
+  let httpRuntime;
+  if (platform === 'linux-x64-gnu') {
+    const library = run('ldconfig', ['-p']).split('\n').find(line => /libcurl\.so\.4 .*x86-64.*=> /u.test(line))?.split('=> ')[1]?.trim();
+    assert(library, 'No x64 libcurl.so.4 runtime available for the declared distribution');
+    const dependencies = run('ldd', [library]); assert(!dependencies.includes('not found'), 'Unresolved libcurl dependency');
+    const paths = [library, ...[...dependencies.matchAll(/(?:=>\s+|^\s*)(\/[^\s]+)\s+\(/gmu)].map(v => v[1])];
+    const files = [];
+    for (const path of [...new Set(await Promise.all(paths.map(path => realpath(path))))]) {
+      const data = await readFile(path), versionInfo = run('readelf', ['--version-info', path]);
+      const versions = [...versionInfo.matchAll(/\bGLIBC_(\d+)\.(\d+)\b/gu)]
+        .map(v => [Number(v[1]), Number(v[2])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      files.push({path, bytes: data.length, sha256: hash(data), greatestListedGlibc: versions.at(-1)?.join('.') ?? null});
+    }
+    httpRuntime = {library, dependencies, files, testedGlibc: glibc,
+      interpretation: 'Observed installed libcurl closure; not a promise about other libcurl distributions.'};
+  } else httpRuntime = {library: '/usr/lib/libcurl.4.dylib', provider: 'OS dyld shared cache',
+    osVersion: run('sw_vers', ['-productVersion']).trim(), osBuild: run('sw_vers', ['-buildVersion']).trim(),
+    interpretation: 'The separately installed OS libcurl is validated by actual mTLS acceptance, not bundled.'};
+  const record = {version: 'actql-native-cli-artifact/0.1', sourceSha: source.revision,
+    platform, binarySha256: hash(bytes), binaryBytes: bytes.length,
+    generatedCSha256: hash(await readFile(c)), toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))), notices,
+    toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
+    abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
+    generation: ['moon', 'build', '--target', 'native', '--release', 'src/cmd/native_client']};
+  await writeFile(join(destination, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});
+  return record;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  assert.equal(process.argv.length, 3, 'usage: native-cli-artifact.mjs <new-artifact-directory>');
+  const record = await buildNativeCliArtifact(process.argv[2]);
+  console.log(JSON.stringify({sourceSha: record.sourceSha, platform: record.platform,
+    binarySha256: record.binarySha256, abi: record.abi.sharedLibraries}, null, 2));
+}

@@ -173,22 +173,33 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
 ///|
 test "Subgraph source keeps producer references and Carrier transitions scoped" {
   for
-    suffix in [
-      "FROM g |> subgraph(nodes: {from: missing, id: 'id'}) |> node_rows() |> SELECT node_key",
-      "DATA slice = FROM g |> subgraph(nodes: {from: later, id: 'id'}); DATA later = FROM g |> node_rows(); FROM slice |> node_rows() |> SELECT node_key",
-      "FROM g |> subgraph(nodes: {from: g, id: 'id'}) |> node_rows() |> SELECT node_key",
+    (suffix, reference) in [
+      (
+        "FROM g |> subgraph(nodes: {from: missing, id: 'id'}) |> node_rows() |> SELECT node_key",
+        "missing",
+      ),
+      (
+        "DATA slice = FROM g |> subgraph(nodes: {from: later, id: 'id'}); DATA later = FROM g |> node_rows(); FROM slice |> node_rows() |> SELECT node_key",
+        "later",
+      ),
+      (
+        "FROM g |> subgraph(nodes: {from: g, id: 'id'}) |> node_rows() |> SELECT node_key",
+        "g",
+      ),
     ] {
     let script = @query.parse_query_script(
       graph_rows_prefix() + suffix,
       syntax_limits(),
     ).unwrap()
     assert_true(
-      compile_query_script(
-        script,
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnknownRelation),
+      exact_unresolved_relation(
+        compile_query_script(
+          script,
+          { ..fixture_context(), inputs: [], },
+          construction_limits(),
+        ),
+        [(reference, false)],
+      ),
       msg=suffix,
     )
   }

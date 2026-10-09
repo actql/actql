@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "sourceBase": "42790dcce4caa13bf1755999258f8541d430f748",
+  "verifiedSource": "83ee62decee41b513f9a944e89970963c10a49cb",
+  "verifiedFiles": {
+    "packages/run-host-core/index.mjs": "85307c5e0c5d917e9bd526955e261c168ede3cdb76c49b10b704836012fd69f6",
+    "packages/run-host-core/index.d.ts": "6309ab4149a95e7c67d736a8a237db9a431e8ff1e6bf972b48765170d8919681",
+    "packages/run-host-core/index.test.mjs": "017e74c8fb38c77b018c866c7645eb8835a2517c3ef7647b6e4dc10673228f4c",
+    "packages/run-host-core/types.negative.test.ts": "74a382ddf43765687def2f12db23abec83a2e8f35f300fb98e5f0d077ed54494",
+    "packages/run-host-core/effect-run.test.mjs": "c9dbeadb7bf219ee5b38ee1bee64d0fb6330e373581633677960910117b54d3c",
+    "packages/run-host-core/effect-run.typecheck.mts": "2a7f42e142d886f193d7c8ac06e818b030408f334e5ec096231f4275cedd181e",
+    "packages/run-host-core/fixtures/source-compute-effect.program.json": "d770356c12d4aabdbb3d47ff6ed2fa2091f96cd50df0107dd6b36ef6e5ee1e45",
+    "packages/run-host-core/fixtures/source-compute-effect.environment.json": "01b331cb8a3bc7dc35bf00943c5a7bd7d3c21ff61c5f8c756f0700b7b328f828",
+    "src/client_values_host_abi/host.mbt": "03251631f8e15ce28251d962e73a8a56e1ab66f929d770aee42f53a6eb8ecd4d",
+    "src/client_values_host_abi/effect_host.mbt": "af7bca03ec723c8f5e90b3593db5a90cbeba6ad554afa1f4b36a71e957e28643",
+    "src/client_values_host_abi/pkg.generated.mbti": "5df85892e78aa98fe87925209726e58c77cbfef2d7b28a6e22658d284180902d"
+  },
+  "artifacts": [
+    {
+      "name": "client-wire",
+      "sha256": "7b2ad28f42998039cba6b9a1d14dba5b0eff0289fcbfc1bd500199286b54c4f3"
+    },
+    {
+      "name": "run-host-core",
+      "sha256": "85d0df4a65c4566e1628d082e1a4d4e7abf71c5af78cdc2ebbbfa559c3a6f6af"
+    }
+  ],
+  "checks": [
+    {
+      "command": "node scripts/build-runtime-packages.mjs run-host-core",
+      "result": "passed",
+      "receipt": "_build/resident-effect-worker-owner-1791527894303/receipt.json"
+    },
+    {
+      "command": "bounded/nonzero Node wrapper: packages/run-host-core/effect-run.test.mjs",
+      "tests": 6,
+      "passed": 6,
+      "skipped": 0,
+      "receipt": "_build/resident-effect-worker-owner-1791527894303/receipt.json"
+    },
+    {
+      "command": "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/run-host-core/types.negative.test.ts",
+      "result": "passed"
+    },
+    {
+      "command": "moon info --target js src/client_values_host_abi",
+      "result": "passed"
+    },
+    {
+      "command": "npm pack ./packages/client-wire and ./packages/run-host-core with normal prepack; private offline consumer install",
+      "result": "passed",
+      "cleanSource": "83ee62decee41b513f9a944e89970963c10a49cb",
+      "receipt": "_build/resident-effect-worker-packed-1791528043764/receipt.json"
+    },
+    {
+      "command": "bounded/nonzero Node wrapper: unchanged Effect tests against installed tarballs",
+      "tests": 6,
+      "passed": 6,
+      "skipped": 0,
+      "receipt": "_build/resident-effect-worker-packed-1791528043764/receipt.json"
+    },
+    {
+      "command": "tsc negative Effect types against installed tarballs",
+      "result": "passed"
+    },
+    {
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "result": "failed",
+      "firstError": "Unlisted foundation source change 8e49ab32965ece28ffdbf7104542548aa53bc2b1: package.json",
+      "receipt": "_build/resident-effect-worker-packed-1791528043764/history.log",
+      "scope": "Inherited main history. This change modifies no protected foundation path or declaration; no validation bypass was added."
+    }
+  ],
+  "limitations": [
+    "No Source acquisition, Effect Preview, approval, physical write, Cloud Run transition, restart continuation or release was executed by these preparation/restoration checks.",
+    "The packed consumer uses installed ActQL tarballs; esbuild is borrowed read-only solely as test tooling.",
+    "Hosted CI remains disabled by instruction.",
+    "Formal Cloud adoption must use a merged OSS main SHA.",
+    "Earlier tuple-projection and type-resolution failures remain in local diagnostic logs; those defects were corrected before the successful checks."
+  ]
+}

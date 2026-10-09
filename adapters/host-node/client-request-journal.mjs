@@ -789,6 +789,18 @@ export function openClientRequestJournal(directory, {
     if (closed) fail('ClientRequestJournalClosed');
     transaction.assertUsable();
   };
+  // Only an explicit semantic rejection from this Owner, followed by a
+  // confirmed rollback of initial admission, can certify this invocation.
+  // An error code copied from another operation carries no such custody.
+  const cancellationRejectionCandidates = new WeakMap();
+  const cancellationRejections = new WeakMap();
+  let activeCancellationAttempt;
+  const rejectCancellation = (code, kind, reason) => {
+    const error = Object.assign(new Error(code), {code});
+    cancellationRejectionCandidates.set(error, Object.freeze({kind, reason,
+      ticket: activeCancellationAttempt}));
+    throw error;
+  };
   const transact = (operation, unknownCode, known, action) => {
     try { return transaction.run(action); }
     catch (error) {
@@ -799,7 +811,14 @@ export function openClientRequestJournal(directory, {
       ].includes(error?.code);
       if (!transactionFailure && known(error) &&
           error.outcome !== 'unknown' &&
-          transaction.connectionUsable) throw error;
+          transaction.connectionUsable) {
+        const rejection = cancellationRejectionCandidates.get(error);
+        if (operation === 'cancel_admission' && rejection !== undefined &&
+            rejection.ticket === activeCancellationAttempt) {
+          cancellationRejections.set(error, rejection);
+        }
+        throw error;
+      }
       throw Object.assign(new Error(unknownCode, {
         cause: error.cause ?? error,
       }), {
@@ -1154,8 +1173,8 @@ export function openClientRequestJournal(directory, {
       publicationCommitted || facts.preDispatchFailureConfirmed ||
         facts.physicalCloseConfirmed && facts.observedTerminalOutcome !== null,
       facts.cancellationRequested);
-    if (action === 4) fail('ClientCancellationIntentConflict');
-    if (action === 6) fail('ClientCancellationRevisionConflict');
+    if (action === 4) rejectCancellation('ClientCancellationIntentConflict', 'conflict', 'intent');
+    if (action === 6) rejectCancellation('ClientCancellationRevisionConflict', 'conflict', 'control_revision');
     if (![0, 1, 2, 3].includes(action)) fail('ClientCancellationDenied');
     return action;
   };
@@ -1824,7 +1843,9 @@ export function openClientRequestJournal(directory, {
           const action = cancellationAction(identity, retained?.identity, facts, row,
             currentAuthorization, publicationCommitted, requestControl);
           if (retained !== undefined) return {...retained, facts, action};
-          if (Number(count.get().n) + custodyCount >= maxRecords) fail('ClientRequestJournalCapacity');
+          if (Number(count.get().n) + custodyCount >= maxRecords) {
+            rejectCancellation('ClientRequestJournalCapacity', 'refused', 'admission_capacity');
+          }
           cancellationInsert.run(ref.namespaceId, ref.authorityScopeCid, cancelId,
             ref.runDefinitionCid, expectedRevision, requestControl.clientCancellationIntentCid(identity));
           database.prepare(`UPDATE client_cancellation_custody SET issued_count = issued_count + 1
@@ -1881,6 +1902,43 @@ export function openClientRequestJournal(directory, {
           ref.authorityScopeCid, cancelId).changes !== 1) fail('ClientRequestJournalCorrupt');
         return Object.freeze({cancellation: outcome, recorded: true});
       });
+    },
+    // Per-invocation public facts are deliberately not persisted as operation
+    // outcomes. Refused consumes no identity; another invocation can already
+    // own the same cancellation. Pending custody and uncertain COMMIT never
+    // produce this certificate. The durable original remains unchanged.
+    recordCancellationAttempt(ref, {attemptRef, ...options}, requestControl, publicationControl) {
+      ensureOpen();
+      if (attemptRef === null || typeof attemptRef !== 'object' ||
+          Object.keys(attemptRef).sort().join(',') !== 'attemptId,operation' ||
+          attemptRef.operation !== 'cancel' || !text(attemptRef.attemptId) ||
+          !attemptRef.attemptId.isWellFormed() ||
+          !validCancellationRef({...ref, cancelId: options.cancelId,
+            expectedRevision: options.expectedRevision}) ||
+          typeof options.currentAuthorization !== 'boolean') {
+        fail('InvalidClientCancellationAttempt');
+      }
+      const ownedAttempt = Object.freeze({operation: 'cancel', attemptId: attemptRef.attemptId});
+      if (!options.currentAuthorization) return Object.freeze({
+        kind: 'refused', attemptRef: ownedAttempt,
+        guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization',
+      });
+      const ticket = {};
+      const previousAttempt = activeCancellationAttempt;
+      activeCancellationAttempt = ticket;
+      try {
+        const result = journal.recordCancellationOperation(ref, options, requestControl, publicationControl);
+        return Object.freeze({kind: result.cancellation.kind === 'accepted'
+          ? 'accepted' : 'already_satisfied', attemptRef: ownedAttempt,
+          cancellation: result.cancellation, recorded: result.recorded});
+      } catch (error) {
+        const rejection = cancellationRejections.get(error);
+        if (rejection === undefined || rejection.ticket !== ticket) throw error;
+        return Object.freeze({kind: rejection.kind, reason: rejection.reason, attemptRef: ownedAttempt,
+          ...(rejection.kind === 'refused' ? {guarantee: 'attempt_uncommitted_unconsumed'} : {}),
+          cancelRef: ownedCancellationRef({...ref, cancelId: options.cancelId,
+            expectedRevision: options.expectedRevision})});
+      } finally { activeCancellationAttempt = previousAttempt; }
     },
     // An exact, authorized observation. It never fences, starts execution or
     // completes a pending operation; absent custody is not proof of rejection.

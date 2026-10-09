@@ -8,8 +8,8 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {publicationPlan, publishedVersion, verifyPackageRelease} from './package-release.mjs';
 
-export async function publishPackageRelease({directory, executePublish, fetchMetadata = fetch}) {
-  const manifest = await verifyPackageRelease(directory);
+export async function publishPackageRelease({directory, executePublish, fetchMetadata = fetch, verify = verifyPackageRelease}) {
+  const manifest = await verify(directory);
   // Inspect the whole cohort first, so an occupied conflicting version does
   // not cause an avoidable partial publication of earlier dependencies.
   const plan = await publicationPlan(manifest, fetchMetadata);

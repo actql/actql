@@ -112,21 +112,32 @@ test "Graph Delta source keeps invalid argument bodies at the common checker" {
 ///|
 test "Graph Delta source rejects foreign names and a second Carrier transition" {
   for
-    tail in [
-      "FROM g |> apply_graph_delta(with: missing, field: 'delta') |> node_rows()",
-      "FROM g |> apply_graph_delta(with: g, field: 'delta') |> node_rows()", "DATA applied = FROM g |> apply_graph_delta(with: later, field: 'delta'); DATA later = FROM changes; FROM applied |> node_rows()",
+    (tail, reference) in [
+      (
+        "FROM g |> apply_graph_delta(with: missing, field: 'delta') |> node_rows()",
+        "missing",
+      ),
+      (
+        "FROM g |> apply_graph_delta(with: g, field: 'delta') |> node_rows()", "g",
+      ),
+      (
+        "DATA applied = FROM g |> apply_graph_delta(with: later, field: 'delta'); DATA later = FROM changes; FROM applied |> node_rows()",
+        "later",
+      ),
     ] {
     let script = @query.parse_query_script(
       graph_delta_source_prefix() + tail,
       syntax_limits(),
     ).unwrap()
     assert_true(
-      compile_query_script(
-        script,
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnknownRelation),
+      exact_unresolved_relation(
+        compile_query_script(
+          script,
+          { ..fixture_context(), inputs: [], },
+          construction_limits(),
+        ),
+        [(reference, false)],
+      ),
       msg=tail,
     )
   }
