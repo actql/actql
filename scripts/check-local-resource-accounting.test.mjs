@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {validateResourceAccounting} from './validate-local-resource-accounting.mjs';
 import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
 import {boundedSorterAliases, isProductionMoonSource, localResourceApiIssues} from './local-resource-api-guard.mjs';
+import {registeredResourceEnvironmentCase} from './local-resource-environment-fixtures.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/check-local-resource-accounting.mjs');
@@ -64,6 +65,95 @@ function sorterFixture(code, descriptor = 'import { "actql/actql/bounded_tuple_s
     [join(directory, name)]: Object.freeze({exists: true, text: code}),
   });
 }
+
+test('resource evidence resolves metadata titles through their executable case loop', () => {
+  const source = sourceTemplate[join(root,
+    'adapters/host-node/public-property-name-retention.test.mjs')].text;
+  for (const kind of ['join', 'nest', 'interval', 'asof']) {
+    const item = {suite: 'node:embedded_property_names',
+      role: `${kind}_compound_metadata_public`, case: 'compoundCompletionProgram',
+      fixture: `public retained ${kind} source metadata preserves results and post-progress custody`};
+    assert.equal(registeredResourceEnvironmentCase(item, source), true);
+    for (const [before, after] of [
+      [`['${kind}','${item.fixture}']`, `['wrong','${item.fixture}']`],
+      ['test(title,', 'unregistered(title,'],
+      ['=>verifyRetainedNames(t,`${kind}-source-metadata`,', '=>unrelated(t,`${kind}-source-metadata`,'],
+      ['id=>compoundCompletionProgram(id,kind,true),rows,contract)',
+        'id=>compoundCompletionProgram(id,kind,false),rows,contract)'],
+    ]) {
+      assert.ok(source.includes(before), before);
+      assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, after)), false);
+    }
+    assert.equal(registeredResourceEnvironmentCase({...item, fixture: 'absent'}, source), false);
+  }
+});
+
+test('resource sequence evidence keeps both registered overlap cases connected', () => {
+  const source = sourceTemplate[join(root,
+    'adapters/host-node/public-property-name-retention.test.mjs')].text;
+  const item = {suite: 'node:embedded_property_names', case: 'sequencePositionProgram',
+    fixture: 'public retained sequence ${overlap} position copies preserve results and cleanup custody'};
+  assert.equal(registeredResourceEnvironmentCase(item, source), true);
+  for (const [before, after] of [
+    ["['allow','disallow']", "['allow']"],
+    [`test(\`${item.fixture}\`,`, `unregistered(\`${item.fixture}\`,`],
+    ['id=>sequencePositionProgram(id,overlap),', 'id=>unrelated(id,overlap),'],
+  ]) {
+    assert.ok(source.includes(before), before);
+    assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, after)), false);
+  }
+  assert.equal(registeredResourceEnvironmentCase({...item, fixture: 'absent'}, source), false);
+});
+
+test('resource Graph evidence follows the captured registry and the suite registration', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  const item = {suite: 'node:graph_public_host', role: 'graph_projection_public_store',
+    fixture: 'presence selection sort and take survives Relation Store and public Named Results through local'};
+  assert.equal(registeredResourceEnvironmentCase(item, source, registry, 'node_rows'), true);
+  for (const [before, after] of [
+    ["'./fixtures/graph-host-cases.mjs'", "'./unrelated.mjs'"],
+    ['of graphPublicHostCases)', 'of unrelatedCases)'],
+    ['test(name,', 'unregistered(name,'],
+    ["presenceFilterScenario(empty, profile === 'presence-selection')", 'unrelated(empty)'],
+  ]) {
+    assert.ok(source.includes(before), before);
+    assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, after), registry, 'node_rows'), false);
+  }
+  for (const [before, after] of [
+    ["['local','remote']", "['remote']"],
+    ['Object.entries(profiles)', 'Object.entries(unrelated)'],
+    ['name:`${title} ${mode}`', 'name:`${title}${mode}`'],
+    ["'presence-selection':", "'presence-selection-absent':"],
+  ]) {
+    assert.ok(registry.includes(before), before);
+    assert.equal(registeredResourceEnvironmentCase(item, source, registry.replace(before, after), 'node_rows'), false);
+  }
+  assert.equal(registeredResourceEnvironmentCase(item, source, '', 'node_rows'), false);
+  assert.equal(registeredResourceEnvironmentCase({...item, fixture: 'absent'}, source, registry, 'node_rows'), false);
+  assert.equal(registeredResourceEnvironmentCase(item, source, registry, 'edge_rows'), false,
+    'the node-only selection case cannot establish edge projection custody');
+  const projection = {...item,
+    fixture: 'Graph row projections preserve presence through Store and public local'};
+  for (const operation of ['node_rows', 'edge_rows']) {
+    assert.equal(registeredResourceEnvironmentCase(projection, source, registry, operation), true);
+  }
+  const missingEdges = source.replace("for (const projection of ['node_rows','edge_rows']) {\n        const document = structuredClone(presenceFixture);",
+    "for (const projection of ['node_rows']) {\n        const document = structuredClone(presenceFixture);");
+  assert.notEqual(missingEdges, source);
+  assert.equal(registeredResourceEnvironmentCase(projection, missingEdges, registry, 'edge_rows'), false);
+});
+
+test('resource validation refuses a detached captured Graph fixture registry', () => {
+  const file = join(root, 'scripts/fixtures/graph-host-cases.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({exists: true, text: ''})});
+  const errors = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources, requireBoundaryComplete: true}).errors;
+  for (const operation of ['node_rows', 'edge_rows']) {
+    assert.ok(errors.some(error => error.startsWith(`Bridge ${operation}: missing environment fixture`)));
+  }
+});
 
 test('bounded resource API guard accepts current source and rejects eager consumers', () => {
   assert.deepEqual(apiGuardErrors(sourceTemplate), []);
@@ -1010,6 +1100,30 @@ test('unsupported Graph routes require one shared public refusal boundary and ca
     assert.match(run(undefined, routes => { delete routes.refusal_boundary[field]; },
       ['--require-boundary-complete']),
     /current Graph refusals lack the shared required public pre-execution boundary/u);
+  }
+});
+
+test('Graph refusal evidence requires durable nonadmission and the unsupported profile code', () => {
+  const file = join(root, 'scripts/graph-public-host.test.mjs');
+  const source = sourceTemplate[file];
+  for (const marker of [
+    "assertRejectedSubmission(client, canonicalText(rejected), submissionRef, 'ClientProgramImplementationLimit')",
+    'assert.ok(error instanceof ClientError)',
+    "assert.equal(error.code, 'SubmissionNotAccepted')",
+    'outcome = getSubmissionOutcome(error)',
+    "assert.equal(outcome.kind, 'not_accepted')",
+    'assert.deepEqual(outcome.submissionRef, submissionRef)',
+    'assert.equal(outcome.problem.code, code)',
+    "assert.equal(Object.hasOwn(outcome, 'admission'), false)",
+    'assert.deepEqual(await client.lookupSubmission(submissionRef), outcome)',
+    'for (const externalInput of [false,true])',
+  ]) {
+    assert.ok(source.text.includes(marker), marker);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...source, text: source.text.replace(marker, 'removed_boundary_check')})});
+    const errors = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources, requireBoundaryComplete: true}).errors;
+    assert.ok(errors.includes('current Graph refusals lack the shared required public pre-execution boundary'), marker);
   }
 });
 

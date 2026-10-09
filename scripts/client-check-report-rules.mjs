@@ -3,7 +3,7 @@
 const rules = {
   unique_document_ids: {
     js: `if (documents.size !== report.inputs.length) return false;`,
-    native: `if documents.size() != inputs.length() { return false }`,
+    native: `if documents.length() != inputs.length() { return false }`,
   },
   input_document_kinds: {
     js: `const program = documents.get('program');

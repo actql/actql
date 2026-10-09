@@ -234,9 +234,11 @@ test "ordinary append filter chain reserves both live children" {
   }
   // Both private completions coexist until reverse-order chain cleanup.
   // Each live child also owns the existing 256-byte handle allowance.
+  // Input selection and common producer-read preparation each retain one
+  // additional 256-byte metadata handle, independently of the child handles.
   assert_true(children > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
-  assert_eq(capacity.execution_bytes, children + 512L)
+  assert_eq(capacity.execution_bytes, children + 512L + 512L)
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)
 }

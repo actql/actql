@@ -12,6 +12,7 @@ fn indexed_snapshot_fixture(
   work? : Int = 100000,
   entries? : Int = 10000,
   name_bytes? : Int = 10000,
+  selected? : Bool = false,
 ) -> BoundedBindingRowsExecution raise {
   let input_rows = rows.unwrap_or("[{\"id\":1,\"" + name + "\":7}]")
   let source_owner = bound_pipeline(
@@ -74,6 +75,11 @@ fn indexed_snapshot_fixture(
     10000,
   ).unwrap()
   let bound = bind_completed_input(receiver, 0, source_owner, source).unwrap()
+  let generated = if selected {
+    select_generated_sequence_step(generated, 0).unwrap()
+  } else {
+    generated
+  }
   let read = prepare_producer_read(receiver, bound, 100, 10000).unwrap()
   start_bounded_binding_rows(
     @bounded.control(),

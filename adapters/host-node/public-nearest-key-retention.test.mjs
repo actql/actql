@@ -147,7 +147,7 @@ async function runPublicNearestBarrier(t, {
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program(fixtureId, prefix, direct, longNames));
-    const options = {format: 'json', requestId: fixtureId};
+    const options = {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId})};
     const execution = await client.startSource(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
@@ -165,7 +165,7 @@ async function runPublicNearestBarrier(t, {
 
     cancelling = true;
     const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', prefix, direct, longNames)),
-      {format: 'json', requestId: fixtureId + '-cancel'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId + '-cancel'})});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
         throw new Error(`nearest missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);

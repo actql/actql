@@ -1688,9 +1688,15 @@ for (const [entrance, open] of Object.entries(entrances)) {
 test('http: a malformed check request is refused before checking',
   async t => {
     const client = await httpClient(t, configurations.denied);
+    const valid = await client.post({kind: 'text', scope: 'bound_input',
+      input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null});
+    assert.equal(valid.status, 200);
+    const admitted = await valid.json();
+    assert.equal(admitted.outcome, 'completed');
+    assert.equal(admitted.report.verdict, 'verified');
     await assert.rejects(client.check(query, {kind: 'text', scope: 'bound_input', format: 'json'}),
       {code: 'InvalidCheckRequest'});
-    const response = await client.post({input: {text: query, format: 'json'},
+    const response = await client.post({kind: 'text', scope: 'bound_input', input: {text: query, format: 'json'},
       parameters: null});
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {code: 'InvalidClientRequest'});
@@ -2958,7 +2964,7 @@ for (const entrance of ['local', 'http']) {
     // The existing lowerer returns one typed issue for these distinct forms.
     // It cannot establish which one is a proven unknown name or a support gap.
     const cases = [['/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n', 17, 36],
-      ['/*😀*/\r\nSELECT `SQRT`(1) AS n', 17, 26], ['/*😀*/\r\nSELECT ACTQL.OTHER(1) AS n', 17, 31]];
+      ['/*😀*/\r\nSELECT `NOFN`(1) AS n', 17, 26], ['/*😀*/\r\nSELECT ACTQL.OTHER(1) AS n', 17, 31]];
     const expectedLimit = (outcome, startByte, endByte) => ({code: 'implementation_limit',
       facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text', document_id: 'source',
         revision: getCheckInput(outcome, 'source').revision, precision: 'exact', start_byte: startByte, end_byte: endByte}});
@@ -3235,12 +3241,12 @@ async function installation(install, {readOutcome, aliases},
       resource: '/records.duckdb', sourceRef}]});
 }
 
-const ownerRequest = (name, principalId = owner) => ({principalId,
+const ownerRequest = (name, principalId = owner) => ({principalId, kind: 'text', scope: 'bound_input',
   input: {text: requests[name].text, format: 'sql',
     parameterDeclarations: declarations},
   parameters: requests[name].parameters});
 const sourceRequest = (text, parameters = null, parameterDeclarations) => ({
-  principalId: owner, input: {text, format: 'sql',
+  principalId: owner, kind: 'text', scope: 'bound_input', input: {text, format: 'sql',
     ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})},
   parameters});
 
@@ -3321,7 +3327,7 @@ test('fixed-key owners give byte-equal outcomes for absent, denied and ' +
 test('an unsupported format is a failure without a verdict', async () => {
   const check = await installation(installNodeClientCheck,
     configurations.denied);
-  const outcome = await check({principalId: owner,
+  const outcome = await check({principalId: owner, kind: 'text', scope: 'bound_input',
     input: {text: 'SELECT id FROM records', format: 'json'},
     parameters: null});
   assert.match(outcome.correlation_ref, /^corr:[0-9a-f]{32}$/u);
@@ -3380,11 +3386,11 @@ const mutations = Object.freeze({
     'if (signal?.aborted) throw cause;\n      return aliases;'],
   // A hidden name is checked as if it were visible.
   'hidden source is checked as visible': [
-    'JSON.stringify({environmentCid, aliases: visible})',
-    'JSON.stringify({environmentCid, aliases})'],
+    'input.format, environment,\n      JSON.stringify({environmentCid, aliases: visible,',
+    'input.format, environment,\n      JSON.stringify({environmentCid, aliases,'],
   // The context reference names the private source set.
   'context binds the private source set': [
-    'visible_aliases: visible};', 'visible_aliases: aliases};'],
+    'visible_aliases: visible,', 'visible_aliases: aliases,'],
   // A reference is reused across audiences.
   'context omits the audience': [
     'version: contextVersion, audience: principalId,',
@@ -3452,10 +3458,30 @@ for (const entrance of ['local', 'http']) {
         .replace("'./checkpoints.mjs'", JSON.stringify(checkpoints))));
       const oldWire = await import(wire);
       assert.equal(oldWire.checkReasonSchemaCid, expectedCid);
+      let oldReports = 0;
       const client = await contextClient(t, entrance, absentEnvironment,
-        {sdkConnect: previous.connect, sdkConnectInProcess: previous.connectInProcess});
+        {sdkConnect: previous.connect, sdkConnectInProcess: previous.connectInProcess,
+          mutateCheckReply: outcome => { oldReports++; return outcome; }});
+      const current = await contextClient(t, entrance, absentEnvironment);
       for (const text of ['SELECT 1 AS n', "SELECT '\\q' AS x", 'SELECT CONCAT() AS n']) {
-        await assert.rejects(client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'}), {code: 'InvalidHostCheckOutcome'});
+        const outcome = await current.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(validCheckOutcome(outcome), true);
+        assert.equal(oldWire.validCheckOutcome(outcome), false,
+          'The unchanged historical decoder refuses the current report contract');
+        // These frozen SDKs predate mandatory kind/scope and cannot reach the
+        // current checker. Local historical transport wraps a foreign error;
+        // HTTP preserves the public 400 code. Neither creates a report.
+        await assert.rejects(client.check(text, {format: 'sql'}), error => {
+          if (entrance === 'local') {
+            assert.equal(error.code, 'ClientTransportUnknown');
+            assert.equal(error.cause?.code, 'InvalidClientRequest');
+          } else {
+            assert.equal(error.code, 'InvalidClientRequest');
+            assert.equal(error.status, 400);
+          }
+          return true;
+        });
+        assert.equal(oldReports, 0);
       }
     }
   });
@@ -4431,7 +4457,7 @@ test('local: raw check input custody precedes asynchronous authentication', asyn
     },
   });
   waiting = true;
-  const body = {connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+  const body = {kind: 'text', scope: 'bound_input', connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
     input: {text: 'SELECT @x AS n', format: 'sql', parameterDeclarations: {x: {type: 'number'}}},
     parameters: {x: 7}};
   const pending = raw(body);
@@ -4456,8 +4482,13 @@ test('local: check snapshots cannot erase or introduce unexpected request fields
       return connectInProcess(options, port);
     },
   });
-  const request = () => ({connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+  const request = () => ({kind: 'text', scope: 'bound_input', connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
     input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null});
+  const admitted = await raw(request());
+  assert.equal(admitted.outcome, 'completed', '[check-mutation:host-check-request-valid-control]');
+  assert.equal(admitted.report.verdict, 'verified');
+  assert.equal(checked, 1);
+  checked = 0;
   for (const value of [undefined, () => null, Symbol('unknown')]) {
     for (const domain of ['request', 'input']) {
       const body = request();
@@ -4469,8 +4500,13 @@ test('local: check snapshots cannot erase or introduce unexpected request fields
     }
   }
   const body = request();
-  Object.defineProperty(body, 'toJSON', {value: () => ({...body, extra: true})});
+  let serializations = 0;
+  Object.defineProperty(body, 'toJSON', {value: () => {
+    serializations++;
+    return {...body, extra: true};
+  }});
   const result = await raw(body);
+  assert.equal(serializations, 1, 'the original request serializer is observed once');
   assert.equal(result.code, 'InvalidClientRequest', '[check-mutation:host-check-request-shape]');
   assert.deepEqual(result, {code: 'InvalidClientRequest'});
   assert.equal(checked, 0);
@@ -5071,7 +5107,7 @@ for (const entrance of ['local', 'http']) {
     for (const [text, startByte, endByte, fragment] of [
       ['SELECT UNKNOWN_FUNCTION(1) AS n', 7, 26, 'UNKNOWN_FUNCTION(1)'],
       ['/*e\u0301😀*/\r\nSELECT UNKNOWN_FUNCTION(1) + 2 AS n', 20, 39, 'UNKNOWN_FUNCTION(1)'],
-      ['/* UNKNOWN_FUNCTION(1) */\r\nSELECT `SQRT`(1) AS n', 34, 43, '`SQRT`(1)'],
+      ['/* UNKNOWN_FUNCTION(1) */\r\nSELECT `NOFN`(1) AS n', 34, 43, '`NOFN`(1)'],
     ]) {
       const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(outcome.outcome, 'completed');

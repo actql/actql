@@ -15,7 +15,7 @@ fn restored_output_fixture(
   @site.ExecutionSite,
 ) raise {
   let root = root_path.unwrap_or_else(() => {
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
+    @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT").unwrap_or_else(() => {
       abort("private physical root required")
     })
   })

@@ -1,8 +1,9 @@
+import {inspect} from 'node:util';
 import {withFixtureConnector} from '../../../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -12,6 +13,8 @@ import * as moon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {installNodeClientEffectRun} from '../../../host-node/client-effect-run.mjs';
 import {openClientRequestJournal} from '../../../host-node/client-request-journal.mjs';
+import {installNodeClientSubmission} from '../../../host-node/client-submission.mjs';
+import {installNodeClientRequestLookup} from '../../../host-node/client-request-lookup.mjs';
 import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {captureClaimedEffectResponse} from '../../../host-node/effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from
@@ -83,7 +86,7 @@ import {issueCompletedEffectfulComputationEvidence,
 import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../../../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../../../store-local/publication-store.mjs';
-import {connect as connectClient} from '../../../../packages/sdk/index.mjs';
+import {connect as connectClient, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs';
 import {validRunState} from '../../../../packages/client-wire/index.mjs';
 
 const fixture = new URL('../../../../packages/sdk/fixtures/', import.meta.url);
@@ -776,7 +779,7 @@ function ledgerEntryCount(root) {
 
 async function verifyEffectCommitAuthorization(t, {
   moon, previewInputs, members, preflight, applyPreview, body, directory,
-  memberIds,
+  memberIds, callerRequestId,
 }) {
   const provider = await openCountingProvider(t);
   const rowPaths = members.flatMap(member =>
@@ -822,7 +825,7 @@ async function verifyEffectCommitAuthorization(t, {
   };
   const openScenarioLedger = root => openEffectLedger({moon, root,
     authorityScopeCid: cid('e'),
-    callerRequestId: 'complete-two-effects-request', maxEntryBytes: 4096});
+    callerRequestId, maxEntryBytes: 4096});
   // Mock provider dispatch through the durable ledger claim.
   const dispatcher = (ledger, calls, {loseReplyAt} = {}) =>
     async ({memberIndex, rowIndex, claim}) => {
@@ -1564,11 +1567,16 @@ test(`two-member captured Effect Run ${
     // The owner-issued reconciliation state of an unknown Run, and the
     // provider writes observed when it was recorded.
     let reconciled;
-    let observedWrites;
+    let observedWrites, executionFailure;
     const executeEffectRun = async ({owner: bound, prepared,
       compilation: effectCompilation, allowed, definition,
       identity: clientRequest, ref: clientRef}) => {
     physicalStarts++;
+    // The submission nonce is not the admitted logical request ID. All
+    // physical ledger owners and restart inputs retain the actual request
+    // that the public submission owner admitted, without inventing an alias.
+    const callerRequestId = moon.clientRequestCallerId(clientRequest);
+    assert.equal(moon.clientRequestAuthorityScopeCid(clientRequest), cid('e'));
     if (physical === 'simulated') {
       const noRecompile = {...moon,
         clientProgramCompileLocalEffects() {
@@ -1927,6 +1935,10 @@ test(`two-member captured Effect Run ${
         }) : previewDraft;
       if (siteRun) {
         const issuedMembers = JSON.parse(preview.wire).effects;
+        assert.notEqual(sourcePayload.localResultArtifact.identity, sourcePayload.summary.artifact.identity,
+          'local semantic Result and run-custody Effect source remain distinct');
+        assert.deepEqual(issuedMembers.map(member => member.result_artifact_cid),
+          memberIds.map(() => sourcePayload.localResultArtifact.identity));
         assert.equal(issuedLocalIdentities.length, 2);
         assert.doesNotThrow(() =>
           control.checkSourceFreeLocalEffectPreviewIdentities(
@@ -2200,6 +2212,8 @@ test(`two-member captured Effect Run ${
       const holdingOwner = preparePinnedEffectSourceHoldings({
         sources: sourceSet, store, control, preview: admittedPreview,
         invocation: runInvocation,
+        ...(siteRun ? {resultArtifacts: sourceSet.members.map(({payload}) =>
+          payload.localResultArtifact)} : {}),
       });
       const [firstHolding, secondHolding] = await holdingOwner.commit();
       assert.notEqual(firstHolding.holdingCid, secondHolding.holdingCid);
@@ -2330,13 +2344,14 @@ test(`two-member captured Effect Run ${
         runDefinition, store.storeAuthorityCid));
       const captureSources = [firstHolding, secondHolding].map(
         value => ({memberIndex: value.memberIndex,
-          artifact: value.artifact}));
-      assert.equal(control.capturedEffectSourceRecoveryInventoryValid(
-        admittedPreview, captureSources), true);
-      assert.equal(control.capturedEffectSourceRecoveryInventoryValid(
-        admittedPreview, captureSources.slice(1)), false);
-      assert.equal(control.capturedEffectSourceRecoveryInventoryValid(
-        admittedPreview, [captureSources[0], captureSources[0]]), false);
+          artifact: value.artifact, ...(siteRun ? {
+            result: sourceSet.members[value.memberIndex].payload.localResultArtifact} : {})}));
+      const validCaptureSources = inventory => siteRun
+        ? control.capturedEffectSourceInventoryFromArtifactsValid(admittedPreview, inventory, publicationLimits)
+        : control.capturedEffectSourceRecoveryInventoryValid(admittedPreview, inventory);
+      assert.equal(validCaptureSources(captureSources), true);
+      assert.equal(validCaptureSources(captureSources.slice(1)), false);
+      assert.equal(validCaptureSources([captureSources[0], captureSources[0]]), false);
       if (restartBeforeApply) {
         const before = JSON.stringify(await store.inspectPhysicalHolding(
           control.effectComputationCaptureHoldingCid(
@@ -2473,7 +2488,7 @@ test(`two-member captured Effect Run ${
       await mkdir(ledgerRoot);
       const openLedger = () => openEffectLedger({moon, root: ledgerRoot,
         authorityScopeCid: cid('e'),
-        callerRequestId: 'complete-two-effects-request',
+        callerRequestId,
         maxEntryBytes: 4096});
       ledger = openLedger();
       const observedRows = writeKind === 'create' ? [] :
@@ -2695,7 +2710,7 @@ test(`two-member captured Effect Run ${
             maxContractDepth: configuration.maxContractDepth,
             runDefinitionWire: runDefinition.wire,
             ledgerRoot, requestJournalRoot, authorityScopeCid: cid('e'),
-            callerRequestId: 'complete-two-effects-request',
+            callerRequestId,
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
             prepared: true, applyPrepared: processPreparedIntent,
@@ -3637,14 +3652,14 @@ test(`two-member captured Effect Run ${
       if (authorizationScenarios) {
         const lost = await verifyEffectCommitAuthorization(t, {
           moon, previewInputs, members, preflight, applyPreview, body,
-          directory, memberIds,
+          directory, memberIds, callerRequestId,
         });
         // The lost-reply Run's durable facts make the set outcome need
         // reconciliation; publication is refused and holdings retired.
         ledger.close();
         ledger = openEffectLedger({moon, root: lost.ledgerRoot,
           authorityScopeCid: cid('e'),
-          callerRequestId: 'complete-two-effects-request',
+          callerRequestId,
           maxEntryBytes: 4096});
         const uncertainSet = await issueAuthorizedEffectSetReceipt({
           ledger, preview: applyPreview, commonMoon: moon,
@@ -3746,7 +3761,6 @@ test(`two-member captured Effect Run ${
         await rejectPublicationAndRetire(uncertainSet,
           'EffectfulRunNeedsReconciliation',
           'unknown-two-effects-attempt');
-        if (loseClientReply) throw new Error('LostEffectExecutionReply');
         return;
       }
       const dispatchOptions = bindDispatch === undefined ? {dispatchRow} :
@@ -3915,7 +3929,7 @@ test(`two-member captured Effect Run ${
             maxContractDepth: configuration.maxContractDepth,
             runDefinitionWire: runDefinition.wire,
             ledgerRoot, requestJournalRoot, authorityScopeCid: cid('e'),
-            callerRequestId: 'complete-two-effects-request',
+            callerRequestId,
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
             publish: processPublication,
@@ -4194,7 +4208,8 @@ test(`two-member captured Effect Run ${
       published = true;
     } catch (error) {
       testFailure = error;
-      t.diagnostic(`Effect execution failed before its HTTP reply: ${error?.code ?? error?.message}`);
+      executionFailure = error;
+      t.diagnostic(`Effect execution failed before its HTTP reply: ${inspect(error, {depth: 8})}`);
       throw error;
     } finally {
       ledger?.close();
@@ -4217,7 +4232,7 @@ test(`two-member captured Effect Run ${
     };
     // One installation of the public Host over a request journal. A later
     // installation over the reopened journal plays a fresh Host process.
-    const installPublicHost = journal => {
+    const installPublicHost = (journal, {loseReply = false} = {}) => {
       const installed = installNodeClientEffectRun({
         moon, publicationControl: control, journal,
         authorizeRequest: async ({principalId, connection}) =>
@@ -4229,7 +4244,13 @@ test(`two-member captured Effect Run ${
         authorizeRunStart: async ({principalId, connection}) =>
           principalId === 'principal-before-restart' &&
           connection.mode === 'local' && connection.owner === 'local',
-        execute: executeEffectRun,
+        execute: async facts => {
+          try { return await executeEffectRun(facts); }
+          catch (error) {
+            executionFailure ??= error;
+            throw error;
+          }
+        },
       });
       // Status and reconcile of an unpublished Run answer only from the
       // recorded owner state; they never start, send or relabel anything.
@@ -4241,7 +4262,7 @@ test(`two-member captured Effect Run ${
         }
         return state;
       };
-      const server = createServer(createClientHttpHandler({
+      const services = {
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
@@ -4257,11 +4278,11 @@ test(`two-member captured Effect Run ${
         }),
         prepareSubmit: prepareProgram,
         submit: async ({preparedProgram, requestId, principalId,
-          connection}) => {
+          connection, submission}) => {
           const accepted = await installed.accept({
             prepared: preparedProgram, authorityScopeCid: cid('e'),
             requestId, namespaceId: 'namespace-a', principalId, connection,
-            lookupExpiresAt: '2027-01-01T00:00:00.000Z',
+            lookupExpiresAt: '2027-01-01T00:00:00.000Z', submission,
           });
           const started = await installed.start(accepted);
           assert.ok(started.kind === 'started' ||
@@ -4270,7 +4291,31 @@ test(`two-member captured Effect Run ${
             revision: accepted.revision};
         },
         observeRun: recorded, reconcile: recorded,
-      }));
+      };
+      const authorizedScope = ({principalId, connection}) =>
+        principalId === 'principal-before-restart' &&
+        connection.mode === 'local' && connection.owner === 'local'
+          ? {authorityScopeCid: cid('e'), namespaceId: 'namespace-a'} : undefined;
+      const lookupRequest = installNodeClientRequestLookup({journal,
+        control: moon, authorizedScope});
+      const submissions = installNodeClientSubmission({journal, moon,
+        authorizedScope, prepareSubmit: services.prepareSubmit,
+        submit: services.submit, lookupRequest});
+      const handler = createClientHttpHandler({...services, lookupRequest,
+        negotiate: async facts => ({...services.negotiate(facts),
+          submissionEpoch: await submissions.issueEpoch(facts)}),
+        submitIntent: submissions.submitIntent,
+        lookupSubmission: submissions.lookupSubmission});
+      let dropped = false;
+      const server = createServer((request, response) => {
+        if (loseReply && !dropped &&
+            request.url === '/actql/client/0.1/submit-intent') {
+          // Lose the accepted public response, after the journal has retained
+          // the complete submission outcome. The original reference owns retry.
+          response.end = () => { dropped = true; response.destroy(); return response; };
+        }
+        return handler(request, response);
+      });
       return {installed, server};
     };
     const serve = async server => {
@@ -4280,28 +4325,31 @@ test(`two-member captured Effect Run ${
         token: 'scoped-token', durability: 'durable'});
     };
     const {installed: runs, server: clientServer} =
-      installPublicHost(requestJournal);
+      installPublicHost(requestJournal, {loseReply: loseClientReply});
     let reconcileRef;
     try {
       const client = await serve(clientServer);
+      const submissionRef = client.newSubmission({nonce: 'complete-two-effects-request'});
+      await writeFile(join(directory, 'original-submission.json'), JSON.stringify({
+        document, format: 'json', submissionRef}), {flag: 'wx'});
       try {
         let run;
         if (loseClientReply) {
           await assert.rejects(client.startSource(document, {format: 'json',
-            requestId: 'complete-two-effects-request'}),
+            submissionRef}),
           {code: 'SubmissionUnknown'});
         } else {
           run = await client.startSource(document, {format: 'json',
-            requestId: 'complete-two-effects-request'});
+            submissionRef});
         }
         run ??= await client.startSource(document, {format: 'json',
-          requestId: 'complete-two-effects-request'});
+          submissionRef});
         assert.equal(run.ref.namespaceId, 'namespace-a');
         if (publishedRunDefinitionCid !== undefined) {
           assert.equal(run.ref.runDefinitionCid, publishedRunDefinitionCid);
         }
         const replay = await client.startSource(document, {format: 'json',
-          requestId: 'complete-two-effects-request'});
+          submissionRef});
         assert.deepEqual(replay.ref, run.ref);
         assert.equal(physicalStarts, 1);
         if (reconciled !== undefined) {
@@ -4322,6 +4370,10 @@ test(`two-member captured Effect Run ${
       await new Promise(resolve => clientServer.close(resolve));
       requestJournal.close();
     }
+    // Public acceptance retains an uncertain physical owner even when its
+    // callback throws. That API behavior must not swallow this fixture's
+    // unexpected execution failure and skip its substantive assertions.
+    if (executionFailure !== undefined) throw executionFailure;
     // Every Run that kept an unknown outcome was reported through the Client.
     assert.equal(reconcileRef !== undefined, reconciled !== undefined);
     if (unknownAfterClaim || processUnknownIntent || rateLimitWrite) {
@@ -4336,8 +4388,10 @@ test(`two-member captured Effect Run ${
       try {
         const client = await serve(server);
         try {
-          const run = await client.startSource(document, {format: 'json',
-            requestId: 'complete-two-effects-request'});
+          const original = JSON.parse(await readFile(join(directory,
+            'original-submission.json'), 'utf8'));
+          const run = await client.startSource(original.document, {
+            format: original.format, submissionRef: original.submissionRef});
           assert.deepEqual(run.ref, reconcileRef);
           const state = await run.status();
           assert.equal(state.status, 'needs_reconciliation');
@@ -4354,7 +4408,7 @@ test(`two-member captured Effect Run ${
   });
 }
 
-test('public Effect submit rejects an unsupported checked acquisition shape before acceptance',
+test('public Effect submit rejects an unsupported checked acquisition shape before Run acceptance',
   async t => {
     const terminal = await effectFixture({splitSource: true,
       writeKind: 'create', memberIds: ['save', 'save_again'],
@@ -4411,7 +4465,7 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
       authorizeRunStart: async () => true,
       execute: () => assert.fail('unsupported Program started execution'),
     });
-    const server = createServer(createClientHttpHandler({
+    const services = {
       authenticate: header => header === 'Bearer scoped-token'
         ? 'principal-a' : undefined,
       authorizeConnection: () => true,
@@ -4426,16 +4480,30 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
       }),
       prepareSubmit: prepare,
       submit: async ({preparedProgram, requestId, principalId,
-        connection}) => {
+        connection, submission}) => {
         const accepted = await runs.accept({prepared: preparedProgram,
           authorityScopeCid: cid('e'), requestId, namespaceId: 'namespace-a',
           principalId, connection,
-          lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+          lookupExpiresAt: '2027-01-01T00:00:00.000Z', submission});
         await runs.start(accepted);
         return {ref: accepted.ref, durability: accepted.durability,
           revision: accepted.revision};
       },
-    }));
+    };
+    const authorizedScope = ({principalId, connection}) =>
+      principalId === 'principal-a' && connection.mode === 'local' &&
+      connection.owner === 'local'
+        ? {authorityScopeCid: cid('e'), namespaceId: 'namespace-a'} : undefined;
+    const lookupRequest = installNodeClientRequestLookup({journal,
+      control: moon, authorizedScope});
+    const submissions = installNodeClientSubmission({journal, moon,
+      authorizedScope, prepareSubmit: services.prepareSubmit,
+      submit: services.submit, lookupRequest});
+    const server = createServer(createClientHttpHandler({...services, lookupRequest,
+      negotiate: async facts => ({...services.negotiate(facts),
+        submissionEpoch: await submissions.issueEpoch(facts)}),
+      submitIntent: submissions.submitIntent,
+      lookupSubmission: submissions.lookupSubmission}));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     try {
       const client = await connectClient({mode: 'local', owner: 'local',
@@ -4443,8 +4511,13 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
         token: 'scoped-token', durability: 'durable'});
       try {
         await assert.rejects(client.startSource(unsupported.document,
-          {format: 'json', requestId: 'unsupported-effect-request'}),
-        {code: 'ClientProgramUnsupported'});
+          {format: 'json', submissionRef: client.newSubmission({nonce: 'unsupported-effect-request'})}),
+        error => {
+          assert.equal(error.code, 'SubmissionPreparationFailed');
+          assert.deepEqual(getSubmissionOutcome(error).problem,
+            {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+          return true;
+        });
       } finally { client.close(); }
     } finally {
       await new Promise(resolve => server.close(resolve));

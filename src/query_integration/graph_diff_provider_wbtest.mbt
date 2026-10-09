@@ -123,10 +123,14 @@ test "Graph diff provider matches independent kernel row admission and completio
   // inventory and each existing owner's continuation charges.
   let snapshot = 2L
   let body_start = 3L
-  // The renamed ASCII wire has 806 scalars: 806 preflight steps plus its end check,
-  // followed by 86 grammar transitions. Preflight is not free preparation.
-  let parse = 806L + 1L + 86L
-  let decode = 103L
+  // The authored ASCII wire has 806 scalars plus the preflight end check.
+  // Grammar: 41 values, 40 child starts, 28 colons, 46 lexical chunks,
+  // 22 container closes, 23 commas and one root delivery. Four 71-unit
+  // CIDs each require one extra lexical chunk beyond the 42 strings/keys.
+  let grammar = 41L + 40L + 28L + 46L + 22L + 23L + 1L
+  let parse = 806L + 1L + grammar
+  // Each long CID adds one replay visit and two bounded UTF-8 polls.
+  let decode = 103L + 4L * (1L + 2L)
   let json_admission = 355L
   let assemble = 1L
   // Four Text values add seven chunk polls: version 1, three CIDs 2 each.
@@ -141,7 +145,7 @@ test "Graph diff provider matches independent kernel row admission and completio
   let row_admission = 2L + delta_recheck + 1L + 31L + 1L + 3L
   let completion = 1L
   let total = kernel + row_start + row_admission + completion
-  assert_eq((kernel, row_admission, total), (2755L, 80L, 2837L))
+  assert_eq((kernel, row_admission, total), (3009L, 80L, 3091L))
   for selected in [false, true] {
     let generated = task_test_generated(owner)
     let generated = if selected {
@@ -170,7 +174,9 @@ test "Graph diff provider matches independent kernel row admission and completio
       ).unwrap()
       let mut used = 0L
       let mut terminal = false
-      for _ in 0..<3000 {
+      // Quantum one needs one poll per independently counted work unit,
+      // plus a possible zero-work terminal failure after budget exhaustion.
+      for _ in 0..<(total.to_int() + 1) {
         match
           @local_connector.advance_managed_provider(active, quantum).unwrap() {
           @local_connector.Continue(work~, ..) => used += work

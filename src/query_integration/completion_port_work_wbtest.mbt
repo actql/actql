@@ -1,8 +1,9 @@
 ///|
 /// Independent fixture formula for ASCII completion IDs and field names.
-/// The owner scans the ID twice, compares it once, then scans each name.
+/// The scalar cursor scans the ID twice, compares it once, then scans each name.
 /// Three ID phase boundaries, one end per name and final completion are work.
 /// This is not a general Unicode formula or a reading of execution counters.
+/// Selected Append/Filter/projections reuse admitted metadata instead of this cursor.
 fn expected_ascii_completion_port_work(
   id : String,
   names : Array[String],
