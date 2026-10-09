@@ -150,6 +150,7 @@ fn retained_effect_transferred_artifact(
   producer_token : @host.ClientEffectProducerArtifact,
   common_input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
+  stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
 ) -> Unit raise {
   println("retained-effect-evidence: receiver-export")
   let root_export = consumer
@@ -375,7 +376,7 @@ fn retained_effect_transferred_artifact(
   ).unwrap()
   |> ignore
   retained_effect_preview_inputs(
-    consumer, materials, inputs, invocation, result, result_index,
+    consumer, materials, inputs, invocation, result, result_index, stop_custodies,
   )
   // The observation identifies the Artifact; the derived input Relation
   // preserves its exact provenance and the consumer derivation names that

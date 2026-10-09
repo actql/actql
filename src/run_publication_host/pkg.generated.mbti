@@ -17,6 +17,7 @@ import {
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/program_check",
+  "actql/actql/publication_payload",
   "actql/actql/query_planning",
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
@@ -287,6 +288,8 @@ pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObser
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
 
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
+
+pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
 pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
 
