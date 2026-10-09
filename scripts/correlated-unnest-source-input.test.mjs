@@ -62,3 +62,38 @@ test('filter/LIMIT common control retains the original predicate, order and boun
   assert.equal(control.parameterDeclarations, undefined);
   assert.match(source.text, /WHERE element IS NOT NULL ORDER BY p\.id, position LIMIT 2$/u);
 });
+
+test('retained schemas keep set multiplicity, CTE column order and nullable objects', async () => {
+  const {retainedArrayProgram, retainedArraySuccesses, retainedArrayRefusals}
+    = await import('./fixtures/correlated-unnest-source-input.mjs');
+  const byName = new Map(retainedArraySuccesses.map(value => [value.name, value]));
+  const control = byName.get('correlated-unnest-retained-json-control');
+  assert.deepEqual(JSON.parse(control.text), retainedArrayProgram);
+  assert.deepEqual(retainedArrayProgram.stages[0].steps[5],
+    {from: 'parents', append: {with: 'parents'}, as: 'combined'});
+  assert.deepEqual(control.expected, [
+    {id: 1, element: 1, position: 0}, {id: 1, element: 1, position: 0},
+    {id: 2, element: 2, position: 0}, {id: 2, element: 2, position: 0},
+    {id: 2, element: null, position: 1}, {id: 2, element: null, position: 1},
+    {id: 2, element: 2, position: 2}, {id: 2, element: 2, position: 2},
+  ]);
+  assert.deepEqual(byName.get('correlated-unnest-retained-pipe-set-star').expected, control.expected);
+  assert.deepEqual(byName.get('correlated-unnest-retained-pipe-set-filter-limit').expected,
+    [{id: 1, element: 1, position: 0}, {id: 1, element: 1, position: 0},
+      {id: 2, element: 2, position: 0}]);
+  assert.equal(byName.get('correlated-unnest-retained-empty-set-star').expected.length, 0);
+  assert.deepEqual(byName.get('correlated-unnest-retained-cte-current-array').columns[1],
+    {name: 'element', contract: {type: 'number', nullable: false}});
+  const object = byName.get('correlated-unnest-retained-cte-object-star');
+  assert.deepEqual(object.columns.map(column => column.name), ['id', 'label', 'position']);
+  assert.deepEqual(object.expected[1], {id: null, label: null, position: 1});
+  for (const item of retainedArraySuccesses) {
+    assert.ok(correlatedUnnestSuccesses.includes(item));
+    assert.equal(item.sourceReadCount, 0);
+    assert.equal(item.sourceReadSessionCount, 0);
+  }
+  for (const item of retainedArrayRefusals) {
+    assert.ok(correlatedUnnestRefusals.includes(item));
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+  }
+});
