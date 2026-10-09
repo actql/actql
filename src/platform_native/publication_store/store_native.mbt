@@ -24,7 +24,9 @@ struct Store {
 /// Acceptance evidence only: `observer` is called with `"allocated"` once the
 /// private staging file exists and before its ownership is durable, and with
 /// `"owned"` once the ownership is durable and before the file gets its
-/// public name.
+/// public name. Effect Source custody also emits `effect-custody-before-intent`,
+/// `effect-custody-intent-saved` and `effect-custody-before-terminal` around its
+/// metadata persistence boundaries. These are observation seams, not state proof.
 pub fn Store::observe_allocation(
   self : Store,
   observer : (String) -> Unit,

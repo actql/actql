@@ -44,7 +44,25 @@ fn ResidentSourceCompute::resident_effect_inputs_current(
     @strategy.captured_effect_inputs_match_run(inputs, run) else {
     return false
   }
-  match self.effect_retained {
+  resident_effect_input_custody_current(
+    run,
+    self.effect_retained,
+    self.source_closed,
+    inputs,
+  )
+}
+
+///|
+fn resident_effect_input_custody_current(
+  run : @strategy.CapturedEffectRunDAG,
+  retained : ResidentEffectRetainedCapture?,
+  source_closed : Ref[Bool],
+  inputs : @strategy.CapturedEffectInputs,
+) -> Bool {
+  if !@strategy.captured_effect_inputs_match_run(inputs, run) {
+    return false
+  }
+  match retained {
     Some(retained) =>
       @output.validate_native_remote_retained_task_input_borrow(
         retained.input,
@@ -52,6 +70,6 @@ fn ResidentSourceCompute::resident_effect_inputs_current(
         retained.current,
       )
       is Ok(_)
-    None => !self.source_closed.val
+    None => !source_closed.val
   }
 }

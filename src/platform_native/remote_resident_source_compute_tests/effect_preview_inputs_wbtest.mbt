@@ -11,6 +11,7 @@ fn retained_effect_preview_inputs(
   invocation : @publication.PublicationContract,
   artifact : @host.ClientEffectLocalResultArtifact,
   local_result : Int,
+  stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
 ) -> Unit raise {
   let owner = materials.prepared
   let retention = retained_compute_effect_retention()
@@ -170,6 +171,9 @@ fn retained_effect_preview_inputs(
   let admitted_source = @publication.admit_captured_effect_source_from_result(
     preview, 0, invocation, source, result, store_authority,
   ).unwrap()
+  retained_effect_source_store(
+    consumer, materials, inputs, artifact, admitted_source, local_result, stop_custodies,
+  )
   assert_true(
     @publication.captured_effect_source_matches_result_facts(
       admitted_source, result, "r",

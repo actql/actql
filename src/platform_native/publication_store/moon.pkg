@@ -7,11 +7,11 @@ import {
   "actql/actql/run_publication" @publication,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/encode_core" @encode,
 }
 
 import {
   "actql/actql/canonical_json" @json,
-  "actql/actql/encode_core" @encode,
   "actql/actql/source_value" @source,
   "moonbitlang/core/env",
 } for "wbtest"
@@ -20,6 +20,8 @@ options(
   "native-stub": [ "store_format_stub.c" ],
   targets: {
     "store_native.mbt": [ "native" ],
+    "effect_source_custody_native.mbt": [ "native" ],
+    "effect_source_custody_unsupported.mbt": [ "not", "native" ],
     "store_native_wbtest.mbt": [ "native" ],
     "store_unsupported.mbt": [ "not", "native" ],
     "store_unsupported_wbtest.mbt": [ "not", "native" ],
