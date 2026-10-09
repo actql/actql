@@ -76,6 +76,10 @@ pub fn prepare_resident_cancelled_receiver_cleanup(@remote_journal.Journal, @exe
 
 pub fn prepare_resident_completed_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, () -> String, () -> Bool, retained_cleanup? : (@remote_transfer_journal.Journal, @filesystem.Root?, Int64)?) -> Result[ResidentCompletedAttempt, ResidentExecutionFailure]
 
+pub fn prepare_resident_effect_retained_consumer(ResidentRetainedTransfer, @remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String, @remote_standard_host.NativeRemoteStandardTransferBindingLimits) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure]
+
+pub fn prepare_resident_effect_retained_producer_context(@remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.RemoteRetainedInputIntent, String, String, String, String) -> Result[ResidentRetainedProducerContext, ResidentEffectProducerExecutionIssue]
+
 pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
 pub fn prepare_resident_recorded_output(@remote_journal.Journal, @execution_site.ExecutionSite, @run_publication.RecordedRunPublication, @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, () -> Bool) -> Result[ResidentSavedOutput, ResidentHostIssue]
@@ -107,6 +111,8 @@ pub fn reclaim_stopped_resident_source_output(@remote_journal.Journal, ResidentR
 pub fn resident_completed_consumer_producer_identity(@remote_journal.Journal, ResidentRunAdmission, @remote_site_protocol.DispatchRequest, String) -> Result[String, ResidentHostIssue]
 
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
+
+pub fn resident_effect_retained_consumer_producer_identity(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String) -> Result[String, ResidentRetainedExecutionIssue]
 
 pub fn resident_holder_process_hold_identity(@remote_journal.Journal, ResidentRunAdmission, String, String, recorded_source? : @run_publication.RecordedRunPublication?) -> Result[String, ResidentHostIssue]
 
@@ -350,6 +356,8 @@ pub struct ResidentRetainedConsumer {
   current : @remote_standard_host.NativeRemoteRetainedInputCurrent
   binding_limits : @remote_standard_host.NativeRemoteStandardTransferBindingLimits
   codec : @remote_standard_host.NativeRemoteStandardRowCodec
+  effect_limits : @run_publication_host.ClientEffectComputationLimits?
+  effect_configuration : ResidentSourceComputeConfiguration?
   mut material : @remote_transfer_client.NativeRemoteDestinationMaterialUse?
   mut executed : ResidentExecuted?
   mut pending_runtime : @remote_runtime.NativeRemoteRuntime?
@@ -377,7 +385,7 @@ pub(all) enum ResidentRetainedExecutionIssue {
 
 pub struct ResidentRetainedProducerContext {
   intent : @remote_site_protocol.RemoteRetainedInputIntent
-  materials : @run_publication_host.ClientRunMaterials
+  run_current : (String) -> Bool
   producer : @run_publication_host.ClientRetainedInputProducer
   journal : @remote_journal.Journal
 }
