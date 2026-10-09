@@ -1516,7 +1516,11 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
 }
 
 ///|
-fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort {
+fn QueryParser::aggregate(
+  self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+  aggregate_prefix? : String = "aql_select_aggregate_",
+) -> AggregateCall raise QueryAbort {
   let token = self.advance()
   let function_name = match token.value {
     Word(name) | QuotedName(name) => upper_ascii(name)
@@ -1536,7 +1540,16 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
     }
     None
   } else {
-    Some(self.expression())
+    Some(
+      match calls {
+        Some(outputs) => {
+          let (expression, embedded) = self.aggregate_expression(aggregate_prefix)
+          outputs.append(embedded)
+          expression
+        }
+        None => self.expression()
+      },
+    )
   }
   let delimiter = if function_name == "STRING_AGG" {
     if self.peek().value == Symbol(44) {
