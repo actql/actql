@@ -13,6 +13,20 @@ const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const operationInputAcceptance = 'adapters/host-node/client-operation-input-rejection.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'submission-attempt-custody') {
+    return ['refused/authorization', 'refused/admission_capacity', 'refused/epoch_expired',
+      'refused/epoch_not_yet_valid', 'conflict/intent', 'conflict/restart_decision'].map(outcome => ({
+      name: `typed Submission ${outcome} explains only its original invocation`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    }));
+  }
+  if (phase === 'submission-attempt-refused' || phase === 'submission-attempt-conflict') {
+    const name = phase === 'submission-attempt-refused'
+      ? 'typed fresh-epoch refusal is distinct from the durable original acceptance'
+      : 'typed Submission Conflict and AlreadySatisfied preserve the installed original Run';
+    return ['local', 'https'].map(entrance => ({name: `${entrance}: ${name}`,
+      assertions: [{id: assertion, operator: 'deepStrictEqual'}]}));
+  }
   if (phase === 'unresolvable-restart') return ['local', 'https'].map(entrance => ({
     name: `${entrance}: explicit restart lookup restores the same linked Run after original processes exit`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -152,6 +166,21 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['typed Submission refusal loses its original invocation explanation',
+    '          retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);',
+    '', 'submission-attempt-refused', 'submit-attempt-refused'],
+  ['typed Submission refusal claims globally unconsumed custody',
+    "...(attempt.kind === 'refused' ? {guarantee: attempt.guarantee} : {}),",
+    "...(attempt.kind === 'refused' ? {guarantee: 'submission_never_committed'} : {}),",
+    'submission-attempt-refused', 'submit-attempt-refused'],
+  ['typed Submission conflict targets a different original submission',
+    '    next: submissionTarget(snapshot),',
+    "    next: submissionTarget({...snapshot, submissionRef: {...snapshot.submissionRef, nonce: 'different-original'}}),",
+    'submission-attempt-conflict', 'submit-attempt-conflict'],
+  ['typed Submission copies acquire original explanation custody',
+    'const submissionExplanations = new WeakMap();',
+    'const submissionExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
+    'submission-attempt-custody', 'submit-attempt-custody'],
   ['an Unresolvable lookup silently acknowledges risk and restarts work',
     '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
     "      if (answer.kind === 'unresolvable' && unsafeRestartInput !== undefined) {\n" +
@@ -417,6 +446,9 @@ const mutations = [
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
   const file = phase === 'unresolvable-restart' ? 'adapters/host-node/client-submission-custody-public.test.mjs'
+    : phase === 'submission-attempt-custody' ? 'packages/sdk/submission-attempt.test.mjs'
+    : phase === 'submission-attempt-refused' || phase === 'submission-attempt-conflict'
+      ? 'adapters/host-node/submission-epoch-public.test.mjs'
     : phase === 'submission-copy' ? 'packages/sdk/submission-identity.test.mjs'
     : phase.startsWith('operation-input-') ? operationInputAcceptance
     : phase === 'request-cancel-preparation' ? preparationAcceptance
