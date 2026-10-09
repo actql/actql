@@ -176,6 +176,31 @@ test('generic unavailable details do not expose the number of protected streams'
   assert.equal(value.revisionVector.length,1);
 });
 
+test('protected stream count cannot change an independently disclosed snapshot budget',async()=>{
+  const {installClientOwnerObservations}=await import('./client-owner-observations.mjs');
+  const f=await fixture();f.denyOwner();
+  f.sources[0].readSnapshot=async()=>({value:{text:'x'.repeat(500)}});
+  const read=installClientOwnerObservations({authorizeRun:()=>true,sourcesFor:()=>f.sources,
+    codec,maxEntries:8,maxWireBytes:3000});
+  const first=await read({ref});
+  f.sources.push({...f.sources[1],owner:{...effectOwner,streamCid:cid('e')}});
+  const next=await read({ref});
+  assert.deepEqual(next.owners[0],first.owners[0]);
+  assert.deepEqual(next.revisionVector,first.revisionVector);
+});
+
+test('a later Owner await cannot retain an earlier revoked snapshot or vector',async()=>{
+  const f=await fixture();let permitted=true;
+  f.sources[0].authorize=()=>permitted;
+  f.sources[0].readSnapshot=async()=>({value:{private:'OLDER_RICH_PROJECTION'}});
+  f.sources[1].readSnapshot=async()=>{permitted=false;return {revision:1,value:{state:'prepared'}};};
+  const value=await f.read();
+  assert.deepEqual(value.owners.find(view=>view.owner==='run'),{owner:'run',kind:'unavailable'});
+  assert.equal(value.revisionVector.length,1);
+  assert.equal(value.revisionVector[0].owner.kind,'effect');
+  assert(!JSON.stringify(value).includes('OLDER_RICH_PROJECTION'));
+});
+
 test('snapshot identity preserves data keys, decomposed Unicode and each newline form', async () => {
   const f=await fixture();
   let data={'e\u0301':'e\u0301\r\n'};

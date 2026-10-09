@@ -35,7 +35,10 @@ export function installClientEffectObservations({moon,root,authorize,maxPending=
     sources(identity,request) {
       const problem=kind=>({kind:'problem',ownerKind:'effect',problem:kind,authorize});
       if (!existsSync(join(root,'effect-ledger.sqlite3'))) {
-        return request.cursors?.some(cursor=>cursor.owner.kind==='effect') ? [problem('history_unrecoverable')] : [];
+        // A caller's unadmitted token cannot certify that this stream ever
+        // existed or that history was lost. The collector reports its request
+        // position as unavailable, without inventing a retention/absence fact.
+        return [];
       }
       const scope=control.logicalRequestScope(moon.clientRequestAuthorityScopeCid(identity),
         moon.clientRequestCallerId(identity),256);

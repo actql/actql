@@ -79,11 +79,12 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
     const unmatchedCursors=(selected.cursors ?? []).map((cursor,index)=>({index,kind:'unavailable'}));
     const envelope = {ref:selected.ref,consistency:'non_atomic',ordering:'owner_local',owners,revisionVector,
       ...(unmatchedCursors.length ? {unmatchedCursors} : {})};
-    // Reserve the complete envelope and array separators before Owner reads.
-    // Per-Owner limits alone do not bound the composite response.
-    const slotBytes = Math.floor((maxWireBytes-wireBytes(envelope)-2*sources.length)/
-      Math.max(1,sources.length));
-    if (slotBytes < 256) throw limited();
+    // Reserve finite acquisition independently of private stream count: at
+    // most five reads, each bounded by this request's wire limit. Composite
+    // projection is budgeted again after the current disclosure checks.
+    const acquisitionBytes=maxWireBytes-wireBytes(envelope)-2*5;
+    if(acquisitionBytes < 256)throw limited();
+    const collected=[];
     const unavailable=kind=>{
       // Denied streams expose neither their identities nor their count.
       if(!owners.some(view=>view.owner===kind && view.kind==='unavailable' && view.problem===undefined)){
@@ -94,7 +95,10 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
       const permitted = async () => await authorizeRun(selected) === true &&
         await source.authorize(selected) === true;
       if (source.kind === 'problem') {
-        if(await permitted())owners.push({owner:source.ownerKind,kind:'unavailable',problem:{kind:source.problem}});
+        if(await permitted()){
+          const view={owner:source.ownerKind,kind:'unavailable',problem:{kind:source.problem}};
+          owners.push(view);collected.push({source,view});
+        }
         else unavailable(source.ownerKind);
         continue;
       }
@@ -102,11 +106,11 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
       if (!await permitted()) {unavailable(owner.kind); continue;}
       let snapshot, snapshotProblem;
       try {
-        const value = await source.readSnapshot({...selected,maxWireBytes:slotBytes});
+        const value = await source.readSnapshot({...selected,maxWireBytes:acquisitionBytes});
         if (!(exact(value,['value']) || exact(value,['revision','value']) && count(value.revision))) {
           throw new Error('InvalidOwnerSnapshot');
         }
-        if (wireBytes(value) > slotBytes) snapshotProblem = {kind:'limit_exceeded'};
+        if (wireBytes(value) > acquisitionBytes) snapshotProblem = {kind:'limit_exceeded'};
         else snapshot = own(value);
       } catch {snapshotProblem = {kind:'acquisition_failed'};}
       if (!await permitted()) {unavailable(owner.kind); continue;}
@@ -124,9 +128,9 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
         }
         if (!['cursor_mismatch','cursor_expired'].includes(history.kind)) {
           try {
-            const page = await source.readPage({...selected,after,maxEntries,maxWireBytes:slotBytes});
+            const page = await source.readPage({...selected,after,maxEntries,maxWireBytes:acquisitionBytes});
             if (historyProblems.has(page?.kind)) history = {kind:page.kind};
-            else if (wireBytes(page) > slotBytes) history = {kind:'limit_exceeded'};
+            else if (wireBytes(page) > acquisitionBytes) history = {kind:'limit_exceeded'};
             else {
               if (page?.kind !== 'page' || !Array.isArray(page.entries) ||
                   page.entries.length > maxEntries ||
@@ -170,22 +174,40 @@ export function installClientOwnerObservations({authorizeRun, sourcesFor, codec,
       // and is the only revision used by the cancellation operation.
       const vector = {owner,...(snapshot === undefined ? {} : {snapshotCid:snapshotCid(selected.ref,owner,snapshot)}),
         ...(historyHead === undefined ? {} : {historyHead})};
-      if (wireBytes(view)+wireBytes(vector) > slotBytes && history.kind === 'page') {
-        view.history = {kind:'limit_exceeded'}; delete vector.historyHead;
-      }
-      if (wireBytes(view)+wireBytes(vector) > slotBytes && snapshot !== undefined) {
-        delete view.snapshot; view.snapshotProblem = {kind:'limit_exceeded'};
-        delete vector.snapshotCid;
-      }
-      if (wireBytes(view)+wireBytes(vector) > slotBytes) throw limited();
       owners.push(view); revisionVector.push(vector);
+      collected.push({source,view,vector});
     }
     if (await authorizeRun(selected) !== true) throw denied();
+    // Later Owner awaits can revoke an earlier projection. Recheck each
+    // buffered component before deciding the disclosed response budget.
+    for(const {source,view,vector} of collected){
+      if(await authorizeRun(selected) !== true)throw denied();
+      if(await source.authorize(selected) !== true){
+        owners.splice(owners.indexOf(view),1);
+        if(vector !== undefined)revisionVector.splice(revisionVector.indexOf(vector),1);
+        unavailable(view.owner);
+      }
+    }
     const disclosedKeys=new Set(owners.filter(view=>view.kind==='observed').map(view=>ownerKey(view.ownerRef)));
     const undisclosed=(selected.cursors ?? []).flatMap((cursor,index)=>
       disclosedKeys.has(ownerKey(cursor.owner)) ? [] : [{index,kind:'unavailable'}]);
     if(undisclosed.length)envelope.unmatchedCursors=undisclosed;
     else delete envelope.unmatchedCursors;
+    // Only disclosable components and generic unavailable kinds enter this
+    // division. A hidden stream cannot evict another Owner's snapshot/page.
+    const baseBytes=wireBytes({...envelope,owners:[],revisionVector:[]});
+    const slotBytes=Math.floor((maxWireBytes-baseBytes-2*owners.length)/Math.max(1,owners.length));
+    for(const {view,vector} of collected){
+      if(!owners.includes(view) || view.kind !== 'observed')continue;
+      if(wireBytes(view)+wireBytes(vector)>slotBytes && view.history.kind==='page'){
+        view.history={kind:'limit_exceeded'};delete vector.historyHead;
+      }
+      if(wireBytes(view)+wireBytes(vector)>slotBytes && view.snapshot !== undefined){
+        delete view.snapshot;view.snapshotProblem={kind:'limit_exceeded'};delete vector.snapshotCid;
+      }
+      if(wireBytes(view)+wireBytes(vector)>slotBytes)throw limited();
+    }
+    if(await authorizeRun(selected) !== true)throw denied();
     if (wireBytes(envelope) > maxWireBytes) throw limited();
     return own(envelope);
   };
