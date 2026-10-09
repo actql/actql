@@ -5164,11 +5164,10 @@ pub fn compile(
     )
   }
   if @query.join_part_count(query) > 0 &&
-    (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
     context.captured_stage is Some(_) {
     // The Host requested a capture boundary. Reuse the script's existing
-    // producer binding for raw/shared sources and derived-table CTEs, rather
-    // than sending captured inputs to the Values-only standalone JOIN path.
+    // producer binding for raw/shared sources and derived-table CTEs, including
+    // a single projected JOIN. Captured inputs cannot use the Values-only path.
     return compile_query_script(
       @query.single_query_script(query),
       context,

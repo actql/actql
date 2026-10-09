@@ -17,6 +17,18 @@ export const joinStarProgram = {version: 'actql/0.1', id: 'fixture.join_star',
       {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
     results: {rows: {from: 'ordered', fields: ['amount', 'id', 'k']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// Independent common Program for projection-only captured self JOIN.
+export const capturedJoinProjectionProgram = {version: 'actql/0.1', id: 'fixture.captured_join_projection',
+  stages: [structuredClone(joinStarProgram.stages[0]),
+    {id: 'main', inputs: {
+      left: {result: {stage: 'capture', result: 'source'}},
+      right: {result: {stage: 'capture', result: 'source'}},
+    }, steps: [{from: 'left', join: {with: 'right', kind: 'inner',
+      on: [{left: 'id', right: 'id'}], max_output_rows: 10,
+      select: {id: 'left.id', amount: 'right.amount'}}, as: 'joined'},
+      {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['id', 'amount']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const sql = 'SELECT * FROM records AS l JOIN (SELECT 2 AS k) AS r '
   + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ORDER BY id';
 const success = (name, text, extra = {}) => ({name: 'join-star-' + name,
@@ -28,6 +40,27 @@ const preserved = [{id: 1, amount: null}, {id: 2, amount: 20},
 export const joinStarSuccesses = [
   success('independent-json', JSON.stringify(joinStarProgram), {format: 'json'}),
   success('on-unique-columns', sql),
+  success('captured-projection-json', JSON.stringify(capturedJoinProjectionProgram), {
+    format: 'json', columns: [column('id'), column('amount', nullable)],
+    expected: [{id: 1, amount: null}, {id: 2, amount: 20},
+      ...Array.from({length: 4}, () => ({id: 3, amount: 30}))],
+  }),
+  success('captured-projection-source', 'SELECT l.id AS id, r.amount AS amount FROM records AS l '
+    + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id', {
+    columns: [column('id'), column('amount', nullable)],
+    expected: [{id: 1, amount: null}, {id: 2, amount: 20},
+      ...Array.from({length: 4}, () => ({id: 3, amount: 30}))],
+  }),
+  success('captured-projection-filtered', 'SELECT l.id AS id, r.amount AS amount FROM records AS l '
+    + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE r.amount > 20 ORDER BY id', {
+    columns: [column('id'), column('amount', nullable)],
+    expected: Array.from({length: 4}, () => ({id: 3, amount: 30})),
+  }),
+  success('captured-projection-limited', 'SELECT l.id AS id, r.amount AS amount FROM records AS l '
+    + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id LIMIT 2 OFFSET 1', {
+    columns: [column('id'), column('amount', nullable)],
+    expected: [{id: 2, amount: 20}, {id: 3, amount: 30}],
+  }),
   success('left-on-nullability', 'SELECT * FROM records AS l LEFT JOIN (SELECT 3 AS k) AS r '
     + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ORDER BY id', {
     columns: [...sourceColumns, column('k', nullable)],
