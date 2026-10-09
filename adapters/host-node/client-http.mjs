@@ -14,7 +14,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
   validCheckOutcome,
-  validSubmissionOutcome, validSubmissionLookup} from
+  validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -264,7 +264,7 @@ export function createClientHttpHandler({
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         const valid = submitting
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
+          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) invalid('InvalidClientHostSubmissionOutcome');
         sendJson(answer);

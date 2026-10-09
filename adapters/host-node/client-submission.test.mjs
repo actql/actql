@@ -45,11 +45,12 @@ async function fixture(t, callbacks = {}) {
   const body = (text = 'SELECT 1 AS value') => {
     const source = {kind: 'aql', input: {format: 'aql-text', text}, parameters: null};
     const intent = moon.clientSubmittedIntent(JSON.stringify(source), 1048576, 65536, 64);
-    return {principalId, connection, submissionRef: ref, intentCid: moon.clientSubmittedIntentCid(intent), ...source};
+    return {principalId, connection, submissionRef: ref, intentCid: moon.clientSubmittedIntentCid(intent),
+      attemptRef: {operation: 'submit', attemptId: 'submission-test-invocation'}, ...source};
   };
   const port = () => createNodeInProcessClientHost({authenticate: () => principalId,
     authorizeConnection: () => authorized, negotiate: () => undefined,
-    submitIntent: service.submitIntent, lookupSubmission: service.lookupSubmission, maxRowBytes: 65536});
+    submitIntent: service.submitAttempt, lookupSubmission: service.lookupSubmission, maxRowBytes: 65536});
   return {root, ref, body, port, get journal() {return journal;}, get service() {return service;},
     get counts() {return {prepare: prepareCount, submit: submitCount};},
     authorize: value => {authorized = value;}, restart() {journal.close(); journal = openClientRequestJournal(root, callbacks.journalOptions); install();}};
@@ -114,6 +115,79 @@ async function unresolvedSubmissionFixture(t, prepare) {
     submissionRef: f.ref, acknowledgement: 'possible_prior_execution_and_effects'}};
   return {f, fresh, value};
 }
+
+test('typed Submission uses the existing receipt and rebinds AlreadySatisfied to the new invocation', async t => {
+  let f;
+  f = await fixture(t, {submit: value => admitOriginal(f, value), lookup(value) {
+    const admitted = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+    return admitted === undefined ? {kind: 'not_found'} : {kind: 'found', ref: admitted.ref};
+  }});
+  const request = id => ({...f.body(), attemptRef: {operation: 'submit', attemptId: id}});
+  const original = await f.service.submitAttempt(request('first-invocation'));
+  assert.equal(original.kind, 'recorded');
+  assert.equal(original.outcome.kind, 'ready');
+  f.restart();
+  const replay = await f.service.submitAttempt(request('second-invocation'));
+  assert.deepEqual(replay, {kind: 'already_satisfied',
+    attemptRef: {operation: 'submit', attemptId: 'second-invocation'}, outcome: original.outcome});
+  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original.outcome);
+  assert.deepEqual(f.counts, {prepare: 2, submit: 2}, 'explicit replay still uses the original Run owner');
+});
+
+test('typed Submission changed-intent Conflict does not prepare or dispatch the changed request', async t => {
+  let f;
+  f = await fixture(t, {submit: value => admitOriginal(f, value), lookup(value) {
+    const admitted = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+    return admitted === undefined ? {kind: 'not_found'} : {kind: 'found', ref: admitted.ref};
+  }});
+  const original = await f.service.submitAttempt({...f.body(),
+    attemptRef: {operation: 'submit', attemptId: 'original-invocation'}});
+  const changed = f.body('SELECT 2 AS value');
+  const attemptRef = {operation: 'submit', attemptId: 'changed-invocation'};
+  assert.deepEqual(await f.service.submitAttempt({...changed, attemptRef}), {
+    kind: 'conflict', reason: 'intent', attemptRef, submissionRef: f.ref, intentCid: changed.intentCid});
+  assert.deepEqual(f.counts, {prepare: 1, submit: 1});
+  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original.outcome);
+});
+
+test('initial typed Submission authorization Refused is neither a durable rejection nor permission to retry', async t => {
+  const f = await fixture(t);
+  const attemptRef = {operation: 'submit', attemptId: 'denied-invocation'};
+  f.authorize(false);
+  assert.deepEqual(await f.service.submitAttempt({...f.body(), attemptRef}), {
+    kind: 'refused', reason: 'authorization', attemptRef, guarantee: 'attempt_uncommitted_unconsumed'});
+  assert.deepEqual(f.counts, {prepare: 0, submit: 0});
+  f.authorize(true);
+  assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+});
+
+for (const phase of ['prepare', 'dispatch']) {
+  test(`a ${phase} exception carrying an admission-conflict code does not certify a Submission Conflict`, async t => {
+    const failure = () => {throw Object.assign(new Error('ClientSubmittedIntentConflict'), {code: 'ClientSubmittedIntentConflict'});};
+    const f = await fixture(t, phase === 'prepare' ? {prepare: failure} : {submit: failure});
+    await assert.rejects(f.service.submitAttempt({...f.body(),
+      attemptRef: {operation: 'submit', attemptId: 'owner-error'}}), {code: 'ClientSubmittedIntentConflict'});
+    assert.deepEqual(f.counts, phase === 'prepare' ? {prepare: 1, submit: 0} : {prepare: 1, submit: 1});
+    assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon)?.phase,
+      phase === 'prepare' ? undefined : 'preparing');
+  });
+}
+
+test('typed Submission durable NotAccepted retains its original consumed identity', async t => {
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('InvalidInput'), {code: 'ClientProgramInvalidInput'});
+  }});
+  const first = await f.service.submitAttempt({...f.body('SELECT ('),
+    attemptRef: {operation: 'submit', attemptId: 'invalid-invocation'}});
+  assert.equal(first.kind, 'recorded');
+  assert.equal(first.outcome.kind, 'not_accepted');
+  f.restart();
+  const repeated = await f.service.submitAttempt({...f.body('SELECT ('),
+    attemptRef: {operation: 'submit', attemptId: 'invalid-replay'}});
+  assert.equal(repeated.kind, 'already_satisfied');
+  assert.deepEqual(acceptanceFacts(repeated.outcome), acceptanceFacts(first.outcome));
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
 
 test('submission adapter retains explicit restart decision with the authenticated actor', async t => {
   const {f, fresh, value} = await unresolvedSubmissionFixture(t);
@@ -186,7 +260,10 @@ test('public Local submission lookup returns a durable pre-admission refusal aft
   const f = await fixture(t, {prepare() {throw Object.assign(new Error('invalid fixture'), {code: 'ClientProgramInvalidInput'});}});
   const body = f.body('SELECT (');
   const {principalId: ignored, ...wireBody} = body;
-  const reply = await f.port().perform('submit-intent', wireBody);
+  const initial = await f.port().perform('submit-intent', wireBody);
+  assert.equal(initial.kind, 'recorded');
+  assert.deepEqual(initial.attemptRef, wireBody.attemptRef);
+  const reply = initial.outcome;
   assert.equal(reply.kind, 'not_accepted');
   assert.equal(reply.problem.classification, 'invalid_input');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
@@ -194,7 +271,8 @@ test('public Local submission lookup returns a durable pre-admission refusal aft
   const restored = await f.port().perform('lookup-submission', {connection, submissionRef: f.ref});
   assertReferenceOnly(restored, reply);
   assert.equal(validSubmissionLookup(restored, connection, f.ref), true);
-  assert.deepEqual(await f.port().perform('submit-intent', wireBody), reply);
+  assert.deepEqual(await f.port().perform('submit-intent', wireBody), {
+    kind: 'already_satisfied', attemptRef: wireBody.attemptRef, outcome: reply});
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   await assert.rejects(f.service.submitIntent(f.body('SELECT 1 AS value')), {code: 'ClientSubmittedIntentConflict'});
 });
@@ -397,7 +475,7 @@ test('Local ingress owns nested submission values before authentication awaits',
   let release;
   const authentication = new Promise(resolve => {release = resolve;});
   const port = createNodeInProcessClientHost({authenticate: () => authentication,
-    authorizeConnection: () => true, negotiate: () => undefined, submitIntent: f.service.submitIntent,
+    authorizeConnection: () => true, negotiate: () => undefined, submitIntent: f.service.submitAttempt,
     lookupSubmission: f.service.lookupSubmission, maxRowBytes: 65536});
   const {principalId: ignored, ...body} = f.body();
   const pending = port.perform('submit-intent', body);
@@ -405,8 +483,9 @@ test('Local ingress owns nested submission values before authentication awaits',
   body.submissionRef.nonce = 'changed-nonce';
   release(principalId);
   const result = await pending;
-  assert.equal(result.kind, 'not_accepted');
-  assert.equal(result.submissionRef.nonce, 'original-nonce');
+  assert.equal(result.kind, 'recorded');
+  assert.equal(result.outcome.kind, 'not_accepted');
+  assert.equal(result.outcome.submissionRef.nonce, 'original-nonce');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 

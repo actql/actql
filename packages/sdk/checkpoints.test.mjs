@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, heldSubmissionAttempt} from './submission-fixture.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {createPrivateKey, generateKeyPairSync, sign, verify} from
@@ -121,7 +121,7 @@ test('a held submit is a control result, not a failure or unknown submission',
         checkpointCid: summary.checkpointCid, kind: 'run_scope',
         expiresAt: summary.expiresAt}};
     const requests = host(t, {
-      'submit-intent': body => Response.json(heldSubmission(body, held)),
+      'submit-intent': body => Response.json(heldSubmissionAttempt(body, held)),
       'lookup-request': () => Response.json(held),
     });
     const client = await connect(options);
@@ -158,7 +158,7 @@ test('a held submit is a control result, not a failure or unknown submission',
     assert.deepEqual(await client.lookupRequest('saved-a'), held);
     // A held reply for another request is not accepted as held.
     mock.restoreAll();
-    host(t, {'submit-intent': body => Response.json(heldSubmission(body, {...held, requestId: 'saved-b'}))});
+    host(t, {'submit-intent': body => Response.json(heldSubmissionAttempt(body, {...held, requestId: 'saved-b'}))});
     const other = await connect(options);
     await assert.rejects(other.startSource('version: actql/0.1\n', {format: 'yaml',
       submissionRef: originalSubmission('saved-a')}), {code: 'SubmissionUnknown'});

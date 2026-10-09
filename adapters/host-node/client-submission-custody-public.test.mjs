@@ -27,6 +27,53 @@ const program = {version: 'actql/0.1', id: 'original-submission', stages: [{id: 
 results: {answer: {from: {stage: 's', result: 'out'}}}};
 
 for (const entrance of ['local', 'https']) {
+  test(`${entrance}: typed submission lookup restores the original Run in another process without redispatch`, async t => {
+    const scratch = await createOwnedScratch({parent: acceptance.scratch ?? tmpdir(),
+      prefix: 'actql-submit-typed-', label: `typed submission recovery ${entrance}`});
+    t.diagnostic(`Typed submission recovery evidence: ${scratch.path}`);
+    const keys = generateKeyPairSync('ed25519');
+    await writeFile(join(scratch.path, 'keys.json'), JSON.stringify({publicKey: pem(keys.publicKey),
+      privateKey: pem(keys.privateKey)}), {mode: 0o600});
+    if (entrance === 'https') execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+      '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+      '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
+    const phase = async phase => {
+      const child = spawnSync(process.execPath, [fixture], {input: JSON.stringify({phase, entrance,
+        root: scratch.path, runtime: acceptance.runtime, program, scenario: 'typed_submission'}),
+      encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024});
+      assert.equal(child.error, undefined, String(child.error));
+      const report = JSON.parse(await readFile(join(scratch.path, `${phase}.json`), 'utf8'));
+      assert.equal(child.status, 0, `${JSON.stringify(report)}\n${child.stderr}`);
+      assert.equal(child.signal, null, 'first process exits before the restoring process starts');
+      return report;
+    };
+    const initial = await phase('typed-initial');
+    assert.equal(initial.state.status, 'succeeded');
+    assert.deepEqual(initial.rows, [{id: 1}]);
+    assert.equal(initial.computes, 1);
+    if (entrance === 'https') assert.equal(initial.initialUnknown, 'SubmissionUnknown');
+    else assert.deepEqual(initial.initialAttempt.attemptRef,
+      {operation: 'submit', attemptId: 'typed-process-initial'});
+    const restored = await phase('typed-lookup');
+    assert.notEqual(restored.pid, initial.pid);
+    assert.deepEqual(restored.ref, initial.ref);
+    assert.deepEqual(restored.submissionRef, initial.submissionRef);
+    assert.deepEqual(restored.lookup, initial.lookup);
+    assert.deepEqual(restored.second, initial.lookup);
+    assert.equal(restored.state.status, 'succeeded');
+    assert.deepEqual(restored.rows, [{id: 1}]);
+    assert.equal(restored.computes, 0);
+    assert.equal(restored.conflict.kind, 'conflict');
+    assert.equal(restored.conflict.reason, 'intent');
+    assert.deepEqual(restored.conflict.attemptRef,
+      {operation: 'submit', attemptId: 'typed-process-changed'});
+    assert.deepEqual(restored.conflict.submissionRef, initial.submissionRef);
+    assert.equal(restored.conflict.outcome, undefined);
+    scratch.passed();
+  });
+}
+
+for (const entrance of ['local', 'https']) {
   test(`${entrance}: lost submission custody cannot create another Run for the original identity`, async t => {
     const scratch = await createOwnedScratch({parent: acceptance.scratch ?? tmpdir(),
       prefix: 'actql-submit-custody-', label: `submission custody ${entrance}`});

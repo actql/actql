@@ -14,12 +14,12 @@ const options = JSON.parse(await new Promise(resolve => {
 }));
 const {root, runtime, entrance, phase, program, scenario} = options;
 const {connect} = await import(runtime.client);
-const {getSubmissionInput} = await import(runtime.sdk);
+const {getSubmissionInput, getSubmissionAttempt, getSubmissionOutcome} = await import(runtime.sdk);
 const {openInstalledRemoteHttpHost} = await import(runtime.httpHost);
 const keys = JSON.parse(await readFile(join(root, 'keys.json'), 'utf8'));
 const principalId = userInfo().username;
 let computes = 0, client, host, server, report;
-let epochNow = 1_800_000_000_000, loseRestartReply = false;
+let epochNow = 1_800_000_000_000, loseRestartReply = false, loseSubmitReply = false;
 if (phase === 'restart-lookup') epochNow += 1000;
 const progress = boundary => appendFile(join(root, `${phase}.progress.jsonl`),
   JSON.stringify({boundary, at: new Date().toISOString(), computes}) + '\n');
@@ -48,8 +48,10 @@ const open = async () => {
     setDefaultCACertificates([...getCACertificates('default'), cert.toString('utf8')]);
     host = await openInstalledRemoteHttpHost({...installation, authenticate: () => principalId});
     server = createServer({key, cert}, (request, response) => {
-      if (loseRestartReply && request.url.endsWith('/restart-intent')) {
+      if ((loseRestartReply && request.url.endsWith('/restart-intent')) ||
+          (loseSubmitReply && request.url.endsWith('/submit-intent'))) {
         loseRestartReply = false;
+        loseSubmitReply = false;
         response.end = () => {response.destroy(); return response;};
       }
       return host.handler(request, response);
@@ -63,7 +65,55 @@ try {
   await progress('opening_host');
   await open();
   await progress('connected');
-  if (scenario === 'explicit_restart') {
+  if (scenario === 'typed_submission') {
+    const originalPath = join(root, 'original-submission-input.json');
+    let original, run, initialAttempt, initialUnknown;
+    if (phase === 'typed-initial') {
+      original = {submissionRef: client.newSubmission({nonce: 'typed-process-original'}),
+        input: program};
+      await writeFile(originalPath, JSON.stringify(original), {flag: 'wx', mode: 0o600});
+      loseSubmitReply = entrance === 'https';
+      const pending = client.start(original.input, {submissionRef: original.submissionRef,
+        attemptId: 'typed-process-initial'});
+      if (entrance === 'https') {
+        try {await pending; throw new Error('FixtureSubmissionReplyShouldBeLost');}
+        catch (error) {
+          if (error.code !== 'SubmissionUnknown') throw error;
+          assert.equal(getSubmissionAttempt(error), undefined);
+          assert.equal(getSubmissionOutcome(error), undefined);
+          assert.deepEqual(getSubmissionInput(error).attemptRef,
+            {operation: 'submit', attemptId: 'typed-process-initial'});
+          initialUnknown = error.code;
+        }
+      } else {
+        run = await pending;
+        initialAttempt = getSubmissionAttempt(run);
+        assert.equal(initialAttempt.kind, 'recorded');
+      }
+    } else original = JSON.parse(await readFile(originalPath, 'utf8'));
+    const lookup = await client.lookupSubmission(original.submissionRef);
+    const second = await client.lookupSubmission(original.submissionRef);
+    run ??= await client.attach(lookup.admission.ref);
+    const state = await run.wait({signal: AbortSignal.timeout(15000)});
+    const rows = await run.result('answer').all();
+    let conflict;
+    if (phase === 'typed-lookup') {
+      const changed = structuredClone(original.input);
+      changed.stages[0].steps[0].values.rows[0].id = 2;
+      try {
+        await client.start(changed, {submissionRef: original.submissionRef,
+          attemptId: 'typed-process-changed'});
+        throw new Error('FixtureChangedIntentShouldBeRefused');
+      } catch (error) {
+        if (error.code !== 'SubmissionConflict') throw error;
+        conflict = getSubmissionAttempt(error);
+        assert.equal(getSubmissionOutcome(error), undefined);
+      }
+    }
+    report = {pid: process.pid, ref: run.ref, submissionRef: original.submissionRef,
+      initialAttempt, initialUnknown, state, rows, lookup, second, conflict, computes};
+    await progress('original_submission_lookup_without_resend');
+  } else if (scenario === 'explicit_restart') {
     const decisionPath = join(root, 'explicit-restart.json');
     let decision, run;
     if (phase === 'restart-initial') {

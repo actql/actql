@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, heldSubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -220,7 +220,7 @@ async function responseFixture(t, reply) {
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref: {...ref}, durability: 'durable', revision: 1};
       if (operation === 'close') return;
-      return operation === 'submit-intent' ? heldSubmission(body, reply) : reply;
+      return operation === 'submit-intent' ? heldSubmissionAttempt(body, reply) : reply;
     },
   });
   t.after(() => client.close());

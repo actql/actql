@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {connectInProcess} from './host-port.mjs';
 import {ClientError} from './index.mjs';
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
@@ -25,7 +25,7 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
     const port = {async perform(operation, request, signal) {
       calls.push({operation, request});
       if (operation === 'connect') return profile;
-      if (operation === 'submit-intent') return readySubmission(request, admission);
+      if (operation === 'submit-intent') return readySubmissionAttempt(request, admission);
       if (operation === 'attach') return admission;
       if (operation === 'read') {
         assert.equal(request.format, 'typed');
@@ -41,7 +41,7 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       port);
     const execution = await client.startSource('{"version":"actql/0.1"}',
-      {format: 'json', submissionRef: originalSubmission('local-request')});
+      {format: 'json', submissionRef: originalSubmission('local-request'), attemptId: 'local-invocation'});
     const result = execution.result('answer');
     assert.deepEqual(await result.all(), [
       {id: 1, label: null}, {id: 2, label: 'two'},
@@ -65,6 +65,7 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
     assert.deepEqual(calls[1].request, {connection: {
       mode: 'local', owner: 'local', consentRefs: [], runners: [],
     }, submissionRef: originalSubmission('local-request'),
+    attemptRef: {operation: 'submit', attemptId: 'local-invocation'},
     intentCid: 'sha256:a864f0d32df74b3483b14834268c1d961c44696307ddc5538fb4e5458ffa81b0', kind: 'aql',
     input: {text: '{"version":"actql/0.1"}', format: 'json'},
     parameters: null});

@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
@@ -187,7 +187,7 @@ test('SDK DSNs carry a fixed Workspace without exposing the connection secret', 
     noSecret(body); noSecret(url.href);
     assert.equal(body.connection.workspaceId, 'workspace-A'); calls.push(operation);
     if (operation === 'connect') return Response.json(profile());
-    if (operation === 'submit-intent') return Response.json(readySubmission(body, {ref, durability: 'durable', revision: 1}));
+    if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(body, {ref, durability: 'durable', revision: 1}));
     if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
     if (operation === 'lookup-request') return Response.json({kind: 'not_found'});
     throw new Error('UnexpectedOperation');

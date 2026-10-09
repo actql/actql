@@ -76,6 +76,13 @@ for merged capabilities and work that is still in a PR. Salesforce requires
 explicit declaration publication through the packaged `publishSource` export;
 Host startup restores the publication without provider I/O.
 
+The generated standard installation includes the finite Sheets Source and
+collection-only append Effect. Explicitly publish and select its installation
+profile; no Source URI causes a package download or implicit credential use.
+See the [Sheets guide](https://github.com/actql/actql/blob/main/docs/connectors/sheets.md)
+for the supported two-stage read Program, typed cell contract, approval and
+unknown non-resend rules. Real Google service acceptance remains separate.
+
 Multiple independently published Effects use `installation.effectProfilePaths`
 (or `effectProfilePaths` on the HTTP Host). Publish each profile with the
 existing `publishEffect` operation first. The plural option takes two or more

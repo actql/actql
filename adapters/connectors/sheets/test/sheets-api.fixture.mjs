@@ -9,6 +9,14 @@ export const expectedRows = [
   {text: 'e\u0301\r\n=literal', number: null, flag: null},
   {text: 'e\u0301\r\n=literal', number: null, flag: null},
 ];
+export const blankGridRows = [{}, {values: [{}, {}, {}]}];
+export const errorGridRows = [{values: [
+  {effectiveValue: {stringValue: 'formula-error'}},
+  // The numeric column is nullable: replacing this error with NULL would
+  // otherwise be a legal successful row, not an incidental type failure.
+  {userEnteredValue: {formulaValue: '=1/0'}, effectiveValue: {
+    errorValue: {type: 'DIVIDE_BY_ZERO', message: 'Independent formula error'}}},
+]}];
 export function sheetsRoutes(state) {
   return [
     {method: 'GET', pathname: '/v4/spreadsheets/book', handle() {
@@ -33,7 +41,7 @@ export function sheetsRoutes(state) {
         }
       }
       return {body: {spreadsheetId: 'book', sheets: [{properties: {sheetId: 0},
-        data: [{rowData: [
+        data: [{rowData: state.gridRows ?? [
           {},
           {values: [{userEnteredValue: {formulaValue: '=\"\"'},
             effectiveValue: {stringValue: ''}},

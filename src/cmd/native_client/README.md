@@ -26,7 +26,8 @@ ordinary checker. Query-only source can take a JSON
 `--parameter-declarations-file` in the existing Program `params` shape; values
 remain separate in `--parameters-file`. JSON/YAML Program documents cannot
 take external declarations. `start` takes a JSON Program object. Both
-commands require a caller-saved `--submission-ref-file`. Allocate deliberate new
+commands require a caller-saved `--submission-ref-file` and an explicit
+`--operation-attempt-id` for the invocation. Allocate deliberate new
 work with `new-submission --request-id <nonce>` and save its full epoch/nonce
 JSON before sending input. `--request-id` on `start` or `aql` only asserts that
 saved nonce. `lookup-submission --submission-ref-file <file>` observes the
@@ -117,6 +118,7 @@ bearer token; keep it and the client key readable only by their owner.
   --ca ca.crt --cert client.crt --key client.key \
   aql --program-file query.sql --format sql \
   --submission-ref-file saved-query-submission.json \
+  --operation-attempt-id saved-query-submit-001 \
   --parameter-declarations-file declarations.json \
   --parameters-file parameters.json --request-id saved-query-001
 ```

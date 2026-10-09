@@ -1,4 +1,4 @@
-import {originalSubmission, readySubmission, heldSubmission} from '../packages/sdk/submission-fixture.mjs';
+import {originalSubmission, readySubmission, heldSubmission, submissionAttempt} from '../packages/sdk/submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {clientWireCorpus, connection, profile, ref}
@@ -96,8 +96,10 @@ const server = createServer({
   requests.push({url: request.url, method: request.method,
     authorization: request.headers.authorization, body: JSON.parse(raw)});
   response.writeHead(200, {'content-type': 'application/json'});
-  response.end(JSON.stringify(request.url.endsWith('/connect')
-    ? reply : responseValue(active, JSON.parse(raw))));
+  const body = JSON.parse(raw);
+  const original = request.url.endsWith('/connect') ? reply : responseValue(active, body);
+  response.end(JSON.stringify(request.url.endsWith('/submit-intent')
+    ? submissionAttempt(body, original) : original));
 });
 const builtExecutable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
@@ -135,7 +137,7 @@ const run = async (...args) => {
   if (args[0] === 'start' || args[0] === 'aql') {
     const nonce = args[args.indexOf('--request-id') + 1];
     await writeFile(join(root, 'submission.json'), JSON.stringify(originalSubmission(nonce)));
-    args.push('--submission-ref-file', 'submission.json');
+    args.push('--submission-ref-file', 'submission.json', '--operation-attempt-id', 'wire-corpus-invocation');
   }
   return runProcess(executable, [...common, ...args]);
 };
@@ -195,8 +197,11 @@ function assertResponseBoundary(entry, selected, actual) {
   assert.equal(route === 'submit-intent' || route === 'lookup-submission'
     ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
     'the requested identity must reach the response endpoint unchanged');
-  if (route === 'submit-intent') assert.equal(requests[1].body.kind,
-    entry.operation === 'aql' ? 'aql' : 'program');
+  if (route === 'submit-intent') {
+    assert.equal(requests[1].body.kind, entry.operation === 'aql' ? 'aql' : 'program');
+    assert.deepEqual(requests[1].body.attemptRef,
+      {operation:'submit', attemptId:'wire-corpus-invocation'});
+  }
   if (entry.expected) {
     if (entry.kind === 'submission' && ['not_accepted', 'preparation_failed'].includes(entry.value.kind)) {
       assert.equal(actual.code, 1);

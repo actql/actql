@@ -2,7 +2,7 @@
 // neither dispatches tasks nor infers nonexecution from a missing Run record.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
-  isClientSubmitRejection, validCheckOutcome} from '../../packages/client-wire/index.mjs';
+  isClientSubmitRejection, validCheckOutcome, validOperationAttemptRef} from '../../packages/client-wire/index.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const classification = code => ({
@@ -29,14 +29,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
   const flights = new Map();
-  const authorize = async value => {
-    const selected = await authorizedScope(value);
+  const scopeFields = selected => {
     const authorityScopeCid = selected?.authorityScopeCid;
     const namespaceId = selected?.namespaceId;
     if (typeof authorityScopeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(authorityScopeCid) ||
         typeof namespaceId !== 'string' || !namespaceId) fail('ClientRequestLookupDenied');
     return {authorityScopeCid, namespaceId, currentAuthorization: true};
   };
+  const authorize = async value => scopeFields(await authorizedScope(value));
   const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
   const unresolved = (submissionRef, code = 'submission_history_unresolvable') =>
     immutable({kind: 'unresolvable', submissionRef, problem: {code}});
@@ -166,10 +166,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     flights.set(requestId, flight);
     return await flight;
   };
-  const submitIntent = async request => {
+  const submitIntent = async (request, attempt) => {
     const value = snapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
-    const fields = await authorize(value);
+    const fields = attempt?.fields ?? await authorize(value);
     const input = moon.clientSubmittedIntent(canonicalJson({kind: value.kind, input: value.input,
       parameters: value.parameters}, {dataKeys: true}), 1048576, 65536, 64);
     if (input === undefined || moon.clientSubmittedIntentCid(input) !== value.intentCid) {
@@ -180,8 +180,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // same journal owner before preparation and at atomic receipt acceptance.
     const restartFields = current => ({...current, actorId: value.principalId,
       unresolvedHistory: value.unresolvedHistory});
-    journal.checkSubmittedIntent(value.submissionRef, input, restartFields(fields), moon);
+    if (attempt === undefined) journal.checkSubmittedIntent(value.submissionRef, input, restartFields(fields), moon);
+    else attempt.check(value.submissionRef, input, restartFields(fields));
     let retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon);
+    attempt?.observe(retained);
     if (retained !== undefined) {
       if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
@@ -220,14 +222,17 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const {checkObservation: transientObservation, ...outcome} = projected;
       void transientObservation;
       const result = retained === undefined
-        ? journal.recordSubmittedIntent(value.submissionRef, input,
+        ? (attempt === undefined ? journal.recordSubmittedIntent(value.submissionRef, input,
           {...restartFields(current), phase: kind, outcome}, moon)
+          : attempt.record(value.submissionRef, input, {...restartFields(current), phase: kind, outcome}))
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
       return await discloseOutcome(value, storedOutcome(result), current, result);
     }
     const current = await authorize(value);
-    retained = journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon);
+    retained = attempt === undefined
+      ? journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon)
+      : attempt.record(value.submissionRef, input, restartFields(current));
     if (retained.phase !== 'preparing') {
       return await discloseOutcome(value, await refresh(value, retained, current), current, retained);
     }
@@ -266,6 +271,49 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
     return await discloseOutcome(value, result, current, retained);
   };
-  return Object.freeze({submitIntent, lookupSubmission,
+  const submitAttempt = async request => {
+    const value = snapshot(request);
+    if (!validSubmissionRef(value.submissionRef) || !validOperationAttemptRef(value.attemptRef) ||
+        value.attemptRef.operation !== 'submit') fail('InvalidClientSubmissionAttempt');
+    const selected = await authorizedScope(value);
+    if (selected === undefined) return journal.checkSubmissionAttempt(value.submissionRef,
+      undefined, {attemptRef: value.attemptRef, currentAuthorization: false}, moon);
+    const fields = scopeFields(selected);
+    const rejections = new WeakMap();
+    let originalSatisfied = false;
+    const project = result => {
+      if (['refused', 'conflict'].includes(result.kind)) {
+        const interruption = new Error('SubmissionAttemptRejected');
+        rejections.set(interruption, result);
+        throw interruption;
+      }
+      return result;
+    };
+    try {
+      const outcome = await submitIntent(value, {fields,
+        observe(retained) {if (retained !== undefined && retained.phase !== 'preparing') originalSatisfied = true;},
+        check(ref, input, options) {
+          project(journal.checkSubmissionAttempt(ref, input,
+            {...options, attemptRef: value.attemptRef}, moon));
+        },
+        record(ref, input, options) {
+          const result = project(journal.recordSubmissionAttempt(ref, input,
+            {...options, attemptRef: value.attemptRef}, moon));
+          if (!result.submission.inserted && result.submission.phase !== 'preparing') originalSatisfied = true;
+          return result.submission;
+        },
+      });
+      return immutable({kind: originalSatisfied ? 'already_satisfied' : 'recorded',
+        attemptRef: value.attemptRef, outcome});
+    } catch (error) {
+      // Only the exact private Owner projection can terminate this invocation
+      // as Refused or Conflict. Preparation, dispatch and COMMIT exceptions
+      // retain their unknown-outcome handling, whatever their error code.
+      const rejected = rejections.get(error);
+      if (rejected === undefined) throw error;
+      return immutable(rejected);
+    }
+  };
+  return Object.freeze({submitIntent, submitAttempt, lookupSubmission,
     async issueEpoch(request) {return journal.issueSubmissionEpoch(await authorize(snapshot(request)), moon);}});
 }

@@ -45,7 +45,8 @@ try {
   const original = JSON.parse(await run('new-submission', '--request-id', 'native-release-query'));
   await writeFile('submission.json', JSON.stringify(original), {mode: 0o600});
   const accepted = JSON.parse(await run('aql', '--program-file', 'query.sql', '--format', 'sql',
-    '--submission-ref-file', 'submission.json', '--request-id', 'native-release-query'));
+    '--submission-ref-file', 'submission.json', '--request-id', 'native-release-query',
+    '--operation-attempt-id', 'native-release-submit-invocation'));
   assert(accepted.ref);
   await writeFile('run.json', JSON.stringify(accepted.ref), {mode: 0o600});
   assert.equal(JSON.parse(await run('wait', '--ref-file', 'run.json')).status, 'succeeded');
