@@ -67,7 +67,12 @@ export const unnestCheckedArraySuccesses = [
     {parameterDeclarations: declarations, parameters: {items: null}}),
 ];
 export const unnestCheckedArrayRefusals = [
-  ['untyped-empty', sql('[]')], ['unresolved-null', sql('[NULL]')],
-  ['mixed-types', sql("[1, 'wrong']")], ['declared-wrong-type', sql('ARRAY<BOOL>[1]')],
-  ['scalar-qualified-star', 'SELECT element.* FROM UNNEST([1, 2]) element'],
-].map(([name, text]) => ({name: 'unnest-checked-array-refusal-' + name, format: 'sql', text}));
+  // The selected finite Number profile does not invent an INT64 default for
+  // an unresolved element. These are implementation limits, not invalid types.
+  ['untyped-empty', sql('[]'), 'ClientProgramImplementationLimit'],
+  ['unresolved-null', sql('[NULL]'), 'ClientProgramImplementationLimit'],
+  ['mixed-types', sql("[1, 'wrong']"), 'ClientProgramInvalidInput'],
+  ['declared-wrong-type', sql('ARRAY<BOOL>[1]'), 'ClientProgramInvalidInput'],
+  ['scalar-qualified-star', 'SELECT element.* FROM UNNEST([1, 2]) element', 'ClientProgramInvalidInput'],
+].map(([name, text, expectedCode]) => ({name: 'unnest-checked-array-refusal-' + name,
+  format: 'sql', text, expectedCode}));
