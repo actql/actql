@@ -5061,8 +5061,7 @@ pub fn compile(
 ) -> Result[@program.Program, Issue] {
   if @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
-    has_pipe_range_input(query) ||
-    query_has_join_set_operand(query) {
+    has_pipe_range_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
@@ -5091,6 +5090,14 @@ pub fn compile(
     // Current Graph construction and MATCH/TRAIL use the ordinary Program
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
+  }
+  if query_has_join_set_operand(query) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
   }
   if @query.join_part_count(query) > 0 &&
     (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&

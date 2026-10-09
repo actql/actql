@@ -92,3 +92,41 @@ test "JOIN set entry retains declared output ceilings and final output scope" {
     )
   }
 }
+
+///|
+test "JOIN set alignment composes terminal column projection without another material" {
+  let query = @query.parse_query(
+    "SELECT l.x AS id, r.y AS amount FROM t AS l JOIN t AS r ON l.x = r.x WHERE l.x = 1 UNION ALL CORRESPONDING SELECT r.y AS amount, l.x AS id FROM t AS l JOIN t AS r ON l.x = r.x WHERE l.x >= 2 ORDER BY id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, join_order_context(), construction_limits()).unwrap()
+  let wire = semantic(program)
+  assert_true(!wire.contains("aql_data_set_aligned_"), msg=wire)
+  assert_true(
+    wire.contains(
+      "\"select\":[{\"id\":\"aql_join_input_7\"},{\"amount\":\"aql_join_input_6\"}]",
+    ),
+  )
+  assert_true(wire.contains("\"fields\":[\"id\",\"amount\"]"))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ =>
+      fail(
+        "composed projection must retain the common checked column contracts",
+      )
+  }
+}
+
+///|
+test "JOIN set routing preserves the existing nearest placement refusal" {
+  let query = @query.parse_query(
+    "FROM queries AS q |> NEAREST candidates AS c QUERY KEY (q.request_id) VECTOR q.embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 KEEP (q.note, c.label) AS neighbor |> UNION ALL (SELECT l.request_id FROM queries AS l JOIN queries AS r ON l.request_id = r.request_id)",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(query, nearest_context(), construction_limits())
+    is Err(UnsupportedNearest),
+  )
+}
