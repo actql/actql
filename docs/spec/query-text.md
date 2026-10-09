@@ -804,10 +804,18 @@ or AS still replaces scope. Correlated expansion after Pipe UNION ALL
 consumes the retained set output; ARRAY/object stars use its common checked
 schema, including CTE column aliases and nullable object fields. The set's
 multiplicity, declared ARRAY bounds and subsequent predicates remain unchanged.
-INNER/LEFT correlation and implicit comma expansion remain unsupported. These
-are coverage gaps, not GoogleSQL language restrictions. CROSS expansion
-does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
-Host capacity policy without raising either limit.
+Explicit `[INNER] JOIN UNNEST` uses the same correlated expansion in SQL and
+Pipe. An optional ON expression filters the expanded pairs at that point,
+using ordinary current-column and immutable-range resolution. A NULL or false
+predicate excludes the pair; NULL elements and duplicate elements otherwise
+remain rows. Without ON, INNER expansion is equivalent to CROSS expansion.
+Empty or NULL arrays produce no child rows. A subsequent ordinary JOIN
+consumes the filtered expansion rather than applying the predicate after that
+JOIN. This follows the selected [GoogleSQL array-flattening profile](https://docs.cloud.google.com/bigquery/docs/arrays).
+LEFT correlation and implicit comma expansion remain coverage gaps, not
+GoogleSQL language restrictions. Correlated expansion does not accept USING
+or MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common Host
+capacity policy without raising either limit.
 
 ## Named intermediate Results
 
