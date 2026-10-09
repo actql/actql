@@ -115,13 +115,15 @@ fn unnest_source_element(
 }
 
 ///|
-// A STRUCT value-table range denotes its original value, but is not an extra
-// visible column. A range name takes precedence over an exposed field of the
-// same name in expression scope. Star expansion retains the visible fields.
+// A value-table range denotes its original value and takes precedence over
+// same-named input columns or implicit fields in expression scope. Object
+// receivers are not extra star columns; scalar receivers keep their own slots.
 fn unnest_expression_columns(
   visible : Array[(String, String)],
-  receivers : Array[(@query.NamePart, String)],
+  object_receivers : Array[(@query.NamePart, String)],
+  scalar_receivers : Array[(@query.NamePart, String)],
 ) -> Array[(String, String)] {
+  let receivers = object_receivers + scalar_receivers
   let columns = visible.filter(entry => {
     !receivers.any(receiver => {
       same_name(receiver.0, { value: entry.0, quoted: false, })

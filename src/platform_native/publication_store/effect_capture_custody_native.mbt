@@ -79,7 +79,7 @@ fn EffectCaptureCustody::read(
     Err(issue) => return Err(Database(issue))
   }
   if row.body == self.terminal {
-    if row.revision != 1L {
+    if row.revision != 0L && row.revision != 1L {
       return Err(StateCollision)
     }
     return Ok((row, true))
@@ -230,17 +230,29 @@ pub fn EffectCaptureCustody::retry_cleanup(
 ) -> Result[Bool, NativePublicationStoreIssue] {
   let (row, complete) = match self.read() {
     Ok(value) => value
-    Err(Database(@sqlite.NotFound)) =>
-      // No asynchronous writer exists in this synchronous Store operation.
-      // An uncertain transaction is rejected by read() before this branch.
-      return self.store.database
-        .release_capacity(
-          "publication_payload",
-          self.capacity_key,
-          self.envelope.length().to_int64(),
-          1L,
-        )
-        .map_err(issue => Database(issue))
+    Err(Database(@sqlite.NotFound)) => {
+      // Fence an already prepared handle even when no capture was persisted.
+      // INSERT and a competing persist serialize on the same durable slot.
+      // If persistence won, read and retire that exact encrypted record below.
+      match
+        allocation_prepare(self.store, "effect-capture-before-cleanup", () => {
+          self.store.database
+          .insert(
+            "effect_capture_custody",
+            @publication.effect_capture_holding_identity(self.binding),
+            self.terminal,
+          )
+          .map(_ => ())
+          .map_err(issue => Database(issue))
+        }) {
+        Ok(_) | Err(Database(@sqlite.Collision)) => ()
+        Err(issue) => return Err(issue)
+      }
+      match self.read() {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    }
     Err(issue) => return Err(issue)
   }
   if !complete {
