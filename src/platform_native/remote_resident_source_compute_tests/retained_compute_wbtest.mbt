@@ -323,6 +323,18 @@ fn retained_compute_case(
   } else {
     None
   }
+  let selected = if through_runtime {
+    retained_compute_selection(
+      bundle_cid=retained_runtime_required_env(
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+      ),
+      budget_cid=@remote.remote_dispatch_budget_cid(
+        @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
+      ),
+    )
+  } else {
+    retained_compute_selection()
+  }
   let effect_producer_dispatch = effect_materials.map(pair => {
     @host.prepare_client_effect_source_dispatch(
       pair.0.allowed,
@@ -330,7 +342,7 @@ fn retained_compute_case(
       pair.1,
       1,
       "producer",
-      retained_compute_selection(),
+      selected,
     ).unwrap()
   })
   let acquisitions = Ref(0)
@@ -464,18 +476,6 @@ fn retained_compute_case(
     4096,
     bytes,
   ).unwrap()
-  let selected = if through_runtime {
-    retained_compute_selection(
-      bundle_cid=retained_runtime_required_env(
-        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
-      ),
-      budget_cid=@remote.remote_dispatch_budget_cid(
-        @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
-      ),
-    )
-  } else {
-    retained_compute_selection()
-  }
   let producer_dispatch = match effect_materials {
     Some(_) => effect_producer_dispatch.unwrap()
     None =>
@@ -684,10 +684,24 @@ fn retained_compute_case(
       input,
       material,
       dispatch,
-      @host.prepare_client_retained_task_dispatch(
-        prepared, compilation, admission, definition, caller, 1, 2, "different-consumer-attempt",
-        selected, common_input, common_current,
-      ).unwrap(),
+      match effect_materials {
+        Some((materials, caller)) =>
+          @host.prepare_client_effect_retained_task_dispatch(
+            materials.allowed,
+            materials.run_definition,
+            caller,
+            2,
+            "different-consumer-attempt",
+            selected,
+            common_input,
+            common_current,
+          ).unwrap()
+        None =>
+          @host.prepare_client_retained_task_dispatch(
+            prepared, compilation, admission, definition, caller, 1, 2, "different-consumer-attempt",
+            selected, common_input, common_current,
+          ).unwrap()
+      },
       codec,
       current,
       site,
@@ -697,6 +711,7 @@ fn retained_compute_case(
       journal,
       cleanup_owner,
       bytes,
+      effect_materials=effect_materials.map(pair => pair.0),
     )
     @execution.cancel_completed_relation_export_receipt(receipt)
     @execution.cancel_completed_output_export(source_export)
@@ -1076,4 +1091,9 @@ test "Effect retained consumer resumes from committed Transfer without Source IO
 ///|
 test "Effect retained consumer cancellation returns its borrow before holding cleanup" {
   retained_compute_case(true, effect=true)
+}
+
+///|
+test "Effect retained consumer completes through Runtime claim evidence readers and formal cleanup" {
+  retained_compute_case(false, through_runtime=true, effect=true)
 }

@@ -61,6 +61,99 @@ pub fn install_resident_retained_compute_executor(
     !@remote.remote_input_binding_matches_dispatch(binding, dispatch) {
     return Err(Source(ForeignInput))
   }
+  install_resident_retained_executor_owned(
+    configuration,
+    input,
+    dispatch,
+    definition_cid,
+    task_key,
+    consumer_task,
+    output_limits,
+    release_retired_input,
+    () => {
+      open_resident_retained_compute(
+        prepared, configuration, input, material, dispatch, codec, input_limits,
+        current,
+      )
+    },
+    observe_failure,
+  )
+}
+
+///|
+/// Register the original Effect computation consumer with the existing remote
+/// Runtime. The factory borrows its independent receiver holding only after
+/// admission, current authorization and the exclusive start claim. It does not
+/// approve or apply an Effect; task output and cleanup stay with Runtime.
+pub fn install_resident_effect_retained_compute_executor(
+  materials : @host.ClientEffectRunMaterials,
+  configuration : ResidentSourceComputeConfiguration,
+  input : @output.NativeRemoteRetainedTaskInput,
+  material : @transfer_client.NativeRemoteDestinationMaterialUse,
+  dispatch : @remote.DispatchRequest,
+  codec : @output.NativeRemoteStandardRowCodec,
+  input_limits : @output.NativeRemoteStandardTransferSourceLimits,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  output_limits : @output.NativeRemoteStandardTaskLimits,
+  observe_failure? : (ResidentSourceComputeIssue) -> Unit,
+  release_retired_input? : (() -> Bool)? = None,
+) -> Result[
+  @output.NativeRemoteStandardTaskExecutor,
+  ResidentSourceComputeIssue,
+] {
+  let fragment = match @host.issue_client_effect_task_fragment(materials, 1) {
+    Ok(value) => value
+    Err(_) => return Err(UnsupportedGraph)
+  }
+  let definition_cid = @publication.publication_contract_identity(
+    materials.run_definition,
+  )
+  let task_key = @host.client_task_fragment_node_id(fragment)
+  let binding = @output.native_remote_retained_task_input_binding(input)
+  if @remote.dispatch_request_task_scope(dispatch) != (definition_cid, task_key) ||
+    !@remote.remote_input_binding_matches_dispatch(binding, dispatch) {
+    return Err(Source(ForeignInput))
+  }
+  install_resident_retained_executor_owned(
+    configuration,
+    input,
+    dispatch,
+    definition_cid,
+    task_key,
+    1,
+    output_limits,
+    release_retired_input,
+    () => {
+      open_resident_effect_retained_compute(
+        materials, configuration, input, material, dispatch, codec, input_limits,
+        current,
+      )
+    },
+    observe_failure,
+  )
+}
+
+///|
+// Both prepared owners enter the same physical factory and cleanup path.
+fn install_resident_retained_executor_owned(
+  configuration : ResidentSourceComputeConfiguration,
+  input : @output.NativeRemoteRetainedTaskInput,
+  dispatch : @remote.DispatchRequest,
+  definition_cid : String,
+  task_key : String,
+  consumer_task : Int,
+  output_limits : @output.NativeRemoteStandardTaskLimits,
+  release_retired_input : (() -> Bool)?,
+  open_consumer : () -> Result[
+    ResidentSourceCompute,
+    (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
+  ],
+  observe_failure : ((ResidentSourceComputeIssue) -> Unit)?,
+) -> Result[
+  @output.NativeRemoteStandardTaskExecutor,
+  ResidentSourceComputeIssue,
+] {
+  let binding = @output.native_remote_retained_task_input_binding(input)
   // A completed consumer must retain its exact output independently of the
   // process-local Compute owner. Reuse the same physical file/custody path as
   // the producer; never reacquire input to reconstruct a lost completion.
@@ -79,11 +172,7 @@ pub fn install_resident_retained_compute_executor(
       dispatch,
       binding,
       () => {
-        let consumer = match
-          open_resident_retained_compute(
-            prepared, configuration, input, material, dispatch, codec, input_limits,
-            current,
-          ) {
+        let consumer = match open_consumer() {
           Ok(value) => value
           Err((issue, cleanup)) => {
             match observe_failure {

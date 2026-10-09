@@ -45,6 +45,46 @@ fn client_effect_source_fragment(
 }
 
 ///|
+/// Issue a checked task fragment from the reconstructed original Effect Run.
+/// The private computation view does not escape as an Effect-free Program.
+/// This identity grants neither a start claim nor approval or physical input.
+pub fn issue_client_effect_task_fragment(
+  materials : ClientEffectRunMaterials,
+  task : Int,
+) -> Result[ClientTaskFragmentNode, ClientEffectSourceDispatchIssue] {
+  match
+    bind_client_effect_compiled_run(
+      materials.prepared,
+      materials.allowed,
+      materials.run_definition,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Binding(issue))
+  }
+  if !physical_equal(materials.compilation, materials.allowed.compilation) {
+    return Err(ForeignDispatch)
+  }
+  let source = match client_effect_source_fragment(materials.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if task == 0 {
+    return Ok(source)
+  }
+  if task != 1 {
+    return Err(UnsupportedGraph)
+  }
+  issue_prepared_client_task_fragment(
+    materials.compilation.compiled.owner,
+    task,
+    client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Fragment(issue))
+}
+
+///|
 /// The original Effect Owner supplies the logical Source identity. No path,
 /// credential, approval or acquisition is created here.
 pub fn prepare_client_effect_source_input_binding(
