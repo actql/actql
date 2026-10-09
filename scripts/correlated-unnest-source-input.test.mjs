@@ -34,7 +34,8 @@ test('correlated expansion obligations distinguish current arrays and original r
 });
 
 test('INNER expansion preserves the explicit ON filter and independently counted duplicate matches', async () => {
-  const {innerCorrelatedUnnestProgram} = await import('./fixtures/correlated-unnest-source-input.mjs');
+  const {innerCorrelatedUnnestProgram, innerCorrelatedUnnestImmutableProgram}
+    = await import('./fixtures/correlated-unnest-source-input.mjs');
   const byName = new Map(correlatedUnnestSuccesses.map(value => [value.name, value]));
   const control = byName.get('correlated-unnest-inner-json-control');
   assert.deepEqual(JSON.parse(control.text), innerCorrelatedUnnestProgram);
@@ -50,6 +51,14 @@ test('INNER expansion preserves the explicit ON filter and independently counted
   assert.deepEqual(byName.get('correlated-unnest-inner-immutable-parent').expected,
     [{id: 99, element: 1, position: 0}, {id: 99, element: 2, position: 0},
       {id: 99, element: 2, position: 2}]);
+  const immutable = byName.get('correlated-unnest-inner-immutable-parent');
+  assert.match(immutable.text, /SET id = 99.*ON element = p\.id.*SELECT id, element, position/u);
+  assert.deepEqual(JSON.parse(byName.get('correlated-unnest-inner-immutable-json-control').text),
+    innerCorrelatedUnnestImmutableProgram);
+  assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps.slice(4, 6),
+    [{derive: {original_id: {field: 'id'}}}, {derive: {id: 99}}]);
+  assert.deepEqual(innerCorrelatedUnnestImmutableProgram.stages[0].steps[8],
+    {filter: {eq: [{field: 'element'}, {field: 'original_id'}]}});
   const acquired = byName.get('correlated-unnest-inner-acquired-parent');
   assert.equal(acquired.sourceReadCount, 1);
   assert.equal(acquired.sourceReadSessionCount, 1);

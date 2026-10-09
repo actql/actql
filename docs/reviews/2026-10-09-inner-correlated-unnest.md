@@ -67,7 +67,7 @@ assembled Values Run preimages are retained in
 Before updating the grammar, the current main-derived independent Values vector
 already failed 2/9 tests (`run-rahFII`, `focused-test-X7OqTo`). Its installed
 contract closure derives Unit `c92e4312...`, while consuming fixtures retained
-`144ed737...`. The local Values body is identical; the AoA contract closure pin
+`144ed737...`. The local Values body is identical; the CheckEnvironment contract closure pin
 changed from `d896f22c...` to `ff717ce1...` in main's contract repair. The original
 Run vector `c722ca18...` is preserved under its historical dependency pins.
 The repaired main grammar independently derives Run `1b7df752...`; the new
@@ -109,7 +109,22 @@ inner test, existing correlated/continuation/set/UNNEST tests, and the two
 ## Public execution and remaining coverage
 
 Fresh normal five-package Local/HTTPS execution is the next verification step.
-The new fixture count is 14 positive cases and four pre-admission refusals;
+The new fixture count is 15 positive cases and four pre-admission refusals;
 those are obligations until the actual consumer finishes. No public success,
 CI completion, full Core campaign, backend runtime conformance, LEFT correlation
 or broader GoogleSQL conformance is claimed by parser/checker success.
+
+The first fresh pack at `1a9baf0d1c971bf4305fd46968a9219c651a3c31`
+failed at the new immutable-parent fixture, after 23 Local positives. Receipt:
+`public-query-evidence-SDnxB1`, command `010.stderr.log`; wrapper `run-HuSIkJ`.
+Its source selected original `p.id` but expected current `id=99`. The correction
+selects the current `id`, keeps the ON/ORDER references to original `p.id`,
+and retains expected rows. A separate hand-authored JSON control preserves
+`original_id` before SET, filters on it, and publishes the current `id`. This
+is a fixture authoring correction, not evidence of a product alias defect.
+The failed installation/Store and original logs are retained. That run did
+not reach later Local cases, refusals or the HTTPS cohort.
+
+The main integration `1a9baf0d1c971bf4305fd46968a9219c651a3c31` normally
+merges `727520c8d02e4f3836471a8851e5d735c2cd3f02` without conflicts.
+Its selected JS callers passed 27/27 (`run-wceC2Y`, `focused-test-FS5VQ7`).

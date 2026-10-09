@@ -70,6 +70,21 @@ export const innerCorrelatedUnnestProgram = {version: 'actql/0.1',
     ...correlatedUnnestProgram.stages[0].steps.slice(6),
   ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const innerCorrelatedUnnestImmutableProgram = {version: 'actql/0.1',
+  id: 'fixture.inner_correlated_unnest_immutable', params: parameterDeclarations,
+  stages: [{id: 'main', inputs: {}, steps: [
+    ...correlatedUnnestProgram.stages[0].steps.slice(0, 4),
+    {derive: {original_id: {field: 'id'}}},
+    {derive: {id: 99}},
+    ...correlatedUnnestProgram.stages[0].steps.slice(4, 6),
+    {filter: {eq: [{field: 'element'}, {field: 'original_id'}]}},
+    {sort: [{field: 'original_id', dir: 'asc', nulls: 'first'},
+      {field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'element', 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const immutableInnerExpected = [{id: 99, element: 1, position: 0},
+  {id: 99, element: 2, position: 0}, {id: 99, element: 2, position: 2}];
 export const correlatedUnnestSuccesses = [
   success('json-control', JSON.stringify(correlatedUnnestProgram), {format: 'json', parameterDeclarations: undefined}),
   success('sql', sql),
@@ -129,9 +144,11 @@ export const correlatedUnnestSuccesses = [
     .replaceAll('element', '`element`'), {expected: innerExpected}),
   success('inner-on-false', innerSql.replace('element = p.id', 'FALSE'), {expected: []}),
   success('inner-empty', innerSql, {parameters: {parents: []}, expected: []}),
-  success('inner-immutable-parent', innerPipe.replace('|> JOIN', '|> SET id = 99 |> JOIN'),
-    {format: 'aql-text', expected: [{id: 99, element: 1, position: 0},
-      {id: 99, element: 2, position: 0}, {id: 99, element: 2, position: 2}]}),
+  success('inner-immutable-json-control', JSON.stringify(innerCorrelatedUnnestImmutableProgram),
+    {format: 'json', parameterDeclarations: undefined, expected: immutableInnerExpected}),
+  success('inner-immutable-parent', innerPipe.replace('|> JOIN', '|> SET id = 99 |> JOIN')
+    .replace('SELECT p.id,', 'SELECT id,'),
+    {format: 'aql-text', expected: immutableInnerExpected}),
   success('inner-data', 'DATA expanded = ' + innerPipe + '; FROM expanded |> RESULT answer',
     {format: 'aql-text', expected: innerExpected}),
   success('inner-ordinary-join-continuation', innerSql.replace('ORDER BY',
