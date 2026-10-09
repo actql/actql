@@ -1,4 +1,23 @@
-# `@actql/sdk` development artifact
+# Lightweight ActQL Client
+
+Install the published Remote-only package with `npm install @actql/sdk`.
+It does not include Local execution or DuckDB. Configure an existing authorized
+HTTPS Host and a scoped token; this example performs no Runner registration.
+For fixed release candidates and publication status, see the
+[release guide](https://github.com/actql/actql/tree/main/release).
+
+## Remote quickstart
+
+```js
+import {connect} from '@actql/sdk';
+const client = await connect({mode: 'remote', endpoint: process.env.ACTQL_ENDPOINT,
+  token: process.env.ACTQL_TOKEN});
+try {
+  console.log(await client.sql('SELECT 1 AS id').all());
+} finally {
+  await client.close();
+}
+```
 
 ## Workspace connection strings
 
@@ -51,8 +70,8 @@ Bearer authentication and Workspace checks remain required on every request.
 There is no automatic downgrade, redirect, daemon, alternate port or directory.
 Existing
 `connect({mode: 'remote', endpoint, token})` remains available. This is a
-development artifact, not a registry release or a deployed Cloud endpoint.
-See [the connection contract](../../docs/design/client-workspace-connections.md).
+Client library, not a deployed Cloud endpoint.
+See [the connection contract](https://github.com/actql/actql/blob/main/docs/design/client-workspace-connections.md).
 
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
@@ -60,7 +79,7 @@ kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host 
 installed profile, durable request lookup and deduplication, active and terminal
 Run observations, and published Result reads. Supported Program shapes and
 connectors depend on the installation; this is not a claim that every Host
-supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
+supports every Program. See the [current implementation status](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md).
 
 ## Client lifetime
 
@@ -93,7 +112,7 @@ read's error and attempt.
 confirmed. Keep this Client and retry `await client.close()`; new use stays
 sealed. Private provider errors and cleanup handles are not exposed. Do not
 replace a retained Local cleanup owner by
-opening another Host. This development API changes `close(): void` to
+opening another Host. The awaited cleanup API changes `close(): void` to
 `close(): Promise<void>`; update typed implementations and await cleanup rather
 than ignoring a possible rejection.
 
@@ -512,7 +531,7 @@ after payload expiration or deletion; description does not guarantee a
 subsequent row read. `maxWireBytes`, `maxNodes` and `maxDepth` may tighten the
 whole-response ceilings of 1 MiB, 10,000 structural nodes and depth 64.
 Exceeding them fails without truncation. See
-[Result description semantics](../../docs/design/result-description.md).
+[Result description semantics](https://github.com/actql/actql/blob/main/docs/design/result-description.md).
 
 The Client caps ordinary JSON control responses at 1 MiB of wire bytes,
 including connection, submission, status, lookup and Host error bodies. Review
@@ -1573,7 +1592,7 @@ permission, Run outcome or a retry policy. The existing checker/disclosure
 projection emits facts before the generated SDK advice selects a template.
 
 The catalog's closed Reason schema feeds the existing outcome/wire generator,
-which also checks generated SDK metadata/types and the [reference catalog](../../docs/reference/check-reasons.md).
+which also checks generated SDK metadata/types and the [reference catalog](https://github.com/actql/actql/blob/main/docs/reference/check-reasons.md).
 Literal scenario expectations remain independent tests. This public catalog is
 separate from legacy actql-diagnostics/0.1 and runtime operation outcomes; it
 does not claim a legacy compiler catalog body or complete diagnostics coverage.
