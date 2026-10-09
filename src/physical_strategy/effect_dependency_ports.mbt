@@ -262,6 +262,7 @@ pub fn start_captured_effect_local_result_export(
   logical_wire : @execution.RowWireLimits,
   schema_limits : @execution.RelationSchemaIdentityLimits,
   max_batch_bytes : Int,
+  converted_output? : @execution.CompletedOutput,
 ) -> Result[
   CapturedEffectLocalResultExport,
   CapturedEffectLocalResultExportIssue,
@@ -279,6 +280,7 @@ pub fn start_captured_effect_local_result_export(
       logical_wire,
       schema_limits,
       max_batch_bytes,
+      converted_output?,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Export(issue))

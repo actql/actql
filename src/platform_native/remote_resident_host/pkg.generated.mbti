@@ -315,6 +315,7 @@ type ResidentSourceCompute
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
