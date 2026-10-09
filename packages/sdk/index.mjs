@@ -3,7 +3,7 @@ import {captureResultRead, awaitValidation, validationOutcome} from './result-sc
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
-import {checkpointLimits, clientSourceFormats, validCancellation,
+import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOperationAttemptRef,
   validCancellationRef, validCancellationLookup, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
@@ -1994,7 +1994,10 @@ async function connectSelected(selected, port) {
       wait: async ({until, signal} = {}) => {
         return readRunObservation('wait', {until: until ?? null}, signal);
       },
-      cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision} = {}) => {
+      cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision,
+        attemptId = crypto.randomUUID()} = {}) => {
+        const attemptRef = freezeInput({operation: 'cancel', attemptId});
+        if (!validOperationAttemptRef(attemptRef)) fail('InvalidOperationAttemptReference');
         if (!validCancellationRef({...ref, cancelId,
           expectedRevision: expectedRevision === undefined ? 0 : expectedRevision})) {
           fail('InvalidCancellationReference');
@@ -2008,38 +2011,37 @@ async function connectSelected(selected, port) {
         }
         const cancelRef = freezeInput({...ref, cancelId, expectedRevision});
         if (!validCancellationRef(cancelRef)) fail('InvalidCancellationReference');
-        const context = freezeInput({ref: {...ref}, cancelRef});
+        const context = freezeInput({ref: {...ref}, cancelRef, attemptRef});
         let response;
-        try { response = await readControl('cancel', {cancelId, expectedRevision}, signal, context); }
+        try { response = await readControl('cancel', {cancelId, expectedRevision, attemptRef}, signal, context); }
         catch (cause) {
           // Local validation, Client closure and credential failure before
           // dispatch cannot have admitted this cancellation operation.
           if (!dispatchedCancellations.has(context)) throw cause;
-          // Each invocation owns its immutable reference. Borrowed errors and
-          // old Host failure metadata never establish non-acceptance.
-          const refusal = cause instanceof ClientError && [
-            'ClientAuthenticationDenied', 'ClientConnectionDenied', 'ClientCancellationDenied',
-            'ClientCancellationIntentConflict', 'ClientCancellationRevisionConflict',
-            'InvalidClientRequest', 'InvalidClientCancellationOperation', 'ClientOperationUnavailable',
-          ].includes(cause.code);
-          const error = new ClientError(refusal ? cause.code : 'CancellationUnknown', {
-            cancelRef, cause: requestCancellationCause(cause),
-            ...(refusal && Number.isInteger(cause.status) ? {status: cause.status} : {}),
+          // A transported code or HTTP status is not an Owner certificate for
+          // this invocation. It can follow a committed original operation or
+          // describe another attempt. Only a validated typed outcome can
+          // establish Refused or Conflict; lost error replies stay unknown.
+          const error = new ClientError('CancellationUnknown', {
+            cancelRef, attemptRef, cause: requestCancellationCause(cause),
           });
-          throw refusal ? error : retainCancellationExplanation(error, context, 'outcome_unknown');
+          throw retainCancellationExplanation(error, context, 'outcome_unknown');
         }
         let received;
         try {
           received = captureResponse(response);
-          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
+          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
           received = detachResponse(received);
-          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
+          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
         } catch {
           throw retainCancellationExplanation(new ClientError('CancellationUnknown', {
-            cancelRef, cause: new ClientError('InvalidHostCancellation'),
+            cancelRef, attemptRef, cause: new ClientError('InvalidHostCancellation'),
           }), context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(freezeInput(received), context, received.kind, received.revision);
+        received = freezeInput(received);
+        return received.cancellation === undefined ? received :
+          retainCancellationExplanation(received, context,
+            received.cancellation.kind, received.cancellation.revision);
       },
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;

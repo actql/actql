@@ -133,6 +133,7 @@ let attachReplyRef = ref;
 const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 6};
 const originalCancellation = {ref, cancelRef, kind: 'accepted', revision: 7};
 let cancelReply = originalCancellation;
+let cancelAttemptReply;
 let loseCancelReply = false;
 let cancellationLookupReply = {kind: 'found', cancellation: originalCancellation};
 const server = createServer({key: await readFile(join(root, 'server.key')),
@@ -211,7 +212,12 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
       response.destroy();
       return;
     }
-    response.end(JSON.stringify(operation === 'cancel' ? cancelReply : cancellationLookupReply));
+    if (operation === 'cancel') {
+      assert.deepEqual(body.attemptRef, {operation: 'cancel', attemptId: 'native-invocation'});
+    }
+    response.end(JSON.stringify(operation === 'cancel'
+      ? cancelAttemptReply ?? {kind: 'accepted', attemptRef: body.attemptRef, cancellation: cancelReply}
+      : cancellationLookupReply));
   } else if (operation === 'status') {
     response.end(JSON.stringify({status: 'succeeded'}));
   } else if (operation === 'delivery-attempt') {
@@ -401,9 +407,35 @@ try {
   attachReplyRef = ref;
   const cancelArgs = ['--ref-file', 'ref.json', '--cancel-id', 'original-cancel',
     '--expected-revision', '6'];
-  const cancelled = await run('cancel', ...cancelArgs);
+  const invocationArgs = ['--operation-attempt-id', 'native-invocation'];
+  const cancelled = await run('cancel', ...cancelArgs, ...invocationArgs);
   assert.equal(cancelled.code, 0, cancelled.stderr);
-  assert.deepEqual(JSON.parse(cancelled.stdout), originalCancellation);
+  assert.deepEqual(JSON.parse(cancelled.stdout), {kind: 'accepted',
+    attemptRef: {operation: 'cancel', attemptId: 'native-invocation'},
+    cancellation: originalCancellation});
+  const attemptRef = {operation: 'cancel', attemptId: 'native-invocation'};
+  for (const outcome of [
+    {kind: 'refused', attemptRef, reason: 'authorization', guarantee: 'attempt_uncommitted_unconsumed'},
+    {kind: 'conflict', attemptRef, reason: 'control_revision', cancelRef},
+    {kind: 'already_satisfied', attemptRef, cancellation: {...originalCancellation, kind: 'already_requested'}},
+  ]) {
+    cancelAttemptReply = outcome;
+    const observed = await run('cancel', ...cancelArgs, ...invocationArgs);
+    assert.equal(observed.code, 0, observed.stderr);
+    assert.deepEqual(JSON.parse(observed.stdout), outcome);
+  }
+  for (const outcome of [
+    {kind: 'refused', attemptRef: {...attemptRef, attemptId: 'another-invocation'},
+      reason: 'authorization', guarantee: 'attempt_uncommitted_unconsumed'},
+    {kind: 'refused', attemptRef, reason: 'authorization', guarantee: 'operation_never_executed'},
+    {kind: 'already_satisfied', attemptRef, cancellation: originalCancellation},
+  ]) {
+    cancelAttemptReply = outcome;
+    const rejected = await run('cancel', ...cancelArgs, ...invocationArgs);
+    assert.notEqual(rejected.code, 0);
+    assert.match(rejected.stderr, /InvalidHostCancellation/);
+  }
+  cancelAttemptReply = undefined;
   const cancellation = await run('lookup-cancellation', ...cancelArgs);
   assert.equal(cancellation.code, 0, cancellation.stderr);
   assert.deepEqual(JSON.parse(cancellation.stdout), {kind: 'found', cancellation: originalCancellation});
@@ -416,7 +448,8 @@ try {
     cancelReply = bad;
     cancellationLookupReply = {kind: 'found', cancellation: bad};
     for (const operation of ['cancel', 'lookup-cancellation']) {
-      const rejected = await run(operation, ...cancelArgs);
+      const rejected = await run(operation, ...cancelArgs,
+        ...(operation === 'cancel' ? invocationArgs : []));
       assert.notEqual(rejected.code, 0);
       assert.match(rejected.stderr, /InvalidHostCancellation/);
     }
@@ -435,7 +468,7 @@ try {
     assert.match(rejected.stderr, /InvalidHostCancellation/);
   }
   loseCancelReply = true;
-  const lostCancellation = await run('cancel', ...cancelArgs);
+  const lostCancellation = await run('cancel', ...cancelArgs, ...invocationArgs);
   loseCancelReply = false;
   assert.notEqual(lostCancellation.code, 0);
   assert.match(lostCancellation.stderr, /CancellationUnknown/);
@@ -451,7 +484,7 @@ try {
   assert.equal(requests.filter(item => item.operation === 'cancel').length, writesBeforeLookup);
   for (const revision of ['-1', '2147483648']) {
     const invalid = await run('cancel', '--ref-file', 'ref.json', '--cancel-id', 'original-cancel',
-      '--expected-revision', revision);
+      '--expected-revision', revision, ...invocationArgs);
     assert.notEqual(invalid.code, 0);
     assert.equal(requests.filter(item => item.operation === 'cancel').length, writesBeforeLookup);
   }

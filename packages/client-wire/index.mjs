@@ -15,6 +15,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
+import {validOperationAttemptRefShape, validCancellationAttemptShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
@@ -368,6 +369,8 @@ export function validClientBody(operation, body) {
   }
   if (!validRunRef(body.ref)) return false;
   if (operation === 'cancel' || operation === 'lookup-cancellation') {
+    if (operation === 'cancel' && (!validOperationAttemptRef(body.attemptRef) ||
+        body.attemptRef.operation !== 'cancel')) return false;
     return validCancellationRef({...body.ref, cancelId: body.cancelId,
       expectedRevision: body.expectedRevision});
   }
@@ -507,6 +510,23 @@ export function validCancellationLookup(value, expected) {
   return validCancellationRef(expected) && validCancellationLookupShape(value) &&
     (value.kind === 'found' ? validCancellation(value.cancellation, expected) :
       validCancellationRef(value.cancelRef) && sameCancellationRef(value.cancelRef, expected));
+}
+
+export const validOperationAttemptRef = value => validOperationAttemptRefShape(value) &&
+  value.attemptId.isWellFormed();
+export function validCancellationAttempt(value, expected, attemptRef) {
+  if (!validCancellationRef(expected) || !validOperationAttemptRef(attemptRef) ||
+      attemptRef.operation !== 'cancel' || !validCancellationAttemptShape(value) ||
+      !validOperationAttemptRef(value.attemptRef) ||
+      value.attemptRef.operation !== attemptRef.operation ||
+      value.attemptRef.attemptId !== attemptRef.attemptId) return false;
+  if (value.kind === 'accepted' || value.kind === 'already_satisfied') {
+    return validCancellation(value.cancellation, expected) &&
+      (value.kind === 'accepted' ? value.cancellation.kind === 'accepted'
+        : ['already_requested', 'already_terminal'].includes(value.cancellation.kind));
+  }
+  return value.cancelRef === undefined || validCancellationRef(value.cancelRef) &&
+    sameCancellationRef(value.cancelRef, expected);
 }
 
 // The reply to a request cancellation. `accepted` means the cancellation is

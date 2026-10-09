@@ -68,6 +68,94 @@ const cancel = (journal, ref, options = {}) => journal.recordCancellationOperati
 const lookup = (journal, ref, currentAuthorization = true) =>
   journal.lookupCancellationOperation(ref, {currentAuthorization}, moon, publication);
 
+const attempt = (journal, ref, attemptId, options = {}) =>
+  journal.recordCancellationAttempt(ref, {attemptRef: {operation: 'cancel', attemptId},
+    cancelId: 'original-cancel', expectedRevision: 19,
+    currentAuthorization: true, publicationCommitted: false, ...options}, moon, publication);
+
+test('initial refused attempt consumes no identity and cannot negate another accepted invocation', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal);
+  const expected = {kind: 'refused', attemptRef: {operation: 'cancel', attemptId: 'denied-invocation'},
+    guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization'};
+  assert.deepEqual(attempt(f.journal, ref, 'denied-invocation', {currentAuthorization: false}), expected);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+  t.after(() => db.close());
+  const custody = () => ({operations: db.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations').get().n,
+    issued: db.prepare('SELECT issued_count FROM client_cancellation_custody').get().issued_count});
+  assert.deepEqual(custody(), {operations: 0, issued: 0});
+  const accepted = attempt(f.journal, ref, 'accepted-invocation');
+  assert.equal(accepted.kind, 'accepted');
+  assert.equal(accepted.recorded, true);
+  assert.deepEqual(accepted.attemptRef, {operation: 'cancel', attemptId: 'accepted-invocation'});
+  assert.deepEqual(attempt(f.journal, ref, 'denied-invocation', {currentAuthorization: false}), expected);
+  assert.deepEqual(custody(), {operations: 1, issued: 1});
+  assert.deepEqual(lookup(f.journal, accepted.cancellation.cancelRef),
+    {kind: 'found', cancellation: accepted.cancellation});
+});
+
+test('a typed stale-revision conflict is issued only after noncommitting initial admission', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal);
+  assert.deepEqual(attempt(f.journal, ref, 'stale-invocation', {expectedRevision: 18}), {
+    kind: 'conflict', reason: 'control_revision',
+    attemptRef: {operation: 'cancel', attemptId: 'stale-invocation'},
+    cancelRef: {...ref, cancelId: 'original-cancel', expectedRevision: 18},
+  });
+  assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested, false);
+});
+
+test('AlreadySatisfied preserves the original satisfaction fact without asserting stop or release', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal);
+  attempt(f.journal, ref, 'first');
+  const second = attempt(f.journal, ref, 'second', {cancelId: 'second-cancel', expectedRevision: 20});
+  assert.equal(second.kind, 'already_satisfied');
+  assert.equal(second.cancellation.kind, 'already_requested');
+  assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).physicalCloseConfirmed, false);
+});
+
+test('typed capacity refusal preserves existing custody and exact replay at capacity', async t => {
+  const f = await fixture(t, {maxRecords: 2});
+  const ref = admitRun(f.journal);
+  const original = attempt(f.journal, ref, 'first');
+  assert.deepEqual(attempt(f.journal, ref, 'capacity-invocation',
+    {cancelId: 'new-operation', expectedRevision: 20}), {
+    kind: 'refused', reason: 'admission_capacity', guarantee: 'attempt_uncommitted_unconsumed',
+    attemptRef: {operation: 'cancel', attemptId: 'capacity-invocation'},
+    cancelRef: {...ref, cancelId: 'new-operation', expectedRevision: 20},
+  });
+  assert.deepEqual(attempt(f.journal, ref, 'replay'), {...original,
+    attemptRef: {operation: 'cancel', attemptId: 'replay'}, recorded: false});
+  assert.deepEqual(lookup(f.journal, original.cancellation.cancelRef),
+    {kind: 'found', cancellation: original.cancellation});
+});
+
+test('a Model fence error cannot become an initial-admission refusal or conflict', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal, 'model-request', 'model-run', {evidenceForRun(definition) {
+    // Opaque journal custody here; the real Model Owner validates these inputs.
+    return {prepared: 'prepared-owner-wire', authorization: 'authorization-owner-wire',
+      modelOriginalRunWire: JSON.stringify({boundInvocationTemplateWire: 'template-owner-wire',
+        compiledPlanWire: 'compiled-plan-owner-wire', preparedInvocationWire: 'prepared-owner-wire',
+        runAuthorizationWire: 'authorization-owner-wire', runDefinitionWire: definition.wire})};
+  }});
+  let fences = 0;
+  assert.throws(() => attempt(f.journal, ref, 'fence-invocation', {modelCancellationOwner: {
+    fenceRunCancellation() {
+      fences++;
+      throw Object.assign(new Error('ClientCancellationRevisionConflict'),
+        {code: 'ClientCancellationRevisionConflict'});
+    },
+    modelCancellationFenced: () => false,
+  }}), {code: 'ClientCancellationUnknown'});
+  assert.equal(fences, 1);
+  f.reopen();
+  assert.deepEqual(lookup(f.journal, {...ref, cancelId: 'original-cancel', expectedRevision: 19}),
+    {kind: 'unknown', cancelRef: {...ref, cancelId: 'original-cancel', expectedRevision: 19}});
+  assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested, false);
+});
+
 test('original cancellation outcome survives later Run termination and journal restart', async t => {
   const f = await fixture(t);
   const ref = admitRun(f.journal);
@@ -136,6 +224,50 @@ for (const afterCommit of [false, true]) {
     assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested, afterCommit);
   });
 }
+
+for (const admission of [true, false]) {
+  for (const afterCommit of [false, true]) {
+    test(`typed attempt keeps ${admission ? 'initial' : 'final'} COMMIT loss ${afterCommit ? 'after' : 'before'} commit unknown`, async t => {
+      const f = await fixture(t);
+      const ref = admitRun(f.journal);
+      const exec = DatabaseSync.prototype.exec;
+      let commits = 0;
+      t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+        if (sql === 'COMMIT' && ++commits === (admission ? 1 : 2)) {
+          if (afterCommit) exec.call(this, sql);
+          throw Object.assign(new Error('ClientCancellationRevisionConflict'),
+            {code: 'ClientCancellationRevisionConflict'});
+        }
+        return exec.call(this, sql);
+      });
+      // Even a plausible semantic error code cannot certify a failed COMMIT.
+      assert.throws(() => attempt(f.journal, ref, 'lost-invocation'),
+        {code: 'ClientCancellationUnknown'});
+      t.mock.restoreAll();
+      f.reopen();
+      const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 19};
+      assert.equal(lookup(f.journal, cancelRef).kind,
+        !admission && afterCommit ? 'found' : 'unknown');
+      assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested,
+        !admission && afterCommit);
+    });
+  }
+}
+
+test('typed rejection requires confirmed rollback, not a stale revision error alone', async t => {
+  const f = await fixture(t);
+  const ref = admitRun(f.journal);
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (sql === 'ROLLBACK') throw new Error('ROLLBACK_REPLY_LOST');
+    return exec.call(this, sql);
+  });
+  assert.throws(() => attempt(f.journal, ref, 'rollback-lost', {expectedRevision: 18}),
+    {code: 'ClientCancellationUnknown'});
+  t.mock.restoreAll();
+  f.reopen();
+  assert.equal(f.journal.lookupRunDefinition(ref, moon, publication).cancellationRequested, false);
+});
 
 test('bounded journal retains immutable operations and replays them at capacity', async t => {
   const f = await fixture(t, {maxRecords: 2});

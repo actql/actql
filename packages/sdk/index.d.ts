@@ -3,7 +3,7 @@ import type {StandardSchemaV1} from './standard-schema.js';
 export type {StandardSchemaV1} from './standard-schema.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
-import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
+import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, WireOperationAttemptRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
   WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup, WireSubmissionRestart,
   WireRequestCancellation,
@@ -403,6 +403,7 @@ export declare class ClientError extends Error {
   readonly observation?: RunState;
   /** Original immutable cancellation target on uncertainty or refusal. */
   readonly cancelRef?: Readonly<CancellationReference>;
+  readonly attemptRef?: Readonly<WireOperationAttemptRef>;
   /** Complete rows returned by the failed call; aggregate calls return none. */
   readonly rowsYielded?: number;
   /** Local schema validation failure; the Run itself is unchanged. */
@@ -505,7 +506,7 @@ export interface Execution {
   /** A new operation observes the current control revision when omitted.
    * A lost response retains cancelRef; lookup never resends the cancellation. */
   cancel(options?: {signal?: AbortSignal; cancelId?: string;
-    expectedRevision?: number}): Promise<WireCancellation>;
+    expectedRevision?: number; attemptId?: string}): Promise<WireCancellationAttempt>;
   lookupCancellation(ref: CancellationReference,
     options?: {signal?: AbortSignal}): Promise<CancellationLookup>;
   reconcile(options?: {signal?: AbortSignal}): Promise<RunState>;
