@@ -1,0 +1,28 @@
+{
+  "installation": {
+    "registration": "sheets",
+    "revision": "sheets/0.1",
+    "providerBundle": "connectors/sheets/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-sheets-source/0.1",
+      "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
+      "exports": {
+        "check": "checkInstalledSheetsSourceProfile",
+        "identityParts": "installedSheetsSourceIdentityParts",
+        "publish": "publishInstalledSheetsSource",
+        "load": "loadInstalledSheetsSource"
+      }
+    },
+    "effect": {
+      "profileVersion": "actql-installed-sheets-effect/0.1",
+      "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
+      "exports": {
+        "check": "checkInstalledSheetsEffectProfile",
+        "identityParts": "installedSheetsEffectIdentityParts",
+        "publish": "publishInstalledSheetsEffect",
+        "load": "loadInstalledSheetsEffect"
+      }
+    }
+  }
+}

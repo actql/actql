@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
+import {request} from 'node:https';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -17,6 +18,35 @@ import {signRemoteCredentialGrant} from './remote-credential-signature.mjs';
 
 const control = runtimeCore(moon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+test('the fixture holds an asynchronous reply until its explicit release', async t => {
+  let entered, release;
+  const reached = new Promise(resolve => { entered = resolve; });
+  const held = new Promise(resolve => { release = resolve; });
+  const fixture = await openHttpsExchangeFixture(t, {routes: [{
+    pathname: '/held', async handle() {
+      entered();
+      await held;
+      return {body: {released: true}};
+    },
+  }]});
+  t.after(release);
+  let answered = false;
+  const reply = new Promise((resolve, reject) => {
+    const call = request(`${fixture.origin}/held`, {ca: fixture.ca}, response => {
+      answered = true;
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.once('end', () => resolve(JSON.parse(Buffer.concat(chunks))));
+    });
+    call.once('error', reject);
+    call.end();
+  });
+  await reached;
+  assert.equal(answered, false);
+  release();
+  assert.deepEqual(await reply, {released: true});
+});
 
 // A signed grant for `operation` at the fixture's origin, and the credential
 // the product's resource boundary applies: the fixture sees a Bearer header
