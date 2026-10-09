@@ -367,6 +367,8 @@ fn resident_native_effect_open(
         Execution(_) => "physical acquisition execution"
         Capture => "physical capture"
         RetainedInput(_) => "retained input"
+        EffectRun(_) => "Effect Run binding"
+        EffectInput(_) => "Effect retained input"
         Run(Run(UnsupportedGraph)) => "captured Effect graph"
         Run(_) => "captured Effect Run"
         Dispatch(_) => "standard strategy dispatch"

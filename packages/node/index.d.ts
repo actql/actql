@@ -19,6 +19,7 @@ export type EmbeddedHostInstallation = Readonly<{
   hostCapacityPolicy?: HostCapacityPolicy;
   sourceProfilePath?: string;
   sourceProfilePaths?: SourceProfilePaths;
+  sourceNamespace?: HostInstallation['sourceNamespace'];
   resolveSourceSecret?: (...args: any[]) => any;
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;

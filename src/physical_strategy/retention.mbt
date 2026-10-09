@@ -419,12 +419,11 @@ pub fn borrow_captured_any_result_output(
   if task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
   }
-  if task < run.graph.captured_prefix {
+  if task < run.graph.captured_prefix && run.sources[task] is Some(source) {
     if max_pins <= 0 || !run.lifetimes[task].live {
       return Err(NotReady)
     }
-    guard run.sources[task] is Some(source) &&
-      @query.captured_source_matches_result(source, occurrence) else {
+    guard @query.captured_source_matches_result(source, occurrence) else {
       return Err(ForeignCandidate)
     }
     if run.lifetimes[task].pins >= max_pins {
@@ -432,6 +431,12 @@ pub fn borrow_captured_any_result_output(
     }
     run.lifetimes[task].pins += 1
     return Ok({ kind: Source({ run, task, source, occurrence, live: true, }), })
+  }
+  // A restored Transfer root has an admitted materialized completion rather
+  // than a live acquisition handle. Borrow its exact checked occurrence via
+  // the existing cell owner; never reopen the original Source to obtain a pin.
+  if task < run.graph.captured_prefix && run.outputs[task] is None {
+    return Err(ForeignCandidate)
   }
   match run.outputs[task] {
     Some(Materialized(_)) =>
