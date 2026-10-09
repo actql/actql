@@ -68,3 +68,21 @@ test('JOIN-star cases remain in ordinary and targeted public acceptance', async 
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--join-star-only'/u);
   assert.match(driver, /if \(process\.argv\.includes\('--join-star-only'\)\) return;/u);
 });
+
+test('captured projection uses independent JSON ports and unchanged NULL/multiplicity controls', () => {
+  const controls = new Map(joinStarSuccesses.map(item => [item.name, item]));
+  const json = controls.get('join-star-captured-projection-json');
+  const source = controls.get('join-star-captured-projection-source');
+  const program = JSON.parse(json.text);
+  assert.deepEqual(program.stages[1].steps[0].join.on, [{left: 'id', right: 'id'}]);
+  assert.equal(program.stages[1].steps[0].join.max_output_rows, 10);
+  assert.deepEqual(program.stages[1].results.rows.fields, ['id', 'amount']);
+  assert.deepEqual(source.expected, json.expected);
+  assert.deepEqual(source.columns, json.columns);
+  assert.equal(source.expected.length, 6);
+  assert.equal(source.expected[0].amount, null);
+  assert.equal(source.sourceReadSessionCount, 1);
+  assert.equal(controls.get('join-star-captured-projection-filtered').expected.length, 4);
+  assert.deepEqual(controls.get('join-star-captured-projection-limited').expected,
+    [{id: 2, amount: 20}, {id: 3, amount: 30}]);
+});
