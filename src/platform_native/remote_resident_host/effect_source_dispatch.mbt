@@ -24,6 +24,30 @@ pub fn admit_resident_effect_source_dispatch(
   values_body : String,
   fragment_contract_body : String,
 ) -> Result[@host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue] {
+  admit_resident_effect_source_dispatch_owned(
+    admission, effect_limits, delegation, site_generation, request, wire, binding,
+    now, registry_body, values_body, fragment_contract_body,
+  ).map(pair => pair.1)
+}
+
+///|
+fn admit_resident_effect_source_dispatch_owned(
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits,
+  delegation : @resident.ResidentSiteDelegation,
+  site_generation : Int,
+  request : @remote.DispatchRequest,
+  wire : String,
+  binding : @remote.RemoteInputBinding,
+  now : String,
+  registry_body : String,
+  values_body : String,
+  fragment_contract_body : String,
+  require_current? : Bool = true,
+) -> Result[
+  (@host.ClientEffectRunMaterials, @host.PreparedClientEffectRun),
+  ResidentEffectSourceDispatchIssue,
+] {
   match
     @resident.check_resident_dispatch_delegation(
       delegation, request, site_generation,
@@ -49,7 +73,8 @@ pub fn admit_resident_effect_source_dispatch(
     Ok(value) => value
     Err(issue) => return Err(Dispatch(issue))
   }
-  if !@host.client_effect_run_start_current(
+  if require_current &&
+    !@host.client_effect_run_start_current(
       materials.allowed,
       materials.run_definition,
       now,
@@ -70,7 +95,7 @@ pub fn admit_resident_effect_source_dispatch(
       source_ref,
       source_contract_cid,
     ) {
-    Ok(_) => Ok(bound)
+    Ok(_) => Ok((materials, bound))
     Err(issue) => Err(Source(issue))
   }
 }

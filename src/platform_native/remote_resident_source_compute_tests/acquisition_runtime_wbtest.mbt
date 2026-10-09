@@ -5,6 +5,11 @@
 ///|
 fn acquisition_runtime_case(
   through_consumer : Bool,
+  effect? : Bool = false,
+  revoke_effect_at_start? : Bool = false,
+  expire_effect_at_start? : Bool = false,
+  expire_effect_before_start? : Bool = false,
+  fail_effect_capture_cleanup? : Bool = false,
   chain? : Bool = false,
   cancel_chain_tail? : Bool = false,
   through_resident? : Bool = false,
@@ -71,18 +76,39 @@ fn acquisition_runtime_case(
     536870912L,
     536870912L,
   ).unwrap()
-  let dispatch = @host.prepare_client_task_dispatch(
-    prepared,
-    compilation,
-    materials.admission,
-    definition,
-    caller,
-    0,
-    1,
-    "actual-producer",
-    selected,
-  ).unwrap()
-  let binding = @host.prepare_client_task_input_binding(prepared, 0).unwrap()
+  let effect_pair = if effect {
+    Some(retained_compute_effect_materials())
+  } else {
+    None
+  }
+  let dispatch = match effect_pair {
+    Some((materials, caller)) =>
+      @host.prepare_client_effect_source_dispatch(
+        materials.allowed,
+        materials.run_definition,
+        caller,
+        1,
+        "actual-producer",
+        selected,
+      ).unwrap()
+    None =>
+      @host.prepare_client_task_dispatch(
+        prepared,
+        compilation,
+        materials.admission,
+        definition,
+        caller,
+        0,
+        1,
+        "actual-producer",
+        selected,
+      ).unwrap()
+  }
+  let binding = match effect_pair {
+    Some(pair) =>
+      @host.prepare_client_effect_source_input_binding(pair.0.compilation).unwrap()
+    None => @host.prepare_client_task_input_binding(prepared, 0).unwrap()
+  }
   let (bundles, active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
@@ -116,34 +142,49 @@ fn acquisition_runtime_case(
   let acquisitions = Ref(0)
   let captures = Ref(0)
   let entries = Ref(0)
-  assert_true(
-    @resident.install_resident_acquisition_task_executor(
-      materials,
-      compilation,
-      binding,
-      dispatch,
-      execution,
-      { ..source, source_ref: "connector://another/source#v", },
-      () => "2026-10-05T00:00:00.000Z",
+  if !effect {
+    assert_true(
+      @resident.install_resident_acquisition_task_executor(
+        materials,
+        compilation,
+        binding,
+        dispatch,
+        execution,
+        { ..source, source_ref: "connector://another/source#v", },
+        () => "2026-10-05T00:00:00.000Z",
+      )
+      is Err(@resident.ForeignInput),
     )
-    is Err(@resident.ForeignInput),
-  )
+  }
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
     "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
-  let wire = @host.issue_client_task_run_materials(
-    prepared,
-    compilation,
-    materials.admission,
-    definition,
-    environment,
-    resident_effect_source_environment,
-    document,
-    None,
-  ).unwrap()
+  let wire = match effect_pair {
+    Some(pair) =>
+      @host.issue_client_effect_run_materials(
+        pair.0.allowed,
+        pair.0.run_definition,
+        environment,
+        resident_effect_source_environment,
+        resident_native_effect_document,
+        None,
+        retained_compute_effect_limits(),
+      ).unwrap()
+    None =>
+      @host.issue_client_task_run_materials(
+        prepared,
+        compilation,
+        materials.admission,
+        definition,
+        environment,
+        resident_effect_source_environment,
+        document,
+        None,
+      ).unwrap()
+  }
   let envelope = @remote.remote_poll_dispatch_materials_json(
     dispatch, binding, wire,
   ).unwrap()
@@ -176,7 +217,166 @@ fn acquisition_runtime_case(
       max_evidence_depth: 100,
     },
   }
-  let (runtime, completion) = if through_resident {
+  let allow_effect_cleanup = Ref(!fail_effect_capture_cleanup)
+  let original_effect_source : Ref[@resident.ResidentSourceCompute?] = Ref(None)
+  let (runtime, completion) = if effect {
+    let delegations = Ref(0)
+    let clocks = Ref(0)
+    let delegation : @resident_protocol.ResidentSiteDelegation = {
+      coordinator_authority: retained_compute_cid("c"),
+      site_key: selected.site_key,
+      runtime_bundle_cid: selected.runtime_bundle_cid,
+      connector_registration: selected.connector_registration,
+      connector_revision: selected.connector_revision,
+      strategy_revision: selected.strategy_revision,
+      grant_cid: selected.grant_cid,
+      evidence_issuer_capability_cid: selected.evidence_issuer_capability_cid,
+      budget_cids: [selected.budget_cid],
+    }
+    let outcome = @resident.execute_resident_effect_source_attempt(
+      journal,
+      execution,
+      admission,
+      retained_compute_effect_limits(),
+      configuration,
+      () => {
+        delegations.val += 1
+        if revoke_effect_at_start && delegations.val > 1 {
+          { ..delegation, coordinator_authority: retained_compute_cid("0"), }
+        } else {
+          delegation
+        }
+      },
+      @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+      "original-effect-producer-holder",
+      () => {
+        clocks.val += 1
+        if expire_effect_before_start ||
+          (expire_effect_at_start && clocks.val > 1) {
+          "2099-01-01T00:00:00.000Z"
+        } else {
+          "2026-10-09T00:00:00.000Z"
+        }
+      },
+      Some(_ => {
+        entries.val += 1
+        true
+      }),
+      source_observe=event => {
+        match event {
+          AcquisitionEntered => acquisitions.val += 1
+          ProducerCaptured => {
+            captures.val += 1
+            if fail_effect_capture_cleanup {
+              return false
+            }
+          }
+          CleanupCompleted => return allow_effect_cleanup.val
+          _ => ()
+        }
+        true
+      },
+    )
+    if fail_effect_capture_cleanup {
+      guard outcome is Err(failure) else {
+        fail("unrecorded capture completed")
+      }
+      assert_true(
+        failure.issue
+        is @resident.Compute(
+          @resident.ObservationUnrecorded(@resident.ProducerCaptured)
+        ),
+      )
+      assert_true(failure.cleanup_issue is Some(_))
+      guard failure.pending_runtime is Some(owner) else {
+        fail("pending cleanup Owner was lost")
+      }
+      assert_eq(entries.val, 1)
+      assert_eq(acquisitions.val, 1)
+      assert_eq(captures.val, 1)
+      assert_true(owner.close() is Err(_))
+      let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
+        journal.require(dispatch).unwrap(),
+      )
+      assert_false(cleanup is @remote.CleanupReleased)
+      assert_true(owner.retains_dispatch_resources())
+      allow_effect_cleanup.val = true
+      assert_true(owner.close().unwrap())
+      assert_false(owner.close().unwrap())
+      let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
+        journal.require(dispatch).unwrap(),
+      )
+      assert_true(cleanup is @remote.CleanupReleased)
+      assert_eq(acquisitions.val, 1)
+      assert_eq(entries.val, 1)
+      for index in [2, 3, 4, 5, 6, 7, 8] {
+        assert_eq(@site.site_status(site)[index], 0L)
+      }
+      assert_true(journal.close())
+      assert_true(bundles.close().unwrap())
+      return
+    }
+    if revoke_effect_at_start ||
+      expire_effect_at_start ||
+      expire_effect_before_start {
+      guard outcome is Err(failure) else {
+        fail("expired/revoked producer executed")
+      }
+      assert_true(
+        failure.issue
+        is @resident.Host(
+          @resident.Runtime(@runtime.StartAuthorizationRejected)
+        ),
+      )
+      assert_true(failure.pending_runtime is None)
+      assert_eq(entries.val, 0)
+      assert_eq(acquisitions.val, 0)
+      assert_eq(captures.val, 0)
+      let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
+        journal.require(dispatch).unwrap(),
+      )
+      assert_true(cleanup is @remote.CleanupReleased)
+      for index in [2, 3, 4, 5, 6, 7, 8] {
+        assert_eq(@site.site_status(site)[index], 0L)
+      }
+      assert_true(journal.close())
+      assert_true(bundles.close().unwrap())
+      return
+    }
+    let owned = outcome.unwrap()
+    original_effect_source.val = Some(owned.source)
+    assert_eq(owned.executed.result_definition_cid, None)
+    assert_true(owned.source.usage().held_bytes > 0L)
+    let original_record = journal.require(dispatch).unwrap()
+    let replay = @resident.execute_resident_effect_source_attempt(
+      journal,
+      execution,
+      admission,
+      retained_compute_effect_limits(),
+      configuration,
+      () => delegation,
+      @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+      "replacement-effect-producer-holder",
+      () => "2026-10-09T00:00:00.000Z",
+      Some(_ => {
+        entries.val += 1
+        true
+      }),
+    )
+    guard replay is Err(refusal) else {
+      fail("a second producer owner was installed")
+    }
+    assert_true(refusal.issue is @resident.NotStartable(_))
+    assert_true(refusal.pending_runtime is None)
+    assert_eq(
+      @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
+      @remote.dispatch_record_revision(original_record),
+    )
+    assert_true(owned.source.usage().held_bytes > 0L)
+    assert_eq(acquisitions.val, 1)
+    assert_eq(entries.val, 1)
+    (owned.executed.runtime, owned.executed.completion)
+  } else if through_resident {
     let executed = match
       @resident.execute_resident_attempt(
         journal,
@@ -275,14 +475,22 @@ fn acquisition_runtime_case(
   )
   let evidence = @dispatch_journal.recovered_site_dispatch_evidence(observed).unwrap()
   let subject = @dispatch_journal.recovered_site_dispatch_subject(observed).unwrap()
-  let edge = @host.prepare_client_retained_input_edge(
-    prepared,
-    compilation,
-    materials.admission,
-    definition,
-    1,
-    0,
-  ).unwrap()
+  let edge = match effect_pair {
+    Some(pair) =>
+      @host.prepare_client_effect_retained_input_edge(
+        pair.0.allowed,
+        pair.0.run_definition,
+      ).unwrap()
+    None =>
+      @host.prepare_client_retained_input_edge(
+        prepared,
+        compilation,
+        materials.admission,
+        definition,
+        1,
+        0,
+      ).unwrap()
+  }
   let producer = @host.prepare_client_retained_input_producer(
     edge,
     journal.require(dispatch).unwrap(),
@@ -376,6 +584,11 @@ fn acquisition_runtime_case(
     for index in [3, 5] {
       assert_eq(@site.site_status(site)[index], 0L)
     }
+  }
+  if original_effect_source.val is Some(original) {
+    assert_eq(original.usage().held_bytes, 0L)
+    assert_eq(original.usage().reserved_execution_bytes, 0L)
+    assert_true(original.close())
   }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
@@ -490,4 +703,29 @@ test "producer holder returns a borrowed consumer cancelled before its exclusive
     through_consumer_holder=true,
     cancel_consumer_after_borrow=true,
   )
+}
+
+///|
+test "Effect original Source producer completes through saved journal and Runtime once" {
+  acquisition_runtime_case(false, effect=true)
+}
+
+///|
+test "Effect original Source producer refuses revoked delegation at exclusive start before IO" {
+  acquisition_runtime_case(false, effect=true, revoke_effect_at_start=true)
+}
+
+///|
+test "Effect original Source producer refuses original deadline at exclusive start before IO" {
+  acquisition_runtime_case(false, effect=true, expire_effect_at_start=true)
+}
+
+///|
+test "Effect original Source producer settles an already expired accepted envelope without IO" {
+  acquisition_runtime_case(false, effect=true, expire_effect_before_start=true)
+}
+
+///|
+test "Effect original Source producer preserves primary and cleanup failure until the same Runtime retries" {
+  acquisition_runtime_case(false, effect=true, fail_effect_capture_cleanup=true)
 }
