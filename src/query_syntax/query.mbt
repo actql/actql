@@ -2684,31 +2684,101 @@ fn QueryParser::pipe_tail(
       }
     } else if self.has("WHERE") {
       self.keyword("WHERE")
-      operations.push(Where(self.expression()))
-    } else if self.has("EXTEND") {
-      self.keyword("EXTEND")
-      let (values, _) = self.projections()
-      if values.any(p => p.name is None || p.expression is None) {
+      let (predicate, windows, calls) = self.window_expression(
+        "aql_pipe_where_window_",
+      )
+      if !calls.is_empty() {
         raise QueryAbort(
-          "EXTEND requires named scalar expressions",
+          "Pipe WHERE cannot introduce ordinary aggregation",
           self.peek().start,
         )
       }
-      operations.push(Extend(values))
+      if !windows.is_empty() {
+        operations.append(
+          self.resolve_window_operations(
+            [AnalyticExpressions(windows, windows.map(p => p.name.unwrap()))],
+            [],
+          ),
+        )
+      }
+      operations.push(Where(predicate))
+    } else if self.has("EXTEND") {
+      self.keyword("EXTEND")
+      let windows : Array[Projection] = []
+      let (values, _) = self.projections(windows~, window_expressions=true)
+      if values.any(p => {
+          p.name is None ||
+          (p.expression is None && p.analytic is None) ||
+          p.star is Some(_)
+        }) {
+        raise QueryAbort(
+          "EXTEND requires named scalar or window expressions",
+          self.peek().start,
+        )
+      }
+      let calls : Array[(NamePart, AggregateCall)] = []
+      let definitions = if self.has("WINDOW") {
+        self.window_definitions(calls)
+      } else {
+        []
+      }
+      if !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe EXTEND cannot introduce ordinary aggregation",
+          self.peek().start,
+        )
+      }
+      let window_operations : Array[QueryOperation] = []
+      if values.any(p => p.analytic is Some(_)) || !windows.is_empty() {
+        window_operations.push(
+          if windows.is_empty() {
+            Analytic(values)
+          } else {
+            AnalyticExpressions(
+              values + windows,
+              windows.map(p => p.name.unwrap()),
+            )
+          },
+        )
+      }
+      window_operations.push(Extend(values))
+      // WINDOW names belong only to this EXTEND, not to a subsequent operator.
+      operations.append(
+        self.resolve_window_operations(window_operations, definitions),
+      )
     } else if self.has("SET") {
       self.keyword("SET")
       let values : Array[(NamePart, Expression)] = []
+      let windows : Array[Projection] = []
       while true {
         self.node()
         let name = self.name()
         if self.advance().value != Symbol(61) {
           raise QueryAbort("SET requires an equals sign", self.peek().start)
         }
-        values.push((name, self.expression()))
+        let (expression, extracted, calls) = self.window_expression(
+          "aql_pipe_set_window_",
+        )
+        if !calls.is_empty() {
+          raise QueryAbort(
+            "Pipe SET cannot introduce ordinary aggregation",
+            self.peek().start,
+          )
+        }
+        windows.append(extracted)
+        values.push((name, expression))
         if self.peek().value != Symbol(44) {
           break
         }
         ignore(self.advance())
+      }
+      if !windows.is_empty() {
+        operations.append(
+          self.resolve_window_operations(
+            [AnalyticExpressions(windows, windows.map(p => p.name.unwrap()))],
+            [],
+          ),
+        )
       }
       operations.push(Set(values))
     } else if self.has("DROP") {
@@ -2817,12 +2887,19 @@ fn QueryParser::pipe_tail(
       }
       let windows : Array[Projection] = []
       let (projections, _) = self.projections(windows~, window_expressions=true)
+      let calls : Array[(NamePart, AggregateCall)] = []
+      let definitions = if self.has("WINDOW") {
+        self.window_definitions(calls)
+      } else {
+        []
+      }
+      let window_operations : Array[QueryOperation] = []
       if projections.any(projection => {
           projection.analytic is Some(_) ||
           projection.replacements.any(value => value.analytic is Some(_))
         }) ||
         !windows.is_empty() {
-        operations.push(
+        window_operations.push(
           if windows.is_empty() {
             Analytic(projections)
           } else {
@@ -2833,7 +2910,18 @@ fn QueryParser::pipe_tail(
           },
         )
       }
-      operations.push(Select(projections, distinct))
+      window_operations.push(Select(projections, distinct))
+      let resolved = self.resolve_window_operations(
+        window_operations, definitions,
+      )
+      if !self.used_named_window_aggregates(resolved, calls).is_empty() {
+        raise QueryAbort(
+          "Pipe SELECT cannot introduce ordinary aggregation",
+          self.peek().start,
+        )
+      }
+      // WINDOW names are consumed here, before the next Pipe operator.
+      operations.append(resolved)
     } else if self.has("ORDER") {
       self.keyword("ORDER")
       self.keyword("BY")

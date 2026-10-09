@@ -1116,12 +1116,11 @@ fn order_aggregate_calls(
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
     match @query.operation_at(query, index) {
-      Some(Order(terms)) => {
+      Some(Order(terms)) =>
         for term in terms {
           references.append(join_reference_paths(term.expression))
         }
-      }
-      Some(OrderAnalytic(windows, true)) => {
+      Some(OrderAnalytic(windows, true)) =>
         for projection in windows {
           guard projection.analytic is Some(call) else { continue }
           for expression in call.window.partition_by {
@@ -1138,7 +1137,6 @@ fn order_aggregate_calls(
             references.append(join_reference_paths(expression))
           }
         }
-      }
       _ => ()
     }
   }
@@ -2328,6 +2326,30 @@ fn compile_steps(
         selected_expressions = []
         deferred = true
       }
+      Where(predicate) if i > 0 &&
+        @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _)) => {
+        entries.push(
+          (
+            "filter",
+            append_pipe_expression(
+              construction,
+              predicate,
+              unnest_expression_columns(pipe_visible, value_table_receivers) +
+              analytic_expression_bindings,
+              pipe_ranges,
+              max_work,
+            ),
+          ),
+        )
+        // Predicate-owned window values cannot become columns or bindings
+        // in a later operator. Publish only the unchanged current row.
+        pipe_changed = true
+        output = pipe_visible.map(field => field.0)
+        analytic_outputs.clear()
+        analytic_expression_bindings.clear()
+        analytic_input_fields = None
+        analytic_input_scope = None
+      }
       Where(predicate) if pipe_changed || pipe_rebound =>
         entries.push(
           (
@@ -2350,6 +2372,55 @@ fn compile_steps(
             ),
           ),
         )
+      Extend(projections) if i > 0 &&
+        (
+          @query.operation_at(query, i - 1) is Some(Analytic(_)) ||
+          @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _))
+        ) => {
+        // Window results are already evaluated slots. The public snapshot
+        // excludes them until every sibling expression has been resolved.
+        let snapshot = pipe_visible.copy()
+        let next = snapshot.copy()
+        let derived : Array[(String, @builder.Node)] = []
+        for projection in projections {
+          let name = projection.name.unwrap()
+          if pipe_name_exists(next, name) {
+            raise Abort(DuplicateOutput)
+          }
+          let slot = if projection.analytic is Some(_) {
+            match analytic_output_slot(name.value, analytic_outputs) {
+              Some(slot) => slot
+              None => raise Abort(UnsupportedAnalytic)
+            }
+          } else {
+            let slot = pipe_physical_name(active_fields, "aql_pipe_extend_")
+            active_fields.push(slot)
+            derived.push(
+              (
+                slot,
+                append_pipe_expression(
+                  construction,
+                  projection.expression.unwrap(),
+                  unnest_expression_columns(snapshot, value_table_receivers) +
+                  analytic_expression_bindings,
+                  pipe_ranges,
+                  max_work,
+                ),
+              ),
+            )
+            slot
+          }
+          next.push((name.value, slot))
+        }
+        if derived.is_empty() {
+          deferred = true
+        } else {
+          entries.push(("derive", construction.object(derived)))
+        }
+        pipe_visible = next
+        output = next.map(entry => entry.0)
+        pipe_changed = true
+      }
       Extend(projections) if pipe_changed || pipe_rebound => {
         let snapshot = pipe_visible.copy()
         let derived : Array[(String, @builder.Node)] = []
@@ -2414,15 +2485,30 @@ fn compile_steps(
       }
       Set(assignments) => {
         let snapshot = pipe_visible.copy()
+        let window_bindings = if i > 0 &&
+          @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _)) {
+          analytic_expression_bindings.copy()
+        } else {
+          []
+        }
         let derived : Array[(String, @builder.Node)] = []
         let targets : Array[String] = []
         let replacements : Array[(String, String)] = []
         for assignment in assignments {
-          if !pipe_name_exists(snapshot, assignment.0) ||
-            targets.any(name => {
+          // SET addresses one current column, not every matching JOIN slot.
+          let matching_targets = snapshot.filter(entry => {
+            same_name(assignment.0, { value: entry.0, quoted: false, })
+          })
+          if matching_targets.is_empty() {
+            raise Abort(UnknownColumn)
+          }
+          if matching_targets.length() > 1 {
+            raise Abort(AmbiguousColumn)
+          }
+          if targets.any(name => {
               same_name(assignment.0, { value: name, quoted: false, })
             }) {
-            raise Abort(UnsupportedProjection)
+            raise Abort(DuplicateOutput)
           }
           let physical = pipe_physical_name(active_fields, "aql_pipe_set_")
           active_fields.push(physical)
@@ -2432,7 +2518,8 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 assignment.1,
-                unnest_expression_columns(snapshot, value_table_receivers),
+                unnest_expression_columns(snapshot, value_table_receivers) +
+                window_bindings,
                 pipe_ranges,
                 max_work,
               ),
@@ -2458,6 +2545,14 @@ fn compile_steps(
         pipe_visible = next
         output = pipe_visible.map(entry => entry.0)
         pipe_changed = true
+        // All assignments use the pre-SET snapshot. Private window bindings
+        // cannot become names in the next operator or immutable ranges.
+        if !window_bindings.is_empty() {
+          analytic_outputs.clear()
+          analytic_expression_bindings.clear()
+          analytic_input_fields = None
+          analytic_input_scope = None
+        }
       }
       Drop(names) => {
         // A structural DROP does not read values from retained columns. When
@@ -7233,6 +7328,7 @@ fn join_keys(
   left_fields : Array[String],
   right_fields : Array[String],
 ) -> Array[(String, String)] raise Abort {
+  validate_join_using_names(part)
   let pairs : Array[(String, String)] = []
   if part.on is Some(expression) {
     let pending = [@query.expression_root(expression)]
@@ -7969,6 +8065,11 @@ fn compile_join_query(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.join_part_count(query) == 1 {
+    validate_join_using_names(@query.join_part_at(query, 0).unwrap()) catch {
+      Abort(issue) => return Err(issue)
+    }
+  }
   if @query.join_part_count(query) != 1 ||
     @query.operation_count(query) < 1 ||
     (@query.operation_count(query) > 4 && !has_retained_result(query)) ||

@@ -58,18 +58,22 @@ test "unkeyed FULL joined-row scope keeps the common identity refusal" {
 ///|
 test "FULL shared scope rejects duplicate USING keys and invalid ON" {
   for
-    source in [
-      "SELECT * FROM t AS l FULL JOIN t AS r USING (x, `X`) MAX_OUTPUT_ROWS 10",
-      "SELECT * FROM t FULL JOIN r ON t.x > r.k MAX_OUTPUT_ROWS 10",
+    (source, duplicate_using) in [
+      (
+        "SELECT * FROM t AS l FULL JOIN t AS r USING (x, `X`) MAX_OUTPUT_ROWS 10",
+        true,
+      ),
+      ("SELECT * FROM t FULL JOIN r ON t.x > r.k MAX_OUTPUT_ROWS 10", false),
     ] {
-    assert_true(
-      compile(
-        @query.parse_query(source, syntax_limits()).unwrap(),
-        join_order_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedJoin),
-      msg=source,
+    let result = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
     )
+    if duplicate_using {
+      assert_true(result is Err(DuplicateOutput), msg=source)
+    } else {
+      assert_true(result is Err(UnsupportedJoin), msg=source)
+    }
   }
 }
