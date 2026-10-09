@@ -87,7 +87,9 @@ export const graphUnionSourceRefusals = [
   "FROM g |> union_graphs(with: g, merge: {node_properties: {p: 'unknown'}}) |> node_rows() |> SELECT p",
   'FROM g |> node_rows() |> union_graphs(with: g) |> SELECT p',
   'DATA m = SELECT 7 AS part, 2 AS node_key, 7 AS p; DATA h = PROPERTY GRAPH (NODE TABLES (m AS N KEY (part, node_key) LABEL Person PROPERTIES (p))); FROM g |> union_graphs(with: h) |> node_rows() |> SELECT p',
-].map((body, index) => ({name: 'graph-union-refuse-' + index, format: 'aql-text', text: data + definition + body})).concat([
+].map((body, index) => ({name: 'graph-union-refuse-' + index, format: 'aql-text',
+  text: data + definition + body,
+  expectedCode: [1, 5, 7].includes(index) ? 'ClientProgramImplementationLimit' : undefined})).concat([
   ['duplicate-node-policy', "{node_properties: {}, NODE_PROPERTIES: {}}"],
   ['duplicate-edge-policy', "{edge_properties: {}, `Edge_Properties`: {}}"],
   ['strategy-value-is-not-vocabulary', "{NODE_PROPERTIES: {p: 'NUMBER_SUM'}}"],

@@ -87,3 +87,28 @@ Public execution is pending at this commit. Parser/lowering success is not
 public execution evidence. Wasm/native, full Core, complete packed campaigns
 and submitted-HEAD CI have not been established locally. No merge or manual
 CI rerun is requested.
+
+## Initial public run and existing refusal-category correction
+
+Normal clean five-package production at
+`10384fdc2799821befd6f0176998762fb10efb9e` completed; independent digests
+matched its manifest. Guard run-Me3DTk; original receipt
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-ycEQsx`.
+The union Local consumer passed all 16 positives, including the four new
+uppercase/quoted node/edge projections and independent JSON control, plus two
+expected execution failures. It stopped on old graph-union-refuse-1 because
+the fixture's default code list excluded ClientProgramImplementationLimit.
+Later refusals, union HTTPS and the subtraction consumer were not reached.
+
+This is the existing UnsupportedGraph projection: the unchanged composition
+lowerer and exact union/subtraction Core refusal tests establish unsupported
+empty/binary peer-list shapes, missing peers, extra arguments and composition
+after loss of Graph scope. `client_check.mbt` maps UnsupportedGraph to
+Limit("implementation_limit"), which the existing public diagnostic projects.
+Three old union and five subtraction expectations now explicitly require that
+category. No product error mapping, default allowlist, source, expected rows or
+limits are changed. The original failed receipt/logs remain preserved, and its
+private full installation was removed by the evidence wrapper.
+
+After exact existing refusal-category corrections, the same targeted Node
+command passed 8/8: guard run-aU1QNr; focused-test-7BSLST.

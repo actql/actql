@@ -87,13 +87,13 @@ export const graphSubtractionSourceSuccesses = [
 
 export const graphSubtractionSourceRefusals = [
   ['string-peer', "subtract_graphs(with: 'g')", 'ClientProgramInvalidInput'],
-  ['list-peer', 'subtract_graphs(with: [g])', 'ClientProgramUnsupported'],
-  ['empty-peer-list', 'subtract_graphs(with: [])', 'ClientProgramUnsupported'],
-  ['missing-peer', 'subtract_graphs()', 'ClientProgramUnsupported'],
+  ['list-peer', 'subtract_graphs(with: [g])', 'ClientProgramImplementationLimit'],
+  ['empty-peer-list', 'subtract_graphs(with: [])', 'ClientProgramImplementationLimit'],
+  ['missing-peer', 'subtract_graphs()', 'ClientProgramImplementationLimit'],
   ['unknown-peer', 'subtract_graphs(with: missing)', 'ClientProgramRejected'],
   ['relation-peer', 'subtract_graphs(with: n)', 'ClientProgramRejected'],
-  ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramUnsupported'],
-  ['lost-graph-scope', 'node_rows() |> subtract_graphs(with: g)', 'ClientProgramUnsupported'],
+  ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramImplementationLimit'],
+  ['lost-graph-scope', 'node_rows() |> subtract_graphs(with: g)', 'ClientProgramImplementationLimit'],
 ].map(([name, call, expectedCode]) => ({name: 'graph-subtraction-' + name, format: 'aql-text',
   text: prefix + 'FROM g |> ' + call + output('nodes'), expectedCode})).concat([
   {name: 'graph-subtraction-forward-peer', format: 'aql-text', expectedCode: 'ClientProgramRejected',
