@@ -249,7 +249,10 @@ export function effectResultSchema(prepared, compilation, resultName) {
     throw new Error('InvalidRunHostResultSchema');
   }
   const fields = Object.freeze(facts.slice(2));
-  if (Object.keys(JSON.parse(facts[1])).join('\0') !== fields.join('\0')) {
+  // JavaScript enumerates integer-like keys numerically; the Owner uses UTF-16.
+  const schemaFields = Object.keys(JSON.parse(facts[1])).sort();
+  if (schemaFields.length !== fields.length ||
+      schemaFields.some((field, index) => field !== fields[index])) {
     throw new Error('InvalidRunHostResultSchema');
   }
   return Object.freeze({cid: facts[0], wire: facts[1], fields});

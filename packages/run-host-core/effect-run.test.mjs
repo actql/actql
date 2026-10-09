@@ -281,3 +281,15 @@ test('Effect Site selection validates the same snapshot that reaches dispatch', 
   assert.deepEqual(actual, expected);
   assert.equal(reads, 1);
 });
+
+
+test('Effect schema keeps canonical numeric field order across the JS boundary', () => {
+  const program = JSON.parse(document);
+  program.stages[1].steps[1].select = ['id', {'10': 'id'}, {'2': 'id'}];
+  program.stages[1].results.r.fields = ['id', '10', '2'];
+  const original = issued(JSON.stringify(program));
+  const schema = effectResultSchema(original.prepared, original.compilation, 'answer');
+  assert.deepEqual(schema.fields, ['10', '2', 'id']);
+  assert.equal(schema.wire, '{"10":{"nullable":false,"type":"number"},"2":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"}}');
+  assert.equal(schema.cid, 'sha256:' + createHash('sha256').update(schema.wire).digest('hex'));
+});
