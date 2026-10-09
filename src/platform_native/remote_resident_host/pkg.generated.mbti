@@ -25,6 +25,7 @@ import {
   "actql/actql/platform_native/remote_values_host",
   "actql/actql/platform_native/retained_task_file",
   "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/platform_native/signature",
   "actql/actql/publication_payload",
   "actql/actql/query_planning",
   "actql/actql/remote_resident_site",
@@ -149,6 +150,23 @@ pub(all) enum ResidentCompletedRestoration {
 pub(all) struct ResidentDelivery {
   payload : @publication_payload.PublicationPayloadRequest?
   result : Result[@remote_site_protocol.RemoteOutputResult, ResidentOutputIssue]
+}
+
+type ResidentEffectCaptureCustody
+pub fn ResidentEffectCaptureCustody::confirm(Self) -> Result[@run_publication.PublicationContract, ResidentEffectCaptureCustodyIssue]
+pub fn ResidentEffectCaptureCustody::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectCaptureCustodyIssue]
+pub fn ResidentEffectCaptureCustody::retry_cleanup(Self) -> Result[Bool, ResidentEffectCaptureCustodyIssue]
+
+pub(all) struct ResidentEffectCaptureCustodyFailure {
+  issue : ResidentEffectCaptureCustodyIssue
+  custody : ResidentEffectCaptureCustody?
+}
+
+pub(all) enum ResidentEffectCaptureCustodyIssue {
+  Unavailable
+  Binding(@run_publication.RunEvidenceChainIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+  Capacity(@physical_resources.LedgerIssue)
 }
 
 pub(all) enum ResidentEffectDependencyCaptureIssue {
@@ -409,6 +427,7 @@ pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::issue_effect_source_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectSourceArtifactIssue]
+pub fn ResidentSourceCompute::persist_effect_capture(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, @run_publication.PublicationContract, String, @signature.Library, Bytes, Int, Int, Int) -> Result[ResidentEffectCaptureCustody, ResidentEffectCaptureCustodyFailure]
 pub fn ResidentSourceCompute::persist_effect_source_payload(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResidentEffectSourceCustody, ResidentEffectSourcePersistenceFailure]
 pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, String, String, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]

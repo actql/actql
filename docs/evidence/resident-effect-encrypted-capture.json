@@ -1,0 +1,241 @@
+{
+  "version": "actql-resident-effect-encrypted-capture-evidence/0.1",
+  "validationSource": "e06d0ec4d3863f576133e63a0d678d9ad7e270b8",
+  "adoptedMain": "1b0ae88c87683b94cfd96e73f96f969cb4ecf355",
+  "parentSource": "132b25e816612703058ffa387ff96ab9f317fd1b",
+  "dependency": "OSS #1143 -> #1145 -> #1147 -> this change; final merge target main after parent integration",
+  "scope": "Actual Native semantic Captured Run to encrypted Store/SQLite custody with the original live execution Ledger. Store reconstruction is not Host restart.",
+  "results": {
+    "tests": {
+      "tests": 2,
+      "passed": 2
+    },
+    "sqlite-tests": {
+      "tests": 2,
+      "passed": 2
+    },
+    "crypto-tests": {
+      "tests": 3,
+      "passed": 3
+    },
+    "related-js": {
+      "tests": 1,
+      "passed": 1
+    },
+    "history": "passed",
+    "generatedInterfaces": "native and JS passed",
+    "format": "unchanged"
+  },
+  "assertions": [
+    "Foreign original Run is rejected before Store capacity or execution Ledger reservation.",
+    "Existing computation evidence Owner binds exact original Run/Preview, Result, Receipt and Captured Run before physical custody.",
+    "The stored body is an authenticated ciphertext envelope, not plaintext capture; the independent Node AES-256-GCM fixture is accepted.",
+    "Wrong key, semantic CID, evidence role and altered ciphertext are rejected.",
+    "Store ciphertext and capacity commit in the same transaction; rollback removes both and transaction-free reservation is refused.",
+    "Persistence acknowledgement loss retains the original custody and charge. Reopening Store reads the original saved ciphertext; retry does not replace it with a new nonce.",
+    "Cleanup acknowledgement loss retains both Store capacity and original live Ledger charge. A confirmed terminal record precedes both returns.",
+    "Repeated cleanup does not return another reservation. Terminal custody cannot be revived by persist.",
+    "Independent Native answer [{id:3}], schema and original Source/producer/consumer execution counts are maintained."
+  ],
+  "commands": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/sqlite/sqlite_native.mbt",
+        "src/platform_native/sqlite/sqlite_unsupported.mbt",
+        "src/platform_native/sqlite/sqlite_wbtest.mbt",
+        "src/run_publication/effect_capture_holding.mbt",
+        "src/platform_native/signature/private_evidence.mbt",
+        "src/platform_native/signature/private_evidence_native_wbtest.mbt",
+        "src/platform_native/signature/signature_native.mbt",
+        "src/platform_native/signature/signature_unsupported.mbt",
+        "src/platform_native/publication_store/effect_capture_custody_native.mbt",
+        "src/platform_native/publication_store/effect_capture_custody_unsupported.mbt",
+        "src/platform_native/publication_store/store.mbt",
+        "src/platform_native/remote_resident_host/effect_capture_custody.mbt",
+        "src/platform_native/remote_resident_host/source_compute.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_capture_custody_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_complete_capture_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T12:57:24.538Z",
+      "finishedAt": "2026-10-09T12:57:24.662Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/format.log"
+    },
+    {
+      "label": "compile-tests",
+      "command": "moon",
+      "args": [
+        "check",
+        "--target",
+        "native",
+        "src/platform_native/remote_resident_source_compute_tests"
+      ],
+      "startedAt": "2026-10-09T12:57:24.666Z",
+      "finishedAt": "2026-10-09T12:57:25.020Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/compile-tests.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*Effect retained consumer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T12:57:25.021Z",
+      "finishedAt": "2026-10-09T12:58:51.123Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/tests.log"
+    },
+    {
+      "label": "sqlite-tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/sqlite/sqlite_wbtest.mbt\",\"--filter\",\"*capacity*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T12:58:51.123Z",
+      "finishedAt": "2026-10-09T12:58:51.513Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/sqlite-tests.log"
+    },
+    {
+      "label": "crypto-tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/signature\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T12:58:51.514Z",
+      "finishedAt": "2026-10-09T12:58:52.161Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/crypto-tests.log"
+    },
+    {
+      "label": "related-js",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/query_integration/client_effect_local_export_wbtest.mbt\",\"--filter\",\"*shared local Artifact issuer*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T12:58:52.161Z",
+      "finishedAt": "2026-10-09T12:59:01.011Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/related-js.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/run_publication",
+        "src/platform_native/sqlite",
+        "src/platform_native/signature",
+        "src/platform_native/publication_store",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T12:59:01.093Z",
+      "finishedAt": "2026-10-09T12:59:01.205Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/run_publication",
+        "src/platform_native/sqlite",
+        "src/platform_native/signature",
+        "src/platform_native/publication_store",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T12:59:01.206Z",
+      "finishedAt": "2026-10-09T12:59:01.296Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T12:59:01.333Z",
+      "finishedAt": "2026-10-09T13:00:37.683Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-encrypted-capture-1791550644332/history.log"
+    }
+  ],
+  "artifact": {
+    "source": "e06d0ec4d3863f576133e63a0d678d9ad7e270b8",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "_build/resident-effect-encrypted-capture-1791550644332/retained-compute.whitebox_test.exe",
+    "sha256": "cb9ee1497f7e5f039efc51d5bd4d36b5d511a7928602fd57349cee2bfd49cd01"
+  },
+  "preparationEvidence": [
+    "_build/resident-effect-encrypted-capture-preparation-1791549592378",
+    "_build/resident-effect-encrypted-capture-preparation-1791549753043",
+    "_build/resident-effect-encrypted-capture-preparation-1791550021839",
+    "_build/resident-effect-encrypted-capture-preparation-1791550246482",
+    "_build/resident-effect-encrypted-capture-preparation-1791550269365",
+    "_build/resident-effect-encrypted-capture-preparation-1791550294676",
+    "_build/resident-effect-encrypted-capture-preparation-1791550408088"
+  ],
+  "preparationFailures": [
+    "Initial Native persistence failed before the intended lost-acknowledgement seam. The bounded diagnostic identified nested SQLite BEGIN from the standalone reservation operation. Added an explicit caller-transaction reservation operation; no capacity limit was relaxed.",
+    "After the transaction fix, the first stored row was incorrectly expected at revision 1. The existing SQLite insert starts at revision 0; corrected the new custody checks and terminal CAS expectations.",
+    "Diagnostic enum string rendering, helper receiver argument and strict UTF-8 test calls caused compilation failures during preparation. These failed compilations executed no tests."
+  ],
+  "ci": {
+    "executed": false,
+    "reason": "Hosted CI remains stopped; local results are not CI."
+  },
+  "notVerified": [
+    "Host/Coordinator restart and discovery/restoration of original Source/receiver physical custody",
+    "Waiting Run transition commit",
+    "Approval and current target authorization",
+    "Physical Effect execution, saved response and unknown-result reconciliation",
+    "Formal Cloud package adoption and production Native binary",
+    "Public Cloud SDK and real Preview Effect acceptance"
+  ]
+}

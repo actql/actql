@@ -139,6 +139,66 @@ test "native SQLite capacity reservations are atomic and restart safe" {
 }
 
 ///|
+test "native SQLite capacity and custody share the caller transaction" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = load_library(path).unwrap()
+  let database_path = root +
+    "/capacity-record-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let database = library.open_database(database_path, 64L).unwrap()
+  let observer = library.open_database(database_path, 64L).unwrap()
+  assert_true(
+    database.reserve_capacity_in_transaction(
+      "publication", "one", 8L, 1L, 64L, 2L,
+    )
+    is Err(Physical(_)),
+  )
+  assert_eq(observer.capacity_usage("publication").unwrap().reserved_bytes, 0L)
+  database.begin_immediate().unwrap()
+  assert_true(
+    database
+    .reserve_capacity_in_transaction("publication", "one", 8L, 1L, 64L, 2L)
+    .unwrap(),
+  )
+  database.insert("custody", "one", b"original").unwrap() |> ignore
+  assert_eq(observer.capacity_usage("publication").unwrap().reserved_bytes, 0L)
+  assert_true(observer.read("custody", "one") is Err(NotFound))
+  database.rollback().unwrap()
+  assert_eq(database.capacity_usage("publication").unwrap().reserved_bytes, 0L)
+  assert_true(database.read("custody", "one") is Err(NotFound))
+  database.begin_immediate().unwrap()
+  assert_true(
+    database
+    .reserve_capacity_in_transaction("publication", "one", 8L, 1L, 64L, 2L)
+    .unwrap(),
+  )
+  database.insert("custody", "one", b"original").unwrap() |> ignore
+  assert_false(
+    database
+    .reserve_capacity_in_transaction("publication", "one", 8L, 1L, 64L, 2L)
+    .unwrap(),
+  )
+  assert_true(
+    database.reserve_capacity_in_transaction(
+      "publication", "one", 9L, 1L, 64L, 2L,
+    )
+    is Err(Collision),
+  )
+  // Refusal leaves the caller's transaction intact, including its exact body.
+  database.commit().unwrap()
+  assert_eq(observer.capacity_usage("publication").unwrap().reserved_bytes, 8L)
+  assert_eq(observer.read("custody", "one").unwrap().body, b"original")
+  database.close()
+  observer.close()
+}
+
+///|
 test "native SQLite bounded claims are stable and restart safe" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     return

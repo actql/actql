@@ -1,6 +1,7 @@
 // Full common semantic Captured Run issuance from real Native rows and closed
 // Source/import dependencies. Provider Preview metadata remains a fixture;
-// encrypted persistence, waiting, approval and physical writes are not claimed.
+// Encryption/reconciliation is checked by the independent Store custody helper;
+// waiting, Host restart, approval and physical writes are not claimed.
 
 ///|
 fn retained_effect_complete_capture(
@@ -82,6 +83,16 @@ fn retained_effect_complete_capture(
   assert_eq(
     @publication.publication_contract_identity(retried),
     @publication.publication_contract_identity(captured),
+  )
+  retained_effect_capture_store(
+    consumer,
+    materials,
+    inputs,
+    result,
+    invocation,
+    preview,
+    captured,
+    @publication.captured_effect_source_store_authority_cid(source),
   )
   println(
     "retained-effect-capture: complete original Run issued with actual public rows and checked plan",
