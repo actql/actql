@@ -1605,6 +1605,25 @@ used identity. Only admitted Run references offer a Run-status candidate.
 Formatting consumes the same immutable SDK-owned explanation; copied DTOs and
 error messages cannot supply these facts.
 
+An admitted `SubmissionAttempt` refusal or conflict has its own explanation,
+bound to that invocation's attempt reference, original submission reference,
+connection scope and immutable SDK input snapshot. Refusal retains the Owner's
+authorization, admission-capacity or epoch reason and its invocation-local
+`attempt_uncommitted_unconsumed` guarantee. This is not a durable `not_accepted`
+receipt, nor evidence that another invocation never committed that identity.
+Conflict retains the submitted intent/restart-decision reason without revealing
+the previously stored intent or decision. It supplies no unconsumed guarantee,
+current revision or durable original-outcome conclusion.
+
+Both branches offer only a currently authorized `lookupSubmission` target for
+that same original epoch/nonce. Their safe advice does not grant resubmission,
+changed-input or restart authority. Explanation/formatting never sends a
+request, allocates a fresh submission identity or changes a Run. Caller edits,
+copied failures and borrowed response data cannot replace the retained input
+or acquire its association. No Check result is synthesized for these initial
+invocation outcomes. No public input hash, new storage, wire/pin or Native
+validation contract is added by this presentation.
+
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and
 `formatEffectUncertainty` render only the original SDK-owned observations used
 by their corresponding explanation helpers. They offer `text`, `html` and

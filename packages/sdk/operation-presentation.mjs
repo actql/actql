@@ -15,6 +15,12 @@ const summaries = Object.freeze({
   'submission.lookup_unavailable': '提出の照会を完了できませんでした。受理・実行は未確定です。',
   'submission.lookup_uninterpretable': 'このSDKでは提出の照会応答を解釈できません。受理・実行は未確定です。',
   'submission.not_sent': 'このSDKは今回の提出を送信していません。これはOwnerによる拒否ではなく、元のidentityの結果も確定しません。',
+  'submission.refused.authorization': 'Hostは現在の認可により今回の提出呼出しを拒否しました。今回の呼出しは提出をcommitせず、操作identityも消費していません。',
+  'submission.refused.admission_capacity': 'Hostは受付容量が不足しているため今回の提出呼出しを拒否しました。今回の呼出しは提出をcommitせず、操作identityも消費していません。',
+  'submission.refused.epoch_expired': 'Hostは提出したepochが期限切れのため今回の提出呼出しを拒否しました。元の提出結果は確定しません。',
+  'submission.refused.epoch_not_yet_valid': 'Hostは提出したepochがまだ有効でないため今回の提出呼出しを拒否しました。元の提出結果は確定しません。',
+  'submission.conflict.intent': 'Hostは元の提出identityに対する意図の競合を報告しています。',
+  'submission.conflict.restart_decision': 'Hostは元の提出identityに対する再開始の判断の競合を報告しています。',
   'request.lookup_unresolved': 'この照会だけでは送信が受理されたか判断できません。',
   'request.lookup_uninterpretable': 'このSDKでは要求の照会応答を解釈できません。受理・実行は未確定です。',
   'request.lookup_unavailable': 'Hostから要求の照会結果を取得できませんでした。受理は未確定です。',
@@ -50,7 +56,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-09.operations.${locale}.12`});
+  return Object.freeze({locale, translationRevision: `2026-10-09.operations.${locale}.13`});
 }
 
 export function localizeOperation(explanation, domain, options) {
@@ -60,7 +66,7 @@ export function localizeOperation(explanation, domain, options) {
   if ((domain === 'request' || domain === 'submission') && explanation.observation === 'request_held') {
     key = 'request.request_held.' + explanation.preparationState;
   }
-  if (domain === 'cancellation' && ['refused', 'conflict'].includes(explanation.observation)) {
+  if ((domain === 'submission' || domain === 'cancellation') && ['refused', 'conflict'].includes(explanation.observation)) {
     key += '.' + explanation.reason;
   }
   let summary, hint;
@@ -70,6 +76,7 @@ export function localizeOperation(explanation, domain, options) {
   if (domain === 'submission' && explanation.hint !== undefined && explanation.observation !== 'request_held') {
     hint = '元の提出参照を保持し、認可された照会を使ってください。この観測は再送信・実行・資源解放を許可しません。';
   }
+  if (domain === 'submission' && ['refused', 'conflict'].includes(explanation.observation)) hint = '元の提出参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの受理を確定せず、再提出・変更した入力・新しい再開始の判断を許可しません。';
   if (domain === 'requestCancellation') hint = '元の要求参照を保持し、現在の認可で要求または示されたRunを確認してください。この観測は再送信・資源解放・外部Effectの再実行を許可しません。';
   if (domain === 'cancellation' && ['refused', 'conflict'].includes(explanation.observation)) hint = '元の取消し参照を保持し、現在の認可で照会してください。今回の呼出し結果は別の呼出しの結果を確定せず、再送信を許可せず、物理停止・外部Effect・資源解放を確認しません。';
   if (domain === 'delivery') hint = '元の読み取り参照を保持してください。この観測はアプリケーションでの受領・保存を確認せず、再読取やComputeの再実行も許可しません。';

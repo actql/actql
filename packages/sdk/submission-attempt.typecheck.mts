@@ -1,4 +1,5 @@
-import {getSubmissionAttempt, getSubmissionOutcome, type Client, type SubmissionAttempt} from './index.js';
+import {getSubmissionAttempt, getSubmissionOutcome, explainSubmission,
+  type Client, type SubmissionAttempt} from './index.js';
 
 declare const client: Client;
 declare const received: unknown;
@@ -22,3 +23,21 @@ if (attempt?.kind === 'recorded' || attempt?.kind === 'already_satisfied') {
 const original = getSubmissionOutcome(received);
 // @ts-expect-error The durable outcome has no per-invocation identity.
 original?.attemptRef;
+const explanation = explainSubmission(received);
+if (explanation?.observation === 'refused' || explanation?.observation === 'conflict') {
+  const operation: 'submit' = explanation.attemptRef.operation;
+  const lookup: 'lookupSubmission' = explanation.next.operation;
+  const authority: string = explanation.submissionRef.epoch.authorityScopeCid;
+  void [operation, lookup, authority];
+  // @ts-expect-error Invocation advice is not a durable original receipt.
+  explanation.problem;
+  // @ts-expect-error Invocation advice cannot become a resubmission.
+  explanation.next.operation = 'start';
+  if (explanation.observation === 'refused') {
+    const guarantee: 'attempt_uncommitted_unconsumed' = explanation.guarantee;
+    void guarantee;
+  } else {
+    // @ts-expect-error A conflict does not certify unconsumed original custody.
+    explanation.guarantee;
+  }
+}

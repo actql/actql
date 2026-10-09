@@ -173,6 +173,17 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
     observation: 'run_reference_received';
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
   }> | Readonly<{
+    observation: 'refused'; reason: Extract<SubmissionAttempt, {kind: 'refused'}>['reason'];
+    guarantee: 'attempt_uncommitted_unconsumed';
+    attemptRef: Readonly<WireOperationAttemptRef & {operation: 'submit'}>;
+    submissionRef: Readonly<SubmissionReference>; hint: string;
+    next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
+  }> | Readonly<{
+    observation: 'conflict'; reason: Extract<SubmissionAttempt, {kind: 'conflict'}>['reason'];
+    attemptRef: Readonly<WireOperationAttemptRef & {operation: 'submit'}>;
+    submissionRef: Readonly<SubmissionReference>; hint: string;
+    next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
+  }> | Readonly<{
     observation: 'not_accepted' | 'preparation_failed';
     problem: Extract<SubmissionOutcome, {kind: 'not_accepted'}>['problem'];
     preparationIssue?: Readonly<{kind: 'analysis_budget_exhausted' | 'implementation_limit'; summary: string; hint: string}>;
@@ -184,7 +195,8 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
     hint: string;
     next: RequestObservationTarget & Readonly<{operation: 'lookupSubmission'}>;
   }>);
-/** Read-only advice for this exact SDK submit or lookup result; no retry or execution permission. */
+/** Read-only advice for this exact SDK submit or lookup result; no retry or execution permission.
+ * Refused certifies only this invocation's uncommitted/unconsumed outcome. */
 export declare function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined;
 export type RequestLookupExplanation = Readonly<{summary: string; hint: string}> & (
   HeldRequestExplanation | Readonly<{
