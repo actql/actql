@@ -2482,6 +2482,9 @@ fn compile_steps(
           output.push(name)
           pipe_visible.push((name, name))
         }
+        // EXTEND adds current columns, not members of an existing immutable
+        // range. Later expressions resolve the saved range and current row.
+        pipe_rebound = true
       }
       Set(assignments) => {
         let snapshot = pipe_visible.copy()
