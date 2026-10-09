@@ -846,7 +846,8 @@ error, rather than a guessed or truncated output schema.
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
 rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
-current columns while the original range retains its value slots. SELECT or AS
+current columns while a surviving original range retains its value slots, with
+the same-name target exceptions defined above. SELECT or AS
 establishes the ordinary new Relation scope and removes that original range,
 except for the existing directly following SELECT-owned ORDER boundary.
 No witness, array, element or property implementation slot is publicly exported.
@@ -870,7 +871,8 @@ based and does not by itself promise output order. Use an explicit ORDER BY
 when ordering matters. Type, key transfer and expansion bounds remain the
 common checker's responsibility; a parent key alone is not a unique child key.
 
-The original parent range survives Pipe SET/DROP/RENAME and correlation. A
+The original parent range survives Pipe SET/DROP/RENAME and correlation unless
+its name is removed by the same-name target rules above. A
 SELECT or AS replaces that scope using the existing rules above. Successive
 closed object value-table ranges retain their own receivers; adding another
 expansion does not rebind an earlier object's fields or value. Qualified parent

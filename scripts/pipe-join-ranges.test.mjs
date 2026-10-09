@@ -106,4 +106,10 @@ test('same-name edits use replacement objects and remove hidden range access', (
   const refusals = pipeJoinRangesRefusals.filter(item => item.name.includes('refuse-edit-'));
   assert.equal(refusals.length, 5);
   assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  for (const refusal of refusals) {
+    if (!refusal.text.includes('@replacement')) {
+      assert.equal(refusal.parameterDeclarations, undefined);
+      assert.equal(refusal.parameters, undefined);
+    }
+  }
 });

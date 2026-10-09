@@ -185,4 +185,5 @@ pipeJoinRangesRefusals.push(...[
   ['set-removed-range-member', 'FROM records AS id |> SET id = @replacement |> SELECT id.amount'],
 ].map(([name, text]) => ({name: 'pipe-join-ranges-refuse-edit-' + name,
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text,
-  parameterDeclarations: {replacement}, parameters: {replacement: {id: 99}}})));
+  ...(text.includes('@replacement')
+    ? {parameterDeclarations: {replacement}, parameters: {replacement: {id: 99}}} : {})})));
