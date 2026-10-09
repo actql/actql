@@ -108,7 +108,8 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
-    "reach" | "traverse" => path == ["start"]
+    "reach" => path == ["start"]
+    "traverse" => path == ["start"] || path == ["hops"]
     "shortest_path" => path == ["source"] || path == ["target"]
     "subgraph" => path == ["nodes"]
     _ => false
@@ -198,7 +199,7 @@ fn QueryParser::sga_arguments(
     self.node()
     let at = self.peek().start
     let name = self.name()
-    // Fold operation/selector vocabulary only. Object-valued data (for
+    // Fold operation/selector/hop vocabulary only. Object-valued data (for
     // example a predicate's literal object) retains its authored field names.
     // Folding every nested String key would change a value before admission.
     let key = if path.is_empty() || sga_selector_object(operation, path) {

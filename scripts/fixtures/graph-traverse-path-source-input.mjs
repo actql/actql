@@ -91,6 +91,20 @@ const control = JSON.stringify({version: 'actql/0.1', id: 'fixture.traverse_path
     {from: 'visited', select: fields, as: 'output'},
   ], results: {out: {from: 'output', fields}}}],
   results: {paths: {from: {stage: 'main', result: 'out'}}}});
+// The two ordered hops retain separate filters and the authored output guard.
+// This control is constructed from the independent machine fixture above.
+export const graphTraverseHopProgram = JSON.parse(control);
+graphTraverseHopProgram.id = 'fixture.traverse_hop_vocabulary';
+graphTraverseHopProgram.stages[0].steps[6].traverse = {
+  start: {from: 'seeds', id: 'element'},
+  hops: [{direction: 'out', edge_types: ['R'], node_where: {literal: true}},
+    {direction: 'out', edge_where: {literal: true}}],
+  path_mode: 'trail', emit: 'paths', max_output_rows: 10,
+};
+const uppercaseHops = "TRAVERSE(START: {FROM: seeds, ID: 'element'}, " +
+  "HOPS: [{DIRECTION: 'out', EDGE_TYPES: ['R'], NODE_WHERE: {literal: true}}, " +
+  "{DIRECTION: 'out', EDGE_WHERE: {literal: true}}], " +
+  "PATH_MODE: 'trail', EMIT: 'paths', MAX_OUTPUT_ROWS: 10)";
 export const graphTraversePathSuccesses = [
   {name: 'graph-traverse-paths-json-control', format: 'json', text: control,
     results: results(jsonDomain, trail), sourceReadCount: 0},
@@ -117,6 +131,29 @@ export const graphTraversePathSuccesses = [
     text: source + seeds + 'FROM g |> ' +
       "traverse(start: {from: seeds, id: 'element'}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'paths')" + tail,
     results: results(sourceDomain, []), sourceReadCount: 0},
+  {name: 'graph-traverse-hop-vocabulary-json-control', format: 'json',
+    text: JSON.stringify(graphTraverseHopProgram), results: results(jsonDomain, trail), sourceReadCount: 0},
+  {name: 'graph-traverse-hop-vocabulary-uppercase-paths', format: 'aql-text',
+    text: source + seeds + 'FROM g |> ' + uppercaseHops + tail,
+    results: results(sourceDomain, trail), sourceReadCount: 0},
+  {name: 'graph-traverse-hop-vocabulary-quoted-paths', format: 'aql-text',
+    text: source + seeds + 'FROM g |> ' + uppercaseHops
+      .replaceAll('DIRECTION:', '`DiReCtIoN`:').replace('NODE_WHERE:', '`NoDe_WhErE`:') + tail,
+    results: results(sourceDomain, trail), sourceReadCount: 0},
+  {name: 'graph-traverse-hop-vocabulary-uppercase-nodes', format: 'aql-text',
+    text: source + seeds + 'FROM g |> ' + uppercaseHops.replace("EMIT: 'paths'", "EMIT: 'nodes'")
+      + ' |> SELECT start_id, node_id, depth |> ORDER BY depth |> RESULT nodes',
+    results: {nodes: {columns: [
+      {name: 'start_id', contract: json}, {name: 'node_id', contract: json}, {name: 'depth', contract: number}],
+    rows: [{start_id: identity(sourceDomain, 'N', 1), node_id: identity(sourceDomain, 'N', 1), depth: 2}]}},
+    sourceReadCount: 0},
+  {name: 'graph-traverse-hop-vocabulary-empty-labels', format: 'aql-text',
+    text: source + seeds + 'FROM g |> ' + uppercaseHops.replace("EDGE_TYPES: ['R']", 'EDGE_TYPES: []') + tail,
+    results: results(sourceDomain, []), sourceReadCount: 0},
+  {name: 'graph-traverse-hop-vocabulary-false-predicate', format: 'aql-text',
+    text: source + seeds + 'FROM g |> ' + uppercaseHops.replace('EDGE_WHERE: {literal: true}',
+      'EDGE_WHERE: {literal: false}') + tail,
+    results: results(sourceDomain, []), sourceReadCount: 0},
 ];
 export const graphTraversePathRefusals = [
   ['unknown-selector', call().replace('from: seeds', 'from: missing')],
@@ -139,3 +176,12 @@ graphTraversePathRefusals.push(...[
   ['matched-node-only-output', call() + ' |> SELECT depth |> RESULT paths'],
 ].map(([name, suffix]) => ({name: 'graph-traverse-paths-' + name,
   format: 'aql-text', text: source + matchedSeeds + 'FROM g |> ' + suffix})));
+graphTraversePathRefusals.push(...[
+  ['duplicate-direction', uppercaseHops.replace("DIRECTION: 'out'", "DIRECTION: 'out', direction: 'in'")],
+  ['duplicate-label-filter', uppercaseHops.replace("EDGE_TYPES: ['R']", "EDGE_TYPES: ['R'], edge_types: []")],
+  ['direction-value', uppercaseHops.replace("DIRECTION: 'out'", "DIRECTION: 'OUT'")],
+  ['unknown-hop-field', uppercaseHops.replace("EDGE_TYPES: ['R']", "EDGE_TYPES: ['R'], EXTRA: true")],
+  ['mixed-modes', uppercaseHops.replace('MAX_OUTPUT_ROWS: 10', "MAX_OUTPUT_ROWS: 10, DIRECTION: 'out'")],
+].map(([name, operation]) => ({name: 'graph-traverse-hop-vocabulary-refuse-' + name,
+  format: 'aql-text', text: source + seeds + 'FROM g |> ' + operation + tail,
+  expectedCode: 'ClientProgramInvalidInput'})));
