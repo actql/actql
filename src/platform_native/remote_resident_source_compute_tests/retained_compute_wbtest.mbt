@@ -379,11 +379,14 @@ fn retained_compute_case(
   assert_eq(producer_captures.val, 1)
   let acquired = if effect {
     let (evidence, bodies) = retained_compute_acquired_evidence(source_owner).unwrap()
+    // Logical Source identity preserves the fixture's (3, 1, 2) acquired
+    // sequence. The checked Result projection sorts its exported root view;
+    // that view must not silently replace the acquisition observation.
     assert_eq(
       bodies.0,
-      "{\"sort\":\"relation\",\"value\":[{\"id\":1},{\"id\":2},{\"id\":3}]}",
+      "{\"sort\":\"relation\",\"value\":[{\"id\":3},{\"id\":1},{\"id\":2}]}",
     )
-    assert_true(bodies.1.contains("id"))
+    assert_eq(bodies.1, "{\"id\":{\"nullable\":false,\"type\":\"number\"}}")
     let dependencies = @host.client_effect_acquired_dependency_bodies(evidence)
     assert_eq(dependencies.length(), 6)
     let observations = dependencies.filter(entry => entry.0 == "source_evidence")
