@@ -22,7 +22,7 @@ test('independent partition obligations distinguish NULL, alias, snapshot and de
     derive: {partition: {gt: [{field: 'amount'}, {literal: 25}]}}});
   assert.equal(new Set([...successes, ...refusals, ...failures].map(item => item.name)).size,
     successes.length + refusals.length + failures.length);
-  assert.equal(successes.length, 11);
+  assert.equal(successes.length, 17);
   assert.equal(refusals.length, 8);
   assert.equal(failures.length, 1);
 });
