@@ -65,5 +65,43 @@ All evidence paths below are relative to the working checkout unless absolute.
   Command: `node scripts/local-checks.mjs test node -- scripts/order-window-source-input.test.mjs`.
 
 Pinned Node 22.22.0 and MoonBit 0.10.12+1634b282e were used. Formatting and
-`git diff --check` passed. Packed Local/HTTPS execution and exact submitted-HEAD
-CI are pending; focused tests do not establish either.
+`git diff --check` passed.
+
+## Pristine packed public acceptance
+
+Clean source commit: `2a36c3e8686dc25c422391bb6c2c3f4f64e534bb`.
+The subsequent evidence-only commit does not relabel these results as execution
+of the submitted HEAD.
+
+Commands, under the existing serialized heavy guard:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-set-window-private-2a36c3e86-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-set-window-private-2a36c3e86-pack node scripts/test-packed-public-query.mjs --order-window-only
+```
+
+Both Local and HTTPS completed **23 positive / 8 refusal cases**. The independent
+JSON controls and all nine new positive cases passed. The hidden-slot refusal
+returned `ClientProgramInvalidInput` with no Run admission or Source I/O.
+The existing consumer verifies rows, declared column order, full types and
+nullability, stream completion, request replay and rereading, with unchanged
+installed ceilings. This is one ORDER-window cohort, not all frontend acceptance.
+
+Original receipt and logs:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-PET7CJ`.
+Guard: `_build/local-checks/attempts/run-qMvtXz`.
+The receipt is complete/passed, clean-source revision matches the producer
+manifest, all ten commands completed with exit zero, and there are no evidence
+errors. An independent SHA256 calculation matched every manifest and receipt
+digest. The temporary installation was removed after preserving the evidence.
+
+| Package | SHA256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54` |
+| local-node | `0f0270d3273d12ab2c66a28bc777e927081b19a7323fdc6096ca53e1c45cf934` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Exact submitted-HEAD CI, Wasm/native tests and full Core/packed coverage remain
+unverified. No manual CI rerun or merge was performed.
