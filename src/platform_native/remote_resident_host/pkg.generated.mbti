@@ -322,7 +322,8 @@ pub fn ResidentSavedOutput::is_current(Self) -> Bool
 pub fn ResidentSavedOutput::recover(Self, @publication_store.Store, @remote_transfer_journal.Journal, @http_client.Client, String, Int) -> ResidentDelivery
 
 type ResidentSourceCompute
-pub fn ResidentSourceCompute::bind_effect_retained_result_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, @run_publication_host.ClientEffectLocalResultArtifact) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectTransferredArtifactIssue]
+pub fn ResidentSourceCompute::bind_effect_producer_artifact(Self, @run_publication_host.ClientEffectLocalResultArtifact) -> Result[@run_publication_host.ClientEffectProducerArtifact, @run_publication_host.ClientEffectTransferredArtifactIssue]
+pub fn ResidentSourceCompute::bind_effect_retained_result_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, @run_publication_host.ClientEffectProducerArtifact) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectTransferredArtifactIssue]
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::effect_run(Self) -> @physical_strategy.CapturedEffectRunDAG?
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]

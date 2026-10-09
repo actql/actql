@@ -343,6 +343,7 @@ fn open_resident_source_compute_owned(
         Pure(_) => None
         Effect(bound) =>
           Some({
+            bound,
             owner: @host.prepared_client_effect_run_computation(bound),
             requirement,
             capture,

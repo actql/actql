@@ -112,6 +112,8 @@ pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Re
 
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
 
+pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_strategy.CapturedEffectRunDAG, ClientEffectLocalResultArtifact) -> Result[ClientEffectProducerArtifact, ClientEffectTransferredArtifactIssue]
+
 pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue]
 
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
@@ -128,7 +130,7 @@ pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentit
 
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
-pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectLocalResultArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
+pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectProducerArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
 
@@ -1324,6 +1326,8 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
   MissingMapping
   WorkLimit
 } derive(@debug.Debug)
+
+type ClientEffectProducerArtifact
 
 pub(all) enum ClientEffectResultImportIssue {
   ForeignInput

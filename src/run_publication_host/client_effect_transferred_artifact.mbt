@@ -19,7 +19,7 @@ pub fn bind_transferred_client_effect_local_result_artifact(
   captured : @strategy.CapturedEffectResultImport,
   exported : @strategy.CapturedEffectLocalResultExport,
   receipt : @execution.CompletedRelationExportReceipt,
-  artifact : ClientEffectLocalResultArtifact,
+  producer_artifact : ClientEffectProducerArtifact,
   input : ClientRetainedTaskInput,
   current : ClientRetainedInputCurrent,
   borrow_current : () -> Bool,
@@ -27,6 +27,11 @@ pub fn bind_transferred_client_effect_local_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectTransferredArtifactIssue,
 ] {
+  let artifact = producer_artifact.artifact
+  if @remote.dispatch_request_identity(producer_artifact.dispatch) !=
+    @remote.dispatch_request_identity(input.producer.request) {
+    return Err(ForeignInput)
+  }
   let owner = materials.prepared
   let producer = @strategy.captured_effect_result_import_producer(captured)
   let consumer = @strategy.captured_effect_result_import_consumer(captured)

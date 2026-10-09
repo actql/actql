@@ -323,6 +323,16 @@ fn retained_compute_case(
   } else {
     None
   }
+  let effect_producer_dispatch = effect_materials.map(pair => {
+    @host.prepare_client_effect_source_dispatch(
+      pair.0.allowed,
+      pair.0.run_definition,
+      pair.1,
+      1,
+      "producer",
+      retained_compute_selection(),
+    ).unwrap()
+  })
   let acquisitions = Ref(0)
   let producer_captures = Ref(0)
   let source_observe = event => {
@@ -336,10 +346,12 @@ fn retained_compute_case(
   let source_open = match effect_materials {
     Some((materials, _)) =>
       @resident.open_resident_effect_source_compute(
-        @host.bind_client_effect_compiled_run(
-          materials.prepared,
-          materials.allowed,
-          materials.run_definition,
+        @host.bind_client_effect_source_dispatch(
+          materials,
+          effect_producer_dispatch.unwrap(),
+          @host.prepare_client_effect_source_input_binding(
+            materials.compilation,
+          ).unwrap(),
         ).unwrap(),
         configuration,
         name,
@@ -465,15 +477,7 @@ fn retained_compute_case(
     retained_compute_selection()
   }
   let producer_dispatch = match effect_materials {
-    Some((materials, caller)) =>
-      @host.prepare_client_effect_source_dispatch(
-        materials.allowed,
-        materials.run_definition,
-        caller,
-        1,
-        "producer",
-        selected,
-      ).unwrap()
+    Some(_) => effect_producer_dispatch.unwrap()
     None =>
       @host.prepare_client_task_dispatch(
         prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
@@ -958,6 +962,7 @@ fn retained_compute_case(
       producer_dependency.unwrap().0,
       producer_dependency.unwrap().1,
       producer_dependency.unwrap().2,
+      producer_dependency.unwrap().4,
       common_input,
       site,
     )
@@ -1013,7 +1018,7 @@ fn retained_compute_case(
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_objects, 0L)
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(source_export)
-  if producer_dependency is Some((pins, _, _, dependency_receipt)) {
+  if producer_dependency is Some((pins, _, _, dependency_receipt, _)) {
     assert_false(@strategy.release_captured_effect_local_unit_inputs(pins))
     @execution.cancel_completed_relation_export_receipt(dependency_receipt)
   }

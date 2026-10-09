@@ -18,7 +18,7 @@ pub fn ResidentSourceCompute::bind_effect_retained_result_artifact(
   captured : @strategy.CapturedEffectResultImport,
   exported : @strategy.CapturedEffectLocalResultExport,
   receipt : @execution.CompletedRelationExportReceipt,
-  artifact : @host.ClientEffectLocalResultArtifact,
+  artifact : @host.ClientEffectProducerArtifact,
 ) -> Result[
   @host.ClientEffectLocalResultArtifact,
   @host.ClientEffectTransferredArtifactIssue,

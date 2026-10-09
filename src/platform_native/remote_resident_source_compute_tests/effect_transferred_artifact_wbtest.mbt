@@ -8,6 +8,7 @@ fn retained_effect_producer_dependency(
   @host.ClientEffectLocalResultArtifact,
   @host.ClientEffectLocalManifest,
   @execution.CompletedRelationExportReceipt,
+  @host.ClientEffectProducerArtifact,
 ) {
   println("retained-effect-evidence: producer-pins")
   let inputs = @strategy.pin_captured_effect_acquired_unit_results(
@@ -69,7 +70,47 @@ fn retained_effect_producer_dependency(
     4096,
     64,
   ).unwrap()
-  (inputs, artifact, manifest, receipt)
+  let token = owner.bind_effect_producer_artifact(artifact).unwrap()
+  let foreign_dispatch = @host.prepare_client_effect_source_dispatch(
+    materials.allowed,
+    materials.run_definition,
+    @host.prepare_client_effect_request_identity(
+      materials.prepared,
+      retained_compute_cid("c"),
+      "original-effect-caller",
+      @host.source_free_caller_input_intent_cid(),
+    ).unwrap(),
+    2,
+    "another-producer",
+    retained_compute_selection(),
+  ).unwrap()
+  let foreign = @host.bind_client_effect_source_dispatch(
+    materials,
+    foreign_dispatch,
+    @host.prepare_client_effect_source_input_binding(materials.compilation).unwrap(),
+  ).unwrap()
+  assert_true(
+    @host.bind_client_effect_producer_artifact(
+      foreign,
+      owner.effect_run().unwrap(),
+      artifact,
+    )
+    is Err(ForeignInput),
+  )
+  let unbound = @host.bind_client_effect_compiled_run(
+    materials.prepared,
+    materials.allowed,
+    materials.run_definition,
+  ).unwrap()
+  assert_true(
+    @host.bind_client_effect_producer_artifact(
+      unbound,
+      owner.effect_run().unwrap(),
+      artifact,
+    )
+    is Err(ForeignInput),
+  )
+  (inputs, artifact, manifest, receipt, token)
 }
 
 ///|
@@ -106,6 +147,7 @@ fn retained_effect_transferred_artifact(
   sender_inputs : @strategy.CapturedEffectLocalUnitInputs,
   sender : @host.ClientEffectLocalResultArtifact,
   sender_manifest : @host.ClientEffectLocalManifest,
+  producer_token : @host.ClientEffectProducerArtifact,
   common_input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
 ) -> Unit raise {
@@ -133,7 +175,7 @@ fn retained_effect_transferred_artifact(
   )
   let receiver = consumer
     .bind_effect_retained_result_artifact(
-      materials, inputs, imported, root_export, receipt, sender,
+      materials, inputs, imported, root_export, receipt, producer_token,
     )
     .unwrap()
   println("retained-effect-evidence: receiver-artifact-bound")
@@ -208,13 +250,13 @@ fn retained_effect_transferred_artifact(
   let result_receipt = transferred_effect_result_receipt(result_export)
   assert_true(
     consumer.bind_effect_retained_result_artifact(
-      materials, inputs, imported, result_export, result_receipt, sender,
+      materials, inputs, imported, result_export, result_receipt, producer_token,
     )
     is Err(ForeignInput),
   )
   assert_true(
     consumer.bind_effect_retained_result_artifact(
-      materials, inputs, imported, root_export, result_receipt, sender,
+      materials, inputs, imported, root_export, result_receipt, producer_token,
     )
     is Err(ForeignExport),
   )
@@ -232,7 +274,7 @@ fn retained_effect_transferred_artifact(
       imported,
       root_export,
       receipt,
-      sender,
+      producer_token,
     )
     is Err(ForeignRun),
   )
@@ -249,7 +291,7 @@ fn retained_effect_transferred_artifact(
       imported,
       root_export,
       receipt,
-      sender,
+      producer_token,
       common_input,
       denied,
       () => true,
@@ -269,12 +311,42 @@ fn retained_effect_transferred_artifact(
       imported,
       root_export,
       receipt,
-      sender,
+      producer_token,
       common_input,
       current,
       () => false,
     )
     is Err(Unavailable),
+  )
+  let other_dispatch = @host.prepare_client_effect_source_dispatch(
+    materials.allowed,
+    materials.run_definition,
+    @host.prepare_client_effect_request_identity(
+      materials.prepared,
+      retained_compute_cid("c"),
+      "original-effect-caller",
+      @host.source_free_caller_input_intent_cid(),
+    ).unwrap(),
+    2,
+    "another-producer",
+    retained_compute_selection(),
+  ).unwrap()
+  assert_true(
+    @host.bind_transferred_client_effect_local_result_artifact(
+      materials,
+      inputs,
+      imported,
+      root_export,
+      receipt,
+      producer_token,
+      {
+        ..common_input,
+        producer: { ..common_input.producer, request: other_dispatch, },
+      },
+      current,
+      () => true,
+    )
+    is Err(ForeignInput),
   )
   assert_true(
     @strategy.release_captured_effect_local_unit_inputs(sender_inputs),
@@ -292,7 +364,7 @@ fn retained_effect_transferred_artifact(
   |> ignore
   assert_true(
     consumer.bind_effect_retained_result_artifact(
-      materials, inputs, imported, root_export, receipt, sender,
+      materials, inputs, imported, root_export, receipt, producer_token,
     )
     is Err(Unavailable),
   )

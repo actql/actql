@@ -162,6 +162,8 @@ pub fn captured_effect_local_result_task(CapturedEffectLocalResult) -> Int
 
 pub fn captured_effect_local_unit_inputs_match_computation(CapturedEffectLocalUnitInputs, CheckedEffectComputationDAG) -> Bool
 
+pub fn captured_effect_local_unit_inputs_match_run(CapturedEffectLocalUnitInputs, CapturedEffectRunDAG) -> Bool
+
 pub fn captured_effect_local_unit_inputs_run_definition_cid(CapturedEffectLocalUnitInputs) -> String?
 
 pub fn captured_effect_local_unit_result_at(CapturedEffectLocalUnitInputs, Int) -> CapturedEffectLocalResult?
@@ -199,6 +201,8 @@ pub fn captured_effect_result_import_matches(CapturedEffectResultImport, Capture
 pub fn captured_effect_result_import_producer(CapturedEffectResultImport) -> CapturedEffectLocalResult
 
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
+
+pub fn captured_effect_run_matches_checked(CapturedEffectRunDAG, CheckedEffectRunDAG) -> Bool
 
 pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
 
