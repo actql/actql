@@ -108,11 +108,12 @@ inner test, existing correlated/continuation/set/UNNEST tests, and the two
 
 ## Public execution and remaining coverage
 
-Fresh normal five-package Local/HTTPS execution is the next verification step.
-The new fixture count is 15 positive cases and four pre-admission refusals;
-those are obligations until the actual consumer finishes. No public success,
-CI completion, full Core campaign, backend runtime conformance, LEFT correlation
-or broader GoogleSQL conformance is claimed by parser/checker success.
+The final fresh normal five-package Local/HTTPS execution passed at
+`ccf558524dc9d19f323157264b0387b250bcf9ae`: each entrance executed 82
+positive cases and 23 pre-admission refusals, including the new 15 positives
+and four typed refusals. This proves the selected public connection, not
+full Core, backend runtime conformance, LEFT correlation or broader GoogleSQL
+conformance. Submitted-HEAD CI remains a separate obligation.
 
 The first fresh pack at `1a9baf0d1c971bf4305fd46968a9219c651a3c31`
 failed at the new immutable-parent fixture, after 23 Local positives. Receipt:
@@ -144,3 +145,49 @@ source is retained at `/private/tmp/actql-b-inner-control-diagnostic.test.mjs`.
 The prior fixture/vector checks passed 15/15 with the first fixture correction
 in an uncommitted working tree (`run-0BGaIJ`, `focused-test-8tjwJA`); that result
 is not attributed to the subsequent corrected immutable control.
+
+## Final fresh package evidence
+
+Product/fixture source: `ccf558524dc9d19f323157264b0387b250bcf9ae`, clean.
+The subsequent evidence-only document commit is not the packed source.
+Serial protected wrapper: `run-tyyh2a`, exit 0. Public receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-3T2htK`.
+It records passed/complete, ten commands with exit 0, no signals or evidence
+errors, and the same clean source revision. Successful external installations
+were removed only after receipt/log persistence (`artifactsRemoved: true`).
+Failed receipts above retain their installations/Stores.
+
+The existing consumer compares independent rows, Result.describe columns and
+contracts, hidden-column absence, Named Results and stream completion. Same
+submission resend returns the same Run; attach and reread do not change
+admission/acquisition counters. Acquired-parent cases scan once. Both
+entrances refuse four new invalid forms as `ClientProgramInvalidInput`, with
+zero Run admission and source I/O. Of the 23 refusals, 16 print explicit-code
+markers; the other seven execute the existing accepted input-error-set check
+and counter assertions without a log marker. The unchanged complete refusal
+array is passed directly to the completed consumer.
+
+Commands, using the pinned toolchain and serial bounded wrapper:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-inner-unnest-ccf558524-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-inner-unnest-ccf558524-pack \
+  node scripts/test-packed-public-query.mjs --correlated-unnest-only
+```
+
+The independent middle step verifies manifest revision against HEAD and hashes
+all five original tarballs before consumer execution. Pack manifest:
+`/private/tmp/actql-b-inner-unnest-ccf558524-pack/packed-client-packages.json`.
+
+| Package | SHA-256 |
+|---|---|
+| `client-wire` | `7b2ad28f42998039cba6b9a1d14dba5b0eff0289fcbfc1bd500199286b54c4f3` |
+| `sdk` | `f05a4f73173750b1f06212a8219070edf46ae2204970ba812c53a92b4026d518` |
+| `run-host-core` | `1cf2384620e1054904ca6533f855f33d0b377af29dd58d8b9dea8fc439edbcc6` |
+| `local-node` | `858b95c32507cd5f311e12d8c9caa7e1925038284a7d5eaf3fd357d30ebc9b64` |
+| `node` | `fb65f5d346e0c597457ce8705d1d5ac9e68e2f23467d1d9d72518ed615a55fb3` |
+
+Full Core, all packed corpora, proofs, performance, Wasm/Native runtime
+execution and live Google differential validation were not run. No manual CI
+rerun, Ready transition or merge was performed. The overall public-text-to-
+Program objective remains active beyond this bounded connection.
