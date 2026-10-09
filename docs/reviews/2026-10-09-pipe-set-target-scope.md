@@ -107,3 +107,21 @@ column order, multiplicity, limit or Source acquisition count changed. The
 Frontend correction and its independent complete MoonBit Program remain
 unchanged. This is a fixture correction, not a product execution fix or an
 adjustment of the desired public result.
+
+The next fresh pack at `ecbe671c241e9857ca73361994de2250cb7c9df4` passed
+the ten prior Local positives and the independent JSON control, then refused
+the equivalent text (`run-KLZuz9`, `public-query-evidence-SWbgOd`). Its new
+FROM-headed Pipe controls inherited the old SQL fixtures' format: sql. The
+existing common preparation distinguishes that form and returns WrongQueryForm;
+bounded exact-cause diagnostic `run-7osehw` confirms sql rejection and aql-text
+preparation success for the same authored source. The controls now use aql-text,
+matching the existing Pipe routing. No source, expected value/type/order, limit,
+product routing or diagnostic rule changed. This attempt does not establish
+later Local cases or HTTPS. Its failed receipt remains available.
+
+The source-free RHS script control additionally uses numeric x/k inputs (the
+unrelated Values orders fixture has string id and is not an equivalent JOIN
+typing control). Final direct JS callers pass 17/17 (`run-sbV1h8`,
+`focused-test-iFM45d`), including the script route. The corrected public-format
+fixtures pass Node 3/3 (`run-df5M6G`, `focused-test-XRNMal`). Common JOIN type
+checks were not relaxed to admit the earlier mismatched diagnostic fixture.

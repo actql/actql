@@ -26,6 +26,9 @@ test('SET target controls distinguish one current column from operand range slot
   assert.deepEqual(JSON.parse(json.text), pipeSetTargetProgram);
   assert.deepEqual(json.expected, text.expected);
   assert.deepEqual(json.columns, text.columns);
+  for (const item of joinStarSuccesses.filter(item => item.name.includes('set-target-') && item.format !== 'json')) {
+    assert.equal(item.format, 'aql-text');
+  }
   assert.deepEqual(text.columns.map(column => column.contract.nullable), [false, true, false]);
   assert.deepEqual(cases.get('join-star-set-target-unmatched-range').expected,
     [{current: 99, original: null, matched: 9}]);

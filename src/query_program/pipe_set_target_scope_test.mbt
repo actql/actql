@@ -68,3 +68,30 @@ test "Pipe SET counts USING's one coalesced target instead of operand ranges" {
     _ => fail("the coalesced USING target is closed")
   }
 }
+
+///|
+test "Pipe SET public scalar control lowers through the script entry" {
+  let source = "FROM t AS l |> RIGHT JOIN (SELECT 3 AS k) AS r ON l.x = r.k MAX_OUTPUT_ROWS 10 |> SET y = 99 |> SELECT y AS current, l.y AS original, r.k AS matched |> ORDER BY original"
+  let result = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  )
+  let program = match result {
+    Ok(program) => program
+    Err(UnknownColumn) => fail("UnknownColumn")
+    Err(AmbiguousColumn) => fail("AmbiguousColumn")
+    Err(UnknownRelation) => fail("UnknownRelation")
+    Err(DuplicateOutput) => fail("DuplicateOutput")
+    Err(UnsupportedJoin) => fail("UnsupportedJoin")
+    Err(UnsupportedCte) => fail("UnsupportedCte")
+    Err(Expression(_)) => fail("Expression")
+    Err(_) => fail("another refusal")
+  }
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("the ordinary Values control is closed")
+  }
+}
