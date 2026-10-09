@@ -370,6 +370,10 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
+  retained_effect_dependency_capture(
+    consumer, materials, inputs, receiver, result, root_index, result_index, result_export,
+    result_receipt,
+  )
   @host.issue_client_effect_local_manifest(
     materials.prepared,
     @host.client_effect_imported_invocation(evidence),
