@@ -182,6 +182,7 @@ pub fn execute_resident_effect_retained_attempt(
   claimant : String,
   current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
+  retain_computation? : (ResidentSourceCompute) -> Unit,
 ) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
   execute_resident_retained_attempt_owned(
     journal,
@@ -269,6 +270,7 @@ pub fn execute_resident_effect_retained_attempt(
           current,
           execution.limits.output,
           observe_failure=issue => compute_failure.val = Some(issue),
+          retain_computation?,
         ) {
         Ok(value) => value
         Err(issue) => return Err(retained_execution_failed(Compute(issue)))
