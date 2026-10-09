@@ -16,6 +16,23 @@ import {createPublicationContractControlFixture} from
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
+test('observation read cleanup retains its retry phase and never closes a successful phase twice',async()=>{
+  let closes=0;
+  const shutdown=createInstalledHostShutdown({stop:()=>{},drain:()=>{},retire:()=>{},checkpoint:()=>{},
+    journal:()=>{},source:()=>{},effect:()=>{},store:()=>{},ownerViews:()=>{
+      if(++closes===1)throw new Error('ObservationReaderCloseFailure');
+    }});
+  let failure;
+  await assert.rejects(shutdown.close(),error=>{
+    failure=error;assert.equal(error.cleanupPending,true);return true;
+  });
+  assert.deepEqual(failure.cleanupHandle.status().pending,['ownerViews']);
+  await failure.cleanupHandle.retry();
+  assert.equal(closes,2);
+  assert.deepEqual(shutdown.status().pending,[]);
+  await shutdown.close();assert.equal(closes,2);
+});
+
 // Fault the real request database, not the read-only format-inspection copy.
 // Keep the fault armed: cleanup must never retry schema or statement setup.
 function failRequestJournalInitialization(t, phase, closeFailures) {

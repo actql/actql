@@ -8,7 +8,7 @@ import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {setTimeout as delay} from 'node:timers/promises';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, explainCancellation, formatCancellation} from '../../packages/sdk/index.mjs';
+import {connect, explainCancellation, formatCancellation, getSubmissionAttempt} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
@@ -83,7 +83,25 @@ try {
       attemptRef: {operation: 'cancel', attemptId: 'stale-invocation'},
       cancelRef: {...run.ref, cancelId: 'stale-operation', expectedRevision: revision - 1}});
     assert.deepEqual(snapshot().operations, []);
-    const accepted = await run.cancel({cancelId, expectedRevision: revision, attemptId: 'accepted-invocation'});
+    // These public operations overlap while the original physical task is
+    // held. Submission replay must retain the original Run, and observation
+    // progress cannot replace the cancellation's control revision.
+    const [replayed, accepted, observations] = await Promise.all([
+      client.start(program, {submissionRef, attemptId: 'concurrent-submission-invocation'}),
+      run.cancel({cancelId, expectedRevision: revision, attemptId: 'accepted-invocation'}),
+      run.observeOwners(),
+    ]);
+    const replayAttempt = getSubmissionAttempt(replayed);
+    assert.equal(replayAttempt.kind, 'already_satisfied');
+    assert.deepEqual(replayAttempt.attemptRef,
+      {operation: 'submit', attemptId: 'concurrent-submission-invocation'});
+    assert.deepEqual(replayed.ref, run.ref);
+    assert.deepEqual(observations.ref, run.ref);
+    assert.equal(observations.consistency, 'non_atomic');
+    assert.equal(observations.revision, undefined);
+    assert.equal(observations.owners[0].history.kind, 'not_provided');
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count, 1);
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM client_submitted_intents').get().count, 1);
     const cancelRef = {...run.ref, cancelId, expectedRevision: revision};
     assert.deepEqual(accepted, {kind: 'accepted', attemptRef: {operation: 'cancel', attemptId: 'accepted-invocation'},
       cancellation: {kind: 'accepted', ref: run.ref, cancelRef, revision: revision + 1}});
@@ -107,7 +125,8 @@ try {
     assert.equal(stopped.result_available, false);
     assert.equal(computes, 0);
     await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, cancelRef,
-      before, conflict, accepted, already, originalLookup, stopped, computes, snapshot: snapshot()}));
+      before, conflict, accepted, already, replayAttempt, replayedRef: replayed.ref,
+      observations, originalLookup, stopped, computes, snapshot: snapshot()}));
   } else if (phase === 'initial') {
     const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
     const submissionRef = client.newSubmission({nonce: requestId});

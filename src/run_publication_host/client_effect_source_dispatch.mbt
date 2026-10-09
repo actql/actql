@@ -189,5 +189,5 @@ pub fn bind_client_effect_source_dispatch(
     !@remote.remote_input_binding_matches_dispatch(input, request) {
     return Err(ForeignInput)
   }
-  Ok(bound)
+  Ok({ ..bound, source_dispatch: Some(request), })
 }

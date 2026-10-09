@@ -27,10 +27,73 @@ priv enum ClientEffectLocalRelationSource {
 }
 
 ///|
+priv enum ClientEffectLocalArtifactCustody {
+  EffectInputs(@strategy.CapturedEffectInputs)
+  AcquiredUnit(@strategy.CapturedEffectLocalUnitInputs)
+}
+
+///|
+fn client_effect_local_artifact_inputs(
+  artifact : ClientEffectLocalResultArtifact,
+) -> @strategy.CapturedEffectInputs? {
+  match artifact.custody {
+    EffectInputs(inputs) => Some(inputs)
+    AcquiredUnit(_) => None
+  }
+}
+
+///|
+fn client_effect_local_artifact_matches_inputs(
+  artifact : ClientEffectLocalResultArtifact,
+  inputs : @strategy.CapturedEffectInputs,
+) -> Bool {
+  match client_effect_local_artifact_inputs(artifact) {
+    Some(owner) => physical_equal(owner, inputs)
+    None => false
+  }
+}
+
+///|
+fn client_effect_local_artifact_matches_computation(
+  artifact : ClientEffectLocalResultArtifact,
+  owner : PreparedClientEffectComputation,
+) -> Bool {
+  match artifact.custody {
+    EffectInputs(inputs) =>
+      @strategy.captured_effect_inputs_match_computation(inputs, owner.graph)
+    AcquiredUnit(inputs) =>
+      @strategy.captured_effect_local_unit_inputs_match_computation(
+        inputs,
+        owner.graph,
+      )
+  }
+}
+
+///|
+fn client_effect_local_artifact_run_definition_cid(
+  artifact : ClientEffectLocalResultArtifact,
+) -> String? {
+  client_effect_local_custody_run_definition_cid(artifact.custody)
+}
+
+///|
+fn client_effect_local_custody_run_definition_cid(
+  custody : ClientEffectLocalArtifactCustody,
+) -> String? {
+  match custody {
+    EffectInputs(inputs) =>
+      @strategy.captured_effect_inputs_run_definition_cid(inputs)
+    AcquiredUnit(inputs) =>
+      @strategy.captured_effect_local_unit_inputs_run_definition_cid(inputs)
+  }
+}
+
+///|
 struct ClientEffectLocalResultArtifact {
-  inputs : @strategy.CapturedEffectInputs
+  custody : ClientEffectLocalArtifactCustody
   source : ClientEffectLocalRelationSource
   invocation : ClientEffectLocalInvocation
+  run_invocation : @publication.PublicationContract
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
   retention : @publication.PublicationContract
@@ -143,10 +206,11 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     return Err(ForeignExport)
   }
   build_client_effect_local_result_artifact(
-    inputs,
+    EffectInputs(inputs),
     ResultSource(@strategy.captured_effect_input_borrow(input), definition),
     invocation,
     receipt,
+    run_invocation,
     retention,
     scope_cid,
     effective_data_policy_cid,
@@ -239,10 +303,11 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
     Err(issue) => return Err(Scope(issue))
   }
   build_client_effect_local_result_artifact(
-    inputs,
+    EffectInputs(inputs),
     ResultSource(borrow, definition),
     invocation,
     receipt,
+    run_invocation,
     retention,
     @publication.publication_contract_identity(scope),
     policy,
@@ -257,10 +322,11 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
 
 ///|
 fn build_client_effect_local_result_artifact(
-  inputs : @strategy.CapturedEffectInputs,
+  custody : ClientEffectLocalArtifactCustody,
   source : ClientEffectLocalRelationSource,
   invocation : ClientEffectLocalInvocation,
   receipt : @execution.CompletedRelationExportReceipt,
+  run_invocation : @publication.PublicationContract,
   retention : @publication.PublicationContract,
   scope_cid : String,
   effective_data_policy_cid : String,
@@ -320,7 +386,7 @@ fn build_client_effect_local_result_artifact(
     @execution.completed_relation_export_content(receipt),
   )
   Ok({
-    inputs,
+    custody,
     source,
     invocation,
     evidence,
@@ -330,6 +396,7 @@ fn build_client_effect_local_result_artifact(
     physical_cid,
     physical_bytes,
     export_receipt: receipt,
+    run_invocation,
   })
 }
 
@@ -342,7 +409,7 @@ pub fn client_effect_local_result_payload_binding(
   run_definition : @publication.PublicationContract,
 ) -> Result[(String, Int), ClientEffectLocalResultArtifactIssue] {
   if @publication.publication_contract_name(run_definition) != "run_definition" ||
-    @strategy.captured_effect_inputs_run_definition_cid(value.inputs) !=
+    client_effect_local_artifact_run_definition_cid(value) !=
     Some(@publication.publication_contract_identity(run_definition)) {
     return Err(ForeignRun)
   }
@@ -417,7 +484,7 @@ pub fn client_effect_local_source_matches(
       owns_artifact = true
     }
   }
-  if !physical_equal(artifact.inputs, inputs) ||
+  if !client_effect_local_artifact_matches_inputs(artifact, inputs) ||
     !owns_artifact ||
     !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
     !client_effect_local_artifact_matches_member(artifact, inputs, member_index) ||
@@ -475,7 +542,7 @@ fn client_effect_local_artifact_matches_member(
   inputs : @strategy.CapturedEffectInputs,
   member_index : Int,
 ) -> Bool {
-  if !physical_equal(artifact.inputs, inputs) {
+  if !client_effect_local_artifact_matches_inputs(artifact, inputs) {
     return false
   }
   match artifact.source {

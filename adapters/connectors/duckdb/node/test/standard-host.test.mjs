@@ -10567,8 +10567,8 @@ async function exerciseStrategyGraph(
           ? '1 / (id - id) > 0' : 'true'}], fields);
     }
     if (session) {
-      // One record costs 44 session work units, 13 projection units, and
-      // one chain handoff. Work above 58 reaches the following filter.
+      // One record commits once in Session and once in its Relation
+      // projection. The third progress unit proves the following filter ran.
       program.stages.find(stage => stage.id === 'values_a').steps[0].values.rows =
         [{id: 1, clock: 0, payload: 'a'}];
     }
@@ -10674,7 +10674,7 @@ async function exerciseStrategyGraph(
     });
     const cancellation = new AbortController();
     let sawWork = false, sawStop = false, scheduled = false;
-    let producerWork = 0n, sawLaterWork = false;
+    let producerWork = 0n, producerProgress = 0n, sawLaterWork = false;
     let dispatches = 0;
     const observedRuntime = new Proxy(hostRuntime, {
       get(target, property, receiver) {
@@ -10708,9 +10708,11 @@ async function exerciseStrategyGraph(
                 if (dispatch === producerTask && !cancellation.signal.aborted) {
                   const poll = checked(result);
                   producerWork += poll.work;
+                  producerProgress += poll.progress;
                   if ((mode === 'cancel-after-filter' || grouped) &&
-                      producerWork > (branched ? 73n : chain && series ? 5n
-                        : chain && session ? 58n : 29n) &&
+                      (chain && session ? producerProgress === 3n
+                        : producerWork > (branched ? 73n
+                          : chain && series ? 5n : 29n)) &&
                       !poll.complete) {
                     sawLaterWork = true;
                   }
@@ -10784,6 +10786,8 @@ async function exerciseStrategyGraph(
         if (mode === 'cancel-after-filter' || grouped) {
           assert.equal(sawLaterWork, true);
         }
+        if (chain && session) assert.equal(producerProgress, 3n,
+          'Session, Relation projection and filter each committed one row');
         assert.equal(sawStop, true);
         assert.equal(execution.failure?.name, 'AbortError');
         assert.equal(leases, eventsAsOf ? 2 : priorTasks.length);

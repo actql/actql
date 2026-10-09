@@ -251,6 +251,26 @@ export function openEffectLedger({
       }
       return rows;
     },
+    currentScopePage(options) {
+      const page=physical.currentScopePage(scopeCid,options);
+      if (page.kind !== 'page') return page;
+      page.entries.forEach(validateStored);
+      return page;
+    },
+    historyPage(locatorCid, options) {
+      // Authenticate this locator's current scope even when the physical
+      // cursor is invalid; a cursor is never a request-scope capability.
+      validateStored(physical.current(locatorCid));
+      const page = physical.historyPage(locatorCid, options);
+      if (page.kind !== 'page') return page;
+      let previous = page.previous === null ? undefined : validateStored(page.previous).entry;
+      for (const row of page.entries) {
+        const stored = validateStored(row);
+        if (!control.ledgerEntryFollows(previous, stored.entry)) fail('EffectLedgerIntegrityFailed');
+        previous = stored.entry;
+      }
+      return page;
+    },
     // Read each admitted row's authenticated durable head. MoonBit checks the
     // immutable basis and decides the common Effect frontier.
     // The caller must obtain the admitted Preview and claims from the checked

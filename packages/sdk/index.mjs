@@ -12,7 +12,8 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validClientBody, validResourceInspection,
   validSubmissionRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
+  validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -421,6 +422,31 @@ export function explainCancellation(result, options) {
   return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
 
+const retainCancellationAttemptExplanation = (result, context) => {
+  // The response has already been captured, detached and twice admitted against
+  // this invocation. A refusal is not a fact about another invocation's commit.
+  if (result.kind !== 'refused' && result.kind !== 'conflict') {
+    return retainCancellationExplanation(result, context,
+      result.cancellation.kind, result.cancellation.revision);
+  }
+  const summaries = result.kind === 'refused' ? {
+    authorization: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
+    admission_capacity: 'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original cancellation identity.',
+    control_revision: 'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
+  };
+  cancellationExplanations.set(result, freezeInput({
+    observation: result.kind, reason: result.reason,
+    attemptRef: context.attemptRef, cancelRef: context.cancelRef,
+    ...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),
+    summary: summaries[result.reason],
+    hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
+    next: {operation: 'lookupCancellation', cancelRef: context.cancelRef},
+  }));
+  return result;
+};
+
 const retainCancellationExplanation = (result, context, observation, revision) => {
   if (!context) return result;
   const summaries = {
@@ -448,6 +474,29 @@ const submissionLookupExplanation = (observation, input) => freezeInput({
 const submissionObservationHint = 'Keep the original submission reference and use an authorized lookup. This observation grants no permission to resubmit, execute or release resources.';
 const submissionTarget = context => ({operation: 'lookupSubmission',
   submissionRef: context.submissionRef, lookupContext: context.lookupContext});
+const retainSubmissionAttemptExplanation = (result, attempt, snapshot) => {
+  // This admitted invocation fact is separate from the original durable
+  // receipt. Keep only the submitted reference, never a conflicting old intent.
+  const summaries = attempt.kind === 'refused' ? {
+    authorization: 'The Host refused this submission invocation under current authorization. This invocation committed no submission and consumed no operation identity.',
+    admission_capacity: 'The Host refused this submission invocation because admission capacity was unavailable. This invocation committed no submission and consumed no operation identity.',
+    epoch_expired: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
+    epoch_not_yet_valid: 'The Host refused this submission invocation because its submitted epoch is not yet valid. This does not establish the original submission outcome.',
+  } : {
+    intent: 'The Host reports a conflicting intent for this original submission identity.',
+    restart_decision: 'The Host reports a conflicting restart decision for this original submission identity.',
+  };
+  requestLookupContexts.set(result, snapshot);
+  submissionExplanations.set(result, freezeInput({
+    observation: attempt.kind, reason: attempt.reason,
+    attemptRef: snapshot.attemptRef, submissionRef: snapshot.submissionRef,
+    ...(attempt.kind === 'refused' ? {guarantee: attempt.guarantee} : {}),
+    summary: summaries[attempt.reason],
+    hint: 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.',
+    next: submissionTarget(snapshot),
+  }));
+  return result;
+};
 const retainSubmissionExplanation = (result, outcome, context) => {
   requestLookupContexts.set(result, context);
   // Called only after admitting the exact Owner response and its binding.
@@ -1993,6 +2042,28 @@ async function connectSelected(selected, port) {
     };
     const handle = Object.freeze({
       ref, profile: runProfile, result,
+      observeOwners: async ({signal,cursors=[],maxEntries=100,maxWireBytes=ownerObservationLimits.maxWireBytes} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref,cursors,maxEntries,maxWireBytes}));
+        if (!validClientBody('owner-observations',{connection:selected.wire,...input})) {
+          fail('InvalidOwnerObservationRequest');
+        }
+        const response = await runRequest('owner-observations',input,signal);
+        let answer;
+        try {answer=captureResponse(await responseValue(response));}
+        catch {fail('InvalidHostOwnerObservations');}
+        if (!validOwnerObservations(answer,ref,input)) fail('InvalidHostOwnerObservations');
+        for (const vector of answer.revisionVector) {
+          if (vector.snapshotCid === undefined) continue;
+          const view=answer.owners.find(value=>value.kind==='observed' &&
+            value.ownerRef.kind===vector.owner.kind && value.ownerRef.scopeCid===vector.owner.scopeCid &&
+            value.ownerRef.streamCid===vector.owner.streamCid);
+          if (await bytesCid(new TextEncoder().encode(canonicalJson({version:'actql-owner-snapshot/0.1',ref,
+            owner:vector.owner,snapshot:view.snapshot},{dataKeys:true}))) !== vector.snapshotCid) {
+            fail('InvalidHostOwnerObservations');
+          }
+        }
+        return freezeInput(answer);
+      },
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
       },
@@ -2044,9 +2115,7 @@ async function connectSelected(selected, port) {
           }), context, 'outcome_unknown');
         }
         received = freezeInput(received);
-        return received.cancellation === undefined ? received :
-          retainCancellationExplanation(received, context,
-            received.cancellation.kind, received.cancellation.revision);
+        return retainCancellationAttemptExplanation(received, context);
       },
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
@@ -2139,6 +2208,7 @@ async function connectSelected(selected, port) {
             {...context, outcome: attempt});
           submissionInputs.set(typedRejection, snapshot);
           submissionAttempts.set(typedRejection, attempt);
+          retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);
           throw typedRejection;
         }
         if (outcome.checkObservation !== undefined) {

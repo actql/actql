@@ -72,7 +72,7 @@ pub fn issue_client_effect_result_import_observation(
   guard artifact.source is ResultSource(borrow, result_definition) else {
     return Err(ForeignArtifact)
   }
-  if !physical_equal(artifact.inputs, inputs) ||
+  if !client_effect_local_artifact_matches_inputs(artifact, inputs) ||
     !@strategy.captured_any_result_borrows_share_view(
       borrow,
       @strategy.captured_effect_local_result_borrow(producer),
