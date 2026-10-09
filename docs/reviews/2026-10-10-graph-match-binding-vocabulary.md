@@ -94,9 +94,10 @@ Do not add a frontend executor or treat those entries as publicly executed.
 Existing named match and node/edge row transitions are already connected and
 are retained; this repair changes only the discovered binding-role mismatch.
 
-Pristine packed public execution, full Core, Wasm/native and submitted-HEAD CI
-are not yet established at this commit. Parser/lowering evidence is separate
-from execution evidence. No merge or manual CI rerun.
+At this initial focused-check checkpoint, pristine packed execution was not
+yet established. The completed fixed-source public evidence is recorded below.
+Full Core, Wasm/native and submitted-HEAD CI remain unestablished. No merge or
+manual CI rerun.
 
 ## Additional independent controls before packing
 
@@ -154,3 +155,54 @@ guard run-1FR96v / focused-test-BHIf83. Command:
 `node scripts/local-checks.mjs test node -- scripts/graph-match-binding-vocabulary.test.mjs`.
 This verifies fixture registration and precise categories, not the remaining
 public refusal cohort or HTTPS execution.
+
+## Complete pristine Local/HTTPS acceptance
+
+Clean product/fixture source: `0192fd6b8f3aa40653700fd74ae080a4b656c69c`.
+Normal five-package producer, independent digest verification and existing
+`--graph-match-only` consumer completed under guard run-Gknlfm. Reproduction:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-graph-match-binding-vocabulary-0192fd6b8-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-graph-match-binding-vocabulary-0192fd6b8-pack node scripts/test-packed-public-query.mjs --graph-match-only
+```
+
+Use the pinned Node/MoonBit tools and existing serialized local-check guard;
+the executed wrapper was
+`/private/tmp/actql-b-graph-match-binding-vocabulary-packed.mjs`.
+
+Local and HTTPS each completed **19 positives and 18 refusals**, with no omitted
+case. Nine new positives include four independently authored JSON controls,
+case/quoted role source cases, empty typed output and two endpoint-selector
+counterexamples. Four new refusals require ClientProgramInvalidInput; two old
+implementation-limit cases require their exact established category. The other
+12 refusals retain their existing typed input-category checks. All refusals
+require zero new Run admission/Source I/O; all positives retain rows, full
+Result.describe column types/nullability/order, complete streams, attached
+reads, same-request Run identity and no reacquisition on replay.
+
+Original receipt/logs:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-oVrLR3`.
+Its summary is passed/complete with the clean source above, all 10 commands
+complete at exit 0, no signal and no evidence errors. The private installation
+was removed and its artifacts directory is absent. Guard evidence is
+`_build/local-checks/attempts/run-Gknlfm`. The earlier failed pack/receipt remains
+a separate observation; it is not rewritten as successful.
+
+All five source-bound tarball SHA-256 values were independently recomputed and
+matched both producer manifest and consuming receipt:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | f556604d2d56a7bdd76865289c621a4f69ec766af78e03d942f81666b1acfb54 |
+| local-node | 50168f05edb08335065839e8ce1b21aaa940b71d1ba3a0fe4344840d65cb6aaf |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+The final submitted commit only records this evidence; pristine packed execution
+belongs to 0192fd6b8, not an unexecuted later SHA. Parent #1186 remains open and
+Draft; preserve its dependency and final main target. Full Core, Wasm/native,
+complete unrelated packed campaigns and exact submitted-HEAD CI are unverified.
+This closes this binding-vocabulary implementation/acceptance unit, not the
+entire Frontend goal or the separate common capacity/consumer boundaries.
