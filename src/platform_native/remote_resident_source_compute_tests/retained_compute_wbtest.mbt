@@ -286,7 +286,6 @@ fn retained_compute_case(
     None
   }
   let acquisitions = Ref(0)
-  println("retained-check: materials admitted")
   let producer_captures = Ref(0)
   let source_observe = event => {
     match event {
@@ -327,7 +326,6 @@ fn retained_compute_case(
   let source_export = source_owner
     .prepare_source_export(resident_compute_limits())
     .unwrap()
-  println("retained-check: Source export opened")
   let chunks : Array[Bytes] = []
   while @execution.next_completed_output_export_canonical_row(
           source_export, 100, 20, 4,
@@ -359,7 +357,6 @@ fn retained_compute_case(
   let bytes = chunks.fold(init=0L, (sum, chunk) => {
     sum + chunk.length().to_int64()
   })
-  println("retained-check: producer edge admitted")
   // These codec/view pins register the existing one-canonical-row-per-chunk
   // Native input implementation. They do not authorize producer completion.
   let physical = @manifest.admit(
@@ -405,7 +402,6 @@ fn retained_compute_case(
   let (producer, site) = retained_compute_producer_fixture(
     edge, producer_dispatch, physical,
   )
-  println("retained-check: producer evidence admitted")
   let current = @output.install_native_remote_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
@@ -489,7 +485,6 @@ fn retained_compute_case(
         common_input, common_current,
       ).unwrap()
   }
-  println("retained-check: consumer dispatch issued")
   let material = @transfer_client.pin_durable_direct_destination_material(
     journal,
     root,
@@ -585,7 +580,6 @@ fn retained_compute_case(
     }
   }
   let (issue, failed) = open_consumer(stale, _ => true).unwrap_err()
-  println("retained-check: stale generation rejected")
   assert_true(
     issue is RetainedInput(@output.Input(@output.StaleSiteGeneration)),
   )
@@ -661,7 +655,6 @@ fn retained_compute_case(
       fail("Native retained consumer preparation failed: " + code)
     }
   }
-  println("retained-check: consumer opened")
   // The existing destination cleanup Owner must wait for the consumer's
   // durable borrow, including a pre-start interruption.
   assert_true(
@@ -696,7 +689,6 @@ fn retained_compute_case(
     return
   }
   resident_compute_execute(consumer) |> ignore
-  println("retained-check: consumer executed")
   let source_usage = source_owner.usage()
   let consumer_usage = consumer.usage()
   let overlapping_bytes = source_usage.held_bytes +
@@ -715,26 +707,40 @@ fn retained_compute_case(
   let output = consumer
     .prepare_result_export(resident_compute_limits())
     .unwrap()
-  println("retained-check: Result export opened")
   let rows = StringBuilder()
   while output.next().unwrap() is Some(chunk) {
     rows.write_string(chunk)
   }
   rows.write_string(output.finish().unwrap())
-  println("retained-check: Result export finished")
   assert_eq(rows.to_string(), "[{\"id\":3}]")
   assert_eq(
     output.result_schema_wire().unwrap(),
     "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
   )
   let effect_inputs = if effect {
-    Some(
-      @strategy.pin_captured_effect_sources(consumer.effect_run().unwrap(), 4).unwrap(),
+    let effect_run = consumer.effect_run().unwrap()
+    let foreign_run = resident_native_effect_bound_run()
+    let foreign_occurrence = @strategy.graph_result_occurrence(
+      @strategy.checked_effect_run_graph(
+        @host.prepared_client_effect_run_graph(foreign_run),
+      ),
+      0,
+    ).unwrap()
+    // Equal schema and rows from another checked Owner cannot borrow this
+    // receiver's input or consume one of its bounded pin slots.
+    assert_true(
+      @strategy.borrow_captured_any_result_output(
+        @strategy.captured_effect_run_dag(effect_run),
+        1,
+        foreign_occurrence,
+        4,
+      )
+      is Err(ForeignCandidate),
     )
+    Some(@strategy.pin_captured_effect_sources(effect_run, 4).unwrap())
   } else {
     None
   }
-  println("retained-check: Effect inputs pinned")
   assert_false(consumer.close())
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
