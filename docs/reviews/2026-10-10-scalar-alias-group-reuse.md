@@ -103,7 +103,31 @@ read/attach/same-request resend without another acquisition. The selected
 `--group-ordinal-only` corpus contains 25 positives and nine refusals per
 Embedded Local and authenticated HTTPS, retaining the preceding 17/6 cases.
 
-Normal clean-HEAD five-package production, tarball digests and this public
+The first clean-HEAD campaign (`5d922090af733a13512753a1c8feab4d2806f743`,
+`run-95WFHs`, public receipt `public-query-evidence-iQHP6U`) passed 22 Local
+positives, including the five new text cases, then rejected the authored
+ceiling JSON control before admission. That control mistakenly used `ceil`
+as a common expression operator. Existing CEIL lowering instead composes
+`negate(floor(subtract(0, operand)))`. The independent control is corrected
+to that existing finite-number contract; rows, types and SQL remain unchanged.
+This was a fixture defect, not evidence of a product sorting or ceiling bug.
+The failed receipt and its unchanged tarball digests remain retained; HTTPS
+and the refusal cohort were not reached in that campaign.
+
+After correction, the selected alias identity and complete checked GROUP
+Program tests passed **5/5 JS** (`run-EnZKVP` / `focused-test-6S71WX`):
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
+  src/query_program/scalar_alias_group_reuse_test.mbt \
+  src/query_expression/scalar_function_identity_test.mbt
+```
+
+The same four Node files listed above passed **20/20** again after the fixture
+correction (`run-YjSCnB` / `focused-test-b0SVWQ`). No product implementation
+was changed to accept the mistaken JSON operator.
+
+Final clean-HEAD five-package production, tarball digests and public
 execution are pending at this preparation commit. Record their exact source SHA
 and receipt in the PR; do not relabel earlier-SHA evidence. Required hosted CI,
 Wasm/native execution, Cloud and remaining Frontend coverage are unverified.

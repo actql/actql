@@ -20,6 +20,10 @@ test('scalar aliases use independently authored typed group controls', () => {
   assert.equal(cases[0].parameters.c, '😀');
   assert.deepEqual(JSON.parse(cases[0].text), scalarAliasGroupProgram);
   assert.deepEqual(JSON.parse(cases[5].text), scalarAliasCeilingProgram);
+  assert.deepEqual(scalarAliasCeilingProgram.stages[1].steps[0],
+    {from: 'records', derive: {key: {negate: {floor: {
+      subtract: [{literal: 0}, {field: 'amount'}],
+    }}}}});
   assert.deepEqual(cases[5].expected,
     [{bucket: -1, n: 1}, {bucket: 2, n: 2}, {bucket: null, n: 1}]);
   assert.deepEqual(cases[4].expected, []);

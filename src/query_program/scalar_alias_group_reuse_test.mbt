@@ -81,3 +81,33 @@ test "GROUP scalar aliases cannot hide invalid function arity" {
     is Err(Expression({ issue: @expression.InvalidArguments, .. })),
   )
 }
+
+///|
+test "GROUP ceiling aliases use the existing checked numeric composition" {
+  let expected = @program.parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.pipe_slots\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[" +
+    aggregate_property_order_seed() +
+    (
+      #|,{"from":"objects","derive":{"aql_group_key_0":{"negate":{"floor":{"subtract":[{"literal":0},{"field":"id"}]}}}}},{"group":{"by":["aql_group_key_0"],"aggregates":{"aql_select_aggregate_0":{"fn":"count"}}}},{"derive":{"aql_query_expr_0":{"add":[{"field":"aql_select_aggregate_0"},{"field":"aql_group_key_0"}]}}},{"select":[{"n":"aql_query_expr_0"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(expected, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+  let actual = compile(
+    @query.parse_query(
+      "SELECT COUNT(*) + CEILING(id) AS n FROM objects GROUP BY CEIL(id)",
+      syntax_limits(),
+    ).unwrap(),
+    aggregate_property_order_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(semantic(actual), semantic(expected))
+  assert_true(
+    @check.check_parsed(actual, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+}
