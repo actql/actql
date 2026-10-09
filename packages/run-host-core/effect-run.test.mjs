@@ -23,15 +23,16 @@ const fixed = character => 'sha256:' + character.repeat(64);
 const originalPolicy = {executionContextCid: fixed('a'), hostPolicyCid: fixed('b'),
   expiresAt: '2099-01-01T00:00:00.000Z'};
 
-function issued(program = document) {
+function issued(program = document, withRequest = false) {
   const prepared = prepareEffect(program, 'json', environment);
   const compilation = compileEffect(prepared);
   const allowed = issueAllowedEffectRun(prepared, compilation, originalPolicy);
   const definition = issueEffectRunDefinition(allowed, 'resident-effect', 'original-run',
     '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
   const retained = {document: program, format: 'json', environment, environmentWire};
-  const wire = issueEffectRunMaterials(allowed, definition, retained);
-  return {prepared, compilation, allowed, definition, retained, wire};
+  const request = withRequest ? prepareEffectRequest(prepared, compilation, fixed('c'), 'original-effect-caller') : undefined;
+  const wire = issueEffectRunMaterials(allowed, definition, retained, request);
+  return {prepared, compilation, allowed, definition, retained, wire, request};
 }
 
 test('formal Effect preparation retains the two-task owner and pure refusal', () => {
@@ -292,4 +293,26 @@ test('Effect schema keeps canonical numeric field order across the JS boundary',
   assert.deepEqual(schema.fields, ['10', '2', 'id']);
   assert.equal(schema.wire, '{"10":{"nullable":false,"type":"number"},"2":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"}}');
   assert.equal(schema.cid, 'sha256:' + createHash('sha256').update(schema.wire).digest('hex'));
+});
+test('Effect review materials retain the original request through actual package restoration', () => {
+  const original = issued(document, true);
+  const definition = privateRunDefinition(original.definition);
+  const restored = admitEffectRunMaterials(original.wire, definition.cid, profiles);
+  assert.deepEqual(requestFields(restored.request), requestFields(original.request));
+  assert.equal(issueEffectRunMaterials(restored.allowed, restored.definition,
+    original.retained, restored.request), original.wire);
+  assert.deepEqual(privateEffectRunEvidence(restored.allowed), privateEffectRunEvidence(original.allowed));
+  const body = JSON.parse(original.wire);
+  const record = JSON.parse(body.client_request_identity);
+  assert.equal(record.caller_request_id, 'original-effect-caller');
+  assert.equal(record.authority_scope_cid, fixed('c'));
+  for (const mutate of [record => { record.caller_request_id = 'another-caller'; },
+    record => { record.intent_fingerprint_cid = fixed('d'); },
+    record => { record.extra = true; }]) {
+    const changed = {...record}; mutate(changed);
+    assert.throws(() => admitEffectRunMaterials(JSON.stringify({...body,
+      client_request_identity: JSON.stringify(changed)}), definition.cid, profiles),
+    {code: 'RunHostEffectRestorationRejected'});
+  }
+  assert.equal(admitEffectRunMaterials(issued().wire, definition.cid, profiles).request, undefined);
 });

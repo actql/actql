@@ -299,6 +299,12 @@ fn retained_compute_effect_materials(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   let limits = retained_compute_effect_limits()
+  let caller = @host.prepare_client_effect_request_identity(
+    prepared,
+    retained_compute_cid("c"),
+    "original-effect-caller",
+    @host.source_free_caller_input_intent_cid(),
+  ).unwrap()
   let wire = @host.issue_client_effect_run_materials(
     allowed,
     definition,
@@ -307,6 +313,7 @@ fn retained_compute_effect_materials(
     document,
     None,
     limits,
+    request=Some(caller),
   ).unwrap()
   let materials = @host.admit_client_effect_run_materials(
     wire,
@@ -325,12 +332,7 @@ fn retained_compute_effect_materials(
     },
     limits,
   ).unwrap()
-  let caller = @host.prepare_client_effect_request_identity(
-    materials.prepared,
-    retained_compute_cid("c"),
-    "original-effect-caller",
-    @host.source_free_caller_input_intent_cid(),
-  ).unwrap()
+  assert_eq(materials.request, Some(caller))
   (materials, caller)
 }
 

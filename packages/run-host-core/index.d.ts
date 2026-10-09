@@ -109,12 +109,12 @@ export function issueEffectRunDefinition(allowed: AllowedEffectRun,
 export function issueEffectRunMaterials(allowed: AllowedEffectRun,
   definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
     environment: CheckEnvironment; environmentWire: string;
-    parametersWire?: string}>): string;
+    parametersWire?: string}>, request?: RequestIdentity): string;
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
     sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>):
   Readonly<{prepared: PreparedEffectProgram; compilation: EffectCompilation;
-    allowed: AllowedEffectRun; definition: RunDefinition}>;
+    allowed: AllowedEffectRun; definition: RunDefinition; request?: RequestIdentity}>;
 /** Original saved policy lifetime, not current Host authority or approval. */
 export function effectRunStartCurrent(allowed: AllowedEffectRun,
   definition: RunDefinition, at: string): boolean;

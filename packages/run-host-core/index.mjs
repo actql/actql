@@ -312,12 +312,13 @@ export function issueEffectRunDefinition(allowed, scopeId, runId, createdAt, val
 }
 
 /** Project the original Effect materials using the existing bounded codec. */
-export function issueEffectRunMaterials(allowed, definition, retained) {
+export function issueEffectRunMaterials(allowed, definition, retained, request) {
   validateRunMaterialsInput(retained);
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return checked(owner.clientValuesHostIssueEffectRunMaterials(value,
     requireHandle(definitions, definition), requireHandle(environments, retained.environment),
-    retained.environmentWire, retained.document, retained.parametersWire), 'RunHostEffectRunMaterialsRejected');
+    retained.environmentWire, retained.document, retained.parametersWire,
+    request === undefined ? undefined : requireHandle(requests, request)), 'RunHostEffectRunMaterialsRejected');
 }
 
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
@@ -330,7 +331,10 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles) {
     definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
     selected.tea, selected.calendar, selected.textRank), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
-  return Object.freeze({prepared,
+  const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
+  const request = originalRequest?.$tag === 1 ? handle(requests, originalRequest._0, 'request-identity') : undefined;
+  if (originalRequest?.$tag !== 0 && originalRequest?.$tag !== 1) throw new Error('InvalidRunHostOriginalRequest');
+  return Object.freeze({prepared, ...(request === undefined ? {} : {request}),
     compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
     allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
     definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
