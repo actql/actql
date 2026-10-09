@@ -146,6 +146,16 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
     run_materials_document,
     None,
   ).unwrap()
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      projected,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      limits.preparation,
+    )
+    is Ok(EffectFreeComputation),
+  )
+
   // Independently assembled fields, not a snapshot copied from the issuer.
   assert_eq(projected, run_materials_json(fields))
   assert_eq(
@@ -289,5 +299,18 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
       issued_cid,
     )
     is Err(MaterialsEnvironment),
+  )
+}
+
+///|
+test "run materials family selection rejects malformed input" {
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      "{}",
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      client_standard_program_preparation_limits(),
+    )
+    is Err(MaterialsMalformed),
   )
 }
