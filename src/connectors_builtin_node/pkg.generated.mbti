@@ -281,9 +281,11 @@ pub fn client_program_check_recovered_table_schema_wire(@run_publication_host.Re
 
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
-pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String) -> String
+pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, ClientCheckSourceNamespace?) -> String
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
+
+pub fn client_program_check_source_namespace(@program_check.CheckEnvironment, String, String, String, String, String) -> ClientCheckSourceNamespace?
 
 pub fn client_program_check_unavailable(String) -> String
 
@@ -3054,6 +3056,10 @@ pub(all) enum ClientCapturedSourceLogicalIssue {
   Encoding(@encode_core.EncodeFailure)
   Evidence(@run_publication.RunEvidenceValueIssue)
   Admission(@run_publication.SourceInputLogicalIssue)
+}
+
+pub struct ClientCheckSourceNamespace {
+  // private fields
 }
 
 pub(all) enum ClientEffectLocalArtifactBridgeIssue {

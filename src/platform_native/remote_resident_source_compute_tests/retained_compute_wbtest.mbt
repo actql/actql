@@ -741,6 +741,118 @@ fn retained_compute_case(
   } else {
     None
   }
+  let pending_effect_export = if effect_inputs is Some(inputs) {
+    let limits = resident_compute_limits()
+    let plan = @strategy.prepare_captured_effect_proposal_plan(
+      inputs, 0, 16, 10000,
+    ).unwrap()
+    let mut effect_local_index = -1
+    let mut root_local_index = -1
+    for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+      if @strategy.captured_effect_local_result_matches_member(inputs, index, 0) {
+        effect_local_index = index
+      } else {
+        root_local_index = index
+      }
+    }
+    assert_true(effect_local_index >= 0 && root_local_index >= 0)
+    let root_result = @strategy.captured_effect_local_result_at(
+      inputs, root_local_index,
+    ).unwrap()
+    let root_output = @strategy.captured_any_result_borrow_cell_output(
+      @strategy.captured_effect_local_result_borrow(root_result),
+    ).unwrap()
+    // A producer completion in this same Run cannot stand in for the
+    // consumer's pinned Result, even though both have the same schema.
+    assert_true(
+      @strategy.start_captured_effect_local_result_export(
+        inputs,
+        effect_local_index,
+        {
+          max_fields: limits.max_result_fields,
+          max_mapping_work: limits.max_result_mapping_work,
+          max_order_work: limits.max_result_order_work,
+          max_workspace_entries: limits.max_result_workspace_entries,
+        },
+        limits.max_rows,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+        converted_output=root_output,
+      )
+      is Err(
+        @strategy.CapturedEffectLocalResultExportIssue::Export(ForeignMaterial)
+      ),
+    )
+    for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+      let exported = consumer
+        .prepare_effect_result_export(inputs, index, limits)
+        .unwrap()
+      let preparation = @strategy.captured_effect_local_result_export_preparation(
+        exported,
+      )
+      while !@execution.advance_completed_result_relation_export(
+              preparation, 16,
+            ).unwrap().0 {
+        continue
+      }
+      let stream = @execution.finish_completed_result_relation_export_preparation(
+        preparation,
+      ).unwrap()
+      let observed = StringBuilder()
+      let mut count = 0
+      while @execution.next_completed_output_export_canonical_row(
+              stream, 100, 20, 100,
+            ).unwrap()
+            is Some((row_index, wire, row)) {
+        observed.write_string(wire)
+        if index == effect_local_index {
+          let (selector, changes) = @strategy.project_captured_effect_proposal_row(
+            plan, row, row_index, 16, 10000, 4096, 100, 20,
+          ).unwrap()
+          assert_eq(selector, "3")
+          assert_eq(changes, "{\"state\":\"present\",\"value\":{\"Name\":3}}")
+        }
+        count += 1
+      }
+      let (private_receipt, end) = @execution.finish_completed_relation_export(
+        stream,
+      ).unwrap()
+      observed.write_string(end)
+      assert_true(
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, private_receipt,
+        ),
+      )
+      assert_false(
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, receipt,
+        ),
+      )
+      if index == effect_local_index {
+        assert_eq(count, 1)
+        assert_eq(observed.to_string(), "[{\"id\":3}]")
+        @strategy.finish_captured_effect_proposal_plan(plan, count).unwrap()
+      } else {
+        assert_eq(count, 3)
+        assert_eq(observed.to_string(), "[{\"id\":1},{\"id\":2},{\"id\":3}]")
+      }
+      @execution.cancel_completed_relation_export_receipt(private_receipt)
+      @execution.cancel_completed_output_export(stream)
+      @execution.cancel_completed_result_relation_export(preparation) |> ignore
+    }
+    assert_eq(acquisitions.val, 1)
+    assert_eq(entries.val, 1)
+    Some(
+      consumer
+      .prepare_effect_result_export(inputs, effect_local_index, limits)
+      .unwrap(),
+    )
+  } else {
+    None
+  }
   assert_false(consumer.close())
   assert_true(consumer.usage().held_bytes > 0L)
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
@@ -754,6 +866,16 @@ fn retained_compute_case(
     )
     assert_true(@strategy.release_captured_effect_inputs(inputs))
     assert_false(@strategy.release_captured_effect_inputs(inputs))
+    if pending_effect_export is Some(exported) {
+      let preparation = @strategy.captured_effect_local_result_export_preparation(
+        exported,
+      )
+      assert_true(
+        @execution.advance_completed_result_relation_export(preparation, 16)
+        is Err(_),
+      )
+      @execution.cancel_completed_result_relation_export(preparation) |> ignore
+    }
   }
   assert_true(consumer.close())
   assert_true(consumer.close())

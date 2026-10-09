@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry, explainCheckReason} from './index.mjs';
 // Independent fixed migration pins: not generated from this catalog.
-const reasonCid = 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a';
+const reasonCid = 'sha256:332a61df6738e4e21d916345f31f2ae28aec30cd779cd614dba2a24044f061e6';
 test('public check catalog exposes separate readonly presentation metadata without authority', () => {
   assert.deepEqual(getCheckReasonCatalogInfo(), {version: 'actql-check-reason-catalog/0.1',
-    revision: '2026-10-08.1', reasonSchemaCid: reasonCid});
+    revision: '2026-10-09.1', reasonSchemaCid: reasonCid});
   const entry = getCheckReasonCatalogEntry('parameter_value_required');
   assert.equal(entry.family, 'requirement');
   assert.equal(entry.default_severity, 'info');

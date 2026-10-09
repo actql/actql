@@ -581,10 +581,36 @@ pub fn start_captured_any_result_borrow_export(
   logical_wire : @execution.RowWireLimits,
   schema_limits : @execution.RelationSchemaIdentityLimits,
   max_batch_bytes : Int,
+  converted_output? : @execution.CompletedOutput,
 ) -> Result[
   @execution.CompletedResultRelationExportPreparation,
   @execution.CompletedExportIssue,
 ] {
+  if converted_output is Some(converted) {
+    guard value.kind is Cells(borrow) &&
+      captured_result_borrow_available(borrow) &&
+      @execution.completed_output_same_occurrence(
+        captured_result_borrow_output(borrow),
+        converted,
+      ) else {
+      return Err(ForeignMaterial)
+    }
+    // A physical reader keeps the existing completion occurrence. Revoking
+    // this exact pin also revokes every subsequent advance of its export.
+    return @execution.start_completed_result_relation_export(
+      @execution.restrict_completed_output(converted, () => {
+        captured_any_result_borrow_available(value)
+      }),
+      captured_any_result_borrow_occurrence(value),
+      result_view,
+      max_rows,
+      values,
+      payload_wire,
+      logical_wire,
+      schema_limits,
+      max_batch_bytes,
+    )
+  }
   match value.kind {
     Cells(borrow) =>
       start_captured_result_borrow_export(
