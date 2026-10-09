@@ -42,20 +42,128 @@ pub fn open_resident_retained_compute(
     Ok(value) => value
     Err(_) => return reject(UnsupportedGraph, () => true)
   }
+  open_resident_retained_compute_owned(
+    Pure(prepared),
+    projection,
+    configuration,
+    input,
+    material,
+    dispatch,
+    codec,
+    input_limits,
+    current,
+    observe,
+  )
+}
+
+///|
+/// The original Effect materials bind this consumer before the independent
+/// Transfer holding is borrowed. No Source is reacquired or Effect approved.
+/// As with the ordinary entry, the caller owns pre-admission cleanup and must
+/// hold the existing exclusive start claim/current authority before execution.
+pub fn open_resident_effect_retained_compute(
+  materials : @host.ClientEffectRunMaterials,
+  configuration : ResidentSourceComputeConfiguration,
+  input : @output.NativeRemoteRetainedTaskInput,
+  material : @transfer_client.NativeRemoteDestinationMaterialUse,
+  dispatch : @remote.DispatchRequest,
+  codec : @output.NativeRemoteStandardRowCodec,
+  input_limits : @output.NativeRemoteStandardTransferSourceLimits,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  observe? : (ResidentSourceComputeEvent) -> Bool,
+) -> Result[
+  ResidentSourceCompute,
+  (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
+] {
+  let reject = fn(issue : ResidentSourceComputeIssue, cleanup : () -> Bool) {
+    Err(
+      (
+        issue,
+        @output.prepare_native_remote_standard_input_failure(
+          "retained-compute-preparation", cleanup,
+        ).unwrap(),
+      ),
+    )
+  }
+  let bound = match
+    @host.bind_client_effect_compiled_run(
+      materials.prepared,
+      materials.allowed,
+      materials.run_definition,
+    ) {
+    Ok(value) => value
+    Err(issue) => return reject(EffectRun(issue), () => true)
+  }
+  let edge = match
+    @host.prepare_client_effect_retained_input_edge(
+      materials.allowed,
+      materials.run_definition,
+    ) {
+    Ok(value) => value
+    Err(issue) => return reject(EffectInput(issue), () => true)
+  }
+  let expected = @host.client_retained_input_edge_projection(edge)
+  if @remote.dispatch_request_task_scope(dispatch) != (expected[0], expected[5]) ||
+    !@remote.remote_input_binding_matches_dispatch(
+      @output.native_remote_retained_task_input_binding(input),
+      dispatch,
+    ) {
+    return reject(Source(ForeignInput), () => true)
+  }
+  let projection = match
+    @strategy.prepare_retained_effect_task_projection(
+      @host.prepared_client_effect_run_graph(bound),
+    ) {
+    Ok(value) => value
+    Err(_) => return reject(UnsupportedGraph, () => true)
+  }
+  open_resident_retained_compute_owned(
+    Effect(bound),
+    projection,
+    configuration,
+    input,
+    material,
+    dispatch,
+    codec,
+    input_limits,
+    current,
+    observe,
+  )
+}
+
+///|
+fn open_resident_retained_compute_owned(
+  prepared : ResidentSourceOwner,
+  projection : @strategy.RetainedTaskProjection,
+  configuration : ResidentSourceComputeConfiguration,
+  input : @output.NativeRemoteRetainedTaskInput,
+  material : @transfer_client.NativeRemoteDestinationMaterialUse,
+  dispatch : @remote.DispatchRequest,
+  codec : @output.NativeRemoteStandardRowCodec,
+  input_limits : @output.NativeRemoteStandardTransferSourceLimits,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  observe : ((ResidentSourceComputeEvent) -> Bool)?,
+) -> Result[
+  ResidentSourceCompute,
+  (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
+] {
+  let reject = fn(issue : ResidentSourceComputeIssue, cleanup : () -> Bool) {
+    Err(
+      (
+        issue,
+        @output.prepare_native_remote_standard_input_failure(
+          "retained-compute-preparation", cleanup,
+        ).unwrap(),
+      ),
+    )
+  }
+  let graph = resident_source_owner_graph(prepared)
   let producer = @strategy.retained_task_projection_producer(projection)
   let source = configuration.source
   let requirement = match
-    @local.prepare_local_query_requirement(
-      prepared,
-      0,
-      0,
-      configuration.registry_body,
-      configuration.values_body,
-      Some(source.fragment_contract_body),
-      None,
-    ) {
+    resident_source_owner_requirement(prepared, configuration) {
     Ok(value) => value
-    Err(issue) => return reject(Source(Query(issue)), () => true)
+    Err(issue) => return reject(Source(issue), () => true)
   }
   match
     require_resident_source_identity(
@@ -72,13 +180,7 @@ pub fn open_resident_retained_compute(
     is Some(capacity) else {
     return reject(Capacity(@resources.InvalidCharge), () => true)
   }
-  guard @local.prepare_client_local_sequences(
-      prepared,
-      configuration.registry_body,
-      configuration.values_body,
-      Some(source.fragment_contract_body),
-      None,
-    )
+  guard resident_source_owner_sequences(prepared, configuration)
     is Some(generated) &&
     generated.length() == @strategy.graph_task_count(graph) else {
     return reject(UnsupportedGraph, () => true)
@@ -151,7 +253,7 @@ pub fn open_resident_retained_compute(
     Err(issue) => return reject(Capacity(issue), close_borrow)
   }
   open_resident_captured_compute(
-    Pure(prepared),
+    prepared,
     configuration,
     None,
     ledger,
