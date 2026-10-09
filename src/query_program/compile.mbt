@@ -2150,6 +2150,10 @@ fn compile_steps(
           }
           if !properties.is_empty() {
             entries.push(("derive", construction.object(properties)))
+          } else {
+            // The UNNEST step was already emitted. An empty object needs no
+            // property derivation; do not append an operator-free step.
+            deferred = true
           }
           let element_fields = properties.map(pair => pair.0)
           pipe_ranges.push(
@@ -2488,6 +2492,9 @@ fn compile_steps(
       }
       Set(assignments) => {
         let snapshot = pipe_visible.copy()
+        let target_columns = unnest_edit_columns(
+          snapshot, pipe_ranges, value_table_receivers,
+        )
         let window_bindings = if i > 0 &&
           @query.operation_at(query, i - 1) is Some(AnalyticExpressions(_, _)) {
           analytic_expression_bindings.copy()
@@ -2499,7 +2506,7 @@ fn compile_steps(
         let replacements : Array[(String, String)] = []
         for assignment in assignments {
           // SET addresses one current column, not every matching JOIN slot.
-          let matching_targets = snapshot.filter(entry => {
+          let matching_targets = target_columns.filter(entry => {
             same_name(assignment.0, { value: entry.0, quoted: false, })
           })
           if matching_targets.is_empty() {
@@ -2531,19 +2538,13 @@ fn compile_steps(
           targets.push(assignment.0.value)
           replacements.push((assignment.0.value, physical))
         }
-        let next : Array[(String, String)] = []
-        for current in snapshot {
-          let mut slot = current.1
-          for replacement in replacements {
-            if same_name({ value: current.0, quoted: false, }, {
-                value: replacement.0,
-                quoted: false,
-              }) {
-              slot = replacement.1
-            }
-          }
-          next.push((current.0, slot))
-        }
+        let next = unnest_edit_visible(
+          snapshot,
+          pipe_ranges,
+          value_table_receivers,
+          active_fields,
+          replacements.map(replacement => (replacement.0, Some(replacement.1))),
+        )
         entries.push(("derive", construction.object(derived)))
         pipe_visible = next
         // Resolve every sibling against the old snapshot before removing a
@@ -2593,6 +2594,7 @@ fn compile_steps(
         // A later projection/expression may still use a retained input range.
         // Do not discard those physical slots while that scope is observable.
         let direct = preserved_scope is None &&
+          value_table_receivers.is_empty() &&
           structural_tail &&
           active_fields.length() == pipe_visible.length() &&
           pipe_visible.all(pair => {
@@ -2603,20 +2605,24 @@ fn compile_steps(
             same_name(name, { value: current.0, quoted: false, })
           })
         })
-        let next : Array[(String, String)] = []
+        let target_columns = unnest_edit_columns(
+          pipe_visible, pipe_ranges, value_table_receivers,
+        )
         for name in names {
-          if !pipe_name_exists(pipe_visible, name) ||
-            names.filter(other => same_name(name, other)).length() != 1 {
-            raise Abort(UnsupportedProjection)
+          if !pipe_name_exists(target_columns, name) {
+            raise Abort(UnknownColumn)
+          }
+          if names.filter(other => same_name(name, other)).length() != 1 {
+            raise Abort(DuplicateOutput)
           }
         }
-        for current in pipe_visible {
-          if !names.any(name => {
-              same_name(name, { value: current.0, quoted: false, })
-            }) {
-            next.push(current)
-          }
-        }
+        let next = unnest_edit_visible(
+          pipe_visible,
+          pipe_ranges,
+          value_table_receivers,
+          active_fields,
+          names.map(name => (name.value, None)),
+        )
         pipe_visible = next
         output = next.map(entry => entry.0)
         if next.is_empty() {
@@ -2648,11 +2654,14 @@ fn compile_steps(
         }
       }
       Rename(names) => {
+        let target_columns = unnest_edit_columns(
+          pipe_visible, pipe_ranges, value_table_receivers,
+        )
         // RENAME targets the pre-operator current row. Unrelated duplicate
         // names, and ambiguities introduced by renaming, can be resolved by
         // a later projection through the retained immutable ranges.
         for replacement in names {
-          let matches = pipe_visible.filter(current => {
+          let matches = target_columns.filter(current => {
             same_name(replacement.0, { value: current.0, quoted: false, })
           })
           if matches.is_empty() {
@@ -5303,8 +5312,7 @@ pub fn compile(
       table_writes~,
     )
   }
-  if @query.join_part_count(query) > 0 &&
-    context.captured_stage is Some(_) {
+  if @query.join_part_count(query) > 0 && context.captured_stage is Some(_) {
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, including
     // a single projected JOIN. Captured inputs cannot use the Values-only path.

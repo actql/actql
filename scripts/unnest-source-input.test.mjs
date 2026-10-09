@@ -50,7 +50,11 @@ test('range/field collision controls distinguish receiver NULLs and current star
   assert.deepEqual(byName.get('unnest-receiver-null-predicate').expected.map(row => row.position), [0, 2, 3]);
   assert.deepEqual(control.expected[0], {original: {element: null, id: 2}, field_value: null, position: 0});
   assert.deepEqual(control.expected[1], {original: null, field_value: null, position: 1});
-  assert.deepEqual(byName.get('unnest-receiver-set-retains-original').expected, control.expected);
+  assert.deepEqual(byName.get('unnest-receiver-set-retains-original').expected,
+    control.expected.map(row => ({...row, position: row.position + 10})));
+  assert.ok(byName.get('unnest-receiver-set-retains-original').text.includes('SET position = position + 10'));
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').columns.map(value => value.name),
+    ['element', 'position']);
   const star = byName.get('unnest-receiver-star');
   assert.deepEqual(star.columns.map(value => value.name), ['element', 'id', 'position']);
   assert.equal(star.columns[0].contract.type, 'number');
@@ -108,4 +112,26 @@ test('STRUCT stars use declared fields and a distinct original value receiver', 
   assert.deepEqual(byName.get('unnest-struct-immutable-range').expected[0],
     {current: 12, original: 2, position: 0});
   assert.equal(unnestRefusals.filter(value => value.name.startsWith('unnest-refusal-struct-')).length, 4);
+});
+
+
+test('value-table edits preserve one column, sibling input scope and exact refusals', () => {
+  const byName = new Map(unnestReceiverSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-receiver-set-json-control');
+  const program = JSON.parse(control.text);
+  assert.deepEqual(program.stages[0].steps[3], {derive: {replacement: {literal: 100}}});
+  assert.deepEqual(program.stages[0].results.rows.fields, ['element', 'position']);
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').expected, control.expected);
+  assert.deepEqual(byName.get('unnest-receiver-set-current-star').columns, control.columns);
+  assert.deepEqual(byName.get('unnest-receiver-set-quoted-whole').columns, control.columns);
+  assert.deepEqual(byName.get('unnest-receiver-set-siblings-original-object').expected,
+    [{element: 100, position: 1}, {element: 100, position: 1},
+      {element: 100, position: 2}, {element: 100, position: null}]);
+  assert.deepEqual(byName.get('unnest-receiver-set-empty-object-elements').expected,
+    [{element: 100, position: 0}, {element: 100, position: 1}]);
+  assert.deepEqual(byName.get('unnest-receiver-drop-whole').columns.map(column => column.name), ['position']);
+  for (const name of ['set-implicit-field', 'drop-implicit-field', 'rename-implicit-field', 'set-scalar-member']) {
+    assert.equal(unnestReceiverRefusals.find(item => item.name === 'unnest-receiver-refusal-' + name).expectedCode,
+      'ClientProgramInvalidInput');
+  }
 });
