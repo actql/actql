@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "scope": "Actual Native producer dispatch-bound semantic Artifact to independent Transfer receiver custody and existing imported consumer evidence. Live handoff only; not saved-body restoration or full Cloud Effect acceptance.",
+  "verifiedSource": "40b84181976ecd4df2978569434e3743130a6d91",
+  "sourceClean": true,
+  "mergedMain": "ffe46cdae6d064a60da517dec2937eeaee4a1c30",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1123",
+    "head": "62ac39a53446969e9c66fb9586e4755cdc9e2bd5",
+    "finalTarget": "main",
+    "integrationOrder": [
+      1112,
+      1117,
+      1120,
+      1123
+    ]
+  },
+  "files": {
+    "src/physical_strategy/captured_dag.mbt": "9b21436e3772a83cb0d20102a42a1594d0cc1d8e89adbebb1483eb56a077ef73",
+    "src/physical_strategy/effect_local_unit_inputs.mbt": "c6114ad18f712fd3ef2e77c0559b750d90a56145ffe2149fa37526c43e5e819f",
+    "src/physical_strategy/pkg.generated.mbti": "4da57b15235737f452f6c49609fffa0a07ec232255676bc1c9f635f6d6937b5a",
+    "src/platform_native/remote_resident_host/effect_retained_artifact.mbt": "200a08c44fce36955f3058fea17d165c5975560f2d6c0d8baa31825bac75f5f7",
+    "src/platform_native/remote_resident_host/effect_source_evidence.mbt": "a3df38ebd897fd11cef4fa14534969b13d0d468d65f0088371daae4ad50bd9d2",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "03029469829d395ca0948491990bed87aaee72a851cc3215c9a74c6be6b861bc",
+    "src/platform_native/remote_resident_host/retained_compute.mbt": "4c67e690dceda70e6974c5322779930d075113d1b86e3b8847514154a599cc69",
+    "src/platform_native/remote_resident_host/source_compute.mbt": "21df9e4d6b0de4d3e9449e517545f193b515e7576a8e098282b4d214c97411e3",
+    "src/platform_native/remote_resident_source_compute_tests/effect_transferred_artifact_wbtest.mbt": "3ce4c4b456d9b8fc4fccdedd64dfa1c645c644ee4e8bff57c8434828e8545b72",
+    "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt": "af0defb3ab6f639bf31964677b194448787496cd5fcf742698e1f9e3868a74ce",
+    "src/run_publication_host/client_effect_producer_artifact.mbt": "492d8cb617e1881e249162cf4b504c643a1d191cec1839dd13104805e06c667c",
+    "src/run_publication_host/client_effect_program.mbt": "c95edb0fe73febf08e5bef94c6bee4cafc05eaf4f42f41d675e0126c59fb6d78",
+    "src/run_publication_host/client_effect_source_dispatch.mbt": "9101126d48269e82fc7f4d5610c1af6daa9ddedff1f15a617a05e9fe67ea3497",
+    "src/run_publication_host/client_effect_transferred_artifact.mbt": "41c457f26a114395b77d59eb662587cd9d93074c8a2b9d009c6a693cec5ae246",
+    "src/run_publication_host/pkg.generated.mbti": "299194c5c1fdff888f605e0e828eefb2cfbd8d2123626f3680d1fc90e26a7494"
+  },
+  "receipt": "_build/resident-effect-transfer-artifact-1791538594691/receipt.json",
+  "sourceRecord": "_build/resident-effect-transfer-artifact-1791538594691/source.json",
+  "inputs": "_build/resident-effect-transfer-artifact-1791538594691/inputs.json",
+  "artifact": {
+    "source": "40b84181976ecd4df2978569434e3743130a6d91",
+    "scope": "Native whitebox fixture, not a production Site binary or formal package cohort",
+    "artifact": "_build/resident-effect-transfer-artifact-1791538594691/retained-compute.whitebox_test.exe",
+    "sha256": "a4aff9ae01712c671f93218c5b3f47e3099811d26aed52d2be09392affcd33ac"
+  },
+  "checks": [
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*Effect retained consumer*\"",
+      "tests": 2,
+      "passed": 2
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/effect_producer_dependency_wbtest.mbt --filter \"*Native Effect producer dependency*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*retained Direct holding*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt --filter \"*retained Native cancellation*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Bounded/nonzero moon test --target js src/query_integration/client_effect_local_export_wbtest.mbt --filter \"*shared local Artifact issuer*\"",
+      "tests": 1,
+      "passed": 1
+    },
+    {
+      "command": "Scoped moon fmt; moon info --target native src/platform_native/remote_resident_host src/physical_strategy src/run_publication_host; node proofs/relation-pipeline/history.mjs --write; git diff --check",
+      "result": "passed"
+    }
+  ],
+  "actualEvidence": {
+    "sourceAcquisitions": 1,
+    "consumerEntriesBeforeProducerArtifact": 0,
+    "consumerEntries": 1,
+    "producerDispatchBoundBeforeSourceIO": true,
+    "consumerRows": [
+      {
+        "id": 3
+      }
+    ],
+    "producerResultRows": [
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      },
+      {
+        "id": 3
+      }
+    ],
+    "rawSourceRows": [
+      {
+        "id": 3
+      },
+      {
+        "id": 1
+      },
+      {
+        "id": 2
+      }
+    ],
+    "sourcePathRemovedBeforeConsumer": true,
+    "transferChunks": 3,
+    "destinationSQLiteReopened": true,
+    "artifactAndManifestWireUnchanged": true,
+    "senderPinReturnDoesNotInvalidateReceiverArtifact": true,
+    "duplicateSenderPinReturn": false,
+    "sourceAndDestinationCapacityAfterCleanup": "zero",
+    "capacityBoundBytes": 536870912
+  },
+  "refusals": [
+    "Ordinary local-view import with the distinct producer borrow",
+    "Another admitted producer capture/attempt cannot stamp the actual Source capture",
+    "Generic Run binding without pre-acquisition Source dispatch cannot issue the producer token",
+    "Equal invocation CID with foreign opaque invocation Owner",
+    "Consumer Result export substituted for checked imported producer Result",
+    "Another export receipt",
+    "Another original Run",
+    "Current authorization unavailable",
+    "Current destination borrow unavailable",
+    "Released original producer custody"
+  ],
+  "initialFailures": [
+    {
+      "source": "09b588735c5e927270574e3082c15d0f833fbb96",
+      "log": "_build/resident-effect-transfer-artifact-1791538530086/tests.log",
+      "reason": "Test compilation rejected missing raise annotation and construction of read-only retained inputs; fixed by preserving the admitted opaque input API"
+    },
+    {
+      "source": "a992b99b563c371b68750451bb9a850c4f9b96c4",
+      "log": "_build/resident-effect-transfer-artifact-1791537789464/tests.log",
+      "reason": "Released sender custody was reported as ForeignRun; now explicitly Unavailable, retaining liveness guards"
+    }
+  ],
+  "limitations": [
+    "Producer completion observation is an explicit protocol fixture, not public Cloud poll/start-claim evidence",
+    "Live producer Artifact required at handoff; saved semantic-body reconstruction after restart remains unconnected",
+    "Full Preview and target observation, Checkpoint waiting commit, approval and Native physical write remain unconnected",
+    "Formal Cloud adoption waits for merged OSS main; current Cloud pin remains 1376a2ec4b0cb1944971b268f7c2c637fcc37e99",
+    "No Hosted CI, public SDK Cloud acceptance, deployment or full suites run",
+    "Old failed Run custody remains unresolved separately"
+  ]
+}

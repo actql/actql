@@ -1983,3 +1983,12 @@ pub fn captured_task_source_matches(
   physical_equal(expected, source) &&
   @query.captured_source_available(source)
 }
+
+///|
+/// Exact live capture of the admitted Run, not only an equal Run definition.
+pub fn captured_effect_run_matches_checked(
+  run : CapturedEffectRunDAG,
+  checked : CheckedEffectRunDAG,
+) -> Bool {
+  !run.captured.stopped && physical_equal(run.checked, checked)
+}

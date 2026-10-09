@@ -323,6 +323,16 @@ fn retained_compute_case(
   } else {
     None
   }
+  let effect_producer_dispatch = effect_materials.map(pair => {
+    @host.prepare_client_effect_source_dispatch(
+      pair.0.allowed,
+      pair.0.run_definition,
+      pair.1,
+      1,
+      "producer",
+      retained_compute_selection(),
+    ).unwrap()
+  })
   let acquisitions = Ref(0)
   let producer_captures = Ref(0)
   let source_observe = event => {
@@ -336,10 +346,12 @@ fn retained_compute_case(
   let source_open = match effect_materials {
     Some((materials, _)) =>
       @resident.open_resident_effect_source_compute(
-        @host.bind_client_effect_compiled_run(
-          materials.prepared,
-          materials.allowed,
-          materials.run_definition,
+        @host.bind_client_effect_source_dispatch(
+          materials,
+          effect_producer_dispatch.unwrap(),
+          @host.prepare_client_effect_source_input_binding(
+            materials.compilation,
+          ).unwrap(),
         ).unwrap(),
         configuration,
         name,
@@ -465,15 +477,7 @@ fn retained_compute_case(
     retained_compute_selection()
   }
   let producer_dispatch = match effect_materials {
-    Some((materials, caller)) =>
-      @host.prepare_client_effect_source_dispatch(
-        materials.allowed,
-        materials.run_definition,
-        caller,
-        1,
-        "producer",
-        selected,
-      ).unwrap()
+    Some(_) => effect_producer_dispatch.unwrap()
     None =>
       @host.prepare_client_task_dispatch(
         prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
@@ -768,6 +772,18 @@ fn retained_compute_case(
     assert_true(journal.close())
     return
   }
+  let producer_dependency = match effect_materials {
+    Some((materials, _)) =>
+      Some(
+        retained_effect_producer_dependency(
+          source_owner,
+          materials,
+          acquired.unwrap().0,
+        ),
+      )
+    None => None
+  }
+  assert_eq(entries.val, 0)
   resident_compute_execute(consumer) |> ignore
   let source_usage = source_owner.usage()
   let consumer_usage = consumer.usage()
@@ -935,6 +951,21 @@ fn retained_compute_case(
       @execution.cancel_completed_output_export(stream)
       @execution.cancel_completed_result_relation_export(preparation) |> ignore
     }
+    retained_effect_transferred_artifact(
+      consumer,
+      effect_materials.unwrap().0,
+      inputs,
+      root_local_index,
+      effect_local_index,
+      earlier,
+      @host.client_effect_acquired_invocation(again),
+      producer_dependency.unwrap().0,
+      producer_dependency.unwrap().1,
+      producer_dependency.unwrap().2,
+      producer_dependency.unwrap().4,
+      common_input,
+      site,
+    )
     assert_eq(acquisitions.val, 1)
     assert_eq(entries.val, 1)
     Some(
@@ -987,6 +1018,10 @@ fn retained_compute_case(
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_objects, 0L)
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(source_export)
+  if producer_dependency is Some((pins, _, _, dependency_receipt, _)) {
+    assert_false(@strategy.release_captured_effect_local_unit_inputs(pins))
+    @execution.cancel_completed_relation_export_receipt(dependency_receipt)
+  }
   assert_true(source_owner.close())
   assert_true(source_owner.close())
   assert_eq(source_owner.usage().held_bytes, 0L)
