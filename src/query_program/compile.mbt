@@ -3074,7 +3074,7 @@ fn compile_steps(
                 pipe_slot(
                   path,
                   unnest_expression_columns(
-                    pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                    pipe_visible, value_table_receivers, scalar_value_table_ranges,
                     pipe_columns,
                   ),
                   pipe_ranges,
@@ -3112,7 +3112,7 @@ fn compile_steps(
                       construction,
                       expression,
                       unnest_expression_columns(
-                        pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                        pipe_visible, value_table_receivers, scalar_value_table_ranges,
                         pipe_columns,
                       ),
                       pipe_ranges,
