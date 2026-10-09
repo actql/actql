@@ -205,7 +205,7 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
         };
         syncBuiltinESMExports();
       }`);
-    env.NODE_OPTIONS = `--import=${preload}`;
+    env.NODE_OPTIONS = [env.NODE_OPTIONS, `--import=${preload}`].filter(Boolean).join(' ');
   }
   const started = performance.now();
   const result = spawnSync('bash', ['-o', 'pipefail', '-c',

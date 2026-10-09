@@ -8,6 +8,44 @@ fn retained_compute_cid(unit : String) -> String {
 }
 
 ///|
+fn retained_compute_effect_retention() -> @publication.PublicationContract {
+  @publication.seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
+    retained_compute_cid("7") +
+    "\",\"effective_data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"available_until\":\"2026-10-10T01:00:00.000Z\",\"delete_by\":\"2026-10-10T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-10-10T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"" +
+    retained_compute_cid("8") +
+    "\",\"metadata_delete_by\":\"2026-10-10T04:00:00.000Z\",\"clock_contract_cid\":\"" +
+    retained_compute_cid("9") +
+    "\"}",
+    32768,
+    1000,
+    32,
+  ).unwrap()
+}
+
+///|
+fn retained_compute_acquired_evidence(
+  owner : @resident.ResidentSourceCompute,
+  policy? : String = "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf",
+  max_bytes? : Int = 65536,
+) -> Result[
+  (@host.ClientEffectAcquiredEvidence, (String, String)),
+  @resident.ResidentEffectSourceEvidenceIssue,
+] {
+  owner.prepare_effect_acquired_evidence(
+    retained_compute_cid("a"),
+    policy,
+    "2026-10-09T01:00:01.000Z",
+    retained_compute_effect_retention(),
+    resident_compute_limits(),
+    max_bytes,
+    4096,
+    64,
+  )
+}
+
+///|
 fn retained_compute_run(
   prepared : @host.PreparedClientProgram,
 ) -> (
@@ -339,6 +377,48 @@ fn retained_compute_case(
   assert_eq(chunks.length(), 3)
   assert_eq(acquisitions.val, 1)
   assert_eq(producer_captures.val, 1)
+  let acquired = if effect {
+    let (evidence, bodies) = retained_compute_acquired_evidence(source_owner).unwrap()
+    // Logical Source identity preserves the fixture's (3, 1, 2) acquired
+    // sequence. The checked Result projection sorts its exported root view;
+    // that view must not silently replace the acquisition observation.
+    assert_eq(
+      bodies.0,
+      "{\"sort\":\"relation\",\"value\":[{\"id\":3},{\"id\":1},{\"id\":2}]}",
+    )
+    assert_eq(bodies.1, "{\"id\":{\"nullable\":false,\"type\":\"number\"}}")
+    let dependencies = @host.client_effect_acquired_dependency_bodies(evidence)
+    assert_eq(dependencies.length(), 6)
+    let observations = dependencies.filter(entry => entry.0 == "source_evidence")
+    assert_eq(observations.length(), 1)
+    assert_true(observations[0].1.contains("\"completeness\":\"complete\""))
+    assert_true(observations[0].1.contains("\"snapshot_ref\":\"sha256:"))
+    assert_true(
+      @host.client_effect_acquired_catalog_bodies(evidence, 65536, 4096, 64)
+      .unwrap()
+      .length() >
+      0,
+    )
+    // A failed evidence projection retains the same acquisition and capacity.
+    assert_true(
+      retained_compute_acquired_evidence(
+        source_owner,
+        policy=retained_compute_cid("f"),
+      )
+      is Err(Observation(InvalidPolicy)),
+    )
+    assert_true(
+      retained_compute_acquired_evidence(source_owner, max_bytes=1)
+      is Err(Capture(DependencyBodyLimit)),
+    )
+    assert_true(source_owner.usage().held_bytes > 0L)
+    Some((evidence, bodies))
+  } else {
+    assert_true(
+      retained_compute_acquired_evidence(source_owner) is Err(Unavailable),
+    )
+    None
+  }
   let (compilation, allowed, definition, caller) = retained_compute_run(
     prepared,
   )
@@ -742,6 +822,18 @@ fn retained_compute_case(
     None
   }
   let pending_effect_export = if effect_inputs is Some(inputs) {
+    // Independent receiver Cells do not grant the original Native observation.
+    assert_true(
+      retained_compute_acquired_evidence(consumer) is Err(Unavailable),
+    )
+    let (earlier, earlier_bodies) = acquired.unwrap()
+    let (again, again_bodies) = retained_compute_acquired_evidence(source_owner).unwrap()
+    assert_eq(again_bodies, earlier_bodies)
+    assert_eq(
+      @host.client_effect_acquired_dependency_bodies(again),
+      @host.client_effect_acquired_dependency_bodies(earlier),
+    )
+    assert_eq(acquisitions.val, 1)
     let limits = resident_compute_limits()
     let plan = @strategy.prepare_captured_effect_proposal_plan(
       inputs, 0, 16, 10000,
@@ -899,6 +991,9 @@ fn retained_compute_case(
   assert_true(source_owner.close())
   assert_eq(source_owner.usage().held_bytes, 0L)
   assert_eq(source_owner.usage().reserved_execution_bytes, 0L)
+  assert_true(
+    retained_compute_acquired_evidence(source_owner) is Err(Unavailable),
+  )
   assert_eq(acquisitions.val, 1)
   assert_eq(producer_captures.val, 1)
   assert_eq(entries.val, 1)

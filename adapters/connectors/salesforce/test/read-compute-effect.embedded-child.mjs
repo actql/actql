@@ -126,6 +126,46 @@ try {
       ?.physical_stop === 'confirmed');
     console.log(JSON.stringify({status: state.status, rows,
       ...(faultModule === undefined ? {} : {closes})}));
+  } else if (['observe-owners','replay-owners','cursor-cases','partial-owners'].includes(step)) {
+    const ref=JSON.parse(readFileSync(refPath,'utf8'));
+    const submissionRef=JSON.parse(readFileSync(submissionPath,'utf8'));
+    const lookup=await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind,'ready');assert.deepEqual(lookup.admission.ref,ref);
+    const execution=await client.attach(lookup.admission.ref);
+    const savedPath=refPath+'.owner-cursors.json';
+    const cursors=step==='observe-owners' || step==='partial-owners' ? [] : JSON.parse(readFileSync(savedPath,'utf8'));
+    const options={cursors,maxEntries:1,maxWireBytes:65536};
+    if(step==='cursor-cases'){
+      const [cursor]=cursors;
+      const claim=JSON.parse(Buffer.from(cursor.value.split('.')[0],'base64url').toString('utf8'));
+      const signed=modified=>{
+        const bytes=Buffer.from(JSON.stringify(modified),'utf8');
+        return {owner:cursor.owner,value:`${bytes.toString('base64url')}.${sign(null,bytes,
+          createPrivateKey(installation.authorization.hostKey.privateKey)).toString('base64url')}`};
+      };
+      const expired=await execution.observeOwners({...options,cursors:[signed({...claim,expiresAt:1})]});
+      const foreign=await execution.observeOwners({...options,cursors:[signed({...claim,
+        ref:{...ref,runDefinitionCid:`sha256:${'0'.repeat(64)}`}})]});
+      const changed=await execution.observeOwners({...options,cursors:[{...cursor,value:cursor.value+'x'}]});
+      const unbound=await execution.observeOwners({...options,cursors:[{...cursor,
+        owner:{...cursor.owner,streamCid:`sha256:${'0'.repeat(64)}`}}]});
+      console.log(JSON.stringify({pid:process.pid,ref,expired,foreign,changed,unbound,state:await execution.status()}));
+    }else{
+    const prepare=DatabaseSync.prototype.prepare;
+    // Fault exactly the inventory read, after Host initialization and original
+    // Submission lookup. Other Owners remain usable in this child process.
+    if(step==='partial-owners')DatabaseSync.prototype.prepare=function(sql){
+      if(sql.includes('WHERE h.logical_request_scope_cid=?'))throw new Error('PRIVATE_INVENTORY_FAILURE');
+      return prepare.call(this,sql);
+    };
+    let views;
+    try{views=await execution.observeOwners(options);}
+    finally{DatabaseSync.prototype.prepare=prepare;}
+    if(step==='observe-owners')writeFileSync(savedPath,JSON.stringify(views.owners
+      .filter(view=>view.history?.cursor!==undefined).map(view=>view.history.cursor)),{mode:0o600,flag:'wx'});
+    console.log(JSON.stringify({pid:process.pid,transport:server?'https':'local',httpsRequests,ref,views,
+      state:await execution.status()}));
+    }
   } else if (step === 'observe-effect') {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
     const submissionRef = JSON.parse(readFileSync(submissionPath, 'utf8'));

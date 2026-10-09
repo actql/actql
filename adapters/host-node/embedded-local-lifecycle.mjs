@@ -17,6 +17,7 @@ export function installedHostShutdown(host) {
       {diagnostic: () => host.diagnostic.close()}),
     ...(host.observation === undefined ? {} :
       {observation: () => host.observation.close()}),
+    ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews.close()}),
   });
 }
 

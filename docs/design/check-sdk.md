@@ -1138,8 +1138,22 @@ an unknown cancellation outcome; its existing SDK error is preserved. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
 association. For the cancellation write, local failures before the send boundary and typed Host refusals
-retain their existing errors without a fabricated cancellation observation.
+are distinct. Local failures retain their existing errors without a fabricated
+Owner observation. A validated invocation-bound `refused` or `conflict` response
+has its own explanation, separate from a durable cancellation receipt.
 The accessor performs no I/O or automatic retry and retains no provider cause.
+
+For `refused`, the explanation retains the admitted `attemptRef`, original
+`cancelRef`, typed authorization/capacity reason, and
+`attempt_uncommitted_unconsumed` guarantee. This guarantee applies only to this
+invocation; another invocation may already have committed the same cancellation
+identity. `conflict` retains the original attempt and cancellation references
+and the admitted intent/control-revision reason. It does not invent a current
+Host revision, consume the original identity or determine its durable outcome.
+Both branches offer only an authorized `lookupCancellation` target for that
+same original operation, with safe advice that grants no permission to resend,
+alter the expected revision, stop a worker or release resources. No recorded
+revision or physical-stop receipt is fabricated.
 
 The exact cancellation lookup uses the same explanation association after
 schema and operation binding admission. Its retained `found` outcome is an
@@ -1153,16 +1167,13 @@ presentation facts do not certify physical stop, Effect certainty or release.
 The association lasts only while its SDK result is retained; no timeout or
 persistent Host custody is added.
 
-This is presentation over the existing Client–Host cancellation contract.
-No wire/schema/CID, cancellation ledger or execution semantics is replaced.
-The current public Run cancellation response has no cancellation-operation
-identity or exact-operation lookup. A Run status refresh cannot reconcile a
-particular lost cancellation; it only observes current Run state under current
-authorization. The existing control owner must provide that operation's
-identity, immutable intent, revision conflicts and reconciliation contract
-before the complete cancellation-outcome design can be exposed. A recorded
-physical-start/close control fixture does not prove delayed live-worker stop
-or external Effect reconciliation.
+This is presentation over the existing Client–Host cancellation-attempt and
+exact-operation lookup contracts. No wire/schema/CID, cancellation ledger or
+execution semantics is replaced. A Run status refresh observes current Run
+state under current authorization; exact cancellation lookup observes the
+original operation instead. Neither determines an unobserved physical stop or
+external Effect outcome. A recorded physical-start/close control fixture does
+not prove delayed live-worker stop or external Effect reconciliation.
 
 
 ### Unused Parameter explanations
