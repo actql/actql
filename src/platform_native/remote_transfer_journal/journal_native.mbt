@@ -6,6 +6,21 @@ struct Journal {
   max_referenced_bytes : Int64
   max_destination_readers : Int64
   mut closed : Bool
+  mut destination_record_admission : DestinationRecordAdmission?
+}
+
+///|
+/// Private scalar interpretation of one exact persisted record. This is not a
+/// reader, material, or authority validation result. The Journal's immutable
+/// limits bind admission policy, and its Database bounds the retained body.
+priv struct DestinationRecordAdmission {
+  key : String
+  body : Bytes
+  revision : Int64
+  request_cid : String
+  attempt_state : Int
+  integrity_state : Int
+  destination_material_available : Int
 }
 
 ///|
@@ -324,6 +339,7 @@ pub fn open_journal(
         max_referenced_bytes,
         max_destination_readers,
         closed: false,
+        destination_record_admission: None,
       })
     Err(issue) => Err(Physical(issue))
   }
@@ -1034,31 +1050,73 @@ fn Journal::require_committed_destination(
 ) -> Result[String, NativeRemoteTransferJournalIssue] {
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
-    Err(issue) => return Err(Protocol(issue))
+    Err(issue) => {
+      self.destination_record_admission = None
+      return Err(Protocol(issue))
+    }
   }
   let stored = match
     self.database.read("remote_transfer_destination_receipt", key) {
     Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => {
+      self.destination_record_admission = None
+      return Err(Physical(issue))
+    }
   }
   let admitted = match admit_stored_receipt(stored.body, request) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      self.destination_record_admission = None
+      return Err(issue)
+    }
   }
   if @transfer.destination_receipt_cid(admitted) !=
     @transfer.destination_receipt_cid(receipt) {
+    self.destination_record_admission = None
     return Err(StateCollision)
   }
   let transfer = match self.database.read("remote_transfer", key) {
     Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => {
+      self.destination_record_admission = None
+      return Err(Physical(issue))
+    }
   }
-  let record = match self.existing(request, transfer) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  // Read before reuse, including inside a transaction that may later roll back.
+  // SQLite returns owned bytes. No restored record or mutable manifest escapes
+  // through this one-entry memo; those are re-admitted by their existing paths.
+  let admission = match self.destination_record_admission {
+    Some(previous) if previous.key == key &&
+      previous.revision == transfer.revision &&
+      previous.body == transfer.body => previous
+    _ => {
+      self.destination_record_admission = None
+      let record = match self.existing(request, transfer) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let state = @transfer.record_projection(record)
+      let value : DestinationRecordAdmission = {
+        key,
+        body: transfer.body,
+        revision: transfer.revision,
+        request_cid: @transfer.record_request_identity(record),
+        attempt_state: state[1],
+        integrity_state: state[3],
+        destination_material_available: state[8],
+      }
+      self.destination_record_admission = Some(value)
+      value
+    }
   }
-  let state = @transfer.record_projection(record)
-  if state[1] != 2 || state[3] != 1 || state[8] != 1 {
+  if admission.request_cid != @transfer.request_cid(request) {
+    self.destination_record_admission = None
+    return Err(StateCollision)
+  }
+  if admission.attempt_state != 2 ||
+    admission.integrity_state != 1 ||
+    admission.destination_material_available != 1 {
+    self.destination_record_admission = None
     return Err(RecoveryRequired)
   }
   Ok(key)
@@ -1760,6 +1818,7 @@ pub fn Journal::close(self : Journal) -> Bool {
   if self.closed {
     return true
   }
+  self.destination_record_admission = None
   self.database.close()
   self.closed = true
   true
