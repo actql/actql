@@ -227,3 +227,63 @@ A new normal clean-source producer and unchanged Local/HTTPS cohort must verify
 all twenty positives/twelve refusals. The three prior failures remain recorded;
 none is excluded or relabeled as an expected successful rejection. Required CI
 and content review remain separate from local evidence.
+
+## Completed normal public acceptance at the repaired source
+
+Clean producer/consumer revision: `5552c96a9716eb40d5038c3db20f68f42fb0f09c`.
+Bounded attempt `run-QAbGHa` exited 0. Receipt
+`worktrees/.codex-scratch/public-query-evidence-hiTFiI/summary.json` records
+passed/complete, clean source, each child command and captured stdout/stderr.
+The unchanged standard external acceptance.mjs command exited 0 after 75.1s.
+Embedded Local and actual TLS HTTPS each passed all twenty positives and twelve
+preparation refusals. This includes every original new JOIN case: independent
+JSON, both operands, right operand, reversed CORRESPONDING, CTE set body, typed
+empty, typed parameter LIMIT/OFFSET and UNION DISTINCT. None of the previous
+three failures was skipped or converted into an expected execution failure.
+
+Named answer rows and actual Result.describe column types/order match the
+independent fixtures. Duplicated id=2 self-JOIN rows, nullable amounts, explicit
+filters, JOIN ceilings of 10 and count/offset values are preserved. Full row
+comparisons exclude internal columns. The existing helper confirmed one physical
+Source acquisition session per source-backed case; Result reread, attach,
+resubmit and lookup performed no extra admission/acquisition. All preparation
+refusals performed no admission or provider I/O. The standard Host execution
+budget is unchanged. These passes establish the repaired Frontend Programs fit
+that budget; they do not establish that the old capacity derivation was wrong.
+
+The ordinary producer used all five package prepack steps; no adapter overlay,
+runtime patch, Moon test bridge or test-side Program correction was applied.
+The retained manifest at `/private/tmp/actql-b-set-join-5552c96a9-pack` records:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | 18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905 |
+| sdk | c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c |
+| run-host-core | 332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d |
+| local-node | f11505f527b41feb4a182a7bf008d1763f8e2a242b98352058cbbbb018160bc1 |
+| node | 2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda |
+
+The bounded invocation used pinned Node 22.22.0/Moon 0.10.12+1634b282e and:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-set-join-5552c96a9-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-set-join-5552c96a9-pack ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-set-join-5552c96a9-pack/npm-cache node scripts/test-packed-public-query.mjs --set-corresponding-only
+```
+
+The private wrapper `actql-b-set-join-5552c96a9-packed-20261009.mjs` applies the
+existing runLocalCheck heavy lock and 1200s total budget and independently
+verifies the manifest revision and five digests between producer and consumer.
+Readme Local/HTTPS and fourteen existing profile fixtures also passed inside
+the normal driver; that incidental coverage is not a full packed campaign.
+
+The subsequent evidence-only commit does not change the tested implementation
+and is not claimed as a new five-package build. Submitted-HEAD required CI,
+content review, full Core, Wasm/native, proofs/performance and the entire packed
+campaign remain unverified. Main was fetched after the diagnostic and still
+points to authoring baseline b40818e09295dba39de6b570b977610e95c75b1e. Final target
+is main with no unmerged dependency. Keep the submitted PR Draft pending its
+own review/required checks; do not manually rerun CI or merge it here.
+
+This selected JOIN/set entry and its public obligations are complete locally.
+The broader Frontend goal and the independent #1081 common BETWEEN execution
+dependency are not closed by this result.
