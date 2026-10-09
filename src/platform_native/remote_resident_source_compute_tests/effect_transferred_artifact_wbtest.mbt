@@ -294,7 +294,7 @@ fn retained_effect_transferred_artifact(
     consumer.bind_effect_retained_result_artifact(
       materials, inputs, imported, root_export, receipt, sender,
     )
-    is Err(ForeignArtifact),
+    is Err(Unavailable),
   )
   let (run_observation, invocation) = producer_dependency_observation(
     materials, source,

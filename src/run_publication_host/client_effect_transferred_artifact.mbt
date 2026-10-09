@@ -44,6 +44,13 @@ pub fn bind_transferred_client_effect_local_result_artifact(
     return Err(ForeignInput)
   }
   let run = @publication.publication_contract_identity(materials.run_definition)
+  guard artifact.custody is AcquiredUnit(sender) else {
+    return Err(ForeignArtifact)
+  }
+  if @strategy.captured_effect_local_unit_inputs_run_definition_cid(sender)
+    is None {
+    return Err(Unavailable)
+  }
   if @strategy.captured_effect_inputs_run_definition_cid(inputs) != Some(run) ||
     client_effect_local_artifact_run_definition_cid(artifact) != Some(run) {
     return Err(ForeignRun)
