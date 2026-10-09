@@ -189,9 +189,10 @@ fn retained_effect_preview_store(
     original.body,
   )
   assert_eq(consumer.usage().reserved_retention_bytes, before + preview_bytes)
-  // Semantically equivalent wire cannot overwrite the original saved bytes.
-  let different_bytes = store
-    .prepare_effect_preview_custody(
+  // The common Preview Owner requires original canonical wire. Even harmless
+  // whitespace is refused before encryption; the saved bytes remain unchanged.
+  assert_true(
+    store.prepare_effect_preview_custody(
       identity,
       wire + "\n",
       authoring_cid,
@@ -202,8 +203,8 @@ fn retained_effect_preview_store(
       10000,
       64,
     )
-    .unwrap()
-  assert_true(different_bytes.persist() is Err(StateCollision))
+    is Err(PreviewAdmission(PreviewShape(InvalidWire))),
+  )
   assert_eq(
     inspection.read("effect_preview_custody", holding).unwrap().body,
     original.body,
