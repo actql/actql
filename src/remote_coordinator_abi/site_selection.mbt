@@ -19,10 +19,9 @@ pub fn coordinator_plan_site_candidate(
 ) -> (Int, Int64) {
   @site.site_candidate_plan_projection(
     @site.plan_site_candidate(
-      duration, startup, capacity_supported, accepts_transfer,
-      transfer_provider_available, transfer_duration, transfer_required,
-      shared_transfer, source_revoked, estimate_available, transfer_bytes,
-      retained_bytes, execution_bytes,
+      duration, startup, capacity_supported, accepts_transfer, transfer_provider_available,
+      transfer_duration, transfer_required, shared_transfer, source_revoked, estimate_available,
+      transfer_bytes, retained_bytes, execution_bytes,
     ),
   )
 }

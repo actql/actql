@@ -5,7 +5,8 @@ import test from 'node:test';
 import {valuesUnitIdentity, acquiredUnitIdentities} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
+import {valuesProgramOracle, valuesPublicationOracle} from
+  '../../scripts/client-values-dependency-oracle.mjs';
 import {tasksDependencyOracle} from '../../scripts/client-tasks-dependency-oracle.mjs';
 import * as runtime from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -25,8 +26,8 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
 // Retained pre-change preimages, verified against the existing compatibility
-// CIDs. Rebind grammar, barrier and AoA roots and independently derive Unit,
-// proof, publication bounds and Result Plan dependencies. Expectations never
+// CIDs. Rebind grammar, barrier and AoA roots and independently derive Program,
+// Unit, proof, publication bounds and Result Plan dependencies. Expectations never
 // come from compiler output; historical fixtures stay unchanged.
 const baselinePlanCids = {
   values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
@@ -72,9 +73,12 @@ for (const kind of ['values', 'tasks']) {
   assert.equal(compiled.executable_plan_cid, baseline.executablePlan.executable_plan_cid);
   assert.equal(executable.execution_material.invocation_template_cid,
     baseline.boundTemplate.bound_invocation_template_cid);
+  let priorIdentity, currentIdentity;
   if (kind === 'values') {
     const prior = valuesPublicationOracle({legacy: true});
     const current = valuesPublicationOracle();
+    priorIdentity = valuesProgramOracle({legacy: true});
+    currentIdentity = valuesProgramOracle();
     assert.deepEqual(executable.resolved_limits, prior.limits);
     assert.deepEqual(executable.limit_bindings, prior.bindings);
     assert.equal(executable.execution_material.result_plan_logical_cids.answer,
@@ -91,6 +95,8 @@ for (const kind of ['values', 'tasks']) {
   } else {
     const prior = tasksDependencyOracle({legacy: true});
     const current = tasksDependencyOracle();
+    priorIdentity = prior;
+    currentIdentity = current;
     assert.deepEqual(executable.execution_material.result_plan_logical_cids, prior.resultPlans);
     const unitMap = new Map(prior.units.map((unit, index) => [unit, current.units[index]]));
     // Two limits per declared Result, in stage order. Verify the independently
@@ -109,6 +115,16 @@ for (const kind of ['values', 'tasks']) {
           unit_definition_cid: current.units[Math.floor(index / 2)]}, unit: limit.unit}, 'binding_cid'));
     executable.execution_material.result_plan_logical_cids = current.resultPlans;
   }
+  // Preserve the historical Program preimages, then bind the independently
+  // derived current roots at every owner before resealing their dependency chain.
+  assert.equal(compiled.program_definition_cid, priorIdentity.programCid);
+  assert.equal(compiled.program_semantics_cid, priorIdentity.semanticsCid);
+  assert.equal(template.program_definition_cid, priorIdentity.programCid);
+  assert.equal(executable.execution_material.program_definition_cid, priorIdentity.programCid);
+  compiled.program_definition_cid = currentIdentity.programCid;
+  compiled.program_semantics_cid = currentIdentity.semanticsCid;
+  template.program_definition_cid = currentIdentity.programCid;
+  executable.execution_material.program_definition_cid = currentIdentity.programCid;
   executable.plan_facts = executable.resolved_limits.map(value => ({kind: 'resolved_limit', value}));
   executable.plan_fact_manifest_cid = hash({version: 'actql-plan-fact-manifest/0.1',
     plan_facts: executable.plan_facts});

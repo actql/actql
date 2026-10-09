@@ -93,6 +93,8 @@ async function runFailure(reason, {failCleanupOnce = false} = {}) {
     await writeFile(join(base, 'package.json'), '{"type":"module"}\n');
     await cp(join(root, 'adapters/connectors/duckdb/node/managed-strategy-compute.mjs'),
       join(duckdb, 'managed-strategy-compute.mjs'));
+    await cp(join(root, 'adapters/connectors/duckdb/node/managed-output-finish.mjs'),
+      join(duckdb, 'managed-output-finish.mjs'));
     await cp(join(root, 'adapters/connectors/duckdb/node/failure-envelope.mjs'),
       join(duckdb, 'failure-envelope.mjs'));
     await cp(join(root, 'adapters/connectors/duckdb/node/managed-failure.mjs'),

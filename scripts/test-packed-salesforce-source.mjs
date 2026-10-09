@@ -278,8 +278,8 @@ try {
         results: {r: {from: 'out', fields: ['External_Key__c', 'Name']}}}],
     results: {records: {from: {stage: 'compute', result: 'r'}}}});
   const execution = await client.startSource(program, {format: 'json',
-    requestId: process.env.ACTQL_LOCAL_EFFECT_PROFILE === undefined
-      ? 'packed-read-1' : 'packed-coinstalled-read'});
+    submissionRef: client.newSubmission({nonce: process.env.ACTQL_LOCAL_EFFECT_PROFILE === undefined
+      ? 'packed-read-1' : 'packed-coinstalled-read'})});
   assert.equal((await execution.wait()).status, 'succeeded');
   const rows = await execution.result('records').all();
   process.stdout.write(JSON.stringify(rows.map(row =>
@@ -541,6 +541,7 @@ import {observeTwoSourceProvider} from './two-source-public-query.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
   compositionExpectations} from
   './composed-infer-effect-input.mjs';
@@ -715,8 +716,10 @@ try {
       results: {rows: {from: 'selected', fields: ['id']}},
       effects,
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+    const submissionRef = client.newSubmission({nonce: 'packed-effect-1'});
+    writeFileSync('effect-submission.json', JSON.stringify(submissionRef));
     const execution = await client.startSource(JSON.stringify(program), {
-      format: 'json', requestId: 'packed-effect-1'});
+      format: 'json', submissionRef});
     await waitFor(async () => {
       const status = await execution.status();
       if (status.status === 'failed') throw new Error('PackedEffectFailed: ' + JSON.stringify(status));
@@ -727,9 +730,11 @@ try {
   } else if (step === 'target-answer' || step === 'target-resume') {
     assert.ok(targetReadApproval);
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
-    const lookup = await client.lookupRequest('packed-effect-1');
-    assert.equal(lookup.kind, 'found');
-    assert.deepEqual(lookup.ref, ref);
+    const submissionRef = JSON.parse(readFileSync('effect-submission.json', 'utf8'));
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.admission.ref, ref);
     const execution = await client.attach(ref);
     await waitFor(async () => {
       const state = await execution.status();
@@ -761,9 +766,10 @@ try {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
     const read = JSON.parse(readFileSync('source-checkpoint.json', 'utf8'));
-    const lookup = await client.lookupRequest(submission.requestId);
-    assert.equal(lookup.kind, 'found');
-    assert.deepEqual(lookup.ref, ref, 'read approval retains the same Run');
+    const lookup = await client.lookupSubmission(submission.submissionRef);
+    assert.deepEqual(lookup.submissionRef, submission.submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.admission.ref, ref, 'read approval retains the same Run');
     const execution = await client.attach(ref);
     await waitFor(async () => {
       const state = await execution.status();
@@ -812,11 +818,12 @@ try {
     assert.equal(modelApproval, true);
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
-    const lookup = await client.lookupRequest(submission.requestId);
-    assert.equal(lookup.kind, 'found');
-    assert.deepEqual(lookup.ref, ref);
+    const lookup = await client.lookupSubmission(submission.submissionRef);
+    assert.deepEqual(lookup.submissionRef, submission.submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.admission.ref, ref);
     const execution = await client.startSource(submission.document, {
-      format: submission.format, requestId: submission.requestId});
+      format: submission.format, submissionRef: submission.submissionRef});
     assert.deepEqual(execution.ref, ref);
     await waitFor(async () => {
       const state = await execution.status();
@@ -864,18 +871,32 @@ try {
     if (composed) await terminate('approval-committed', ref);
     console.log('approved');
   } else if (step === 'rce-empty') {
-    assert.deepEqual(await client.lookupRequest('unsupported-rce'),
-      {kind: 'not_found'});
+    const submissionRef = client.newSubmission({nonce: 'unsupported-rce'});
+    writeFileSync('unsupported-submission.json', JSON.stringify(submissionRef));
+    assert.deepEqual(await client.lookupSubmission(submissionRef),
+      {kind: 'unresolvable', submissionRef,
+        problem: {code: 'submission_history_unresolvable'}});
     console.log('empty');
   } else if (step === 'rce-unsupported') {
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
     assert.equal(createHash('sha256').update(submission.document).digest('hex'),
       process.argv[3], 'the exact positively executed Program is reused');
+    const submissionRef = JSON.parse(readFileSync('unsupported-submission.json', 'utf8'));
+    let outcome;
     await assert.rejects(client.startSource(submission.document, {format: submission.format,
-      requestId: 'unsupported-rce'}), {code: 'ClientProgramUnsupported'});
-    const lookup = await client.lookupRequest('unsupported-rce');
-    assert.deepEqual(lookup, {kind: 'not_found'});
-    console.log(JSON.stringify({code: 'ClientProgramUnsupported', lookup,
+      submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.submissionRef, submissionRef);
+      assert.deepEqual(outcome.problem,
+        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+      assert.equal(outcome.admission, undefined);
+      return true;
+    });
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.deepEqual(lookup, outcome);
+    console.log(JSON.stringify({code: 'SubmissionNotAccepted', lookup,
       programSha256: process.argv[3]}));
   } else if (step === 'policy-refusal') {
     assert.ok(graphFamily);
@@ -884,11 +905,14 @@ try {
     const mapping = generation.mappings.find(entry => entry.write.resource === 'Test_Record__c');
     const document = JSON.stringify(graphCompositionProgram(mapping.mapping_ref, graphFamily));
     const requestId = 'missing-graph-result-policy';
-    await assert.rejects(client.startSource(document, {format: 'json', requestId}),
+    const submissionRef = client.newSubmission({nonce: requestId});
+    await assert.rejects(client.startSource(document, {format: 'json', submissionRef}),
       error => error.code === 'SubmissionUnknown' &&
         error.requestId === requestId && error.cause?.code === 'ClientHostFailure');
-    const lookup = await client.lookupRequest(requestId);
-    assert.deepEqual(lookup, {kind: 'not_found'});
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'preparing');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.equal(lookup.admission, undefined);
     assert.deepEqual((await client.checkpoints()).items, []);
     console.log(JSON.stringify({code: 'SubmissionUnknown', cause: 'ClientHostFailure', requestId, lookup,
       programSha256: createHash('sha256').update(document).digest('hex')}));
@@ -901,7 +925,7 @@ try {
       : compositionText(mapping.mapping_ref, variant);
     const format = graphFamily ? 'json' : 'aql-text';
     const execution = await client.startSource(document, {format,
-      requestId: 'assertion-' + variant});
+      submissionRef: client.newSubmission({nonce: 'assertion-' + variant})});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', 'assertion failure precedes INFER and Effect');
     assert.deepEqual((await client.checkpoints()).items, []);
@@ -940,14 +964,16 @@ try {
       : JSON.stringify(program), format: composedText ? 'aql-text' : 'json',
       }),
       requestId: 'packed-rce-' + process.argv[3],
+      submissionRef: client.newSubmission({nonce: 'packed-rce-' + process.argv[3]}),
       installedSourceProfiles: installation.sourceProfilePaths?.length ??
         (installation.sourceProfilePath === undefined ? 0 : 1)};
+    writeFileSync('rce-submission.json', JSON.stringify(submission));
     let execution;
     try {
       execution = await client.startSource(submission.document, {
-        format: submission.format, requestId: submission.requestId});
+        format: submission.format, submissionRef: submission.submissionRef});
     } catch (error) {
-      if (error?.code === 'ClientProgramUnsupported') {
+      if (getSubmissionOutcome(error)?.problem?.code === 'ClientProgramUnsupported') {
         console.log('not-connected');
         process.exit(0);
       }
@@ -969,7 +995,6 @@ try {
       assert.equal(state.status, expectedStatus);
     }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
-    writeFileSync('rce-submission.json', JSON.stringify(submission));
     if (modelApproval) {
       const checkpoints = (await client.checkpoints()).items;
       assert.equal(checkpoints.length, 1);
@@ -1002,7 +1027,7 @@ try {
     }
     if (process.argv[3] === 'success' || optionalKind) {
       const repeated = await client.startSource(submission.document, {
-        format: submission.format, requestId: submission.requestId});
+        format: submission.format, submissionRef: submission.submissionRef});
       assert.deepEqual(repeated.ref, execution.ref,
         'resubmitting the same request must retain the original Run');
     }
@@ -1023,17 +1048,18 @@ try {
   } else if (step === 'rce-resume') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
-    const lookup = await client.lookupRequest(submission.requestId);
-    assert.equal(lookup.kind, 'found');
-    assert.deepEqual(lookup.ref, ref);
+    const lookup = await client.lookupSubmission(submission.submissionRef);
+    assert.deepEqual(lookup.submissionRef, submission.submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.admission.ref, ref);
     assert.deepEqual((await client.checkpoints()).items, []);
     if (process.argv[3] === 'resubmit') {
       const repeated = await client.startSource(submission.document, {
-        format: submission.format, requestId: submission.requestId});
+        format: submission.format, submissionRef: submission.submissionRef});
       assert.deepEqual(repeated.ref, ref,
         'resubmission after process termination must recover the same Run');
     }
-    const execution = await client.attach(lookup.ref);
+    const execution = await client.attach(lookup.admission.ref);
     const state = await waitFor(async () => {
       const current = await execution.status();
       return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled']
@@ -1283,7 +1309,7 @@ try {
       for (const boundary of boundaries) assert.deepEqual(boundary.ref, ref);
       const submission = JSON.parse(await readFile(join(root, 'rce-submission.json'), 'utf8'));
       const observation = {sourceRevision, transport, case: compositionKind,
-        requestId: submission.requestId, ref, submittedFormat: submission.format,
+        requestId: submission.requestId, submissionRef: submission.submissionRef, ref, submittedFormat: submission.format,
         submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
         sourceReadSessions: sourceObservations.map(item => item.sourceReadSessions),
         modelCalls, effectWriteCounts,
@@ -1362,7 +1388,7 @@ try {
       const submission = JSON.parse(await readFile(join(root, 'rce-submission.json'), 'utf8'));
       const observation = {sourceRevision, transport, case: compositionKind,
         profile: 'two installed Sources, Local Compute and installed Effect; no Model',
-        requestId: submission.requestId, ref, submittedFormat: submission.format,
+        requestId: submission.requestId, submissionRef: submission.submissionRef, ref, submittedFormat: submission.format,
         submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
         sourceDatabases: {left: databases.left, right: databases.right},
         sourceCheckpointCid: JSON.parse(await readFile(join(root,
@@ -1438,7 +1464,7 @@ try {
       const submission = JSON.parse(await readFile(join(root,
         'rce-submission.json'), 'utf8'));
       const observation = {sourceRevision, transport, case: compositionKind,
-        requestId: submission.requestId, ref, submittedFormat: submission.format,
+        requestId: submission.requestId, submissionRef: submission.submissionRef, ref, submittedFormat: submission.format,
         submittedProgramSha256: createHash('sha256').update(
           submission.document).digest('hex'),
         sourceReadSessions, modelInputs, effectWriteCounts,
@@ -1546,8 +1572,11 @@ try {
       assert.deepEqual(server.seen, providerBefore, 'opening restores without provider I/O');
       const refusal = JSON.parse((await runChild('effect-run.mjs',
         unsupportedEnvironment, ['rce-unsupported', programSha256])).trim());
-      assert.equal(refusal.code, 'ClientProgramUnsupported');
-      assert.deepEqual(refusal.lookup, {kind: 'not_found'});
+      assert.equal(refusal.code, 'SubmissionNotAccepted');
+      assert.equal(refusal.lookup.kind, 'not_accepted');
+      assert.deepEqual(refusal.lookup.problem,
+        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+      assert.equal(refusal.lookup.admission, undefined);
       assert.equal(refusal.programSha256, programSha256);
       const journalAfter = readTwoSourceJournal(
         unsupportedEnvironment.ACTQL_LOCAL_STATE_DIR);
@@ -1776,7 +1805,7 @@ try {
       for (const boundary of boundaries) assert.deepEqual(boundary.ref, ref);
       const submission = JSON.parse(await readFile(join(root, 'rce-submission.json'), 'utf8'));
       const observation = {sourceRevision, kind, transport, effectEnabled: enabled,
-        requestId: submission.requestId, ref, submittedFormat: submission.format,
+        requestId: submission.requestId, submissionRef: submission.submissionRef, ref, submittedFormat: submission.format,
         submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
         sourceReadSessions: sourceCalls.map(item => item.sourceReadSessions),
         modelCalls: 0, writeCounts, writes, selections,

@@ -4,6 +4,7 @@ import {distinctAggregateOrderSuccesses, distinctAggregateOrderRefusals} from '.
 import {analyticDistinctFrameSuccesses, analyticDistinctFrameRefusals} from './analytic-distinct-frame-source-input.mjs';
 import {countifDistinctSuccesses, countifDistinctRefusals} from './countif-distinct-source-input.mjs';
 import {minMaxDistinctSuccesses, minMaxDistinctRefusals} from './min-max-distinct-source-input.mjs';
+import {pipeDistinctSuccesses, pipeDistinctRefusals} from './pipe-distinct-source-input.mjs';
 import {groupByAllSuccesses, groupByAllRefusals} from './group-by-all-source-input.mjs';
 import {correlatedUnnestSuccesses, correlatedUnnestRefusals} from './correlated-unnest-source-input.mjs';
 import {unnestCheckedArraySuccesses, unnestCheckedArrayRefusals} from './unnest-checked-array-source-input.mjs';

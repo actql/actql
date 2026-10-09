@@ -551,7 +551,7 @@ priv struct BoundedBindingRowsState {
   mut distinct_keep : Array[Bool]
   mut distinct_cursor : Int
   input_names : Array[String]
-  output_names : Array[String]
+  mut output_names : Array[String]
   input_ordinals : Map[String, Int]
   binding_ordinals : Map[String, Int]
   row_sources : Array[BindingRowSource]
@@ -944,6 +944,23 @@ fn bounded_binding_rows_step(
       PrepareCompletionPort => {
         guard state.port_preparation is Some(cursor) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        match reuse_selected_trusted_output_metadata(cursor) {
+          Err(issue) =>
+            return fail_bounded_binding_rows(
+              Completion(issue),
+              progress,
+              used + 1,
+            )
+          Ok(true) => {
+            state.phase = if state.stepped_metadata {
+              PrepareInputNames
+            } else {
+              ChargeInput
+            }
+            continue
+          }
+          Ok(false) => ()
         }
         match advance_trusted_output_preparation(cursor) {
           Err(issue) =>
@@ -3355,6 +3372,26 @@ fn bounded_binding_rows_step(
       FinishOutput => {
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if state.port is None && state.port_preparation is Some(cursor) {
+          let live = state.live
+          let rows = state.rows
+          state.port = match
+            finish_selected_trusted_output_preparation(
+              cursor,
+              state.output_names,
+              fn(_) { if live.val { rows.val } else { None } },
+            ) {
+            Ok(port) => Some(port)
+            Err(issue) =>
+              return fail_bounded_binding_rows(
+                Completion(issue),
+                progress,
+                used,
+              )
+          }
+          state.output_names = []
+          state.port_preparation = None
         }
         if state.scope is Some(scope) {
           cleanup_expression_roots(scope)

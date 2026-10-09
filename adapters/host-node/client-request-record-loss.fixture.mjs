@@ -5,6 +5,19 @@ import {DatabaseSync} from 'node:sqlite';
 import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
+// Locate the historical request identity retained for this exact Run. The
+// submission nonce is not this ID: its epoch participates in the identity.
+export function retainedRequestId(directory, runDefinitionCid) {
+  const database = new DatabaseSync(join(directory, 'requests/client-requests.sqlite3'));
+  try {
+    const rows = database.prepare('SELECT caller_request_id FROM client_requests WHERE run_definition_cid = ?')
+      .all(runDefinitionCid);
+    assert.equal(rows.length, 1);
+    assert.equal(typeof rows[0].caller_request_id, 'string');
+    return rows[0].caller_request_id;
+  } finally {database.close();}
+}
+
 export async function loseRequestRecord(directory, requestId) {
   const database = new DatabaseSync(join(directory, 'requests/client-requests.sqlite3'));
   try {

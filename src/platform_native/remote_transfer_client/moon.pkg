@@ -19,6 +19,7 @@ import {
 options(
   "native-stub": [ "retry_wait_stub.c" ],
   targets: {
+    "reconciliation_native_wbtest.mbt": [ "native" ],
     "retry_wait_native.mbt": [ "native" ],
     "retry_wait_unsupported.mbt": [ "not", "native" ],
   },

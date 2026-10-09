@@ -159,7 +159,13 @@ if (transport === 'http') {
     durability: 'durable', installation: installationOptions});
 }
 try {
-  run = await client.start(submittedProgram, {requestId: 'packed-single-infer'});
+  const submissionPath = join(root, 'submission.json');
+  const recovering = mode === 'replay' || approval && !waiting;
+  const submissionRef = recovering
+    ? JSON.parse(readFileSync(submissionPath, 'utf8'))
+    : client.newSubmission({nonce: 'packed-single-infer'});
+  if (!recovering) writeFileSync(submissionPath, JSON.stringify(submissionRef));
+  run = await client.start(submittedProgram, {submissionRef});
   started();
   if (approval) {
     const recordPath = join(root, 'approval-run.json');

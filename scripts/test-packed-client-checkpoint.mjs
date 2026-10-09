@@ -1,6 +1,9 @@
 // Packed acceptance of the public Client Checkpoint connection: a clean
 // installation of the packed packages, the public Client in separate
 // processes and the installed Remote Host as a separate, restarted process.
+// Pre-Run positives are current recovery of independent synthetic historical-format
+// originals, not proof of old-public-producer acceptance. New submissions use
+// the current epoch-bound submission reference and retain exact refusal controls.
 // Applications use only @actql/node; they never open a journal or owner.
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
@@ -61,14 +64,17 @@ assert.deepEqual(sdkFiles.filter(name => /\.(m?js|json)$/u.test(name)),
 
 async function heldValueAcceptance() {
   for (const name of ['adapters/host-node/held-submission-value-public.test.mjs',
-    'scripts/fixtures/held-submission-value-process.mjs', 'scripts/owned-scratch.mjs',
+    'scripts/fixtures/held-submission-value-process.mjs',
+    'scripts/fixtures/synthetic-historical-held-typed-values.mjs',
+    'scripts/fixtures/synthetic-historical-held-values.mjs', 'scripts/owned-scratch.mjs',
     'scripts/test-execution-reporter.mjs']) {
     await mkdir(dirname(join(root, name)), {recursive: true});
     await writeFile(join(root, name), await readFile(join(repository, name)));
   }
   const inputs = join(root, 'held-value-acceptance-inputs.json');
   await writeFile(inputs, JSON.stringify({scratch: root, runtime: {
-    client: '@actql/node', httpHost: '@actql/local-node/http-host'}}));
+    client: '@actql/node', httpHost: '@actql/local-node/http-host',
+    root: pathToFileURL(join(root, 'node_modules/@actql/local-node/')).href}}));
   const args = nodeTestArguments(['adapters/host-node/held-submission-value-public.test.mjs']);
   args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
   const result = spawnSync(process.execPath, args, {cwd: root,
@@ -81,11 +87,15 @@ async function heldValueAcceptance() {
 }
 if (heldValuesOnly) {
   await heldValueAcceptance();
-  console.log('packed held submission value recovery: ok');
+  console.log('packed synthetic historical typed-value recovery: ok');
   if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') console.error(`packed client Checkpoint scratch kept: ${root}`);
   else await rm(root, {recursive: true, force: true});
   process.exit(0);
 }
+for (const name of ['synthetic-historical-held-values.mjs', 'synthetic-historical-held-query.mjs']) {
+  await writeFile(join(root, name), await readFile(join(repository, 'scripts/fixtures', name)));
+}
+const {syntheticHeldSnapshot} = await import(pathToFileURL(join(root, 'synthetic-historical-held-values.mjs')).href);
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -158,6 +168,8 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
+import {writeSyntheticHistoricalHeldValues, syntheticHeldSnapshot} from './synthetic-historical-held-values.mjs';
+import {writeSyntheticHistoricalHeldQuery} from './synthetic-historical-held-query.mjs';
 const log = event => appendFileSync(process.env.EVENTS, event + '\\n');
 const outcome = process.env.OUTCOME;
 const canonical = value => Array.isArray(value)
@@ -202,7 +214,7 @@ const decide = process.env.DECIDE === 'none' ? undefined : view => {
   return {decision: process.env.DECIDE, subject: view.subject,
     authority: 'host-policy'};
 };
-const host = await openInstalledRemoteHttpHost({
+const installation = {
   directory: process.env.STATE,
   ...(process.env.ACQUIRED === '1' ?
     {sourceProfilePath: new URL('source-profile.json',
@@ -227,7 +239,34 @@ const host = await openInstalledRemoteHttpHost({
     checkpointTtlMs: Number(process.env.TTL_MS ?? 86400000),
     faultInjection: mark,
   },
-});
+};
+if (process.env.HISTORICAL_REQUESTS !== undefined) {
+  const originals = JSON.parse(process.env.HISTORICAL_REQUESTS);
+  // One fixture owner initializes and closes the public installation before
+  // original bytes are written. The reopened public Host owns all admission.
+  const bootstrap = await openInstalledRemoteHttpHost({...installation,
+    authorization: {...installation.authorization, resumeAfterAnswer: false}});
+  await bootstrap.close();
+  for (const [index, requestId] of originals.entries()) {
+    const acquired = process.env.ACQUIRED === '1';
+    const parsed = JSON.parse(readFileSync(acquired ? 'source-program.json' : 'values.json', 'utf8'));
+    if (!acquired) parsed.id = requestId;
+    const document = JSON.stringify(parsed);
+    const options = {directory: process.env.STATE, document, requestId,
+      authorization: installation.authorization,
+      runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')), mode: 'remote'};
+    const original = acquired
+      ? await writeSyntheticHistoricalHeldQuery({...options,
+        sourceProfile: JSON.parse(readFileSync('source-profile.json', 'utf8'))})
+      : await writeSyntheticHistoricalHeldValues({...options, append: index > 0});
+    writeFileSync('original-' + requestId + '.json', JSON.stringify(original));
+    const snapshot = await syntheticHeldSnapshot(process.env.STATE, original);
+    if (snapshot.runs.length !== 0 || snapshot.accepted.length !== 0 || snapshot.intents !== 0) {
+      throw new Error('Synthetic originals must precede every Run and submission intent');
+    }
+  }
+}
+const host = await openInstalledRemoteHttpHost(installation);
 const server = createServer({key: readFileSync('remote.key'),
   cert: readFileSync('remote.crt')}, host.handler);
 server.listen(0, '127.0.0.1', () => {
@@ -247,7 +286,7 @@ await writeFile(join(root, 'client.mjs'), `
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
-import {connect, ClientError, RequestHeld} from '@actql/node';
+import {connect, getSubmissionOutcome} from '@actql/node';
 const as = token => connect({mode: 'remote',
   endpoint: process.env.ENDPOINT, token, durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
@@ -272,16 +311,14 @@ const text = acquired ? readFileSync('source-program.json', 'utf8')
 const submitOptions = acquired ? {parameters: {minimum: 1}} : {};
 async function held() {
   const owner = await as('owner-token');
-  try {
-    await owner.startSource(text, {format: 'json', requestId, ...submitOptions});
-  } catch (error) {
-    assert.equal(error instanceof RequestHeld, true, String(error?.code));
-    assert.equal(error.code, 'RequestHeld');
-    assert.equal(error.held.state, 'waiting_checkpoint');
-    assert.equal('ref' in error.held, false);
-    return error.held;
-  }
-  assert.fail('expected a held request');
+  const original = load('original-' + requestId);
+  const held = await owner.lookupRequest(requestId);
+  assert.equal(held.kind, 'held');
+  assert.equal(held.state, 'waiting_checkpoint');
+  assert.equal(held.prepareAttemptId, original.prepareAttemptId);
+  assert.equal(held.checkpoint.checkpointCid, original.checkpointCid);
+  assert.equal('ref' in held, false);
+  return held;
 }
 async function finished(id = requestId) {
   const owner = await as('owner-token');
@@ -317,18 +354,52 @@ async function finished(id = requestId) {
 const steps = {
   async allowed() {
     const owner = await as('owner-token');
-    const execution = await owner.startSource(text, {format: 'json', requestId});
+    const execution = await owner.startSource(text, {format: 'json',
+      submissionRef: owner.newSubmission({nonce: requestId})});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), expected);
     assert.deepEqual((await (await as('reviewer-token')).checkpoints())
       .items, []);
   },
+  // The packed equivalent of the supported DCI-R8 producer replay control
+  // in remote-checkpoint-host.test.mjs. This is separate from old-ID lookup.
+  async replayed() {
+    const owner = await as('owner-token');
+    const submissionRef = owner.newSubmission({nonce: requestId});
+    const first = await owner.startSource(text, {format: 'json', submissionRef});
+    assert.equal((await first.wait()).status, 'succeeded');
+    assert.deepEqual(await first.result('answer').all(), expected);
+    const original = await owner.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.admission.ref, first.ref);
+    assert.deepEqual((await owner.startSource(text, {format: 'json', submissionRef})).ref, first.ref);
+    const changed = JSON.parse(text);
+    changed.stages[0].steps[0].values.rows = [{id: 999}];
+    await assert.rejects(owner.startSource(JSON.stringify(changed), {format: 'json', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionUnknown');
+      assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
+      assert.equal(error.cause?.status, 409);
+      assert.deepEqual(error.submissionRef, submissionRef);
+      return true;
+    });
+    assert.deepEqual(await owner.lookupSubmission(submissionRef), original);
+    assert.deepEqual(await (await owner.attach(first.ref)).result('answer').all(), expected);
+  },
   async refused() {
     const owner = await as('owner-token');
-    await assert.rejects(owner.startSource(text, {format: 'json', requestId}),
-      {code: process.env.CODE});
-    assert.deepEqual(await owner.lookupRequest(requestId),
-      {kind: 'not_found'});
+    const submissionRef = owner.newSubmission({nonce: requestId});
+    let outcome;
+    await assert.rejects(owner.startSource(text, {format: 'json', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'preparation_failed');
+      assert.equal(outcome.problem.code, process.env.CODE);
+      assert.deepEqual(outcome.submissionRef, submissionRef);
+      assert.equal(Object.hasOwn(outcome, 'admission'), false);
+      return true;
+    });
+    assert.deepEqual(await owner.lookupSubmission(submissionRef), outcome);
+    assert.deepEqual((await owner.checkpoints()).items, []);
   },
   async hold() { save('held-' + requestId, await held()); },
   async review() {
@@ -360,6 +431,8 @@ const steps = {
     assert.equal((await owner.lookupRequest(requestId)).state,
       'waiting_checkpoint');
     const review = await reader.reviewCheckpoint(summary);
+    const original = load('original-' + requestId);
+    assert.equal(new TextDecoder().decode(review.bytes), original.reviewWire);
     const projection = JSON.parse(new TextDecoder().decode(review.bytes));
     assert.equal(projection.version, 'actql-run-review-projection/0.1');
     assert.equal(projection.displayed_scope.request_id, requestId);
@@ -442,11 +515,15 @@ const steps = {
     await execution.cancel();
     assert.equal((await execution.status()).status, 'cancelled');
   },
-  // The same request submitted again: the existing Run, which only the
-  // Host's resumed authorization may start.
-  async resubmitted() {
+  // A historical original remains observable/attachable after restart and
+  // can start only under its resumed authorization. Bare ingress stays refused.
+  async recoveredAgain() {
     const owner = await as('owner-token');
-    const execution = await owner.startSource(text, {format: 'json', requestId});
+    const lookup = await owner.lookupRequest(requestId);
+    assert.equal(lookup.kind, 'found');
+    const execution = await owner.attach(lookup.ref);
+    await assert.rejects(owner.startSource(text, {format: 'json', requestId}),
+      {code: 'SubmissionReferenceRequired'});
     let state;
     for (let attempt = 0; attempt < 400; attempt++) {
       state = await execution.wait();
@@ -604,13 +681,18 @@ async function crashed(name, options) {
 async function approvedAndStopped(name, requestId, extra = {}) {
   // Client steps use the same Program kind as the Host (real input or not).
   const env = extra.ACQUIRED === undefined ? {} : {ACQUIRED: extra.ACQUIRED};
-  await withHost(name, extra, started => client(started, 'hold',
+  await withHost(name, {...extra, HISTORICAL_REQUESTS: JSON.stringify([requestId])}, started => client(started, 'hold',
     [requestId], env));
   await withHost(name, {RESUME_AFTER_ANSWER: '0', ...extra}, started => {
     client(started, 'review', [requestId], env);
     client(started, 'approve', [requestId], env);
     client(started, 'resumeWaiting', [requestId], env);
   });
+  const original = JSON.parse(await readFile(join(root, 'original-' + requestId + '.json'), 'utf8'));
+  const approved = await syntheticHeldSnapshot(join(root, name), original);
+  assert.deepEqual(approved.runs, []);
+  assert.deepEqual(approved.accepted, []);
+  assert.equal(approved.intents, 0);
 }
 // Wait (bounded) until the running Host has released the held evidence.
 async function untilRetired(name, maxWaitMs = 20_000) {
@@ -626,12 +708,31 @@ async function untilRetired(name, maxWaitMs = 20_000) {
 // held while the Run is not terminal.
 async function assertRetired(name, state = 'retired') {
   const ledgers = join(root, name, 'checkpoints', 'attempts');
+  const originals = await Promise.all((await readdir(root)).filter(file =>
+    file.startsWith('original-') && file.endsWith('.json')).map(async file =>
+    JSON.parse(await readFile(join(root, file), 'utf8'))));
   for (const file of await readdir(ledgers)) {
     const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
+    const original = originals.find(item => item.prepareAttemptId === ledger.prepare_attempt_id);
+    assert.ok(original, 'Every held ledger retains its independently authored original');
+    const snapshot = await syntheticHeldSnapshot(join(root, name), original);
+    assert.equal(snapshot.intents, 0);
+    for (const accepted of snapshot.accepted) {
+      const expected = originals.find(item => item.requestId === accepted.caller_request_id &&
+        item.logicalRequestScopeCid === accepted.logical_request_scope_cid);
+      assert.ok(expected, 'Accepted Run retains an original request identity');
+      assert.equal(accepted.intent_fingerprint_cid, expected.intentFingerprintCid);
+      assert.equal(accepted.program_definition_cid, expected.programDefinitionCid);
+      assert.equal(accepted.parameter_values_cid, expected.parameterValuesCid);
+      assert.equal(accepted.caller_input_intent_cid, expected.callerInputIntentCid);
+    }
     for (const holding of ledger.holdings.filter(item =>
       item.name !== 'invocation_request')) {
       assert.equal(holding.state, state, `${file} ${holding.name}`);
+      assert.equal(snapshot.physicalHoldings[holding.name], state === 'held',
+        `${file} ${holding.name} physical cleanup`);
     }
+    assert.equal(snapshot.pendingPhysicalDeletions, 0);
   }
 }
 
@@ -645,6 +746,9 @@ if (!recoveryOnly) {
   await withHost('allow', {OUTCOME: 'allow', DECIDE: 'permit'}, started =>
     client(started, 'allowed', ['allow-a']));
   assert.deepEqual(await counts('allow'), ran());
+  await withHost('epoch-replay', {OUTCOME: 'allow'}, started =>
+    client(started, 'replayed', ['epoch-replay']));
+  assert.deepEqual(await counts('epoch-replay'), ran());
   for (const [outcome, code] of [['deny', 'ACTQL_E_ACCOUNT_DENIED'],
     ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID']]) {
     await withHost(outcome, {OUTCOME: outcome}, started =>
@@ -660,6 +764,12 @@ if (!recoveryOnly) {
     client(started, 'refused', ['reject-a'],
       {CODE: 'ACTQL_E_DELEGATION_REJECTED'}));
   assert.deepEqual(await counts('reject'), {...none, decide: 1});
+
+  // The current epoch-bound public producer does not defer pre-Run work.
+  // This exact negative is separate from every historical recovery positive.
+  await withHost('new-epoch-deferred', {}, started =>
+    client(started, 'refused', ['new-epoch-deferred'], {CODE: 'ACTQL_E_DELEGATION_UNAVAILABLE'}));
+  assert.deepEqual(await counts('new-epoch-deferred'), none);
 
   // 3, 4, 6 and 7. Hold -> Host exits -> review, lost-reply answer and
   // contradiction from other processes on an answer-only Host -> a restarted
@@ -705,10 +815,10 @@ if (!recoveryOnly) {
       'finished'],
     ['expired-defined', 'definition_admitted', {},
       {TTL_MS: '90000', LEASE_MS: '2000'}, 'finished'],
-    // The owner submits the same request again after the restart: it is
-    // the existing Run, still started only under the resumed authorization.
-    ['expired-resubmit', 'definition_admitted', {},
-      {TTL_MS: '90000', LEASE_MS: '2000'}, 'resubmitted'],
+    // The owner reattaches the original after restart: it is the existing
+    // Run, still started only under resumed authorization.
+    ['expired-recover', 'definition_admitted', {},
+      {TTL_MS: '90000', LEASE_MS: '2000'}, 'recoveredAgain'],
   ]) {
     // Two Host starts, review and signing must fit before these expiry cases
     // inject their pre-start crash. Expiry is then observed after the crash.
@@ -795,7 +905,7 @@ if (!recoveryOnly) {
 
   // C1 with real input: the owner cancels a request held before its source
   // read; nothing is read and its evidence is released.
-  await withHost('acq-cancel', readOnly, started => {
+  await withHost('acq-cancel', {...readOnly, HISTORICAL_REQUESTS: '["acq-cancel"]'}, started => {
     client(started, 'hold', ['acq-cancel'], readOnly);
     client(started, 'review', ['acq-cancel'], readOnly);
     client(started, 'cancelHeld', ['acq-cancel'], readOnly);
@@ -808,7 +918,7 @@ if (!recoveryOnly) {
   // 8. The owner cancels a held request before any Run exists, from another
   // process; the lost reply is resent and matched; a late answer does not
   // resume it; nothing starts; its evidence is released.
-  await withHost('cancel-held', {}, started => {
+  await withHost('cancel-held', {HISTORICAL_REQUESTS: '["cancel-held"]'}, started => {
     client(started, 'hold', ['cancel-held']);
     client(started, 'review', ['cancel-held']);
     client(started, 'cancelHeld', ['cancel-held']);
@@ -820,7 +930,7 @@ if (!recoveryOnly) {
 
   // 8. A request answered on an answer-only Host is cancelled there; the next
   // Host start settles it by itself: no start, evidence released.
-  await withHost('cancel-resuming', {}, started =>
+  await withHost('cancel-resuming', {HISTORICAL_REQUESTS: '["cancel-resuming"]'}, started =>
     client(started, 'hold', ['cancel-resuming']));
   // The answer and the cancellation reach the same answer-only Host, before
   // any Host start could resume the request.
@@ -912,7 +1022,8 @@ if (!recoveryOnly) {
 
   // 6. A batch with independent per-item results; rejection ends the request
   // without a Run, the approved one runs on the next Host start.
-  await withHost('batch', {RESUME_AFTER_ANSWER: '0'}, started => {
+  await withHost('batch', {RESUME_AFTER_ANSWER: '0',
+    HISTORICAL_REQUESTS: '["batch-a","batch-b"]'}, started => {
     client(started, 'hold', ['batch-a']);
     client(started, 'hold', ['batch-b']);
     client(started, 'review', ['batch-a']);
@@ -927,8 +1038,8 @@ if (!recoveryOnly) {
 }
 for (const restartAfterCrash of pastDeadline) await restartAfterCrash();
 if (!recoveryOnly) await heldValueAcceptance();
-console.log(recoveryOnly ? 'packed client Checkpoint recovery: ok'
-  : 'packed client Checkpoint acceptance: ok');
+console.log(recoveryOnly ? 'packed synthetic historical Checkpoint recovery: ok'
+  : 'packed current submissions and synthetic historical Checkpoint recovery: ok');
 // A failed run keeps its installation, states and event logs for diagnosis.
 if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
   console.error(`packed client Checkpoint scratch kept: ${root}`);

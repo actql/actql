@@ -2,7 +2,8 @@ import test from 'node:test';
 import './workspace-binding.test.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {snapshotClientRequest, snapshotCheckRequest, checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
+import {snapshotClientRequest, snapshotCheckRequest, prepareClientHostRequest,
+  checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
   validCheckpointPage, validCheckOutcome,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
@@ -17,6 +18,94 @@ const connection = Object.freeze({mode: 'remote', owner: 'remote',
 const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
+
+test('Host request preparation observes the original check serializer once and owns its target', () => {
+  const selected = {...connection, workspaceId:'workspace-A',
+    consentRefs:['consent-A'], runners:[]};
+  const input = {version:'actql/0.1', stages:[]};
+  const parameters = {value:{nested:[1]}};
+  const body = {connection:selected, kind:'program', scope:'bound_input', input, parameters};
+  let serializations = 0;
+  Object.defineProperty(body, 'toJSON', {value() {
+    serializations++;
+    delete selected.workspaceId;
+    return {...body, connection:{...selected, workspaceId:'workspace-B'}};
+  }});
+  const prepared = prepareClientHostRequest('check', body);
+  assert.ok(prepared);
+  assert.equal(serializations, 1);
+  assert.equal(prepared.connection.workspaceId, 'workspace-A');
+  assert.equal(prepared.body.connection, prepared.connection);
+  input.stages.push({caller:'changed'});
+  parameters.value.nested.push(2);
+  selected.consentRefs.push('changed');
+  selected.runners.push('changed');
+  assert.deepEqual(prepared.body.input, {version:'actql/0.1', stages:[]});
+  assert.deepEqual(prepared.body.parameters, {value:{nested:[1]}});
+  assert.deepEqual(prepared.connection.consentRefs, ['consent-A']);
+  assert.deepEqual(prepared.connection.runners, []);
+  for (const value of [prepared.connection, prepared.connection.consentRefs,
+    prepared.connection.runners]) assert.equal(Object.isFrozen(value), true);
+});
+
+test('Host request preparation validates check shape before and after serialization', () => {
+  for (const extraBefore of [false, true]) {
+    let serializations = 0;
+    const body = {connection, kind:'text', scope:'bound_input',
+      input:{text:'SELECT 1', format:'sql'}, parameters:null,
+      ...(extraBefore ? {extra:true} : {})};
+    Object.defineProperty(body, 'toJSON', {value() {
+      serializations++;
+      const {extra: _extra, ...wire} = body;
+      return {...wire, ...(!extraBefore ? {extra:true} : {})};
+    }});
+    assert.equal(prepareClientHostRequest('check', body), undefined);
+    assert.equal(serializations, extraBefore ? 0 : 1);
+  }
+  assert.equal(prepareClientHostRequest('check', {connection, kind:'program',
+    scope:'template_only', input:{}, parameters:undefined}), undefined);
+  assert.equal(prepareClientHostRequest('unknown-operation', {connection}), undefined);
+});
+
+test('Host request preparation refuses lossy check numbers at the shared boundary', () => {
+  for (const value of [NaN, Infinity, -Infinity, -0]) {
+    assert.equal(prepareClientHostRequest('check', {connection,
+      kind:'program', scope:'bound_input', input:{}, parameters:{value}}), undefined);
+  }
+});
+
+test('Host request preparation owns each submission request with its existing snapshot policy', () => {
+  const epoch = {version:'actql-submission-epoch/0.1',
+    authorityScopeCid:ref.authorityScopeCid, epochNonce:'c'.repeat(64),
+    notBefore:1800000000000, expiresAt:1800000001000, authenticator:'d'.repeat(64)};
+  for (const operation of ['submit-intent', 'restart-intent', 'lookup-submission']) {
+    const selected = {...connection, workspaceId:'workspace-A'};
+    const submissionRef = {epoch:{...epoch}, nonce:'current-submission'};
+    const body = {connection:selected, submissionRef,
+      ...(operation === 'lookup-submission' ? {} : {
+        intentCid:`sha256:${'f'.repeat(64)}`, kind:'program', input:{}, parameters:{n:1}}),
+      ...(operation === 'restart-intent' ? {unresolvedHistory:{
+        acknowledgement:'possible_prior_execution_and_effects',
+        submissionRef:{epoch:{...epoch, epochNonce:'e'.repeat(64),
+          notBefore:1799999999000, expiresAt:1800000000000}, nonce:'prior-submission'}}} : {})};
+    const expected = structuredClone(body);
+    const prepared = prepareClientHostRequest(operation, body);
+    assert.ok(prepared, operation);
+    selected.workspaceId = 'workspace-B';
+    submissionRef.nonce = 'changed';
+    submissionRef.epoch.authenticator = '0'.repeat(64);
+    if (body.parameters) body.parameters.n = 2;
+    if (body.unresolvedHistory) body.unresolvedHistory.submissionRef.nonce = 'changed-prior';
+    assert.deepEqual(prepared.body, expected, operation);
+    assert.deepEqual(prepared.connection, expected.connection, operation);
+    if (operation !== 'lookup-submission') {
+      for (const value of [NaN, Infinity, -Infinity, -0]) {
+        assert.equal(prepareClientHostRequest(operation,
+          {...expected, parameters:{value}}), undefined, operation);
+      }
+    }
+  }
+});
 
 test('public wire accepts the exact connected request shapes', () => {
   // Run, request, submission-intent, check, Checkpoint and Resource operations.
