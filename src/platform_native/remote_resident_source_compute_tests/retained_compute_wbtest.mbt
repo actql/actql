@@ -968,6 +968,7 @@ fn retained_compute_case(
       producer_dependency.unwrap().4,
       common_input,
       site,
+      output,
       stop_custodies,
     )
     assert_eq(acquisitions.val, 1)
