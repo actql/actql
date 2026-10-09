@@ -8,7 +8,7 @@ fn checkpoint_report_fixture(
   request : @remote.DispatchRequest,
   id : String,
 ) -> @remote.RemoteEffectCheckpointReport {
-  let c = fill => "sha256:" + fill.repeat(64)
+  let c = (fill : String) => "sha256:" + fill.repeat(64)
   let artifact = @checkpoint.seal_checkpoint(
     {
       checkpoint_id: id,
@@ -184,7 +184,7 @@ test "native Effect checkpoint journal retains original report and exact ACK acr
     1048576L,
     1048576L,
   ).unwrap()
-  again.restart(next_site).unwrap()
+  again.restart(next_site).unwrap() |> ignore
   let restarted = open_journal(library, path, 262144L, test_control(next_site)).unwrap()
   assert_true(restarted.retain_effect_checkpoint_report(report) is Err(_))
   assert_true(again.retain_effect_checkpoint_report(report) is Err(_))
