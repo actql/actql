@@ -61,7 +61,7 @@ fn retained_effect_checkpoint_store(
         Unavailable => "Unavailable"
         Capture(_) => "Capture"
         Preview(_) => "Preview"
-        Capacity(_) => "Capacity"
+        Capacity(issue) => "Capacity:" + @debug.to_string(issue)
         Projection(_) => "Projection"
         Store(InvalidConfiguration) => "InvalidConfiguration"
         Store(StateCollision) => "StateCollision"
