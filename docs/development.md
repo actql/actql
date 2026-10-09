@@ -242,6 +242,27 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Checkpoint Resolution and Effect continuation
+
+`@actql/run-host-core/checkpoints` supplies the existing portable Checkpoint
+Owner without a physical Store or Node execution runtime. The Host seals and
+persists a Checkpoint before committing its waiting Run projection.
+
+For a Resolution, obtain `resolutionProofPreimage` and authenticate it using
+Host-trusted reviewer keys and current authority. Pass those authenticated
+facts to `resolutionAdmit`, sign its attestation preimage, then use
+`resolutionDecide` with the closure read inside the durable transaction.
+Commit the Resolution, Checkpoint closure, unique resume intent and same Run
+transition atomically. Admission alone does not authorize continuation: check
+`checkpointExpiredAt` again at commit time after asynchronous authentication
+or signing, and check `resumedApprovalAt` for the approval's own lifetime.
+
+`effectResumeClaimDecide` selects continuation or settlement using the current
+authorization/environment binding. Persist its generation, then use
+`resumeFenceDecide` before a protected operation or intent mutation. Settlement
+does not authorize unknown Effect replay. Run lifecycle projections and allowed
+transitions do not prove execution, physical cleanup or reservation release.
+
 ### Installed Connector distribution inputs
 
 The standard Local package resolves provider runtimes, installation adapter
