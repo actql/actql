@@ -964,6 +964,19 @@ finding: the common name-resolution Owner must identify the exact submitted
 reference and compare it in the same namespace before a public reason can be
 issued. A bare `UnknownRelation` or filtered listing supplies no such proof.
 
+Structured Source selectors have a separate resolution domain. The existing
+SourceView resolver retains an opaque association between an unresolved Issue,
+its admitted Inputs, SourceRequestContracts and declaration. The
+`unresolved_selector_declaration` accessor checks these exact owners before
+returning the declaration; identical reconstructed inputs or Catalogs do not
+inherit the association. Limits and ambiguous selection do not issue it.
+Its diagnostic cursor belongs to the admitted Program: normalized grammar keys
+must pass through the existing original-document pointer mapping before public
+presentation. An omitted view points at its actual enclosing input; a NULL view
+fails declaration admission and is not an omitted selector. This resolution
+association alone proves neither installed registration completeness nor
+Provider Resource absence, and carries no read or execution authority.
+
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with
 execution-value Requirements; unsupported or incomplete static paths retain
