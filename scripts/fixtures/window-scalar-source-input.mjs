@@ -30,6 +30,32 @@ const sql = `SELECT id, ROW_NUMBER() OVER (${window}) + @increment AS n FROM rec
 const success = (name, text, extra = {}) => ({name: 'window-scalar-' + name,
   format: 'sql', text, sourceRows, expected, columns, sourceReadSessionCount: 1,
   ...extra});
+// Authored GROUP -> ANALYTIC controls. Source order is irrelevant to grouped
+// counts/sums; the explicit window and Result ordering determine these rows.
+const groupOrder = [{field: 'amount', dir: 'asc', nulls: 'last'}];
+const groupedColumns = [{name: 'amount', contract: nullable}, {name: 'n', contract: nullable}];
+const lagRows = [{amount: 10, n: null}, {amount: 20, n: 1}, {amount: null, n: 2}];
+const sumRows = [{amount: 10, n: 3}, {amount: 20, n: 9}, {amount: null, n: 15}];
+function groupedOperandProgram(aggregate, windowFunction, frame) {
+  return {version: 'actql/0.1', id: 'fixture.grouped_window_operand',
+    stages: [structuredClone(windowScalarProgram.stages[0]),
+      {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+        steps: [{from: 'records', group: {by: ['amount'], aggregates: {measured: aggregate}}},
+          {analytic: {partition_by: [], order_by: groupOrder, functions: {n: windowFunction},
+            ...(frame ? {frame} : {})}},
+          {select: ['amount', 'n']}, {sort: groupOrder, as: 'ordered'}],
+        results: {rows: {from: 'ordered', fields: ['amount', 'n']}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+}
+export const groupedLagOperandProgram = groupedOperandProgram({fn: 'count'},
+  {fn: 'lag', expr: {field: 'measured'}});
+export const groupedSumOperandProgram = groupedOperandProgram({fn: 'sum', field: 'id'},
+  {fn: 'sum', field: 'measured'}, {start: 'unbounded_preceding', end: 'current_row'});
+const lagOperandSql = 'SELECT amount, LAG(COUNT(*)) OVER (ORDER BY amount NULLS LAST) AS n '
+  + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY amount NULLS LAST';
+const operandOrderHead = 'SELECT records.amount AS original, -records.amount AS amount '
+  + 'FROM records WHERE id > 0 GROUP BY records.amount ORDER BY LAG(SUM(';
+const operandOrderTail = ')) OVER (ORDER BY original NULLS LAST) NULLS LAST, original NULLS LAST';
 export const windowScalarSuccesses = [
   success('independent-json', JSON.stringify(windowScalarProgram),
     {format: 'json', parameters: {increment: 1}}),
@@ -63,6 +89,43 @@ export const windowScalarSuccesses = [
     + 'FROM records WHERE id > 0 ORDER BY n',
     {columns: [{name: 'n', contract: number}], expected: [{n: 2}, {n: 4}, {n: 5}]}),
   success('typed-empty', sql, {...parameterInput, sourceRows: [], expected: []}),
+  success('aggregate-operand-lag-json', JSON.stringify(groupedLagOperandProgram),
+    {format: 'json', columns: groupedColumns, expected: lagRows}),
+  success('aggregate-operand-lag', lagOperandSql, {columns: groupedColumns, expected: lagRows}),
+  success('aggregate-operand-sum-json', JSON.stringify(groupedSumOperandProgram),
+    {format: 'json', columns: groupedColumns, expected: sumRows}),
+  success('aggregate-operand-running-sum', 'SELECT amount, SUM(SUM(id)) OVER '
+    + '(ORDER BY amount NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n '
+    + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY amount NULLS LAST',
+    {columns: groupedColumns, expected: sumRows}),
+  success('aggregate-operand-countif', 'SELECT amount, COUNTIF(COUNT(*) > 1) OVER '
+    + '(ORDER BY amount NULLS LAST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n '
+    + 'FROM records WHERE id > 0 GROUP BY amount ORDER BY amount NULLS LAST',
+    {columns: [{name: 'amount', contract: nullable}, {name: 'n', contract: number}],
+      expected: [{amount: 10, n: 0}, {amount: 20, n: 1}, {amount: null, n: 2}]}),
+  success('aggregate-operand-scalar', 'SELECT amount, COALESCE(LAG(COUNT(*)) OVER '
+    + '(ORDER BY amount NULLS LAST), 0) + 1 AS n FROM records WHERE id > 0 '
+    + 'GROUP BY amount ORDER BY amount NULLS LAST',
+    {columns: [{name: 'amount', contract: nullable}, {name: 'n', contract: number}],
+      expected: [{amount: 10, n: 1}, {amount: 20, n: 2}, {amount: null, n: 3}]}),
+  success('aggregate-operand-named-window', 'SELECT amount, LAG(COUNT(*)) OVER w AS n '
+    + 'FROM records WHERE id > 0 GROUP BY amount WINDOW w AS (ORDER BY amount NULLS LAST) '
+    + 'ORDER BY amount NULLS LAST', {columns: groupedColumns, expected: lagRows}),
+  success('aggregate-operand-typed-empty', lagOperandSql,
+    {columns: groupedColumns, sourceRows: [], expected: []}),
+  success('aggregate-operand-parameter-offset', lagOperandSql.replace('LAG(COUNT(*))', 'LAG(COUNT(*), @increment)'),
+    {...parameterInput, columns: groupedColumns, expected: lagRows}),
+  success('aggregate-operand-reused-count', 'SELECT records.amount AS original, COUNT(*) AS amount, '
+    + 'LAG(COUNT(*)) OVER (ORDER BY records.amount NULLS LAST) AS n FROM records WHERE id > 0 '
+    + 'GROUP BY records.amount ORDER BY original NULLS LAST',
+    {columns: [{name: 'original', contract: nullable}, {name: 'amount', contract: number}, {name: 'n', contract: nullable}],
+      expected: [{original: 10, amount: 1, n: null}, {original: 20, amount: 2, n: 1}, {original: null, amount: 2, n: 2}]}),
+  success('aggregate-operand-order-alias', operandOrderHead + 'amount' + operandOrderTail,
+    {columns: [{name: 'original', contract: nullable}, {name: 'amount', contract: nullable}],
+      expected: [{original: null, amount: null}, {original: 20, amount: -20}, {original: 10, amount: -10}]}),
+  success('aggregate-operand-order-qualified-input', operandOrderHead + 'records.amount' + operandOrderTail,
+    {columns: [{name: 'original', contract: nullable}, {name: 'amount', contract: nullable}],
+      expected: [{original: 20, amount: -20}, {original: null, amount: null}, {original: 10, amount: -10}]}),
 ];
 export const windowScalarRefusals = [
   {name: 'invalid-ranking-arity', expectedCode: 'ClientProgramInvalidInput',
@@ -74,6 +137,16 @@ export const windowScalarRefusals = [
   {name: 'removed-range', format: 'aql-text', text: 'FROM records AS old |> AS current |> SELECT LAG(old.amount) OVER (ORDER BY id) + 1 AS n'},
   {name: 'nested-window', text: 'SELECT LAG(ROW_NUMBER() OVER (ORDER BY id)) OVER (ORDER BY id) + 1 AS n FROM records'},
   {name: 'operand-type', text: "SELECT ROW_NUMBER() OVER (ORDER BY id) + 'x' AS n FROM records"},
+  {name: 'ordinary-aggregate-nesting', expectedCode: 'ClientProgramInvalidInput',
+    text: 'SELECT SUM(SUM(id)) AS n FROM records'},
+  {name: 'aggregate-operand-sibling-alias', expectedCode: 'ClientProgramInvalidInput',
+    text: 'SELECT amount AS invented, LAG(SUM(invented)) OVER (ORDER BY id) AS n FROM records GROUP BY id, amount'},
+  {name: 'aggregate-operand-pipe-implicit-group', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput',
+    text: 'FROM records |> SELECT LAG(COUNT(*)) OVER (ORDER BY id) AS n'},
+  {name: 'aggregate-operand-missing-frame', expectedCode: 'ClientProgramImplementationLimit',
+    text: 'SELECT SUM(SUM(id)) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
+  {name: 'aggregate-operand-row-offset', expectedCode: 'ClientProgramImplementationLimit',
+    text: 'SELECT amount, LAG(COUNT(*), amount) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
 ].map(item => ({format: 'sql', ...item, name: 'window-scalar-refuse-' + item.name}));
 export const windowScalarExecutionFailures = [{name: 'window-scalar-demanded-error', format: 'sql',
   text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + 1 / (id - 1) AS n FROM records WHERE id > 0 ORDER BY n',
