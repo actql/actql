@@ -177,6 +177,7 @@ pub(all) enum ResidentEffectSourceCustodyIssue {
   Binding(@run_publication_host.ClientEffectSourceArtifactIssue)
   Store(@publication_store.NativePublicationStoreIssue)
   Capacity(@physical_resources.LedgerIssue)
+  RevokedWithCleanup(@publication_store.NativePublicationStoreIssue)
 }
 
 pub(all) enum ResidentEffectSourceDispatchIssue {

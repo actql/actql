@@ -4,6 +4,7 @@ pub(all) enum ResidentEffectSourceCustodyIssue {
   Binding(@host.ClientEffectSourceArtifactIssue)
   Store(@publication_store.NativePublicationStoreIssue)
   Capacity(@resources.LedgerIssue)
+  RevokedWithCleanup(@publication_store.NativePublicationStoreIssue)
 }
 
 ///|
@@ -78,6 +79,10 @@ pub fn ResidentSourceCompute::retain_effect_source_custody(
         custody,
         ledger,
         reservation,
+        inputs,
+        effect_run: self.effect_run.unwrap(),
+        retained: self.effect_retained,
+        source_closed: self.source_closed,
         run: materials.run_definition,
         artifact: source,
         request,
@@ -109,6 +114,10 @@ struct ResidentEffectSourceCustody {
   mut custody : @publication_store.EffectSourceCustody
   ledger : @resources.Ledger
   reservation : @resources.Reservation
+  inputs : @strategy.CapturedEffectInputs
+  effect_run : @strategy.CapturedEffectRunDAG
+  retained : ResidentEffectRetainedCapture?
+  source_closed : Ref[Bool]
   run : @publication.PublicationContract
   artifact : @publication.CapturedEffectSourceArtifact
   request : @payload.PublicationPayloadRequest
@@ -170,7 +179,20 @@ pub fn ResidentEffectSourceCustody::begin_payload(
   if self.released {
     return Err(Unavailable)
   }
-  self.custody.begin_payload().map_err(issue => Store(issue))
+  if !self.current() {
+    return Err(Unavailable)
+  }
+  let writer = match self.custody.begin_payload() {
+    Ok(value) => value
+    Err(issue) => return Err(Store(issue))
+  }
+  if !self.current() {
+    return match writer.cancel() {
+      Ok(_) => Err(Unavailable)
+      Err(issue) => Err(RevokedWithCleanup(issue))
+    }
+  }
+  Ok(writer)
 }
 
 ///|
@@ -183,6 +205,9 @@ pub fn ResidentEffectSourceCustody::confirm_payload(
   if self.released {
     return Err(Unavailable)
   }
+  if !self.current() {
+    return Err(Unavailable)
+  }
   self.custody.confirm_payload().map_err(issue => Store(issue))
 }
 
@@ -191,6 +216,9 @@ pub fn ResidentEffectSourceCustody::open_reader(
   self : ResidentEffectSourceCustody,
 ) -> Result[@publication_store.PayloadReader, ResidentEffectSourceCustodyIssue] {
   if self.released {
+    return Err(Unavailable)
+  }
+  if !self.current() {
     return Err(Unavailable)
   }
   self.custody.open_reader().map_err(issue => Store(issue))
@@ -213,4 +241,16 @@ pub fn ResidentEffectSourceCustody::retry_cleanup(
   }
   self.released = true
   Ok(true)
+}
+
+///|
+fn ResidentEffectSourceCustody::current(
+  self : ResidentEffectSourceCustody,
+) -> Bool {
+  resident_effect_input_custody_current(
+    self.effect_run,
+    self.retained,
+    self.source_closed,
+    self.inputs,
+  )
 }
