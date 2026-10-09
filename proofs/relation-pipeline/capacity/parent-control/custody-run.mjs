@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, copyFil
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { root, environment, moon, toolchain } from '../../execute.mjs';
-import { custodyInput, custodyOverlay, auditCustody } from './custody.mjs';
+import { custodyInput, custodyCleanupStep, custodyOverlay, auditCustody } from './custody.mjs';
 import { snapshot, hash } from '../../inventory.mjs';
 import { artifacts } from '../../../bounded-session/evidence.mjs';
 import { generatedObservers, installGeneratedObservers,
@@ -45,8 +45,13 @@ try {
   const after = log.indexOf(mode === 'success' ?
     'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup');
-  const cleanup = log.indexOf('"event":"before-cleanup"');
-  const cleaned = log.indexOf('"event":"after-cleanup"');
+  const cleanupStep = custodyCleanupStep(mode);
+  const beforeMarker = `ACTQL_CUSTODY_CLEANUP:${cleanupStep}:before`;
+  const afterMarker = `ACTQL_CUSTODY_CLEANUP:${cleanupStep}:after`;
+  assert.equal(log.split(beforeMarker).length, 2, 'Missing or repeated actual child cleanup');
+  assert.equal(log.split(afterMarker).length, 2, 'Missing or repeated confirmed child cleanup');
+  const cleanup = log.indexOf(beforeMarker);
+  const cleaned = log.indexOf(afterMarker);
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup, 'No actual child cleanup observed');
   const prematureReleaseCandidate = BigInt(observed.before) - BigInt(observed.after) ===
     BigInt(observed.executionCapacity) && cleanup > after;
