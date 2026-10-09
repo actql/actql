@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {aggregateConditionalOrderProgram as program, distinctConditionalOrderProgram, distinctConditionalMemberProgram, aggregatePredicateOrderProgram, aggregatePredicateArrayOrderProgram,
+import {aggregateConditionalOrderProgram as program, distinctConditionalOrderProgram, distinctConditionalMemberProgram, aggregatePredicateOrderProgram, aggregatePredicateArrayOrderProgram, aggregateMembershipOrderProgram, aggregateMembershipArrayOrderProgram,
   aggregateConditionalOrderSuccesses as successes,
   aggregateConditionalOrderRefusals as refusals}
   from './fixtures/aggregate-conditional-order-source-input.mjs';
@@ -42,7 +42,7 @@ test('normal and focused public routes retain conditional inputs and existing li
   const groups = publicQueryProfiles({successes, refusals});
   assert.deepEqual(groups.map(group => group.name), ['standard']);
   assert.equal(Object.hasOwn(groups[0].capacity, 'max_execution_bytes'), false);
-  assert.deepEqual([successes.length, refusals.length], [36, 13]);
+  assert.deepEqual([successes.length, refusals.length], [51, 17]);
   assert.equal(refusals.find(item => item.name.endsWith('unsafe-demand')).expectedCode, 'ClientProgramImplementationLimit');
 });
 
@@ -108,5 +108,33 @@ test('Boolean order uses an independent Program and NULL/multiplicity counterexa
     ['missing-member', 'ClientProgramInvalidInput'], ['removed-range', 'ClientProgramInvalidInput'],
     ['unsafe-demand', 'ClientProgramImplementationLimit']]) {
     assert.equal(refusals.find(item => item.name.endsWith('predicate-' + name)).expectedCode, code);
+  }
+});
+
+test('membership order fixes NULL, intervals and null-safe ordering independently', () => {
+  const get = name => successes.find(item => item.name.endsWith('-membership-' + name));
+  assert.deepEqual(JSON.parse(get('independent-json').text), aggregateMembershipOrderProgram);
+  assert.deepEqual(aggregateMembershipOrderProgram.stages[1].steps[2], {derive: {key: {
+    in: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: [20, null]}]}}});
+  assert.deepEqual(JSON.parse(get('independent-array-json').text), aggregateMembershipArrayOrderProgram);
+  assert.deepEqual(aggregateMembershipArrayOrderProgram.stages[1].steps[2], {assert_rows: {unique_by: ['id']}});
+  assert.deepEqual(get('keyed-array').expected, [{ids: [2, 1, 3, 4]}]);
+  assert.deepEqual(get('in-pipe').expected, [{names: 'b|b|a|c'}]);
+  assert.deepEqual(get('null-list').expected, [{names: 'a|b|b|c'}]);
+  assert.deepEqual(get('not-between').expected, [{names: 'b|b|a|c'}]);
+  assert.deepEqual(get('null-safe').expected, [{names: 'b|b|c|a'}]);
+  assert.deepEqual(get('null-safe-null').expected, [{names: 'c|a|b|b'}]);
+  assert.deepEqual(get('current-and-snapshot').expected, [{current: 'a|c|b|b', previous: 'a|b|b|c'}]);
+  assert.equal(get('parameter').parameters.wanted, 20);
+  assert.deepEqual(get('parameter').parameterDeclarations.wanted, {type: 'number', nullable: true});
+  assert.deepEqual(get('masked').expected, [{names: null}]);
+  for (const item of successes.filter(item => item.name.includes('-membership-'))) {
+    assert.equal(item.sourceReadSessionCount, 1);
+    assert.equal(item.columns.some(column => column.name.startsWith('aql_')), false);
+  }
+  for (const [name, code] of [['operand-type', 'ClientProgramInvalidInput'],
+    ['removed-range', 'ClientProgramInvalidInput'], ['unsafe-bound', 'ClientProgramImplementationLimit'],
+    ['distinct-key', 'ClientProgramImplementationLimit']]) {
+    assert.equal(refusals.find(item => item.name.endsWith('membership-' + name)).expectedCode, code);
   }
 });
