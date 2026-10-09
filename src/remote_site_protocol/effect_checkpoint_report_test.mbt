@@ -54,7 +54,10 @@ test "Effect review report and ACK preserve exact original dispatch and Checkpoi
     persisted,
     review_limits(),
   ).unwrap()
-  assert_eq(remote_effect_checkpoint_report_identity(report), "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996")
+  assert_eq(
+    remote_effect_checkpoint_report_identity(report),
+    "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+  )
   let body = remote_effect_checkpoint_report_json(report)
   let admitted = admit_remote_effect_checkpoint_report_json(
     body,
