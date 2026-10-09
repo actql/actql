@@ -33,6 +33,10 @@ test('checked ARRAY controls retain empty schema and NULL elements independently
   }
   assert.deepEqual(refusals.map(item => item.name.split('refusal-')[1]),
     ['untyped-empty', 'unresolved-null', 'mixed-types', 'declared-wrong-type', 'scalar-qualified-star']);
+  assert.deepEqual(refusals.map(item => item.expectedCode), [
+    'ClientProgramImplementationLimit', 'ClientProgramImplementationLimit',
+    'ClientProgramInvalidInput', 'ClientProgramInvalidInput', 'ClientProgramInvalidInput',
+  ]);
 });
 
 test('checked ARRAY cases are registered in the ordinary corpus and its public consumer', () => {
