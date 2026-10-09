@@ -70,6 +70,25 @@ fn retained_effect_source_store(
     }
   })
   let baseline = consumer.usage().reserved_retention_bytes
+  assert_true(
+    consumer.persist_effect_source_payload(
+      store,
+      materials,
+      inputs,
+      0,
+      artifact,
+      source,
+      request("wrong-local-result", schema, 64L),
+      local_result + 100,
+      resident_compute_limits(),
+    )
+    is Err(
+      { issue: ForeignInput, custody: None, writer: None, cleanup_issue: None, }
+    ),
+  )
+  assert_eq(allocations.val, 0)
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+
   let rejected = consumer.retain_effect_source_custody(
     store,
     materials,
@@ -125,42 +144,43 @@ fn retained_effect_source_store(
   assert_true(physical_equal(duplicate, custody))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline + 64L)
   println("retained-effect-custody: original intent reconciled")
-  let writer = custody.begin_payload().unwrap()
-  let exported = consumer
-    .prepare_effect_result_export(
+  store.observe_allocation(step => {
+    if step == "allocated" {
+      allocations.val += 1
+    }
+  })
+  let saved = consumer
+    .persist_effect_source_payload(
+      store,
+      materials,
       inputs,
+      0,
+      artifact,
+      source,
+      first_request,
       local_result,
       resident_compute_limits(),
     )
     .unwrap()
-  let preparation = @strategy.captured_effect_local_result_export_preparation(
-    exported,
-  )
-  while !@execution.advance_completed_result_relation_export(preparation, 16).unwrap().0 {
-    continue
-  }
-  let stream = @execution.finish_completed_result_relation_export_preparation(
-    preparation,
-  ).unwrap()
-  let observed = StringBuilder()
-  while @execution.next_completed_output_export(stream).unwrap() is Some(chunk) {
-    observed.write_string(chunk)
-    writer.append(@utf8.encode(chunk)).unwrap()
-  }
-  let (receipt, tail) = @execution.finish_completed_relation_export(stream).unwrap()
-  observed.write_string(tail)
-  writer.append(@utf8.encode(tail)).unwrap()
-  assert_eq(observed.to_string(), "[{\"id\":3}]")
-  assert_true(
-    @strategy.captured_effect_local_result_export_matches_receipt(
-      inputs, exported, receipt,
-    ),
-  )
-  writer.seal().unwrap() |> ignore
-  custody.confirm_payload().unwrap() |> ignore
-  println("retained-effect-custody: exact payload sealed")
-  @execution.cancel_completed_relation_export_receipt(receipt)
-  @execution.cancel_completed_output_export(stream)
+  assert_true(physical_equal(saved, custody))
+  // A zero export budget would reject a fresh Native read below. A sealed
+  // retry must verify the original payload without another output traversal.
+  let duplicate = consumer
+    .persist_effect_source_payload(
+      store,
+      materials,
+      inputs,
+      0,
+      artifact,
+      source,
+      first_request,
+      local_result,
+      { ..resident_compute_limits(), max_rows: 0, },
+    )
+    .unwrap()
+  assert_true(physical_equal(duplicate, custody))
+  assert_eq(allocations.val, 1)
+  println("retained-effect-custody: product operation sealed the exact payload")
   assert_true(custody.begin_payload() is Err(Store(ExistingPayload)))
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 64L)
   assert_true(store.close().unwrap())
@@ -249,6 +269,105 @@ fn retained_effect_source_store(
   writer.cancel().unwrap()
   assert_true(partial.retry_cleanup().unwrap())
   assert_false(partial.retry_cleanup().unwrap())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+  // Refuse a seal into a foreign filesystem entry. The operation returns
+  // its original writer, not a replacement export or permission to recompute.
+  let blocked_request = request("seal-blocked", schema, 64L)
+  let payload_root = root.open_child(child).unwrap()
+  let object_name = @payload.publication_payload_object_name(blocked_request)
+  let obstacle = payload_root.create_directory(object_name).unwrap()
+  let failed = consumer.persist_effect_source_payload(
+    store,
+    materials,
+    inputs,
+    0,
+    artifact,
+    source,
+    blocked_request,
+    local_result,
+    resident_compute_limits(),
+  )
+  guard failed
+    is Err(
+      {
+        issue: Custody(Store(_)),
+        custody: Some(seal_custody),
+        writer: Some(seal_writer),
+        cleanup_issue: None,
+      }
+    ) else {
+    fail("failed seal dropped the original writer or pretended to persist")
+  }
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 64L)
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline + 64L)
+  assert_true(
+    consumer.persist_effect_source_payload(
+      store,
+      materials,
+      inputs,
+      0,
+      artifact,
+      source,
+      blocked_request,
+      local_result,
+      resident_compute_limits(),
+    )
+    is Err(
+      {
+        issue: Custody(Store(RecoveryRequired)),
+        custody: Some(_),
+        writer: None,
+        cleanup_issue: None,
+      }
+    ),
+  )
+  assert_true(seal_custody.retry_cleanup() is Err(Store(CleanupPending)))
+  assert_true(payload_root.remove_directory(object_name, obstacle).unwrap())
+  seal_writer.seal().unwrap() |> ignore
+  seal_custody.confirm_payload().unwrap() |> ignore
+  let reconciled = consumer
+    .persist_effect_source_payload(
+      store,
+      materials,
+      inputs,
+      0,
+      artifact,
+      source,
+      blocked_request,
+      local_result,
+      resident_compute_limits(),
+    )
+    .unwrap()
+  assert_true(physical_equal(reconciled, seal_custody))
+  assert_true(seal_custody.retry_cleanup().unwrap())
+  assert_false(seal_custody.retry_cleanup().unwrap())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+
+  // A failed bounded Native export cancels its writer but retains the same
+  // cleanup owner/charge. It never repeats Source or consumer execution.
+  let limits = { ..resident_compute_limits(), max_rows: 0, }
+  let failed = consumer.persist_effect_source_payload(
+    store,
+    materials,
+    inputs,
+    0,
+    artifact,
+    source,
+    request("export-failed", schema, 64L),
+    local_result,
+    limits,
+  )
+  guard failed
+    is Err(
+      { custody: Some(failed_custody), writer: None, cleanup_issue: None, .. }
+    ) else {
+    fail("failed Native export lost custody or writer cleanup failed")
+  }
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline + 64L)
+  assert_true(failed_custody.retry_cleanup().unwrap())
+  assert_false(failed_custody.retry_cleanup().unwrap())
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   // Leave an original custody live until the caller stops this same consumer.
