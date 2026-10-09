@@ -75,6 +75,34 @@ export const fullUsingScopeSuccesses = [
 export const fullJoinScopeSuccesses = [
   success('independent-json', JSON.stringify(fullJoinScopeProgram), {format: 'json'}),
   success('qualified-star', prefix + body),
+  // The same independently authored JSON control above specifies these rows,
+  // types, acquisition and bound. Explicit SELECT must not choose a refusal
+  // path merely because its projection has no star.
+  success('explicit-select', prefix + body.replace('l.*', 'l.amount, l.id')),
+  success('explicit-pipe', prefix + 'FROM lefts AS l |> FULL JOIN rights AS r '
+    + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 |> SELECT l.amount, l.id, r.id AS rid '
+    + '|> ORDER BY id NULLS LAST, rid NULLS LAST'),
+  success('explicit-cte', 'DATA base = FROM records |> ASSERT UNIQUE BY (id); '
+    + 'WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) '
+    + body.replace('l.*', 'l.amount, l.id')),
+  success('explicit-empty', prefix + body.replace('l.*', 'l.amount, l.id'),
+    {sourceRows: [], expected: []}),
+  // Two NULL projections collapse before the hidden ORDER expression exists.
+  success('explicit-distinct', prefix + 'SELECT DISTINCT l.amount AS amount '
+    + 'FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 '
+    + 'ORDER BY amount + 1 NULLS LAST', {
+      columns: [{name: 'amount', contract: nullable}],
+      expected: [{amount: 20}, {amount: null}],
+    }),
+  // These identical projections deliberately have opposite non-NULL order:
+  // bare id resolves to the evaluated output, qualified l.id to the input.
+  ...[
+    ['alias-order', 'id', [{id: -2, rid: 2}, {id: -1, rid: null}, {id: null, rid: 3}]],
+    ['qualified-order', 'l.id', [{id: -1, rid: null}, {id: -2, rid: 2}, {id: null, rid: 3}]],
+  ].map(([name, order, expected]) => success('explicit-' + name,
+    prefix + 'SELECT -l.id AS id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY ' + order + ' + 1 NULLS LAST',
+    {columns: ['id', 'rid'].map(name => ({name, contract: nullable})), expected})),
   success('pipe-current-row', prefix + body.replace('SELECT l.*, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ',
     'FROM lefts AS l |> FULL JOIN rights AS r ').replace(' ORDER BY', ' |> SELECT l.*, r.id AS rid |> ORDER BY')),
   success('null-join-keys', prefix + body.replace('ON l.id = r.id', 'ON l.amount = r.amount'), {
@@ -87,4 +115,5 @@ export const fullJoinScopeRefusals = [
   prefix + body.replace('ON l.id = r.id', 'USING (id, `ID`)'),
   prefix + body.replace('ON l.id = r.id', 'ON l.id > r.id'),
   prefix + body.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 0'),
+  prefix + body.replace('SELECT l.*, r.id AS rid', 'SELECT id'),
 ].map((text, index) => ({name: 'full-join-scope-refuse-' + index, format: 'aql-text', text}));
