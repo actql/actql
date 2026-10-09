@@ -347,6 +347,34 @@ fn acquisition_runtime_case(
     original_effect_source.val = Some(owned.source)
     assert_eq(owned.executed.result_definition_cid, None)
     assert_true(owned.source.usage().held_bytes > 0L)
+    let original_record = journal.require(dispatch).unwrap()
+    let replay = @resident.execute_resident_effect_source_attempt(
+      journal,
+      execution,
+      admission,
+      retained_compute_effect_limits(),
+      configuration,
+      () => delegation,
+      @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+      "replacement-effect-producer-holder",
+      () => "2026-10-09T00:00:00.000Z",
+      Some(_ => {
+        entries.val += 1
+        true
+      }),
+    )
+    guard replay is Err(refusal) else {
+      fail("a second producer owner was installed")
+    }
+    assert_true(refusal.issue is @resident.NotStartable(_))
+    assert_true(refusal.pending_runtime is None)
+    assert_eq(
+      @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
+      @remote.dispatch_record_revision(original_record),
+    )
+    assert_true(owned.source.usage().held_bytes > 0L)
+    assert_eq(acquisitions.val, 1)
+    assert_eq(entries.val, 1)
     (owned.executed.runtime, owned.executed.completion)
   } else if through_resident {
     let executed = match

@@ -207,6 +207,7 @@ pub(all) enum ResidentEffectProducerExecutionIssue {
   Host(ResidentHostIssue)
   Dispatch(ResidentEffectSourceDispatchIssue)
   Compute(ResidentSourceComputeIssue)
+  NotStartable(@remote_site_protocol.DispatchRecord)
 }
 
 pub(all) struct ResidentEffectResultCapture {

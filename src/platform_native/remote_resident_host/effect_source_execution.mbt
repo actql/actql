@@ -3,6 +3,9 @@ pub(all) enum ResidentEffectProducerExecutionIssue {
   Host(ResidentHostIssue)
   Dispatch(ResidentEffectSourceDispatchIssue)
   Compute(ResidentSourceComputeIssue)
+  /// The original journal outcome needs its existing observation/recovery
+  /// owner; a new Source executor must not replace that responsibility.
+  NotStartable(@remote.DispatchRecord)
 }
 
 ///|
@@ -80,6 +83,14 @@ pub fn execute_resident_effect_source_attempt(
   // For an already accepted but expired Run, the ordinary Runtime must claim
   // and settle the refused start. Returning before that boundary would leave
   // an Accepted queue head retryable forever. No physical factory is called.
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return effect_producer_failed(Host(Journal(issue)))
+  }
+  let (state, _, _, _, _) = @remote.dispatch_record_state(record)
+  if state != @remote.Accepted {
+    return effect_producer_failed(NotStartable(record))
+  }
   let accepted_at = current_time()
   let (materials, bound) = match
     admit_resident_effect_source_dispatch_owned(
