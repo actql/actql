@@ -1,0 +1,193 @@
+{
+  "scope": "Actual Native producer and consumer admit the same original Effect Run separately; the formal retained Transfer binds the original producer Artifact to the checked receiver context and captures its completed private Result. No approval or Effect write is simulated.",
+  "implementationSource": "1c3e57d2ef5a88d620c000deb3f2e9b6c0cf354e",
+  "parentSource": "cc977fcdd71502ff64cc467478031bb7fd093ce2",
+  "dependency": "OSS #1168; temporary base feat/native-effect-capture-materials; final target main after the parent series",
+  "evidenceDirectory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818",
+  "verificationCommand": "MOON_HOME=/Users/t14i/workspace/20260822/.toolchains/moonbit-pinned PATH=/Users/t14i/workspace/20260822/.toolchains/moonbit-pinned/bin:/Users/t14i/.local/share/mise/installs/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin /Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node /Users/t14i/workspace/20260822/local-tools/actql-cloud-retained-delivery/verify-resident-effect-transfer-context.mjs 1c3e57d2ef5a88d620c000deb3f2e9b6c0cf354e",
+  "sourceClean": true,
+  "verification": [
+    {
+      "label": "effect-source",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect original Source producer completes*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:44:52.949Z",
+      "finishedAt": "2026-10-09T16:44:53.486Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/effect-source.log"
+    },
+    {
+      "label": "effect-holders",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect consumer holder*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:44:53.486Z",
+      "finishedAt": "2026-10-09T16:44:57.213Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/effect-holders.log"
+    },
+    {
+      "label": "effect-retained-direct",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*Effect retained consumer*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:44:57.213Z",
+      "finishedAt": "2026-10-09T16:46:07.576Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/effect-retained-direct.log"
+    },
+    {
+      "label": "effect-producer-dependency",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/effect_producer_dependency_wbtest.mbt\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:46:07.577Z",
+      "finishedAt": "2026-10-09T16:46:07.987Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/effect-producer-dependency.log"
+    },
+    {
+      "label": "result-import-vectors",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"js\",\"src/run_publication_host/client_effect_result_import_wbtest.mbt\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:46:07.987Z",
+      "finishedAt": "2026-10-09T16:46:08.390Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/result-import-vectors.log"
+    },
+    {
+      "label": "effect-materials",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"js\",\"src/run_publication_host/client_effect_run_materials_wbtest.mbt\",\"--filter\",\"*Effect run materials preserve original evidence*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T16:46:08.390Z",
+      "finishedAt": "2026-10-09T16:46:08.917Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/effect-materials.log"
+    }
+  ],
+  "counts": {
+    "nativeSource": 1,
+    "nativeRuntimeHolders": 4,
+    "nativeDirectRetainedConsumer": 3,
+    "nativeProducerDependency": 1,
+    "jsResultImportVector": 1,
+    "jsOriginalMaterials": 1,
+    "total": 11
+  },
+  "nativeTestArtifact": {
+    "source": "1c3e57d2ef5a88d620c000deb3f2e9b6c0cf354e",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/native-transfer-capture.whitebox_test.exe",
+    "sha256": "844881e6938abc20566b6d2931d12ea47b9dff4b082bba46930adb976f05a7e2",
+    "scope": "Selected real Native Runtime / DuckDB / filesystem Transfer whitebox tests; not a packaged production Site binary"
+  },
+  "borrowedInputs": {
+    "library": "/Users/t14i/workspace/20260822/actql/adapters/connectors/duckdb/node/node_modules/@duckdb/node-bindings-darwin-arm64/libduckdb.dylib",
+    "sha256": "b9027d18ef3e8d960568f77e946a83ca68009cb22d71cf7f94de842afdd094d8",
+    "scratch": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564292818/scratch",
+    "scope": "Separately admitted actual Native producer and consumer Owners, original Source evidence, retained Transfer Artifact/import binding and completed private Result capture. No provider Preview, Checkpoint, approval/write, final Effect release or Cloud acceptance claimed."
+  },
+  "observed": {
+    "originalSourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "retainedConsumerBorrows": 1,
+    "producerAndConsumerPreparationAreDifferentPhysicalOwners": true,
+    "originalRunIdentityPreserved": true,
+    "sourceEvidenceAndInputLogicalMatchSavedJournal": true,
+    "artifactInvocationAndManifestWiresPreserved": true,
+    "actualReceiverSchema": "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+    "actualReceiverRows": [
+      {
+        "id": 3
+      }
+    ],
+    "resultManifestArtifactChainValidated": true,
+    "copiedSenderAdmissionRejected": true,
+    "senderInvocationCannotAuthorizeReceiverManifest": true,
+    "senderBorrowReturnInsideCurrentCallbackRefused": true,
+    "repeatedBindingNoAcquisitionComputeBorrowOrCharge": true,
+    "confirmedReceiverCaptureSurvivesSenderSemanticBorrowReturn": true,
+    "captureDoesNotReleasePhysicalProducerOrReceiverHolding": true,
+    "enclosingRuntimeTaskCleanupAndReceiverReclaimReturnCapacityToZero": true
+  },
+  "fixtureBoundary": {
+    "normalizationJournalAndRuleCatalog": "Empty fixture metadata for private Result capture; not production normalization or Provider Preview",
+    "providerPreview": false,
+    "checkpointWaiting": false,
+    "approval": false,
+    "effectWrite": false,
+    "finalEffectRunReleased": false,
+    "cloudPublicSdkAcceptance": false
+  },
+  "preCommitChecks": {
+    "directory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791564032252",
+    "nativeJsWasmInterfaceGeneration": true,
+    "changedMoonBitFormatting": true,
+    "tests": 11,
+    "sourceClean": false
+  },
+  "initialFailures": [
+    {
+      "directory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791563383404",
+      "failure": "Native interface compile rejected tuple access on the journal-key Array; changed to [0]. No runtime test executed."
+    },
+    {
+      "directory": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-transfer-context-1791563412595",
+      "failure": "Old binder from cc977fcdd71502ff64cc467478031bb7fd093ce2 plus the new real separately admitted Runtime fixture rejected the transferred Artifact. Producer acquisition/export/Artifact completed; receiver binding failed. Native single-case diagnostic, not public SDK reproduction.",
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "control": "Only the binder body was restored to the committed old implementation; new fixture/context APIs remained. The corrected binder was restored after the finite test terminated."
+    }
+  ],
+  "unverified": [
+    "Actual Provider Preview and mapping admission",
+    "Encrypted full capture Store commit and waiting Run transition",
+    "Physical process restart custody reconstruction",
+    "Current-authorized approval, write-once and unknown-outcome reconciliation",
+    "Formal Effect Result publication and final release",
+    "Cloud main adoption, packages and production Native binary",
+    "Hosted CI and actual Effect Preview acceptance"
+  ],
+  "hostedCi": "ci.yml read as disabled_manually; not started or rerun",
+  "historicalRuns": "No old Run or #88 custody was changed or declared resolved."
+}
