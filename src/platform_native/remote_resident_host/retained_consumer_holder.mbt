@@ -11,9 +11,12 @@ pub struct ResidentRetainedConsumer {
   current : @output.NativeRemoteRetainedInputCurrent
   binding_limits : @output.NativeRemoteStandardTransferBindingLimits
   codec : @output.NativeRemoteStandardRowCodec
+  effect_limits : @host.ClientEffectComputationLimits?
+  effect_configuration : ResidentSourceComputeConfiguration?
   mut material : @transfer_client.NativeRemoteDestinationMaterialUse?
   mut executed : ResidentExecuted?
   mut pending_runtime : @runtime.NativeRemoteRuntime?
+  mut effect_computation : ResidentSourceCompute?
   mut failure : ResidentRetainedExecutionIssue?
   mut closing : Bool
   mut closed : Bool
@@ -39,12 +42,6 @@ fn retained_consumer_input(
   @output.NativeRemoteRetainedTaskInput,
   @output.NativeRemoteRetainedTaskInputIssue,
 ] {
-  if handoff.reclaimed ||
-    handoff.cleanup_started ||
-    handoff.result is None ||
-    handoff.require_current() is Err(_) {
-    return Err(@output.ProducerUnavailable)
-  }
   guard materials.compilation is @host.Tasks(compilation) &&
     resident_linear_task_index(materials, request) is Some(task) &&
     task > 0 &&
@@ -62,6 +59,56 @@ fn retained_consumer_input(
     ) {
     Ok(value) => value
     Err(_) => return Err(@output.InvalidBinding)
+  }
+  retained_consumer_input_from_edge(
+    handoff, producer_journal, edge, request, binding, current, limits,
+  )
+}
+
+///|
+fn retained_effect_consumer_input(
+  handoff : ResidentRetainedTransfer,
+  producer_journal : @journal.Journal,
+  materials : @host.ClientEffectRunMaterials,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  limits : @output.NativeRemoteStandardTransferBindingLimits,
+) -> Result[
+  @output.NativeRemoteRetainedTaskInput,
+  @output.NativeRemoteRetainedTaskInputIssue,
+] {
+  let edge = match
+    @host.prepare_client_effect_retained_input_edge(
+      materials.allowed,
+      materials.run_definition,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(@output.InvalidBinding)
+  }
+  retained_consumer_input_from_edge(
+    handoff, producer_journal, edge, request, binding, current, limits,
+  )
+}
+
+///|
+fn retained_consumer_input_from_edge(
+  handoff : ResidentRetainedTransfer,
+  producer_journal : @journal.Journal,
+  edge : @host.ClientRetainedInputEdge,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  current : @output.NativeRemoteRetainedInputCurrent,
+  limits : @output.NativeRemoteStandardTransferBindingLimits,
+) -> Result[
+  @output.NativeRemoteRetainedTaskInput,
+  @output.NativeRemoteRetainedTaskInputIssue,
+] {
+  if handoff.reclaimed ||
+    handoff.cleanup_started ||
+    handoff.result is None ||
+    handoff.require_current() is Err(_) {
+    return Err(@output.ProducerUnavailable)
   }
   let projection = @host.client_retained_input_edge_projection(edge)
   if @remote.dispatch_request_task_scope(request) !=
@@ -120,6 +167,147 @@ fn retained_consumer_input(
 }
 
 ///|
+fn retained_consumer_checked_edge(
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits?,
+  configuration : ResidentSourceComputeConfiguration?,
+  request : @remote.DispatchRequest,
+  body : String,
+  at : String,
+) -> Result[@host.ClientRetainedInputEdge, ResidentRetainedExecutionIssue] {
+  match effect_limits {
+    Some(effect_limits) => {
+      let materials = match
+        @host.admit_client_effect_run_materials(
+          body,
+          @remote.dispatch_request_task_scope(request).0,
+          admission.expressions,
+          admission.operations,
+          admission.manifests,
+          admission.limits,
+          effect_limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(EffectMaterials(issue))
+      }
+      if !@host.client_effect_run_start_current(
+          materials.allowed,
+          materials.run_definition,
+          at,
+        ) {
+        return Err(Host(Refused(@resident.NotCurrent)))
+      }
+      guard configuration is Some(configuration) &&
+        admission.source is Some((source_ref, source_contract_cid)) &&
+        configuration.source.source_ref == source_ref &&
+        configuration.source.source_contract_cid == source_contract_cid else {
+        return Err(Host(Refused(@resident.ForeignSource)))
+      }
+      match
+        prepare_resident_effect_source_requirement(
+          materials.prepared,
+          0,
+          0,
+          configuration.registry_body,
+          configuration.values_body,
+          Some(configuration.source.fragment_contract_body),
+          source_ref,
+          source_contract_cid,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Compute(Source(issue)))
+      }
+      let fragment = match
+        @host.issue_client_effect_task_fragment(materials, 1) {
+        Ok(value) => value
+        Err(issue) => return Err(EffectDispatch(issue))
+      }
+      if @remote.dispatch_request_task_scope(request) !=
+        (
+          @publication.publication_contract_identity(materials.run_definition),
+          @host.client_task_fragment_node_id(fragment),
+        ) {
+        return Err(Input(@output.InvalidBinding))
+      }
+      @host.prepare_client_effect_retained_input_edge(
+        materials.allowed,
+        materials.run_definition,
+      ).map_err(_ => Input(@output.InvalidBinding))
+    }
+    None => {
+      let materials = match rebuild_materials(admission, request, body) {
+        Ok(value) => value
+        Err(issue) => return Err(Host(Refused(issue)))
+      }
+      match @resident.check_resident_materials_current(materials, at) {
+        Ok(_) => ()
+        Err(issue) => return Err(Host(Refused(issue)))
+      }
+      guard materials.compilation is @host.Tasks(compilation) &&
+        resident_linear_task_index(materials, request) is Some(task) &&
+        task > 0 else {
+        return Err(Input(@output.InvalidBinding))
+      }
+      @host.prepare_client_retained_input_edge(
+        materials.prepared,
+        compilation,
+        materials.admission,
+        materials.run_definition,
+        task,
+        0,
+      ).map_err(_ => Input(@output.InvalidBinding))
+    }
+  }
+}
+
+///|
+/// Route only from the original admitted Effect Run and checked retained edge.
+/// This does not authorize a start or acquire input; the selected live holder
+/// must still admit actual producer evidence, receiver custody and authority.
+pub fn resident_effect_retained_consumer_producer_identity(
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits,
+  configuration : ResidentSourceComputeConfiguration,
+  dispatch : @remote.RemotePollDispatch,
+  at : String,
+) -> Result[String, ResidentRetainedExecutionIssue] {
+  let request = @remote.remote_poll_dispatch_request(dispatch)
+  guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(body) else {
+    return Err(Host(EnvelopeMissing))
+  }
+  let edge = match
+    retained_consumer_checked_edge(
+      admission,
+      Some(effect_limits),
+      Some(configuration),
+      request,
+      body,
+      at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let route = match
+    @host.admit_client_retained_task_route(
+      @remote.remote_poll_dispatch_input_binding(dispatch),
+      edge,
+      request,
+      1048576,
+      65536,
+      1048576,
+      9223372036854775807L,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Input(@output.InvalidBinding))
+  }
+  Ok(
+    @remote.dispatch_request_identity(
+      @host.client_retained_task_route_producer_dispatch(route),
+    ),
+  )
+}
+
+///|
 pub fn prepare_resident_retained_consumer(
   handoff : ResidentRetainedTransfer,
   producer_journal : @journal.Journal,
@@ -128,18 +316,67 @@ pub fn prepare_resident_retained_consumer(
   at : String,
   limits : @output.NativeRemoteStandardTransferBindingLimits,
 ) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure] {
+  prepare_resident_retained_consumer_owned(
+    handoff,
+    producer_journal,
+    admission,
+    dispatch,
+    at,
+    limits,
+    None,
+    None,
+  )
+}
+
+///|
+/// Preserve the original Effect family and current lifetime. Preparation does
+/// not borrow receiver bytes, acquire a start claim, approve or execute writes.
+/// The Source contract is checked against trusted Site configuration before
+/// the original producer and receiver Owners admit the exact consumer edge.
+pub fn prepare_resident_effect_retained_consumer(
+  handoff : ResidentRetainedTransfer,
+  producer_journal : @journal.Journal,
+  admission : ResidentRunAdmission,
+  effect_limits : @host.ClientEffectComputationLimits,
+  configuration : ResidentSourceComputeConfiguration,
+  dispatch : @remote.RemotePollDispatch,
+  at : String,
+  limits : @output.NativeRemoteStandardTransferBindingLimits,
+) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure] {
+  prepare_resident_retained_consumer_owned(
+    handoff,
+    producer_journal,
+    admission,
+    dispatch,
+    at,
+    limits,
+    Some(effect_limits),
+    Some(configuration),
+  )
+}
+
+///|
+fn prepare_resident_retained_consumer_owned(
+  handoff : ResidentRetainedTransfer,
+  producer_journal : @journal.Journal,
+  admission : ResidentRunAdmission,
+  dispatch : @remote.RemotePollDispatch,
+  at : String,
+  limits : @output.NativeRemoteStandardTransferBindingLimits,
+  effect_limits : @host.ClientEffectComputationLimits?,
+  effect_configuration : ResidentSourceComputeConfiguration?,
+) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure] {
   let request = @remote.remote_poll_dispatch_request(dispatch)
   let binding = @remote.remote_poll_dispatch_input_binding(dispatch)
   guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(body) else {
     return Err(retained_consumer_failure(Host(EnvelopeMissing)))
   }
-  let materials = match rebuild_materials(admission, request, body) {
+  let edge = match
+    retained_consumer_checked_edge(
+      admission, effect_limits, effect_configuration, request, body, at,
+    ) {
     Ok(value) => value
-    Err(issue) => return Err(retained_consumer_failure(Host(Refused(issue))))
-  }
-  match @resident.check_resident_materials_current(materials, at) {
-    Ok(_) => ()
-    Err(issue) => return Err(retained_consumer_failure(Host(Refused(issue))))
+    Err(issue) => return Err(retained_consumer_failure(issue))
   }
   if handoff.consumer is Some(consumer) && consumer.executed is Some(_) {
     // A completed exact replay owns its output independently of retired input.
@@ -155,8 +392,8 @@ pub fn prepare_resident_retained_consumer(
     handoff.current,
   )
   match
-    retained_consumer_input(
-      handoff, producer_journal, materials, request, binding, current, limits,
+    retained_consumer_input_from_edge(
+      handoff, producer_journal, edge, request, binding, current, limits,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(retained_consumer_failure(Input(issue)))
@@ -188,9 +425,12 @@ pub fn prepare_resident_retained_consumer(
     current,
     binding_limits: limits,
     codec,
+    effect_limits,
+    effect_configuration,
     material: None,
     executed: None,
     pending_runtime: None,
+    effect_computation: None,
     failure: None,
     closing: false,
     closed: false,
@@ -244,13 +484,18 @@ pub fn ResidentRetainedConsumer::accept(
   guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(body) else {
     return Ok(Refused(@resident.MaterialsMissing))
   }
-  let materials = match rebuild_materials(admission, self.request, body) {
+  let edge = match
+    retained_consumer_checked_edge(
+      admission,
+      self.effect_limits,
+      self.effect_configuration,
+      self.request,
+      body,
+      at,
+    ) {
     Ok(value) => value
-    Err(issue) => return Ok(Refused(issue))
-  }
-  match @resident.check_resident_materials_current(materials, at) {
-    Ok(_) => ()
-    Err(issue) => return Ok(Refused(issue))
+    Err(Host(Refused(issue))) => return Ok(Refused(issue))
+    Err(_) => return Ok(Refused(@resident.ForeignSource))
   }
   if self.executed is Some(executed) {
     // The original durable completion and its live output Owner admit replay;
@@ -269,10 +514,10 @@ pub fn ResidentRetainedConsumer::accept(
     }
   } else {
     match
-      retained_consumer_input(
+      retained_consumer_input_from_edge(
         self.handoff,
         self.producer_journal,
-        materials,
+        edge,
         self.request,
         self.binding,
         self.current,
@@ -353,45 +598,80 @@ pub fn ResidentRetainedConsumer::execute(
     Ok(value) => value
     Err(issue) => return Err(retained_consumer_failure(Host(Protocol(issue))))
   }
-  match
-    execute_resident_retained_attempt(
-      journal,
-      execution,
-      admission,
-      configuration,
-      (materials, binding) => {
-        if @remote.remote_input_binding_body(binding) !=
-          @remote.remote_input_binding_body(self.binding) {
-          return Err(@output.InvalidBinding)
-        }
-        retained_consumer_input(
-          self.handoff,
-          self.producer_journal,
-          materials,
-          self.request,
-          binding,
-          self.current,
-          self.binding_limits,
-        )
-      },
-      self.material.unwrap(),
-      self.codec,
-      input_limits,
-      self.current,
-      attempt,
-      claimant,
-      current_time,
-      executor_entry,
-      release_retired_input=Some(() => {
-        match self.handoff.reclaim() {
-          Ok(_) => {
-            self.material = None
-            true
+  let result = match self.effect_limits {
+    Some(effect_limits) =>
+      execute_resident_effect_retained_attempt(
+        journal,
+        execution,
+        admission,
+        effect_limits,
+        configuration,
+        (materials, binding) => {
+          if @remote.remote_input_binding_body(binding) !=
+            @remote.remote_input_binding_body(self.binding) {
+            return Err(@output.InvalidBinding)
           }
-          Err(_) => false
-        }
-      }),
-    ) {
+          retained_effect_consumer_input(
+            self.handoff,
+            self.producer_journal,
+            materials,
+            self.request,
+            binding,
+            self.current,
+            self.binding_limits,
+          )
+        },
+        self.material.unwrap(),
+        self.codec,
+        input_limits,
+        self.current,
+        attempt,
+        claimant,
+        current_time,
+        executor_entry,
+        retain_computation=owner => self.effect_computation = Some(owner),
+      )
+    None =>
+      execute_resident_retained_attempt(
+        journal,
+        execution,
+        admission,
+        configuration,
+        (materials, binding) => {
+          if @remote.remote_input_binding_body(binding) !=
+            @remote.remote_input_binding_body(self.binding) {
+            return Err(@output.InvalidBinding)
+          }
+          retained_consumer_input(
+            self.handoff,
+            self.producer_journal,
+            materials,
+            self.request,
+            binding,
+            self.current,
+            self.binding_limits,
+          )
+        },
+        self.material.unwrap(),
+        self.codec,
+        input_limits,
+        self.current,
+        attempt,
+        claimant,
+        current_time,
+        executor_entry,
+        release_retired_input=Some(() => {
+          match self.handoff.reclaim() {
+            Ok(_) => {
+              self.material = None
+              true
+            }
+            Err(_) => false
+          }
+        }),
+      )
+  }
+  match result {
     Ok(value) => {
       self.executed = Some(value)
       Ok(value)
@@ -436,5 +716,48 @@ pub fn ResidentRetainedConsumer::close(self : ResidentRetainedConsumer) -> Bool 
     }
   }
   self.closed = true
+  self.effect_computation = None
   true
+}
+
+///|
+/// Access the original completed Effect computation for trusted capture work.
+/// Runtime still owns its lifetime and cleanup; callers must not independently
+/// close it. This acquires no borrow and grants no current approval authority.
+/// Missing completion, cancelled custody or pending cleanup cannot supply an
+/// Owner, and equal file bytes cannot reconstruct this process-local reference.
+pub fn ResidentRetainedConsumer::effect_computation(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> ResidentSourceCompute? {
+  guard !self.closing &&
+    !self.closed &&
+    self.failure is None &&
+    self.effect_limits is Some(_) &&
+    self.executed is Some(executed) &&
+    self.effect_computation is Some(owner) &&
+    owner.effect_run() is Some(_) &&
+    journal.cancellation_requested(self.request) is Ok(false) else {
+    return None
+  }
+  guard journal.observation(self.request) is Ok(saved) &&
+    @journal.recovered_site_dispatch_evidence(saved) is Some(evidence) &&
+    @remote.remote_execution_evidence_cid(evidence) ==
+    executed.completion.evidence_cid &&
+    @journal.recovered_site_dispatch_subject(saved) is Some(subject) &&
+    executed.runtime.inspect_output_facts(
+      self.request,
+      @remote.remote_managed_output_subject_projection(subject)[1],
+    )
+    is Ok(_) &&
+    owner.effect_retained is Some(retained) &&
+    @output.validate_native_remote_retained_task_input_borrow(
+      retained.input,
+      retained.material,
+      retained.current,
+    )
+    is Ok(_) else {
+    return None
+  }
+  Some(owner)
 }

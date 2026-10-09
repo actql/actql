@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mapBounds, inspectPipelineMaps } from './maps.mjs';
 import { fixedCorpus } from '../../corpus.mjs';
-import { registry } from '../../registry.mjs';
+// The restricted capacity proof retains the complete six-descriptor cohort.
+import { corpusBaseline as registry, registry as currentRegistry } from '../../registry.mjs';
 import { registrations } from '../../obligations.mjs';
-import { violation } from '../model.mjs';
+import { inputs, violation } from '../model.mjs';
 import { nativeUnitFixture } from './native-unit-fixture.mjs';
 const cases = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
 function observation(c, target = 'js') {
@@ -56,4 +57,17 @@ test('whole foreign target observations and missing fields are not substitutes',
   assert.throws(() => inspectPipelineMaps(c, o, registry, 'wasm', 'native'), /another target/);
   delete o.faults[0].mapCapacity;
   assert.throws(() => inspectPipelineMaps(c, o, registry, 'native', 'native'));
+});
+
+test('the restricted capacity cohort retains every original case and refuses wider derived schemas', () => {
+  assert.equal(cases.length, 28);
+  const current = fixedCorpus(currentRegistry, registrations);
+  assert.equal(current.length, 114);
+  for (const c of cases) assert.deepEqual(current.find(next => next.id === c.id), c);
+  const wider = current.filter(c => c.steps.filter(s => s.op === 'distinct').length === 1)
+    .filter(c => inputs(c, currentRegistry)[0].width > 3);
+  assert.deepEqual(wider.map(c => [c.id, inputs(c, currentRegistry)[0].width]), [
+    ['pair:derive/distinct', 4], ['extension:seed:105106:38', 4], ['extension:seed:105106:40', 5],
+  ]);
+  for (const c of wider) assert.throws(() => mapBounds(c, currentRegistry), /existing schema domain/);
 });

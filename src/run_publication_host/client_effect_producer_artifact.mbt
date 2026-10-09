@@ -4,6 +4,26 @@
 struct ClientEffectProducerArtifact {
   dispatch : @remote.DispatchRequest
   artifact : ClientEffectLocalResultArtifact
+  bound : PreparedClientEffectRun
+  captured : @strategy.CapturedEffectRunDAG
+}
+
+///|
+/// The sender keeps its own exact checked and physical custody even when a
+/// receiver has independently admitted the same original Run materials.
+fn client_effect_producer_artifact_current(
+  value : ClientEffectProducerArtifact,
+) -> Bool {
+  guard value.artifact.custody is AcquiredUnit(inputs) else { return false }
+  @strategy.captured_effect_run_matches_checked(
+    value.captured,
+    value.bound.checked,
+  ) &&
+  @strategy.captured_effect_local_unit_inputs_match_run(inputs, value.captured) &&
+  client_effect_local_artifact_matches_computation(
+    value.artifact,
+    value.bound.computation,
+  )
 }
 
 ///|
@@ -34,5 +54,5 @@ pub fn bind_client_effect_producer_artifact(
     Some(@remote.dispatch_request_task_scope(dispatch).0) {
     return Err(ForeignRun)
   }
-  Ok({ dispatch, artifact, })
+  Ok({ dispatch, artifact, bound, captured, })
 }

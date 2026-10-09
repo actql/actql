@@ -23,11 +23,23 @@ fn retained_consumer_holder_case(
   chain_task? : Int? = None,
   chain_context? : RetainedNativeChainContext? = None,
   output_unavailable? : Bool = false,
+  effect_materials? : @host.ClientEffectRunMaterials? = None,
+  effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
 ) -> Unit raise {
   // Every completed resident consumer has durable file custody. Chain cases
   // additionally make the original Source path unavailable to later tasks.
+  let at = if effect_materials is Some(_) {
+    "2026-10-09T00:00:00.000Z"
+  } else {
+    "2026-10-05T00:00:00.000Z"
+  }
   let source = match chain_task {
-    None => configuration.source
+    None if effect_materials is None => configuration.source
+    None =>
+      {
+        ..configuration.source,
+        database_path: root_path + "/" + name + ".source-must-not-open",
+      }
     Some(task) => {
       assert_true(task == 1 || task == 2)
       assert_true(chain_context is Some(_))
@@ -56,16 +68,29 @@ fn retained_consumer_holder_case(
   guard materials.compilation is @host.Tasks(compilation) else {
     fail("expected checked tasks")
   }
-  let wire = @host.issue_client_task_run_materials(
-    materials.prepared,
-    compilation,
-    materials.admission,
-    materials.run_definition,
-    environment,
-    resident_effect_source_environment,
-    document,
-    None,
-  ).unwrap()
+  let wire = match effect_materials {
+    Some(effect) =>
+      @host.issue_client_effect_run_materials(
+        effect.allowed,
+        effect.run_definition,
+        environment,
+        resident_effect_source_environment,
+        resident_native_effect_document,
+        None,
+        retained_compute_effect_limits(),
+      ).unwrap()
+    None =>
+      @host.issue_client_task_run_materials(
+        materials.prepared,
+        compilation,
+        materials.admission,
+        materials.run_definition,
+        environment,
+        resident_effect_source_environment,
+        document,
+        None,
+      ).unwrap()
+  }
   let binding = @host.client_retained_task_input_binding(input)
   let envelope = @remote.remote_poll_dispatch_materials_json(
     dispatch, binding, wire,
@@ -90,51 +115,97 @@ fn retained_consumer_holder_case(
     is Err(_),
   )
   let before = @site.site_status(site)
-  let owner = @resident.prepare_resident_retained_consumer(
-    handoff,
-    producer_journal,
-    admission,
-    poll,
-    "2026-10-05T00:00:00.000Z",
-    {
+  let prepare = fn(selected_poll : @remote.RemotePollDispatch, at : String) {
+    let limits : @output.NativeRemoteStandardTransferBindingLimits = {
       max_binding_bytes: 262144,
       max_chunks: 100,
       max_manifest_bytes: 4096,
       max_referenced_bytes: 1048576L,
-    },
-  ).unwrap()
-  let duplicate = @resident.prepare_resident_retained_consumer(
-    handoff,
-    producer_journal,
-    admission,
-    poll,
-    "2026-10-05T00:00:00.000Z",
-    {
-      max_binding_bytes: 262144,
-      max_chunks: 100,
-      max_manifest_bytes: 4096,
-      max_referenced_bytes: 1048576L,
-    },
-  ).unwrap()
+    }
+    match effect_materials {
+      Some(_) =>
+        @resident.prepare_resident_effect_retained_consumer(
+          handoff,
+          producer_journal,
+          admission,
+          retained_compute_effect_limits(),
+          configuration,
+          selected_poll,
+          at,
+          limits,
+        )
+      None =>
+        @resident.prepare_resident_retained_consumer(
+          handoff, producer_journal, admission, selected_poll, at, limits,
+        )
+    }
+  }
+  if effect_materials is Some(_) {
+    assert_eq(
+      @resident.resident_effect_retained_consumer_producer_identity(
+        admission,
+        retained_compute_effect_limits(),
+        configuration,
+        poll,
+        at,
+      ).unwrap(),
+      @remote.dispatch_request_identity(
+        @host.client_retained_input_producer_dispatch(
+          @host.client_retained_task_input_producer(input),
+        ),
+      ),
+    )
+  }
+  let owner = prepare(poll, at).unwrap()
+  let duplicate = prepare(poll, at).unwrap()
+  assert_true(physical_equal(owner, duplicate))
+  if effect_materials is Some(_) {
+    assert_true(
+      prepare(poll, "2100-01-01T00:00:00.000Z")
+      is Err(
+        {
+          issue: @resident.Host(
+            @resident.Refused(@resident_protocol.NotCurrent)
+          ),
+          ..
+        }
+      ),
+    )
+    assert_true(
+      @resident.prepare_resident_effect_retained_consumer(
+        handoff,
+        producer_journal,
+        {
+          ..admission,
+          source: Some(
+            ("connector://foreign/source#v", "sha256:" + "0".repeat(64)),
+          ),
+        },
+        retained_compute_effect_limits(),
+        configuration,
+        poll,
+        at,
+        {
+          max_binding_bytes: 262144,
+          max_chunks: 100,
+          max_manifest_bytes: 4096,
+          max_referenced_bytes: 1048576L,
+        },
+      )
+      is Err(
+        {
+          issue: @resident.Host(
+            @resident.Refused(@resident_protocol.ForeignSource)
+          ),
+          ..
+        }
+      ),
+    )
+  }
   let different = @remote.admit_remote_poll_dispatch_json(
     @remote.remote_poll_dispatch_materials_json(another_attempt, binding, wire).unwrap(),
   ).unwrap()
-  assert_true(
-    @resident.prepare_resident_retained_consumer(
-      handoff,
-      producer_journal,
-      admission,
-      different,
-      "2026-10-05T00:00:00.000Z",
-      {
-        max_binding_bytes: 262144,
-        max_chunks: 100,
-        max_manifest_bytes: 4096,
-        max_referenced_bytes: 1048576L,
-      },
-    )
-    is Err(_),
-  )
+  assert_true(prepare(different, at) is Err(_))
   assert_eq(@site.site_status(site), before)
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
@@ -156,6 +227,7 @@ fn retained_consumer_holder_case(
   let (bundles, fixture_active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
+  assert_true(owner.effect_computation(journal) is None)
   let active = if chain_task is Some(_) {
     let role = "consumer:" + @remote.dispatch_request_identity(dispatch)
     let exact = bundles
@@ -218,7 +290,7 @@ fn retained_consumer_holder_case(
       configuration,
       retained_compute_input_limits(),
       "original-producer-holder",
-      () => "2026-10-05T00:00:00.000Z",
+      () => at,
       Some(key => {
         if key != @remote.remote_dispatch_attempt_key(dispatch) {
           return false
@@ -238,6 +310,7 @@ fn retained_consumer_holder_case(
   }
   if cancel_after_borrow {
     assert_true(run() is Err(_))
+    assert_true(owner.effect_computation(journal) is None)
     assert_eq(borrows.val, 1)
     assert_eq(entries.val, 0)
     assert_eq(journal.start_claimant(dispatch).unwrap(), None)
@@ -307,6 +380,7 @@ fn retained_consumer_holder_case(
     let revision = @remote.dispatch_record_revision(cancelled)
     assert_false(@remote.remote_runtime_record_startable(cancelled))
     assert_true(run() is Err(_))
+    assert_true(owner.effect_computation(journal) is None)
     assert_eq(entries.val, 0)
     assert_eq(@site.site_status(site), before)
     assert_eq(
@@ -361,6 +435,7 @@ fn retained_consumer_holder_case(
   }
   if output_unavailable {
     assert_true(run() is Err(_))
+    assert_true(owner.effect_computation(journal) is None)
     assert_eq(entries.val, 1)
     // Missing physical output is not permission to enter Compute again.
     assert_true(run() is Err(_))
@@ -380,7 +455,7 @@ fn retained_consumer_holder_case(
     return
   }
   let executed = run().unwrap()
-  if chain_task == Some(1) {
+  if chain_task == Some(1) || effect_materials is Some(_) {
     assert_eq(executed.result_definition_cid, None)
   } else {
     assert_true(executed.result_definition_cid is Some(_))
@@ -395,7 +470,7 @@ fn retained_consumer_holder_case(
       configuration,
       retained_compute_input_limits(),
       "original-producer-holder",
-      () => "2026-10-05T00:00:00.000Z",
+      () => at,
       Some(_ => {
         entries.val += 1
         true
@@ -409,6 +484,34 @@ fn retained_consumer_holder_case(
     executed.completion.evidence_cid,
   )
   assert_eq(entries.val, 1)
+  assert_eq(borrows.val, 1)
+  let captured_effect_owner = if effect_materials is Some(_) {
+    owner.effect_computation(journal)
+  } else {
+    None
+  }
+  if effect_materials is Some(_) {
+    assert_true(owner.effect_computation(producer_journal) is None)
+    assert_true(
+      physical_equal(
+        owner.effect_computation(journal).unwrap(),
+        duplicate.effect_computation(journal).unwrap(),
+      ),
+    )
+    retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
+    retained_holder_effect_transfer_capture(
+      owner,
+      journal,
+      effect_producer.unwrap(),
+      producer_journal,
+      input,
+      site,
+    )
+    assert_eq(entries.val, 1)
+    assert_eq(borrows.val, 1)
+  } else {
+    assert_true(owner.effect_computation(journal) is None)
+  }
   // Saved-report preparation uses this real completed consumer. Missing
   // Output custody is a refusal, never permission to enter Compute again.
   let delegated : @resident_protocol.ResidentSiteDelegation = {
@@ -424,7 +527,31 @@ fn retained_consumer_holder_case(
   }
   let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
   let missing_intent = "sha256:" + "e".repeat(64)
-  if chain_task != Some(1) {
+  if effect_materials is Some(_) {
+    // Computation output remains private. An ordinary public Output entry
+    // cannot admit the original Effect Run or manufacture its publication.
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        delegated,
+        attempt,
+        missing_intent,
+        () => at,
+        () => true,
+      )
+      is Err(
+        @resident.Refused(
+          @resident_protocol.MaterialsRejected(
+            @host.ClientValuesRunMaterialsIssue::MaterialsProgram(
+              @host.ClientProgramPreparationIssue::EffectNotSupported(_)
+            )
+          )
+        )
+      ),
+    )
+  } else if chain_task != Some(1) {
     let saved_revision = @remote.dispatch_record_revision(
       journal.require(dispatch).unwrap(),
     )
@@ -436,7 +563,7 @@ fn retained_consumer_holder_case(
         delegated,
         attempt,
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => true,
       )
       is Err(@resident.Runtime(@runtime.CompletedRestorationPending)),
@@ -449,7 +576,7 @@ fn retained_consumer_holder_case(
         delegated,
         attempt,
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => false,
       )
       is Err(@resident.Refused(@resident_protocol.NotCurrent)),
@@ -462,7 +589,7 @@ fn retained_consumer_holder_case(
         delegated,
         "another-attempt",
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => true,
       )
       is Err(@resident.EnvelopeMissing),
@@ -480,7 +607,7 @@ fn retained_consumer_holder_case(
         delegated,
         attempt,
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => true,
       )
       is Err(@resident.Refused(@resident_protocol.ForeignSource)),
@@ -493,7 +620,7 @@ fn retained_consumer_holder_case(
         { ..delegated, coordinator_authority: "foreign-coordinator", },
         attempt,
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => true,
       )
       is Err(@resident.Refused(@resident_protocol.NotCurrent)),
@@ -528,7 +655,7 @@ fn retained_consumer_holder_case(
         delegated,
         attempt,
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => true,
       )
       is Err(@resident.Refused(@resident_protocol.NotCurrent)),
@@ -550,7 +677,7 @@ fn retained_consumer_holder_case(
         delegated,
         attempt,
         missing_intent,
-        () => "2026-10-05T00:00:00.000Z",
+        () => at,
         () => true,
       )
       is Err(@resident.Refused(@resident_protocol.UnsupportedTask)),
@@ -596,25 +723,18 @@ fn retained_consumer_holder_case(
     @dispatch_journal.native_output_file_custody_content_cid(custody),
   )
   assert_true(read_back.close())
+  let receiver_retained = if effect_materials is Some(_) {
+    destination_bytes
+  } else {
+    0L
+  }
   {
     assert_eq(
       destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
-      0L,
+      receiver_retained,
     )
     let after_handoff = @site.site_status(site)
-    let replay = @resident.prepare_resident_retained_consumer(
-      handoff,
-      producer_journal,
-      admission,
-      poll,
-      "2026-10-05T00:00:00.000Z",
-      {
-        max_binding_bytes: 262144,
-        max_chunks: 100,
-        max_manifest_bytes: 4096,
-        max_referenced_bytes: 1048576L,
-      },
-    ).unwrap()
+    let replay = prepare(poll, at).unwrap()
     assert_true(physical_equal(replay, owner))
     assert_eq(@site.site_status(site), after_handoff)
     assert_eq(entries.val, 1)
@@ -696,15 +816,20 @@ fn retained_consumer_holder_case(
     .open_output_reader(dispatch, fields[1], 128)
     .unwrap()
   assert_false(owner.close())
+  assert_true(owner.effect_computation(journal) is None)
   assert_true(file_root.verify_generation("output-" + occurrence, generation))
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
-    0L,
+    receiver_retained,
   )
-  assert_false(handoff.reclaim().unwrap())
-  assert_true(
-    handoff.current_reply(current_query) is Err(@resident.CleanupPending),
-  )
+  if effect_materials is None {
+    assert_false(handoff.reclaim().unwrap())
+    assert_true(
+      handoff.current_reply(current_query) is Err(@resident.CleanupPending),
+    )
+  } else {
+    assert_true(handoff.current_reply(current_query) is Ok(_))
+  }
   let bytes : Array[Byte] = []
   while true {
     let chunk = reader.next().unwrap()
@@ -727,6 +852,10 @@ fn retained_consumer_holder_case(
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())
   assert_true(owner.close())
+  assert_true(owner.effect_computation(journal) is None)
+  if captured_effect_owner is Some(computation) {
+    assert_true(computation.effect_materials_for_capture() is None)
+  }
   let file_root = @filesystem.open_root(root_path).unwrap()
   assert_false(file_root.verify_generation("output-" + occurrence, generation))
   assert_true(run() is Err(_))
@@ -735,6 +864,16 @@ fn retained_consumer_holder_case(
     journal.require(dispatch).unwrap(),
   )
   assert_true(cleanup is @remote.CleanupReleased)
+  if effect_materials is Some(_) {
+    // Borrow return is not receiver cleanup. Its independent owner must
+    // confirm reclamation before the receiver reservation is returned.
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      destination_bytes,
+    )
+    assert_true(handoff.reclaim().unwrap())
+    assert_false(handoff.reclaim().unwrap())
+  }
   // The exact durable file was verified above before input retirement; its
   // reader has now finished and formal output cleanup is independently done.
   assert_eq(

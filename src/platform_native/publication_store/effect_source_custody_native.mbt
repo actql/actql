@@ -41,40 +41,20 @@ fn effect_custody_body(
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
   }
-  let writer = @encode.writer(store.max_record_bytes, 128, 4) catch {
-    _ => return Err(StateCollision)
+  let wire = match
+    @publication.native_effect_source_custody_record_json(
+      run,
+      source,
+      request_wire,
+      store.authority_cid,
+      digest,
+      bytes,
+      complete,
+      store.max_record_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(StateCollision)
   }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "cleanup_complete")
-    @encode.bool_value(writer, complete)
-    @encode.key(writer, "holding_cid")
-    @encode.string_value(
-      writer,
-      @publication.captured_effect_source_holding_cid(source),
-    )
-    @encode.key(writer, "payload_request")
-    @encode.string_value(writer, request_wire)
-    @encode.key(writer, "physical_bytes")
-    @encode.string_value(writer, bytes.to_string())
-    @encode.key(writer, "physical_digest")
-    @encode.string_value(writer, digest)
-    @encode.key(writer, "run_definition")
-    @encode.string_value(writer, @publication.publication_contract_json(run))
-    @encode.key(writer, "source_artifact")
-    @encode.string_value(
-      writer,
-      @publication.captured_effect_source_artifact_json(source),
-    )
-    @encode.key(writer, "store_authority_cid")
-    @encode.string_value(writer, store.authority_cid)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-native-effect-source-custody/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(StateCollision)
-  }
-  let wire = @encode.finish(writer) catch { _ => return Err(StateCollision) }
   Ok(@utf8.encode(wire))
 }
 
