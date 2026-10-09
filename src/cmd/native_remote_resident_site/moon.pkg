@@ -28,6 +28,7 @@ import {
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,
+  "actql/actql/connectors/duckdb/host" @acquisition_host,
   "moonbitlang/core/argparse",
   "moonbitlang/core/env",
   "moonbitlang/core/string",
