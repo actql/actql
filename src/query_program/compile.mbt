@@ -2733,9 +2733,19 @@ fn compile_steps(
               if root.kind is Reference(path) && path.length() == 1 {
                 raise Abort(UnknownColumn)
               }
-              let name = "aql_group_key_" + index.to_string()
-              if active_fields.contains(name) || key_names.contains(name) {
-                raise Abort(UnsupportedGrouping)
+              let mut serial = index
+              let mut name = "aql_group_key_" + serial.to_string()
+              // Authored input/output names do not reserve a language prefix.
+              // Keep each computed key in a distinct private physical slot.
+              while (active_fields + key_names).any(field => {
+                      ascii_upper(field) == ascii_upper(name)
+                    }) ||
+                    projections.any(projection => {
+                      projection_alias(projection) is Some(column_name) &&
+                      ascii_upper(column_name.value) == ascii_upper(name)
+                    }) {
+                serial += 1
+                name = "aql_group_key_" + serial.to_string()
               }
               derives.push(
                 (
