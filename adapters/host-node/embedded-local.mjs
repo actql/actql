@@ -2528,7 +2528,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
-    submitIntent: submissionService.submitIntent,
+    submitIntent: submissionService.submitAttempt,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
     stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,

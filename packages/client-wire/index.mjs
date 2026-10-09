@@ -15,7 +15,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
-import {validOperationAttemptRefShape, validCancellationAttemptShape} from './client-host.generated.js';
+import {validOperationAttemptRefShape, validCancellationAttemptShape, validSubmissionAttemptShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
@@ -181,6 +181,19 @@ export function validSubmissionLookup(value, selected, expected) {
     (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
 }
 
+export function validSubmissionAttempt(value, selected, expected, intentCid, attemptRef, unresolvedHistory) {
+  if (!validSubmissionRef(expected) || !validOperationAttemptRef(attemptRef) ||
+      attemptRef.operation !== 'submit' || !validSubmissionAttemptShape(value) ||
+      !validOperationAttemptRef(value.attemptRef) || value.attemptRef.operation !== 'submit' ||
+      value.attemptRef.attemptId !== attemptRef.attemptId) return false;
+  if (value.kind === 'recorded' || value.kind === 'already_satisfied') {
+    return validSubmissionOutcome(value.outcome, selected, expected, intentCid, unresolvedHistory) &&
+      (value.kind !== 'already_satisfied' || value.outcome.kind !== 'preparing');
+  }
+  return value.kind === 'refused' && value.reason === 'authorization' ||
+    sameSubmissionRef(value.submissionRef, expected) && value.intentCid === intentCid;
+}
+
 // This is one existing Engine-owned Run-state component. The public Client
 // snapshot must also carry publication, cancellation and physical stop facts.
 export function validRunState(value) {
@@ -273,7 +286,8 @@ export function validClientBody(operation, body) {
       !validClientConnection(body.connection)) return false;
   if (operation === 'connect') return true;
   if (operation === 'submit-intent' || operation === 'restart-intent') {
-    if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid)) return false;
+    if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid) ||
+        !validOperationAttemptRef(body.attemptRef) || body.attemptRef.operation !== 'submit') return false;
     if (operation === 'restart-intent' && !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) return false;
     return validClientBody('submit', {connection: body.connection,
       requestId: body.submissionRef.nonce, kind: body.kind,

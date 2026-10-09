@@ -29,7 +29,7 @@ import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
 import {connect, ClientError, getCheckInput, getSubmissionInput, getSubmissionOutcome, explainSubmission, explainRunObservationFailure, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 
 test('check presentation revisions are immutable and separate from schema identity', () => {
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
@@ -460,7 +460,7 @@ test('document submit, attach and reads use one reference without replay', async
     const operation = url.pathname.split('/').at(-1);
     requests.push({operation, body: JSON.parse(init.body), headers: init.headers});
     if (operation === 'connect') return Response.json(profile);
-    if (operation === 'submit-intent') return Response.json(readySubmission(JSON.parse(init.body), admission));
+    if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(JSON.parse(init.body), admission));
     if (operation === 'attach') return Response.json(admission);
     if (operation === 'status') return Response.json(state);
     if (operation === 'read') {
@@ -503,7 +503,7 @@ test('query declarations travel with source without entering the SDK',
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
       requests.push({operation, body: JSON.parse(init.body)});
-      return Response.json(operation === 'connect' ? profile : readySubmission(JSON.parse(init.body), admission));
+      return Response.json(operation === 'connect' ? profile : readySubmissionAttempt(JSON.parse(init.body), admission));
     });
     t.after(() => mock.restoreAll());
     const client = await connect(options);
@@ -791,7 +791,7 @@ test('one query and Result path serves each connected ownership profile',
       requests.push({operation, body});
       if (operation === 'connect') return Response.json({...profile,
         mode: body.connection.mode, owner: body.connection.owner});
-      if (operation === 'submit-intent') return Response.json(readySubmission(body, admission));
+      if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(body, admission));
       if (operation === 'read') return new Response('{"id":1}\n\x1e');
       throw new Error(`unexpected ${operation}`);
     });
@@ -985,7 +985,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
       requests.push({operation, body: JSON.parse(init.body)});
-      return Response.json(operation === 'connect' ? profile : readySubmission(JSON.parse(init.body), admission));
+      return Response.json(operation === 'connect' ? profile : readySubmissionAttempt(JSON.parse(init.body), admission));
     });
     t.after(() => mock.restoreAll());
     const client = await connect({...options,

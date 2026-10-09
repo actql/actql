@@ -1,3 +1,4 @@
+import {submissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess, getSubmissionInput} from './index.mjs';
@@ -56,7 +57,7 @@ test('explicit restart rejects missing or changed acknowledgement in the Host re
         if (change !== 'missing') response.unresolvedHistory = change === 'original'
           ? {...unresolvedHistory, submissionRef: {...original, nonce: 'different-original'}}
           : {...unresolvedHistory, acknowledgement: 'retry'};
-        return response;
+        return submissionAttempt(body, response);
       },
     });
     await assert.rejects(client.start({}, {submissionRef: client.newSubmission(), unresolvedHistory}),
@@ -119,7 +120,7 @@ test('SDK submitted-intent CID has an independent value-preserving preimage', as
       if (operation === 'connect') return profile;
       assert.equal(operation, 'submit-intent');
       assert.equal(body.intentCid, 'sha256:5ad281d9145e26cfb0bf5b7b0fa37c11cb2b065687350ae53a36f714bca0fe44');
-      return {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid};
+      return submissionAttempt(body, {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid});
     },
   });
   const submissionRef = client.newSubmission({nonce: 'independent-vector'});
@@ -151,9 +152,9 @@ test('SDK rejects a response bound to another submission or intent', async () =>
     const client = await connectInProcess({mode: 'local', owner: 'local'}, {
       async perform(operation, body) {
         if (operation === 'connect') return profile;
-        return {kind: 'preparing', submissionRef: change === 'nonce'
+        return submissionAttempt(body, {kind: 'preparing', submissionRef: change === 'nonce'
           ? {...body.submissionRef, nonce: 'another-nonce'} : body.submissionRef,
-          intentCid: change === 'intent' ? cid('0') : body.intentCid};
+          intentCid: change === 'intent' ? cid('0') : body.intentCid});
       },
     });
     const submissionRef = client.newSubmission({nonce: 'exact-original'});
@@ -174,7 +175,7 @@ test('ordinary SDK submission exposes its original identity and input before fir
       if (operation === 'connect') return profile;
       received = {operation, body};
       await answer;
-      return {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid};
+      return submissionAttempt(body, {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid});
     },
   });
   const parameters = {value: 'e\u0301\r\n'};
@@ -253,8 +254,8 @@ for (const fault of ['changes branch', 'throws']) {
     const client = await connectInProcess({mode: 'local', owner: 'local'}, {
       async perform(operation, body) {
         if (operation === 'connect') return profile;
-        return {kind: 'not_accepted', submissionRef: body.submissionRef,
-          intentCid: body.intentCid, problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
+        return submissionAttempt(body, {kind: 'not_accepted', submissionRef: body.submissionRef,
+          intentCid: body.intentCid, problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}});
       },
     });
     const submissionRef = client.newSubmission({nonce: 'copied-durable-outcome'});
