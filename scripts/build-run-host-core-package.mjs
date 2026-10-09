@@ -11,6 +11,14 @@ const destination = join(root, 'packages/run-host-core/dist',
 const result = buildSync({entryPoints: [source], bundle: true, minify: true,
   write: false, format: 'esm', platform: 'neutral', target: 'es2022'});
 const bytes = result.outputFiles[0].contents;
+// Reuse the existing storage-free Checkpoint bridge. The package does not
+// supply a clock, reviewer authority, persistence or another lifecycle Owner.
+const checkpointDestination = join(root, 'packages/run-host-core/dist',
+  'checkpoint_runtime_node.js');
+const checkpointBytes = buildSync({entryPoints: [join(root,
+  '_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js')],
+bundle: true, minify: true, write: false, format: 'esm',
+platform: 'neutral', target: 'es2022'}).outputFiles[0].contents;
 const accessSource = readFileSync(join(root, 'adapters/host-common',
   'result-access.mjs'), 'utf8');
 const access = accessSource.replace(
@@ -32,6 +40,9 @@ if (process.argv.includes('--check')) {
   if (!readFileSync(destination).equals(bytes)) {
     throw new Error('StaleRunHostCorePackage');
   }
+  if (!readFileSync(checkpointDestination).equals(checkpointBytes)) {
+    throw new Error('StaleRunHostCheckpointPackage');
+  }
   if (readFileSync(accessFile, 'utf8') !== access ||
       !readFileSync(deliveryFile).equals(delivery) ||
       !readFileSync(actionFile).equals(action)) {
@@ -40,6 +51,7 @@ if (process.argv.includes('--check')) {
 } else {
   mkdirSync(join(root, 'packages/run-host-core/dist'), {recursive: true});
   writeFileSync(destination, bytes);
+  writeFileSync(checkpointDestination, checkpointBytes);
   if (!process.argv.includes('--runtime-only')) {
     writeFileSync(accessFile, access);
     writeFileSync(deliveryFile, delivery);
