@@ -82,10 +82,78 @@ All commands use `scripts/local-checks.mjs`, the pinned Node/MoonBit toolchain,
 finite time budgets and the nonzero-test guard. Formatting and `git diff
 --check` are checked before publication.
 
-## Delivery state
+## Integration and public delivery evidence
 
-Public normal-pack Local/HTTPS execution, exact producer revision/digests,
-submitted HEAD and exact-HEAD CI observation will be recorded after execution.
-Focused lowering success alone does not establish public execution completion.
-Full Core, Wasm/native, proof, performance and full packed corpora have not been
-run locally for this change. No merge or manual CI rerun is performed.
+Normally merged main `87e2debf6a8724bb453fb2b83caf622d39f11c7c` (including
+the separately merged computed GROUP-key collision repair). No conflicts or
+unmerged dependencies remain for this unit. Verified integrated source and
+normal five-package producer revision:
+`e2a61b126b7393274fcb29cc1e2c3da9f70273b0`.
+
+- Integrated focused JS: `run-Telq2B` / `focused-test-qvc8j9`, 34/34 passed.
+  The earlier five-file selection plus `group_key_slot_collision_test.mbt`
+  checks the allocator boundary changed by the main merge.
+- Integrated Node: `run-ZfhiXq` / `focused-test-UHuyfF`, 5/5 passed.
+  Selection: `scripts/qualify-source-input.test.mjs` and
+  `scripts/group-key-slot-collision-source-input.test.mjs`.
+- Bounded producer/digest/public-consumer invocation: `run-SKAMoM`, exit 0.
+- Consumer receipt: `public-query-evidence-X3DGvP`, revision above,
+  `status: passed`, `complete: true`, ten commands all exit 0, no signal,
+  `evidenceErrors: []`, `artifactsRemoved: true`. The successful temporary
+  installation was removed after evidence preservation.
+- Packed Embedded Local and remote HTTPS each passed 32 positive cases,
+  10 refusals, and one deliberately failing demanded-expression case. The
+  standard profile runs 31 positives and all refusals/failure; the existing
+  analytic-property profile runs the remaining positive. All 12 new grouped
+  positive cases and both new refusals pass through the standard public Host.
+- The public consumer compares Named Result rows and `describe().columns`
+  exactly, including column order and nullability for empty Results. All new
+  source cases acquire once. Reattach, Result reread, resubmit and submission
+  lookup retain the Run and counters. Refusals preserve zero Run admission and
+  zero Source I/O. Expected Results contain no private group/window slots.
+- The driver's existing profile controls passed 14/14. Its README Local/HTTPS
+  quickstart and missing-generated-asset negative control also passed.
+
+Evidence root:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-X3DGvP`.
+Public application stdout/stderr/result are `010.stdout.log`,
+`010.stderr.log`, and `010.result.json`. The summary retains source identity,
+package digests, child exit/status/timing and cleanup outcome.
+
+Normal producer directory:
+`/private/tmp/actql-b-qualify-group-aggregate-slots-pack`.
+The manifest revision matches the clean checked-out source; SHA-256 was also
+checked independently against every tarball before the consumer started.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `d9f38b888b235065ea183724b7f9c59326a00e327b5a3b574f043b64ccc15218` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The actual bounded orchestrator is retained at
+`/private/tmp/actql-b-qualify-group-aggregate-slots-packed.mjs`. It validates
+the shared heavy-check owner while waiting, pins the checkout revision, and
+runs these normal commands sequentially with a 1,200-second budget:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-qualify-group-aggregate-slots-pack
+# Independently compare the manifest revision and all five tarball digests.
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-qualify-group-aggregate-slots-pack \
+  node scripts/test-packed-public-query.mjs --qualify-only
+```
+
+The command uses pinned Node `22.22.0` and MoonBit `0.10.12+1634b282e`, normal
+prepack hooks, an external private consumer and the existing nonzero/bounded
+guards. No dependency overlay or post-lowering correction is used.
+
+## Remaining verification
+
+The evidence-recording commit changes this report only. Its submitted HEAD
+must not be described as a newly packed revision; the verified source remains
+the explicit integrated SHA above. Exact submitted-HEAD Actions status will be
+reported separately in the PR. Full Core, Wasm/native, proof, performance and
+full packed corpora have not been run locally for this change. No merge or
+manual CI rerun is performed.
