@@ -41,3 +41,14 @@ pub fn Library::verify_ed25519(
 ) -> Result[Bool, NativeSignatureIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+fn Library::private_cipher(
+  _self : Library,
+  _key : Bytes,
+  _aad : Bytes,
+  _input : Bytes,
+  _encrypt : Bool,
+) -> Result[Bytes, NativePrivateEvidenceIssue] {
+  Err(UnsupportedTarget)
+}

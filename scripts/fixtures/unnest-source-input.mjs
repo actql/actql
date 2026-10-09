@@ -25,9 +25,63 @@ const success = (name, text, expected, output = columns, extra = {}) => ({
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra,
 });
 const sql = 'SELECT element, position FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position';
+const renamedColumns = [column('next', true), column('position')];
+const renamedRows = [{next: 2, position: 0}, {next: null, position: 1}, {next: 2, position: 2}];
+// Independent normal Program: only the public projection name changes.
+const renameControl = {...control, stages: [{...control.stages[0],
+  steps: [...control.stages[0].steps.slice(0, -1),
+    {select: [{next: 'element'}, 'position'], as: 'selected'}],
+  results: {rows: {from: 'selected', fields: ['next', 'position']}}}]};
+const offsetColumns = [column('element', true), column('next')];
+const offsetRows = rows.map(row => ({element: row.element, next: row.position}));
+// Independent normal Program: rename the emitted offset only at projection.
+const offsetControl = {...control, stages: [{...control.stages[0],
+  steps: [...control.stages[0].steps.slice(0, -1),
+    {select: ['element', {next: 'position'}], as: 'selected'}],
+  results: {rows: {from: 'selected', fields: ['element', 'next']}}}]};
 export const unnestSuccesses = [
+  success('offset-rename-json-control', JSON.stringify(offsetControl), offsetRows, offsetColumns,
+    {format: 'json', parameterDeclarations: undefined}),
+  success('offset-rename-after-select',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SELECT element, position |> RENAME position AS next |> ORDER BY next',
+    offsetRows, offsetColumns, {format: 'aql-text'}),
+  success('offset-rename-after-as',
+    'FROM UNNEST(@items) element WITH OFFSET position |> AS row |> RENAME position AS next |> SELECT element, next |> ORDER BY next',
+    offsetRows, offsetColumns, {format: 'aql-text'}),
+  success('offset-rename-after-set',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SET position = position + 10 |> RENAME position AS next |> SELECT element, next |> ORDER BY next',
+    offsetRows.map(row => ({...row, next: row.next + 10})), offsetColumns, {format: 'aql-text'}),
+  success('offset-default-after-select',
+    'FROM UNNEST(@items) element WITH OFFSET |> SELECT element, offset |> RENAME offset AS next |> ORDER BY next',
+    offsetRows, offsetColumns, {format: 'aql-text'}),
+  success('offset-rename-empty',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SELECT element, position |> RENAME position AS next |> ORDER BY next',
+    [], offsetColumns, {format: 'aql-text', parameters: {items: []}}),
+  success('offset-drop-allows-new-range',
+    'FROM UNNEST(@items) element WITH OFFSET position |> DROP position |> CROSS JOIN UNNEST([10]) position WITH OFFSET index |> SELECT element, position, index |> ORDER BY element NULLS LAST',
+    [{element: 2, position: 10, index: 0}, {element: 2, position: 10, index: 0},
+      {element: null, position: 10, index: 0}],
+    [column('element', true), column('position'), column('index')], {format: 'aql-text'}),
   success('json-control', JSON.stringify(control), rows, columns,
     {format: 'json', parameterDeclarations: undefined}),
+  success('scalar-rename-json-control', JSON.stringify(renameControl), renamedRows, renamedColumns,
+    {format: 'json', parameterDeclarations: undefined}),
+  success('scalar-rename-after-select',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SELECT element, position |> RENAME element AS next |> ORDER BY position',
+    renamedRows, renamedColumns, {format: 'aql-text'}),
+  success('scalar-rename-after-as',
+    'FROM UNNEST(@items) element WITH OFFSET position |> AS row |> RENAME element AS next |> ORDER BY position',
+    renamedRows, renamedColumns, {format: 'aql-text'}),
+  success('scalar-rename-after-set',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SET element = 100 |> RENAME element AS next |> SELECT * |> ORDER BY position',
+    [{next: 100, position: 0}, {next: 100, position: 1}, {next: 100, position: 2}],
+    [column('next'), column('position')], {format: 'aql-text'}),
+  success('scalar-drop-removes-range',
+    'FROM UNNEST(@items) element WITH OFFSET position |> DROP element |> SELECT position |> RENAME position AS next |> SELECT * |> ORDER BY next',
+    [{next: 0}, {next: 1}, {next: 2}], [column('next')], {format: 'aql-text'}),
+  success('scalar-distinct-keeps-values',
+    'FROM UNNEST(@items) element WITH OFFSET position |> DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST',
+    [{next: 2}, {next: null}], [column('next', true)], {format: 'aql-text'}),
   success('sql-duplicates-and-null', sql, rows),
   success('scalar-star-sql',
     'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position', rows),
@@ -64,6 +118,27 @@ const refusal = (name, text, extra = {}) => ({name: 'unnest-refusal-' + name,
   format: 'sql', text, parameterDeclarations: declarations,
   parameters: {items: [2, null, 2]}, ...extra});
 export const unnestRefusals = [
+  ...[
+    'FROM UNNEST(@items) element WITH OFFSET position |> RENAME position AS next |> SELECT element, next |> ORDER BY next',
+    'FROM UNNEST(@items) element WITH OFFSET `Position` |> RENAME `POSITION` AS next |> SELECT element, next |> ORDER BY next',
+    'FROM UNNEST(@items) element WITH OFFSET |> RENAME offset AS next |> SELECT element, next |> ORDER BY next',
+    'FROM UNNEST(@items) element WITH OFFSET position |> DROP element |> RENAME position AS next |> SELECT next |> ORDER BY next',
+    'FROM UNNEST(@items) element WITH OFFSET position |> JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 |> RENAME position AS next |> SELECT element, next |> ORDER BY next',
+    'FROM UNNEST(@items) element WITH OFFSET position |> CROSS JOIN UNNEST(@items) position |> SELECT element',
+    'FROM UNNEST(@items) element WITH OFFSET position |> CROSS JOIN UNNEST(@items) other WITH OFFSET position |> SELECT element',
+    'FROM UNNEST(@items) element |> CROSS JOIN UNNEST(@items) other WITH OFFSET element |> SELECT other',
+  ].map((text, index) => refusal('offset-range-' + index, text,
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
+  ...['element', '`element`', '`ELEMENT`'].map((name, index) =>
+    refusal('scalar-rename-range-' + index,
+      'FROM UNNEST(@items) ' + name + ' WITH OFFSET position |> RENAME ' + name + ' AS next |> SELECT next, position |> ORDER BY position',
+      {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
+  refusal('scalar-rename-range-after-join',
+    'FROM UNNEST(@items) element WITH OFFSET position |> JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 |> RENAME element AS next |> SELECT next, position',
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('scalar-range-duplicate-unnest',
+    'FROM UNNEST(@items) element WITH OFFSET position |> CROSS JOIN UNNEST(@items) element |> SELECT position',
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
   refusal('undeclared', sql, {parameterDeclarations: undefined}),
   refusal('wrong-input-type', sql, {parameterDeclarations: {items: {type: 'number'}}, parameters: {items: 1}}),
   refusal('array-bound', sql, {parameters: {items: [1, 2, 3, 4]}}),
@@ -120,7 +195,7 @@ unnestSuccesses.push(
       additional_properties: false}}, column('position')]),
   structSuccess('predicate-except', 'SELECT element.* EXCEPT (label), position FROM UNNEST(@items) element WITH OFFSET position WHERE id IS NOT NULL ORDER BY position',
     [{id: 2, position: 0}, {id: 2, position: 2}], [column('id', true), column('position')]),
-  structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SET id = id + 10 |> SELECT id AS current, element.id AS original, position |> ORDER BY position',
+  structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS current, input.id AS original, position |> ORDER BY position',
     [{current: 12, original: 2, position: 0}, {current: null, original: null, position: 1}, {current: 12, original: 2, position: 2}],
     [column('current', true), column('original', true), column('position')], {format: 'aql-text'}),
   structSuccess('data-binding', 'DATA expanded = FROM UNNEST(@items) element WITH OFFSET position |> SELECT *; FROM expanded |> ORDER BY position |> RESULT answer',
@@ -150,6 +225,73 @@ unnestRefusals.push(...unnestParameterPathRefusals);
 
 unnestSuccesses.push(...unnestCheckedArraySuccesses);
 unnestRefusals.push(...unnestCheckedArrayRefusals);
+
+// ORDER positions count actual value-table columns, not implicit object fields.
+// The label order deliberately opposes the offset order. These expectations and
+// ordinary JSON ports are authored independently of the frontend's private slots.
+const ordinalParameters = {items: [{id: 2, label: 'z'}, null, {id: 1, label: 'a'}]};
+const ordinalRows = [{id: 2, label: 'z', position: 0},
+  {id: null, label: null, position: 1}, {id: 1, label: 'a', position: 2}];
+const ordinalControl = {version: 'actql/0.1', id: 'fixture.unnest.ordinal', params: structDeclarations,
+  stages: [{id: 'main', inputs: {}, steps: [
+    {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+    {from: 'seed', derive: {array: {$param: 'items'}}},
+    {unnest: {column: 'array', as: 'whole', with_index: 'position'}},
+    {derive: {id: {property: {value: {field: 'whole'}, name: 'id'}},
+      label: {property: {value: {field: 'whole'}, name: 'label'}}}},
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'label', 'position'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['id', 'label', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const ordinalHead = 'FROM UNNEST(@items) element WITH OFFSET position';
+const ordinalSuccess = (name, text, extra = {}) => structSuccess('ordinal-' + name, text,
+  extra.expected ?? ordinalRows, extra.columns ?? structColumns,
+  {format: 'aql-text', parameters: ordinalParameters, ...extra});
+unnestSuccesses.push(
+  ordinalSuccess('json-control', JSON.stringify(ordinalControl),
+    {format: 'json', parameterDeclarations: undefined}),
+  ordinalSuccess('offset-before-select', `${ordinalHead} |> ORDER BY 2 |> SELECT element.*, position`),
+  ordinalSuccess('signed-quoted',
+    'FROM UNNEST(@items) `element` WITH OFFSET `position` |> ORDER BY (+2) |> SELECT `element`.*, `position`'),
+  ordinalSuccess('projected-members', `${ordinalHead} |> SELECT element.*, position |> ORDER BY 2`,
+    {expected: [{id: null, label: null, position: 1}, {id: 1, label: 'a', position: 2},
+      {id: 2, label: 'z', position: 0}]}),
+  ordinalSuccess('reordered-projection', `${ordinalHead} |> SELECT position, element.* |> ORDER BY 1`,
+    {expected: [{position: 0, id: 2, label: 'z'}, {position: 1, id: null, label: null},
+      {position: 2, id: 1, label: 'a'}], columns: [column('position'), ...structColumns.slice(0, 2)]}),
+  ordinalSuccess('same-named-offset',
+    'FROM UNNEST(@items) element WITH OFFSET id |> ORDER BY 2 |> SELECT element.id AS original, id AS position',
+    {expected: [{original: 2, position: 0}, {original: null, position: 1}, {original: 1, position: 2}],
+      columns: [column('original', true), column('position')]}),
+  ordinalSuccess('drop-value', `${ordinalHead} |> DROP element |> ORDER BY 1 |> SELECT position`,
+    {expected: [{position: 0}, {position: 1}, {position: 2}], columns: [column('position')]}),
+  ordinalSuccess('extend-column',
+    `${ordinalHead} |> EXTEND 10 - position AS extra |> ORDER BY 3 |> SELECT element.*, position, extra`,
+    {expected: [{id: 1, label: 'a', position: 2, extra: 8},
+      {id: null, label: null, position: 1, extra: 9}, {id: 2, label: 'z', position: 0, extra: 10}],
+      columns: [...structColumns, column('extra')]}),
+  ordinalSuccess('set-offset',
+    `${ordinalHead} |> SET position = 10 - position |> ORDER BY 2 |> SELECT element.*, position`,
+    {expected: [{id: 1, label: 'a', position: 8}, {id: null, label: null, position: 9},
+      {id: 2, label: 'z', position: 10}]}),
+  ordinalSuccess('join-remapping',
+    `${ordinalHead} |> JOIN (SELECT 2 AS key UNION ALL SELECT 1 AS key) k ON element.id = k.key MAX_OUTPUT_ROWS 3 |> ORDER BY 2 |> SELECT element.*, position`,
+    {expected: [{id: 2, label: 'z', position: 0}, {id: 1, label: 'a', position: 2}]}),
+  ordinalSuccess('empty-objects', `${ordinalHead} |> ORDER BY 2 DESC |> SELECT position`,
+    {parameterDeclarations: {items: {type: 'array', nullable: true, max_items: 3,
+      items: {type: 'object', nullable: true, fields: {}}}},
+      parameters: {items: [{}, null]}, expected: [{position: 1}, {position: 0}], columns: [column('position')]}),
+  ordinalSuccess('null-array', `${ordinalHead} |> ORDER BY 2 |> SELECT element.*, position`,
+    {parameters: {items: null}, expected: []}),
+);
+for (const [name, text] of [
+  ['outside-actual-columns', `${ordinalHead} |> ORDER BY 3 |> SELECT element.*, position`],
+  ['without-offset', 'FROM UNNEST(@items) element |> ORDER BY 2 |> SELECT element.*'],
+  ['after-drop', `${ordinalHead} |> DROP element |> ORDER BY 2 |> SELECT position`],
+]) unnestRefusals.push(refusal('ordinal-' + name, text,
+  {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: ordinalParameters,
+    // Existing UnsupportedOrdering -> source_unsupported submission contract.
+    expectedCode: 'ClientProgramImplementationLimit'}));
 
 // Independent range/field collision obligations. A value-table range denotes
 // its original object even when the object exposes a same-named scalar field.
@@ -202,17 +344,73 @@ export const unnestReceiverSuccesses = [
     {expected: receiverStarRows, columns: receiverStarColumns}),
   receiverSuccess('qualified-star', 'SELECT element.*, position FROM UNNEST(@items) element '
     + 'WITH OFFSET position ORDER BY position', {expected: receiverStarRows, columns: receiverStarColumns}),
-  receiverSuccess('set-retains-original', receiverPipe.replace('|> SELECT', '|> SET element = 100 |> SELECT'),
-    {format: 'aql-text'}),
+  receiverSuccess('set-retains-original', receiverPipe.replace('|> SELECT', '|> SET position = position + 10 |> SELECT'),
+    {format: 'aql-text', expected: receiverRows.map(row => ({...row, position: row.position + 10}))}),
   receiverSuccess('set-current-star', 'FROM UNNEST(@items) element WITH OFFSET position '
     + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
-    expected: [{element: 100, id: 2, position: 0}, {element: 100, id: null, position: 1},
-      {element: 100, id: 1, position: 2}, {element: 100, id: 1, position: 3}],
-    columns: [column('element'), column('id', true), column('position')]}),
+    expected: [0, 1, 2, 3].map(position => ({element: 100, position})),
+    columns: [column('element'), column('position')]}),
+  // Independent normal Program: replace the UNNEST value column, then select
+  // that one column and the offset. No object member remains in the current row.
+  receiverSuccess('set-json-control', JSON.stringify({version: 'actql/0.1',
+    id: 'fixture.unnest.set.value', params: receiverDeclarations, stages: [{id: 'main',
+      inputs: {}, steps: [
+        {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+        {from: 'seed', derive: {array: {$param: 'items'}}},
+        {unnest: {column: 'array', as: 'element', with_index: 'position'}},
+        {derive: {replacement: {literal: 100}}},
+        {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+        {select: [{element: 'replacement'}, 'position'], as: 'selected'},
+      ], results: {rows: {from: 'selected', fields: ['element', 'position']}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}}),
+    {format: 'json', parameterDeclarations: undefined,
+      expected: [0, 1, 2, 3].map(position => ({element: 100, position})),
+      columns: [column('element'), column('position')]}),
+  receiverSuccess('set-quoted-whole', 'FROM UNNEST(@items) `element` WITH OFFSET position '
+    + '|> SET `ELEMENT` = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [0, 1, 2, 3].map(position => ({element: 100, position})),
+    columns: [column('element'), column('position')]}),
+  receiverSuccess('set-noncolliding-name', 'FROM UNNEST(@items) row WITH OFFSET position '
+    + '|> SET row = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [0, 1, 2, 3].map(position => ({row: 100, position})),
+    columns: [column('row'), column('position')]}),
+  receiverSuccess('set-empty', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    parameters: {items: []}, expected: [], columns: [column('element'), column('position')]}),
+  receiverSuccess('set-empty-object-elements', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100 |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    parameterDeclarations: {items: {type: 'array', nullable: true, max_items: 4,
+      items: {type: 'object', nullable: true, fields: {}}}},
+    parameters: {items: [{}, null]}, expected: [{element: 100, position: 0}, {element: 100, position: 1}],
+    columns: [column('element'), column('position')]}),
+  receiverSuccess('set-object-value', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = @replacement |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    parameterDeclarations: {...receiverDeclarations, replacement: {type: 'object', nullable: false,
+      fields: {id: {type: 'number', nullable: false}}}},
+    parameters: {...receiverParameters, replacement: {id: 99}},
+    expected: [0, 1, 2, 3].map(position => ({element: {id: 99}, position})),
+    columns: [{name: 'element', contract: {type: 'object', nullable: false,
+      additional_properties: false, fields: {id: {type: 'number', nullable: false}}}}, column('position')]}),
+  receiverSuccess('set-siblings-original-object', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> SET element = 100, position = element.id |> SELECT * |> ORDER BY position NULLS LAST',
+    {format: 'aql-text', expected: [{element: 100, position: 1}, {element: 100, position: 1},
+      {element: 100, position: 2}, {element: 100, position: null}],
+    columns: [column('element'), column('position', true)]}),
+  receiverSuccess('drop-whole', 'FROM UNNEST(@items) element WITH OFFSET position '
+    + '|> DROP element |> SELECT * |> ORDER BY position', {format: 'aql-text',
+    expected: [0, 1, 2, 3].map(position => ({position})), columns: [column('position')]}),
   receiverSuccess('empty', receiverSql, {parameters: {items: []}, expected: []}),
   receiverSuccess('null-array', receiverSql, {parameters: {items: null}, expected: []}),
 ];
 export const unnestReceiverRefusals = [
+  ...[
+    ['set-implicit-field', 'SET id = 100'],
+    ['drop-implicit-field', 'DROP id'],
+    ['rename-implicit-field', 'RENAME id AS next'],
+    ['set-scalar-member', 'SET element = 100 |> WHERE element.element IS NULL'],
+  ].map(([name, operation]) => ({name: 'unnest-receiver-refusal-' + name,
+    format: 'aql-text', text: 'FROM UNNEST(@items) element WITH OFFSET position |> '
+      + operation + ' |> SELECT position'})),
   {name: 'unnest-receiver-refusal-select-ends-range', format: 'aql-text',
     text: 'FROM UNNEST(@items) element |> SELECT id |> WHERE element IS NOT NULL'},
   {name: 'unnest-receiver-refusal-as-ends-range', format: 'aql-text',
@@ -223,3 +421,82 @@ export const unnestReceiverRefusals = [
   parameters: receiverParameters, expectedCode: 'ClientProgramInvalidInput'}));
 unnestSuccesses.push(...unnestReceiverSuccesses);
 unnestRefusals.push(...unnestReceiverRefusals);
+
+// Scalar range receivers outrank same-named implicit parent fields. This
+// independent Program selects the real element/index; no text output is used.
+const precedenceDeclarations = {parents: {type: 'array', nullable: true, max_items: 1,
+  items: {type: 'object', nullable: false, fields: {
+    element: {type: 'number', nullable: false}, position: {type: 'number', nullable: false},
+    items: declarations.items,
+  }}}};
+const precedenceParameters = {parents: [{element: 100, position: 50, items: [2, null, 1]}]};
+const precedenceFields = ['element', 'original', 'position', 'original_position'];
+const precedenceColumns = [column('element', true), column('original'),
+  column('position'), column('original_position')];
+const precedenceRows = [{element: 2, original: 100, position: 0, original_position: 50},
+  {element: null, original: 100, position: 1, original_position: 50},
+  {element: 1, original: 100, position: 2, original_position: 50}];
+const precedencePrefix = [
+  {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}},
+  {from: 'seed', derive: {parents: {$param: 'parents'}}},
+  {unnest: {column: 'parents', as: 'parent'}},
+  {derive: {array: {property: {value: {field: 'parent'}, name: 'items'}},
+    original: {property: {value: {field: 'parent'}, name: 'element'}},
+    original_position: {property: {value: {field: 'parent'}, name: 'position'}}}},
+  {unnest: {column: 'array', as: 'element', with_index: 'position'}},
+];
+const precedenceProgram = {version: 'actql/0.1', id: 'fixture.unnest.scalar_receiver',
+  params: precedenceDeclarations, stages: [{id: 'main', inputs: {}, steps: [
+    ...precedencePrefix,
+    {sort: [{field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: precedenceFields, as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: precedenceFields}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const precedenceSelect = 'SELECT element, p.element AS original, position, p.position AS original_position';
+const precedenceFrom = 'FROM UNNEST(@parents) p CROSS JOIN UNNEST(p.items) element WITH OFFSET position';
+const precedencePipe = 'FROM UNNEST(@parents) p |> CROSS JOIN UNNEST(p.items) element WITH OFFSET position';
+const precedenceSuccess = (name, text, extra = {}) => ({
+  name: 'unnest-scalar-receiver-' + name, format: 'aql-text', text,
+  expected: precedenceRows, columns: precedenceColumns,
+  parameterDeclarations: precedenceDeclarations, parameters: precedenceParameters,
+  sourceReadCount: 0, sourceReadSessionCount: 0, ...extra,
+});
+unnestSuccesses.push(
+  precedenceSuccess('json-control', JSON.stringify(precedenceProgram),
+    {format: 'json', parameterDeclarations: undefined}),
+  precedenceSuccess('pipe', `${precedencePipe} |> ${precedenceSelect} |> ORDER BY position`),
+  precedenceSuccess('sql', `${precedenceSelect} ${precedenceFrom} ORDER BY position`, {format: 'sql'}),
+  precedenceSuccess('quoted',
+    'FROM UNNEST(@parents) `P` |> CROSS JOIN UNNEST(`p`.items) `ELEMENT` WITH OFFSET `POSITION` '
+      + '|> SELECT `element` AS element, p.element AS original, `position` AS position, p.position AS original_position |> ORDER BY position'),
+  precedenceSuccess('predicate', `${precedencePipe} |> WHERE element > 1 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[0]]}),
+  precedenceSuccess('offset-predicate', `${precedencePipe} |> WHERE position = 1 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[1]]}),
+  precedenceSuccess('computed-predicate', `${precedencePipe} |> WHERE element + 1 > 2 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[0]]}),
+  precedenceSuccess('receiver-order', `${precedencePipe} |> ORDER BY element NULLS LAST |> ${precedenceSelect}`,
+    {expected: [precedenceRows[2], precedenceRows[0], precedenceRows[1]]}),
+  precedenceSuccess('empty', `${precedencePipe} |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [], parameters: {parents: []}}),
+  precedenceSuccess('null-parent-array', `${precedencePipe} |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [], parameters: {parents: null}}),
+  precedenceSuccess('join-remapping', `${precedencePipe} |> WHERE position = 0 `
+    + '|> JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 3 '
+    + `|> WHERE position = 0 |> ${precedenceSelect} |> ORDER BY position`,
+    {expected: [precedenceRows[0]]}),
+  precedenceSuccess('group-sql', `SELECT element, COUNT(*) AS n ${precedenceFrom} GROUP BY element ORDER BY element NULLS LAST`,
+    {format: 'sql', expected: [{element: 1, n: 1}, {element: 2, n: 1}, {element: null, n: 1}],
+      columns: [column('element', true), column('n')]}),
+  precedenceSuccess('group-pipe', `${precedencePipe} |> AGGREGATE COUNT(*) AS n GROUP BY element |> ORDER BY element NULLS LAST`,
+    {expected: [{element: 1, n: 1}, {element: 2, n: 1}, {element: null, n: 1}],
+      columns: [column('element', true), column('n')]}),
+);
+unnestRefusals.push(...[
+  ['removed-element', `${precedencePipe} |> SELECT p.element AS original |> WHERE element > 0`],
+  ['removed-offset', `${precedencePipe} |> SELECT p.position AS original_position |> WHERE position = 0`],
+  ['removed-parent-range', `${precedencePipe} |> ${precedenceSelect} |> WHERE p.element > 0`],
+  ['scalar-member', `${precedencePipe} |> SELECT element.missing AS missing`],
+].map(([name, text]) => ({name: 'unnest-refusal-scalar-receiver-' + name, text,
+  format: 'aql-text', parameterDeclarations: precedenceDeclarations, parameters: precedenceParameters,
+  expectedCode: 'ClientProgramInvalidInput'})));

@@ -1,0 +1,259 @@
+{
+  "version": "actql-resident-effect-source-producer-evidence/0.1",
+  "verifiedImplementationSha": "4050f11ac161586da244f0af6a9332edd2bdfcb4",
+  "parentSha": "eb2021d447fe495b7551f9b2fbc1b9d3a8c8a5a8",
+  "parentPr": 1153,
+  "mainAncestor": "040c9b8f190ef90d09344d415c43caa3b07f5b74",
+  "scope": "Original saved Effect Source producer dispatch executes actual Native acquisition/capture through existing journal and exclusive-start Runtime. Its Source observation and private output are recorded; Runtime owns the original capture lifetime until formal cleanup.",
+  "nativeCases": [
+    {
+      "name": "Effect actual saved producer",
+      "assertions": [
+        "real Source acquisition one, capture one, executor entry one",
+        "journal completion includes actual Source observation",
+        "retained producer Owner derives from journal record/evidence/subject",
+        "internal output has no Named Result definition",
+        "independent producer rows [{id:3},{id:1},{id:2}], row count three, expected schema",
+        "same Runtime start reuses completion",
+        "a replacement producer Owner refuses with original record/revision unchanged, acquisition count unchanged, original Source holding retained",
+        "active output reader delays formal release",
+        "CleanupReleased; Source/output reservations and holdings zero; repeat release/close adds no acquisition"
+      ]
+    },
+    {
+      "name": "current delegation revoked before protected start",
+      "assertions": [
+        "source/entry/capture counts zero",
+        "formal unstarted attempt cleanup confirmed"
+      ]
+    },
+    {
+      "name": "original lifetime expires before protected start",
+      "assertions": [
+        "source/entry/capture counts zero",
+        "formal unstarted attempt cleanup confirmed"
+      ]
+    },
+    {
+      "name": "original accepted envelope already expired",
+      "assertions": [
+        "no early return leaving Accepted queue head",
+        "exclusive claim formally settles refusal without physical factory entry"
+      ]
+    },
+    {
+      "name": "capture completion observation refused; cleanup observation pending",
+      "assertions": [
+        "primary ObservationUnrecorded retained separately from cleanup issue",
+        "same Runtime and its capacity/cleanup responsibility retained",
+        "no Released while cleanup pending",
+        "retry only the same close after observation recovery",
+        "CleanupReleased; repeat close no changes; Source and executor counts remain one"
+      ]
+    },
+    {
+      "name": "ordinary resident producer to consumer",
+      "assertions": [
+        "actual producer/consumer Runtime and existing Transfer/borrow/cleanup path remains intact"
+      ]
+    },
+    {
+      "name": "ordinary consumer start expiry",
+      "assertions": [
+        "existing input borrow responsibility remains with caller until cleanup"
+      ]
+    }
+  ],
+  "testCounts": {
+    "nativeEffectProducer": 5,
+    "nativeOrdinaryProducerConsumer": 1,
+    "nativeOrdinaryConsumerDeadline": 1,
+    "jsEffectFragment": 1,
+    "jsEffectSourceAdmission": 10
+  },
+  "expectedSchemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+  "artifact": {
+    "source": "4050f11ac161586da244f0af6a9332edd2bdfcb4",
+    "scope": "Native whitebox fixture, not production Site binary",
+    "artifact": "_build/resident-effect-source-producer-1791554096886/source-producer.whitebox_test.exe",
+    "sha256": "50f4c80129cd3630397d011502a9afb83bc1f1d865356e9bb11ec97c8fb6d4b4"
+  },
+  "command": "MOON_HOME=.toolchains/moonbit-pinned node local-tools/actql-cloud-retained-delivery/verify-resident-effect-source-producer.mjs 4050f11ac161586da244f0af6a9332edd2bdfcb4",
+  "checks": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/remote_resident_host/effect_source_execution.mbt",
+        "src/platform_native/remote_resident_host/effect_source_dispatch.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T13:54:57.063Z",
+      "finishedAt": "2026-10-09T13:54:57.228Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect original Source producer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T13:54:57.233Z",
+      "finishedAt": "2026-10-09T13:54:58.376Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/tests.log"
+    },
+    {
+      "label": "ordinary-runtime",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*ordinary resident producer bytes*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:54:58.377Z",
+      "finishedAt": "2026-10-09T13:54:59.415Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/ordinary-runtime.log"
+    },
+    {
+      "label": "ordinary-expiry",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*resident consumer expiry*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:54:59.415Z",
+      "finishedAt": "2026-10-09T13:55:00.234Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/ordinary-expiry.log"
+    },
+    {
+      "label": "effect-fragment",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect checked task fragment*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:55:00.234Z",
+      "finishedAt": "2026-10-09T13:55:00.894Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/effect-fragment.log"
+    },
+    {
+      "label": "source-admission",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect Source dispatch*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:55:00.895Z",
+      "finishedAt": "2026-10-09T13:55:01.963Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/source-admission.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T13:55:01.963Z",
+      "finishedAt": "2026-10-09T13:55:02.275Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T13:55:02.275Z",
+      "finishedAt": "2026-10-09T13:55:02.483Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T13:55:02.663Z",
+      "finishedAt": "2026-10-09T13:57:30.364Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-source-producer-1791554096886/history.log"
+    }
+  ],
+  "preparatoryEvidence": [
+    {
+      "path": "_build/resident-effect-source-producer-1791553716271",
+      "result": "compile failure: incorrect retained-edge API call; no executed test count"
+    },
+    {
+      "path": "_build/resident-effect-source-producer-1791553745079",
+      "result": "three initial Effect Native producer cases plus ordinary and JS callers passed before adding pending-cleanup/completed-record cases"
+    },
+    {
+      "path": "_build/resident-effect-source-producer-1791553890874",
+      "result": "five Effect cases and related callers passed before normal latest-main integration"
+    },
+    {
+      "path": "_build/resident-effect-source-producer-1791554032686",
+      "result": "integrated-main cases including completed-record replacement refusal passed before clean implementation commit"
+    }
+  ],
+  "limitations": [
+    "signed runtime component and executable are Native test fixtures, not production Site binary or formal distribution cohort",
+    "Effect producer/consumer parent poll and retained-plan/holder routing not yet composed",
+    "private original capture retained live only; full physical restart inventory not established by this unit",
+    "waiting commit, Host/Coordinator restart, current-authorized approval, physical Effect write and unknown reconciliation remain incomplete",
+    "Cloud formal adoption and public SDK/Preview Effect acceptance not executed",
+    "Hosted CI stopped by instruction; full Core/all-packed/three-target integration not run",
+    "historical #88 custody/recovery not modified or closed"
+  ]
+}

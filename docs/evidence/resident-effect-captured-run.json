@@ -1,0 +1,172 @@
+{
+  "version": "actql-resident-effect-captured-run-evidence/0.1",
+  "validationSource": "a0191b4295f5b1eddfbae2ed94e68ca8a741d26c",
+  "adoptedMain": "1b0ae88c87683b94cfd96e73f96f969cb4ecf355",
+  "parentSource": "044d860d9a2c1cf03ac19425da9965139110a422",
+  "dependency": "OSS #1143 -> #1145 -> this change; final merge target main after parent integration",
+  "scope": "Actual Native one-Source retained producer/consumer semantic Captured Run assembly using the existing dependency, plan-proof and Captured Run Owners. Physical custody remains independently owned.",
+  "results": {
+    "native": {
+      "tests": 2,
+      "passed": 2,
+      "newOperationCases": 1
+    },
+    "relatedJs": {
+      "tests": 1,
+      "passed": 1
+    },
+    "history": "passed",
+    "generatedInterfaces": "native and JS passed",
+    "format": "unchanged"
+  },
+  "assertions": [
+    "Complete acquired/imported dependency closure is admitted against the exact captured local Source.",
+    "Changed acquired rows, missing retention bodies, unused bodies and duplicate/substituted capture tokens are rejected.",
+    "Foreign original Run, missing checked Native plan proof and missing Effect Source are rejected.",
+    "Actual public answer rows remain independently expected as [{id:3}] with the existing schema.",
+    "The existing Captured Run Owner issues and re-admits the original Run/invocation with actual plan bodies and complete dependencies.",
+    "Retry produces the same Captured Run identity without another Source acquisition or consumer execution.",
+    "Native private Source persistence and pending cleanup retry coverage from the existing fixture are maintained."
+  ],
+  "fixtureChanges": "Replace dummy retention-policy CIDs with the SHA-256 identities of explicit fixture policy preimages so strict dependency closure can validate them. Independent rows, schema, expiry and resource limits are unchanged.",
+  "commands": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/run_publication_host/client_effect_capture_inventory.mbt",
+        "src/run_publication_host/client_effect_captured_run.mbt",
+        "src/platform_native/remote_resident_host/effect_run_capture.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_capture_inventory_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_complete_capture_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_result_capture_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_dependency_capture_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_transferred_artifact_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/effect_preview_inputs_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T12:17:15.568Z",
+      "finishedAt": "2026-10-09T12:17:15.682Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-capture-inventory-1791548235364/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*Effect retained consumer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T12:17:15.713Z",
+      "finishedAt": "2026-10-09T12:18:41.511Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-capture-inventory-1791548235364/tests.log"
+    },
+    {
+      "label": "effect-artifact",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/query_integration/client_effect_local_export_wbtest.mbt\",\"--filter\",\"*shared local Artifact issuer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T12:18:41.511Z",
+      "finishedAt": "2026-10-09T12:18:49.718Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-capture-inventory-1791548235364/effect-artifact.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/platform_native/remote_resident_host",
+        "src/platform_native/publication_store",
+        "src/run_publication",
+        "src/run_publication_host"
+      ],
+      "startedAt": "2026-10-09T12:18:49.745Z",
+      "finishedAt": "2026-10-09T12:18:50.049Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-capture-inventory-1791548235364/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/platform_native/publication_store",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T12:18:50.049Z",
+      "finishedAt": "2026-10-09T12:18:50.137Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-capture-inventory-1791548235364/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T12:18:50.137Z",
+      "finishedAt": "2026-10-09T12:20:25.117Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-capture-inventory-1791548235364/history.log"
+    }
+  ],
+  "artifact": {
+    "source": "a0191b4295f5b1eddfbae2ed94e68ca8a741d26c",
+    "scope": "Native whitebox fixture, not a production Site binary",
+    "artifact": "_build/resident-effect-capture-inventory-1791548235364/retained-compute.whitebox_test.exe",
+    "sha256": "c8881aa584775b8969bc6c3acd7e229db1aa07cb2fb9e86706a00e8b34efcc0f"
+  },
+  "preparationEvidence": [
+    "_build/resident-effect-capture-inventory-preparation-1791547672694",
+    "_build/resident-effect-capture-inventory-preparation-1791547965794",
+    "_build/resident-effect-capture-inventory-preparation-1791547993542",
+    "_build/resident-effect-capture-inventory-preparation-1791548008702"
+  ],
+  "preparationFailures": [
+    "Incorrect module alias for the plan emitter caused compilation failure; corrected to the existing stage_results emitter.",
+    "Ambiguous Native error constructor caused compilation failure; made the constructor explicit. No tests ran on these two failed preparations."
+  ],
+  "ci": {
+    "executed": false,
+    "reason": "Hosted CI remains stopped; local results are not CI."
+  },
+  "notVerified": [
+    "Encrypted private Captured Run persistence",
+    "Waiting Run commit",
+    "Host/Coordinator restart",
+    "Approval and current target authorization",
+    "Physical Effect execution/reconciliation",
+    "Formal Cloud package adoption and production Native binary",
+    "Public Cloud SDK / real Preview Effect acceptance"
+  ]
+}

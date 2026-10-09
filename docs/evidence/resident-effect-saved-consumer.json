@@ -1,0 +1,242 @@
+{
+  "version": "actql-resident-effect-saved-consumer-evidence/0.1",
+  "verifiedImplementationSha": "472385ed09ee9e3d27bc075cd2b24ec8a567e4b9",
+  "parentSha": "917daaf0846d212e1deb0e375fe7003ea454084f",
+  "parentPr": 1151,
+  "mainAncestor": "1b0ae88c87683b94cfd96e73f96f969cb4ecf355",
+  "scope": "Read original Effect consumer envelope from Site journal, re-admit original materials, restore checked retained input and use the existing shared Runtime/start/cleanup path. No public Effect Result is published by computation completion.",
+  "nativeCases": [
+    {
+      "name": "saved Effect consumer",
+      "passed": true,
+      "assertions": [
+        "original Run materials and checked edge re-admitted",
+        "original producer record/evidence re-admitted against the reconstructed edge",
+        "Source acquisition one; producer capture one; consumer Runtime entry one",
+        "restoration refusal retains Accepted attempt, receiver borrow and capacity",
+        "foreign attempt and revoked input authorization refuse before Runtime entry",
+        "independent rows [{id:3}] and schema match",
+        "computation has no public Result definition",
+        "repeated Runtime start reuses completion",
+        "reader delays release",
+        "NativeSettled/CleanupReleased; borrow returned; independent receiver reclaimed once"
+      ]
+    },
+    {
+      "name": "saved Effect consumer start deadline",
+      "passed": true,
+      "assertions": [
+        "original deadline becomes invalid between preparation and protected start",
+        "executor entries zero",
+        "Runtime formally cleans its unstarted attempt",
+        "caller borrow and independent receiver capacity remain until explicit owner cleanup"
+      ]
+    },
+    {
+      "name": "ordinary resident producer bytes to consumer",
+      "passed": true,
+      "assertions": [
+        "actual producer Runtime and original saved consumer still complete through the shared lifecycle"
+      ]
+    },
+    {
+      "name": "ordinary start deadline",
+      "passed": true,
+      "assertions": [
+        "shared lifecycle preserves original current-time refusal and caller cleanup responsibility"
+      ]
+    }
+  ],
+  "jsCases": {
+    "effectTaskFragment": 1,
+    "effectSourceAdmission": 10
+  },
+  "expectedSchemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+  "artifact": {
+    "source": "472385ed09ee9e3d27bc075cd2b24ec8a567e4b9",
+    "scope": "Native whitebox fixture, not production Site binary",
+    "artifact": "_build/resident-effect-saved-consumer-1791552765898/retained-compute.whitebox_test.exe",
+    "sha256": "3f1943eb35985a12ea422b881cd8ae19da9e8757bc83fa2caba38db6cc5e309b"
+  },
+  "command": "MOON_HOME=.toolchains/moonbit-pinned node local-tools/actql-cloud-retained-delivery/verify-resident-effect-saved-consumer.mjs 472385ed09ee9e3d27bc075cd2b24ec8a567e4b9",
+  "checks": [
+    {
+      "label": "format",
+      "command": "moon",
+      "args": [
+        "fmt",
+        "src/platform_native/remote_resident_host/retained_execution.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt",
+        "src/platform_native/remote_resident_source_compute_tests/retained_runtime_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-09T13:32:46.093Z",
+      "finishedAt": "2026-10-09T13:32:46.180Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/format.log"
+    },
+    {
+      "label": "tests",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt\",\"--filter\",\"*Effect saved consumer*\"],{cwd:process.cwd(),timeout:180000});"
+      ],
+      "startedAt": "2026-10-09T13:32:46.181Z",
+      "finishedAt": "2026-10-09T13:32:47.270Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/tests.log"
+    },
+    {
+      "label": "ordinary-runtime",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*ordinary resident producer bytes*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:32:47.270Z",
+      "finishedAt": "2026-10-09T13:32:48.098Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/ordinary-runtime.log"
+    },
+    {
+      "label": "ordinary-expiry",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*resident consumer expiry*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:32:48.099Z",
+      "finishedAt": "2026-10-09T13:32:48.704Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/ordinary-expiry.log"
+    },
+    {
+      "label": "effect-fragment",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect checked task fragment*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:32:48.704Z",
+      "finishedAt": "2026-10-09T13:32:49.324Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/effect-fragment.log"
+    },
+    {
+      "label": "source-admission",
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',[\"--target\",\"js\",\"src/platform_native/remote_resident_host\",\"--filter\",\"*Effect Source dispatch*\"],{cwd:process.cwd(),timeout:90000});"
+      ],
+      "startedAt": "2026-10-09T13:32:49.325Z",
+      "finishedAt": "2026-10-09T13:32:50.257Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/source-admission.log"
+    },
+    {
+      "label": "interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "native",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T13:32:50.257Z",
+      "finishedAt": "2026-10-09T13:32:50.418Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/interface.log"
+    },
+    {
+      "label": "portable-interface",
+      "command": "moon",
+      "args": [
+        "info",
+        "--target",
+        "js",
+        "src/run_publication_host",
+        "src/platform_native/remote_resident_host"
+      ],
+      "startedAt": "2026-10-09T13:32:50.418Z",
+      "finishedAt": "2026-10-09T13:32:50.509Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/portable-interface.log"
+    },
+    {
+      "label": "history",
+      "command": "node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T13:32:50.584Z",
+      "finishedAt": "2026-10-09T13:34:25.973Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "_build/resident-effect-saved-consumer-1791552765898/history.log"
+    }
+  ],
+  "initialFailures": [
+    {
+      "evidence": "_build/resident-effect-saved-consumer-1791552394510",
+      "failure": "ForeignCapture: test restoration reused the old prepared producer edge after re-admitting original materials. Exact producer owner/program checks remained intact."
+    },
+    {
+      "evidence": "_build/resident-effect-saved-consumer-1791552498991",
+      "failure": "The preparatory edit assertion failed before writing; unchanged test reproduced ForeignCapture. Not a separate product defect."
+    }
+  ],
+  "correctedPreparation": [
+    "_build/resident-effect-saved-consumer-1791552532663",
+    "_build/resident-effect-saved-consumer-1791552681381"
+  ],
+  "evidenceLimit": "Effect producer remote completion record is an explicit protocol fixture backed by actual Native Source rows; Effect producer Runtime/journal completion is not yet connected. Signed runtime bundle component is a test fixture, not production Site binary.",
+  "notVerified": [
+    "parent poll/accept routing for Effect materials",
+    "Effect producer Runtime registration",
+    "all physical capture custody reconstruction",
+    "waiting Run commit",
+    "Host/Coordinator restart across approval wait",
+    "approval and current Effect authorization",
+    "Effect write and unknown-result reconciliation",
+    "formal Cloud adoption",
+    "public SDK/Preview Effect acceptance",
+    "production Native Site binary",
+    "Hosted CI"
+  ],
+  "completion": "Saved consumer connection is implemented. Full Resident Effect/Approval goal remains incomplete.",
+  "hostedCi": "Stopped by instruction; no manual CI, deployment or merge."
+}
