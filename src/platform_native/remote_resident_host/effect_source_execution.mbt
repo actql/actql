@@ -62,6 +62,7 @@ pub fn execute_resident_effect_source_attempt(
   current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
   source_observe? : (ResidentSourceComputeEvent) -> Bool,
+  acquisition_limits? : @duckdb_host.NativeHostLimits,
 ) -> Result[
   ResidentEffectProducerExecuted,
   ResidentEffectProducerExecutionFailure,
@@ -129,6 +130,7 @@ pub fn execute_resident_effect_source_attempt(
             bound,
             configuration,
             @remote.dispatch_request_identity(request),
+            acquisition_limits?,
             observe=event => {
               match source_observe {
                 Some(observer) => observer(event)

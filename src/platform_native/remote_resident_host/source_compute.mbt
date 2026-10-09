@@ -184,6 +184,7 @@ pub fn open_resident_source_compute(
     configuration,
     occurrence,
     observe,
+    None,
   )
 }
 
@@ -196,6 +197,7 @@ pub fn open_resident_effect_source_compute(
   configuration : ResidentSourceComputeConfiguration,
   occurrence : String,
   observe? : (ResidentSourceComputeEvent) -> Bool,
+  acquisition_limits? : @duckdb_host.NativeHostLimits,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -205,6 +207,7 @@ pub fn open_resident_effect_source_compute(
     configuration,
     occurrence,
     observe,
+    acquisition_limits,
   )
 }
 
@@ -214,6 +217,7 @@ fn open_resident_source_compute_owned(
   configuration : ResidentSourceComputeConfiguration,
   occurrence : String,
   observe : ((ResidentSourceComputeEvent) -> Bool)?,
+  acquisition_limits : @duckdb_host.NativeHostLimits?,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -255,6 +259,7 @@ fn open_resident_source_compute_owned(
       source.query_contract_body,
       source.evidence_contract_body,
       source.two_receipt_contract_body,
+      limits?=acquisition_limits,
     ) {
     Ok(value) => value
     Err(issue) => return reject(Source(Acquisition(issue)), () => true)
