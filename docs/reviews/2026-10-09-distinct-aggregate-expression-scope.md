@@ -98,9 +98,43 @@ worktree's ignored `_build` directories; they are not CI runs.
 
 ## Public acceptance and remaining verification
 
-Normal clean-source five-package packing and selected external Local/HTTPS
-acceptance are next. Parser/checker/fixture results above are not public runtime
-acceptance. The submitted HEAD's required CI is unverified. Full Core,
-Wasm/native, proof/performance and unfiltered packed campaigns are not local
-claims. This unit has no unmerged dependency and does not complete the whole
-Frontend coverage goal.
+Verified clean source: `b5bfb7b926bb63ed4d678f98f6fcedd63fcb5f02`.
+Normal five-package producer, independent digest verification and the existing
+`node scripts/test-packed-public-query.mjs --aggregate-property-order-only`
+consumer completed through the bounded heavy-slot wrapper, `run-H8iFAu`.
+The source and fixture inputs remained clean throughout. No adapter overlays,
+manual Program repair, skipped prepack or mixed-revision runtime was used.
+
+Each Embedded Local and HTTPS entrance completed **72 positive cases, 36
+pre-admission refusals and one expected demanded-argument execution failure**.
+Both entrances reached Named Result rows and describe columns; the standard
+harness verified source acquisition counts, reattach/read/resend without new
+Run or I/O, and exact refusal codes for the four new mismatches. All eight new
+positive fixtures ran on both entrances, including two independent JSON
+controls. These counts describe the selected aggregate cohort, not every
+Frontend feature. The driver's 14 profile checks, README Local/HTTPS example
+and missing-generated-asset refusal also passed. No fresh-process aggregate
+recovery campaign was selected.
+
+Receipt: `public-query-evidence-Uqzl1K`, retained in the worktrees'
+`.codex-scratch` evidence directory. It records exact clean source, all command
+statuses, stdout/stderr and five tarball digests; final status `passed`,
+`complete: true`, `evidenceErrors: []`. The transient external installation was
+automatically removed after retaining evidence (`artifactsRemoved: true`). The
+normal producer artifacts remain in the owned external pack directory
+`actql-b-distinct-aggregate-scope-pack`, with the source/digest manifest.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `5d18f4ee79078884930b455ef738f09613091caf7b11d09fbb64b2f248029a8d` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+The evidence-only follow-up commit does not change compiler, runtime, fixtures
+or generated inputs. Packed evidence applies to the clean source SHA above;
+it is not relabeled as execution of the submitted HEAD. Required CI for that
+HEAD remains unverified. Full Core, Wasm/native, proof/performance and unfiltered
+packed campaigns were not run locally. This unit has no unmerged dependency
+and does not complete the whole Frontend coverage goal.
