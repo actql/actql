@@ -1,7 +1,8 @@
 # Object member scope after INTERSECT and EXCEPT
 
-Status: Frontend repair and selected compile/check regressions complete. Fresh
-packed Local/HTTPS acceptance and submitted-HEAD CI remain pending. This is a
+Status: Frontend repair, selected compile/check regressions and fresh packed
+Local/HTTPS acceptance complete at the recorded source. Submitted-HEAD required
+CI remains unverified. This is a
 separate unit from retained ARRAY/object star scope in #1077.
 
 Adopted main: `4ab43f593453425fe4fb43214565af227ea3bef8`.
@@ -117,3 +118,63 @@ changed to accommodate this environment limitation.
 
 Not run: full Core, Wasm/native execution, proof/performance campaigns or the
 full packed corpus. Selected tests do not establish broad Frontend conformance.
+
+
+## Clean-source packed Local/HTTPS evidence
+
+Tested implementation and fixture source:
+`a818bc6312e09c192bbf4a28ff1d09aa189ae995`. The following evidence update changes
+only this review document. Do not attribute the packages to the later
+submitted document-only revision.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-set-member-a818bc631-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-set-member-a818bc631-pack \
+  ACTQL_TEST_NPM_CACHE=/private/tmp/actql-b-set-member-a818bc631-pack/npm-cache \
+  node scripts/test-packed-public-query.mjs --computed-object-property-only
+```
+
+The producer, independent digest check and consumer ran once under the existing
+shared heavy guard with a 1,200-second budget. Wrapper:
+`/private/tmp/actql-b-set-member-a818bc631-packed-20261009.mjs`.
+Guard `run-aP5MkJ` completed with exit 0 and complete output; its locks released.
+
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-hOqdmd`.
+All ten consumer commands record the same clean source, exit/verification status
+0, null signal/error and complete output. Evidence errors are empty. The
+framework removed its own temporary installed artifacts after preserving logs
+and the receipt. The source worktree, tarballs and manifest are retained.
+
+Both Embedded Local and actual HTTPS passed the unchanged application with:
+
+- **45 positive cases**, including all eight new set-member cases, exact Named
+  Result rows/column contracts and no additional Run/Source acquisition from
+  attach, read, resubmit or lookup.
+- **18 preparation refusals**, including both new missing-member refusals with
+  exact `ClientProgramInvalidInput` and no admission/Source I/O.
+- **One existing demanded-expression execution failure**, separate from
+  preparation refusal; the lazy-receiver positive remains valid.
+
+There are 13 individually logged exact-code refusals and five original generic
+refusals checked by the unchanged application loop. Do not describe the latter
+as individually logged typed-code evidence. README Local/HTTPS acceptance and
+the driver's 14 profile/selection probes also passed; no full packed campaign
+is claimed.
+
+An independent read-only audit checked every positive name and exact-code
+refusal for both transports, command/source completion, actual tarball SHA-256
+against both manifest and receipt, and removal of the temporary installation:
+`/private/tmp/actql-b-set-member-a818bc631-acceptance-audit-20261009.{mjs,json}`.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `332a770a589f74f697fca8427c364da9b89dfc23c3fea9a1bd7c59c5d0e0401d` |
+| local-node | `5b9467f4d40753c574c214c789bef2ea48e6abd8300daaa014671e889b0d6f96` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+No unmerged implementation dependency is required. This repair does not replace
+#1077's distinct ARRAY/object star scope work. Full Core, Wasm/native execution,
+proof/performance coverage and required submitted-HEAD CI remain separate.
