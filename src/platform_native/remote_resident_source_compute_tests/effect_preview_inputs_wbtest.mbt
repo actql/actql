@@ -22,6 +22,7 @@ fn retained_effect_preview_inputs(
       65536, 4096, 64,
     )
     .unwrap()
+  println("retained-effect-source: artifact-issued")
   assert_eq(
     @publication.effect_source_artifact_preview_binding(
       source,
@@ -51,10 +52,14 @@ fn retained_effect_preview_inputs(
   )
   let refreshed_retention = @publication.seal_publication_contract(
     "result_retention_policy",
-    @publication.publication_contract_json(retention).replace_all(
-      old="2026-10-10T01:00:00.000Z",
-      new="2026-10-10T01:01:00.000Z",
-    ),
+    @publication.publication_contract_json(retention)
+    .replace_all(
+      old="\"effective_retention_policy_cid\":\"" +
+        @publication.publication_contract_identity(retention) +
+        "\",",
+      new="",
+    )
+    .replace_all(old="2026-10-10T01:00:00.000Z", new="2026-10-10T01:01:00.000Z"),
     65536,
     4096,
     64,
@@ -155,7 +160,7 @@ fn retained_effect_preview_inputs(
   let (wire, preview) = @publication.author_effect_preview_semantic_wire(
     draft, run_cid, authoring_cid, 65536, 4096, 64,
   ).unwrap()
-  let result = @publication.seal_publication_contract(
+  let result = @publication.admit_publication_contract(
     "result_artifact",
     @host.client_effect_local_result_artifact_json(artifact),
     65536,
