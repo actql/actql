@@ -166,17 +166,21 @@ test "unresolved column projection exposes only retained authored identifier ori
       Err(issue) => issue
       Ok(_) => fail("an unpublished Source must remain unresolved")
     }
-    assert_true(issue is QueryLowering(UnknownRelation))
+    assert_true(issue is QueryLowering(UnresolvedRelation(_)))
     assert_true(unknown_column_origin(issue) is None)
   }
-  // The unaliased optimization currently carries no original origin. Do not
-  // invent a span by inspecting the input after the lowerer has rejected it.
-  let unlocated = match lower("SELECT missing", Sql, Some(test_context())) {
+  // The fast column-projection path retains its actual authored occurrence.
+  let unaliased = match lower("SELECT missing", Sql, Some(test_context())) {
     Err(issue) => issue
     Ok(_) => fail("the existing lowerer must reject an unknown column")
   }
-  assert_true(unlocated is QueryLowering(UnknownColumn))
-  assert_true(unknown_column_origin(unlocated) is None)
+  assert_true(
+    unaliased is QueryLowering(Expression({ issue: UnknownReference, .. })),
+  )
+  let span = @origin.span(unknown_column_origin(unaliased).unwrap())
+  assert_eq(span.start_byte, 7)
+  assert_eq(span.end_byte, 14)
+  assert_true(unknown_column_origin(QueryLowering(UnknownColumn)) is None)
   assert_true(
     unknown_column_origin(
       QueryLowering(Expression({ issue: UnknownReference, origin: None, })),

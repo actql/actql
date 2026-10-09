@@ -96,4 +96,24 @@ export const installedConnectors = Object.freeze([
         .then(module => Object.freeze({check: module.checkInstalledSalesforceEffectInstallation, identityParts: module.installedSalesforceEffectIdentityParts, publish: module.publishInstalledSalesforceEffectInstallation, load: module.loadInstalledSalesforceEffectInstallation})),
     }),
   }),
+  Object.freeze({
+    name: "sheets", registration: "sheets",
+    revision: "sheets/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/sheets/host/installed-sheets.mjs", href: new URL("../connectors/sheets/host/installed-sheets.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/sheets/site/sheets-exchange.mjs", href: new URL("../connectors/sheets/site/sheets-exchange.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/sheets/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-sheets-source/0.1",
+      load: () => import("../connectors/sheets/host/installed-sheets.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSheetsSourceProfile, identityParts: module.installedSheetsSourceIdentityParts, publish: module.publishInstalledSheetsSource, load: module.loadInstalledSheetsSource})),
+    }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-sheets-effect/0.1",
+      load: () => import("../connectors/sheets/host/installed-sheets.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSheetsEffectProfile, identityParts: module.installedSheetsEffectIdentityParts, publish: module.publishInstalledSheetsEffect, load: module.loadInstalledSheetsEffect})),
+    }),
+  }),
 ]);

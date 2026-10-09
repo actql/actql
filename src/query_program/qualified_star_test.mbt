@@ -81,6 +81,6 @@ test "range stars never revive hidden renamed or projected aliases" {
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedProjection),
+    is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
   )
 }

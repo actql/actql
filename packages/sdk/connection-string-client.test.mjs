@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
@@ -32,6 +32,35 @@ const noSecret = value => {
     assert.equal(output.includes(dsn), false);
   }
 };
+
+for (const replyCode of ['ResultAccessDenied', 'ClientAuthenticationDenied', 'DSN_CANARY_SECRET']) {
+  test(`HTTP DSN read refusal ${replyCode} retains only its fixed classification`, {timeout: 5000}, async t => {
+    const calls = [];
+    const server = createServer(async (request, response) => {
+      const operation = request.url.split('/').at(-1); calls.push(operation);
+      assert.equal(request.headers.authorization, `Bearer ${secret}`);
+      let text = ''; for await (const chunk of request) text += chunk;
+      assert.equal(JSON.parse(text).connection.workspaceId, 'workspace-A');
+      response.writeHead(operation === 'read' ? 403 : 200, {'content-type': 'application/json'});
+      response.end(JSON.stringify(operation === 'connect' ? profile() : operation === 'attach' ?
+        {ref, durability: 'durable', revision: 1} : {code: replyCode, message: dsn, cause: secret}));
+    });
+    await new Promise((resolve, reject) => {server.once('error', reject);
+      server.listen({host: '127.0.0.1', port: 0}, () => {server.off('error', reject); resolve();});});
+    t.after(() => new Promise(resolve => {server.closeAllConnections(); server.close(resolve);}));
+    const client = await connect(`actql://localhost:${server.address().port}/workspace-A?transport=http`, {token: secret});
+    t.after(() => client.close());
+    const reader = (await client.attach(ref)).result('answer').rows();
+    await assert.rejects(Array.fromAsync(reader), error => {
+      assert.equal(error.code, replyCode === 'DSN_CANARY_SECRET' ? 'ResultReadUnknown' : replyCode);
+      assert.equal(error.attemptId, reader.attemptId);
+      assert.equal(error.rowsYielded, 0);
+      assert.equal(Object.hasOwn(error, 'cause'), false);
+      noSecret(error); noSecret(explainReadFailure(error)); return true;
+    });
+    assert.deepEqual(calls, ['connect', 'attach', 'read'], 'Refusal must not retry a read or submission');
+  });
+}
 
 for (const validationKind of ['issues', 'exception']) {
   test(`DSN typed ${validationKind} preserves validation and sanitized cleanup uncertainty`, async t => {
@@ -158,7 +187,7 @@ test('SDK DSNs carry a fixed Workspace without exposing the connection secret', 
     noSecret(body); noSecret(url.href);
     assert.equal(body.connection.workspaceId, 'workspace-A'); calls.push(operation);
     if (operation === 'connect') return Response.json(profile());
-    if (operation === 'submit-intent') return Response.json(readySubmission(body, {ref, durability: 'durable', revision: 1}));
+    if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(body, {ref, durability: 'durable', revision: 1}));
     if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
     if (operation === 'lookup-request') return Response.json({kind: 'not_found'});
     throw new Error('UnexpectedOperation');
@@ -268,24 +297,26 @@ test('lost DSN submission retains unknown acceptance and safe context without re
   assert.deepEqual(calls, ['connect', 'submit-intent']);
 });
 
-test('DSN read failures retain attempt and prefix facts without a borrowed private error code', async t => {
-  stubFetch(t, async url => {
-    if (url.pathname.endsWith('/connect')) return Response.json(profile());
-    if (url.pathname.endsWith('/attach')) return Response.json({ref, durability: 'durable', revision: 1});
-    return new Response(new ReadableStream({start(controller) {
-      controller.error(Object.assign(new ClientError('DSN_CANARY_SECRET', {cause: new Error(dsn)}),
-        {cleanupError: new Error(secret)}));
-    }}));
-  });
-  const client = await connect(dsn);
-  try {
-    const run = await client.attach(ref), reader = run.result('answer').rows();
-    await assert.rejects(Array.fromAsync(reader), error => {
-      assert.equal(error.code, 'ResultReadUnknown'); assert.equal(error.attemptId, reader.attemptId);
-      assert.equal(error.rowsYielded, 0); noSecret(error); return true;
+for (const borrowedCode of ['DSN_CANARY_SECRET', 'ResultAccessDenied', 'ClientAuthenticationDenied']) {
+  test(`DSN read failures retain attempt and prefix facts without borrowed ${borrowedCode} custody`, async t => {
+    stubFetch(t, async url => {
+      if (url.pathname.endsWith('/connect')) return Response.json(profile());
+      if (url.pathname.endsWith('/attach')) return Response.json({ref, durability: 'durable', revision: 1});
+      return new Response(new ReadableStream({start(controller) {
+        controller.error(Object.assign(new ClientError(borrowedCode, {cause: new Error(dsn)}),
+          {cleanupError: new Error(secret)}));
+      }}));
     });
-  } finally {await client.close();}
-});
+    const client = await connect(dsn);
+    try {
+      const run = await client.attach(ref), reader = run.result('answer').rows();
+      await assert.rejects(Array.fromAsync(reader), error => {
+        assert.equal(error.code, 'ResultReadUnknown'); assert.equal(error.attemptId, reader.attemptId);
+        assert.equal(error.rowsYielded, 0); noSecret(error); return true;
+      });
+    } finally {await client.close();}
+  });
+}
 
 test('DSN delivery lookup preserves the original candidate without a secret-bearing body failure', async t => {
   const operations = [];

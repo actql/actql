@@ -757,14 +757,23 @@ fn QueryParser::path(self : QueryParser) -> Array[NamePart] raise QueryAbort {
 }
 
 ///|
-fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
+fn QueryParser::expression(
+  self : QueryParser,
+  stop_before_star? : Bool = false,
+) -> Expression raise QueryAbort {
   let remaining = self.limits.max_work - self.work
   let expression_limits = {
     ..self.limits.expression,
     max_nodes: self.limits.expression.max_nodes - self.expression_nodes,
     max_work: self.limits.expression.max_work.min(remaining),
   }
-  match parse_fragment(self.source, self.index, expression_limits) {
+  match
+    parse_fragment(
+      self.source,
+      self.index,
+      expression_limits,
+      stop_before_star~,
+    ) {
     Ok((expression, next)) => {
       self.spend(expression.work)
       self.expression_nodes += expression.nodes.length()
@@ -779,6 +788,7 @@ fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
 fn QueryParser::aggregate_expression(
   self : QueryParser,
   prefix : String,
+  stop_before_star? : Bool = false,
 ) -> (Expression, Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let calls : Array[(NamePart, AggregateCall)] = []
   let serial = [self.synthetic_sources]
@@ -834,7 +844,13 @@ fn QueryParser::aggregate_expression(
     }
   }
   match
-    parse_fragment_resolved(self.source, self.index, limits, Some(primary)) {
+    parse_fragment_resolved(
+      self.source,
+      self.index,
+      limits,
+      Some(primary),
+      stop_before_star~,
+    ) {
     Ok((expression, next, embedded_nodes)) => {
       self.spend(expression.work)
       self.expression_nodes += expression.nodes.length() + embedded_nodes
@@ -1135,6 +1151,75 @@ fn QueryParser::optional_output_alias(
 }
 
 ///|
+// A receiver star and an unqualified star share EXCEPT/REPLACE parsing. The
+// expression parser leaves the authored dot-star suffix for this query owner.
+fn QueryParser::star_projection(
+  self : QueryParser,
+  receiver : Expression?,
+  embedded : Array[(NamePart, AggregateCall)],
+  aggregate_expressions : Bool,
+  windows : Array[Projection],
+  window_expressions : Bool,
+) -> Projection raise QueryAbort {
+  ignore(self.advance())
+  let except_columns : Array[NamePart] = []
+  if self.has("EXCEPT") {
+    self.keyword("EXCEPT")
+    let open = self.advance()
+    if open.value != Symbol(40) {
+      raise QueryAbort("Expected EXCEPT opening parenthesis", open.start)
+    }
+    while true {
+      self.node()
+      except_columns.push(self.name())
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    let close = self.advance()
+    if close.value != Symbol(41) {
+      raise QueryAbort("Expected EXCEPT closing parenthesis", close.start)
+    }
+  }
+  let replacements : Array[StarReplacement] = []
+  if self.has("REPLACE") {
+    self.keyword("REPLACE")
+    self.symbol(40)
+    while true {
+      self.node()
+      let value = self.value_projection(
+        embedded,
+        aggregate_expressions~,
+        windows~,
+        window_expressions~,
+        require_alias=true,
+      )
+      replacements.push({
+        name: value.name.unwrap(),
+        expression: value.expression,
+        aggregate: value.aggregate,
+        analytic: value.analytic,
+      })
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    self.symbol(41)
+  }
+  {
+    expression: receiver,
+    aggregate: None,
+    analytic: None,
+    name: None,
+    star: Some("*"),
+    except_columns,
+    replacements,
+  }
+}
+
+///|
 fn QueryParser::projections(
   self : QueryParser,
   aggregate_expressions? : Bool = false,
@@ -1149,69 +1234,39 @@ fn QueryParser::projections(
     let start = self.peek().start
     let receiver = self.range_star_receiver()
     let projection = if self.peek().value == Symbol(42) {
-      ignore(self.advance())
-      let except_columns : Array[NamePart] = []
-      if self.has("EXCEPT") {
-        self.keyword("EXCEPT")
-        let open = self.advance()
-        if open.value != Symbol(40) {
-          raise QueryAbort("Expected EXCEPT opening parenthesis", open.start)
-        }
-        while true {
-          self.node()
-          except_columns.push(self.name())
-          if self.peek().value != Symbol(44) {
-            break
-          }
-          ignore(self.advance())
-        }
-        let close = self.advance()
-        if close.value != Symbol(41) {
-          raise QueryAbort("Expected EXCEPT closing parenthesis", close.start)
-        }
-      }
-      let replacements : Array[StarReplacement] = []
-      if self.has("REPLACE") {
-        self.keyword("REPLACE")
-        self.symbol(40)
-        while true {
-          self.node()
-          let value = self.value_projection(
-            embedded,
-            aggregate_expressions~,
-            windows~,
-            window_expressions~,
-            require_alias=true,
-          )
-          replacements.push({
-            name: value.name.unwrap(),
-            expression: value.expression,
-            aggregate: value.aggregate,
-            analytic: value.analytic,
-          })
-          if self.peek().value != Symbol(44) {
-            break
-          }
-          ignore(self.advance())
-        }
-        self.symbol(41)
-      }
-      {
-        expression: receiver,
-        aggregate: None,
-        analytic: None,
-        name: None,
-        star: Some("*"),
-        except_columns,
-        replacements,
-      }
+      self.star_projection(
+        receiver, embedded, aggregate_expressions, windows, window_expressions,
+      )
     } else {
-      self.value_projection(
+      let value = self.value_projection(
         embedded,
         aggregate_expressions~,
         windows~,
         window_expressions~,
+        stop_before_star=true,
       )
+      if self.peek().value == Symbol(46) &&
+        self.source.tokens[self.index + 1].value == Symbol(42) {
+        guard value.expression is Some(expression) &&
+          value.name is None &&
+          value.aggregate is None &&
+          value.analytic is None else {
+          raise QueryAbort(
+            "Star receiver requires a scalar expression",
+            self.peek().start,
+          )
+        }
+        ignore(self.advance())
+        self.star_projection(
+          Some(expression),
+          embedded,
+          aggregate_expressions,
+          windows,
+          window_expressions,
+        )
+      } else {
+        value
+      }
     }
     values.push(projection)
     if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
@@ -1242,6 +1297,7 @@ fn QueryParser::value_projection(
   require_alias? : Bool = false,
   windows? : Array[Projection] = [],
   window_expressions? : Bool = false,
+  stop_before_star? : Bool = false,
 ) -> Projection raise QueryAbort {
   let mut embedded_analytic : AnalyticCall? = None
   let (expression, aggregate) = if window_expressions {
@@ -1249,16 +1305,25 @@ fn QueryParser::value_projection(
     let (expression, extracted, calls) = self.window_expression(
       "aql_select_window_",
       aggregate_prefix=Some("aql_select_aggregate_"),
+      stop_before_star~,
     )
     let mut root = expression.root
     while expression.nodes[root].kind is Parenthesized(child) {
       root = child
     }
     if extracted.length() == 1 &&
-      calls.is_empty() &&
       expression.nodes[root].kind is Reference(path) &&
       path == [extracted[0].name.unwrap()] {
-      self.synthetic_sources = serial
+      if !aggregate_expressions && !calls.is_empty() {
+        raise QueryAbort(
+          "Pipe SELECT requires scalar or window expressions",
+          self.peek().start,
+        )
+      }
+      if calls.is_empty() {
+        self.synthetic_sources = serial
+      }
+      embedded.append(calls)
       embedded_analytic = extracted[0].analytic
       (None, None)
     } else if calls.length() == 1 &&
@@ -1280,7 +1345,10 @@ fn QueryParser::value_projection(
     }
   } else if aggregate_expressions {
     let serial = self.synthetic_sources
-    let (expression, calls) = self.aggregate_expression("aql_select_aggregate_")
+    let (expression, calls) = self.aggregate_expression(
+      "aql_select_aggregate_",
+      stop_before_star~,
+    )
     let mut root = expression.root
     while expression.nodes[root].kind is Parenthesized(child) {
       root = child
@@ -1302,7 +1370,7 @@ fn QueryParser::value_projection(
   } else if self.aggregate_head() {
     (None, Some(self.aggregate()))
   } else {
-    (Some(self.expression()), None)
+    (Some(self.expression(stop_before_star~)), None)
   }
   let analytic = if embedded_analytic is Some(_) {
     embedded_analytic
@@ -1424,9 +1492,13 @@ fn QueryParser::frame_boundary(
 }
 
 ///|
-fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
+fn QueryParser::over(
+  self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+  aggregate_prefix? : String = "aql_window_aggregate_",
+) -> AnalyticWindow raise QueryAbort {
   self.keyword("OVER")
-  self.window_specification()
+  self.window_specification(calls~, aggregate_prefix~)
 }
 
 ///|
@@ -1444,7 +1516,11 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
 }
 
 ///|
-fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort {
+fn QueryParser::aggregate(
+  self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+  aggregate_prefix? : String = "aql_select_aggregate_",
+) -> AggregateCall raise QueryAbort {
   let token = self.advance()
   let function_name = match token.value {
     Word(name) | QuotedName(name) => upper_ascii(name)
@@ -1464,7 +1540,16 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
     }
     None
   } else {
-    Some(self.expression())
+    Some(
+      match calls {
+        Some(outputs) => {
+          let (expression, embedded) = self.aggregate_expression(aggregate_prefix)
+          outputs.append(embedded)
+          expression
+        }
+        None => self.expression()
+      },
+    )
   }
   let delimiter = if function_name == "STRING_AGG" {
     if self.peek().value == Symbol(44) {
@@ -1638,6 +1723,7 @@ fn QueryParser::order(
   self : QueryParser,
   calls? : Array[(NamePart, AggregateCall)]? = None,
   windows? : Array[Projection]? = None,
+  aggregate_prefix? : String = "aql_order_aggregate_",
 ) -> Array[SortTerm] raise QueryAbort {
   let terms : Array[SortTerm] = []
   while true {
@@ -1667,7 +1753,7 @@ fn QueryParser::order(
       match calls {
         Some(calls) => {
           let (expression, embedded) = self.aggregate_expression(
-            "aql_order_aggregate_",
+            aggregate_prefix,
           )
           calls.append(embedded)
           expression
@@ -1834,7 +1920,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       replacements: [],
     })
   let operations : Array[QueryOperation] = []
-  let (relation, source_alias, ctes) = if self.has("FROM") {
+  let (initial_relation, initial_alias, initial_ctes) = if self.has("FROM") {
     self.keyword("FROM")
     if self.has("UNNEST") {
       operations.push(self.unnest_source())
@@ -1845,6 +1931,9 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else {
     ([], None, [])
   }
+  let mut relation = initial_relation
+  let mut source_alias = initial_alias
+  let mut ctes = initial_ctes
   let joins : Array[JoinPart] = []
   while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
     if self.starts_correlated_unnest() {
@@ -1852,10 +1941,31 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       continue
     }
     if operations.any(operation => operation is UnnestSource(_, _, _)) {
-      raise QueryAbort(
-        "Relation JOIN after correlated UNNEST is not supported in this profile",
-        self.peek().start,
+      // Bind the already expanded row, including its immutable ranges, before
+      // the next ordinary JOIN. Do not reorder expansion behind the JOIN or
+      // publish the private continuation as an authored subquery projection.
+      let expanded = self.bind_query(
+        {
+          source: self.source,
+          relation,
+          source_alias,
+          ctes,
+          graph: None,
+          joins: joins.copy(),
+          operations: operations.copy(),
+          sets: [],
+          final_operations: [],
+          effect: None,
+          table_effect: None,
+          work: self.work,
+        },
+        carry_ranges=true,
       )
+      relation = expanded.relation
+      source_alias = expanded.source_alias
+      ctes = expanded.ctes
+      joins.clear()
+      operations.clear()
     }
     let (part, join_ctes) = self.join_part()
     joins.push(part)
@@ -1890,14 +2000,17 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else if grouped {
     operations.push(Group([], group_projections, SqlSelect))
   }
+  let mut pending_having : Int? = None
   if self.has("HAVING") {
     self.keyword("HAVING")
     let (predicate, calls) = self.aggregate_expression("aql_having_aggregate_")
     if !grouped {
       if calls.is_empty() {
-        raise QueryAbort("HAVING requires grouping", self.peek().start)
+        // A used WINDOW declaration can introduce aggregation later in SQL.
+        pending_having = Some(self.peek().start)
+      } else {
+        operations.push(Group([], group_projections, SqlSelect))
       }
-      operations.push(Group([], group_projections, SqlSelect))
     }
     operations.push(Having(predicate, calls))
   }
@@ -1921,8 +2034,9 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else {
     None
   }
+  let declared_aggregates : Array[(NamePart, AggregateCall)] = []
   let window_definitions = if self.has("WINDOW") {
-    self.window_definitions()
+    self.window_definitions(declared_aggregates)
   } else {
     []
   }
@@ -1944,6 +2058,50 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     operations.push(Qualify(predicate, calls))
   }
   operations.push(Select(projections, distinct))
+  let resolved = self.resolve_window_operations(operations, window_definitions)
+  let window_aggregates = self.used_named_window_aggregates(
+    resolved, declared_aggregates,
+  )
+  let resolved = if window_aggregates.is_empty() {
+    resolved
+  } else {
+    let aggregate_projections = window_aggregates.map(pair => {
+      expression: None,
+      aggregate: Some(pair.1),
+      analytic: None,
+      name: Some(pair.0),
+      star: None,
+      except_columns: [],
+      replacements: [],
+    })
+    let grouped = resolved.any(operation => operation is Group(_, _, _))
+    let result : Array[QueryOperation] = []
+    let mut inserted = grouped
+    for operation in resolved {
+      self.spend(1)
+      if !inserted &&
+        (operation is Having(_, _) ||
+          operation is Analytic(_) ||
+          operation is AnalyticExpressions(_, _) ||
+          operation is Qualify(_, _) ||
+          operation is Select(_, _)) {
+        result.push(Group([], group_projections + aggregate_projections, SqlSelect))
+        inserted = true
+      }
+      result.push(
+        match operation {
+          Group(keys, fields, scope) =>
+            Group(keys, fields + aggregate_projections, scope)
+          _ => operation
+        },
+      )
+    }
+    result
+  }
+  if pending_having is Some(at) &&
+    !resolved.any(operation => operation is Group(_, _, _)) {
+    raise QueryAbort("HAVING requires grouping", at)
+  }
   {
     source: self.source,
     ctes,
@@ -1951,7 +2109,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     source_alias,
     graph: None,
     joins,
-    operations: self.resolve_window_operations(operations, window_definitions),
+    operations: resolved,
     sets: [],
     final_operations: [],
     effect: None,

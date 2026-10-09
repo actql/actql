@@ -9,7 +9,7 @@ const forbiddenReaders = new Map([
   ['sourceview_resolution', new Set(['query_acquisition_pipeline'])],
 ]);
 
-export function semanticBoundaryViolations(source, aliases, ownedProducerBinding = false) {
+export function semanticBoundaryViolations(source, aliases, ownedProducerBinding = false, ownedTableInputBinding = false) {
   let code = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g, ' ');
   if (ownedProducerBinding) {
     // The sole frontend escape retained in the engine checks exact producer or
@@ -24,6 +24,13 @@ export function semanticBoundaryViolations(source, aliases, ownedProducerBinding
       '@pipeline.producer_pipeline(@results.port_input(port))',
       '@lower.pipeline(@lower.bound_preparation(owner))',
     ]) code = code.replace(call, 'opaque_owner');
+  }
+  if (ownedTableInputBinding) {
+    // The checked private Table declaration must belong to this exact bound
+    // producer. Only the complete identity comparison is opaque here; exposing
+    // the underlying pipeline or inspecting its semantics remains forbidden.
+    code = code.replace(/physical_equal\(\s*@results\.table_inputs_pipeline\(declarations\),\s*@lower\.pipeline\(@lower\.bound_preparation\(owner\)\),?\s*\)/u,
+      'opaque_table_owner_equality');
   }
   return [...code.matchAll(/@([A-Za-z_][\w]*)\.([A-Za-z_][\w]*)\s*\(/g)]
     .filter(([, alias, reader]) => forbiddenReaders.get(aliases.get(alias))?.has(reader) ||
@@ -46,7 +53,8 @@ export function checkBackendSemanticBoundary(root = '.') {
         if (!entry.name.endsWith('.mbt') || entry.name.endsWith('test.mbt')) continue;
         const file = join(directory, entry.name);
         const failures = semanticBoundaryViolations(readFileSync(file, 'utf8'), aliases,
-          localEngine && entry.name === 'producer_binding.mbt');
+          localEngine && entry.name === 'producer_binding.mbt',
+          localEngine && entry.name === 'table_input_export.mbt');
         if (failures.length) throw new Error(`${file}: frontend semantic traversal: ${failures.join(', ')}`);
         checked.push(file);
       }

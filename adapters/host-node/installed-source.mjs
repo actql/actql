@@ -71,6 +71,15 @@ const duckdbInstallation = Object.freeze({
 const installations = installedConnectorTable([duckdbInstallation,
   ...installedConnectors]);
 
+// Original adapters whose metadata generation was stable through installation.
+// This is process-local custody, not a second catalog or a durable certificate.
+const sourcePublications = new WeakMap();
+
+export function installedSourcePublicationFacts(source) {
+  return source !== null && typeof source === 'object'
+    ? sourcePublications.get(source) : undefined;
+}
+
 // Select the installed connector of a Host profile and load its
 // installation module. An explicit table is complete, including built-ins;
 // an unknown version is refused before any installation I/O.
@@ -109,6 +118,10 @@ export async function installedSourceIdentity(path, {connectorTable} = {}) {
   if (queryAliases.length === 0) delete profile.queryAliases;
   const {entry, module} = await selectInstallation(profile, connectorTable);
   const parts = await module.identityParts(profile, providerProfile, read, entry);
+  return sourceIdentityFromParts(parts, queryAliases);
+}
+
+function sourceIdentityFromParts(parts, queryAliases) {
   if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
@@ -118,6 +131,17 @@ export async function installedSourceIdentity(path, {connectorTable} = {}) {
     hash.update(String(Buffer.byteLength(canonical)));
     hash.update('\0');
     hash.update(canonical);
+  }
+  if (queryAliases.length !== 0) {
+    // Query alias names and Source references are semantic values. Keep their
+    // exact spelling outside the configuration canonicalizer's NFC domain.
+    // Fixed member order avoids treating JSON object key order as a change.
+    const exact = JSON.stringify(['actql-installed-query-alias-generation/0.1',
+      queryAliases.map(entry => [entry.name, entry.sourceRef,
+        entry.sourceViewContractCid, entry.schemaContractCid])]);
+    hash.update(String(Buffer.byteLength(exact)));
+    hash.update('\0');
+    hash.update(exact);
   }
   return `sha256:${hash.digest('hex')}`;
 }
@@ -207,12 +231,32 @@ export async function loadInstalledSource(path, {root, principalId, moon,
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
   const checked = module.check(providerProfile);
+  let publicationRevision;
+  try {
+    // Metadata reads only: no provider request or credential resolution.
+    const identityProfile = {...profile};
+    if (queryAliases.length === 0) delete identityProfile.queryAliases;
+    publicationRevision = sourceIdentityFromParts(await module.identityParts(
+      identityProfile, providerProfile, readSourceProfileJson, entry), queryAliases);
+  } catch {
+    // Usable positive installation metadata alone cannot prove completeness.
+  }
   const adapter = await module.load(checked, {root, principalId, moon,
     baseEnvironmentWire, resolveSecret, installation: entry,
     ...await providerRuntime(entry, runtimeUrl)});
   try {
     verifyInstalledConnectorRegistration(entry, adapter);
-    return Object.freeze({...adapter, queryAliases});
+    const source = Object.freeze({...adapter, queryAliases});
+    if (publicationRevision !== undefined) {
+      let current;
+      try { current = await installedSourceIdentity(path, {connectorTable}); }
+      catch { /* Missing metadata leaves the namespace observation unresolved. */ }
+      if (current === publicationRevision) {
+        sourcePublications.set(source, Object.freeze({path,
+          revision: publicationRevision, aliases: queryAliases}));
+      }
+    }
+    return source;
   } catch (cause) {
     // The caller cannot own an adapter until validation returns it.
     throw await retainInstalledHostInitializationFailure(cause,

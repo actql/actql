@@ -65,6 +65,7 @@ const support = [
   'adapters/host-node/client-values-row-limit.test.mjs',
   'adapters/host-node/client-values-row-limit.fixture.mjs',
   'adapters/host-node/client-cancellation-public.test.mjs',
+  'adapters/host-node/client-cancellation-attempt-installed.test.mjs',
   'adapters/host-node/client-cancellation-public.fixture.mjs',
   'adapters/host-node/client-submission-custody-public.test.mjs',
   'adapters/host-node/client-submission-custody-public.fixture.mjs',
@@ -138,14 +139,15 @@ const groups = [
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
   {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
+  {name: 'typed-cancellation', file: 'client-cancellation-attempt-installed.test.mjs', count: 2},
   {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
-  {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 4},
+  {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 6},
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
-    pattern: 'durable known-input category|retired pre-Run history|explicit unresolved-history restart', count: 7},
+    pattern: 'durable known-input category|retired pre-Run history|explicit unresolved-history restart|typed Submission Conflict|typed fresh-epoch refusal', count: 11},
   {name: 'effect-reconciliation', file: 'client-effect-uncertainty.test.mjs', count: 3},
 ];
 const selectedGroups = cancellationOnly
-  ? groups.filter(group => ['original-cancellation', 'effect-cancellation'].includes(group.name))
+  ? groups.filter(group => ['original-cancellation', 'typed-cancellation', 'effect-cancellation'].includes(group.name))
   : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody')
   : submissionRefusalOnly ? groups.filter(group => group.name === 'submission-input-refusal')
   : effectReconciliationOnly ? groups.filter(group => group.name === 'effect-reconciliation') : groups;
@@ -168,8 +170,8 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly ? 4 : submissionRefusalOnly ? 7
-  : effectReconciliationOnly ? 3 : 37);
+assert.equal(passed, cancellationOnly ? 8 : submissionCustodyOnly ? 6 : submissionRefusalOnly ? 11
+  : effectReconciliationOnly ? 3 : 45);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -179,16 +181,18 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
   selection: cancellationOnly ? 'original-cancellation' : submissionCustodyOnly
     ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal'
     : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
-  cases: cancellationOnly ? {originalCancellationRecovery: 4, unknownEffectCancellationRecovery: 2}
-    : submissionCustodyOnly ? {submissionCustodyLoss: 2, explicitSubmissionRestartProcessRecovery: 2}
+  cases: cancellationOnly ? {originalCancellationRecovery: 4, typedCancellationRecovery: 2, unknownEffectCancellationRecovery: 2}
+    : submissionCustodyOnly ? {submissionCustodyLoss: 2, explicitSubmissionRestartProcessRecovery: 2,
+      typedSubmissionProcessRecovery: 2}
     : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
-      explicitSubmissionRestart: 3}
+      explicitSubmissionRestart: 3, typedSubmissionConflictAndReplay: 2, typedSubmissionEpochRefusal: 2}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
-      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
+      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4, typedCancellationRecovery: 2,
       unknownEffectCancellationRecovery: 2,
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       explicitSubmissionRestart: 3, explicitSubmissionRestartProcessRecovery: 2,
+      typedSubmissionConflictAndReplay: 2, typedSubmissionEpochRefusal: 2, typedSubmissionProcessRecovery: 2,
       originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);

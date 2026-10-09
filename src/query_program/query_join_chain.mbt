@@ -5,25 +5,19 @@
 priv struct JoinChainScope {
   visible : Array[(String, String)]
   ranges : Array[(@query.NamePart, Array[(String, String)])]
+  receivers : Array[(@query.NamePart, String)]
 }
 
 ///|
-// GROUP, star and DISTINCT projections need the shared joined-row scope.
+// RIGHT/FULL JOIN, GROUP, star and DISTINCT need the shared joined-row scope.
 // DISTINCT ORDER expressions resolve after materialization, using evaluated
 // output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
-  let mut has_full = false
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let kind = part.kind
-    if kind == "right" {
+    if kind == "right" || kind == "full" {
       return true
-    }
-    if kind == "full" {
-      if !part.using_columns.is_empty() {
-        return true
-      }
-      has_full = true
     }
   }
   for index in 0..<@query.operation_count(query) {
@@ -32,11 +26,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
-      (
-        projections.any(projection => projection.star is Some(_)) ||
-        // FULL ON retains its existing projection specialization.
-        (distinct && !has_full)
-      ) {
+      (projections.any(projection => projection.star is Some(_)) || distinct) {
       return true
     }
   }
@@ -171,6 +161,7 @@ fn compile_join_chain_steps(
   let source_scope = initial_scope.unwrap_or({
     visible: original,
     ranges: [(query_range_name(query), original.copy())],
+    receivers: [],
   })
   let visible = source_scope.visible.map(entry => (entry.0, slots[entry.1]))
   let first_ranges = source_scope.ranges.map(range => {
@@ -371,6 +362,11 @@ fn compile_join_chain_steps(
       visible: next_visible,
       ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
       [(qualifier, right_range)],
+      receivers: if index == 0 {
+        source_scope.receivers.map(receiver => (receiver.0, slots[receiver.1]))
+      } else {
+        scope.receivers.copy()
+      },
     }
   }
   let final_from = pipe_physical_name(reserved, "aql_chain_result_")

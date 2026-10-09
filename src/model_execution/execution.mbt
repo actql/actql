@@ -175,7 +175,9 @@ struct ModelState {
   attempts : Map[Int, ModelAttemptTrace]
   attempt_slots : Array[Int]
   restored_calls : Map[Int, RestoredModelCall]
-  unknown_calls : Map[Int, Bool]
+  unknown_calls : Map[Int, UnknownModelAttempt]
+  reconciled_responses : Map[Int, ModelResponse]
+  response_reconciliations : Map[Int, ModelResponseReconciliation]
   ledger : @resources.Ledger
   reservations : Map[Int, @resources.Reservation]
   send_mask : Array[Bool]?
@@ -450,6 +452,14 @@ fn advance_model(
     state.restored_calls.get(state.next_slot) is Some(saved) {
     return advance_partial_model_restore(state, saved, prepared)
   }
+  if state.durable_calls &&
+    state.reconciled_responses.get(state.next_slot) is Some(response) &&
+    state.reservations.get(state.next_slot) is Some(reservation) {
+    state.observing_response = true
+    return begin_observed_model_response(
+      state, prepared, response, reservation, reader,
+    )
+  }
   if state.durable_calls && state.unknown_calls.contains(state.next_slot) {
     state.outcomes.push(UnresolvedUnknown)
     state.next_slot += 1
@@ -585,6 +595,20 @@ fn advance_model(
       return accept_failed_model_slot(state, issue)
     }
   }
+  begin_observed_model_response(state, prepared, response, reservation, reader)
+}
+
+///|
+// Physical dispatch and original-attempt reconciliation share bounded type
+// checking, quantity observations and the same settlement/capture owner.
+fn begin_observed_model_response(
+  state : ModelState,
+  prepared : PreparedModelRequest,
+  response : ModelResponse,
+  reservation : @resources.Reservation,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  let request = prepared.request
   if state.attempts.get(state.next_slot) is Some(trace) {
     trace.input_tokens = if response.input_tokens >= 0L {
       Some(response.input_tokens)
@@ -780,6 +804,8 @@ fn start_model_owned(
     attempt_slots: [],
     restored_calls: Map([]),
     unknown_calls: Map([]),
+    reconciled_responses: Map([]),
+    response_reconciliations: Map([]),
     ledger,
     reservations,
     send_mask: send_mask.map(mask => mask.copy()),
@@ -983,6 +1009,8 @@ pub fn cleanup_model_execution(
         }
       }
       execution.state.restored_calls.clear()
+      execution.state.reconciled_responses.clear()
+      execution.state.response_reconciliations.clear()
       if execution.state.source is Replay(capture) {
         capture.owner.state.output_uses -= 1
       }

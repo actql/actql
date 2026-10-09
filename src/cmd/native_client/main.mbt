@@ -267,19 +267,52 @@ fn valid_cancellation_reply(
     return false
   }
   if !lookup {
-    return valid_cancellation_outcome(value, expected)
-  }
-  guard wire_cancellation_lookup_shape(value) && value is Object(fields) else {
-    return false
-  }
-  match json_text(fields, "kind") {
-    Some("found") =>
-      fields.get("cancellation") is Some(outcome) &&
-      valid_cancellation_outcome(outcome, expected)
-    Some("unknown") =>
-      fields.get("cancelRef") is Some(reference) &&
-      same_cancellation_reference(reference, expected)
-    _ => false
+    let request_text = @utf8.decode(request_wire) catch { _ => return false }
+    let request = @json.parse(request_text) catch { _ => return false }
+    guard wire_cancellation_attempt_shape(value) &&
+      value is Object(fields) &&
+      request is Object(requested) &&
+      requested.get("attemptRef") is Some(attempt) &&
+      fields.get("attemptRef") == Some(attempt) else {
+      return false
+    }
+    match json_text(fields, "kind") {
+      Some("accepted") | Some("already_satisfied") => {
+        guard fields.get("cancellation") is Some(outcome) &&
+          valid_cancellation_outcome(outcome, expected) &&
+          outcome is Object(original) else {
+          return false
+        }
+        if json_text(fields, "kind") == Some("accepted") {
+          json_text(original, "kind") == Some("accepted")
+        } else {
+          json_text(original, "kind") == Some("already_requested") ||
+          json_text(original, "kind") == Some("already_terminal")
+        }
+      }
+      Some("refused") =>
+        match fields.get("cancelRef") {
+          None => true
+          Some(reference) => same_cancellation_reference(reference, expected)
+        }
+      Some("conflict") =>
+        fields.get("cancelRef") is Some(reference) &&
+        same_cancellation_reference(reference, expected)
+      _ => false
+    }
+  } else {
+    guard wire_cancellation_lookup_shape(value) && value is Object(fields) else {
+      return false
+    }
+    match json_text(fields, "kind") {
+      Some("found") =>
+        fields.get("cancellation") is Some(outcome) &&
+        valid_cancellation_outcome(outcome, expected)
+      Some("unknown") =>
+        fields.get("cancelRef") is Some(reference) &&
+        same_cancellation_reference(reference, expected)
+      _ => false
+    }
   }
 }
 
@@ -418,7 +451,7 @@ fn valid_submission_ref(value : Json) -> Bool {
 }
 
 ///|
-fn valid_submission_reply(
+fn valid_original_submission_reply(
   value : Json,
   request_wire : Bytes,
   selected : Json,
@@ -490,6 +523,40 @@ fn valid_submission_reply(
     }
     _ => true
   }
+}
+
+///|
+fn valid_submission_reply(
+  value : Json,
+  request_wire : Bytes,
+  selected : Json,
+  lookup : Bool,
+) -> Bool {
+  if lookup {
+    return valid_original_submission_reply(value, request_wire, selected, true)
+  }
+  guard wire_submission_attempt_shape(value) && value is Object(fields) else {
+    return false
+  }
+  let text = @utf8.decode(request_wire) catch { _ => return false }
+  let request = @json.parse(text) catch { _ => return false }
+  guard request is Object(request_fields) &&
+    fields.get("attemptRef") == request_fields.get("attemptRef") &&
+    fields.get("attemptRef") is Some(Object(attempt)) &&
+    json_text(attempt, "operation") == Some("submit") else {
+    return false
+  }
+  if fields.get("outcome") is Some(original) {
+    return valid_original_submission_reply(
+      original, request_wire, selected, false,
+    )
+  }
+  if json_text(fields, "kind") == Some("refused") &&
+    json_text(fields, "reason") == Some("authorization") {
+    return true
+  }
+  fields.get("submissionRef") == request_fields.get("submissionRef") &&
+  fields.get("intentCid") == request_fields.get("intentCid")
 }
 
 ///|
@@ -592,6 +659,18 @@ fn request_body(
       fields["ref"] = reference
       fields["cancelId"] = cancel_id
       fields["expectedRevision"] = revision
+      if operation == "cancel" {
+        let attempt = Json::object(
+          Map([
+            ("operation", Json::string("cancel")),
+            ("attemptId", Json::string(required(child, "operation-attempt-id"))),
+          ]),
+        )
+        if !wire_operation_attempt_ref_shape(attempt) {
+          stop("InvalidOperationAttemptReference")
+        }
+        fields["attemptRef"] = attempt
+      }
     }
     "wait" => {
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
@@ -623,6 +702,16 @@ fn request_body(
       stop("InvalidSubmissionRef")
     }
     if operation != "lookup-submission" {
+      let attempt = Json::object(
+        Map([
+          ("operation", Json::string("submit")),
+          ("attemptId", Json::string(required(child, "operation-attempt-id"))),
+        ]),
+      )
+      if !wire_operation_attempt_ref_shape(attempt) {
+        stop("InvalidOperationAttemptReference")
+      }
+      fields["attemptRef"] = attempt
       let intent : Map[String, Json] = Map([])
       for key in ["kind", "input", "parameters"] {
         intent[key] = fields[key]
@@ -694,12 +783,14 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("format", required=true),
         @argparse.OptionArg("request-id"),
         @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("request-id"),
         @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("lookup-submission", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
@@ -721,6 +812,7 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("cancel-id", required=true),
         @argparse.OptionArg("expected-revision", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("lookup-cancellation", options=[
         @argparse.OptionArg("ref-file", required=true),
@@ -943,7 +1035,12 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         required(child, "submission-ref-file"),
       )
     }
-    if route == "submit-intent" && outcome is Object(fields) {
+    if route == "submit-intent" && outcome is Object(attempt) {
+      guard attempt.get("outcome") is Some(Object(fields)) else {
+        // A typed refusal or conflict is this invocation's result, not a
+        // durable receipt or an inferred permission to resubmit.
+        return text
+      }
       match json_text(fields, "kind") {
         Some("ready") =>
           return encode_request_json(fields["admission"], response_max)

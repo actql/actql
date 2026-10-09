@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, heldSubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -44,9 +44,11 @@ const cases = [
     error: 'SubmissionUnknown', invoke: (_run, client) => client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')})
       .catch(error => { if (error.code === 'RequestHeld') return error; throw error; }),
     explain: sdk.explainSubmission, failure: sdk.explainSubmission},
-  {operation: 'cancel', reply: () => ({kind: 'accepted', ref: {...ref}, cancelRef: {...cancelRef}, revision: 7}),
-    field: 'kind', replacement: 'already_terminal', error: 'CancellationUnknown',
-    invoke: run => run.cancel({cancelId: 'original-cancel', expectedRevision: 6}), explain: sdk.explainCancellation, failure: sdk.explainCancellation},
+  {operation: 'cancel', reply: () => ({kind: 'accepted',
+    attemptRef: {operation: 'cancel', attemptId: 'capture-invocation'},
+    cancellation: {kind: 'accepted', ref: {...ref}, cancelRef: {...cancelRef}, revision: 7}}),
+    field: 'kind', replacement: 'already_satisfied', error: 'CancellationUnknown',
+    invoke: run => run.cancel({cancelId: 'original-cancel', expectedRevision: 6, attemptId: 'capture-invocation'}), explain: sdk.explainCancellation, failure: sdk.explainCancellation},
   {operation: 'delivery-attempt', reply: streaming, field: 'record', replacement: delivered.record,
     error: 'InvalidHostAttemptLookup', invoke: run => run.result('answer').deliveryAttempt('read-a'),
     explain: sdk.explainDeliveryAttempt},
@@ -58,7 +60,7 @@ async function fixture(t, reply) {
       calls.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref, durability: 'durable', revision: 1};
-      return operation === 'submit-intent' ? heldSubmission(body, reply) : reply;
+      return operation === 'submit-intent' ? heldSubmissionAttempt(body, reply) : reply;
     },
   });
   t.after(() => client.close());
@@ -202,7 +204,7 @@ for (const item of cases) {
     let reads = 0, secondReads = 0;
     Object.defineProperty(reply, item.field, {enumerable: true, configurable: true,
       get() { return ++reads === 1 ? first : item.replacement; }});
-    if (item.operation === 'cancel') Object.defineProperty(reply, 'revision', {
+    if (item.operation === 'cancel') Object.defineProperty(reply.cancellation, 'revision', {
       enumerable: true, get() { return ++secondReads === 1 ? 7 : 99; }});
     if (item.operation === 'delivery-attempt') Object.defineProperty(reply, 'hostReleaseReceipt', {
       enumerable: true, get() { return ++secondReads === 1 ? null : delivered.hostReleaseReceipt; }});

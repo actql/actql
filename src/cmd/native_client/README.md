@@ -26,7 +26,8 @@ ordinary checker. Query-only source can take a JSON
 `--parameter-declarations-file` in the existing Program `params` shape; values
 remain separate in `--parameters-file`. JSON/YAML Program documents cannot
 take external declarations. `start` takes a JSON Program object. Both
-commands require a caller-saved `--submission-ref-file`. Allocate deliberate new
+commands require a caller-saved `--submission-ref-file` and an explicit
+`--operation-attempt-id` for the invocation. Allocate deliberate new
 work with `new-submission --request-id <nonce>` and save its full epoch/nonce
 JSON before sending input. `--request-id` on `start` or `aql` only asserts that
 saved nonce. `lookup-submission --submission-ref-file <file>` observes the
@@ -48,15 +49,22 @@ record and Host release receipt contracts, binds them to the requested
 attempt, Run and Result, and rejects missing or contradictory evidence. It
 does not request payload replay or hash payload bytes.
 
-`cancel` requires a caller-saved `--cancel-id` and `--expected-revision`, in
+`cancel` requires a caller-saved `--cancel-id`, `--expected-revision`, and
+`--operation-attempt-id`, in
 addition to the original Run reference file. Obtain the revision from the
 Run's current control observation before issuing a new operation, and retain
-all three inputs. `lookup-cancellation` takes those same inputs and only
+the Run reference, operation ID and revision. The attempt ID correlates this
+invocation; it is not a cancellation identity or a lookup authority.
+`lookup-cancellation` takes the original Run reference, cancel ID and revision and only
 observes the original operation; it does not cancel again. Replies must match
 the exact Run, operation ID and original revision. An accepted cancellation
 must advance that revision. Lost cancel replies report `CancellationUnknown`
 with the exact `cancel-ref` and lookup command. An unknown lookup is not
 evidence that cancellation was refused, physically stopped, or released.
+Typed invocation replies distinguish `accepted`, `already_satisfied`,
+`refused` and `conflict`. A Refused certificate says only that this invocation
+did not commit or consume cancellation identity. Another invocation may have
+been accepted. Generic HTTP errors carry no such certificate.
 
 This is a transport development artifact. The binary does not include
 embedded Local providers. The mTLS fixture in
@@ -110,6 +118,7 @@ bearer token; keep it and the client key readable only by their owner.
   --ca ca.crt --cert client.crt --key client.key \
   aql --program-file query.sql --format sql \
   --submission-ref-file saved-query-submission.json \
+  --operation-attempt-id saved-query-submit-001 \
   --parameter-declarations-file declarations.json \
   --parameters-file parameters.json --request-id saved-query-001
 ```

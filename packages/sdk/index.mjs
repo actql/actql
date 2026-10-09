@@ -3,14 +3,14 @@ import {captureResultRead, awaitValidation, validationOutcome} from './result-sc
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
-import {checkpointLimits, clientSourceFormats, validCancellation,
+import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOperationAttemptRef,
   validCancellationRef, validCancellationLookup, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validClientBody, validResourceInspection,
-  validSubmissionRef, validSubmissionOutcome, validSubmissionLookup, validSubmissionRestart,
+  validSubmissionRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRestart,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
@@ -104,6 +104,7 @@ const checkFrontiers = new WeakMap();
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
 const submissionOutcomes = new WeakMap();
+const submissionAttempts = new WeakMap();
 const submissionCheckObservations = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
@@ -317,6 +318,10 @@ export function getSubmissionInput(result) {
 // Only an admitted response for this exact SDK operation supplies Owner facts.
 export function getSubmissionOutcome(result) {
   return submissionOutcomes.get(result);
+}
+
+export function getSubmissionAttempt(result) {
+  return submissionAttempts.get(result);
 }
 
 // Local observation of this SDK read only. Lookup rechecks current authority;
@@ -956,6 +961,9 @@ export class ClientError extends Error {
   }
 }
 const ownedClientFailures = new WeakMap();
+// Only fixed read refusals from this SDK's bounded HTTP reply receive custody.
+// Arbitrary Host codes and borrowed stream errors remain redacted in DSN mode.
+const readRefusalCodes = new Set(['ResultAccessDenied', 'ClientAuthenticationDenied']);
 const ownedClientFailure = (code, details) => {
   const error = new ClientError(code, details);
   ownedClientFailures.set(error, code);
@@ -1473,6 +1481,9 @@ async function connectSelected(selected, port) {
       if ((operation === 'submit-intent' || operation === 'restart-intent')) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
+      if (operation === 'read' && readRefusalCodes.has(code)) {
+        throw ownedClientFailure(code, {status: response.status});
+      }
       throw new ClientError(code, {status: response.status});
     }
     return response;
@@ -1988,7 +1999,10 @@ async function connectSelected(selected, port) {
       wait: async ({until, signal} = {}) => {
         return readRunObservation('wait', {until: until ?? null}, signal);
       },
-      cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision} = {}) => {
+      cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision,
+        attemptId = crypto.randomUUID()} = {}) => {
+        const attemptRef = freezeInput({operation: 'cancel', attemptId});
+        if (!validOperationAttemptRef(attemptRef)) fail('InvalidOperationAttemptReference');
         if (!validCancellationRef({...ref, cancelId,
           expectedRevision: expectedRevision === undefined ? 0 : expectedRevision})) {
           fail('InvalidCancellationReference');
@@ -2002,38 +2016,37 @@ async function connectSelected(selected, port) {
         }
         const cancelRef = freezeInput({...ref, cancelId, expectedRevision});
         if (!validCancellationRef(cancelRef)) fail('InvalidCancellationReference');
-        const context = freezeInput({ref: {...ref}, cancelRef});
+        const context = freezeInput({ref: {...ref}, cancelRef, attemptRef});
         let response;
-        try { response = await readControl('cancel', {cancelId, expectedRevision}, signal, context); }
+        try { response = await readControl('cancel', {cancelId, expectedRevision, attemptRef}, signal, context); }
         catch (cause) {
           // Local validation, Client closure and credential failure before
           // dispatch cannot have admitted this cancellation operation.
           if (!dispatchedCancellations.has(context)) throw cause;
-          // Each invocation owns its immutable reference. Borrowed errors and
-          // old Host failure metadata never establish non-acceptance.
-          const refusal = cause instanceof ClientError && [
-            'ClientAuthenticationDenied', 'ClientConnectionDenied', 'ClientCancellationDenied',
-            'ClientCancellationIntentConflict', 'ClientCancellationRevisionConflict',
-            'InvalidClientRequest', 'InvalidClientCancellationOperation', 'ClientOperationUnavailable',
-          ].includes(cause.code);
-          const error = new ClientError(refusal ? cause.code : 'CancellationUnknown', {
-            cancelRef, cause: requestCancellationCause(cause),
-            ...(refusal && Number.isInteger(cause.status) ? {status: cause.status} : {}),
+          // A transported code or HTTP status is not an Owner certificate for
+          // this invocation. It can follow a committed original operation or
+          // describe another attempt. Only a validated typed outcome can
+          // establish Refused or Conflict; lost error replies stay unknown.
+          const error = new ClientError('CancellationUnknown', {
+            cancelRef, attemptRef, cause: requestCancellationCause(cause),
           });
-          throw refusal ? error : retainCancellationExplanation(error, context, 'outcome_unknown');
+          throw retainCancellationExplanation(error, context, 'outcome_unknown');
         }
         let received;
         try {
           received = captureResponse(response);
-          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
+          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
           received = detachResponse(received);
-          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
+          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
         } catch {
           throw retainCancellationExplanation(new ClientError('CancellationUnknown', {
-            cancelRef, cause: new ClientError('InvalidHostCancellation'),
+            cancelRef, attemptRef, cause: new ClientError('InvalidHostCancellation'),
           }), context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(freezeInput(received), context, received.kind, received.revision);
+        received = freezeInput(received);
+        return received.cancellation === undefined ? received :
+          retainCancellationExplanation(received, context,
+            received.cancellation.kind, received.cancellation.revision);
       },
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
@@ -2084,15 +2097,17 @@ async function connectSelected(selected, port) {
     let body;
     try {
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
+        attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         kind, input, parameters: options.parameters ?? null,
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
+    if (!validOperationAttemptRef(body.attemptRef)) fail('InvalidOperationAttemptRef');
     if (body.unresolvedHistory !== undefined &&
         !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
     const requestId = body.submissionRef.nonce;
-    const context = {requestId, submissionRef: body.submissionRef,
+    const context = {requestId, submissionRef: body.submissionRef, attemptRef: body.attemptRef,
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
     const snapshot = freezeInput({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -2104,13 +2119,27 @@ async function connectSelected(selected, port) {
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
+      let attempt;
+      let typedRejection;
       let checkObservation;
       try {
         const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
           {...body, intentCid}, options.signal, context);
-        outcome = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid, body.unresolvedHistory)) {
+        attempt = detachResponse(captureResponse(await controlValue(response)));
+        if (!validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
+          body.attemptRef, body.unresolvedHistory)) {
           fail('InvalidHostSubmissionOutcome');
+        }
+        attempt = freezeInput(attempt);
+        outcome = attempt.outcome === undefined ? undefined : detachResponse(captureResponse(attempt.outcome));
+        if (outcome === undefined) {
+          // A typed initial refusal or conflict is not the durable original's
+          // receipt and supplies no automatic retry or new-submission grant.
+          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused' : 'SubmissionConflict',
+            {...context, outcome: attempt});
+          submissionInputs.set(typedRejection, snapshot);
+          submissionAttempts.set(typedRejection, attempt);
+          throw typedRejection;
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
@@ -2121,6 +2150,7 @@ async function connectSelected(selected, port) {
           delete outcome.checkObservation;
         }
       } catch (cause) {
+        if (typedRejection !== undefined && cause === typedRejection) throw cause;
         if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
         throw dispatchedSubmissions.has(context) ? submissionUnknown(context, cause) : submissionNotSent(context, cause);
       }
@@ -2131,6 +2161,7 @@ async function connectSelected(selected, port) {
         catch (cause) {throw submissionUnknown(context, cause);}
         submissionInputs.set(run, snapshot);
         submissionOutcomes.set(run, outcome);
+        submissionAttempts.set(run, attempt);
         retainSubmissionExplanation(run, outcome, snapshot);
         return run;
       }
@@ -2141,6 +2172,7 @@ async function connectSelected(selected, port) {
         {requestId, submissionRef: body.submissionRef, outcome});
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
+      submissionAttempts.set(error, attempt);
       if (checkObservation !== undefined) submissionCheckObservations.set(error, freezeInput(checkObservation));
       retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
@@ -2184,6 +2216,8 @@ async function connectSelected(selected, port) {
     if (input && result !== undefined) submissionInputs.set(result, input);
     const outcome = submissionOutcomes.get(execution);
     if (outcome && result !== undefined) submissionOutcomes.set(result, outcome);
+    const attempt = submissionAttempts.get(execution);
+    if (attempt && result !== undefined) submissionAttempts.set(result, attempt);
     return input;
   };
   const retainQueryFailure = (execution, error, cause) => {

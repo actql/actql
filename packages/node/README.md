@@ -1,5 +1,10 @@
 # Standard Node Client
 
+Install the published standard package with `npm install @actql/node`.
+Local execution needs no additional internal package, compiler, Cloud login,
+or provider assembly. For fixed release candidates and publication status,
+see the [release guide](https://github.com/actql/actql/tree/main/release).
+
 `@actql/node` exports the same Client, Execution and Result API as the
 lightweight `@actql/sdk`. Standard installation includes `@actql/local-node`.
 Embedded Local loads that provider only when selected; Remote and connected
@@ -17,7 +22,12 @@ Values Programs through named Result retrieval, request lookup and attach.
 An explicitly installed DuckDB or Salesforce source profile also supports acquired input,
 read approval and restart through Checkpoints. The default Values profile
 does not install an external source. Embedded Local-owned Hybrid remains
-unavailable. See the [current implementation status](../../docs/reviews/current-product-status.md).
+unavailable. See the [current implementation status](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md).
+The standard installation also includes an explicitly configured Sheets
+profile for finite typed grid reads and approved dedicated-tab appends.
+See the [Sheets guide](https://github.com/actql/actql/blob/main/docs/connectors/sheets.md)
+for declarations, credentials, supported Program shapes and unknown outcomes.
+Fixture acceptance does not establish real Google service acceptance.
 An explicit Local endpoint can use the connected Host path. The Remote SDK
 does not depend on the Local package or DuckDB.
 
@@ -27,12 +37,12 @@ instead of its default 100. Other work, cell, value, wire and the 512 MiB
 capacity limits still apply. The installed Host saves the selected profile's
 original with request acceptance and binds it to the Run; attaching to an
 already successful Run does not re-execute it under current configuration.
-See the [Local Host profile](../local-node/README.md) for scope and HTTP options.
+See the [Local Host profile](https://github.com/actql/actql/blob/main/packages/local-node/README.md) for scope and HTTP options.
 
 Embedded Local and Remote HTTP expose the same public submit, lookup, Run
 status, Checkpoint, Named Result and cancellation operations. Transport does
 not make a held or unknown request safe to resubmit under another connection.
-The [packed acceptance record](../../docs/reviews/2026-09-29-local-remote-client-parity.md)
+The [packed acceptance record](https://github.com/actql/actql/blob/main/docs/reviews/2026-09-29-local-remote-client-parity.md)
 uses one Values document in both modes and distinguishes these local Host
 tests from live Cloud verification.
 
@@ -52,15 +62,19 @@ Embedded Host operators can pass a complete `HostCapacityPolicy` as
 snapshotted before lazy Local-provider loading and checked by the installed
 Host. Explicit policy selections participate in installation and request
 scope identity; omitting the option preserves historical defaults. See the
-[installed Host policy contract](../local-node/README.md#explicit-host-capacity-policy).
+[installed Host policy contract](https://github.com/actql/actql/blob/main/packages/local-node/README.md#explicit-host-capacity-policy).
 This option is not a connected Remote Client request or authorization grant.
 
 ## Short Local queries
 
 ```js
 import {open} from '@actql/node';
-await using db = await open({stateDir: '.actql'});
-const rows = await db.sql('SELECT 1 AS id').all();
+const db = await open({stateDir: '.actql'});
+try {
+  console.log(await db.sql('SELECT 1 AS id').all());
+} finally {
+  await db.close();
+}
 ```
 
 `open()` is a thin entry into the existing installed Local Host and its private

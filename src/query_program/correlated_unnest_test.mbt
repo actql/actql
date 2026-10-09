@@ -200,14 +200,7 @@ test "correlated UNNEST rejects stale ranges and duplicate element aliases" {
       msg=text,
     )
   }
-  // The parser must not move an independent JOIN ahead of expansion.
-  assert_true(
-    @query.parse_query(
-      "SELECT id FROM parents p CROSS JOIN UNNEST(p.items) element CROSS JOIN parents q",
-      syntax_limits(),
-    )
-    is Err(_),
-  )
+  // Sequential JOIN placement is covered by the continuation controls.
 }
 
 ///|

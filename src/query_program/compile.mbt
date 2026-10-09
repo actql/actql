@@ -65,6 +65,9 @@ pub(all) struct Limits {
 pub(all) enum Issue {
   InvalidContext
   UnknownRelation
+  // The existing relation resolver exhausted the admitted inputs for this
+  // exact semantic path. This witness alone is not a Source absence proof.
+  UnresolvedRelation(RelationResolutionReference)
   AmbiguousRelation
   UnknownColumn
   AmbiguousColumn
@@ -553,7 +556,7 @@ fn resolve_relation_input(
   }
   match found {
     Some(input) => input
-    None => raise Abort(UnknownRelation)
+    None => raise Abort(unresolved_relation_issue(relation))
   }
 }
 
@@ -857,8 +860,9 @@ fn output_name(
     projection.expression is Some(expression) &&
     @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
     is Reference(path) {
-    // Keep the ordinary input diagnostic, independently of the authored
-    // leaf name. Scoped SELECT/QUALIFY use their value lowerer's resolver.
+    // Keep the ordinary resolver, including its ambiguity and prefix rules.
+    // An unaliased projection retains the same authored expression occurrence
+    // as an aliased projection; no source-text search supplies this origin.
     let mut length = path.length()
     while length > 0 {
       let prefix = path[:length].to_owned()
@@ -869,6 +873,15 @@ fn output_name(
         raise Abort(AmbiguousColumn)
       }
       length -= 1
+    }
+    if @query.expression_origin(expression, @query.expression_root(expression))
+      is Some(origin) {
+      raise Abort(
+        Expression({
+          issue: @expression.UnknownReference,
+          origin: Some(origin),
+        }),
+      )
     }
     raise Abort(UnknownColumn)
   }
@@ -1102,10 +1115,31 @@ fn order_aggregate_calls(
 ) -> Array[(@query.NamePart, @query.AggregateCall)] {
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Order(terms)) {
-      for term in terms {
-        references.append(join_reference_paths(term.expression))
+    match @query.operation_at(query, index) {
+      Some(Order(terms)) => {
+        for term in terms {
+          references.append(join_reference_paths(term.expression))
+        }
       }
+      Some(OrderAnalytic(windows, true)) => {
+        for projection in windows {
+          guard projection.analytic is Some(call) else { continue }
+          for expression in call.window.partition_by {
+            references.append(join_reference_paths(expression))
+          }
+          for term in call.window.order_by {
+            references.append(join_reference_paths(term.expression))
+          }
+          if call.expression is Some(expression) {
+            references.append(join_reference_paths(expression))
+          }
+          if call.aggregate is Some(aggregate) &&
+            aggregate.argument is Some(expression) {
+            references.append(join_reference_paths(expression))
+          }
+        }
+      }
+      _ => ()
     }
   }
   projections.filter_map(projection => {
@@ -1845,6 +1879,7 @@ fn compile_steps(
   let mut selected_input_scope : JoinChainScope = {
     visible: pipe_visible.copy(),
     ranges: pipe_ranges.copy(),
+    receivers: [],
   }
   let mut pipe_changed = initial_scope is Some(_)
   // Materializing a SELECT resets private slots, not the current row scope.
@@ -1852,8 +1887,88 @@ fn compile_steps(
   // recover its ranges through the initial query resolver.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
-  let mut value_table_receivers : Array[(@query.NamePart, String)] = []
+  let mut value_table_receivers : Array[(@query.NamePart, String)] = initial_scope
+    .map(scope => scope.receivers.copy())
+    .unwrap_or([])
   let mut distinct_order_scope = false
+  let expand_projections = fn(
+    selected_query : @query.Query,
+    projections : Array[@query.Projection],
+    visible : Array[(String, String)],
+    ranges : Array[(@query.NamePart, Array[(String, String)])],
+    expression_work : Int,
+  ) -> Array[@query.Projection] raise Abort {
+    expanded_replacement_projections(
+      selected_query,
+      projections,
+      visible,
+      ranges,
+      expression_work,
+      object_columns=Some(receiver => {
+        let prefix = if prefix_steps.is_empty() &&
+          input.source is GeneratedValues(seed) {
+          [import_query_cursor(construction, seed)]
+        } else {
+          prefix_steps.copy()
+        }
+        prefix.append(step_entries.map(entries => construction.object(entries)))
+        let probe = pipe_physical_name(active_fields, "aql_object_star_probe_")
+        let entries : Array[(String, @builder.Node)] = []
+        if step_entries.is_empty() {
+          entries.push(("from", construction.text(input_from)))
+        }
+        entries.push(
+          (
+            "derive",
+            construction.object([
+              (
+                probe,
+                append_pipe_expression(
+                  construction,
+                  receiver,
+                  unnest_expression_columns(visible, value_table_receivers),
+                  ranges,
+                  expression_work,
+                ),
+              ),
+            ]),
+          ),
+        )
+        prefix.push(construction.object(entries))
+        guard relation_prefix_column(
+            construction, prefix, probe, receiver, prefix_context, parameter_declarations,
+            query_limits, expression_work,
+          )
+          is Some(contract) else {
+          raise Abort(UnsupportedProjection)
+        }
+        guard contract.shape is @contract.Object(fields) else {
+          // Keep the existing scalar-qualified-star diagnostic; a scalar
+          // value does not become a row or an object through star syntax.
+          if @query.expression_node(receiver, @query.expression_root(receiver)).unwrap().kind
+            is Reference(path) &&
+            path.length() == 1 {
+            raise Abort(UnknownColumn)
+          }
+          raise Abort(UnsupportedProjection)
+        }
+        // Read declared fields; do not inspect rows or create presence/key
+        // evidence. Ordinary property projection retains receiver nullability.
+        if @contract.field_count(fields) > expression_work {
+          raise Abort(
+            Expression({
+              issue: @expression.WorkLimit,
+              origin: @query.expression_origin(
+                receiver,
+                @query.expression_root(receiver),
+              ),
+            }),
+          )
+        }
+        @contract.fields(fields).map(field => field.name)
+      }),
+    )
+  }
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     if sql_group_projection &&
@@ -1915,25 +2030,26 @@ fn compile_steps(
           max_work,
           construction.parameter_resolver(),
         )
-        let requires_element_scope = selected_projections(query).any(projection => {
-          if projection.star is None {
-            false
-          } else {
-            match projection.expression {
-              None => true
-              Some(receiver) =>
-                match
-                  @query.expression_node(
-                    receiver,
-                    @query.expression_root(receiver),
-                  ) {
-                  Some({ kind: Reference(path), .. }) =>
-                    !path.is_empty() && same_name(path[0], element)
-                  _ => false
-                }
+        let requires_element_scope = preserved_scope is Some(_) ||
+          selected_projections(query).any(projection => {
+            if projection.star is None {
+              false
+            } else {
+              match projection.expression {
+                None => true
+                Some(receiver) =>
+                  match
+                    @query.expression_node(
+                      receiver,
+                      @query.expression_root(receiver),
+                    ) {
+                    Some({ kind: Reference(path), .. }) =>
+                      !path.is_empty() && same_name(path[0], element)
+                    _ => false
+                  }
+              }
             }
-          }
-        })
+          })
         let physical = if correlated {
           active_fields.copy() + [element.value]
         } else {
@@ -2457,7 +2573,7 @@ fn compile_steps(
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
         let input_fields = active_fields.copy()
-        let projections = expanded_replacement_projections(
+        let projections = expand_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
         sql_group_projection = grouping_scope == @query.SqlSelect ||
@@ -2495,10 +2611,11 @@ fn compile_steps(
               input_visible, value_table_receivers,
             ),
             ranges: input_ranges.copy(),
+            receivers: [],
           })
           sql_group_input_columns = input_visible.copy()
           sql_group_input_ranges = input_ranges.copy()
-          sql_group_selected_projections = expanded_replacement_projections(
+          sql_group_selected_projections = expand_projections(
             query,
             selected_projections(query),
             input_visible,
@@ -2650,9 +2767,19 @@ fn compile_steps(
               if root.kind is Reference(path) && path.length() == 1 {
                 raise Abort(UnknownColumn)
               }
-              let name = "aql_group_key_" + index.to_string()
-              if active_fields.contains(name) || key_names.contains(name) {
-                raise Abort(UnsupportedGrouping)
+              let mut serial = index
+              let mut name = "aql_group_key_" + serial.to_string()
+              // Authored input/output names do not reserve a language prefix.
+              // Keep each computed key in a distinct private physical slot.
+              while (active_fields + key_names).any(field => {
+                      ascii_upper(field) == ascii_upper(name)
+                    }) ||
+                    projections.any(projection => {
+                      projection_alias(projection) is Some(column_name) &&
+                      ascii_upper(column_name.value) == ascii_upper(name)
+                    }) {
+                serial += 1
+                name = "aql_group_key_" + serial.to_string()
               }
               derives.push(
                 (
@@ -2723,6 +2850,7 @@ fn compile_steps(
             ranges: input_ranges.map(range => {
               (range.0, range.1.filter(entry => key_names.contains(entry.1)))
             }),
+            receivers: [],
           })
         }
         if sql_group_projection {
@@ -3232,6 +3360,7 @@ fn compile_steps(
               pipe_visible, value_table_receivers,
             ),
             ranges: pipe_ranges,
+            receivers: [],
           })
         } else {
           None
@@ -3410,12 +3539,13 @@ fn compile_steps(
           analytic_input_scope.unwrap_or({
             visible: pipe_visible.copy(),
             ranges: pipe_ranges.copy(),
+            receivers: [],
           })
         }
         let projections = if sql_group_projection {
           sql_group_selected_projections
         } else {
-          expanded_replacement_projections(
+          expand_projections(
             query,
             selected_projections(query),
             input_scope.visible,
@@ -3459,6 +3589,7 @@ fn compile_steps(
           },
           "aql_qualify_expr_",
           false,
+          aggregate_outputs=sql_group_aggregate_slots,
         )
         if !derives.is_empty() {
           let fields : Array[(String, @builder.Node)] = []
@@ -3518,7 +3649,7 @@ fn compile_steps(
         if !order_window {
           analytic_expression_bindings.clear()
         }
-        let projections = expanded_replacement_projections(
+        let projections = expand_projections(
           query,
           projections,
           if sql_group_projection {
@@ -3545,6 +3676,7 @@ fn compile_steps(
               analytic_visible, value_table_receivers,
             ).copy(),
             ranges: pipe_ranges.copy(),
+            receivers: [],
           })
           analytic_input_fields = Some(snapshot)
         }
@@ -3566,13 +3698,14 @@ fn compile_steps(
               analytic_visible, value_table_receivers,
             ),
             ranges: pipe_ranges.copy(),
+            receivers: [],
           })
         }
         let order_aliases = if select_order_window {
           let selected = if sql_group_projection {
             sql_group_selected_projections
           } else {
-            expanded_replacement_projections(
+            expand_projections(
               query,
               selected_projections(query),
               order_scope.visible,
@@ -3646,6 +3779,7 @@ fn compile_steps(
             },
             "aql_order_alias_",
             true,
+            aggregate_outputs=sql_group_aggregate_slots,
           )
         } else {
           []
@@ -3718,8 +3852,26 @@ fn compile_steps(
               return Some(slot)
             }
             if path.length() == 1 {
+              for (name, slot) in order_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
+                  return Some(slot)
+                }
+              }
               for (name, slot) in order_aliases {
                 if same_name(name, path[0]) {
+                  return Some(slot)
+                }
+              }
+            }
+            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+          }
+          if sql_group_projection {
+            // GROUP may reuse an authored aggregate slot for a private call.
+            // Resolve SELECT window keys through retained input bindings and
+            // parser-owned aggregate references, never sibling SELECT aliases.
+            if path.length() == 1 {
+              for (name, slot) in having_aggregate_slots {
+                if same_name({ value: name, quoted: false, }, path[0]) {
                   return Some(slot)
                 }
               }
@@ -3803,12 +3955,12 @@ fn compile_steps(
         selected_expressions = []
         selected_output_slots = []
       }
-      Select(projections, distinct) if pipe_changed || pipe_rebound => {
+      Select(original_projections, distinct) if pipe_changed || pipe_rebound => {
         let projections = if sql_group_projection {
           sql_group_selected_projections
         } else {
-          expanded_replacement_projections(
-            query, projections, pipe_visible, pipe_ranges, max_work,
+          expand_projections(
+            query, original_projections, pipe_visible, pipe_ranges, max_work,
           )
         }
         let expression_scope = if sql_group_projection {
@@ -3821,10 +3973,12 @@ fn compile_steps(
             ) +
             analytic_expression_bindings,
             ranges: pipe_ranges,
+            receivers: [],
           }
         }
         let lower_select_expression = fn(
           expression : @query.Expression,
+          private_columns : Array[(String, String)],
         ) -> @builder.Node raise Abort {
           if sql_group_projection {
             let input_scope = sql_group_expression_input_scope.unwrap()
@@ -3833,7 +3987,7 @@ fn compile_steps(
               expression,
               grouped_keys,
               path => pipe_slot(path, input_scope.visible, input_scope.ranges),
-              expression_scope.visible,
+              expression_scope.visible + private_columns,
               expression_scope.ranges,
               max_work,
             )
@@ -3841,11 +3995,39 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               expression,
-              expression_scope.visible,
+              expression_scope.visible + private_columns,
               expression_scope.ranges,
               max_work,
             )
           }
+        }
+        let expanded_projections = projections
+        let (projections, computed_star_bindings, receiver_derives) = materialize_computed_star_receivers(
+          original_projections,
+          expanded_projections,
+          active_fields,
+          expression => lower_select_expression(expression, []),
+          expression => {
+            qualify_cached_slot(expression, qualify_values) is Some(_) ||
+            (
+              sql_group_projection &&
+              (
+                grouped_keys.any(pair => same_expression(pair.0, expression)) ||
+                having_values.any(pair => same_expression(pair.0, expression))
+              )
+            )
+          },
+          max_work,
+        )
+        if !receiver_derives.is_empty() {
+          let receiver_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 && entries[0].0 == "from" {
+            receiver_step.push(entries[0])
+            entries.clear()
+          }
+          receiver_step.push(("derive", construction.object(receiver_derives)))
+          step_entries.push(receiver_step)
+          active_fields.append(computed_star_bindings.map(binding => binding.1))
         }
         let names : Array[String] = []
         let selected : Array[@builder.Node] = []
@@ -3853,7 +4035,8 @@ fn compile_steps(
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
         let physical = active_fields.copy()
-        for projection in projections {
+        for projection_index in 0..<projections.length() {
+          let projection = projections[projection_index]
           match projection.star {
             Some("*") =>
               for
@@ -3964,7 +4147,12 @@ fn compile_steps(
                         )
                         physical.push(slot)
                         derives.push(
-                          (slot, lower_select_expression(expression)),
+                          (
+                            slot,
+                            lower_select_expression(
+                              expression, computed_star_bindings,
+                            ),
+                          ),
                         )
                         slot
                       }
@@ -3972,7 +4160,14 @@ fn compile_steps(
                   _ => {
                     let slot = pipe_physical_name(physical, "aql_pipe_expr_")
                     physical.push(slot)
-                    derives.push((slot, lower_select_expression(expression)))
+                    derives.push(
+                      (
+                        slot,
+                        lower_select_expression(
+                          expression, computed_star_bindings,
+                        ),
+                      ),
+                    )
                     slot
                   }
                 }
@@ -3980,7 +4175,12 @@ fn compile_steps(
               let name = projection_output_name(projection)
               names.push(name)
               bindings.push((name, source))
-              expressions.push((expression, name))
+              expressions.push(
+                (
+                  expanded_projections[projection_index].expression.unwrap(),
+                  name,
+                ),
+              )
               selected.push(
                 if name == source {
                   construction.text(source)
@@ -4017,6 +4217,7 @@ fn compile_steps(
             pipe_visible, value_table_receivers,
           ).copy(),
           ranges: pipe_ranges.copy(),
+          receivers: [],
         }
         selected_output_slots = bindings.copy()
         if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
@@ -4053,7 +4254,7 @@ fn compile_steps(
         }
         deferred = true
       }
-      Select(projections, distinct) => {
+      Select(original_projections, distinct) => {
         let select_fields = analytic_input_fields.unwrap_or(
           active_fields.copy(),
         )
@@ -4063,17 +4264,71 @@ fn compile_steps(
             pipe_visible, value_table_receivers,
           ).copy(),
           ranges: pipe_ranges.copy(),
+          receivers: [],
         }
         let projections = if sql_group_projection {
           sql_group_selected_projections
         } else {
-          expanded_replacement_projections(
+          expand_projections(
             query,
-            projections,
+            original_projections,
             select_fields.map(field => (field, field)),
             pipe_ranges,
             max_work,
           )
+        }
+        let lower_select_expression = fn(
+          expression : @query.Expression,
+          private_columns : Array[(String, String)],
+        ) -> @builder.Node raise Abort {
+          if sql_group_projection {
+            let scope = sql_group_select_scope.unwrap()
+            let original_scope = sql_group_expression_input_scope.unwrap()
+            append_grouped_expression(
+              construction,
+              expression,
+              grouped_keys,
+              path => {
+                pipe_slot(path, original_scope.visible, original_scope.ranges)
+              },
+              scope.visible + analytic_expression_bindings + private_columns,
+              scope.ranges,
+              max_work,
+            )
+          } else {
+            append_expression(
+              construction,
+              expression,
+              query,
+              input,
+              select_fields,
+              max_work,
+              private_columns=analytic_expression_bindings + private_columns,
+            )
+          }
+        }
+        let expanded_projections = projections
+        let (projections, computed_star_bindings, receiver_derives) = materialize_computed_star_receivers(
+          original_projections,
+          expanded_projections,
+          active_fields,
+          expression => lower_select_expression(expression, []),
+          expression => {
+            qualify_cached_slot(expression, qualify_values) is Some(_) ||
+            grouped_keys.any(pair => same_expression(pair.0, expression)) ||
+            having_values.any(pair => same_expression(pair.0, expression))
+          },
+          max_work,
+        )
+        if !receiver_derives.is_empty() {
+          let receiver_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 && entries[0].0 == "from" {
+            receiver_step.push(entries[0])
+            entries.clear()
+          }
+          receiver_step.push(("derive", construction.object(receiver_derives)))
+          step_entries.push(receiver_step)
+          active_fields.append(computed_star_bindings.map(binding => binding.1))
         }
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
@@ -4081,7 +4336,8 @@ fn compile_steps(
         let selected : Array[@builder.Node] = []
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
-        for projection in projections {
+        for projection_index in 0..<projections.length() {
+          let projection = projections[projection_index]
           match projection.star {
             Some(_) =>
               for
@@ -4148,7 +4404,12 @@ fn compile_steps(
                 continue
               }
               let expression = projection.expression.unwrap()
-              expressions.push((expression, name))
+              expressions.push(
+                (
+                  expanded_projections[projection_index].expression.unwrap(),
+                  name,
+                ),
+              )
               let mut grouped_slot : String? = None
               for pair in grouped_keys {
                 if same_expression(pair.0, expression) {
@@ -4202,35 +4463,7 @@ fn compile_steps(
                 derives.push(
                   (
                     temporary,
-                    if sql_group_projection {
-                      let scope = sql_group_select_scope.unwrap()
-                      let input_scope = sql_group_expression_input_scope.unwrap()
-                      append_grouped_expression(
-                        construction,
-                        expression,
-                        grouped_keys,
-                        path => {
-                          pipe_slot(
-                            path,
-                            input_scope.visible,
-                            input_scope.ranges,
-                          )
-                        },
-                        scope.visible + analytic_expression_bindings,
-                        scope.ranges,
-                        max_work,
-                      )
-                    } else {
-                      append_expression(
-                        construction,
-                        expression,
-                        query,
-                        input,
-                        select_fields,
-                        max_work,
-                        private_columns=analytic_expression_bindings,
-                      )
-                    },
+                    lower_select_expression(expression, computed_star_bindings),
                   ),
                 )
                 temporary
@@ -4785,7 +5018,11 @@ fn compile_steps(
   if preserved_scope is Some(scopes) {
     // A private Pipe continuation carries value slots, not exported names.
     // Preserve existing scope/evidence; the consuming JOIN remaps these slots.
-    scopes.push({ visible: pipe_visible.copy(), ranges: pipe_ranges.copy(), })
+    scopes.push({
+      visible: pipe_visible.copy(),
+      ranges: pipe_ranges.copy(),
+      receivers: value_table_receivers.copy(),
+    })
     output = active_fields.copy()
   } else if pipe_changed && !terminal_result {
     let selected : Array[@builder.Node] = []
@@ -4917,6 +5154,14 @@ pub fn compile(
     // Current Graph construction and MATCH/TRAIL use the ordinary Program
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
+  }
+  if query_has_join_set_operand(query) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
   }
   if @query.join_part_count(query) > 0 &&
     (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
@@ -5362,8 +5607,16 @@ fn compile_cte_query(
           },
         )
       } else {
+        let scoped = cte_schema_scope(
+          cte.query,
+          construction,
+          stages,
+          known,
+          context,
+          limits,
+        )
         let (stage, binding) = compile_cte_stage(
-          construction, cte, known, context, limits, stage_name, body_start,
+          construction, cte, known, scoped, limits, stage_name, body_start,
         )
         (
           match stage {
@@ -5389,6 +5642,9 @@ fn compile_cte_query(
       known.push(binding)
       cte_inputs.push(binding)
     }
+    let context = cte_schema_scope(
+      query, construction, stages, known, context, limits,
+    )
     if @query.set_part_count(query) > 0 {
       let (nodes, _) = compile_set_stages(
         construction,
@@ -5481,6 +5737,8 @@ fn compile_cte_query(
           false,
           "aql_gen_0",
           retained=Some(retained),
+          parameter_declarations=context.parameter_declarations,
+          prefix_context=Some(context),
         )
         let from = if steps.is_empty() { cte_input.name } else { "aql_gen_0" }
         (steps, fields, [(cte_input.name, cte_ref)], from)
@@ -6456,6 +6714,8 @@ fn compile_set_stages(
       },
       input.source is Captured(_),
       term_name,
+      parameter_declarations=context.parameter_declarations,
+      prefix_context=Some(context),
     )
     let term_steps : Array[@builder.Node] = []
     for step in body {
@@ -7743,8 +8003,8 @@ fn compile_join_query(
   }
   try {
     let part = @query.join_part_at(query, 0).unwrap()
-    // A FULL JOIN requires stable row identity on both sides. Generated
-    // Values stages do not currently carry that proof across stage Results.
+    // FULL uses the shared row scope, which preserves input identity premises
+    // for the common checker. It cannot use this projection specialization.
     if part.kind == "full" {
       raise Abort(UnsupportedJoin)
     }

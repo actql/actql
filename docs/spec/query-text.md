@@ -117,8 +117,27 @@ retained star column must be grouped. LEFT JOIN nullability belongs to the
 common joined schema. A missing or displaced range is refused, including a
 star that would otherwise appear to be an identity projection. The selected
 [GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
-also permits expression/STRUCT receivers. Those broader receivers remain
-unconnected coverage; they are not reinterpreted as Relation ranges.
+also permits expression/STRUCT receivers. A named closed object column or
+qualified property path, for example `payload.*` or `o.payload.*`, now expands
+its admitted common fields through ordinary property projections. Its field
+order is the common object's canonical order, independently of authored JSON
+key order, as for closed object UNNEST below. A nullable receiver propagates
+NULL through the common property checker; fields are never inferred from rows.
+EXCEPT and REPLACE use the same input snapshot. SET's current column and a
+retained range's original column remain separate values; SELECT and AS still
+end or replace ranges. Type inspection follows the actual lowered prefix and
+never adds a runtime probe, acquisition, Result or schema evidence. Existing
+range stars retain their range resolution. A computed scalar expression with a
+closed object contract, for example `COALESCE(payload, other).*` or
+`(CASE WHEN payload IS NULL THEN other ELSE payload END).*`, uses the same
+field expansion and common type checker. The receiver is evaluated in an ordinary
+private derive once before its retained field projections; those private columns
+are removed by SELECT and never exported. EXCEPT/REPLACE still see the SELECT
+input snapshot. Already evaluated GROUP/QUALIFY fields use their existing slots,
+and ORDER reuse retains the original receiver expression and resolved scope.
+A scalar or unknown-field receiver is refused through the existing typed boundary.
+GoogleSQL's ordered/anonymous STRUCT contract remains unconnected coverage; a
+computed closed object is not reinterpreted as a Relation range.
 Direct Graph star and FULL JOIN chains retain explicit implementation gaps,
 not restrictions of the selected reference. Supported INNER/LEFT/RIGHT/CROSS
 joins expand unqualified star from their complete current visible row.
@@ -176,6 +195,19 @@ access preserve the resolved receiver. A current Pipe column and an older range
 snapshot are different values after SET. The Frontend does not drop DISTINCT,
 replace the requested order or add another argument to admit a mismatched key.
 Non-DISTINCT collection calls retain their independently authored ordering.
+Aggregate-local keys also admit comparisons, Boolean AND/OR/NOT and IS
+predicates, BETWEEN/NOT BETWEEN, IS [NOT] DISTINCT FROM, and scalar
+membership keys whose entire operand trees meet the existing total-expression
+profile. They lower once into private input slots and use the common Boolean
+ordering, NULL propagation, property typing and parameter contracts. They do
+not resolve sibling SELECT aliases. Membership uses the same literal-list,
+unannotated literal IN UNNEST and array-parameter contracts as ordinary
+expressions; it does not turn computed or annotated lists into literal data.
+Common checking retains operand comparability, parameter binding, the
+three-valued IN rules and nonnullable IS DISTINCT FROM. Per-call filters still
+guard aggregate
+arguments; potentially failing arithmetic/casts/calls are not hoisted from
+aggregate demand merely because they occur under a Boolean expression.
 Broader computed aggregate order expressions remain an unconnected profile;
 they are not made invalid by this rule. Machine Program aggregate contracts
 retain their existing meaning.
@@ -483,6 +515,12 @@ common typing rules. These are selected GoogleSQL spellings of the existing
 set semantics, not a new execution or acquisition mechanism. FULL/LEFT variants
 remain unsupported pending common nullable-padding evidence.
 
+Set operands containing ordinary JOINs use the same shared-input assembly as
+DATA queries. This applies to standalone SQL/Pipe, nested set operands and
+CTE bodies. JOIN predicates, key mappings and declared output ceilings remain
+with the existing JOIN lowerer; final ORDER BY/LIMIT sees only the combined
+output. Input binding does not add another source read or materialization.
+
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same
 relational query composition: SELECT or FROM-starting Pipe, set expressions,
@@ -757,12 +795,17 @@ stars remain supported independently of an unknown child contract. An unknown
 ARRAY expression's element/whole-result star still requires a common schema
 connection and is explicitly unsupported, rather than inferred from rows.
 
-The first correlated profile supports explicit CROSS JOIN UNNEST after any
-preceding ordinary JOINs and successive CROSS expansions. Ordinary Relation
-JOINs after expansion, INNER/LEFT correlation, implicit comma expansion and
-correlated expansion following a Pipe set expression remain unsupported. These
-are coverage gaps, not GoogleSQL language restrictions. The Frontend rejects
-them rather than moving operations or changing multiplicity. CROSS expansion
+The correlated profile supports explicit CROSS JOIN UNNEST after preceding
+ordinary JOINs and successive CROSS expansions. A subsequent ordinary Relation
+JOIN consumes the expanded row in both SQL and Pipe. Its explicit bound, parent
+ranges, object value-table receivers and OFFSET are retained through private
+producer references; expansion is not moved after the JOIN. An authored SELECT
+or AS still replaces scope. Correlated expansion after Pipe UNION ALL
+consumes the retained set output; ARRAY/object stars use its common checked
+schema, including CTE column aliases and nullable object fields. The set's
+multiplicity, declared ARRAY bounds and subsequent predicates remain unchanged.
+INNER/LEFT correlation and implicit comma expansion remain unsupported. These
+are coverage gaps, not GoogleSQL language restrictions. CROSS expansion
 does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
 Host capacity policy without raising either limit.
 

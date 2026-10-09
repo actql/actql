@@ -1,0 +1,50 @@
+{
+  "scope": "Original Effect Source dispatch issuance/admission and actual Native Source/Compute custody. No polled holder, approval, physical Effect, Cloud or Preview acceptance.",
+  "implementationSource": "3381db793452f558b471230282c20b1d350d9cae",
+  "dependency": {
+    "pr": "https://github.com/actql/actql/pull/1105",
+    "source": "14b3e583775e99b524f3b998f5e0427e751874d9",
+    "state": "unmerged Draft at verification"
+  },
+  "mergedMain": "d9d84fa998493cf0e2a0233f9d25722b819de4e4",
+  "portableAdmission": {
+    "passed": 10,
+    "timing": "working-tree check immediately before implementation commit",
+    "receipt": "_build/resident-effect-source-dispatch-1791529815966/receipt.json"
+  },
+  "native": {
+    "passed": 15,
+    "cleanSource": true,
+    "receipt": "_build/resident-effect-source-dispatch-native-1791529856520/receipt.json",
+    "inputs": "_build/resident-effect-source-dispatch-native-1791529856520/inputs.json",
+    "sourceRecord": "_build/resident-effect-source-dispatch-native-1791529856520/source.json",
+    "artifact": "_build/native/debug/test/platform_native/remote_resident_source_compute_tests/remote_resident_source_compute_tests.whitebox_test.exe",
+    "sha256": "49fd0037cda3d0c777fef5188e68658cccea6692c70c0a08122c6e5228fa9ba6"
+  },
+  "independentExpectedRows": [
+    {
+      "id": 3
+    }
+  ],
+  "independentExpectedSchema": {
+    "id": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "observedScope": {
+    "sourceAcquisitions": 1,
+    "producerCaptures": 1,
+    "consumerEntries": 1,
+    "effectWrites": "no Effect apply port invoked",
+    "cleanup": "pin retains capacity; pin return permits owner cleanup; repeated close does not add cleanup"
+  },
+  "unverified": [
+    "Hosted CI (user stop instruction remains active)",
+    "Wasm diagnostics",
+    "Formal package adoption of these new APIs",
+    "Polled journal/start-claim holder integration",
+    "Checkpoint/approval/Effect apply",
+    "Public Cloud SDK and Preview"
+  ]
+}

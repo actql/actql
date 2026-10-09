@@ -97,6 +97,14 @@ Partial declaration preparation, unavailable material, protected obligations,
 unsupported paths and budgets retain the original unresolved scope. Reporting
 truncation also prevents verification, even when static construction completed.
 
+Before returning a completed or partial report, the installed Node Host also
+compares its context reference, scope, document roles, kinds, opaque revisions
+and UTF-8 byte lengths with the exact metadata it passed to the common checker
+for this call. An otherwise well-formed earlier report is insufficient. A
+mismatch returns a reporting failure without a report or partial report; it
+does not blame the authored input or associate stale revisions with a new SDK
+snapshot. This validation adds no input retention, public hash or checking engine.
+
 The SDK captures the selection and immutable original input before yielding,
 rejects a response for a different scope, and binds locations to the submitted
 document revisions. Program pointers never become source-text spans. Template
@@ -916,9 +924,45 @@ submitted admission contract, including constraints; supplying a value requires
 a new complete check. Other typed causes retain their less-specific registered
 public reason until their projection is implemented. Protected Source resolution
 has one generic unresolved boundary and no hidden candidate, count or location.
-There is no negative-existence authority for installed query aliases; omission
-from an audience-visible publication cannot prove absence. Provider Resource
-catalog completeness is not query-alias completeness.
+Omission from an audience-visible publication cannot prove absence. Provider
+Resource catalog completeness is not query-alias completeness.
+
+### Closed installed query namespaces
+
+The existing publication Owner can retain a Host-declared namespace with its
+name and complete participating profile paths, including an explicitly empty
+range. The Source loader retains original registration custody only when its
+admitted metadata generation remains stable through installation. Missing
+registrations, metadata failures, changed revisions, copied adapters or a
+publication omitting registered aliases do not close the namespace. The bounded
+proof includes every participating registration before audience filtering,
+the exact alias spellings and the admitted checking environment. It describes
+that installed revision, not Provider Resource existence or a guarantee about
+a later execution.
+
+The installed Source generation separately frames the exact query-alias rows;
+their semantic names and Source references do not pass through configuration
+NFC normalization. The ordinary configuration identity domain remains unchanged.
+Omitted and explicitly empty alias arrays have the same meaning. Reordering an
+alias object's fields is not a metadata change; changing an alias value is.
+
+A separate existing authorization decision evaluates the namespace tuple
+`(actql-source-namespace, namespace, inspect_absence)` at preparation. Ordinary
+Check and Source-read permission do not substitute for this disclosure scope.
+Its subject binds the namespace revision, current authority, original document
+revisions and the Host-keyed check context. Each inspection owns and releases a
+fresh decision scope. A deferred or failed decision remains unresolved; explicit
+`allowDeferral: false` prevents inspection from sealing a review or creating a
+Checkpoint. No Source acquisition, execution, durable diagnostic store or
+independent authorization registry is added.
+
+The original process-local completeness observation is bound to the publication
+and immutable call binding. A copied observation, another input or another
+publication cannot obtain its private facts. Namespace correctness and audience
+disclosure are checked separately. Completeness alone is not a named absence
+finding: the common name-resolution Owner must identify the exact submitted
+reference and compare it in the same namespace before a public reason can be
+issued. A bare `UnknownRelation` or filtered listing supplies no such proof.
 
 Public authoring checks select bound-input or template-only scope explicitly.
 Complete common static-scope evidence permits template verification with

@@ -93,7 +93,52 @@ groupSelectScopeSuccesses.push(
 );
 groupSelectScopeRefusals.push(
   {name: 'group-select-scope-numeric-distinct-unselected', format: 'sql',
+    expectedCode: 'ClientProgramImplementationLimit',
     text: 'SELECT DISTINCT id + 1.0 AS next FROM records ORDER BY id + 2e0'},
   {name: 'group-select-scope-numeric-unsafe-integer', format: 'sql',
     text: 'SELECT id + 9007199254740992.0 AS next, COUNT(*) AS n FROM records GROUP BY id + 9007199254740992'},
 );
+
+// Legitimate authored names cannot collide with a generated GROUP slot.
+// Deliberately unequal id values on duplicate amounts detect grouping by the
+// wrong authored column; neither the compiler nor a runtime creates this oracle.
+const collisionRows = [{id: 1, amount: 2}, {id: 2, amount: 1},
+  {id: 3, amount: 2}, {id: 4, amount: null}, {id: 0, amount: 99}];
+const collisionExpected = [{bucket: null, n: 1}, {bucket: 2, n: 1}, {bucket: 3, n: 2}];
+const collisionColumns = [number('bucket', true), number('n')];
+export const groupKeyCollisionProgram = {
+  version: 'actql/0.1', id: 'fixture.group_key_collision',
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+      {select: [{x: 'amount'}, {aql_group_key_0: 'id'}], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['x', 'aql_group_key_0']}}},
+  {id: 'main', inputs: {colliding: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'colliding', derive: {key: {add: [{field: 'x'}, {literal: 1}]}}},
+      {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+      {select: [{bucket: 'key'}, 'n']},
+      {sort: [{field: 'bucket', dir: 'asc', nulls: 'first'}], as: 'summary'}],
+    results: {rows: {from: 'summary', fields: ['bucket', 'n']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}},
+};
+const collisionData = 'DATA colliding = SELECT amount AS x, id AS aql_group_key_0 FROM records WHERE id > 0; ';
+const collisionSql = 'SELECT x + 1 AS bucket, COUNT(*) AS n FROM colliding GROUP BY x + 1 ORDER BY bucket';
+const collision = (name, text, extra = {}) => success('private-key-' + name, 'aql-text', text, {
+  sourceRows: collisionRows, expected: collisionExpected, columns: collisionColumns, ...extra,
+});
+groupSelectScopeSuccesses.push(
+  collision('independent-json', JSON.stringify(groupKeyCollisionProgram), {format: 'json'}),
+  collision('sql-input', collisionData + collisionSql),
+  collision('quoted-case', collisionData.replace('AS aql_group_key_0', 'AS `AQL_GROUP_KEY_0`') + collisionSql),
+  collision('all', collisionData + collisionSql.replace('GROUP BY x + 1', 'GROUP BY ALL')),
+  collision('pipe', collisionData + 'FROM colliding AS original |> AGGREGATE COUNT(*) AS n GROUP BY x + 1 AS bucket |> ORDER BY bucket'),
+  collision('output-alias', 'DATA colliding = SELECT amount AS x FROM records WHERE id > 0; '
+    + collisionSql.replace('AS n', 'AS aql_group_key_0'), {
+    expected: collisionExpected.map(({bucket, n}) => ({bucket, aql_group_key_0: n})),
+    columns: [number('bucket', true), number('aql_group_key_0')],
+  }),
+  collision('empty', collisionData + collisionSql, {sourceRows: [], expected: []}),
+);
+groupSelectScopeRefusals.push({name: 'group-select-scope-private-key-ungrouped-input',
+  format: 'aql-text', expectedCode: 'ClientProgramInvalidInput',
+  text: collisionData + 'SELECT x + 1 AS bucket, COUNT(*) AS n '
+    + 'FROM colliding GROUP BY x + 1 HAVING colliding.aql_group_key_0 > 0'});

@@ -753,7 +753,7 @@ function gateFor(core, context) {
   }
 
   async function evaluate(boundary, tuple, subjectCid, signal,
-    sealDeferredSubject) {
+    sealDeferredSubject, allowDeferral) {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -842,6 +842,10 @@ function gateFor(core, context) {
         authority: projected.authority});
     }
     if (projected.action === 'checkpoint') {
+      if (!allowDeferral) {
+        return frozenDecision({...withEntry, action: 'unsupported',
+          reason: 'checkpoint_deferral_disabled'});
+      }
       return defer(withEntry, view, sealDeferredSubject);
     }
     return frozenDecision({...withEntry, action: 'failure',
@@ -866,14 +870,18 @@ function gateFor(core, context) {
     // deferred Host answer is it called with the Host view to capture inputs
     // and return the CID of the artifact the Checkpoint requires (the
     // prepared invocation). A throw or a non-CID result is a decision failure
-    // and nothing is persisted.
+    // and nothing is persisted. Read-only inspection explicitly sets
+    // `allowDeferral: false`; a deferred answer then stops as unsupported before
+    // sealing, describing or persisting a Checkpoint. Ordinary execution keeps
+    // its existing default deferral behavior.
     async authorize(boundary, scope, {subjectCid, signal,
-      sealDeferredSubject} = {}) {
+      sealDeferredSubject, allowDeferral = true} = {}) {
       ensureOpen();
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
       }
       checkedScope(scope);
+      if (typeof allowDeferral !== 'boolean') fail('InvalidAuthorizationDeferralPolicy');
       if (subjectCid !== undefined && typeof subjectCid !== 'string') {
         fail('InvalidAuthorizationSubject');
       }
@@ -896,7 +904,7 @@ function gateFor(core, context) {
       if ((subjectCid?.length ?? 0) > 512) return capacityFailure();
       const key = JSON.stringify([
         boundary, tuple.principal, tuple.connection, tuple.resource,
-        tuple.operation, subjectCid ?? '', context.contextCid,
+        tuple.operation, subjectCid ?? '', context.contextCid, allowDeferral,
       ]);
       const cached = cache.get(key);
       if (cached !== undefined) {
@@ -915,7 +923,7 @@ function gateFor(core, context) {
       cache.set(key, entry);
       core.retention.entries++;
       entry.operation = evaluate(boundary, tuple, subjectCid, signal,
-        sealDeferredSubject).then(decision => {
+        sealDeferredSubject, allowDeferral).then(decision => {
         ensureOpen();
         if (decision.action !== 'dispatch' && decision.action !== 'deny') {
           release(key, entry);

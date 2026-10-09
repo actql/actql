@@ -13,6 +13,7 @@ fn lower_script_set_relation(
   reserved : Array[String],
   output : String,
 ) -> Input raise Abort {
+  let first_step = steps.length()
   let first = pipe_physical_name(reserved, "aql_data_set_term_")
   reserved.push(first)
   let left = lower_script_relation_term(
@@ -20,10 +21,12 @@ fn lower_script_set_relation(
   )
   let sql_inner_count = set_inner_chain_length(query)
   let sql_rights : Array[Input] = []
+  let sql_right_starts : Array[Int] = []
   for index in 0..<sql_inner_count {
     let part = @query.set_part_at(query, index).unwrap()
     let term = pipe_physical_name(reserved, "aql_data_set_term_")
     reserved.push(term)
+    sql_right_starts.push(steps.length())
     sql_rights.push(
       lower_script_relation(
         construction,
@@ -53,6 +56,11 @@ fn lower_script_set_relation(
   let mut current = left.name
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
+    let right_first_step = if index < sql_inner_count {
+      sql_right_starts[index]
+    } else {
+      steps.length()
+    }
     let right = if index < sql_inner_count {
       sql_rights[index]
     } else {
@@ -104,7 +112,17 @@ fn lower_script_set_relation(
       allow_subset=part.inner_by_name,
     )
     let mut right_name = right.name
-    if alignment_needed {
+    let folded = alignment_needed &&
+      !set_operand_retains_result(part.right) &&
+      fold_script_set_terminal_select(
+        construction,
+        steps,
+        right_first_step,
+        right.name,
+        fields,
+        matched,
+      )
+    if alignment_needed && !folded {
       let aligned = pipe_physical_name(reserved, "aql_data_set_aligned_")
       reserved.push(aligned)
       steps.push(
@@ -164,16 +182,23 @@ fn lower_script_set_relation(
     steps,
     output + "_",
   )
-  steps.push(
-    construction.object([
-      ("from", construction.text(result)),
-      (
-        "select",
-        construction.array(fields.map(name => construction.text(name))),
-      ),
-      ("as", construction.text(output)),
-    ]),
-  )
+  let rebound = query_has_join_set_operand(query) &&
+    !set_operand_retains_result(query) &&
+    rebind_script_set_terminal_output(
+      construction, steps, first_step, result, output,
+    )
+  if !rebound {
+    steps.push(
+      construction.object([
+        ("from", construction.text(result)),
+        (
+          "select",
+          construction.array(fields.map(name => construction.text(name))),
+        ),
+        ("as", construction.text(output)),
+      ]),
+    )
+  }
   {
     relation: [],
     name: output,

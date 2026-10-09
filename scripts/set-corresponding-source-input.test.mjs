@@ -21,7 +21,7 @@ test('CORRESPONDING matching participates in both normal and narrow packed accep
   const corpus = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/set-corresponding-source-input.mjs', 'set-corresponding-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_SET_CORRESPONDING_ONLY = '1'"));
-  assert.ok(corpus.includes('setCorrespondingOnly ? {successes: setCorrespondingSuccesses, refusals: setCorrespondingRefusals}'));
-  assert.ok(corpus.includes('scopeInputs.successes.push(...setCorrespondingSuccesses)'));
-  assert.ok(corpus.includes('scopeInputs.refusals.push(...setCorrespondingRefusals)'));
+  assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}'));
+  assert.ok(corpus.includes('scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses)'));
+  assert.ok(corpus.includes('scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals)'));
 });

@@ -6,11 +6,11 @@ import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,
-  validClientBody, validClientConnection, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
+  prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest,
-  snapshotClientRequest, validSubmissionOutcome, validSubmissionLookup} from
+  validRunState, validResultDescription, validCheckOutcome,
+  validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -71,33 +71,12 @@ export function createNodeInProcessClientHost({
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
-      const validationBody = operation === 'read'
-        ? {...body, format: 'jsonl'} : body;
-      if (!validClientBody(operation, validationBody)) {
-        fail('InvalidClientRequest');
-      }
-      // Authentication and Workspace resolution may await. Own the selected
-      // target before either boundary so caller mutation cannot remove or
-      // replace the assertion while its verification is in flight.
-      const suppliedConnection = body.connection;
-      const connection = Object.freeze({...suppliedConnection,
-        consentRefs: Object.freeze([...suppliedConnection.consentRefs]),
-        runners: Object.freeze([...suppliedConnection.runners])});
-      if (!validClientConnection(connection)) fail('InvalidClientRequest');
-      body = {...body, connection};
-      if (operation === 'check') {
-        // Own the JSON request before awaiting caller-installed authentication.
-        try { body = snapshotCheckRequest(body); }
-        catch { fail('InvalidClientRequest'); }
-      }
-      if (operation === 'check' && !validClientBody(operation, body)) {
-        fail('InvalidClientRequest');
-      }
-      if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
-        try {body = snapshotClientRequest(body);}
-        catch {fail('InvalidClientRequest');}
-        if (!validClientBody(operation, body)) fail('InvalidClientRequest');
-      }
+      // Local rows use the existing JSONL request shape for wire admission.
+      const prepared = prepareClientHostRequest(operation,
+        operation === 'read' ? {...body, format: 'jsonl'} : body);
+      if (prepared === undefined) fail('InvalidClientRequest');
+      body = prepared.body;
+      const {connection} = prepared;
       let principalId;
       try { principalId = await authenticate(); }
       catch (cause) {
@@ -160,7 +139,7 @@ export function createNodeInProcessClientHost({
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         const valid = submitting
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
+          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) fail('InvalidClientHostSubmissionOutcome');
         return answer;
@@ -243,8 +222,8 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'cancel') {
         const answer = await invoke(cancel);
-        if (!validCancellation(answer, {...ref, cancelId: body.cancelId,
-          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellation');
+        if (!validCancellationAttempt(answer, {...ref, cancelId: body.cancelId,
+          expectedRevision: body.expectedRevision}, body.attemptRef)) fail('InvalidClientHostCancellation');
         return answer;
       }
       if (operation === 'lookup-cancellation') {

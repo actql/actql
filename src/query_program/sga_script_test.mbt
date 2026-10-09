@@ -70,11 +70,13 @@ test "SGA script rejects unknown references unconnected consumers and extra inpu
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile_query_script(
-      unknown,
-      { ..fixture_context(), inputs: [], },
-      construction_limits(),
-    )
-    is Err(UnknownRelation),
+    exact_unresolved_relation(
+      compile_query_script(
+        unknown,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      ),
+      [("later", false)],
+    ),
   )
 }

@@ -1,4 +1,23 @@
-# `@actql/sdk` development artifact
+# Lightweight ActQL Client
+
+Install the published Remote-only package with `npm install @actql/sdk`.
+It does not include Local execution or DuckDB. Configure an existing authorized
+HTTPS Host and a scoped token; this example performs no Runner registration.
+For fixed release candidates and publication status, see the
+[release guide](https://github.com/actql/actql/tree/main/release).
+
+## Remote quickstart
+
+```js
+import {connect} from '@actql/sdk';
+const client = await connect({mode: 'remote', endpoint: process.env.ACTQL_ENDPOINT,
+  token: process.env.ACTQL_TOKEN});
+try {
+  console.log(await client.sql('SELECT 1 AS id').all());
+} finally {
+  await client.close();
+}
+```
 
 ## Workspace connection strings
 
@@ -51,8 +70,8 @@ Bearer authentication and Workspace checks remain required on every request.
 There is no automatic downgrade, redirect, daemon, alternate port or directory.
 Existing
 `connect({mode: 'remote', endpoint, token})` remains available. This is a
-development artifact, not a registry release or a deployed Cloud endpoint.
-See [the connection contract](../../docs/design/client-workspace-connections.md).
+Client library, not a deployed Cloud endpoint.
+See [the connection contract](https://github.com/actql/actql/blob/main/docs/design/client-workspace-connections.md).
 
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
@@ -60,7 +79,7 @@ kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host 
 installed profile, durable request lookup and deduplication, active and terminal
 Run observations, and published Result reads. Supported Program shapes and
 connectors depend on the installation; this is not a claim that every Host
-supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
+supports every Program. See the [current implementation status](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md).
 
 ## Client lifetime
 
@@ -93,7 +112,7 @@ read's error and attempt.
 confirmed. Keep this Client and retry `await client.close()`; new use stays
 sealed. Private provider errors and cleanup handles are not exposed. Do not
 replace a retained Local cleanup owner by
-opening another Host. This development API changes `close(): void` to
+opening another Host. The awaited cleanup API changes `close(): void` to
 `close(): Promise<void>`; update typed implementations and await cleanup rather
 than ignoring a possible rejection.
 
@@ -286,6 +305,25 @@ consumes the identity; `preparation_failed` is failure after acceptance. Neither
 is inferred from an HTTP error, message or missing record. `preparing` is not a
 Run admission. `SubmissionNotSent` reports a local failure before dispatch and
 has no Owner outcome; a lost response is `SubmissionUnknown`.
+
+`getSubmissionAttempt(result)` is a separate invocation-bound fact. It returns
+`recorded`, `already_satisfied`, `refused`, or `conflict` only after the reply
+matches that call's `attemptRef`. Pass `attemptId` in submission options to retain
+application correlation; otherwise the SDK creates one before dispatch. This
+attempt ID is neither submission custody nor part of the original intent CID.
+The original SDK input snapshot retains it, including on unknown responses.
+
+`SubmissionRefused` carries an Owner-issued `attempt_uncommitted_unconsumed`
+guarantee for this invocation only. `SubmissionConflict` identifies an
+incompatible original intent or restart decision. Neither negates a different
+invocation's acceptance. Initial authorization refusal does
+not disclose protected original submission fields. These failures have no
+`getSubmissionOutcome`: durable `not_accepted` and `preparation_failed` remain
+separate original outcomes. HTTP failures, coded exceptions, uncertain COMMIT,
+and lost replies cannot manufacture this guarantee. `already_satisfied` returns
+the original durable outcome and does not certify execution, physical stop, or
+resource release. Lookup remains read-only and returns the original outcome,
+without creating another invocation or sending work again.
 
 `explainSubmission` and `formatSubmission` use those admitted branches for
 both submission results and `lookupSubmission` results. They distinguish
@@ -512,7 +550,7 @@ after payload expiration or deletion; description does not guarantee a
 subsequent row read. `maxWireBytes`, `maxNodes` and `maxDepth` may tighten the
 whole-response ceilings of 1 MiB, 10,000 structural nodes and depth 64.
 Exceeding them fails without truncation. See
-[Result description semantics](../../docs/design/result-description.md).
+[Result description semantics](https://github.com/actql/actql/blob/main/docs/design/result-description.md).
 
 The Client caps ordinary JSON control responses at 1 MiB of wire bytes,
 including connection, submission, status, lookup and Host error bodies. Review
@@ -532,16 +570,26 @@ are `SubmissionUnknown` with the original request ID and lookup context, even
 when the in-process exception is a `ClientError`. A public-looking error code
 is not by itself a refusal contract. Neither transport retries submission.
 
-`execution.cancel({cancelId, expectedRevision})` submits one cancellation
+`execution.cancel({cancelId, expectedRevision, attemptId})` submits one cancellation
 operation bound to the existing Run. The Host compares the expected Run-control
 revision atomically on first admission. An omitted ID is generated once for
 this call; an omitted revision is observed through `status()` before dispatch.
 Without a control revision the SDK refuses with `CancellationRevisionUnavailable`.
-For durable caller custody, choose and save both fields before sending.
+For durable caller custody, choose and save the cancellation ID and expected
+revision before sending. `attemptId` is a per-invocation correlation ID, generated
+once when omitted; it is neither cancellation custody nor authorization.
+
+The response contains this invocation's `attemptRef`. `accepted` and
+`already_satisfied` contain the unchanged durable `cancellation` record.
+`refused` certifies only that this invocation did not commit or consume an
+identity; it does not rule out another concurrent invocation. `conflict` binds
+the requested cancellation reference and an intent or control-revision conflict.
+Only the existing Owner can issue these facts, before custody or after a
+confirmed admission rollback. A generic exception or HTTP status cannot do so.
 
 A lost, malformed or foreign response raises `CancellationUnknown` carrying
 the immutable original `cancelRef`: the Run reference, cancellation ID and
-expected revision. Retain the original Host selection and use
+expected revision, together with this invocation's `attemptRef`. Retain the original Host selection and use
 `execution.lookupCancellation(error.cancelRef)` after reconnecting and
 attaching that same Run. Lookup does not issue another cancellation, fence,
 dispatch or Compute request. Neither submission nor lookup retries automatically.
@@ -551,7 +599,7 @@ Pending custody is `unknown`; it is not accepted and absence does not establish
 non-acceptance. The final operation result and Run cancellation request commit
 together. A `found` lookup returns that original result even after later Run
 revisions. Reusing the same ID in the same namespace and authority scope with
-another target or expected revision is refused. The bounded journal refuses
+another target or expected revision returns an intent conflict. The bounded journal refuses
 new admission at capacity and does not evict operation custody to admit it.
 
 After a recorded outcome, `status()` separately observes the Run's
@@ -1166,8 +1214,9 @@ An HTTP `Response` object returned through Local is also an invalid
 representation with an unknown cancellation outcome. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. For the cancellation write, local failures before the send boundary and typed Host refusals
-retain their existing errors without a fabricated cancellation observation.
+association. For the cancellation write, local failures before dispatch retain their errors.
+Typed `refused` and `conflict` results remain structured Owner facts without a
+fabricated recorded cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
 The presentation association lasts only while its SDK result is retained.
 
@@ -1182,16 +1231,11 @@ Editing the caller's reference or reusing a Host reply cannot rewrite an earlier
 explanation. Looking up or formatting never sends another cancellation.
 The Host's separate durable operation custody is owned by its existing journal.
 
-This is presentation over the existing Client–Host cancellation contract.
-No wire/schema/CID, cancellation ledger or execution semantics is replaced.
-The current public Run cancellation response has no cancellation-operation
-identity or exact-operation lookup. A Run status refresh cannot reconcile a
-particular lost cancellation; it only observes current Run state under current
-authorization. The existing control owner must provide that operation's
-identity, immutable intent, revision conflicts and reconciliation contract
-before the complete cancellation-outcome design can be exposed. A recorded
-physical-start/close control fixture does not prove delayed live-worker stop
-or external Effect reconciliation.
+The typed attempt envelope reuses the existing journal's cancellation identity
+and immutable outcome. It does not add a cancellation ledger or rewrite old
+records. Exact lookup remains the original operation's contract and is
+independent of the latest invocation or current Run status. The Submit typed
+attempt and multi-owner observation cursor are separate follow-up units.
 
 
 ### Unused Parameter explanations
@@ -1573,7 +1617,7 @@ permission, Run outcome or a retry policy. The existing checker/disclosure
 projection emits facts before the generated SDK advice selects a template.
 
 The catalog's closed Reason schema feeds the existing outcome/wire generator,
-which also checks generated SDK metadata/types and the [reference catalog](../../docs/reference/check-reasons.md).
+which also checks generated SDK metadata/types and the [reference catalog](https://github.com/actql/actql/blob/main/docs/reference/check-reasons.md).
 Literal scenario expectations remain independent tests. This public catalog is
 separate from legacy actql-diagnostics/0.1 and runtime operation outcomes; it
 does not claim a legacy compiler catalog body or complete diagnostics coverage.

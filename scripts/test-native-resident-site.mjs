@@ -2306,16 +2306,22 @@ try {
   const site = startSite();
   currentSite = site;
   const first = dispatchFor('resident-dispatch-1', 1);
-  const settled = await within(gateway.dispatch({dispatch: first,
+  const observed = await within(gateway.dispatch({dispatch: first,
     inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(first)}),
   'first dispatch');
+  // An authenticated status can still be Accepted while the holder starts.
+  // Bind this observation to the original admitted Run; query progress below.
+  assert.equal(observed.dispatchRequestCid, siteControl.identity(first));
+  assert.equal(JSON.parse(siteControl.requestJson(first)).run_definition_cid,
+    runHost.privateRunDefinition(retainedDefinition).cid);
   assert.ok(site.lines.some(line => line.kind === 'accepted'));
   assert.ok(site.lines.some(line => line.kind === 'holder-started'));
-  assert.notEqual(settled.state[0], 0);
   await waitFor(() => site.lines.some(line => line.kind === 'executed'),
     'holder execution');
   // The Coordinator's query is answered from the durable journal.
   const terminal = await settledQuery(first, 'first');
+  assert.equal(terminal.dispatchRequestCid, observed.dispatchRequestCid);
+  assert.notEqual(terminal.state[0], 0);
   assert.equal(terminal.state[0], 3, 'native settled');
   assert.equal((await entries()).length, 1);
   // O4: the holder's output reaches the Cloud's ingress and is released.

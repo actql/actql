@@ -8,7 +8,46 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const file = 'adapters/host-node/client-check-text-boundary.test.mjs';
 const cases = (name, assertions) => ['local', 'http'].map(entrance =>
   ({name: `${entrance}: ${name}`, assertions}));
+const bindingCases = binding => ['text', 'program'].flatMap(kind => [
+  ...cases(`${kind} Owner results retain the current ${binding} binding`,
+    [{id: `owner-${binding}-binding`, operator: 'deepStrictEqual'}]),
+  ...(binding === 'scope' ? [] : cases(`${kind} partial Owner reports retain the current ${binding} binding`,
+    [{id: `owner-${binding}-binding`, operator: 'deepStrictEqual'}])),
+]);
 const mutations = [
+  {name: 'nested missing obligations disappear beside supplied violations',
+    path: 'src/connectors_builtin_node/client_check.mbt',
+    file: 'adapters/host-node/client-check.test.mjs',
+    from: '    check_missing_value_findings(findings, declared, supplied, scope)',
+    to: '    // Deliberate fault: omit the independent missing-value frontier.',
+    targets: cases('nested supplied type facts follow the submitted contract and path',
+      [{id: 'nested-missing-coverage', operator: 'deepStrictEqual'}])},
+  {name: 'Owner binding reuses a richer audience report', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.context_ref === context &&', to: 'true &&',
+    targets: ['allow', 'absent', 'denied', 'unpublished'].flatMap(visibility =>
+      [false, true].flatMap(suppliedViolation => cases(
+        `richer audience reports retain ${visibility} custody with ${suppliedViolation ? 'a supplied violation' : 'no violation'}`,
+        [{id: 'owner-audience-binding', operator: 'deepStrictEqual'}])))},
+  {name: 'Owner binding accepts an earlier context', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.context_ref === context &&', to: 'true &&', targets: bindingCases('context')},
+  {name: 'Owner binding accepts different original documents', path: 'adapters/host-node/client-check.mjs',
+    from: `report.inputs.length === documents.length && documents.every(expected =>
+      report.inputs.some(actual => actual.document_id === expected.document_id &&
+        actual.kind === expected.kind && actual.revision === expected.revision &&
+        actual.byte_length === expected.byte_length))`,
+    to: 'true', targets: bindingCases('documents')},
+  {name: 'Owner binding promotes template scope to bound input', path: 'adapters/host-node/client-check.mjs',
+    from: 'report.scope.kind === scope &&', to: 'true &&', targets: bindingCases('scope')},
+  {name: 'an old document reply acquires the edited buffer revision', path: 'packages/sdk/index.mjs',
+    from: '      observation.version === current.version && record.input.text === current.text ? record : undefined;',
+    to: '      true ? record : undefined;',
+    targets: cases('document sessions retain original spans across buffer edits and reply reordering',
+      [{id: 'document-public-edit', operator: 'strictEqual'}])},
+  {name: 'an earlier document reply replaces a newer scope observation', path: 'packages/sdk/index.mjs',
+    from: 'return current && record?.input && record.ticket === issued &&',
+    to: 'return current && record?.input &&',
+    targets: cases('document sessions retain original spans across buffer edits and reply reordering',
+      [{id: 'document-public-order', operator: 'strictEqual'}])},
   {name: 'Program location replaces its original node', path: 'packages/sdk/index.mjs',
     from: 'return Object.freeze({...location, input: original});',
     to: "return Object.freeze({...location, pointer: '', input: original});",
@@ -36,12 +75,13 @@ const build = () => execFileSync(process.execPath, ['scripts/local-checks.mjs',
   'build', 'moon', '--timeout-seconds', '120', '--', '--target', 'js', '--release',
   'src/connectors_builtin_node'], {stdio: 'inherit', timeout: 130000});
 const run = item => {
+  const acceptance = item.file ?? file;
   const escape = text => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs',
     'test', 'node', '--timeout-seconds', '120', '--', '--test-name-pattern',
-    `^(?:${item.targets.map(value => escape(value.name)).join('|')})$`, file],
+    `^(?:${item.targets.map(value => escape(value.name)).join('|')})$`, acceptance],
   {encoding: 'utf8', timeout: 130000, maxBuffer: 16 * 1024 * 1024});
-  return mutationAcceptance(result, item.targets, file);
+  return mutationAcceptance(result, item.targets, acceptance);
 };
 const results = [];
 for (const item of selected) {

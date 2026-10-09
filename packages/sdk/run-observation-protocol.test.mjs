@@ -1,4 +1,4 @@
-import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, heldSubmissionAttempt} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -206,9 +206,12 @@ const held = () => ({kind: 'held', requestId: 'saved', prepareAttemptId: 'origin
   state: 'resuming', durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
 const lookup = () => ({kind: 'found', requestId: 'saved', ref: {...ref},
   durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
-const originalCancellation = {cancelId: 'captured-cancel', expectedRevision: 6};
-const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7,
-  cancelRef: {...ref, ...originalCancellation}});
+const originalCancellation = {cancelId: 'captured-cancel', expectedRevision: 6, attemptId: 'captured-invocation'};
+const cancellationFact = revision => ({kind: 'accepted', ref: {...ref}, revision,
+  cancelRef: {...ref, cancelId: 'captured-cancel', expectedRevision: 6}});
+const cancellation = () => ({kind: 'accepted',
+  attemptRef: {operation: 'cancel', attemptId: 'captured-invocation'},
+  cancellation: cancellationFact(7)});
 async function responseFixture(t, reply) {
   const operations = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
@@ -217,7 +220,7 @@ async function responseFixture(t, reply) {
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref: {...ref}, durability: 'durable', revision: 1};
       if (operation === 'close') return;
-      return operation === 'submit-intent' ? heldSubmission(body, reply) : reply;
+      return operation === 'submit-intent' ? heldSubmissionAttempt(body, reply) : reply;
     },
   });
   t.after(() => client.close());
@@ -245,8 +248,8 @@ const paths = [
     explanation: sdk.explainSubmission(answer).prepareAttemptId},
   {held: 'original-attempt', explanation: 'original-attempt'}, '[check-mutation:response-capture-held]')},
   {name: 'cancel', reply: cancellation, call: f => f.run.cancel(originalCancellation), code: 'CancellationUnknown',
-    key: 'kind', first: 'accepted', later: 'already_terminal',
-    assert: answer => assert.deepEqual({kind: answer.kind, revision: answer.revision,
+    key: 'cancellation', first: cancellationFact(7), later: cancellationFact(99),
+    assert: answer => assert.deepEqual({kind: answer.kind, revision: answer.cancellation.revision,
       observation: sdk.explainCancellation(answer).observation},
     {kind: 'accepted', revision: 7, observation: 'accepted'}, '[check-mutation:response-capture-cancel]')},
   {name: 'deliveryAttempt', reply: () => structuredClone(delivery),
@@ -274,7 +277,6 @@ for (const path of paths) {
   test(`${path.name}: response fields are captured once before admission`, async t => {
     const reply = path.reply(), counts = {};
     changing(reply, path.key, path.first, path.later, counts);
-    if (path.name === 'cancel') changing(reply, 'revision', 7, 99, counts);
     if (path.name === 'deliveryAttempt') changing(reply, 'hostReleaseReceipt', null, delivery.hostReleaseReceipt, counts);
     const f = await responseFixture(t, reply);
     const answer = await path.call(f);
@@ -329,7 +331,7 @@ for (const path of paths.filter(value => ['lookupRequest', 'held submit', 'cance
       const copied = copy?.held ?? copy;
       if (payload?.[path.key] === undefined) return copy;
       copied[path.key] = nativeClone(path.later);
-      if (path.name === 'cancel') copy.revision = 99;
+      if (path.name === 'cancel') copy.cancellation.revision = 99;
       if (path.name === 'deliveryAttempt') copy.hostReleaseReceipt = nativeClone(delivery.hostReleaseReceipt);
       return copy;
     };

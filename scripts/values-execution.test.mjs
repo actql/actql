@@ -13,6 +13,7 @@ const schema = aoa.execution_contracts['REL.values'].params_schema;
 
 test('compiler selects exact values execution and wire interpretation bodies', () => {
   const implementation = readFileSync('src/pipeline_check_context/core_contracts.mbt', 'utf8').replace(/\s+/g, ' ');
+  const shared = readFileSync('src/pipeline_check_context/core_contract_shared.mbt', 'utf8').replace(/\s+/g, ' ');
   const execution = aoa.execution_contracts['REL.values'];
   const executionCid = 'sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b';
   const wire = read('spec/contracts/actql-bound-values-wire-law.json');
@@ -31,7 +32,7 @@ test('compiler selects exact values execution and wire interpretation bodies', (
   });
   verifyIdentity(protocol.schemas.canonical_value_contract,
     execution.dependencies.canonical_value_contract.cid);
-  assert.ok(implementation.includes('core_contract_dependency(b, ValuesExecutionRules, target)'));
+  assert.match(shared, /ValuesExecutionRules => \{ let target = CatalogGrammarBody\(@environment\.ValueGrammarBody\) core_contract_edge\(b\) core_contract_body\(b, target\) core_contract_dependency\(b, ValuesExecutionRules, target\) \}/);
   assert.equal(Object.hasOwn(wire, 'dependencies'), false);
 });
 

@@ -2,7 +2,7 @@
 // envelopes are independent literals; the admitted control uses the checker.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer, request as httpsRequest} from 'node:https';
 import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -10,9 +10,10 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import test, {after} from 'node:test';
 import {ClientError, connect, getCheckInput, resolveCheckLocation,
   resolveCheckTextRange, explainCheckReason, getCheckContextRequirements,
-  getCheckFixes, createCheckSupplementationSession} from '../../packages/sdk/index.mjs';
+  getCheckFixes, createCheckSupplementationSession, createCheckDocumentSession} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -44,7 +45,7 @@ const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
   wire.evidence_bundle_cid, false, false, true, true, false, false, false);
 
 async function publicCheck(t, entrance, {program = false, environmentWire = wire,
-  visibility, contextKey} = {}) {
+  visibility, contextKey, principalId = 'reader', afterCheck, transformOwnerOutcome} = {}) {
   const selected = environmentWire === wire ? environment
     : moon.clientProgramCheckEnvironment(canonicalText(environmentWire),
       environmentWire.evidence_bundle_cid, false, false, true, true, false, false, false);
@@ -58,25 +59,27 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       account_id: 'authoring-source', entries: [{entry_id: 'source-read',
         outcome: visibility === 'denied' ? 'deny' : 'allow', principal: {all: true},
         connection: {all: true}, resource: {all: true}, operation: {any_of: ['read']}, exclusions: []}]}),
-    context: {principal: 'reader', contextCid: `sha256:${'3'.repeat(64)}`}}) : undefined;
+    context: {principal: principalId, contextCid: `sha256:${'3'.repeat(64)}`}}) : undefined;
   if (authorization) t.after(() => authorization.close());
   if (visibility === 'unpublished') authorization.close();
   const check = installNodeClientCheck({moon: {...moon,
     clientProgramCheckProgram: (...args) => {
       assert.equal(program, true, 'Text fixture must not check a structured Program');
       counts.analysis++;
-      return moon.clientProgramCheckProgram(...args);
+      const outcome = moon.clientProgramCheckProgram(...args);
+      return transformOwnerOutcome?.(outcome, args[7]) ?? outcome;
     },
     clientProgramCheckSource: (...args) => {
       counts.analysis++;
-      return moon.clientProgramCheckSource(...args);
+      const outcome = moon.clientProgramCheckSource(...args);
+      return transformOwnerOutcome?.(outcome, args[10]) ?? outcome;
     }}, environment: selected, publication: sourceAliasPublication(moon, selected, aliases),
     ...(contextKey === undefined ? {} : {contextKey}),
     sourceAccesses: authorization ? [{authorization, connection: 'local-database',
       resource: '/records.duckdb', sourceRef}] : []});
   const connection = {mode: entrance === 'local' ? 'local' : 'remote',
     owner: entrance === 'local' ? 'local' : 'remote', runners: [], consentRefs: []};
-  const configuration = {authenticate: () => 'reader',
+  const configuration = {authenticate: () => principalId,
     authorizeConnection: ({operation}) => {
       if (operation === 'check') counts.authorization++;
       return true;
@@ -86,7 +89,11 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
         maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
         maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}}),
-    check, maxRowBytes: 1024, maxRequestBytes: 65536};
+    async check(request) {
+      const outcome = await check(request);
+      await afterCheck?.(request, outcome);
+      return outcome;
+    }, maxRowBytes: 1024, maxRequestBytes: 65536};
   const body = text => ({connection, kind: 'text', scope: 'bound_input', input: {text, format: 'sql'}, parameters: null});
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(configuration);
@@ -167,6 +174,241 @@ const authoringProgram = () => ({version: 'actql/0.1', id: 'scoped-authoring',
   results: {out: {from: 'output', fields: ['n']}}}],
   results: {out: {from: {stage: 'first', result: 'out'}}}});
 
+for (const entrance of ['local', 'http']) for (const visibility of ['allow', 'absent', 'denied', 'unpublished']) {
+  for (const suppliedViolation of [false, true]) {
+  test(`${entrance}: richer audience reports retain ${visibility} custody with ${suppliedViolation ? 'a supplied violation' : 'no violation'}`, async t => {
+    const directory = await mkdtemp(join(scratch, 'audience-binding-'));
+    t.after(async () => {
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        console.error(`Audience-binding evidence retained: ${directory}`);
+      } else await rm(directory, {recursive: true, force: true});
+    });
+    // The same private key and exact bytes deliberately produce equal input
+    // revisions: only the authoritative audience/disclosure context differs.
+    const contextKey = Buffer.alloc(32, 0x31);
+    let richRaw;
+    const rich = await publicCheck(t, entrance, {visibility: 'allow', contextKey,
+      transformOwnerOutcome(raw) {richRaw = raw; return raw;}});
+    for (const format of ['sql', 'aql-text']) {
+      const input = suppliedViolation ? 'SELECT missing, @x AS n FROM records'
+        : 'SELECT missing FROM records';
+      const options = {kind: 'text', scope: 'bound_input', format,
+        ...(suppliedViolation ? {parameterDeclarations: {x: {type: 'number'}},
+          parameters: {x: 'caller-private-wrong-value'}} : {})};
+      const original = await rich.client.check(input, options);
+      const originalRaw = richRaw;
+      assert.equal(original.report.verdict, 'invalid');
+      assert.ok(original.report.reasons.some(reason => reason.code === 'query_expression_invalid'));
+      assert.deepEqual(original.report.coverage, {limits: [], unresolved: []});
+      {
+        const emitted = [];
+        let substitute = false;
+        const restricted = await publicCheck(t, entrance, {visibility, contextKey,
+          principalId: 'other-reader', transformOwnerOutcome(raw) {
+            emitted.push(JSON.parse(raw));
+            // Substitute the actual richer Owner outcome before public
+            // validation; no facts, contexts or document metadata are forged.
+            return substitute ? originalRaw : raw;
+          }});
+        const fresh = await restricted.client.check(input, options);
+        assert.deepEqual(fresh.report.inputs, original.report.inputs);
+        assert.deepEqual(fresh.report.scope, original.report.scope);
+        assert.notEqual(fresh.report.context_ref, original.report.context_ref);
+        if (visibility === 'allow') {
+          assert.deepEqual(fresh.report.reasons, original.report.reasons);
+          assert.deepEqual(fresh.report.coverage, original.report.coverage);
+        } else {
+          const parameters = getCheckInput(fresh, 'parameters');
+          assert.deepEqual({verdict: fresh.report.verdict, reasons: fresh.report.reasons,
+            requirements: fresh.report.requirements, coverage: fresh.report.coverage},
+          {verdict: suppliedViolation ? 'invalid' : 'undetermined',
+            reasons: suppliedViolation ? [{code: 'supplied_value_type_mismatch',
+              facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'},
+              location: {document_id: 'parameters', revision: parameters.revision,
+                kind: 'structured', pointer: '/x'}}] : [], requirements: [],
+            coverage: {limits: [], unresolved: [{boundary: 'source_resolution',
+              reason: 'unresolved_protected'}]}});
+        }
+        substitute = true;
+        const replayed = await restricted.client.check(input, options);
+        substitute = false;
+        await writeFile(join(directory, `${format}-${visibility}-${suppliedViolation}.json`),
+          JSON.stringify({entrance, format, visibility, suppliedViolation, input,
+            original, fresh, freshOwnerOutcome: emitted.at(-1), replayed,
+            originalInput: getCheckInput(original, 'source'),
+            replayedInput: getCheckInput(replayed, 'source'),
+            richCounts: rich.counts, restrictedCounts: restricted.counts}), {mode: 0o600});
+        assert.deepEqual({outcome: replayed.outcome, problem: replayed.problem,
+          report: replayed.report ?? null, partialReport: replayed.partial_report ?? null,
+          input: getCheckInput(replayed, 'source') ?? null,
+          parameters: getCheckInput(replayed, 'parameters') ?? null},
+        {outcome: 'failed', problem: {code: 'check_internal'}, report: null,
+          partialReport: null, input: null, parameters: null},
+        '[check-mutation:owner-audience-binding]');
+        const restored = await restricted.client.check(input, options);
+        assert.deepEqual(restored, fresh);
+        assert.equal(getCheckInput(restored, 'source').text, input);
+        assert.equal(getCheckInput(original, 'source').text, input);
+        assert.equal(getCheckInput(structuredClone(original), 'source'), undefined);
+        assert.equal(getCheckInput(structuredClone(restored), 'source'), undefined);
+        if (visibility !== 'allow') assert.doesNotMatch(JSON.stringify(restored),
+          /query_expression_invalid|caller-private-wrong-value|crm\/main/);
+        assert.deepEqual(restricted.counts, {exchanges: 3, authorization: 3, analysis: 3});
+      }
+    }
+    assert.deepEqual(rich.counts, {exchanges: 2, authorization: 2, analysis: 2});
+  });
+  }
+}
+
+for (const entrance of ['local', 'http']) for (const kind of ['text', 'program']) {
+  for (const fault of ['replay', 'context', 'documents', 'scope']) {
+    test(`${entrance}: ${kind} Owner results retain the current ${fault} binding`, async t => {
+      const directory = await mkdtemp(join(scratch, 'owner-binding-'));
+      t.after(async () => {
+        if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+          console.error(`Owner-binding evidence retained: ${directory}`);
+        } else await rm(directory, {recursive: true, force: true});
+      });
+      const emitted = [];
+      let replay = false;
+      const {client, counts} = await publicCheck(t, entrance, {program: kind === 'program',
+        transformOwnerOutcome(raw) {
+          emitted.push(JSON.parse(raw));
+          if (!replay) return raw;
+          // Probe the adapter with a previously emitted real Owner report.
+          // Hybrid probes substitute only metadata emitted for this call;
+          // no verdict, Requirement, revision or context is invented.
+          const old = structuredClone(emitted.at(-2));
+          const current = emitted.at(-1);
+          if (fault === 'documents' || fault === 'scope') old.report.context_ref = current.report.context_ref;
+          if (fault === 'context' || fault === 'scope') old.report.inputs = current.report.inputs;
+          assert.equal(validCheckOutcome(old), true, 'Probe must remain a well-formed Owner outcome');
+          return JSON.stringify(old);
+        }});
+      const formats = kind === 'text' ? ['sql', 'aql-text'] : [undefined];
+      for (const format of formats) {
+        const input = kind === 'text' ? 'SELECT @x AS n' : authoringProgram();
+        if (kind === 'program') {
+          input.params.x.type = 'boolean';
+          input.stages[0].steps[1].derive.n = '$x';
+        }
+        const options = {kind, scope: 'bound_input', ...(kind === 'text'
+          ? {format, parameterDeclarations: {x: {type: 'boolean'}}} : {})};
+        // Equal byte lengths deliberately defeat length-only association.
+        assert.equal(Buffer.byteLength('{"x":true}'), 10);
+        assert.equal(Buffer.byteLength('{"x":null}'), 10);
+        const firstOptions = fault === 'scope' ? {...options, scope: 'template_only'}
+          : {...options, parameters: {x: true}};
+        const first = await client.check(input, firstOptions);
+        assert.equal(first.report.verdict, 'verified');
+        assert.equal(first.report.scope.kind, firstOptions.scope);
+        if (fault === 'scope') assert.equal(first.report.requirements[0].code, 'parameter_value_required');
+        else assert.equal(getCheckInput(first, 'parameters').value.x, true);
+        replay = true;
+        const secondOptions = fault === 'scope' ? options : {...options, parameters: {x: null}};
+        const second = await client.check(input, secondOptions).catch(error => {
+          if (!(error instanceof ClientError)) throw error;
+          return {error: error.code};
+        });
+        replay = false;
+        const fresh = emitted.at(-1);
+        await writeFile(join(directory, `${format ?? 'program'}-observation.json`),
+          JSON.stringify({entrance, kind, fault, input, firstOptions, secondOptions,
+            first, freshOwnerOutcome: fresh, replayedPublicOutcome: second, counts}), {mode: 0o600});
+        assert.equal(fresh.report.scope.kind, 'bound_input');
+        assert.equal(fresh.report.verdict, fault === 'scope' ? 'undetermined' : 'invalid');
+        if (fault !== 'scope') assert.deepEqual(fresh.report.reasons[0].facts,
+          {parameter: 'x', expected_type: 'boolean', actual_type: 'null'});
+        assert.deepEqual({outcome: second.outcome, problem: second.problem,
+          report: second.report ?? null, partialReport: second.partial_report ?? null,
+          original: getCheckInput(second, kind === 'text' ? 'source' : 'program') ?? null,
+          parameters: getCheckInput(second, 'parameters') ?? null},
+        {outcome: 'failed', problem: {code: 'check_internal'}, report: null,
+          partialReport: null, original: null, parameters: null},
+        `[check-mutation:owner-${fault}-binding]`);
+        const third = await client.check(input, secondOptions);
+        assert.equal(third.report.verdict, fault === 'scope' ? 'undetermined' : 'invalid');
+        assert.equal(third.report.scope.kind, 'bound_input');
+        assert.notEqual(third.report.context_ref, first.report.context_ref);
+        if (fault !== 'scope') {
+          assert.equal(getCheckInput(third, 'parameters').value.x, null);
+          assert.equal(getCheckInput(first, 'parameters').value.x, true);
+          assert.notEqual(getCheckInput(third, 'parameters').revision,
+            getCheckInput(first, 'parameters').revision);
+        }
+        assert.equal(getCheckInput(structuredClone(third), kind === 'text' ? 'source' : 'program'), undefined);
+      }
+      assert.deepEqual(counts, {exchanges: formats.length * 3,
+        authorization: formats.length * 3, analysis: formats.length * 3});
+    });
+  }
+  for (const fault of ['context', 'documents']) {
+    test(`${entrance}: ${kind} partial Owner reports retain the current ${fault} binding`, async t => {
+      const directory = await mkdtemp(join(scratch, 'owner-partial-binding-'));
+      t.after(async () => {
+        if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+          console.error(`Owner-binding evidence retained: ${directory}`);
+        } else await rm(directory, {recursive: true, force: true});
+      });
+      const emitted = [];
+      let replay = false;
+      const {client, counts} = await publicCheck(t, entrance, {program: kind === 'program',
+        transformOwnerOutcome(raw, correlationRef) {
+          const current = JSON.parse(raw);
+          emitted.push(current);
+          // Simulate a public reporting failure with its actual invalid Owner
+          // report, then substitute that same partial report for a later call.
+          const report = structuredClone(replay ? emitted.at(-2).report : current.report);
+          if (replay && fault === 'documents') report.context_ref = current.report.context_ref;
+          if (replay && fault === 'context') {
+            report.inputs = current.report.inputs;
+            for (const reason of report.reasons) if (reason.location) {
+              reason.location.revision = current.report.inputs.find(document =>
+                document.document_id === reason.location.document_id).revision;
+            }
+          }
+          const outcome = {version: current.version, reason_schema_cid: current.reason_schema_cid,
+            outcome_schema_cid: current.outcome_schema_cid, outcome: 'failed',
+            correlation_ref: correlationRef, problem: {code: 'check_internal'}, partial_report: report};
+          assert.equal(validCheckOutcome(outcome), true, 'Probe must remain a well-formed partial outcome');
+          return JSON.stringify(outcome);
+        }});
+      const input = kind === 'text' ? 'SELECT @x AS n' : authoringProgram();
+      if (kind === 'program') {
+        input.params.x.type = 'boolean';
+        input.stages[0].steps[1].derive.n = '$x';
+      }
+      const options = {kind, scope: 'bound_input', ...(kind === 'text'
+        ? {format: 'sql', parameterDeclarations: {x: {type: 'boolean'}}} : {})};
+      const first = await client.check(input, {...options, parameters: {x: null}});
+      assert.equal(first.outcome, 'failed');
+      assert.equal(first.partial_report.verdict, 'invalid');
+      assert.equal(getCheckInput(first, 'parameters').value.x, null);
+      assert.deepEqual(first.partial_report.reasons[0].facts,
+        {parameter: 'x', expected_type: 'boolean', actual_type: 'null'});
+      assert.ok(resolveCheckLocation(first, first.partial_report.reasons[0].location));
+      replay = true;
+      const second = await client.check(input, {...options, parameters: {x: true}}).catch(error => {
+        if (!(error instanceof ClientError)) throw error;
+        return {error: error.code};
+      });
+      await writeFile(join(directory, 'partial-observation.json'), JSON.stringify({
+        entrance, kind, fault, input, options, first, freshOwnerOutcome: emitted.at(-1),
+        replayedPublicOutcome: second, counts}), {mode: 0o600});
+      assert.equal(emitted.at(-1).report.verdict, 'verified');
+      assert.deepEqual({outcome: second.outcome, problem: second.problem,
+        report: second.report ?? null, partialReport: second.partial_report ?? null,
+        parameters: getCheckInput(second, 'parameters') ?? null},
+      {outcome: 'failed', problem: {code: 'check_internal'}, report: null,
+        partialReport: null, parameters: null}, `[check-mutation:owner-${fault}-binding]`);
+      assert.equal(getCheckInput(first, 'parameters').value.x, null);
+      assert.equal(getCheckInput(structuredClone(first), 'parameters'), undefined);
+      assert.deepEqual(counts, {exchanges: 2, authorization: 2, analysis: 2});
+    });
+  }
+}
+
 test('HTTPS: malformed UTF-8 check bytes never enter analysis', async t => {
   const {client, counts, send} = await publicCheck(t, 'http');
   const prefix = Buffer.from('{"connection":{"mode":"remote","owner":"remote","runners":[],"consentRefs":[]},"kind":"text","scope":"bound_input","input":{"text":"SELECT \'');
@@ -241,6 +483,106 @@ for (const entrance of ['local', 'http']) {
       {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
     assert.equal(counts.authorization, 1);
     assert.equal(counts.analysis, 1);
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: document sessions retain original spans across buffer edits and reply reordering`, async t => {
+    const directory = await mkdtemp(join(scratch, 'document-session-'));
+    t.after(async () => {
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        console.error(`Document-session evidence retained: ${directory}`);
+      } else await rm(directory, {recursive: true, force: true});
+    });
+    const gates = [0, 1].map(() => {
+      let enter, release;
+      const entered = new Promise(resolve => {enter = resolve;});
+      const waiting = new Promise(resolve => {release = resolve;});
+      return {enter, release, entered, waiting};
+    });
+    t.after(() => gates.forEach(gate => gate.release()));
+    let replies = 0;
+    const {client, counts} = await publicCheck(t, entrance, {
+      async afterCheck(request, outcome) {
+        const gate = gates[replies++];
+        if (!gate) return;
+        // Delay the actual checker outcome before the ordinary Host returns
+        // it. No response fields, input revisions or verdicts are fabricated.
+        gate.enter({request, outcome});
+        await gate.waiting;
+      },
+    });
+    const originalText = '/*é😀e\u0301*/\r\nSELECT (';
+    const editedText = originalText + ' ';
+    const session = createCheckDocumentSession(client, {text: originalText, version: 1});
+    t.after(() => session.close());
+    const options = {scope: 'bound_input', format: 'sql'};
+    const firstPending = session.check(options);
+    await gates[0].entered;
+    session.update(editedText, 2);
+    gates[0].release();
+    const first = await firstPending;
+    const syntax = observation => observation.outcome.report.reasons.find(
+      reason => reason.code === 'query_syntax_invalid');
+    const firstLocation = syntax(first).location;
+    const firstInput = getCheckInput(first.outcome, 'source');
+    const staleRange = session.resolveTextRange(first, firstLocation);
+    await writeFile(join(directory, 'edit-observation.json'), JSON.stringify({
+      entrance, originalText, editedText, first, firstInput, staleRange,
+      originalRange: resolveCheckTextRange(first.outcome, firstLocation), counts,
+    }), {mode: 0o600});
+    assert.equal(staleRange, undefined, '[check-mutation:document-public-edit]');
+    assert.equal(firstInput.text, originalText);
+    assert.deepEqual(first.outcome.report.inputs.map(({document_id, byte_length}) =>
+      ({document_id, byte_length})), [{document_id: 'source', byte_length: 23}]);
+    assert.deepEqual({start: firstLocation.start_byte, end: firstLocation.end_byte},
+      {start: 23, end: 23});
+    assert.deepEqual(resolveCheckTextRange(first.outcome, firstLocation).range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
+    assert.equal(JSON.parse(session.format(first, {format: 'json'})).entries[0].location, undefined);
+    await assert.rejects(session.applyFixes(first, [], {version: 3, reviewed: true}),
+      {code: 'CheckFixStale'});
+
+    // Same bytes/version, different scope/context: the later bound check is
+    // current even when the earlier actual template reply arrives afterwards.
+    const earlierPending = session.check({...options, scope: 'template_only'});
+    await gates[1].entered;
+    const current = await session.check(options);
+    gates[1].release();
+    const earlier = await earlierPending;
+    const earlierLocation = syntax(earlier).location;
+    const currentLocation = syntax(current).location;
+    const reorderedRange = session.resolveTextRange(earlier, earlierLocation);
+    const currentRange = session.resolveTextRange(current, currentLocation);
+    await writeFile(join(directory, 'order-observation.json'), JSON.stringify({
+      entrance, editedText, earlier, current, reorderedRange, currentRange, counts,
+    }), {mode: 0o600});
+    assert.equal(reorderedRange, undefined, '[check-mutation:document-public-order]');
+    assert.deepEqual(earlier.outcome.report.scope, {kind: 'template_only'});
+    assert.deepEqual(current.outcome.report.scope, {kind: 'bound_input'});
+    assert.notEqual(earlier.outcome.report.context_ref, current.outcome.report.context_ref);
+    assert.equal(getCheckInput(current.outcome, 'source').text, editedText);
+    assert.deepEqual({start: currentLocation.start_byte, end: currentLocation.end_byte},
+      {start: 24, end: 24});
+    assert.deepEqual(currentRange.range,
+      {start: {line: 1, character: 9}, end: {line: 1, character: 9}});
+    assert.equal(currentRange.positionEncoding, 'utf-16');
+    assert.equal(JSON.parse(session.format(earlier, {format: 'json'})).entries[0].location, undefined);
+    assert.deepEqual(JSON.parse(session.format(current, {format: 'json'})).entries[0].location.range,
+      currentRange.range);
+    const copied = structuredClone(current);
+    assert.equal(session.resolveTextRange(copied, currentLocation), undefined);
+    assert.equal(getCheckInput(copied.outcome, 'source'), undefined);
+
+    session.update('SELECT 1 AS n', 3);
+    const corrected = await session.check(options);
+    assert.equal(corrected.outcome.report.verdict, 'verified');
+    assert.equal(session.resolveTextRange(current, currentLocation), undefined);
+    const reopened = createCheckDocumentSession(client, {text: editedText, version: 2});
+    assert.equal(reopened.resolveTextRange(current, currentLocation), undefined);
+    reopened.close(); session.close();
+    assert.equal(session.resolveTextRange(corrected, currentLocation), undefined);
+    assert.deepEqual(counts, {exchanges: 4, authorization: 4, analysis: 4});
   });
 }
 

@@ -15,6 +15,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
+import {validOperationAttemptRefShape, validCancellationAttemptShape, validSubmissionAttemptShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
@@ -180,6 +181,19 @@ export function validSubmissionLookup(value, selected, expected) {
     (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
 }
 
+export function validSubmissionAttempt(value, selected, expected, intentCid, attemptRef, unresolvedHistory) {
+  if (!validSubmissionRef(expected) || !validOperationAttemptRef(attemptRef) ||
+      attemptRef.operation !== 'submit' || !validSubmissionAttemptShape(value) ||
+      !validOperationAttemptRef(value.attemptRef) || value.attemptRef.operation !== 'submit' ||
+      value.attemptRef.attemptId !== attemptRef.attemptId) return false;
+  if (value.kind === 'recorded' || value.kind === 'already_satisfied') {
+    return validSubmissionOutcome(value.outcome, selected, expected, intentCid, unresolvedHistory) &&
+      (value.kind !== 'already_satisfied' || value.outcome.kind !== 'preparing');
+  }
+  return value.kind === 'refused' && value.reason === 'authorization' ||
+    sameSubmissionRef(value.submissionRef, expected) && value.intentCid === intentCid;
+}
+
 // This is one existing Engine-owned Run-state component. The public Client
 // snapshot must also carry publication, cancellation and physical stop facts.
 export function validRunState(value) {
@@ -235,6 +249,33 @@ export const snapshotClientRequest = value =>
 export const snapshotCheckRequest = value =>
   snapshotRequest(value, 'UnrepresentableCheckNumber');
 
+// Synchronous Host ingress preparation. Capture the original Workspace target
+// before serialization or an awaited authentication/authorization boundary.
+// Authentication, authorization and transport-specific reading stay outside.
+export function prepareClientHostRequest(operation, original) {
+  if (!validClientBody(operation, original)) return undefined;
+  const suppliedConnection = original.connection;
+  const connection = Object.freeze({...suppliedConnection,
+    consentRefs: Object.freeze([...suppliedConnection.consentRefs]),
+    runners: Object.freeze([...suppliedConnection.runners])});
+  if (!validClientConnection(connection)) return undefined;
+  let body = original;
+  if (operation === 'check') {
+    // Observe the original serializer once, before spreading can erase it.
+    try { body = snapshotCheckRequest(body); }
+    catch { return undefined; }
+    if (!validClientBody(operation, body)) return undefined;
+  }
+  // A serializer cannot remove or replace the captured Workspace assertion.
+  body = {...body, connection};
+  if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
+    try { body = snapshotClientRequest(body); }
+    catch { return undefined; }
+    if (!validClientBody(operation, body)) return undefined;
+  }
+  return Object.freeze({body, connection});
+}
+
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
   // Template requests contain no submitted bindings. The scope is selected
@@ -245,7 +286,8 @@ export function validClientBody(operation, body) {
       !validClientConnection(body.connection)) return false;
   if (operation === 'connect') return true;
   if (operation === 'submit-intent' || operation === 'restart-intent') {
-    if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid)) return false;
+    if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid) ||
+        !validOperationAttemptRef(body.attemptRef) || body.attemptRef.operation !== 'submit') return false;
     if (operation === 'restart-intent' && !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) return false;
     return validClientBody('submit', {connection: body.connection,
       requestId: body.submissionRef.nonce, kind: body.kind,
@@ -341,6 +383,8 @@ export function validClientBody(operation, body) {
   }
   if (!validRunRef(body.ref)) return false;
   if (operation === 'cancel' || operation === 'lookup-cancellation') {
+    if (operation === 'cancel' && (!validOperationAttemptRef(body.attemptRef) ||
+        body.attemptRef.operation !== 'cancel')) return false;
     return validCancellationRef({...body.ref, cancelId: body.cancelId,
       expectedRevision: body.expectedRevision});
   }
@@ -480,6 +524,23 @@ export function validCancellationLookup(value, expected) {
   return validCancellationRef(expected) && validCancellationLookupShape(value) &&
     (value.kind === 'found' ? validCancellation(value.cancellation, expected) :
       validCancellationRef(value.cancelRef) && sameCancellationRef(value.cancelRef, expected));
+}
+
+export const validOperationAttemptRef = value => validOperationAttemptRefShape(value) &&
+  value.attemptId.isWellFormed();
+export function validCancellationAttempt(value, expected, attemptRef) {
+  if (!validCancellationRef(expected) || !validOperationAttemptRef(attemptRef) ||
+      attemptRef.operation !== 'cancel' || !validCancellationAttemptShape(value) ||
+      !validOperationAttemptRef(value.attemptRef) ||
+      value.attemptRef.operation !== attemptRef.operation ||
+      value.attemptRef.attemptId !== attemptRef.attemptId) return false;
+  if (value.kind === 'accepted' || value.kind === 'already_satisfied') {
+    return validCancellation(value.cancellation, expected) &&
+      (value.kind === 'accepted' ? value.cancellation.kind === 'accepted'
+        : ['already_requested', 'already_terminal'].includes(value.cancellation.kind));
+  }
+  return value.cancelRef === undefined || validCancellationRef(value.cancelRef) &&
+    sameCancellationRef(value.cancelRef, expected);
 }
 
 // The reply to a request cancellation. `accepted` means the cancellation is

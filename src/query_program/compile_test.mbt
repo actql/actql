@@ -1251,9 +1251,15 @@ test "FULL Values join refuses to invent stable row identities" {
     "SELECT l.a AS a, r.d AS d FROM left_rows AS l FULL JOIN right_rows AS r ON l.a = r.c",
     syntax_limits(),
   ).unwrap()
-  assert_true(
-    compile(query, set_context(), construction_limits()) is Err(UnsupportedJoin),
-  )
+  let program = compile(query, set_context(), construction_limits()).unwrap()
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Rejected(error) =>
+      assert_true(
+        @check.diagnostic_cause(error) is Closure(Joins(MissingEvidence(_))),
+      )
+    _ => fail("FULL Values inputs must retain the common identity refusal")
+  }
 }
 
 ///|
@@ -2247,8 +2253,10 @@ test "quoted column and alias spelling does not change name matching" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(relation_case, fixture_context(), construction_limits())
-    is Err(UnknownRelation),
+    exact_unresolved_relation(
+      compile(relation_case, fixture_context(), construction_limits()),
+      [("ORDERS", true)],
+    ),
   )
   let step = @wire.admit(
     @source.parse_json(
@@ -2378,7 +2386,7 @@ test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
   )
   for
     text in [
-      "SELECT COUNT(DISTINCT *) AS n FROM orders", "SELECT MIN(DISTINCT amount) AS n FROM orders",
+      "SELECT COUNT(DISTINCT *) AS n FROM orders", "SELECT MIN(DISTINCT) AS n FROM orders",
       "SELECT COUNT(*) FROM orders",
     ] {
     assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)

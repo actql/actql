@@ -10,6 +10,12 @@ priv struct RestoredModelCall {
 }
 
 ///|
+priv struct UnknownModelAttempt {
+  attempt : @publication.RunEvidenceValue
+  authority : @publication.RunEvidenceValue
+}
+
+///|
 pub fn restore_prepared_model_call(
   prepared : ModelPreparedCallSet,
   slot : Int,
@@ -120,7 +126,142 @@ pub fn restore_prepared_model_unknown(
     Err(issue) => return Err(InvocationEvidence(issue))
     Ok(_) => ()
   }
-  state.unknown_calls[slot] = true
+  state.unknown_calls[slot] = { attempt, authority, }
+  Ok(())
+}
+
+///|
+/// Read custody for one already-entered attempt, never permission to send.
+/// The common owner reserves its finite envelope before provider retrieval.
+pub struct ModelResponseReconciliation {
+  prepared : ModelPreparedCallSet
+  slot : Int
+  attempt : @publication.RunEvidenceValue
+  authority : @publication.RunEvidenceValue
+  mut adopted : Bool
+}
+
+///|
+pub fn prepare_model_response_reconciliation(
+  prepared : ModelPreparedCallSet,
+  slot : Int,
+  attempt : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+) -> Result[ModelResponseReconciliation, ModelExecutionIssue] {
+  let state = prepared.owner.state
+  guard prepared_model_current(prepared) &&
+    state.phase is DispatchSlot &&
+    state.next_slot == 0 &&
+    state.enter_call is Some(_) &&
+    prepared.scope is Some(scope) &&
+    state.dispatch_admission is Some(admission) &&
+    state.unknown_calls.get(slot) is Some(unknown) &&
+    @publication.run_evidence_value_json(unknown.attempt) ==
+    @publication.run_evidence_value_json(attempt) &&
+    @publication.run_evidence_value_json(unknown.authority) ==
+    @publication.run_evidence_value_json(authority) &&
+    !state.reservations.contains(slot) &&
+    !state.response_reconciliations.contains(slot) else {
+    return Err(RequestIdentity)
+  }
+  match @publication_host.check_client_infer_dispatch_current(admission) {
+    Err(issue) => return Err(Authorization(issue))
+    Ok(_) => ()
+  }
+  if state.egress_admission is Some(egress) {
+    match @publication_host.check_client_infer_egress_current(egress) {
+      Err(issue) => return Err(Egress(issue))
+      Ok(_) => ()
+    }
+  }
+  match
+    @publication.check_model_invocation_attempt(
+      scope, slot, attempt, authority, 1L,
+    ) {
+    Err(issue) => return Err(InvocationEvidence(issue))
+    Ok(_) => ()
+  }
+  let reservation = match
+    @resources.reserve_attempt(
+      state.ledger,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+      state.limits.max_request_bytes + state.limits.max_response_bytes + 81920L,
+      0L,
+      quantities=state.quantity_capacity.map(value => value.per_attempt),
+    ) {
+    Err(issue) => return Err(Ledger(issue))
+    Ok(value) => value
+  }
+  // Even missing or invalid original responses leave their sent usage unknown.
+  // Cleanup owns this reservation, including any failed retrieval/adoption.
+  state.reservations[slot] = reservation
+  match
+    @resources.mark_transfer_uncertain(
+      state.ledger,
+      reservation,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+    ) {
+    Err(issue) => return Err(Ledger(issue))
+    Ok(_) => ()
+  }
+  if state.quantity_capacity is Some(_) {
+    match @resources.mark_quantities_uncertain(state.ledger, reservation) {
+      Err(issue) => return Err(Ledger(issue))
+      Ok(_) => ()
+    }
+  }
+  let token = { prepared, slot, attempt, authority, adopted: false, }
+  state.response_reconciliations[slot] = token
+  Ok(token)
+}
+
+///|
+pub fn adopt_reconciled_model_response(
+  token : ModelResponseReconciliation,
+  response : ModelResponse,
+) -> Result[Unit, ModelExecutionIssue] {
+  let prepared = token.prepared
+  let state = prepared.owner.state
+  guard !token.adopted &&
+    prepared_model_current(prepared) &&
+    state.phase is DispatchSlot &&
+    state.next_slot == 0 &&
+    state.dispatch_admission is Some(admission) &&
+    state.response_reconciliations.get(token.slot) is Some(original) &&
+    physical_equal(original, token) &&
+    state.unknown_calls.contains(token.slot) &&
+    prepared_model_call_at(prepared, token.slot) is Some(call) else {
+    return Err(RequestIdentity)
+  }
+  match @publication_host.check_client_infer_dispatch_current(admission) {
+    Err(issue) => return Err(Authorization(issue))
+    Ok(_) => ()
+  }
+  if state.egress_admission is Some(egress) {
+    match @publication_host.check_client_infer_egress_current(egress) {
+      Err(issue) => return Err(Egress(issue))
+      Ok(_) => ()
+    }
+  }
+  state.attempts[token.slot] = {
+    attempt: token.attempt,
+    call,
+    authority: token.authority,
+    reservation: state.quantity_capacity.map(value => value.per_attempt),
+    input_tokens: None,
+    output_tokens: None,
+    category: "result_unknown",
+    failure: Some("result_unknown"),
+    work: 0,
+    response_cid: None,
+    output_cid: None,
+    response_issuer: None,
+    evidence: None,
+  }
+  state.attempt_slots.push(token.slot)
+  state.reconciled_responses[token.slot] = response
+  state.unknown_calls.remove(token.slot)
+  token.adopted = true
   Ok(())
 }
 

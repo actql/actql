@@ -511,7 +511,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
         store, storeAuthorityCid, authorityScopeCid, namespaceId, now, observe: diagnostic,
-        observation,
+        observation, inferEvidence: evidenceConfiguration,
         getCheckpoints: () => checkpoints});
     }
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -687,20 +687,22 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       revision: accepted.revision, outcome: accepted.outcome});
     return accepted;
   };
-  const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+  const cancel = async ({ref, cancelId, expectedRevision, attemptRef, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
-      throw clientOperationError('ClientCancellationDenied');
+      return journal.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
+        currentAuthorization: false, publicationCommitted: false}, moon, control);
     }
     const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
     // Recheck current connection authority after the publication observation.
     // The journal then compares the original revision under its write lock.
     if (!hostConnection({principalId: actual, connection, ref})) {
-      throw clientOperationError('ClientCancellationDenied');
+      return journal.recordCancellationAttempt(ref, {attemptRef, cancelId, expectedRevision,
+        currentAuthorization: false, publicationCommitted: false}, moon, control);
     }
     let recorded;
     try {
-      recorded = journal.recordCancellationOperation(ref, {
-        cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+      recorded = journal.recordCancellationAttempt(ref, {
+        attemptRef, cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
         modelCancellationOwner: checkpoints?.journal,
       }, moon, control);
     } catch (cause) {
@@ -720,11 +722,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       }
       throw cause;
     }
+    if (recorded.kind === 'refused' || recorded.kind === 'conflict') return recorded;
     const accepted = recorded.cancellation;
     if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
     observation?.emit('run', 'cancellation_requested', {ref,
       revision: accepted.revision, outcome: accepted.outcome});
-    return accepted;
+    const {recorded: _recorded, ...outcome} = recorded;
+    return Object.freeze(outcome);
   };
   const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
@@ -895,6 +899,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           physicalPreflight: physical.physicalPreflight,
+          reconcileResponse: physical.reconcileResponse,
           quantityCapacity: physical.quantityCapacity});
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;
@@ -1119,6 +1124,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
+    checkpoints, prepareAcquisition,
+    sourceAccessFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef).sourceAccess,
     faultInjection: authorization?.faultInjection,
     computeConfigurations: {local: localSnapshotConfiguration}});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
@@ -2379,7 +2386,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                 signal.throwIfAborted();
                 return runInfer({preparedProgram: submission.preparedProgram, plan,
                   store, principalId, signal, retainExecution, beginPhysicalWork,
-                  submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
+                  submission: token.snapshot.submission, existingModel: record, modelClaim: claim,
+                  assertCurrent});
               },
               observeStopped: async () => {
                 await observeNodeRestoredModelStop({ref,
@@ -2520,7 +2528,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
-    submitIntent: submissionService.submitIntent,
+    submitIntent: submissionService.submitAttempt,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
     stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,

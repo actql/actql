@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {sourceAccess} from './local-resource-accounting-sources.mjs';
 import {localResourceApiIssues} from './local-resource-api-guard.mjs';
+import {registeredResourceEnvironmentCase} from './local-resource-environment-fixtures.mjs';
 
 // No filesystem, environment, output, or process state is consulted here.
 // Every invocation owns its errors and derived sets. Sources are an immutable
@@ -267,8 +268,15 @@ export function validateResourceAccounting({
       checkStart < 0 || !check.includes('raise UnitBuildFailure::UnsupportedStaticPath(step)') ||
       [...graphRefusals].some(operation => check.includes(`"${operation}"`)) ||
       !publicRefusal.includes('coverage.current_graph_profile.classification[entry.operation]') ||
-      !publicRefusal.includes("error instanceof ClientError && error.code === 'ClientProgramUnsupported'") ||
-      !publicRefusal.includes("{kind:'not_found'}") ||
+      !publicRefusal.includes("assertRejectedSubmission(client, canonicalText(rejected), submissionRef, 'ClientProgramImplementationLimit')") ||
+      !publicRefusal.includes('assert.ok(error instanceof ClientError)') ||
+      !publicRefusal.includes("assert.equal(error.code, 'SubmissionNotAccepted')") ||
+      !publicRefusal.includes('outcome = getSubmissionOutcome(error)') ||
+      !publicRefusal.includes("assert.equal(outcome.kind, 'not_accepted')") ||
+      !publicRefusal.includes('assert.deepEqual(outcome.submissionRef, submissionRef)') ||
+      !publicRefusal.includes('assert.equal(outcome.problem.code, code)') ||
+      !publicRefusal.includes("assert.equal(Object.hasOwn(outcome, 'admission'), false)") ||
+      !publicRefusal.includes('assert.deepEqual(await client.lookupSubmission(submissionRef), outcome)') ||
       !publicRefusal.includes('physicalSteps.slice(before), []') ||
       !publicRefusal.includes('for (const externalInput of [false,true])') ||
       !packageScripts['check:distribution-client']?.includes(publicRefusalPath) ||
@@ -1072,7 +1080,10 @@ export function validateResourceAccounting({
         /^[a-zA-Z][a-zA-Z0-9]*$/u.test(item.case) &&
         sourceText.includes(`const ${item.case} =`) &&
         sourceText.includes(`['${item.fixture}', ${item.case},`);
-      if (!namedCase && !tupleCase) {
+      const registeredCase = registeredResourceEnvironmentCase(item, sourceText,
+        item.suite === 'node:graph_public_host'
+          ? reclamationSource('scripts/fixtures/graph-host-cases.mjs') : '', route.operation);
+      if (!namedCase && !tupleCase && !registeredCase) {
         fail(`${label}: missing environment fixture ${item.fixture}`);
       }
     }

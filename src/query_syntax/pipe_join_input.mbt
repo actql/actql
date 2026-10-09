@@ -41,11 +41,8 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
       | Distinct => ()
       // These operations have their own placement/carrier contracts. Do not
       // move them into a synthetic CTE as a side effect of JOIN composition.
-      Infer(_)
-      | Nearest(_)
-      | RetainResult(_)
-      | GraphCall(_)
-      | UnnestSource(_, _, _) => return None
+      Infer(_) | Nearest(_) | RetainResult(_) | GraphCall(_) => return None
+      UnnestSource(_, _, _) => safe = false
     }
   }
   if safe {
@@ -62,11 +59,7 @@ fn pipe_join_range_input(query : Query) -> Bool {
   query.graph is None &&
   query.operations.all(operation => {
     match operation {
-      Infer(_)
-      | Nearest(_)
-      | RetainResult(_)
-      | GraphCall(_)
-      | UnnestSource(_, _, _) => false
+      Infer(_) | Nearest(_) | RetainResult(_) | GraphCall(_) => false
       _ => true
     }
   })

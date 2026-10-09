@@ -9,12 +9,12 @@ import {observeClientAuthorizationFailure} from
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,
-  validClientAdmission, validClientBody, validClientProfile, validCancellation, validCancellationLookup,
+  validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
-  validCheckOutcome, snapshotCheckRequest, snapshotClientRequest,
-  validSubmissionOutcome, validSubmissionLookup} from
+  validCheckOutcome,
+  validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -193,22 +193,10 @@ export function createClientHttpHandler({
       if (typeof principal !== 'string' || principal.length === 0) {
         invalid('ClientAuthenticationDenied');
       }
-      let body = await boundedJson(request, maxRequestBytes);
-      if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
-      if (operation === 'check') {
-        // JSON.parse retains -0 and can overflow a numeric token to infinity.
-        try { body = snapshotCheckRequest(body); }
-        catch { invalid('InvalidClientRequest'); }
-      }
-      if (operation === 'check' && !validClientBody(operation, body)) invalid('InvalidClientRequest');
-      if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
-        try {body = snapshotClientRequest(body);}
-        catch {invalid('InvalidClientRequest');}
-        if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
-      }
-      const connection = Object.freeze({...body.connection,
-        consentRefs: Object.freeze([...body.connection.consentRefs]),
-        runners: Object.freeze([...body.connection.runners])});
+      const prepared = prepareClientHostRequest(operation,
+        await boundedJson(request, maxRequestBytes));
+      if (prepared === undefined) invalid('InvalidClientRequest');
+      const {body, connection} = prepared;
       const ref = body.ref === undefined ? undefined :
         Object.freeze({...body.ref});
       // Widening the structural wire schema must not let an old boolean
@@ -276,7 +264,7 @@ export function createClientHttpHandler({
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         const valid = submitting
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
+          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) invalid('InvalidClientHostSubmissionOutcome');
         sendJson(answer);
@@ -390,7 +378,7 @@ export function createClientHttpHandler({
       } else if (operation === 'cancel') {
         const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
         const cancelled = await invoke(cancel);
-        if (!validCancellation(cancelled, expected)) invalid('InvalidClientHostCancellation');
+        if (!validCancellationAttempt(cancelled, expected, body.attemptRef)) invalid('InvalidClientHostCancellation');
         sendJson(cancelled);
       } else if (operation === 'lookup-cancellation') {
         const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};

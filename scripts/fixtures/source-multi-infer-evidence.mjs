@@ -48,6 +48,24 @@ export const expectedItems = Object.freeze([
   {target: 'second_assessment', key: [2], keyContracts: [{type: 'number', nullable: false}], text: 'é\n'},
 ]);
 
+// Independent typed key preimages under actql-model-input-key/0.1. The same
+// number key has the same typed identity in both independent logical INFERs.
+export const expectedInputKeyCids = Object.freeze(Object.fromEntries([1, 2].map(value => [value,
+  cid({version: 'actql-model-input-key/0.1', components: [{field: 'id',
+    value_contract_cid: cid({nullable: false, type: 'number'}), value_cid: cid(value)}]})])));
+
+// Authored from the Source and Model contracts, including non-success NULL
+// output in the default outcomes mode. Never inferred from Result output.
+const assessmentContract = {type: 'object', nullable: true, additional_properties: false,
+  fields: {reason: {type: 'string', nullable: true}, risk: {type: 'string', nullable: false}}};
+export const expectedColumns = Object.freeze([
+  {name: 'id', contract: {type: 'number', nullable: false}},
+  {name: 'first_outcome', contract: {type: 'string', nullable: false}},
+  {name: 'first', contract: assessmentContract},
+  {name: 'second_outcome', contract: {type: 'string', nullable: false}},
+  {name: 'second', contract: assessmentContract},
+]);
+
 export const instructionsA = 'Classify exact lowercase urgent.';
 export const instructionsB = 'Classify urgency without case sensitivity.';
 export const unchangedInstructions = 'Return the original text independently.';

@@ -5,6 +5,7 @@ import test from 'node:test';
 import './retained-input.test.mjs';
 import './cancellation-operation.test.mjs';
 import './submission-owner.test.mjs';
+import './effect-run.test.mjs';
 import {valuesUnitIdentity, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -796,7 +797,12 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
       resultName: 'answer',
       columns: [{name: 'value', contract: {nullable: false, type: 'integer'}}],
       serialization: {format: 'jsonl', version: 'actql-jsonl/0.1',
-        contractCid: cid({version: 'actql-jsonl/0.1'})},
+        // Fixed profile preimage from portability/corpus/typed-json-literals.json.
+        contractCid: cid({
+          json_value_wire_contract_cid:
+            'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b',
+          version: 'actql-jsonl/0.1',
+        })},
     };
     assert.deepEqual(readControl.describeCommittedResult(publicIndex,
       readManifest, 'answer', [readControl.admit('durable_result_binding',

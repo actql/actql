@@ -113,23 +113,44 @@ fn start_captured_snapshot_value_check(
   max_depth : Int,
   max_workspace : Int,
 ) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue] {
-  if definition.name != "result_definition" || artifact.name != "result_artifact" {
+  if definition.name != "result_definition" ||
+    artifact.name != "result_artifact" {
     return Err(CaptureIssuanceWrongContract("result"))
   }
   guard contract_string(definition, "result_name") is Some(name) else {
     return Err(CaptureIssuanceInvalidFields("result_name"))
   }
-  if contract_string(artifact, "result_definition_cid") != Some(definition.identity) {
+  if contract_string(artifact, "result_definition_cid") !=
+    Some(definition.identity) {
     return Err(CaptureIssuanceReferenceMismatch("result_definition_cid"))
   }
-  guard rows is @json.Array(_) else { return Err(CaptureIssuanceInvalidRows(name)) }
+  guard rows is @json.Array(_) else {
+    return Err(CaptureIssuanceInvalidRows(name))
+  }
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 || max_workspace < 8 {
     return Err(CaptureIssuanceEncoding)
   }
-  Ok({ name, definition, artifact, max_wire_bytes, max_nodes, max_depth,
-    max_workspace, wire: None, source_fields: Some(fields), rows: Some(rows),
-    fields: [], keys: [], sorted: None, writer: None, phase: Fields, field: 0,
-    live: 8, peak: 8, closed: false, })
+  Ok({
+    name,
+    definition,
+    artifact,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    wire: None,
+    source_fields: Some(fields),
+    rows: Some(rows),
+    fields: [],
+    keys: [],
+    sorted: None,
+    writer: None,
+    phase: Fields,
+    field: 0,
+    live: 8,
+    peak: 8,
+    closed: false,
+  })
 }
 
 ///|

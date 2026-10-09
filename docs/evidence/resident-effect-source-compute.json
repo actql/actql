@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "sourceBase": "1376a2ec4b0cb1944971b268f7c2c637fcc37e99",
+  "verifiedFiles": {
+    "src/platform_native/remote_resident_host/source_compute.mbt": "1126ef10cd7554e70089cf98af06591a41bc4d249840302e59e7a47b43c4676b",
+    "src/platform_native/remote_resident_host/linear_tasks.mbt": "2c0585a453e2f3eb9478b763ea2ac56dedb92f80dee0d2c4716638c3cbd1368f",
+    "src/platform_native/remote_resident_host/retained_compute.mbt": "25e17687cddabbeb6e9b0b55c9c9315a25a710df095b96f3f2c1d2e7d401f4cd",
+    "src/platform_native/remote_resident_host/pkg.generated.mbti": "c6609ad3bf9bc7c8bf15a654bad032f889658c063dce3bd66cd16b7b481c87c1",
+    "src/platform_native/remote_resident_host/effect_source_compute_wbtest.mbt": "ff4ea03238b90b904efb7b863eac24fe8a7dbfa439579b735d8ca1e6bd020767",
+    "src/platform_native/remote_resident_source_compute_tests/effect_source_compute_wbtest.mbt": "3884578525099d6136466521f4fef81385cd72f9a9d9c3c5aaefe4c90ceb7377"
+  },
+  "checks": [
+    {
+      "target": "native",
+      "commands": [
+        {
+          "command": "moon",
+          "args": [
+            "fmt",
+            "src/platform_native/remote_resident_source_compute_tests/effect_source_compute_wbtest.mbt"
+          ],
+          "exitCode": 0
+        },
+        {
+          "command": "bounded/nonzero Moon test wrapper",
+          "args": [
+            "moon",
+            "test",
+            "--target",
+            "native",
+            "--strip",
+            "src/platform_native/remote_resident_source_compute_tests/effect_source_compute_wbtest.mbt",
+            "src/platform_native/remote_resident_source_compute_tests/source_compute_wbtest.mbt",
+            "src/platform_native/remote_resident_source_compute_tests/observations_wbtest.mbt"
+          ],
+          "exitCode": 0
+        },
+        {
+          "command": "moon",
+          "args": [
+            "info",
+            "--target",
+            "native",
+            "src/platform_native/remote_resident_host"
+          ],
+          "exitCode": 0
+        }
+      ],
+      "tests": 15,
+      "passed": 15,
+      "rawReceipt": "_build/resident-effect-source-compute-native-1791525045241/receipt.json"
+    },
+    {
+      "target": "js",
+      "commands": [
+        {
+          "command": "moon",
+          "args": [
+            "fmt",
+            "src/platform_native/remote_resident_host/source_compute.mbt",
+            "src/platform_native/remote_resident_host/retained_compute.mbt",
+            "src/platform_native/remote_resident_host/effect_source_compute_wbtest.mbt",
+            "src/platform_native/remote_resident_host/linear_tasks.mbt"
+          ],
+          "exitCode": 0
+        },
+        {
+          "command": "bounded/nonzero Moon test wrapper",
+          "args": [
+            "moon",
+            "test",
+            "--target",
+            "js",
+            "src/platform_native/remote_resident_host/effect_source_compute_wbtest.mbt",
+            "src/platform_native/remote_resident_host/effect_source_wbtest.mbt",
+            "src/platform_native/remote_resident_host/source_dispatch_wbtest.mbt",
+            "src/platform_native/remote_resident_host/retained_chain_profile_wbtest.mbt"
+          ],
+          "exitCode": 0
+        },
+        {
+          "command": "moon",
+          "args": [
+            "info",
+            "--target",
+            "js",
+            "src/platform_native/remote_resident_host"
+          ],
+          "exitCode": 0
+        }
+      ],
+      "tests": 16,
+      "passed": 16,
+      "rawReceipt": "_build/resident-effect-source-compute-portable-1791525352612/receipt.json"
+    }
+  ],
+  "nativeObserved": {
+    "acquisitionEntries": 1,
+    "computeEntries": 1,
+    "expectedRows": [
+      {
+        "id": 3
+      }
+    ],
+    "expectedSchema": {
+      "id": {
+        "nullable": false,
+        "type": "number"
+      }
+    },
+    "outstandingEffectPinKeepsCleanupPending": true,
+    "stoppingRevokesInputAccess": true,
+    "pinReturnAllowsOriginalCleanupRetry": true,
+    "sourceReopenedAfterCapture": false,
+    "duplicateComputeAllowed": false,
+    "wrongConfiguredSourceIO": 0
+  },
+  "failedDiagnosticsRetained": [
+    "_build/resident-effect-source-compute-native-1791524679160",
+    "_build/resident-effect-source-compute-native-1791524780139",
+    "_build/resident-effect-source-compute-native-1791524879840"
+  ],
+  "notVerified": [
+    "Approval",
+    "physical Effect write",
+    "durable Effect input restart",
+    "Cloud public Effect Run",
+    "Preview",
+    "Hosted CI"
+  ],
+  "completionScope": "Native Source/Compute custody only; enclosing Effect dispatch remains refused"
+}

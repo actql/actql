@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
@@ -49,6 +50,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/correlated-unnest-source-input.mjs', 'correlated-unnest-source-input.mjs'],
   ['scripts/fixtures/correlated-unnest-star-source-input.mjs', 'correlated-unnest-star-source-input.mjs'],
   ['scripts/fixtures/joined-unnest-star-source-input.mjs', 'joined-unnest-star-source-input.mjs'],
+  ['scripts/fixtures/unnest-join-source-input.mjs', 'unnest-join-source-input.mjs'],
   ['scripts/fixtures/unnest-parameter-path-source-input.mjs', 'unnest-parameter-path-source-input.mjs'],
   ['scripts/fixtures/unnest-checked-array-source-input.mjs', 'unnest-checked-array-source-input.mjs'],
   ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
@@ -88,6 +90,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-window-source-input.mjs', 'order-window-source-input.mjs'],
   ['scripts/fixtures/set-by-name-list-source-input.mjs', 'set-by-name-list-source-input.mjs'],
   ['scripts/fixtures/set-corresponding-source-input.mjs', 'set-corresponding-source-input.mjs'],
+  ['scripts/fixtures/set-join-source-input.mjs', 'set-join-source-input.mjs'],
   ['scripts/fixtures/set-inner-by-name-source-input.mjs', 'set-inner-by-name-source-input.mjs'],
   ['scripts/fixtures/window-scalar-source-input.mjs', 'window-scalar-source-input.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
@@ -102,6 +105,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
   ['scripts/fixtures/aggregate-signed-order-source-input.mjs', 'aggregate-signed-order-source-input.mjs'],
+  ['scripts/fixtures/aggregate-conditional-order-source-input.mjs', 'aggregate-conditional-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],

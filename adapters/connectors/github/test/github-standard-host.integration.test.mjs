@@ -255,7 +255,7 @@ test('public Client reads published GitHub Issues to a Named Result', async t =>
   // The Host start restored the publication without provider I/O.
   assert.equal(setup.api.seen().length, 1);
   const execution = await client.startSource(program, {format: 'json',
-    requestId: 'github-read-1'});
+    submissionRef: client.newSubmission({nonce: 'github-read-1'})});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const rows = await execution.result('issues').all();
@@ -295,8 +295,9 @@ test('installed row source retains public output across Host reopen',
     const {client, close} = await setup.open().catch(error => {
       assert.fail(error.primaryFailure?.stack ?? error.stack);
     });
+    const submissionRef = client.newSubmission({nonce: 'github-retained-read'});
     const run = await client.startSource(JSON.stringify(document), {format: 'json',
-      requestId: 'github-retained-read'});
+      submissionRef});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const expected = [{number: 1, title: 'Issue 1', author: 'octocat'},
@@ -313,7 +314,7 @@ test('installed row source retains public output across Host reopen',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(JSON.stringify(document), {format: 'json',
-      requestId: 'github-retained-read'});
+      submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
     await client.close();
@@ -359,7 +360,7 @@ test('retained acquired rows feed numeric group slots and two consumers',
     };
     const {client, close} = await setup.open();
     const run = await client.startSource(JSON.stringify(document), {format: 'json',
-      requestId: 'github-retained-group'});
+      submissionRef: client.newSubmission({nonce: 'github-retained-group'})});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(await run.result('grouped').all(), [
@@ -391,7 +392,7 @@ test('retained acquired rows feed numeric group slots and two consumers',
     empty.stages[3].steps = [{select: ['total', 'mean'], as: 'out'}];
     empty.stages[3].results.r.fields = ['total', 'mean'];
     const emptyRun = await client.startSource(JSON.stringify(empty), {format: 'json',
-      requestId: 'github-retained-empty-numeric-group'});
+      submissionRef: client.newSubmission({nonce: 'github-retained-empty-numeric-group'})});
     const emptyState = await emptyRun.wait();
     assert.equal(emptyState.status, 'succeeded', JSON.stringify(emptyState));
     assert.deepEqual(await emptyRun.result('grouped').all(),
@@ -437,7 +438,7 @@ test('retained GitHub rows keep Event times through a fixed window', async t => 
     consumed: {from: {stage: 'consumer', result: 'r'}}};
   const {client, close} = await setup.open();
   const run = await client.startSource(JSON.stringify(document), {format: 'json',
-    requestId: 'github-retained-fixed-events'});
+    submissionRef: client.newSubmission({nonce: 'github-retained-fixed-events'})});
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [
@@ -475,7 +476,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
     await setup.publish();
     const {client} = await setup.open();
     const exact = await client.startSource(program, {format: 'json',
-      requestId: 'github-retained-exact-row-ceiling'});
+      submissionRef: client.newSubmission({nonce: 'github-retained-exact-row-ceiling'})});
     const exactState = await exact.wait();
     assert.equal(exactState.status, 'succeeded', JSON.stringify(exactState));
     assert.deepEqual(await exact.result('issues').all(),
@@ -483,8 +484,9 @@ test('retained row source admits its exact row ceiling and refuses one more',
         title: `Issue ${index + 1}`, author: 'octocat'})));
     const beforeExtra = listings(setup.api).length;
     repository.issues.push({number: 101});
+    const submissionRef = client.newSubmission({nonce: 'github-retained-one-over-row-ceiling'});
     const excess = await client.startSource(program, {format: 'json',
-      requestId: 'github-retained-one-over-row-ceiling'});
+      submissionRef});
     const excessState = await excess.wait();
     assert.equal(excessState.status, 'failed', JSON.stringify(excessState));
     assert.ok(observations.some(([name, detail]) =>
@@ -498,7 +500,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(program, {format: 'json',
-      requestId: 'github-retained-one-over-row-ceiling'});
+      submissionRef});
     assert.deepEqual(resent.ref, excess.ref);
     assert.equal(listings(setup.api).length, beforeExtra + 2);
   });
@@ -585,8 +587,9 @@ test('two installed row sources retain a joined public Named Result',
     await setup.publish();
     const document = twoRowSourceProgram();
     const {client, close} = await setup.open();
+    const submissionRef = client.newSubmission({nonce: 'github-two-source-join'});
     const run = await client.startSource(JSON.stringify(document), {format: 'json',
-      requestId: 'github-two-source-join'}).catch(error => {
+      submissionRef}).catch(error => {
         assert.fail(`${error.stack}\n${error.cause?.stack ?? ''}\n${JSON.stringify(observations)}`);
       });
     const state = await run.wait();
@@ -618,7 +621,7 @@ test('two installed row sources retain a joined public Named Result',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(JSON.stringify(document), {format: 'json',
-      requestId: 'github-two-source-join'});
+      submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, 3);
     await client.close();
@@ -640,7 +643,7 @@ test('retained two-source Join feeds an Events window and consumer', async t => 
   const document = twoSourceEventsWindowProgram();
   const {client, close} = await setup.open();
   const run = await client.startSource(JSON.stringify(document), {format: 'json',
-    requestId: 'github-two-source-events-window'});
+    submissionRef: client.newSubmission({nonce: 'github-two-source-events-window'})});
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [
@@ -688,7 +691,7 @@ test('mixed GitHub and DuckDB captures feed a retained Events window', async t =
   const wire = JSON.stringify(document);
   const {client, close} = await setup.open();
   const run = await client.startSource(wire, {format: 'json',
-    requestId: 'github-duckdb-retained-events-window'});
+    submissionRef: client.newSubmission({nonce: 'github-duckdb-retained-events-window'})});
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [
@@ -745,7 +748,7 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
     'number / (number - number) > 0';
   const {client, host} = await setup.open();
   const run = await client.startSource(JSON.stringify(document), {format: 'json',
-    requestId: 'github-two-source-events-failure'});
+    submissionRef: client.newSubmission({nonce: 'github-two-source-events-failure'})});
   await firstClose;
   assert.ok(observations.some(([name, detail]) =>
     name === 'dispatch_failed' && detail.code === 'CapturedRunPublicationFailed'),
@@ -798,8 +801,9 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     document.stages[4].results.r.fields = ['number', 'amount'];
     const wire = JSON.stringify(document);
     const {client, close} = await setup.open();
+    const submissionRef = client.newSubmission({nonce: 'github-duckdb-retained-join'});
     const run = await client.startSource(wire, {format: 'json',
-      requestId: 'github-duckdb-retained-join'});
+      submissionRef});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const joined = [{number: 1, left_title: 'Issue 1', amount: 100},
@@ -818,7 +822,7 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     const reads = listings(setup.api).length;
     assert.equal(reads, 2);
     const resent = await client.startSource(wire, {format: 'json',
-      requestId: 'github-duckdb-retained-join'});
+      submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
     assert.equal(provider.snapshot().sourceReads, providerReads);
@@ -827,7 +831,7 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     [reversed.stages[0], reversed.stages[1]] =
       [reversed.stages[1], reversed.stages[0]];
     const reverseRun = await client.startSource(JSON.stringify(reversed),
-      {format: 'json', requestId: 'duckdb-github-retained-join'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'duckdb-github-retained-join'})});
     const reverseState = await reverseRun.wait();
     assert.equal(reverseState.status, 'succeeded', JSON.stringify(reverseState));
     assert.deepEqual(await reverseRun.result('joined').all(), joined);
@@ -863,8 +867,9 @@ test('a failed second row source preserves first-input cleanup without publicati
           message: 'API rate limit exceeded'}]}};
     const {client} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
+    const submissionRef = client.newSubmission({nonce: 'github-two-source-second-fails'});
     const run = await client.startSource(document, {format: 'json',
-      requestId: 'github-two-source-second-fails'});
+      submissionRef});
     const state = await run.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -878,7 +883,7 @@ test('a failed second row source preserves first-input cleanup without publicati
     const reads = listings(setup.api).length;
     assert.equal(reads, 3);
     const resent = await client.startSource(document, {format: 'json',
-      requestId: 'github-two-source-second-fails'});
+      submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
   });
@@ -916,7 +921,7 @@ test('two-source row cleanup retries without reacquisition after a later failure
     };
     const {client, host} = await setup.open();
     const run = await client.startSource(JSON.stringify(twoRowSourceProgram()),
-      {format: 'json', requestId: 'github-two-source-cleanup-retry'});
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'github-two-source-cleanup-retry'})});
     await firstClose;
     const beforeRetry = listings(setup.api).length;
     await assert.rejects(host.close(), error => {
@@ -960,27 +965,28 @@ test('two-source cancellation retains the first row capture until stop and clean
     let releaseFirst;
     const pause = new Promise(resolve => { releaseFirst = resolve; });
     const observations = [];
+    // Register the pause release before installation cleanup, including on assertion failure.
+    t.after(() => releaseFirst());
     const setup = await installation(t, {retainedRelationOutput: true,
       secondSource: true,
       observe(name, detail) { observations.push([name, detail]); },
       faultInjection(name, detail) {
         if (name === 'acquisition_completed' && detail.task === 0) {
-          reachedFirst();
+          reachedFirst(detail);
           return pause;
         }
       }});
-    t.after(() => releaseFirst());
     await setup.publish();
     const {client} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
     const run = await client.startSource(document, {format: 'json',
-      requestId: 'github-two-source-cancel'});
-    await firstCompleted;
-    const firstUsage = observations.find(([name, detail]) =>
-      name === 'acquisition_completed' && detail.task === 0)?.[1].resourceUsage;
+      submissionRef: client.newSubmission({nonce: 'github-two-source-cancel'})});
+    // The awaited fault boundary owns the pause. Best-effort diagnostics may
+    // be delivered later and are not a synchronization barrier.
+    const firstUsage = (await firstCompleted).resourceUsage;
     assert.equal(firstUsage?.holdings, '1');
     assert.notEqual(firstUsage?.heldBytes, '0');
-    await client.cancelRequest('github-two-source-cancel');
+    await run.cancel();
     releaseFirst();
     const state = await run.wait();
     assert.equal(state.status, 'cancelled', JSON.stringify(state));
@@ -1021,8 +1027,9 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     await setup.publish();
     const {client} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
+    const submissionRef = client.newSubmission({nonce: 'github-two-source-join-in-flight-cancel'});
     const run = await client.startSource(document, {format: 'json',
-      requestId: 'github-two-source-join-in-flight-cancel'});
+      submissionRef});
     const first = await Promise.race([
       advanced.then(detail => ({kind: 'advance', detail})),
       run.wait().then(state => ({kind: 'terminal', state})),
@@ -1034,7 +1041,7 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     assert.equal(observations.filter(([name]) =>
       name === 'acquisition_completed').length, 2);
     const reads = listings(setup.api).length;
-    await client.cancelRequest('github-two-source-join-in-flight-cancel');
+    await run.cancel();
     assert.equal(observations.filter(([name]) =>
       name === 'acquisition_cleanup_started').length, 0);
     releaseAdvance();
@@ -1053,7 +1060,7 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(document, {format: 'json',
-      requestId: 'github-two-source-join-in-flight-cancel'});
+      submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, reads);
   });
@@ -1075,8 +1082,9 @@ async function verifyLostRetainedStoreAcknowledgement(t, phase, event) {
   await setup.publish();
   const {client} = await setup.open();
   const document = JSON.stringify(twoRowSourceProgram());
+  const submissionRef = client.newSubmission({nonce: `github-two-source-store-${phase}-failure`});
   const run = await client.startSource(document, {format: 'json',
-    requestId: `github-two-source-store-${phase}-failure`});
+    submissionRef});
   const state = await run.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));
   assert.equal(state.result_available, false);
@@ -1097,7 +1105,7 @@ async function verifyLostRetainedStoreAcknowledgement(t, phase, event) {
     'carrier-snapshots')), []);
   const reads = listings(setup.api).length;
   const resent = await client.startSource(document, {format: 'json',
-    requestId: `github-two-source-store-${phase}-failure`});
+    submissionRef});
   assert.deepEqual(resent.ref, run.ref);
   assert.equal(listings(setup.api).length, reads);
   assert.equal(faultCalls, 1);
@@ -1125,8 +1133,9 @@ test('retained row source does not publish after a later page fails',
         body: {data: null, errors: [{type: 'RATE_LIMITED',
           message: 'API rate limit exceeded'}]}};
     const {client} = await setup.open();
+    const submissionRef = client.newSubmission({nonce: 'github-retained-later-page-failure'});
     const run = await client.startSource(program, {format: 'json',
-      requestId: 'github-retained-later-page-failure'});
+      submissionRef});
     const state = await run.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -1135,7 +1144,7 @@ test('retained row source does not publish after a later page fails',
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
     const resent = await client.startSource(program, {format: 'json',
-      requestId: 'github-retained-later-page-failure'});
+      submissionRef});
     assert.deepEqual(resent.ref, run.ref);
     assert.equal(listings(setup.api).length, 2);
   });
@@ -1161,7 +1170,7 @@ test('a rate limit stated in an HTTP 200 stops the Run without a Result',
         message: 'API rate limit exceeded'}]}});
     const {client} = await setup.open();
     const execution = await client.startSource(program, {format: 'json',
-      requestId: 'github-read-limited'});
+      submissionRef: client.newSubmission({nonce: 'github-read-limited'})});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
     assert.equal(state.result_available, false);
@@ -1172,7 +1181,8 @@ test('a rate limit stated in an HTTP 200 stops the Run without a Result',
 // provider's state changes after publication.
 const failsWithoutResult = async (setup, requestId) => {
   const {client} = await setup.open();
-  const execution = await client.startSource(program, {format: 'json', requestId});
+  const execution = await client.startSource(program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: requestId})});
   const state = await execution.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));
   assert.equal(state.result_available, false);
@@ -1199,7 +1209,7 @@ test('A, then a same-name B, then A again: every request stays on A', async t =>
   };
   const {client} = await setup.open();
   const execution = await client.startSource(program, {format: 'json',
-    requestId: 'github-read-aba'});
+    submissionRef: client.newSubmission({nonce: 'github-read-aba'})});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const rows = await execution.result('issues').all();
@@ -1269,7 +1279,7 @@ test('an empty body is published as an empty string, not NULL', async t => {
   await setup.publish();
   const {client} = await setup.open();
   const execution = await client.startSource(bodyProgram, {format: 'json',
-    requestId: 'github-body-1'});
+    submissionRef: client.newSubmission({nonce: 'github-body-1'})});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const rows = await execution.result('issues').all();
@@ -1319,7 +1329,7 @@ test('accounted GitHub pages charge complete raw responses exactly once', async 
     const document = twoRowSourceProgram();
     document.id = `github-raw-body-${padding}`;
     const run = await client.startSource(JSON.stringify(document), {format: 'json',
-      requestId: `github-raw-body-${padding}`});
+      submissionRef: client.newSubmission({nonce: `github-raw-body-${padding}`})});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(await run.result('joined').all(), [
@@ -1351,7 +1361,7 @@ test('a parser-refused GitHub raw response remains charged without a Result', as
   const {client, host} = await setup.open();
   const document = JSON.stringify(twoRowSourceProgram());
   const run = await client.startSource(document, {format: 'json',
-    requestId: 'github-raw-parser-refusal'});
+    submissionRef: client.newSubmission({nonce: 'github-raw-parser-refusal'})});
   const state = await run.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));
   assert.equal(state.result_available, false);

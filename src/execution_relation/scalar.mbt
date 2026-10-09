@@ -404,7 +404,7 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce | Concat | ConcatStrict | Replace => Err(InvalidOperand)
+    Coalesce | Concat | ConcatStrict | Replace | Between => Err(InvalidOperand)
   }
 }
 

@@ -14,7 +14,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
-import {connect} from '../../../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {openInstalledRemoteHttpHost} from
   '../../../host-node/embedded-local.mjs';
@@ -27,7 +27,7 @@ import {effectProgram, installedEffect, moon, salesforceMoon} from
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 import {recordCheckpointApproval} from '../../../host-common/checkpoint-approval.mjs';
-import {releaseCompletedRunPreparedPayloads} from
+import {releaseCompletedRunPreparedPayloads, isCompletedEffectfulPublicationCleanupFailure} from
   '../../../host-common/completed-run-publication.mjs';
 import {completeInterruptedEffectRun} from '../../../host-node/effect-run-completion.mjs';
 
@@ -192,7 +192,8 @@ async function heldSet(t, x, requestId) {
   const host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
   const client = await host.as('owner-token');
-  const execution = await client.startSource(x.program, {format: 'json', requestId});
+  const execution = await client.startSource(x.program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: requestId})});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');
   const reviewer = await host.as('reviewer-token');
@@ -259,7 +260,7 @@ test('target reads wait for both exact approvals before Preview and survive ever
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
   let client = await host.as('owner-token');
-  let run = await client.startSource(x.program, {format: 'json', requestId: 'target-reads-before-preview'});
+  let run = await client.startSource(x.program, {format: 'json', submissionRef: client.newSubmission({nonce: 'target-reads-before-preview'})});
   const ref = run.ref;
   for (let index = 0; index < 2; index++) {
     await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
@@ -333,8 +334,9 @@ for (const outcome of ['rejected', 'current-denial']) {
     const before = x.installation.org.seen.length;
     let host = await remoteHost(t, x.installation, x.directory,
       {configuration: x.configuration});
-    const run = await (await host.as('owner-token')).startSource(x.program,
-      {format: 'json', requestId: 'target-refusal-' + outcome});
+    const client = await host.as('owner-token');
+    const run = await client.startSource(x.program,
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'target-refusal-' + outcome})});
     await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
     const checkpoint = (await (await host.as('reviewer-token')).checkpoints()).items[0];
     assert.equal(checkpoint.kind, 'read_access');
@@ -367,8 +369,9 @@ for (const resumedDecision of ['permit', 'reject', 'defer']) {
     };
     let host = await remoteHost(t, x.installation, x.directory,
       {configuration: x.configuration, decide});
-    const run = await (await host.as('owner-token')).startSource(x.program,
-      {format: 'json', requestId: 'immediate-read-' + resumedDecision});
+    const client = await host.as('owner-token');
+    const run = await client.startSource(x.program,
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'immediate-read-' + resumedDecision})});
     await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
     const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
     assert.equal(checkpoint.kind, 'effect_set', 'an immediate permit does not create a read Checkpoint');
@@ -451,8 +454,9 @@ test('a lost target approval response retries the exact signed answer after rest
   const before = x.installation.org.seen.length;
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration, resumeAfterAnswer: false, loseResolveReply: true});
-  const execution = await (await host.as('owner-token')).startSource(x.program,
-    {format: 'json', requestId: 'target-answer-response-loss'});
+  const client = await host.as('owner-token');
+  const execution = await client.startSource(x.program,
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'target-answer-response-loss'})});
   await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
   let reviewer = await host.as('reviewer-token');
   const [checkpoint] = (await reviewer.checkpoints()).items;
@@ -595,8 +599,9 @@ for (const targetRead of ['allow', 'delegate']) {
     if (targetRead === 'delegate') {
       const before = installation.org.seen.length;
       const first = await remoteHost(t, installation, directory, {configuration});
-      const execution = await (await first.as('owner-token')).startSource(x.program,
-        {format: 'json', requestId: 'salesforce-lost'});
+      const client = await first.as('owner-token');
+      const execution = await client.startSource(x.program,
+        {format: 'json', submissionRef: client.newSubmission({nonce: 'salesforce-lost'})});
       await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
       const read = (await (await first.as('reviewer-token')).checkpoints()).items[0];
       assert.equal(read.kind, 'read_access');
@@ -651,10 +656,11 @@ test(`target and commit approvals retain original data through public Host resta
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
   const client = await host.as('owner-token');
+  const submissionRef = client.newSubmission({nonce: 'exact-target-and-commit'});
   let run = entrance === 'program'
-    ? await client.start(program, {requestId: 'exact-target-and-commit'})
+    ? await client.start(program, {submissionRef})
     : await client.startSource(x.program,
-      {format: 'json', requestId: 'exact-target-and-commit'});
+      {format: 'json', submissionRef});
   const ref = run.ref;
   await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
   const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
@@ -813,8 +819,9 @@ for (const failed of ['targetClose', 'commitClose', 'inputs', 'computeClose',
       decisionOptions: {decisionTimeoutMs: 250, maxInFlightDecisions: 1,
         maxRetainedDecisions: 32}};
     let host = await remoteHost(t, x.installation, x.directory, options);
-    let run = await (await host.as('owner-token')).startSource(x.program,
-      {format: 'json', requestId: 'integrated-' + failed});
+    const client = await host.as('owner-token');
+    let run = await client.startSource(x.program,
+      {format: 'json', submissionRef: client.newSubmission({nonce: 'integrated-' + failed})});
     const ref = run.ref;
     let recoveredFailure;
     const closePhase = async shouldFail => {
@@ -897,8 +904,9 @@ for (const boundary of ['acquisition', 'effect_commit']) {
     if (boundary === 'effect_commit') {
       host = await remoteHost(t, x.installation, x.directory,
         {configuration: x.configuration});
-      run = await (await host.as('owner-token')).startSource(x.program,
-        {format: 'json', requestId});
+      const client = await host.as('owner-token');
+      run = await client.startSource(x.program,
+        {format: 'json', submissionRef: client.newSubmission({nonce: requestId})});
       await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
       const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
       assert.equal(read.kind, 'read_access');
@@ -917,9 +925,11 @@ for (const boundary of ['acquisition', 'effect_commit']) {
       {configuration: x.configuration, decide,
         decisionOptions: {decisionTimeoutMs: 40, maxInFlightDecisions: 1,
           maxRetainedDecisions: 32}});
-    if (run === undefined) run = await (await host.as('owner-token')).startSource(x.program,
-      {format: 'json', requestId});
-    else run = await (await host.as('owner-token')).attach(run.ref);
+    if (run === undefined) {
+      const client = await host.as('owner-token');
+      run = await client.startSource(x.program,
+        {format: 'json', submissionRef: client.newSubmission({nonce: requestId})});
+    } else run = await (await host.as('owner-token')).attach(run.ref);
     await waitFor(() => calls.length === 1);
     assert.equal(calls[0].view.boundary, boundary);
     await waitFor(() => calls[0].signal.aborted);
@@ -996,8 +1006,9 @@ test(`integrated Run shares one ${capacity} decision slot at target and commit a
       maxInFlightDecisions: capacity === 'physical' ? 1 : 4,
       maxRetainedDecisions: capacity === 'retained' ? 1 : 32}};
   let host = await remoteHost(t, x.installation, x.directory, options);
-  let run = await (await host.as('owner-token')).startSource(x.program,
-    {format: 'json', requestId: 'integrated-shared-slot'});
+  const client = await host.as('owner-token');
+  let run = await client.startSource(x.program,
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'integrated-shared-slot'})});
   const ref = run.ref;
   let configurationCid, primaryRunId;
   for (const [index, boundary] of ['acquisition', 'effect_commit'].entries()) {
@@ -1008,13 +1019,20 @@ test(`integrated Run shares one ${capacity} decision slot at target and commit a
     assert.equal(call.view.subject.configuration_cid, configurationCid,
       'execution options never replace account-configuration identity');
     const before = diagnostics.length;
+    const contenderClient = await host.as('owner-token');
+    const contenderSubmissionRef = contenderClient.newSubmission({nonce: `integrated-contender-${index}`});
     if (capacity === 'retained') {
-      await assert.rejects((await host.as('owner-token')).startSource(x.program,
-        {format: 'json', requestId: `integrated-contender-${index}`}),
-      error => error.code === 'ACTQL_E_DELEGATION_UNAVAILABLE');
+      await assert.rejects(contenderClient.startSource(x.program,
+        {format: 'json', submissionRef: contenderSubmissionRef}),
+      error => {
+        assert.equal(error.code, 'SubmissionPreparationFailed');
+        assert.deepEqual(getSubmissionOutcome(error).problem,
+          {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'});
+        return true;
+      });
     } else {
-      const contender = await (await host.as('owner-token')).startSource(x.program,
-        {format: 'json', requestId: `integrated-contender-${index}`});
+      const contender = await contenderClient.startSource(x.program,
+        {format: 'json', submissionRef: contenderSubmissionRef});
       await waitFor(async () => (await contender.status()).status === 'failed');
       assert.ok(diagnostics.slice(before).some(value =>
         JSON.stringify(value).includes('ExecutionAuthorizationDecisionFailed')),
@@ -1057,7 +1075,7 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
       const primary = new Error(`Injected captured ${boundary}`);
       const cleanupFailure = new Error('Injected prepared payload release');
       const state = {blocked: blockedCleanup, prepared: [], releases: 0,
-        inputs: 0, disposals: 0, captures: 0, refusals: 0, refreshes: 0};
+        inputs: 0, disposals: 0, captures: 0, refusals: 0, refreshes: 0, publications: 0};
       t.after(() => { state.blocked = false; });
       const instrument = {
         observeFailure(error) { state.failure = error; },
@@ -1082,6 +1100,7 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
         facts: facts => ({...facts, signal: abort.signal,
           ...(boundary !== 'published' ? {} : {store: {...facts.store,
             async commitEffectfulIndex(...args) {
+              state.publications++;
               await facts.store.commitEffectfulIndex(...args);
               // The second real Store call observes the committed index.
               const result = await facts.store.commitEffectfulIndex(...args);
@@ -1117,12 +1136,21 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
       const host = await remoteHost(t, x.installation, x.directory,
         {configuration: x.configuration, instrument,
           decisionOptions: {maxInFlightDecisions: 1, maxRetainedDecisions: 32}});
-      const run = await (await host.as('owner-token')).startSource(x.program,
-        {format: 'json', requestId: `captured-${boundary}-${blockedCleanup}`});
+      const client = await host.as('owner-token');
+      const run = await client.startSource(x.program,
+        {format: 'json', submissionRef: client.newSubmission({nonce: `captured-${boundary}-${blockedCleanup}`})});
       if (boundary === 'published') {
         if (blockedCleanup) {
           await waitFor(() => state.failure !== undefined);
-          assert.ok(state.failure.cleanupErrors.includes(cleanupFailure));
+          assert.equal(state.failure.cleanupPending, true);
+          assert.equal(isCompletedEffectfulPublicationCleanupFailure(state.stage.publication, state.failure), true);
+          assert.equal(isCompletedEffectfulPublicationCleanupFailure(state.stage.publication,
+            Object.assign(new Error('Foreign provider cleanup'), {cleanupPending: true})), false);
+          assert.equal(isCompletedEffectfulPublicationCleanupFailure({...state.stage.publication,
+            computation: {}}, state.failure), false);
+          assert.equal(typeof state.failure.cleanupHandle?.retry, 'function');
+          assert.ok(state.failure.cleanupErrors.includes(cleanupFailure),
+            'the common cleanup owner retains the original injected exception');
         }
         if (!blockedCleanup) await waitFor(() => state.result?.status === 'published');
         await waitFor(async () => (await run.status()).status === 'succeeded');
@@ -1130,6 +1158,8 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
         await waitFor(() => state.failure !== undefined);
         assert.equal(state.failure, primary, 'the original generic exception stays primary');
       }
+      assert.equal(state.publications, boundary === 'published' ? 1 : 0,
+        'pending cleanup never reenters completed publication');
       assert.equal(state.refusals, 0, 'generic failures are not definitive pre-send refusals');
       assert.equal(state.captures, 1);
       assert.equal(state.refreshes, boundary === 'pre-send-abort' ? 0 : 1);
@@ -1179,6 +1209,8 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
       assert.ok(state.prepared.every(owner => owner.status().pending === false),
         'no process-local prepared Result owner survives Host cleanup');
       assert.equal(state.custody.cleanupPending(), false);
+      assert.equal(state.publications, boundary === 'published' ? 1 : 0,
+        'cleanup retries never repeat completed publication');
       assert.equal(state.inputs, 1, 'consumer pins are released once');
       assert.equal(state.disposals, 1, 'the ledger connection is disposed once');
       assert.equal(x.installation.org.seen.length, io, 'cleanup performs no provider I/O');
@@ -1220,8 +1252,9 @@ test('a captured Checkpoint cannot switch an already retained payload owner to r
   }})};
   const host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration, instrument});
-  const run = await (await host.as('owner-token')).startSource(x.program,
-    {format: 'json', requestId: 'captured-release-mode-conflict'});
+  const client = await host.as('owner-token');
+  const run = await client.startSource(x.program,
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'captured-release-mode-conflict'})});
   await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
   assert.throws(() => releaseCompletedRunPreparedPayloads(
     captured.stage.storedResults, captured.control),
@@ -1265,8 +1298,9 @@ test('an interrupted captured Run keeps transferred custody after repeated recei
   };
   const host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration, instrument});
-  const run = await (await host.as('owner-token')).startSource(x.program,
-    {format: 'json', requestId: 'captured-interrupted-receipt'});
+  const client = await host.as('owner-token');
+  const run = await client.startSource(x.program,
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'captured-interrupted-receipt'})});
   await waitFor(() => state.failure !== undefined);
   assert.equal(state.failure, primary);
   assert.equal(state.refusals, 0);

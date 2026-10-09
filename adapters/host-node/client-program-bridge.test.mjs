@@ -2865,6 +2865,7 @@ test('one acquired Effect Program captures and computes from its owner',
           storeAuthorityCid: cid('7'),
           now: () => '2026-09-29T00:00:02.000Z'}),
         sourceProfile: {
+          admitsSource: ref => ref === sourceOptions.sourceAccess.sourceRef,
           prepare(options) {
             assert.equal(options.preparedEffect, prepared);
             return preparedSource;

@@ -39,7 +39,7 @@ const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
 const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
-const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
+export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
 
 function coded(code, detail) {
   return Object.assign(new Error(code, detail === undefined ? undefined

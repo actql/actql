@@ -36,8 +36,8 @@ target, so independent INFER receipts in the same Run cannot overwrite each
 other. The Source example terminates its actual Host/execution process before
 another process reopens the user sink and supplies saved references to an
 independent evaluator. Restoring and evaluating Evidence has no Source,
-Compute or Model execution callback. This establishes completed-Run Evidence
-restoration, not resumption of a partially executed multi-INFER Run.
+Compute or Model execution callback. The completed-Run example establishes
+Evidence restoration separately from the interrupted-Run cases below.
 The ordinary Effect-free Host binds an explicit unknown-provenance Result
 Policy original; Model egress is never used as its substitute. For a
 Source-backed compiled Run, Evidence retains its actual checked Result policy
@@ -109,10 +109,105 @@ rather than delivery position, establish the associations. Unicode/newline
 fixtures are separate from the A/B quality rubric. This fixture demonstrates
 the connection; it makes no real-model quality claim.
 
-Run the focused source acceptance with the pinned toolchain environment:
+## Interrupted original-Run continuation
+
+The same Source-backed fixture also covers two durable interruption points:
+after both first-INFER responses have been saved, before any second-INFER send;
+and after the second-INFER approval Checkpoint has been committed. The first
+Host process exits at those hooks. A different process uses public
+`lookupSubmission` and `attach` with the original Submission and Run reference.
+Source acquisition remains one call, saved first-INFER calls are not resent,
+and only the second INFER's two unsent calls continue. Deferred calls remain
+unsent until the original Checkpoint is approved. Its review projection and
+scope are restored exactly, rather than rebuilt from current array positions.
+
+Opt-in Evidence preserves prepared physical input and known context in the
+existing encrypted fixed-input receipt before sending. Capture permission and
+copy capacity are required independently of Model dispatch. Missing permission,
+originals or budget leaves Evidence unavailable without changing ordinary Run
+execution. Restored Evidence compares the authenticated original call and typed
+input, and never renders a historical request through the current provider.
+After publication the same independent evaluator checks all four original
+target/item/attempt associations and exact Unicode/newline strings.
+
+The provider-saved response case exits inside the actual physical callback
+after the fixture provider fsyncs its reply and before returning it to the Host.
+The registered read-only `reconcileResponse` port retrieves that original under
+the current Model permission and provider binding. The common Model owner
+checks the exact original attempt and authority, reserves finite read custody,
+and reuses its bounded response validation and durable settlement path. It
+does not invoke the provider again. The response's provider request ID,
+timestamp and original attempt survive into Evidence. The fixture provider's
+call slot has exactly one attempt; this is not a provider retry protocol.
+
+The response-less case exits after the third call's send starts, before the
+provider saves any response. The restored Run remains `needs_reconciliation`.
+Only the fourth, formally unsent call continues. Evidence retains all four
+required items: three have original captures and the unknown item remains
+explicitly incomplete with its original slot, attempt and typed key identity.
+Independent evaluation can score the three available originals, but the full
+Trial is incomplete and has no successful shortened score batch. A third Host
+process and repeated public reconciliation preserve the same Run without any
+additional Source or Model call. These operations observe the stopped Run;
+they do not automatically retry the provider response lookup. This case runs
+with OTel disabled on Local and trace sampling zero on HTTPS.
+
+These cases do not establish every possible authorization refusal or physical
+cleanup fault. They cover the following declared connection boundaries.
+
+The current-authorization refusal case stops after the first INFER's saved
+responses while the second INFER requires delegated permission. On restoration
+the installed authority explicitly rejects that original second-INFER scope.
+The existing Owner reports `ExecutionAuthorizationDenied`; Source acquisition
+stays at one and Model sends stay at two. The interrupted Run remains
+`needs_reconciliation`, without a fabricated terminal failure or Result.
+
+The cleanup-restart case recovers the interrupted Run, then denies unlink in
+its test-owned continuation Store before terminal retirement. The real Store
+records `EACCES` and keeps those holdings `retiring`; successful publication
+does not imply successful cleanup. After that Host exits, a third process
+retries the durable deletion records under the existing Store Owner. The same
+holding identities become `retired`, while request identity and Named Result
+retention remain separate. Result retrieval and external evaluation still use
+the original four captures, with one Source acquisition and four Model sends
+in total. This does not claim that every transient holder is observable.
+
+The modified-custody case preserves the authentic encrypted fixture original,
+then changes one byte of the saved Model input object while leaving its receipt,
+holding and declared digest intact. After process exit, the public recovery
+reports the existing Store's `PublicationObjectCorrupt` refusal and keeps the
+same Run unresolved. No Source acquisition, saved Model call or unsent call
+is executed to reconstruct the missing original.
+
+The response-binding cases obtain authentic attempt and call-slot originals
+from another executed Run with different input. Each changes just one returned
+binding at the read-only reconciliation port, keeping the target Run's actual
+saved response body. Both are refused before response adoption or the next
+unsent call. The original Run remains unresolved with Source=1 and Model=3;
+another process's attach and repeated reconciliation do not resend or retry
+the response lookup. A call slot denotes Program/input semantics and may be
+shared across Runs; the attempt separately binds the original Run. These tests
+do not require distinct call slots merely because Run identities differ.
+
+Run only these public source cases with the existing process timeouts:
 
 ```sh
-node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-concurrency=1 adapters/host-node/source-multi-infer-evidence-public.test.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (resumes the original|restores original approval|recovers a provider-saved|keeps an original unknown call)' adapters/host-node/source-multi-infer-evidence-public.test.mjs
+```
+
+Source checks are not evidence of clean fixed-SHA distribution acceptance;
+the packed command below supplies that separate package boundary.
+
+Run the response-binding counterexamples separately with the pinned toolchain:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- --test-name-pattern '^public (local|https) refuses another original' adapters/host-node/source-multi-infer-evidence-public.test.mjs
+```
+
+Run the remaining source acceptance with its existing bounded selection:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 240 -- --test-name-pattern '^public (local|https) (?!refuses another original)' --test-concurrency=1 adapters/host-node/source-multi-infer-evidence-public.test.mjs
 ```
 
 For clean fixed-SHA packages, the existing packed acceptance includes both
@@ -146,5 +241,5 @@ owner records `SubmissionPreparationFailed` / `ClientProgramRejected`, and
 the downstream provider send count remains zero. It is not treated as malformed
 language. The example neither invents another egress contract nor executes a
 rejected pipeline. Planner task splitting, provider batch dispatch, Graph/text
-expansion, Cloud, and partial multi-INFER execution recovery are not acceptance
-claims for this unit.
+expansion and Cloud are not acceptance claims for this unit. Interrupted-Run
+coverage is limited to the explicitly listed durable cases above.

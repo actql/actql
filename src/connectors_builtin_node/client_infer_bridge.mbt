@@ -264,7 +264,19 @@ pub fn client_program_bind_compiled_infer_result_policy(
 pub fn client_program_model_request_input_frame(
   request : @model.ModelRequest,
 ) -> String? {
-  let writer = @encode.writer(65536, 10000, 64) catch { _ => return None }
+  client_program_model_request_input_frame_bounded(request, 65536)
+}
+
+///|
+#export_name("clientProgramModelRequestInputFrameBounded")
+pub fn client_program_model_request_input_frame_bounded(
+  request : @model.ModelRequest,
+  max_bytes : Int,
+) -> String? {
+  if max_bytes < 1 || max_bytes > 65536 {
+    return None
+  }
+  let writer = @encode.writer(max_bytes, 10000, 64) catch { _ => return None }
   try {
     @encode.begin_object(writer)
     for
@@ -2201,6 +2213,26 @@ pub fn client_program_infer_prepared_input_artifact(
 }
 
 ///|
+#export_name("clientProgramInferPreparedRequest")
+pub fn client_program_infer_prepared_request(
+  value : @model.ModelPreparedCallSet,
+  slot : Int,
+) -> @model.ModelRequest? {
+  @model.prepared_model_request(value, slot)
+}
+
+///|
+#export_name("clientProgramInferPreparedPhysicalRequest")
+pub fn client_program_infer_prepared_physical_request(
+  value : @model.ModelPreparedCallSet,
+  slot : Int,
+) -> (@model.ModelRequest, String, String)? {
+  @model.prepared_model_physical_request(value, slot).map(pair => {
+    (pair.0, pair.1.rendered_input, pair.1.context_manifest)
+  })
+}
+
+///|
 #export_name("clientProgramInferPreparedInput")
 pub fn client_program_infer_prepared_input(
   value : @model.ModelPreparedCallSet,
@@ -2385,6 +2417,28 @@ pub fn client_program_infer_has_unknown_calls(
   active : @infer_host.Execution,
 ) -> Bool {
   @infer_host.unknown_calls(active)
+}
+
+///|
+#export_name("clientProgramPrepareInferResponseReconciliation")
+pub fn client_program_prepare_infer_response_reconciliation(
+  prepared : @model.ModelPreparedCallSet,
+  slot : Int,
+  attempt : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+) -> Result[@model.ModelResponseReconciliation, @model.ModelExecutionIssue] {
+  @model.prepare_model_response_reconciliation(
+    prepared, slot, attempt, authority,
+  )
+}
+
+///|
+#export_name("clientProgramAdoptReconciledInferResponse")
+pub fn client_program_adopt_reconciled_infer_response(
+  token : @model.ModelResponseReconciliation,
+  response : @model.ModelResponse,
+) -> Result[Unit, @model.ModelExecutionIssue] {
+  @model.adopt_reconciled_model_response(token, response)
 }
 
 ///|

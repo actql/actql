@@ -1,6 +1,7 @@
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
+  WireOperationAttemptRefShape, WireCancellationAttemptShape,
   WireCancellationRefShape, WireCancellationLookupShape,
-  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape, WireSubmissionRestartShape,
+  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape, WireSubmissionRestartShape, WireSubmissionAttemptShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
@@ -33,6 +34,10 @@ export type WireConnection =
 export type WireSubmissionEpoch = WireSubmissionEpochShape;
 export type WireSubmissionRef = WireSubmissionRefShape;
 export type WireSubmissionOutcome = WireSubmissionOutcomeShape;
+export type WireSubmissionAttempt = WireSubmissionAttemptShape;
+export declare function validSubmissionAttempt(value: unknown, selected: WireConnection,
+  expected: WireSubmissionRef, intentCid: string, attemptRef: WireOperationAttemptRef,
+  unresolvedHistory?: WireSubmissionRestart): value is WireSubmissionAttempt;
 export type WireSubmissionLookup = WireSubmissionLookupShape;
 export type WireSubmissionRestart = WireSubmissionRestartShape;
 export declare function validSubmissionRestart(value: unknown,
@@ -101,7 +106,7 @@ export type WireClientBodyByOperation = Readonly<{
   'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
   status: WireRefBody;
   wait: WireRefBody & Readonly<{until: string | null}>;
-  cancel: WireRefBody & Readonly<{cancelId: string; expectedRevision: number}>;
+  cancel: WireRefBody & Readonly<{cancelId: string; expectedRevision: number; attemptRef: WireOperationAttemptRef}>;
   'lookup-cancellation': WireRefBody & Readonly<{cancelId: string; expectedRevision: number}>;
   reconcile: WireRefBody;
   'result-describe': WireRefBody & Readonly<{
@@ -230,6 +235,11 @@ export declare function validDeliveryAttemptLookup(value: unknown,
 export type WireCancellation = WireCancellationShape;
 export type WireCancellationRef = WireCancellationRefShape;
 export type WireCancellationLookup = WireCancellationLookupShape;
+export type WireOperationAttemptRef = WireOperationAttemptRefShape;
+export type WireCancellationAttempt = WireCancellationAttemptShape;
+export declare function validOperationAttemptRef(value: unknown): value is WireOperationAttemptRef;
+export declare function validCancellationAttempt(value: unknown, expected: WireCancellationRef,
+  attemptRef: WireOperationAttemptRef): value is WireCancellationAttempt;
 export declare function validCancellationRef(value: unknown): value is WireCancellationRef;
 export declare function validCancellation(value: unknown,
   expected?: WireCancellationRef): value is WireCancellation;
@@ -269,3 +279,6 @@ export declare function validResourcePeek(value: unknown,
 export declare function snapshotClientRequest(value: unknown): unknown;
 /** Existing check entry point into the same request snapshot owner. */
 export declare function snapshotCheckRequest(value: unknown): unknown;
+/** Synchronous Host admission and snapshot; no authentication or authorization. */
+export declare function prepareClientHostRequest(operation: ClientHostOperation,
+  value: unknown): Readonly<{body: unknown; connection: WireConnection}> | undefined;

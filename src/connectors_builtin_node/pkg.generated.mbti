@@ -139,6 +139,8 @@ pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClient
 
 pub fn client_program_admitted_model_provider(@model_execution.AdmittedModelProvider, @check_environment.ModelExecutionContract) -> @model_execution.ModelProvider?
 
+pub fn client_program_adopt_reconciled_infer_response(@model_execution.ModelResponseReconciliation, @model_execution.ModelResponse) -> Result[Unit, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_advance_infer_capture_export(@model_execution.ModelCaptureExport, Int) -> Result[(Bool, String, Int64), @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_infer_execution(@client_infer_host.Execution, Int) -> Result[@client_infer_host.Poll, @client_infer_host.Issue]
@@ -751,6 +753,10 @@ pub fn client_program_infer_prepared_input_export_matches(@client_infer_host.Exe
 
 pub fn client_program_infer_prepared_input_export_rows(@client_local_host.ClientInferRetainedInputExport) -> Array[String]
 
+pub fn client_program_infer_prepared_physical_request(@model_execution.ModelPreparedCallSet, Int) -> (@model_execution.ModelRequest, String, String)?
+
+pub fn client_program_infer_prepared_request(@model_execution.ModelPreparedCallSet, Int) -> @model_execution.ModelRequest?
+
 pub fn client_program_infer_provider_id(@check_environment.ModelExecutionContract) -> String
 
 pub fn client_program_infer_publication_advance(@client_infer_host.ResultPublication, Int) -> Result[(Bool, Int), @client_infer_host.ResultPublicationIssue]
@@ -1013,6 +1019,8 @@ pub fn client_program_model_request_input(@model_execution.ModelRequest, String)
 
 pub fn client_program_model_request_input_frame(@model_execution.ModelRequest) -> String?
 
+pub fn client_program_model_request_input_frame_bounded(@model_execution.ModelRequest, Int) -> String?
+
 pub fn client_program_model_request_preflight(() -> (Bool, @model_execution.ModelPhysicalRequestPlan?), () -> Bool) -> @model_execution.ModelRequestPreflight
 
 pub fn client_program_model_response(@model_execution.ModelRequest, String, String, String, Int64, Int64, String) -> @model_execution.ModelResponse?
@@ -1078,6 +1086,8 @@ pub fn client_program_prepare_effect_free_with_parameters(String, String, @progr
 pub fn client_program_prepare_effect_infer_segments(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, String, String) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?), @client_infer_host.Issue]
 
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
+
+pub fn client_program_prepare_infer_response_reconciliation(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@model_execution.ModelResponseReconciliation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 

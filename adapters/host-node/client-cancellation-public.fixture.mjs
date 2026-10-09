@@ -34,7 +34,7 @@ const authorization = {
     console.log('INSTALLED_CANCEL_OWNER', name, detail?.code ?? '', new Date().toISOString());
   },
   async faultInjection(name) {
-    if (phase === 'initial' && name === (boundary === 'physical-start' ? 'physical_start_reserved' : 'computed')) {
+    if (['initial', 'typed-initial'].includes(phase) && name === (boundary === 'physical-start' ? 'physical_start_reserved' : 'computed')) {
       // Hold the real dispatch after its physical start reservation, or
       // after Store publication, without claiming stop or cleanup success.
       publicationReached();
@@ -69,7 +69,46 @@ try {
   }
   database = new DatabaseSync(join(installation.directory, 'requests/client-requests.sqlite3'), {readOnly: true});
   console.log('INSTALLED_CANCEL_PHASE', 'connected', new Date().toISOString());
-  if (phase === 'initial') {
+  if (phase === 'typed-initial') {
+    const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
+    const submissionRef = client.newSubmission({nonce: requestId});
+    const run = await client.start(program, {submissionRef});
+    await publicationReady;
+    const before = await run.status();
+    assert.equal(before.status, 'running');
+    const revision = before.control.revision;
+    const conflict = await run.cancel({cancelId: 'stale-operation', expectedRevision: revision - 1,
+      attemptId: 'stale-invocation'});
+    assert.deepEqual(conflict, {kind: 'conflict', reason: 'control_revision',
+      attemptRef: {operation: 'cancel', attemptId: 'stale-invocation'},
+      cancelRef: {...run.ref, cancelId: 'stale-operation', expectedRevision: revision - 1}});
+    assert.deepEqual(snapshot().operations, []);
+    const accepted = await run.cancel({cancelId, expectedRevision: revision, attemptId: 'accepted-invocation'});
+    const cancelRef = {...run.ref, cancelId, expectedRevision: revision};
+    assert.deepEqual(accepted, {kind: 'accepted', attemptRef: {operation: 'cancel', attemptId: 'accepted-invocation'},
+      cancellation: {kind: 'accepted', ref: run.ref, cancelRef, revision: revision + 1}});
+    const already = await run.cancel({cancelId: 'already-operation', expectedRevision: revision + 1,
+      attemptId: 'already-invocation'});
+    assert.deepEqual(already, {kind: 'already_satisfied',
+      attemptRef: {operation: 'cancel', attemptId: 'already-invocation'},
+      cancellation: {kind: 'already_requested', ref: run.ref,
+        cancelRef: {...run.ref, cancelId: 'already-operation', expectedRevision: revision + 1}, revision: revision + 1}});
+    const originalLookup = await run.lookupCancellation(cancelRef);
+    assert.deepEqual(originalLookup, {kind: 'found', cancellation: accepted.cancellation});
+    releasePublication();
+    const stopSignal = AbortSignal.timeout(15000);
+    let stopped;
+    do {
+      stopped = await run.status();
+      if (stopped.control.physical_stop === 'confirmed') break;
+      await delay(10, undefined, {signal: stopSignal});
+    } while (true);
+    assert.equal(stopped.status, 'cancelled');
+    assert.equal(stopped.result_available, false);
+    assert.equal(computes, 0);
+    await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, cancelRef,
+      before, conflict, accepted, already, originalLookup, stopped, computes, snapshot: snapshot()}));
+  } else if (phase === 'initial') {
     const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
     const submissionRef = client.newSubmission({nonce: requestId});
     await writeFile(join(directory, 'submission-ref.json'), JSON.stringify(submissionRef),

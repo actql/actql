@@ -29,7 +29,7 @@ import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
 import {connect, ClientError, getCheckInput, getSubmissionInput, getSubmissionOutcome, explainSubmission, explainRunObservationFailure, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
-import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
 
 test('check presentation revisions are immutable and separate from schema identity', () => {
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
@@ -460,7 +460,7 @@ test('document submit, attach and reads use one reference without replay', async
     const operation = url.pathname.split('/').at(-1);
     requests.push({operation, body: JSON.parse(init.body), headers: init.headers});
     if (operation === 'connect') return Response.json(profile);
-    if (operation === 'submit-intent') return Response.json(readySubmission(JSON.parse(init.body), admission));
+    if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(JSON.parse(init.body), admission));
     if (operation === 'attach') return Response.json(admission);
     if (operation === 'status') return Response.json(state);
     if (operation === 'read') {
@@ -503,7 +503,7 @@ test('query declarations travel with source without entering the SDK',
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
       requests.push({operation, body: JSON.parse(init.body)});
-      return Response.json(operation === 'connect' ? profile : readySubmission(JSON.parse(init.body), admission));
+      return Response.json(operation === 'connect' ? profile : readySubmissionAttempt(JSON.parse(init.body), admission));
     });
     t.after(() => mock.restoreAll());
     const client = await connect(options);
@@ -791,7 +791,7 @@ test('one query and Result path serves each connected ownership profile',
       requests.push({operation, body});
       if (operation === 'connect') return Response.json({...profile,
         mode: body.connection.mode, owner: body.connection.owner});
-      if (operation === 'submit-intent') return Response.json(readySubmission(body, admission));
+      if (operation === 'submit-intent') return Response.json(readySubmissionAttempt(body, admission));
       if (operation === 'read') return new Response('{"id":1}\n\x1e');
       throw new Error(`unexpected ${operation}`);
     });
@@ -985,7 +985,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
       requests.push({operation, body: JSON.parse(init.body)});
-      return Response.json(operation === 'connect' ? profile : readySubmission(JSON.parse(init.body), admission));
+      return Response.json(operation === 'connect' ? profile : readySubmissionAttempt(JSON.parse(init.body), admission));
     });
     t.after(() => mock.restoreAll());
     const client = await connect({...options,
@@ -1093,7 +1093,13 @@ test('local credential failure retains an unsent original without marking the fo
       assert.equal(error.code, 'SubmissionNotSent');
       assert.deepEqual(getSubmissionInput(error).input, {marker});
       assert.equal(getSubmissionOutcome(error), undefined);
-      assert.equal(explainSubmission(error), undefined);
+      const view = explainSubmission(error);
+      assert.equal(view.observation, 'not_sent');
+      assert.deepEqual(view.next, {operation: 'lookupSubmission',
+        submissionRef: getSubmissionInput(error).submissionRef,
+        lookupContext: getSubmissionInput(error).lookupContext});
+      assert.equal(explainSubmission({...error}), undefined);
+      assert.match(view.summary, /not an Owner-issued rejection/);
       return true;
     });
     assert.equal(getSubmissionInput(foreign), undefined);
@@ -1186,8 +1192,10 @@ test('delivery attempt lookup binds the existing Host evidence to the request',
 
 
 test('cancel validates the response and exact requested Run', async t => {
-  const cancellation = {cancelId: 'original-cancel', expectedRevision: 4};
-  let reply = {ref, cancelRef: {...ref, ...cancellation}, kind: 'accepted', revision: 5};
+  const cancellation = {cancelId: 'original-cancel', expectedRevision: 4, attemptId: 'original-invocation'};
+  const cancelRef = {...ref, cancelId: cancellation.cancelId, expectedRevision: cancellation.expectedRevision};
+  let reply = {kind: 'accepted', attemptRef: {operation: 'cancel', attemptId: 'original-invocation'},
+    cancellation: {ref, cancelRef, kind: 'accepted', revision: 5}};
   t.mock.method(globalThis, 'fetch', async url => Response.json(
     String(url).endsWith('/connect') ? profile :
       String(url).endsWith('/attach') ? admission : reply));
@@ -1196,10 +1204,11 @@ test('cancel validates the response and exact requested Run', async t => {
   const execution = await client.attach(ref);
   assert.deepEqual(await execution.cancel(cancellation), reply);
   for (const invalid of [{}, {...reply, kind: 'stopped'},
-    {...reply, revision: -1},
+    {...reply, cancellation: {...reply.cancellation, revision: -1}},
     ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(key =>
-      ({...reply, ref: {...ref, [key]: key === 'namespaceId' ? 'foreign' :
-        `sha256:${'c'.repeat(64)}`}}))]) {
+      ({...reply, cancellation: {...reply.cancellation,
+        ref: {...ref, [key]: key === 'namespaceId' ? 'foreign' :
+          `sha256:${'c'.repeat(64)}`}}}))]) {
     reply = invalid;
     await assert.rejects(execution.cancel(cancellation), error =>
       error.code === 'CancellationUnknown' && error.cause.code === 'InvalidHostCancellation');
