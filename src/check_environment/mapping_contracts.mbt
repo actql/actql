@@ -22,7 +22,7 @@ pub struct MappingContractShape {
   target_ref : String
   cid : String
   target_schema : @row.Schema
-  primary_identity : String
+  primary_identity : String?
   writable_fields : Array[String]
   required_fields : Array[String]
 }
@@ -97,7 +97,7 @@ pub fn mapping_shape_target_schema(value : MappingContractShape) -> @row.Schema 
 }
 
 ///|
-pub fn mapping_shape_primary_identity(value : MappingContractShape) -> String {
+pub fn mapping_shape_primary_identity(value : MappingContractShape) -> String? {
   value.primary_identity
 }
 
@@ -357,36 +357,66 @@ pub fn check_mapping_contract_shapes(
         Ok(value) => value
         Err(_) => raise MappingShapeStop(InvalidTargetSchema(index))
       }
-      let primary_identity = mapping_shape_text(
-        object, "primary_identity", index,
-      )
-      let primary = match @row.lookup_reference(schema, primary_identity) {
-        Some(value) => value
-        None => raise MappingShapeStop(InvalidTargetSchema(index))
-      }
-      let primary_contract = @row.field_contract(primary)
-      let schema_object = @decode.open_object(target).unwrap()
-      let fields = match @decode.lookup(schema_object, "fields") {
-        Some(value) =>
-          match @decode.open_object(value) {
-            Ok(value) => value
-            Err(_) => raise MappingShapeStop(InvalidTargetSchema(index))
+      let primary_identity = match @decode.field(object, "primary_identity") {
+        ExplicitNull => None
+        Present(value) =>
+          match @decode.text(value) {
+            Ok(name) if !name.is_empty() => Some(name)
+            _ => raise MappingShapeStop(InvalidMapping(index))
           }
-        None => raise MappingShapeStop(InvalidTargetSchema(index))
+        Missing => raise MappingShapeStop(InvalidMapping(index))
       }
-      let primary_wire = match @decode.lookup(fields, primary_identity) {
-        Some(value) => @decode.open_object(value).unwrap()
-        None => raise MappingShapeStop(InvalidTargetSchema(index))
-      }
-      let primary_type = mapping_shape_text(primary_wire, "type", index)
-      if @decode.lookup(primary_wire, "nullable") is None ||
-        @decode.boolean(@decode.lookup(primary_wire, "nullable").unwrap()) !=
-        Ok(false) ||
-        !["string", "number", "boolean", "date", "timestamp", "decimal"].contains(
-          primary_type,
-        ) ||
-        !@value_contract.key_comparable(primary_contract, primary_contract) {
-        raise MappingShapeStop(InvalidTargetSchema(index))
+      if primary_identity is Some(primary_identity) {
+        let primary = match @row.lookup_reference(schema, primary_identity) {
+          Some(value) => value
+          None => raise MappingShapeStop(InvalidTargetSchema(index))
+        }
+        let primary_contract = @row.field_contract(primary)
+        let schema_object = @decode.open_object(target).unwrap()
+        let fields = match @decode.lookup(schema_object, "fields") {
+          Some(value) =>
+            match @decode.open_object(value) {
+              Ok(value) => value
+              Err(_) => raise MappingShapeStop(InvalidTargetSchema(index))
+            }
+          None => raise MappingShapeStop(InvalidTargetSchema(index))
+        }
+        let primary_wire = match @decode.lookup(fields, primary_identity) {
+          Some(value) => @decode.open_object(value).unwrap()
+          None => raise MappingShapeStop(InvalidTargetSchema(index))
+        }
+        let primary_type = mapping_shape_text(primary_wire, "type", index)
+        if @decode.lookup(primary_wire, "nullable") is None ||
+          @decode.boolean(@decode.lookup(primary_wire, "nullable").unwrap()) !=
+          Ok(false) ||
+          !["string", "number", "boolean", "date", "timestamp", "decimal"].contains(
+            primary_type,
+          ) ||
+          !@value_contract.key_comparable(primary_contract, primary_contract) {
+          raise MappingShapeStop(InvalidTargetSchema(index))
+        }
+      } else {
+        // Null is an explicit collection-only contract, never an unresolved
+        // primary. Validate every rule, including unused rules, before exposing
+        // this shape to registration, preparation, or recovery consumers.
+        let rules = mapping_shape_required(object, "permission_rules", index)
+        guard @decode.array_length(rules) is Some(rule_count) && rule_count > 0 else {
+          raise MappingShapeStop(InvalidMapping(index))
+        }
+        for rule_index in 0..<rule_count {
+          if work.val >= max_work {
+            raise MappingShapeStop(WorkLimit)
+          }
+          work.val += 1
+          guard @decode.element_at(rules, rule_index) is Some(rule) &&
+            @decode.open_object(rule) is Ok(entry) &&
+            @decode.lookup(entry, "effect_kind") is Some(kind) &&
+            @decode.text(kind) is Ok("create") &&
+            @decode.lookup(entry, "selector_class") is Some(selector) &&
+            @decode.text(selector) is Ok("none") else {
+            raise MappingShapeStop(InvalidMapping(index))
+          }
+        }
       }
       let writable = mapping_shape_names(
         object, "writable_fields", index, schema, max_work, work,
