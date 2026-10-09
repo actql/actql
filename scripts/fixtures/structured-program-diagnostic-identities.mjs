@@ -33,12 +33,12 @@ for (const declarations of [undefined, {'é': {type: 'string'}, 'e\u0301': {type
   }
 }
 test('independent structured Program schema and preserved Unicode context identities', () => {
-  assert.equal(reasonCid, 'sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a');
-  assert.equal(outcomeCid, 'sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9');
+  assert.equal(reasonCid, 'sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f');
+  assert.equal(outcomeCid, 'sha256:ab1bf953cb535e2236dde42121360f85ccbb42727e146675f9f979edd0b31216');
   assert.deepEqual(vectors.map(value => value.reference), [
-    'ctx:e1fe2957876c91a71df6d68a36a15ce567ef29f55f18861b547c5b26c18b4b25',
-    'ctx:854a2a2f8e1ed51917dc2e13048ce0ab51d2e2a16b37b1b943bf63b1c2743948',
-    'ctx:a3adfdb67e02669c52f7d4fbce763f683151636a8482070b9b556e8e7fa30542',
-    'ctx:16ca46d5b9547ae8a730f901d663c259cfffe0d47062b8cc79296edecc547c4c',
+    'ctx:1b4221ce201f43fbec6e5b3d4a097285cbab9abe9ffe49798ba17f4cda2cb1c8',
+    'ctx:0f958c8e7ea0244d9373f9d81b3f45bada7ff79ee64de6b779f896dcc21e8afd',
+    'ctx:fe3dd5255bb97b54efe28f070b2ed987c4f5cc22aafdeffc722a2089f6f8a1e5',
+    'ctx:c3ae35f7c2b8a83b2ff4fd30d5537c1bdba13ef873858daab469b1b8632f4a2c',
   ]);
 });

@@ -7208,6 +7208,37 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "connector",
+                            "resource"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "connector": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "resource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "view": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            }
+                          }
                         }
                       ]
                     }
@@ -8164,6 +8195,68 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -8182,7 +8275,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "source_selector_unregistered"
                               ]
                             }
                           }
@@ -8891,6 +8985,37 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "connector",
+                            "resource"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "connector": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "resource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "view": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            }
+                          }
                         }
                       ]
                     }
@@ -9847,6 +9972,68 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -9865,7 +10052,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "source_selector_unregistered"
                               ]
                             }
                           }
@@ -10052,7 +10240,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+            "const": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -10978,6 +11166,37 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "connector",
+                            "resource"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "connector": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "resource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "view": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            }
+                          }
                         }
                       ]
                     }
@@ -11934,6 +12153,68 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -11952,7 +12233,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "source_selector_unregistered"
                               ]
                             }
                           }
@@ -12661,6 +12943,37 @@ const schemas = {
                               "const": "checking"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "namespace",
+                            "connector",
+                            "resource"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "connector": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "resource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            },
+                            "view": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 65536
+                            }
+                          }
                         }
                       ]
                     }
@@ -13617,6 +13930,68 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "source_selector_unregistered"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "program"
+                              }
+                            }
+                          }
+                        },
+                        "not": {
+                          "required": [
+                            "fixes"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
@@ -13635,7 +14010,8 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
-                                "program_structure_invalid"
+                                "program_structure_invalid",
+                                "source_selector_unregistered"
                               ]
                             }
                           }
@@ -13840,7 +14216,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+            "const": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -13886,7 +14262,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+            "const": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -14960,8 +15336,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a";
-export const checkOutcomeSchemaCid = "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9";
+export const checkReasonSchemaCid = "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f";
+export const checkOutcomeSchemaCid = "sha256:ab1bf953cb535e2236dde42121360f85ccbb42727e146675f9f979edd0b31216";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {

@@ -2010,3 +2010,44 @@ Older pins are explicitly rejected; no compatibility adapter manufactures
 success or empty diagnostics. Program input and supplied-parameter bindings use
 Host-keyed references over their exact serialized spelling, distinct from
 configuration identity normalization and from document revisions.
+
+
+### Structured selector-registration absence
+
+A trusted Host may declare `sourceSelectorNamespace` for its whole installed
+Source profile range, including an explicitly empty range. This domain covers
+installed selector registrations, separately from query alias membership and
+Provider Resource existence. Original stable loader custody is required for
+every participating profile. The common Catalog Owner admits each participant
+and the Host's unfiltered SourceRequestContracts under bounded work; their full
+SourceView member identities must coincide. Missing, changed, copied, failed,
+out-of-range or oversized metadata leaves the obligation unresolved.
+
+Each Program check obtains a fresh nondeferring decision from the existing
+authorization gate for `(actql-source-namespace, namespace, inspect_absence)`.
+Ordinary check/read permission is insufficient. The original publication,
+authority configuration, namespace generation, context and immutable submitted
+Program revisions are retained for that call. The Host context HMAC binds the
+private proof metadata without exposing a hash of input or a namespace revision.
+No diagnostic registry, durable input storage, deferred approval or Source
+acquisition is added. Observation scopes and gates close after projection;
+process-local associations cease to be available when their objects are no
+longer retained. No time-based retention guarantee is introduced.
+
+`source_selector_unregistered` requires that complete registration proof and the
+existing selector resolver's actual failure witness for the same Inputs and
+Catalog. It reports authored connector/resource/optional view plus the namespace;
+it does not infer Provider Resource absence. The existing original-document
+mapper recovers the structured JSON pointer, including original Unicode keys
+and pointer escaping. An omitted view points at the real parent; an explicit
+NULL remains the Source declaration Owner's independent structure rejection.
+No text span, automatic edit or execution/retry permission is manufactured.
+Hidden registered or otherwise unresolved dependencies remain protected beside
+independently disclosable violations and Requirements. Resolver budget failures
+remain limits under the selected scope. Report custody and position resolution
+continue through the existing SDK snapshot machinery.
+
+This extends the closed public check Reason schema and corresponding check
+outcome identity, validators, generated SDK types and Native response validation.
+It does not modify `actql-diagnostics/0.1` or introduce a compatibility adapter.
+A mismatched Host/SDK schema identity remains a protocol failure.

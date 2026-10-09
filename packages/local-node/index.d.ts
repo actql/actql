@@ -49,6 +49,8 @@ export type HostInstallation = Readonly<{
   connectorTable?: InstalledConnectorTable;
   sourceProfilePath?: string;
   sourceProfilePaths?: SourceProfilePaths;
+  /** Complete installed selector-registration namespace; absence needs a separate current grant. */
+  sourceSelectorNamespace?: string;
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;
   hostCapacityPolicy?: HostCapacityPolicy;

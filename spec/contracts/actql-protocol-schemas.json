@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:2b780383f6d16fa05e860080472063e969c6a4033d1f705e76474fc8296fd7ef",
+  "artifact_registry_cid": "sha256:6c066644412d35666a80322f14c01c0a12bfa4ddfada4d4a30378228699565ce",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:dbc59a5b3911315f28f04a4eb93808f56a85338cdb514c4a0546fedff0f1d6c9",
-    "check_reason": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a",
+    "check_outcome": "sha256:ab1bf953cb535e2236dde42121360f85ccbb42727e146675f9f979edd0b31216",
+    "check_reason": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -76996,6 +76996,37 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
                           }
                         ]
                       }
@@ -77952,6 +77983,68 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "source_selector_unregistered"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "connector",
+                                "resource"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "connector": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "resource": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "view": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -77970,7 +78063,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "source_selector_unregistered"
                                 ]
                               }
                             }
@@ -78682,6 +78776,37 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
                           }
                         ]
                       }
@@ -79638,6 +79763,68 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "source_selector_unregistered"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "connector",
+                                "resource"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "connector": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "resource": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "view": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -79656,7 +79843,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "source_selector_unregistered"
                                 ]
                               }
                             }
@@ -79702,7 +79890,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+              "const": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -80772,6 +80960,37 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
                           }
                         ]
                       }
@@ -81728,6 +81947,68 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "source_selector_unregistered"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "connector",
+                                "resource"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "connector": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "resource": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "view": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -81746,7 +82027,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "source_selector_unregistered"
                                 ]
                               }
                             }
@@ -82458,6 +82740,37 @@
                                 "const": "checking"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "namespace",
+                              "connector",
+                              "resource"
+                            ],
+                            "properties": {
+                              "namespace": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "connector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "resource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              },
+                              "view": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65536
+                              }
+                            }
                           }
                         ]
                       }
@@ -83414,6 +83727,68 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "source_selector_unregistered"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "namespace",
+                                "connector",
+                                "resource"
+                              ],
+                              "properties": {
+                                "namespace": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                },
+                                "connector": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "resource": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                },
+                                "view": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 65536
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "program"
+                                }
+                              }
+                            }
+                          },
+                          "not": {
+                            "required": [
+                              "fixes"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -83432,7 +83807,8 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
-                                  "program_structure_invalid"
+                                  "program_structure_invalid",
+                                  "source_selector_unregistered"
                                 ]
                               }
                             }
@@ -83496,7 +83872,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+              "const": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -83542,7 +83918,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3d0c78252f42ea8b2edc7a8bbea8d7ccf27ee4d2980b5889c9c191d5f0f3476a"
+              "const": "sha256:4f1765448e0d74588ba004181c3db6e86b0c473c52f406b02c4323fb416e733f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -84224,6 +84600,37 @@
                 },
                 "stage": {
                   "const": "checking"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "namespace",
+                "connector",
+                "resource"
+              ],
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "connector": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 65536
+                },
+                "resource": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 65536
+                },
+                "view": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 65536
                 }
               }
             }
@@ -85182,6 +85589,68 @@
           "if": {
             "properties": {
               "code": {
+                "const": "source_selector_unregistered"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "namespace",
+                  "connector",
+                  "resource"
+                ],
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "connector": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536
+                  },
+                  "resource": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536
+                  },
+                  "view": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "program"
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "fixes"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
@@ -85200,7 +85669,8 @@
                     "implementation_limit",
                     "host_capacity_policy_required",
                     "numeric_reduction_profile_required",
-                    "program_structure_invalid"
+                    "program_structure_invalid",
+                    "source_selector_unregistered"
                   ]
                 }
               }
