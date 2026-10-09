@@ -35,7 +35,7 @@ export function mappingContractBody() {
           required:['id','version','cid'],
           properties:{id:name,version:name,cid}},
         target_schema:{type:'object'},
-        primary_identity:name,
+        primary_identity:{oneOf:[name,{type:'null'}]},
         writable_fields:names,
         required_fields:names,
         conversions:{type:'array',items:{
@@ -58,6 +58,12 @@ export function mappingContractBody() {
         row_mapping:{type:'object',additionalProperties:valueSource},
         mapping_contract_cid:cid,
       },
+      allOf:[{
+        if:{properties:{primary_identity:{type:'null'}},required:['primary_identity']},
+        then:{properties:{permission_rules:{items:{properties:{
+          effect_kind:{const:'create'},selector_class:{const:'none'},
+        }}}}},
+      }],
     },
     semantics:{
       preimage:'entire_canonical_body_except_mapping_contract_cid',
@@ -65,7 +71,21 @@ export function mappingContractBody() {
       permission_selection:'exactly_one_nonempty_rule_for_effect_kind_selector_class_and_exact_write_fields',
       row_mapping:'explicit_target_field_sources_no_implicit_same_name_copy',
       connector_manifest:'connector_manifest_cid_is_the_entry_cid_of_one_environment_manifest_entry_whose_connector_id_owns_target_ref',
+      primary_identity:'required_nonnull_scalar_field_name_or_explicit_null_for_collection_only_create_without_selector_no_row_reference',
+      collection_only:'resource_identity_cid_and_target_ref_bind_collection_not_row_identity_all_permission_rules_create_none_no_content_match_reconciliation',
       authority:'static_contract_not_current_resource_permission_or_apply_permit',
+    },
+    collection_resource_identity:{
+      type:'object',additionalProperties:false,
+      required:['version','provider_namespace','resource_kind','target_ref',
+        'collection_identity','boundary_topology'],
+      properties:{
+        version:{const:'actql.collection_resource_identity/0.1'},
+        provider_namespace:name,resource_kind:name,
+        target_ref:{type:'string',pattern:'^connector://'},
+        collection_identity:{type:'object',minProperties:1},
+        boundary_topology:{const:'connector_connection'},
+      },
     },
   };
 }

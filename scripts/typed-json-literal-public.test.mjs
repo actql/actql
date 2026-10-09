@@ -29,7 +29,8 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
   // Store commit. The reader cannot reuse its in-memory Result or Value owner.
   const child = `
     import assert from 'node:assert/strict';
-    import {readFileSync} from 'node:fs';
+    import {readFileSync, writeFileSync} from 'node:fs';
+    import {join} from 'node:path';
     import {connectEmbeddedLocal} from ${JSON.stringify(new URL('../adapters/host-node/embedded-local.mjs', import.meta.url).href)};
     const {directory, authorization, inputs} = JSON.parse(readFileSync(0, 'utf8'));
     const events = [];
@@ -41,8 +42,11 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
     const records = [];
     try {
       for (const input of inputs) {
-        const run = await client.startSource(input.text, {format: input.format,
-          requestId: input.name});
+        const submissionRef = client.newSubmission({nonce: input.name});
+        const record = {submissionRef};
+        records.push(record);
+        writeFileSync(join(directory, 'original-submissions.json'), JSON.stringify(records));
+        const run = await client.startSource(input.text, {format: input.format, submissionRef});
         const state = await run.wait({signal: AbortSignal.timeout(30_000)});
         assert.equal(state.status, 'succeeded',
           JSON.stringify({name: input.name, state, events}));
@@ -60,7 +64,8 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
             assert.equal(snapshot.verifiedReadBytes, snapshot.bytes);
           }
         }
-        records.push({ref: run.ref, description: await result.describe()});
+        Object.assign(record, {ref: run.ref, description: await result.describe()});
+        writeFileSync(join(directory, 'original-submissions.json'), JSON.stringify(records));
       }
     } finally { await client.close(); }
     process.stdout.write(JSON.stringify(records));
@@ -83,7 +88,7 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
       assert.deepEqual(execution.ref, records[index].ref);
       // Reusing the original request must recover the same durable Run.
       const repeated = await client.startSource(input.text, {format: input.format,
-        requestId: input.name});
+        submissionRef: records[index].submissionRef});
       assert.deepEqual(repeated.ref, execution.ref);
       assert.deepEqual(await repeated.result('answer').all(), input.expected);
     }

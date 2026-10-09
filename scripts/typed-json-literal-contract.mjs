@@ -3,6 +3,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {parameterPrograms} from './parameter-schema.mjs';
 
 const closed = properties => ({type:'object', additionalProperties:false,
   required:Object.keys(properties), properties});
@@ -31,33 +32,90 @@ export const typedJsonLaw = {
   consumers:'Graph Delta and snapshot identity-body parsers consume an explicitly checked JSON payload through the common read-only accessor. Their semantic body format is not the typed-cell envelope. No graph identity, execution owner or authority is invented by this conversion.',
 };
 
-function visit(value, source, node, write) {
-  if (!value || typeof value !== 'object') return;
-  if (Array.isArray(value.oneOf)) {
-    // Expression literals are closed forms. Values cells instead reserve only
-    // $param and literal, and otherwise retain the whole cell as data.
-    if (value.oneOf.some(v => v.additionalProperties === false &&
-        v.required?.length === 1 && v.required[0] === 'literal')) {
-      const found = value.oneOf.find(v => v.required?.length === 1 && v.required[0] === 'typed_literal');
-      if (write) {
-        if (found) Object.assign(found, structuredClone(source));
-        else value.oneOf.push(structuredClone(source));
-      } else assert.deepEqual(found, source, 'stale source typed JSON literal schema');
+const isSourceAlternative = (form, name) =>
+  form.required?.length === 1 && form.required[0] === name;
+
+function ownedLiteralSchemas(expressions, protocol) {
+  const owned = [], seen = new Set();
+  const add = (root, path, role) => {
+    let schema = root;
+    const label = `${role}: ${path.join('.')}`;
+    for (const key of path) {
+      assert.ok(schema && typeof schema === 'object' && Object.hasOwn(schema, key),
+        `Missing owned typed JSON schema ${label}`);
+      schema = schema[key];
     }
-    if (value.oneOf.some(v => v.properties?.op?.const === 'literal')) {
-      const found = value.oneOf.find(v => v.properties?.op?.const === 'typed_literal');
-      if (write) {
-        if (found) Object.assign(found, structuredClone(node));
-        else value.oneOf.push(structuredClone(node));
-      } else assert.deepEqual(found, node, 'stale typed JSON expression node schema');
+    assert.ok(Array.isArray(schema?.oneOf), `Missing owned alternatives ${label}`);
+    assert.ok(!seen.has(schema), `Duplicate owned typed JSON schema ${label}`);
+    seen.add(schema);
+    if (role !== 'cell') {
+      const literals = schema.oneOf.filter(form => role === 'node'
+        ? form.properties?.op?.const === 'literal'
+        : form.additionalProperties === false && isSourceAlternative(form, 'literal'));
+      assert.equal(literals.length, 1, `Missing or duplicate owned literal ${label}`);
+      const typed = schema.oneOf.filter(form => role === 'node'
+        ? form.properties?.op?.const === 'typed_literal'
+        : isSourceAlternative(form, 'typed_literal'));
+      assert.ok(typed.length <= 1, `Duplicate owned typed literal ${label}`);
+    }
+    owned.push({schema, role});
+  };
+  // These declared roots own expression syntax. Similar objects elsewhere,
+  // including examples and payload data beneath a root, are never traversed.
+  for (const [name, definition, role] of [
+    ['expression', 'expression', 'source'],
+    ['expression_node', 'expression', 'node'],
+    ['fragment', 'source_expression', 'source'],
+    ['fragment', 'machine_expression', 'node'],
+    ['predicate_consumer', 'source_expression', 'source'],
+    ['predicate_consumer', 'machine_expression', 'node'],
+  ]) add(expressions, ['schemas', name, '$defs', definition], role);
+  for (const program of parameterPrograms(protocol)) {
+    for (const name of ['predicate', 'value_expression']) {
+      add(program, ['$defs', name], 'source');
+    }
+    add(program, ['properties', 'steps', 'items', 'properties', 'pivot',
+      'properties', 'fill'], 'cell');
+    // EffectValue is a separate grammar. Retain its current registered arms
+    // explicitly; do not infer expression authority from its literal shape.
+    const effects = program.properties.effects.additionalProperties.oneOf;
+    for (const [operation, member] of [['update', 'set'], ['upsert', 'set'],
+      ['command', 'input']]) {
+      const alternatives = effects.filter(form =>
+        form.required?.includes(operation) && Object.hasOwn(form.properties ?? {}, operation));
+      assert.equal(alternatives.length, 1, `Missing or duplicate owned EffectValue ${operation}`);
+      add(alternatives[0], ['properties', operation, 'properties', member,
+        'additionalProperties'], 'effect-value');
     }
   }
-  for (const child of Object.values(value)) visit(child, source, node, write);
+  return owned;
+}
+
+function updateLiteralSchema({schema, role}, write) {
+  const typed = form => role === 'node'
+    ? form.properties?.op?.const === 'typed_literal'
+    : isSourceAlternative(form, 'typed_literal');
+  if (role === 'cell') {
+    if (write) schema.oneOf = schema.oneOf.filter(form => !typed(form));
+    else assert.ok(!schema.oneOf.some(typed),
+      'CellValue must not contain a typed JSON expression alternative');
+    return;
+  }
+  const expected = role === 'node' ? nodeTypedLiteral : sourceTypedLiteral;
+  const found = schema.oneOf.find(typed);
+  if (write) {
+    if (found) Object.assign(found, structuredClone(expected));
+    else schema.oneOf.push(structuredClone(expected));
+  } else assert.deepEqual(found, expected, role === 'node'
+    ? 'stale typed JSON expression node schema' : 'stale source typed JSON literal schema');
 }
 
 export function updateTypedJsonContracts(expressions, protocol, write = false) {
-  visit(expressions, sourceTypedLiteral, nodeTypedLiteral, write);
-  visit(protocol, sourceTypedLiteral, nodeTypedLiteral, write);
+  // Resolve every owned root before any writer mutation, so missing or aliased
+  // roots cannot silently skip part of the contract or leave a partial repair.
+  for (const owned of ownedLiteralSchemas(expressions, protocol)) {
+    updateLiteralSchema(owned, write);
+  }
   const literalLaw = {...typedJsonLaw, wire_contract_cid: machineCid(typedJsonWireLaw)};
   if (write) {
     expressions.laws.typed_json_literal = literalLaw;

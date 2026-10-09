@@ -157,12 +157,18 @@ async function installedHost(t, options = {}) {
 test('ordinary public INFER refuses a missing installed ModelTask before Run admission',
   async t => {
     const {client, root, physicalStarts} = await installedHost(t);
-    await assert.rejects(client.start(oneRowInfer(),
-      {submissionRef: client.newSubmission({nonce: 'infer-missing'})}),
-      error => {
-        t.diagnostic(`Public preparation refusal: ${error.code}`);
-        return assertPreparationRefusal(error, 'not_accepted', 'ClientProgramRejected');
-      });
+    const submissionRef = client.newSubmission({nonce: 'infer-missing'});
+    await assert.rejects(client.start(oneRowInfer(), {submissionRef}), error => {
+      t.diagnostic(`Public preparation refusal: ${error.code}`);
+      // The standard Host admits an explicit empty ModelTask registry. The
+      // authored selector is unknown there; no partial context request exists.
+      assertPreparationRefusal(error, 'not_accepted', 'ClientProgramInvalidInput');
+      const outcome = getSubmissionOutcome(error);
+      assert.deepEqual(outcome.submissionRef, submissionRef);
+      assert.deepEqual(outcome.problem,
+        {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      return true;
+    });
     assert.equal(physicalStarts(), 0);
     const journal = new DatabaseSync(join(root, 'state', 'requests',
       'client-requests.sqlite3'), {readOnly: true});

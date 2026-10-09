@@ -27,6 +27,8 @@ test('retired tuple constructor is refused even with the current Graph profile i
   const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
     canonicalText(historical), 'json', owner, undefined);
   assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
-  assert.equal(moon.clientProgramPreparationIssueCode(outcome), 'check_unsupported');
+  // The sole current constructor is versioned with ordered definition arrays.
+  // Retired object-shaped bodies violate that grammar, even with the profile.
+  assert.equal(moon.clientProgramPreparationIssueCode(outcome), 'check_invalid_input');
   assert.ok(moon.clientProgramPreparationIssue(outcome));
 });

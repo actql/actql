@@ -44,7 +44,8 @@ fn prepare_managed_output_facts_cursor(
   validate_column : (Int, ManagedColumnMeasurement) -> Bool,
   index : ManagedRowMeasurements?,
 ) -> Result[ManagedOutputFactsCursor, ManagedViewOutputIssue] {
-  if !stream.open || facts.rows < 0 ||
+  if !stream.open ||
+    facts.rows < 0 ||
     facts.columns.length() != @schema.field_count(stream.buffer.schema) {
     return Err(if !stream.open { Closed } else { InconsistentFacts })
   }
@@ -53,17 +54,28 @@ fn prepare_managed_output_facts_cursor(
   if usage.nodes < 0 || usage.text_bytes < 0 || usage.work < 0 {
     return Err(InconsistentFacts)
   }
-  if facts.rows > stream.max_rows || usage.nodes > limits.max_nodes ||
-    usage.text_bytes > limits.max_text_bytes || usage.work > limits.max_work {
+  if facts.rows > stream.max_rows ||
+    usage.nodes > limits.max_nodes ||
+    usage.text_bytes > limits.max_text_bytes ||
+    usage.work > limits.max_work {
     return Err(OutputRepresentationRequired)
   }
   let budget = stream.measurement
   Ok({
-    stream, facts, validate_column, index,
+    stream,
+    facts,
+    validate_column,
+    index,
     width: facts.columns.length(),
-    phase: ValidateColumns, column: 0,
-    work: if facts.rows > budget.work { budget.work } else { budget.work - facts.rows },
-    bytes: budget.bytes, nodes: budget.nodes,
+    phase: ValidateColumns,
+    column: 0,
+    work: if facts.rows > budget.work {
+      budget.work
+    } else {
+      budget.work - facts.rows
+    },
+    bytes: budget.bytes,
+    nodes: budget.nodes,
     needs_ordered: facts.rows > budget.work,
     measurement: None,
   })
@@ -74,13 +86,17 @@ fn advance_managed_output_facts_cursor(
   cursor : ManagedOutputFactsCursor,
   quantum : Int,
 ) -> Result[(Bool, Int), ManagedViewOutputIssue] {
-  if quantum <= 0 { return Err(Closed) }
+  if quantum <= 0 {
+    return Err(Closed)
+  }
   let stream = cursor.stream
   let facts = cursor.facts
   let budget = stream.measurement
   let limits = stream.buffer.budget.limits
   for step in 0..<quantum {
-    if !stream.open { return Err(Closed) }
+    if !stream.open {
+      return Err(Closed)
+    }
     match cursor.phase {
       ValidateColumns =>
         if facts.columns.length() != cursor.width {
@@ -89,9 +105,13 @@ fn advance_managed_output_facts_cursor(
           cursor.phase = ChooseMeasurement
         } else {
           let column = facts.columns[cursor.column]
-          if column.rows != facts.rows || column.bytes < 0 || column.nodes < 0 ||
-            column.max_value_bytes < 0 || column.null_rows < 0 ||
-            column.null_rows > facts.rows || column.admitted_depth < 0 ||
+          if column.rows != facts.rows ||
+            column.bytes < 0 ||
+            column.nodes < 0 ||
+            column.max_value_bytes < 0 ||
+            column.null_rows < 0 ||
+            column.null_rows > facts.rows ||
+            column.admitted_depth < 0 ||
             column.max_value_bytes > column.bytes ||
             (facts.rows == 0 && (column.bytes != 0 || column.nodes != 0)) {
             return Err(InconsistentFacts)
@@ -99,14 +119,20 @@ fn advance_managed_output_facts_cursor(
           if !(cursor.validate_column)(cursor.column, column) {
             return Err(InconsistentFacts)
           }
-          if !stream.open { return Err(Closed) }
+          if !stream.open {
+            return Err(Closed)
+          }
           if facts.rows > 0 &&
-            (column.admitted_depth > budget.depth || column.admitted_depth > limits.max_depth) {
+            (
+              column.admitted_depth > budget.depth ||
+              column.admitted_depth > limits.max_depth
+            ) {
             return Err(OutputRepresentationRequired)
           }
           if !cursor.needs_ordered {
             if column.max_value_bytes > stream.max_value_bytes ||
-              facts.rows > cursor.work || column.bytes > cursor.bytes ||
+              facts.rows > cursor.work ||
+              column.bytes > cursor.bytes ||
               column.nodes > cursor.nodes {
               cursor.needs_ordered = true
             } else {
@@ -123,12 +149,19 @@ fn advance_managed_output_facts_cursor(
           stream.column_nulls[cursor.column] = column.null_rows
           cursor.column += 1
         }
-      ChooseMeasurement => {
+      ChooseMeasurement =>
         if cursor.needs_ordered {
-          guard cursor.index is Some(index) else { return Err(OutputRepresentationRequired) }
-          let measurement = match prepare_managed_output_index_cursor(
-            index, facts.rows, cursor.width, stream.max_value_bytes, budget,
-          ) {
+          guard cursor.index is Some(index) else {
+            return Err(OutputRepresentationRequired)
+          }
+          let measurement = match
+            prepare_managed_output_index_cursor(
+              index,
+              facts.rows,
+              cursor.width,
+              stream.max_value_bytes,
+              budget,
+            ) {
             Ok(value) => value
             Err(issue) => return Err(Values(Guard(issue)))
           }
@@ -145,9 +178,9 @@ fn advance_managed_output_facts_cursor(
           stream.row_measurements = cursor.index
           cursor.phase = Complete
         }
-      }
       MeasureIndex =>
-        match advance_managed_output_index_cursor(cursor.measurement.unwrap(), 1) {
+        match
+          advance_managed_output_index_cursor(cursor.measurement.unwrap(), 1) {
           // An index cannot make contradictory aggregate facts publishable.
           Ok((true, _)) => return Err(InconsistentFacts)
           Ok((false, _)) => ()
@@ -171,7 +204,16 @@ fn prepare_managed_output_index_cursor(
     (width > 0 && (index.count / width != rows || index.count % width != 0)) {
     return Err(InvalidLayout)
   }
-  Ok({ index, rows, width, ceiling, budget, row: 0, column: 0, row_started: false, })
+  Ok({
+    index,
+    rows,
+    width,
+    ceiling,
+    budget,
+    row: 0,
+    column: 0,
+    row_started: false,
+  })
 }
 
 ///|
@@ -180,10 +222,14 @@ fn advance_managed_output_index_cursor(
   quantum : Int,
 ) -> Result[(Bool, Int), FixedInputGuardIssue] {
   for step in 0..<quantum {
-    if cursor.row == cursor.rows { return Ok((true, step + 1)) }
+    if cursor.row == cursor.rows {
+      return Ok((true, step + 1))
+    }
     let budget = cursor.budget
     if !cursor.row_started {
-      if budget.work <= 0 { return Err(MeasurementWork) }
+      if budget.work <= 0 {
+        return Err(MeasurementWork)
+      }
       budget.work -= 1
       cursor.row_started = true
       if cursor.width == 0 {
@@ -191,14 +237,21 @@ fn advance_managed_output_index_cursor(
         cursor.row_started = false
       }
     } else {
-      if budget.work <= 0 { return Err(MeasurementWork) }
+      if budget.work <= 0 {
+        return Err(MeasurementWork)
+      }
       budget.work -= 1
       let (bytes, nodes, _) = managed_row_measurement_get(
-        cursor.index, cursor.row * cursor.width + cursor.column,
+        cursor.index,
+        cursor.row * cursor.width + cursor.column,
       ).unwrap()
-      if bytes <= 0 || nodes <= 0 { return Err(InvalidLayout) }
+      if bytes <= 0 || nodes <= 0 {
+        return Err(InvalidLayout)
+      }
       if bytes > budget.bytes || nodes > budget.nodes {
-        return Err(Measurement(Output, cursor.row, cursor.column, @encode.OutputLimit))
+        return Err(
+          Measurement(Output, cursor.row, cursor.column, @encode.OutputLimit),
+        )
       }
       budget.bytes -= bytes
       budget.nodes -= nodes

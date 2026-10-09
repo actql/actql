@@ -32,7 +32,7 @@ function git(repository, args) {
 // sources, Host adapters, bundled contracts and generators their prepack
 // builds use. Generated output and scratch in them are git-ignored.
 export const BUILD_INPUTS = Object.freeze(['packages', 'src', 'adapters',
-  'spec', 'scripts']);
+  'spec', 'scripts', 'release']);
 
 // The checkout state the tarballs stand for: the revision, and whether
 // anything a pack reads differs from it. Any tracked change in the

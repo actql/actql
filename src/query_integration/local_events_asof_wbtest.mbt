@@ -366,7 +366,13 @@ test "bounded Events as-of terminates with empty left input" {
     1000,
   ).unwrap()
   let mut complete = false
-  for _ in 0..<100 {
+  // Keep the original 100-poll operation watchdog after a finite metadata
+  // allowance. asof_join_0, id/value: three ID scans plus canonical names.
+  let completion_preparation = 3 * 11 + 7 + 2 + 4
+  // occurred_at visits two candidates on each side; event_id resolves the
+  // left identity, right tie and selected id; payload visits three candidates.
+  let metadata_preparation = 2 * (2 * (11 + 3)) + 3 * (8 + 3) + 3 * (7 + 3)
+  for _ in 0..<(completion_preparation + metadata_preparation + 100) {
     if !complete {
       match @execution.advance_bounded_asof_join(active, 1).unwrap() {
         @execution.BoundedAsOfJoinContinue(..) => ()

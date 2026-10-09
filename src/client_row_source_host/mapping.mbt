@@ -1,7 +1,7 @@
 // Provider-neutral execution Mappings for installed row sources. A connector
 // declares, in its own JSON, which Resources it can create rows in: the
-// target schema, the primary identity the provider assigns, the fields a
-// create writes and must write, and the permission the write needs. The
+// target schema, the primary identity (or explicit collection-only shape),
+// the fields a create writes and must write, and its required permission. The
 // common runtime generates (and on every load regenerates) the canonical
 // `actql.mapping_contract/0.1` body, so the Host never trusts a
 // connector-computed Mapping CID.
@@ -10,7 +10,8 @@
 pub(all) struct RowWriteSpec {
   resource : String
   resource_kind : String
-  primary_identity : String
+  primary_identity : String?
+  collection_identity : Json?
   fields : Array[RowField]
   create_fields : Array[String]
   required_fields : Array[String]
@@ -66,6 +67,8 @@ fn spec_strings(value : Json?) -> Array[String]? {
 /// "create":{"fields":[...],"required":[...],"permission":"...",
 /// "approval":"required"|"none"}}]}`. `approval` is the Mapping's existing
 /// `minimum_approval` requirement, stated by the connector for each write.
+/// A collection-only declaration requires explicit null `primary_identity`
+/// and a nonempty `collection_identity` object. Missing identity is invalid.
 fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
   let parsed = @json.parse(text) catch { _ => return None }
   guard parsed is Object(root) &&
@@ -76,10 +79,8 @@ fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
   let specs = []
   for write in writes {
     guard write is Object(entries) &&
-      entries.length() == 5 &&
       spec_text(write, "resource") is Some(resource) &&
       spec_text(write, "resource_kind") is Some(resource_kind) &&
-      spec_text(write, "primary_identity") is Some(primary_identity) &&
       entries.get("fields") is Some(Array(fields)) &&
       entries.get("create") is Some(Object(create)) &&
       create.length() == 4 &&
@@ -88,6 +89,18 @@ fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
       create.get("permission") is Some(String(permission)) &&
       create.get("approval") is Some(String(approval)) else {
       return None
+    }
+    let (primary_identity, collection_identity) = match
+      entries.get("primary_identity") {
+      Some(String(name)) if entries.length() == 5 => (Some(name), None)
+      Some(Null) if entries.length() == 6 => {
+        guard entries.get("collection_identity") is Some(Object(identity)) &&
+          !identity.is_empty() else {
+          return None
+        }
+        (None, Some(Json::object(identity)))
+      }
+      _ => return None
     }
     let declared = []
     for field in fields {
@@ -109,6 +122,7 @@ fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
       resource,
       resource_kind,
       primary_identity,
+      collection_identity,
       fields: declared,
       create_fields,
       required_fields,
@@ -152,12 +166,14 @@ fn check_write_spec(spec : RowWriteSpec) -> Bool {
   distinct(names) &&
   distinct(spec.create_fields) &&
   distinct(spec.required_fields) &&
-  spec.fields.any(field => {
-    field.name == spec.primary_identity && !field.nullable
+  (match spec.primary_identity {
+    Some(identity) =>
+      spec.fields.any(field => field.name == identity && !field.nullable)
+    None => spec.collection_identity is Some(_)
   }) &&
   !spec.create_fields.is_empty() &&
   spec.create_fields.all(name => {
-    names.contains(name) && name != spec.primary_identity
+    names.contains(name) && Some(name) != spec.primary_identity
   }) &&
   spec.required_fields.all(name => spec.create_fields.contains(name)) &&
   !spec.permission.is_empty() &&
@@ -236,7 +252,11 @@ pub fn prepare_row_mapping(
       0
     }
   })
-  let schema_fields = [spec.primary_identity, ..written].map(name => {
+  let schema_names = match spec.primary_identity {
+    Some(identity) => [identity, ..written]
+    None => written
+  }
+  let schema_fields = schema_names.map(name => {
     let field = spec.fields[spec.fields
       .search_by(item => item.name == name)
       .unwrap()]
@@ -263,24 +283,52 @@ pub fn prepare_row_mapping(
       ]),
     )
   })
-  let resource_identity = object([
-    ("version", "actql.resource_identity/0.1".to_json()),
-    ("provider_namespace", declaration.connector_registration.to_json()),
-    ("resource_kind", spec.resource_kind.to_json()),
-    ("provider_id_field", spec.primary_identity.to_json()),
-    ("output_field", spec.primary_identity.to_json()),
-    ("boundary_topology", "connector_connection".to_json()),
-  ])
+  let resource_identity = match spec.primary_identity {
+    Some(identity) =>
+      object([
+        ("version", "actql.resource_identity/0.1".to_json()),
+        ("provider_namespace", declaration.connector_registration.to_json()),
+        ("resource_kind", spec.resource_kind.to_json()),
+        ("provider_id_field", identity.to_json()),
+        ("output_field", identity.to_json()),
+        ("boundary_topology", "connector_connection".to_json()),
+      ])
+    None =>
+      object([
+        ("version", "actql.collection_resource_identity/0.1".to_json()),
+        ("provider_namespace", declaration.connector_registration.to_json()),
+        ("resource_kind", spec.resource_kind.to_json()),
+        (
+          "target_ref",
+          ("connector://" + declaration.connector_id + "/" + resource).to_json(),
+        ),
+        ("collection_identity", spec.collection_identity.unwrap()),
+        ("boundary_topology", "connector_connection".to_json()),
+      ])
+  }
+  let primary_wire = match spec.primary_identity {
+    Some(identity) => identity.to_json()
+    None => Json::null()
+  }
   try {
     let request_identity = canonical_cid(
-      object([
-        ("resource", resource.to_json()),
-        ("kind", "create".to_json()),
-        ("key", Json::null()),
-        ("target_schema", target_schema),
-        ("write_fields", Json::array(written.map(name => name.to_json()))),
-        ("row_mapping", object(row_mapping)),
-      ]),
+      object(
+        [
+          ("resource", resource.to_json()),
+          ("kind", "create".to_json()),
+          ("key", Json::null()),
+          // Row-addressable request preimages remain unchanged. Collection-only
+          // mapping references must also distinguish their exact bound collection.
+          ..if spec.primary_identity is None {
+            [("collection_identity", spec.collection_identity.unwrap())]
+          } else {
+            []
+          },
+          ("target_schema", target_schema),
+          ("write_fields", Json::array(written.map(name => name.to_json()))),
+          ("row_mapping", object(row_mapping)),
+        ],
+      ),
       declaration_limits,
     )
     let mapping_ref = "mapping:" +
@@ -309,7 +357,7 @@ pub fn prepare_row_mapping(
           "target_schema_identity",
           canonical_cid(target_schema, declaration_limits).to_json(),
         ),
-        ("primary_identity", spec.primary_identity.to_json()),
+        ("primary_identity", primary_wire),
         ("writable_fields", Json::array(written.map(name => name.to_json()))),
         ("required_fields", Json::array(required.map(name => name.to_json()))),
         ("conversions", Json::array([])),

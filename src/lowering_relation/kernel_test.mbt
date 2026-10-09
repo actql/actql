@@ -13,6 +13,7 @@ test "prepared map kernel preserves canonical binding order and defensive access
   assert_true(physical_equal(@lowering_relation.kernel_owner(kernel), owner))
   assert_eq(@lowering_relation.kernel_step(kernel), 1)
   assert_eq(@lowering_relation.kernel_input(kernel), "values_0")
+  assert_false(@lowering_relation.kernel_is_filter(kernel))
   assert_true(@lowering_relation.kernel_json_pick(kernel) is None)
   let view = @lowering_relation.kernel_bindings(kernel).unwrap()
   assert_false(@lowering_relation.bindings_ordered(view))
@@ -217,6 +218,7 @@ test "predicate kernel carries its typed expression without testing it at loweri
     max_name_bytes=0,
     expression_limits(),
   ).unwrap()
+  assert_true(@lowering_relation.kernel_is_filter(kernel))
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.Filter(expr) else {
     fail("predicate")
