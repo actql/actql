@@ -94,6 +94,8 @@ counts as a pass. Both were corrected before these recorded results.
 
 The final nullable-member fixture check passes 4/4 in `run-OIstiM`,
 `focused-test-VIwH5J`. Moonfmt and `git diff --check` pass.
+After the unsupported-function fixture correction, final Node checks pass
+4/4 in `run-AEQXP7`, `focused-test-PMjYWh`.
 
 ## Initial packed attempt
 
@@ -110,6 +112,55 @@ Its status is failed and incomplete; evidence errors are empty. Its consumer
 installation is reclaimed after preserving all logs. The failed attempt is
 not a whole-cohort acceptance success.
 
-Final exact-source Local/HTTPS acceptance is recorded below when complete.
-Focused JS success does not establish packed success, full Core, Wasm/native,
-Cloud or final CI.
+## Final exact-source public acceptance
+
+The successful product/fixture source is clean
+`ca4dcf6a52370424ca3965b9bc1b498df9853d96`. The normal five-package producer
+retains prepack and records this revision in
+`/private/tmp/actql-b-window-key-receivers-ca4dcf6a5-pack/packed-client-packages.json`.
+The independent file hashes agree with that manifest and the receipt:
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | 7c6053aa4f618ff3d66ffd7886da538f0abc628be29f9f7b4eeb6accf831da50 |
+| local-node | 8adad5c0fc6e191db72f501108739e4254424e56c9494c4a2abd2c92adfdd5ba |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+The existing selected consumer is:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-window-key-receivers-ca4dcf6a5-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-window-key-receivers-ca4dcf6a5-pack \
+  node scripts/test-packed-public-query.mjs --analytic-partition-expression-only
+```
+
+Actual execution uses the existing shared heavy guard in
+`/private/tmp/actql-b-window-key-receivers-packed.mjs`, 1200-second bound and
+five-second TERM grace (`run-jqlSLH`). Both Embedded Local and authenticated
+HTTPS pass the same 17 normal cases, eight preparation refusals and one
+expected demanded-expression execution failure. This includes all original
+11 normal cases plus the six new cases; none is excluded or rewritten.
+
+The unchanged driver checks Named Result rows, complete declared type and
+nullability, column order, stream completion, absence of private output columns,
+repeated Result reads, attach and same-request Run reuse. Each new acquired
+case retains exactly one Source read session, including empty input. All
+preparation refusals preserve zero additional Run admissions and Source I/O.
+The expected execution failure retains one admitted failed Run and refuses
+Result rows/description; reread and resubmit add no acquisition or execution.
+
+Original receipt/logs:
+`worktrees/.codex-scratch/public-query-evidence-SjlAuK/`.
+`summary.json` is passed and complete, source is clean and exact, all ten
+command outcomes are status zero, complete and output-complete, signals are
+absent, and `evidenceErrors` is empty. The consumer installation is reclaimed
+(`artifactsRemoved: true`) after preserving evidence. Packs and original
+receipts remain available; no teammate/shared artifact is deleted.
+
+The final documentation commit records these earlier-source results and does
+not change tested product or fixture inputs. Submitted-HEAD CI is separate;
+no full Core, Wasm/native, Cloud, proof/performance campaign, manual CI rerun or
+merge is performed. The broader Frontend goal and existing common capacity
+blockers remain incomplete.
