@@ -366,22 +366,27 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
-  let result = @host.issue_imported_client_effect_local_result_artifact(
-    materials.prepared,
-    inputs,
-    result_export,
-    evidence,
-    definition,
-    result_receipt,
-    retained_compute_effect_retention(),
-    @host.client_effect_allowed_run_admission(materials.allowed),
-    materials.run_definition,
-    invocation,
-    run_observation,
-    65536,
-    4096,
-    64,
-  ).unwrap()
+  let result = match
+    @host.issue_imported_client_effect_local_result_artifact(
+      materials.prepared,
+      inputs,
+      result_export,
+      evidence,
+      definition,
+      result_receipt,
+      retained_compute_effect_retention(),
+      @host.client_effect_allowed_run_admission(materials.allowed),
+      materials.run_definition,
+      invocation,
+      run_observation,
+      65536,
+      4096,
+      64,
+    ) {
+    Ok(value) => value
+    Err(issue) => fail("imported consumer Artifact: " + @debug.to_string(issue))
+  }
+  println("retained-effect-evidence: consumer-artifact-issued")
   if provider is Some(facts) {
     resident_provider_preview(
       consumer, materials, inputs, result_index, result, invocation, facts,

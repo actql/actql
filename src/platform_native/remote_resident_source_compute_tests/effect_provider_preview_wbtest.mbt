@@ -45,6 +45,7 @@ fn resident_provider_preview(
       targets,
       limits,
       resident_compute_limits(),
+      { max_bytes: 4096, max_nodes: 32, max_depth: 8, },
     )
   }
   assert_true(
@@ -71,7 +72,32 @@ fn resident_provider_preview(
     )
     is Err(Source(ForeignRun)),
   )
-  let prepared = prepare(materials, facts.request, local_result, facts.rows).unwrap()
+  let prepared = match
+    prepare(materials, facts.request, local_result, facts.rows) {
+    Ok(value) => value
+    Err(issue) => {
+      let code = match issue {
+        InvalidLimits => "limits"
+        ForeignEvidence => "foreign-evidence"
+        Encoding => "encoding"
+        Request(value) => "request: " + @debug.to_string(value)
+        Source(_) => "source"
+        Identity(value) => "identity: " + @debug.to_string(value)
+        Capability(value) => "capability: " + @debug.to_string(value)
+        Mapping(value) => "mapping: " + @debug.to_string(value)
+        Target(value) => "target: " + @debug.to_string(value)
+        Footprint(value) => "footprint: " + @debug.to_string(value)
+        Draft(value) => "draft: " + @debug.to_string(value)
+        Preview(value) => "preview: " + @debug.to_string(value)
+        Dispatch(value) => "dispatch: " + @debug.to_string(value)
+        Keys(value) => "keys: " + @debug.to_string(value)
+        Binding(_) => "binding"
+        Plan(_) => "plan"
+      }
+      fail("retained Provider Preview: " + code)
+    }
+  }
+  println("native-effect-provider: Preview bound and actual plan proved")
   let preview = @publication.admit_effect_preview_identity(
     prepared.wire,
     @publication.publication_contract_identity(materials.run_definition),

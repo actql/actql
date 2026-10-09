@@ -10,6 +10,7 @@ pub(all) enum NativeResidentEffectPreviewIssue {
   Mapping(@catalog.DeclarationUseIssue)
   Target(@catalog.TargetObservationIssue)
   Footprint(@catalog.WriteCollectionRequestIssue)
+  Draft(@publication.PublicationContractIssue)
   Preview(@publication.EffectPreviewIdentityIssue)
   Dispatch(@effect.EffectIdentityIssue)
   Keys(@effect.EffectPreviewApplyIdentityIssue)
@@ -30,6 +31,15 @@ pub(all) struct NativeResidentEffectPreview {
   identity : @host.ClientEffectLocalIdentity
   keys : Array[@effect.EffectDispatchKey]
   capability : @catalog.WriteCapabilityEvidence
+}
+
+///|
+/// Dispatch correlations have the existing identity Owner's smaller bounds;
+/// whole-Preview document limits cannot be reused as correlation limits.
+pub(all) struct NativeEffectDispatchKeyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 ///|
@@ -100,6 +110,7 @@ pub fn prepare_native_resident_effect_preview(
   ],
   limits : @host.ClientCapturedEffectPreviewLimits,
   export_limits : @host.PublicationOutputExportLimits,
+  key_limits : NativeEffectDispatchKeyLimits,
 ) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue] {
   if limits.max_wire_bytes < 1 ||
     limits.max_nodes < 1 ||
@@ -458,6 +469,16 @@ pub fn prepare_native_resident_effect_preview(
   } catch {
     _ => return Err(Encoding)
   }
+  let draft = match
+    @publication.canonical_effect_preview_draft_wire(
+      draft,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Draft(issue))
+  }
   let (semantic, preview_identity) = match
     @publication.author_effect_preview_semantic_wire(
       draft,
@@ -481,9 +502,9 @@ pub fn prepare_native_resident_effect_preview(
         scope,
         @publication.effect_preview_semantic_identity(preview_identity),
         correlation,
-        limits.max_wire_bytes,
-        limits.max_nodes,
-        limits.max_depth,
+        key_limits.max_bytes,
+        key_limits.max_nodes,
+        key_limits.max_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Dispatch(issue))
