@@ -304,6 +304,7 @@ fn retained_compute_case(
   effect? : Bool = false,
   through_saved_effect? : Bool = false,
   expire_at_start? : Bool = false,
+  probe_proposals? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -926,6 +927,11 @@ fn retained_compute_case(
       }
     }
     assert_true(effect_local_index >= 0 && root_local_index >= 0)
+    if probe_proposals {
+      retained_effect_proposal_inputs(
+        consumer, source_owner, inputs, effect_local_index, root_local_index,
+      )
+    }
     let root_result = @strategy.captured_effect_local_result_at(
       inputs, root_local_index,
     ).unwrap()
@@ -1130,6 +1136,11 @@ test "retained Native consumer completes through Runtime claim evidence readers 
 ///|
 test "Effect retained consumer resumes from committed Transfer without Source IO" {
   retained_compute_case(false, effect=true)
+}
+
+///|
+test "Effect Native proposal receiver failure and revoked pins preserve original input custody" {
+  retained_compute_case(false, effect=true, probe_proposals=true)
 }
 
 ///|

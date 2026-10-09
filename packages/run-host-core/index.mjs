@@ -143,6 +143,28 @@ export function prepare(document, format, environment, parametersWire) {
   return handle(preparations, value, 'prepared-program');
 }
 
+/** Select the existing preparation Owner from one ordinary parsed Program. */
+export function prepareProgram(document, format, environment, parametersWire) {
+  if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
+      parametersWire !== undefined && typeof parametersWire !== 'string') {
+    throw new TypeError('InvalidRunHostPreparation');
+  }
+  const selected = checked(owner.clientValuesHostPrepareProgram(document, format,
+    requireHandle(environments, environment), parametersWire), 'RunHostProgramPreparationRejected');
+  const kind = owner.clientValuesHostProgramPreparationKind(selected);
+  if (kind === 'effect_free') {
+    const value = owner.clientValuesHostProgramPreparationEffectFree(selected);
+    if (value === undefined) throw new Error('InvalidRunHostOwnerResult');
+    return Object.freeze({kind, prepared: handle(preparations, value, 'prepared-program')});
+  }
+  if (kind === 'effect') {
+    const value = owner.clientValuesHostProgramPreparationEffect(selected);
+    if (value === undefined) throw new Error('InvalidRunHostOwnerResult');
+    return Object.freeze({kind, prepared: handle(effectPreparations, value, 'prepared-effect-program')});
+  }
+  throw new Error('InvalidRunHostOwnerResult');
+}
+
 export function compileValues(prepared) {
   const value = checked(owner.clientValuesHostCompile(
     requireHandle(preparations, prepared)), 'RunHostCompilationRejected');

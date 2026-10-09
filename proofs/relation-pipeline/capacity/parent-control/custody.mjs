@@ -22,6 +22,20 @@ export function custodyInput() {
   };
   return { case: case_, program: input };
 }
+// The checked Program includes Values at step 0. Cancellation stops the
+// DISTINCT child; successful completion belongs to the final Filter child.
+export function custodyCleanupStep(mode) {
+  assert(['normal', 'pending', 'success'].includes(mode));
+  const { case: case_, program: input } = custodyInput();
+  assert.deepEqual(case_.steps.map(step => step.op), ['distinct', 'filter']);
+  const stage = input.stages[0];
+  assert.equal(stage.steps.length, 3);
+  assert(stage.steps[0].values);
+  const distinct = stage.steps.findIndex(step => step.distinct === true);
+  const final = stage.steps.findIndex(step => step.as === stage.results.r.from);
+  assert.equal(distinct, 1); assert.equal(final, 2);
+  return mode === 'success' ? final : distinct;
+}
 export function custodyOverlay(read, mode) {
   assert(['normal', 'pending', 'success'].includes(mode));
   const query = 'src/query_integration/query_checked_program_wbtest.mbt';
@@ -36,11 +50,11 @@ export function custodyOverlay(read, mode) {
   overlay[query] = overlay[query].replace(anchor,
     `    Some(kind) => if kind == "capacity-custody-probe" { @env.get_env_var("${variable}").unwrap() } else { local_values_unary_program(kind) }`);
   overlay[fixture] = readFileSync(new URL('./custody-fixture.mbt', import.meta.url), 'utf8');
-  const chainStart = '  let children : Ref[Array[ManagedProviderExecution]] = Ref([initial])';
+  const chainStart = '  state.children = [initial]';
   assert.equal(overlay[selected].split(chainStart).length, 2);
   overlay[selected] = overlay[selected].replace(chainStart,
     '  println("ACTQL_CUSTODY_CHAIN:started")\n  custody_started_children.val += 1\n' + chainStart);
-  const childStart = '    children.val.push(next)';
+  const childStart = '    state.children.push(next)';
   assert.equal(overlay[selected].split(childStart).length, 2);
   overlay[selected] = overlay[selected].replace(childStart,
     '    custody_started_children.val += 1\n' + childStart);
@@ -51,23 +65,37 @@ let custody_started_children : Ref[Int] = Ref(0)
 ///|
 pub fn custody_child_start_count() -> Int { custody_started_children.val }
 `;
+  const cleanupStep = custodyCleanupStep(mode);
+  const before = '        match @execution.cleanup_bounded_binding_rows(active) {';
+  const after = '            Ok(reclaimed.val)';
+  assert.equal(overlay[selected].split(before).length, 2);
+  assert.equal(overlay[selected].split(after).length, 2);
+  let retry = '';
   if (mode === 'pending' || mode === 'success') {
     const work = '  let work = Ref(0L)';
     assert.equal(overlay[selected].split(work).length, 2);
     overlay[selected] = overlay[selected].replace(work, work + '\n  let custody_cleanup_calls = Ref(0)');
-    const before = '        match @execution.cleanup_bounded_binding_rows(active) {';
-    assert.equal(overlay[selected].split(before).length, 2);
-    overlay[selected] = overlay[selected].replace(before, `        custody_cleanup_calls.val += 1
-        if custody_cleanup_calls.val == 1 {
-          println("ACTQL_CUSTODY_RETRY:false")
-          return Ok(false)
-        }
-        if custody_cleanup_calls.val == 2 {
-          println("ACTQL_CUSTODY_RETRY:error")
-          return Err(@connector.InvalidLimits)
+    retry = `          custody_cleanup_calls.val += 1
+          if custody_cleanup_calls.val == 1 {
+            println("ACTQL_CUSTODY_RETRY:false")
+            return Ok(false)
+          }
+          if custody_cleanup_calls.val == 2 {
+            println("ACTQL_CUSTODY_RETRY:error")
+            return Err(@connector.InvalidLimits)
+          }
+`;
+  }
+  // Observe the selected owner's real cleanup call. Do not retain the owner or
+  // delay cleanup of an earlier child that has already handed off its output.
+  overlay[selected] = overlay[selected].replace(before, `        if step == ${cleanupStep} {
+${retry}          println("ACTQL_CUSTODY_CLEANUP:${cleanupStep}:before")
         }
 ${before}`);
-  }
+  overlay[selected] = overlay[selected].replace(after, `            if step == ${cleanupStep} && reclaimed.val {
+              println("ACTQL_CUSTODY_CLEANUP:${cleanupStep}:after")
+            }
+${after}`);
   return { originals, overlay, fixture, variable };
 }
 
@@ -118,8 +146,13 @@ export function auditCustody(receipt, target, mode, current, read) {
   const after = log.indexOf(mode === 'success' ?
     'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup');
-  const cleanup = log.indexOf('"event":"before-cleanup"');
-  const cleaned = log.indexOf('"event":"after-cleanup"');
+  const cleanupStep = custodyCleanupStep(mode);
+  const beforeMarker = `ACTQL_CUSTODY_CLEANUP:${cleanupStep}:before`;
+  const afterMarker = `ACTQL_CUSTODY_CLEANUP:${cleanupStep}:after`;
+  assert.equal(log.split(beforeMarker).length, 2, 'Missing or repeated actual child cleanup');
+  assert.equal(log.split(afterMarker).length, 2, 'Missing or repeated confirmed child cleanup');
+  const cleanup = log.indexOf(beforeMarker);
+  const cleaned = log.indexOf(afterMarker);
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup);
   assert.equal(o.after, o.before, 'Settlement lost scratch before explicit cleanup');
   assert(cleanup > after, 'Successful child cleanup preceded pending-scratch observation');

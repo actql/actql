@@ -1,0 +1,300 @@
+{
+  "version": "actql-resident-effect-capture-owners-evidence/0.1",
+  "verifiedImplementationSha": "19440eaefcfd40e54e7fadacb82c0bc4ae5abcb8",
+  "parentPr": 1164,
+  "parentSha": "9ec4c4b5dbfb73b24f06649f21a31d2d22a3875b",
+  "dependencyOrder": [
+    1157,
+    1158,
+    1161,
+    1164,
+    "this PR"
+  ],
+  "finalMergeTarget": "main",
+  "scope": "Retain actual completed producer/consumer computation Owners in production Site custody for existing Effect capture. Journal, Runtime and receiver borrow remain authoritative; no approval or write is introduced.",
+  "acceptanceAssertions": [
+    "Producer access checks its bound original dispatch and exact current completion/output custody",
+    "Consumer access is absent before execution, cancellation, output failure or cleanup",
+    "Consumer access refuses a different journal and exact replay keeps the same computation",
+    "Actual completed consumer pins and exports the original member result [{id:3}] with selector 3 and changes {Name:3}, without Source acquisition, Compute or another borrow",
+    "Pins and child export cleanup leave the original holding and execution reservation unchanged",
+    "Both producer and consumer references remain available through the actual production Site holder",
+    "Formal task cleanup clears references only after existing Owners confirm their physical duties",
+    "A restored output file does not recreate a live computation capability"
+  ],
+  "checks": [
+    {
+      "command": "moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt --filter \"*Effect original Source producer completes*\"",
+      "passed": 1
+    },
+    {
+      "command": "moon test --target native --strip src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt --filter \"*Effect consumer holder*\"",
+      "passed": 4
+    },
+    {
+      "command": "moon test --target native --strip src/cmd/native_remote_resident_site/holder_task_custody_wbtest.mbt",
+      "passed": 5
+    },
+    {
+      "command": "moon test --target js src/run_publication_host/client_effect_run_materials_wbtest.mbt --filter \"*Effect run materials preserve original evidence*\"",
+      "passed": 1
+    },
+    {
+      "command": "ACTQL_TEST_RESIDENT_EFFECT_COMPUTATION_ONLY=1 node --test scripts/test-native-resident-site.mjs",
+      "passed": 1
+    },
+    {
+      "command": "ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY=1 node --test scripts/test-native-resident-site.mjs",
+      "passed": 1
+    },
+    {
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "result": "passed"
+    }
+  ],
+  "effectPrivateProcess": {
+    "kind": "native-private-effect-computation-verified",
+    "runDefinitionCid": "sha256:9ed88e592143902f1db524bf967f989cbc504ddbf7c911dd8fad2b8aa8898386",
+    "producerDispatchCid": "sha256:29d7301a48fc25c25f2b61962d7352e536f748e65b59e37bf6f91ed48d3513ec",
+    "consumerDispatchCid": "sha256:cf8df25c7b068a7a19282f2e761b06391d77223c6d15b6ecc5a1099ae010ea1b",
+    "checkedTasks": 2,
+    "sourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "rows": [
+      {
+        "id": 3
+      }
+    ],
+    "schemaCid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+    "receiverCurrentQueried": true,
+    "receiverDatabaseReadForBinding": false,
+    "privateTaskCleanup": true,
+    "siteCapacity": {
+      "kind": "retained-holder-settled",
+      "active_operations": "0",
+      "active_transfers": "0",
+      "holdings": "0",
+      "cleanup_responsibilities": "0",
+      "held_bytes": "0",
+      "reserved_retention_bytes": "0",
+      "reserved_execution_bytes": "0"
+    },
+    "receiverHoldingReclaimed": true,
+    "actualComputationOwnersRetained": true,
+    "pendingIntents": 0,
+    "reservedPayloadBytes": 0,
+    "effectExecutionNotRequested": true,
+    "checkpointCaptured": false,
+    "approvalCommitted": false,
+    "publicResultPublished": false,
+    "effectRunReleased": false,
+    "publicCloudAcceptance": false
+  },
+  "ordinaryProcessRegression": {
+    "kind": "native-retained-consumer-verified",
+    "runDefinitionCid": "sha256:52105ccef4ccd6b45ef92f4f9011c2da64ecf9f0b3ee104d8d4bc674171ddfeb",
+    "producerDispatchCid": "sha256:8f94bf820a1965e22eb1b18939b70017faf30b7fd50f3d11765b3268ee4b4ab5",
+    "consumerDispatchCid": "sha256:c7d5ec1524338360a218832f3601afcd268bebf7c36a422ea39549e0de0a4bf8",
+    "checkedTasks": 2,
+    "sourceAcquisitions": 1,
+    "producerEntries": 1,
+    "consumerEntries": 1,
+    "rows": [
+      {
+        "id": 3
+      }
+    ],
+    "typedOutputAck": true,
+    "formalRelease": true,
+    "reservedPayloadBytes": 0,
+    "pendingIntents": 0,
+    "siteCapacity": {
+      "kind": "retained-holder-settled",
+      "active_operations": "0",
+      "active_transfers": "0",
+      "holdings": "0",
+      "cleanup_responsibilities": "0",
+      "held_bytes": "0",
+      "reserved_retention_bytes": "0",
+      "reserved_execution_bytes": "0"
+    },
+    "coordinatorReconstructed": false,
+    "receiverCurrentQueried": true,
+    "receiverDatabaseReadForBinding": false,
+    "checkedRunProjection": true,
+    "checkedTaskStart": true,
+    "cloudRunStartCas": false,
+    "publicationReady": true,
+    "taskCleanup": [
+      "released",
+      "released"
+    ],
+    "producerHolderRecreated": false,
+    "middleHolderRecreated": false,
+    "completedConsumerRestored": false,
+    "retainedHandoffInterruption": null,
+    "transferResumedBeforeCommit": false,
+    "pendingReceiverAllocationsPreserved": false,
+    "committedReceiverAllocationsUnchanged": false,
+    "originalBorrowReturnedOnce": false,
+    "cancelledBeforeConsumer": false,
+    "receiverHoldingReclaimed": true,
+    "resultReread": true,
+    "publicCloudAcceptance": false
+  },
+  "productionNativeBinary": {
+    "source": "19440eaefcfd40e54e7fadacb82c0bc4ae5abcb8",
+    "sourceClean": true,
+    "scope": "Actual production Native Site binary rebuilt with --strip by the real-process harness",
+    "artifact": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/process-native-resident-site.exe",
+    "sha256": "5420bd2716eb49a7ecefd5bd7ae2ac34e6b9f6960d777374c4c578a337e39524",
+    "configuration": "Native debug --strip",
+    "runtimeBundleComponentDigestMatches": true
+  },
+  "execution": {
+    "node": "24.21.0",
+    "moon": "repository-pinned toolchain",
+    "nativePlatform": "darwin-arm64",
+    "duckdbApi": "1.5.5-r.4",
+    "dependencySupply": "Read-only existing pinned external DuckDB; ActQL runtime and Native artifacts rebuilt from this source"
+  },
+  "evidenceDirectory": "_build/resident-effect-capture-owners-1791561491305",
+  "receipts": [
+    {
+      "label": "effect-source",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect original Source producer completes*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T15:58:11.437Z",
+      "finishedAt": "2026-10-09T15:58:12.030Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/effect-source.log"
+    },
+    {
+      "label": "effect-holders",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt\",\"--filter\",\"*Effect consumer holder*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T15:58:12.032Z",
+      "finishedAt": "2026-10-09T15:58:15.242Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/effect-holders.log"
+    },
+    {
+      "label": "holder-custody",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"native\",\"--strip\",\"src/cmd/native_remote_resident_site/holder_task_custody_wbtest.mbt\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T15:58:15.242Z",
+      "finishedAt": "2026-10-09T15:58:15.535Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/holder-custody.log"
+    },
+    {
+      "label": "effect-materials",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests(\"moon\",[\"--target\",\"js\",\"src/run_publication_host/client_effect_run_materials_wbtest.mbt\",\"--filter\",\"*Effect run materials preserve original evidence*\"],{cwd:process.cwd(),timeout:120000});"
+      ],
+      "startedAt": "2026-10-09T15:58:15.535Z",
+      "finishedAt": "2026-10-09T15:58:19.271Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/effect-materials.log"
+    },
+    {
+      "label": "effect-site-process",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('node',['scripts/test-native-resident-site.mjs'],{cwd:process.cwd(),timeout:240000});"
+      ],
+      "startedAt": "2026-10-09T15:58:19.271Z",
+      "finishedAt": "2026-10-09T15:58:52.345Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/effect-site-process.log"
+    },
+    {
+      "label": "ordinary-site-process",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('node',['scripts/test-native-resident-site.mjs'],{cwd:process.cwd(),timeout:240000});"
+      ],
+      "startedAt": "2026-10-09T15:58:52.598Z",
+      "finishedAt": "2026-10-09T15:58:58.361Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/ordinary-site-process.log"
+    },
+    {
+      "label": "history",
+      "command": "/Users/t14i/.local/share/mise/installs/node/24.21.0/bin/node",
+      "args": [
+        "proofs/relation-pipeline/history.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-09T15:58:58.361Z",
+      "finishedAt": "2026-10-09T16:00:38.315Z",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "groupAbsent": true,
+      "output": "/Users/t14i/workspace/20260822/worktrees/actql-resident-effect-source-compute/_build/resident-effect-capture-owners-1791561491305/history.log"
+    }
+  ],
+  "preCommitPreparation": {
+    "evidence": "_build/resident-effect-capture-owners-1791561389023",
+    "sourceClean": false,
+    "checks": [
+      "Changed-file formatting",
+      "Generated Native interfaces for common Run Host, resident Host and production Site",
+      "Generated JS interfaces for common Run Host and resident Host",
+      "Focused Native Source, consumer-holder and physical-custody tests"
+    ],
+    "relationToVerifiedSource": "The prepared implementation and generated interfaces were committed before exact clean-source verification."
+  },
+  "initialFailure": {
+    "evidence": "_build/resident-effect-capture-owners-1791561354503",
+    "reason": "Native interface compilation rejected equality on a Result whose typed journal issue has no Eq trait. Corrected to an exact Ok(false) pattern; no tests had run in that failed preparation."
+  },
+  "unverified": [
+    "Production full semantic Captured Run/Checkpoint assembly and encrypted persistence",
+    "Durable waiting commit, physical restart custody and current-authority approval/resume",
+    "Provider target Preview/write, saved-response and unknown reconciliation",
+    "Public Effect Result, formal Effect Run release and Cloud SDK/Preview acceptance",
+    "Merged formal OSS five-package and Native adoption by Cloud",
+    "Hosted CI and full Core/all-target/full packed verification",
+    "Original historical #88 Run custody/recovery remains independent and incomplete"
+  ]
+}
