@@ -25,9 +25,34 @@ const success = (name, text, expected, output = columns, extra = {}) => ({
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra,
 });
 const sql = 'SELECT element, position FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position';
+const renamedColumns = [column('next', true), column('position')];
+const renamedRows = [{next: 2, position: 0}, {next: null, position: 1}, {next: 2, position: 2}];
+// Independent normal Program: only the public projection name changes.
+const renameControl = {...control, stages: [{...control.stages[0],
+  steps: [...control.stages[0].steps.slice(0, -1),
+    {select: [{next: 'element'}, 'position'], as: 'selected'}],
+  results: {rows: {from: 'selected', fields: ['next', 'position']}}}]};
 export const unnestSuccesses = [
   success('json-control', JSON.stringify(control), rows, columns,
     {format: 'json', parameterDeclarations: undefined}),
+  success('scalar-rename-json-control', JSON.stringify(renameControl), renamedRows, renamedColumns,
+    {format: 'json', parameterDeclarations: undefined}),
+  success('scalar-rename-after-select',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SELECT element, position |> RENAME element AS next |> ORDER BY position',
+    renamedRows, renamedColumns, {format: 'aql-text'}),
+  success('scalar-rename-after-as',
+    'FROM UNNEST(@items) element WITH OFFSET position |> AS row |> RENAME element AS next |> ORDER BY position',
+    renamedRows, renamedColumns, {format: 'aql-text'}),
+  success('scalar-rename-after-set',
+    'FROM UNNEST(@items) element WITH OFFSET position |> SET element = 100 |> RENAME element AS next |> SELECT * |> ORDER BY position',
+    [{next: 100, position: 0}, {next: 100, position: 1}, {next: 100, position: 2}],
+    [column('next'), column('position')], {format: 'aql-text'}),
+  success('scalar-drop-removes-range',
+    'FROM UNNEST(@items) element WITH OFFSET position |> DROP element |> RENAME position AS next |> SELECT * |> ORDER BY next',
+    [{next: 0}, {next: 1}, {next: 2}], [column('next')], {format: 'aql-text'}),
+  success('scalar-distinct-keeps-values',
+    'FROM UNNEST(@items) element WITH OFFSET position |> DROP position |> DISTINCT |> SELECT element AS next |> ORDER BY next NULLS LAST',
+    [{next: 2}, {next: null}], [column('next', true)], {format: 'aql-text'}),
   success('sql-duplicates-and-null', sql, rows),
   success('scalar-star-sql',
     'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position', rows),
@@ -64,6 +89,16 @@ const refusal = (name, text, extra = {}) => ({name: 'unnest-refusal-' + name,
   format: 'sql', text, parameterDeclarations: declarations,
   parameters: {items: [2, null, 2]}, ...extra});
 export const unnestRefusals = [
+  ...['element', '`element`', '`ELEMENT`'].map((name, index) =>
+    refusal('scalar-rename-range-' + index,
+      'FROM UNNEST(@items) ' + name + ' WITH OFFSET position |> RENAME ' + name + ' AS next |> SELECT next, position |> ORDER BY position',
+      {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
+  refusal('scalar-rename-range-after-join',
+    'FROM UNNEST(@items) element WITH OFFSET position |> JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 |> RENAME element AS next |> SELECT next, position',
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
+  refusal('scalar-range-duplicate-unnest',
+    'FROM UNNEST(@items) element WITH OFFSET position |> CROSS JOIN UNNEST(@items) element |> SELECT position',
+    {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
   refusal('undeclared', sql, {parameterDeclarations: undefined}),
   refusal('wrong-input-type', sql, {parameterDeclarations: {items: {type: 'number'}}, parameters: {items: 1}}),
   refusal('array-bound', sql, {parameters: {items: [1, 2, 3, 4]}}),

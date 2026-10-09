@@ -4,6 +4,30 @@ import test from 'node:test';
 import {unnestSuccesses, unnestRefusals, unnestReceiverProgram,
   unnestReceiverSuccesses, unnestReceiverRefusals} from './fixtures/unnest-source-input.mjs';
 
+test('scalar value-table RENAME distinguishes range names from projected columns', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-scalar-rename-json-control');
+  assert.deepEqual(JSON.parse(control.text).stages[0].steps.at(-1).select,
+    [{next: 'element'}, 'position']);
+  for (const name of ['after-select', 'after-as']) {
+    const actual = byName.get('unnest-scalar-rename-' + name);
+    assert.equal(actual.format, 'aql-text');
+    assert.deepEqual(actual.expected, control.expected);
+    assert.deepEqual(actual.columns, control.columns);
+  }
+  assert.deepEqual(byName.get('unnest-scalar-rename-after-set').expected.map(row => row.next), [100, 100, 100]);
+  assert.deepEqual(byName.get('unnest-scalar-drop-removes-range').columns,
+    [{name: 'next', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(byName.get('unnest-scalar-distinct-keeps-values').expected,
+    [{next: 2}, {next: null}]);
+  for (const name of ['scalar-rename-range-0', 'scalar-rename-range-1',
+    'scalar-rename-range-2', 'scalar-rename-range-after-join', 'scalar-range-duplicate-unnest']) {
+    assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-' + name).format, 'aql-text');
+    assert.equal(unnestRefusals.find(item => item.name === 'unnest-refusal-' + name).expectedCode,
+      'ClientProgramInvalidInput');
+  }
+});
+
 test('UNNEST independent fixtures preserve multiplicity, NULL and offset order on empty schemas', () => {
   const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
   assert.deepEqual(byName.get('unnest-sql-duplicates-and-null').expected,
