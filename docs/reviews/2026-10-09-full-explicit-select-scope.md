@@ -36,6 +36,9 @@ The existing unkeyed Values test now checks the actual common rejection,
 refusal. It still forbids inventing a key or accepting an unproved FULL join.
 There is no checker, identity, provider, task, capacity or resource-limit change.
 The surface grammar and contract preimages are unchanged.
+Affected generated Programs now use the shared JOIN slots; their Program/Run
+identities can change with that structure. Existing saved Runs are not rewritten
+or treated as if they were compiled from the new structure.
 
 ## Independent expectations and public registration
 
@@ -109,6 +112,77 @@ parser refuses `MAX_OUTPUT_ROWS 0` as invalid syntax. The FULL fixture now
 requires those exact codes for its two UnsupportedJoin cases, zero ceiling
 and ambiguous column. The shared generic refusal allowlist is unchanged, as
 are the expected rows, bounds, Run-admission and provider-I/O assertions.
+
+The corrected fixture and existing disclosure-owner tests passed 29/29 using:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- scripts/full-join-scope-source-input.test.mjs adapters/host-node/client-preparation-disclosure.test.mjs
+```
+
+Evidence: `run-SZrs2S` / `focused-test-iwpn2w`. The product implementation has
+not changed since the first packed attempt; only this fixture and report did.
+
+## Completed packed Local/HTTPS acceptance
+
+Tested clean implementation/fixture revision:
+`749d254638a12e705a17c2d38f9511d4582f5e98`.
+The subsequent evidence-report commit is not the package producer revision.
+
+The existing bounded supervisor ran these steps with a 1,200-second wall-clock
+budget, five-second termination grace and the shared heavy-work lock:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-full-explicit-749d25463-pack
+# Independently rehash all five tarballs and verify manifest.revision = HEAD.
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-full-explicit-749d25463-pack node scripts/test-packed-public-query.mjs --full-join-scope-only
+```
+
+The normal producer executed prepack; no payload revision override, skipped
+build, patched generated Program or package overlay was used. Only this unit's
+private npm content cache from the first attempt was reused. Exact wrapper:
+`/private/tmp/actql-b-full-explicit-749d25463-packed-20261009.mjs`.
+
+All three supervisor steps passed: `run-ULKRCu`, complete output, exit 0,
+locks released. External receipt:
+`worktrees/.codex-scratch/public-query-evidence-L9f0Y2`.
+All ten captured commands have that clean source revision, status and
+verificationStatus 0, complete output and no error/signal/evidence failure.
+The normal runner removed only its owned expanded installation after preserving
+logs, receipts and tarball digests (`artifactsRemoved: true`).
+
+| Transport | Normal Named Results | Exact preparation refusals | New explicit SELECT positives |
+|---|---:|---:|---:|
+| Embedded Local | 20 | 4 | 7 |
+| Remote HTTP over real HTTPS | 20 | 4 | 7 |
+
+Every positive compares the independent ordered rows and full ordered column
+contracts from `Result.describe()`, including NULL and the empty result. The
+DISTINCT fixture publishes two values, not three rows or hidden sort fields.
+The alias/qualified ORDER pair preserves its deliberately opposite order.
+Each case retains one real Source acquisition session; Result reads, reattach,
+resend and lookup retain the same Run without extra admission or Source I/O.
+Every refusal has an explicit code log and unchanged Run/Source counters.
+The unchanged source-free README Local/HTTPS quickstart and public-check probes
+also passed in this selected driver; this is not a full packed campaign.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `18762bb0bf434d939ff153d485e2aed28f0fa3c77c9d1e82eee4983765947905` |
+| sdk | `c468fa4d31016b3d10539f1edc49a113241a52a67d34493ff165bfac30ed102c` |
+| run-host-core | `41b5d6e6ecdb0ce8efc311766524225d9bb46f0fef3d21506194635c18c20d7f` |
+| local-node | `9b0e76b7a4398595442b4b0f551d06c14723b51b4c7d467f9b64398979ef0ef0` |
+| node | `2989926be6f87295d48551e3c83e64dd6fb26f7b943e4004ad69176e19b98cda` |
+
+A separate read-only receipt audit independently rehashed all five actual
+tarballs, compared manifest/receipt identity, checked every command's clean
+source/completion and matched every positive and exact refusal name for both
+transports. It passed:
+`/private/tmp/actql-b-full-explicit-749d25463-acceptance-audit-20261009.{mjs,json}`.
+The earlier `62bd1ca5` failure remains historical evidence; its twenty Local
+positives are not substituted for this clean completed Local/HTTPS run.
+
+Submitted-HEAD CI, full Core, Wasm/Native execution, Cloud and broader packed
+coverage remain unverified here. No manual CI rerun or merge was performed.
 
 ## Remaining boundaries
 
