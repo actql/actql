@@ -23,6 +23,19 @@ const success = (name, text, extra = {}) => ({name: 'named-window-' + name,
   format: 'sql', text, sourceRows, sourceReadSessionCount: 1, expected,
   columns: [column('id'), column('n')], ...extra});
 const one = [{id: 1, n: 1}, {id: 2, n: 1}, {id: 3, n: 1}, {id: 3, n: 1}];
+// Independently authored grouped control: counts are 1,1,2 for id 1,2,3.
+export const namedAggregateWindowProgram = structuredClone(namedWindowProgram);
+namedAggregateWindowProgram.id = 'fixture.named_aggregate_window';
+namedAggregateWindowProgram.stages[1].steps = [
+  {from: 'records', group: {by: ['id'], aggregates: {counted: {fn: 'count'}}}},
+  {analytic: {partition_by: [], order_by: [
+    {field: 'counted', dir: 'desc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}],
+    functions: {n: {fn: 'row_number'}}}},
+  {select: ['id', 'n']}, {sort: [{field: 'n', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+];
+const groupedExpected = [{id: 3, n: 1}, {id: 1, n: 2}, {id: 2, n: 3}];
+const aggregateSql = 'SELECT records.id, ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 '
+  + 'GROUP BY records.id WINDOW w AS (ORDER BY COUNT(*) DESC, records.id) ORDER BY n';
 export const namedWindowSuccesses = [
   success('independent-json', JSON.stringify(namedWindowProgram), {format: 'json'}),
   success('bare-reference', sql),
@@ -58,6 +71,41 @@ export const namedWindowSuccesses = [
   success('unused-specification-no-evaluation', 'SELECT id, ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 '
     + 'WINDOW unused AS (ORDER BY 1 / 0), w AS (ORDER BY amount NULLS LAST, id) ORDER BY n'),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
+  success('aggregate-independent-json', JSON.stringify(namedAggregateWindowProgram),
+    {format: 'json', expected: groupedExpected}),
+  success('aggregate-order-key', aggregateSql, {expected: groupedExpected}),
+  success('aggregate-partition-inheritance', 'SELECT id, ROW_NUMBER() OVER final AS n FROM records '
+    + 'WHERE id > 0 GROUP BY id WINDOW base AS (PARTITION BY COUNT(*)), '
+    + 'ordered AS (base ORDER BY id), final AS ordered ORDER BY id',
+    {expected: [{id: 1, n: 1}, {id: 2, n: 2}, {id: 3, n: 1}]}),
+  success('aggregate-nullable-count', 'SELECT records.id, ROW_NUMBER() OVER (`W`) AS n FROM records '
+    + 'WHERE id > 0 GROUP BY records.id WINDOW w AS (ORDER BY COUNT(amount) + 1 DESC, records.id) ORDER BY n',
+    {expected: [{id: 3, n: 1}, {id: 2, n: 2}, {id: 1, n: 3}]}),
+  success('aggregate-reused-alias-collision', 'SELECT records.id AS original, COUNT(*) AS id, '
+    + 'ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 GROUP BY records.id '
+    + 'WINDOW w AS (ORDER BY COUNT(*) DESC, records.id) ORDER BY n',
+    {columns: [column('original'), column('id'), column('n')],
+      expected: [{original: 3, id: 2, n: 1}, {original: 1, id: 1, n: 2}, {original: 2, id: 1, n: 3}]}),
+  success('aggregate-hidden-qualify', 'SELECT id FROM records WHERE id > 0 GROUP BY id '
+    + 'QUALIFY ROW_NUMBER() OVER w = 1 WINDOW w AS (ORDER BY SUM(amount) DESC NULLS LAST, id) ORDER BY id',
+    {columns: [column('id')], expected: [{id: 3}]}),
+  success('aggregate-global-having', 'SELECT ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 '
+    + 'HAVING TRUE WINDOW w AS (ORDER BY COUNT(*))',
+    {columns: [column('n')], expected: [{n: 1}]}),
+  success('aggregate-global-empty', 'SELECT ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 '
+    + 'WINDOW w AS (ORDER BY COUNT(*))', {sourceRows: [], columns: [column('n')], expected: [{n: 1}]}),
+  success('aggregate-typed-empty', aggregateSql, {sourceRows: [], expected: []}),
+  success('aggregate-unused-no-evaluation', 'SELECT id, ROW_NUMBER() OVER w AS n FROM records WHERE id > 0 '
+    + 'WINDOW unused AS (ORDER BY SUM(1 / 0)), w AS (ORDER BY amount NULLS LAST, id) ORDER BY n'),
+  success('aggregate-having-before-window', 'SELECT id, COUNT(*) AS total, ROW_NUMBER() OVER w AS n '
+    + 'FROM records WHERE id > 0 GROUP BY id HAVING total > 1 '
+    + 'WINDOW w AS (ORDER BY COUNT(*) DESC, id) ORDER BY n',
+    {columns: [column('id'), column('total'), column('n')], expected: [{id: 3, total: 2, n: 1}]}),
+  success('aggregate-multiple-consumers', 'SELECT id, ROW_NUMBER() OVER w AS n, RANK() OVER other AS ranking '
+    + 'FROM records WHERE id > 0 GROUP BY id WINDOW w AS (ORDER BY COUNT(*) DESC, id), '
+    + 'other AS (ORDER BY COUNT(*) DESC, id) ORDER BY n',
+    {columns: [column('id'), column('n'), column('ranking')],
+      expected: [{id: 3, n: 1, ranking: 1}, {id: 1, n: 2, ranking: 2}, {id: 2, n: 3, ranking: 3}]}),
 ];
 export const namedWindowRefusals = [
   'SELECT ROW_NUMBER() OVER absent AS n FROM records',
@@ -70,4 +118,8 @@ export const namedWindowRefusals = [
   'WITH chosen AS (SELECT ROW_NUMBER() OVER w AS n FROM records WINDOW w AS (ORDER BY id)) SELECT ROW_NUMBER() OVER w AS n FROM chosen',
   'SELECT -id AS changed, ROW_NUMBER() OVER w AS n FROM records WINDOW w AS (ORDER BY changed)',
   'SELECT COUNT(*) OVER w AS n FROM records WINDOW w AS (ORDER BY id ROWS BETWEEN @missing PRECEDING AND CURRENT ROW)',
+  'SELECT id AS invented, ROW_NUMBER() OVER w AS n FROM records GROUP BY id WINDOW w AS (ORDER BY COUNT(invented), id)',
+  'SELECT id, ROW_NUMBER() OVER w AS n FROM records GROUP BY id WINDOW w AS (ORDER BY COUNT(*) OVER (ORDER BY id))',
+  'SELECT ROW_NUMBER() OVER w AS n FROM records HAVING TRUE WINDOW unused AS (ORDER BY COUNT(*)), w AS (ORDER BY id)',
+  'SELECT id, ROW_NUMBER() OVER w AS n FROM records GROUP BY id WINDOW w AS (ORDER BY SUM(records.amount), records.amount)',
 ].map((text, index) => ({name: 'named-window-refuse-' + index, format: 'sql', text}));
