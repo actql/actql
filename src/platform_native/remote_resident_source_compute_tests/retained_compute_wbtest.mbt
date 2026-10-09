@@ -768,6 +768,12 @@ fn retained_compute_case(
     assert_true(journal.close())
     return
   }
+  let producer_dependency = match effect_materials {
+    Some((materials, _)) =>
+      Some(retained_effect_producer_dependency(source_owner, materials))
+    None => None
+  }
+  assert_eq(entries.val, 0)
   resident_compute_execute(consumer) |> ignore
   let source_usage = source_owner.usage()
   let consumer_usage = consumer.usage()
@@ -935,6 +941,19 @@ fn retained_compute_case(
       @execution.cancel_completed_output_export(stream)
       @execution.cancel_completed_result_relation_export(preparation) |> ignore
     }
+    retained_effect_transferred_artifact(
+      consumer,
+      effect_materials.unwrap().0,
+      inputs,
+      root_local_index,
+      effect_local_index,
+      earlier,
+      producer_dependency.unwrap().0,
+      producer_dependency.unwrap().1,
+      producer_dependency.unwrap().2,
+      common_input,
+      site,
+    )
     assert_eq(acquisitions.val, 1)
     assert_eq(entries.val, 1)
     Some(
@@ -987,6 +1006,10 @@ fn retained_compute_case(
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_objects, 0L)
   @execution.cancel_completed_relation_export_receipt(receipt)
   @execution.cancel_completed_output_export(source_export)
+  if producer_dependency is Some((pins, _, _, dependency_receipt)) {
+    assert_false(@strategy.release_captured_effect_local_unit_inputs(pins))
+    @execution.cancel_completed_relation_export_receipt(dependency_receipt)
+  }
   assert_true(source_owner.close())
   assert_true(source_owner.close())
   assert_eq(source_owner.usage().held_bytes, 0L)

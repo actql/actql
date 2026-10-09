@@ -128,6 +128,8 @@ pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentit
 
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
+pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectLocalResultArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
+
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
 
 pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Result[Unit, ClientInferDispatchIssue]
@@ -1370,6 +1372,15 @@ pub(all) enum ClientEffectSourceDispatchIssue {
   ForeignDispatch
   ForeignInput
   Protocol(@remote_site_protocol.DispatchIssue)
+}
+
+pub(all) enum ClientEffectTransferredArtifactIssue {
+  Unavailable
+  ForeignInput
+  ForeignRun
+  ForeignArtifact
+  ForeignExport
+  Current(ClientRetainedTaskInputIssue)
 }
 
 pub(all) enum ClientEmptyInvocationBindingsIssue {

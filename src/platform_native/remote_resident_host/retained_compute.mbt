@@ -261,6 +261,10 @@ fn open_resident_retained_compute_owned(
     generated,
     close_borrow,
     observe,
+    effect_retained=match prepared {
+      Effect(_) => Some({ input, material, current, })
+      Pure(_) => None
+    },
     retained_input=Some(
       (
         projection,
