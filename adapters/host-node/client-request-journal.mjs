@@ -14,7 +14,7 @@ import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
-import {sameSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
+import {sameSubmissionRef, validSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -794,6 +794,68 @@ export function openClientRequestJournal(directory, {
   // An error code copied from another operation carries no such custody.
   const cancellationRejectionCandidates = new WeakMap();
   const cancellationRejections = new WeakMap();
+  const submissionRejectionCandidates = new WeakMap();
+  const submissionRejections = new WeakMap();
+  let activeSubmissionAttempt;
+  const rejectSubmission = (code, kind, reason) => {
+    const error = Object.assign(new Error(code), {code});
+    submissionRejectionCandidates.set(error, Object.freeze({kind, reason,
+      ticket: activeSubmissionAttempt}));
+    throw error;
+  };
+  const submissionTransaction = action => {
+    try {return transaction.run(action);}
+    catch (error) {
+      const rejection = submissionRejectionCandidates.get(error);
+      if (rejection !== undefined && rejection.ticket === activeSubmissionAttempt &&
+          error.outcome !== 'unknown' && transaction.connectionUsable) {
+        // transaction.run returns the original semantic error only after a
+        // successful rollback. Commit and rollback failures wrap that error.
+        submissionRejections.set(error, rejection);
+      }
+      throw error;
+    }
+  };
+  const submissionAttempt = (submissionRef, intent, options, control, action, kind) => {
+    ensureOpen();
+    const attemptRef = options.attemptRef;
+    if (!validSubmissionRef(submissionRef) || attemptRef === null ||
+        typeof attemptRef !== 'object' ||
+        Object.keys(attemptRef).sort().join(',') !== 'attemptId,operation' ||
+        attemptRef.operation !== 'submit' || !text(attemptRef.attemptId) ||
+        !attemptRef.attemptId.isWellFormed() || typeof options.currentAuthorization !== 'boolean') {
+      fail('InvalidClientSubmissionAttempt');
+    }
+    const ownedAttempt = Object.freeze({operation: 'submit', attemptId: attemptRef.attemptId});
+    if (!options.currentAuthorization) return Object.freeze({kind: 'refused',
+      attemptRef: ownedAttempt, guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization'});
+    const original = originalIntent(intent, control);
+    const ownedRef = Object.freeze({...submissionRef, epoch: Object.freeze({...submissionRef.epoch})});
+    const ticket = {}, previous = activeSubmissionAttempt;
+    activeSubmissionAttempt = ticket;
+    try {
+      const result = action();
+      return Object.freeze({kind, attemptRef: ownedAttempt,
+        ...(kind === 'checked' ? {requestId: result.requestId} : {submission: result})});
+    } catch (error) {
+      const rejection = submissionRejections.get(error);
+      if (rejection === undefined || rejection.ticket !== ticket) throw error;
+      return Object.freeze({kind: rejection.kind, reason: rejection.reason, attemptRef: ownedAttempt,
+        submissionRef: ownedRef, intentCid: original.identity,
+        ...(rejection.kind === 'refused' ? {guarantee: 'attempt_uncommitted_unconsumed'} : {})});
+    } finally {activeSubmissionAttempt = previous;}
+  };
+  const rejectSubmissionEpoch = validity => {
+    const reason = validity === 'expired' ? 'epoch_expired' : 'epoch_not_yet_valid';
+    const code = validity === 'expired' ? 'ClientSubmissionEpochExpired' : 'ClientSubmissionEpochNotYetValid';
+    const error = Object.assign(new Error(code), {code});
+    // This decision follows a successful transaction which confirmed that
+    // this fresh identity has no retained receipt. The clock observation is
+    // durable, but no intent custody was consumed by this invocation.
+    submissionRejections.set(error, Object.freeze({kind: 'refused', reason,
+      ticket: activeSubmissionAttempt}));
+    throw error;
+  };
   let activeCancellationAttempt;
   const rejectCancellation = (code, kind, reason) => {
     const error = Object.assign(new Error(code), {code});
@@ -1359,7 +1421,7 @@ export function openClientRequestJournal(directory, {
       const original = originalIntent(intent, control);
       const restartWire = restartDecision(submissionRef, original.identity, unresolvedHistory, actorId);
       const fields = {authorityScopeCid, currentAuthorization};
-      const result = transaction.run(() => {
+      const result = submissionTransaction(() => {
         assertIntentCustody();
         assertRestartCustody();
         const verified = verifyEpochLocked(submissionRef.epoch, {...fields, purpose: 'lookup'}, control);
@@ -1368,15 +1430,15 @@ export function openClientRequestJournal(directory, {
         const existing = intentSelect.get(requestId);
         if (existing !== undefined) {
           const previous = retainedIntent(existing, control);
-          if (previous.intentCid !== original.identity) fail('ClientSubmittedIntentConflict');
-          if (restartSelect.get(requestId)?.link_wire !== restartWire) fail('ClientSubmissionRestartConflict');
+          if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
+          if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
         } else {
           if (verified.validity !== 'admissible') return {epochRejected: verified.validity};
           checkRestartLocked(requestId, restartWire, fields, control);
         }
         return {requestId};
       });
-      if (result.epochRejected !== undefined) refuseEpoch(result.epochRejected);
+      if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
       return Object.freeze(result);
     },
     recordSubmittedIntent(submissionRef, intent, {authorityScopeCid,
@@ -1398,14 +1460,14 @@ export function openClientRequestJournal(directory, {
           !validStoredSubmissionOutcome(outcome, submissionRef, original.identity))) {
         fail('InvalidClientSubmittedIntentOutcome');
       }
-      const result = transaction.run(() => {
+      const result = submissionTransaction(() => {
         const retained = assertIntentCustody();
         assertRestartCustody();
         const existing = intentSelect.get(requestId);
         if (existing !== undefined) {
           const previous = retainedIntent(existing, control);
-          if (previous.intentCid !== original.identity) fail('ClientSubmittedIntentConflict');
-          if (restartSelect.get(requestId)?.link_wire !== restartWire) fail('ClientSubmissionRestartConflict');
+          if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
+          if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
           return {inserted: false, ...previous};
         }
         const current = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
@@ -1415,7 +1477,7 @@ export function openClientRequestJournal(directory, {
           {authorityScopeCid, currentAuthorization}, control);
         if (retained.n >= maxRecords || retained.issued === Number.MAX_SAFE_INTEGER ||
             retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
-          fail('ClientSubmittedIntentCapacity');
+          rejectSubmission('ClientSubmittedIntentCapacity', 'refused', 'admission_capacity');
         }
         database.prepare(`INSERT INTO client_submitted_intents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
           .run(requestId, authorityScopeCid, submissionRef.nonce,
@@ -1434,8 +1496,18 @@ export function openClientRequestJournal(directory, {
         }
         return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
       });
-      if (result.epochRejected !== undefined) refuseEpoch(result.epochRejected);
+      if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
       return Object.freeze(result);
+    },
+    // Invocation facts are projections of the existing admission boundary,
+    // never replacement receipts or proof that another invocation did not run.
+    checkSubmissionAttempt(submissionRef, intent, options, control) {
+      return submissionAttempt(submissionRef, intent, options, control,
+        () => journal.checkSubmittedIntent(submissionRef, intent, options, control), 'checked');
+    },
+    recordSubmissionAttempt(submissionRef, intent, options, control) {
+      return submissionAttempt(submissionRef, intent, options, control,
+        () => journal.recordSubmittedIntent(submissionRef, intent, options, control), 'recorded');
     },
     lookupSubmittedIntent(submissionRef, {authorityScopeCid, currentAuthorization}, control) {
       ensureOpen();

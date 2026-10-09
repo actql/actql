@@ -10,7 +10,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest,
-  snapshotClientRequest, validSubmissionOutcome, validSubmissionLookup} from
+  snapshotClientRequest, validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -160,7 +160,7 @@ export function createNodeInProcessClientHost({
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);
         const valid = submitting
-          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid, body.unresolvedHistory)
+          ? validSubmissionAttempt(answer, connection, body.submissionRef, body.intentCid, body.attemptRef, body.unresolvedHistory)
           : validSubmissionLookup(answer, connection, body.submissionRef);
         if (!valid) fail('InvalidClientHostSubmissionOutcome');
         return answer;
