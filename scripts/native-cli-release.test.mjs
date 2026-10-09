@@ -17,7 +17,7 @@ const metadata = {version: 'actql-native-cli-artifact/0.1', sourceSha,
   generatedCSha256: 'b'.repeat(64), toolchainPinSha256: 'c'.repeat(64),
   notices: {'MOONBIT-CORE-LICENSE': 'd'.repeat(64), 'MOONBIT-CORE-NOTICE': 'e'.repeat(64)},
   toolchain: {diagnostic: 'synthetic fixture, not compiled Native evidence'},
-  abi: {format: 'Mach-O'}, testedHost: {}, generation: []};
+  abi: {format: 'Mach-O', minimumMacOS: '26.0'}, testedHost: {}, generation: []};
 const expected = {sourceSha, binarySha256: metadata.binarySha256, binaryBytes: binary.length};
 
 test('platform selection refuses other CPUs, musl and unknown libc without fallback', () => {
@@ -31,13 +31,26 @@ test('platform selection refuses other CPUs, musl and unknown libc without fallb
 });
 
 test('installed binary remains bound to source, platform and bytes', () => {
-  admitInstalledBinary({key: metadata.platform, expected, metadata, binary});
+  admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS: '26.2'});
   for (const changed of [{...metadata, sourceSha: 'd'.repeat(40)}, {...metadata, platform: 'linux-x64-gnu'},
     {...metadata, binaryBytes: binary.length + 1}, {...metadata, binarySha256: 'e'.repeat(64)}]) {
     assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata: changed, binary}),
       error => error.exitCode === 65);
   }
   assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary: Buffer.alloc(32)}));
+});
+
+test('macOS deployment bound is extracted and checked before Native starts', () => {
+  const abi = inspectNativeAbi('fixture', 'darwin-arm64', (_tool, args) => args.includes('-l')
+    ? 'cmd LC_BUILD_VERSION\n cmdsize 32\n platform 1\n minos 26.0\n sdk 26.2'
+    : 'fixture:\n /usr/lib/libSystem.B.dylib');
+  assert.equal(abi.minimumMacOS, '26.0');
+  for (const macOS of ['26.0', '26.2', '27.0']) {
+    admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS});
+  }
+  for (const macOS of ['25.9', undefined, 'unavailable']) {
+    assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}), error => error.exitCode === 64);
+  }
 });
 
 test('Linux executable glibc bound is checked independently of binary integrity', () => {

@@ -37,7 +37,7 @@ Preparation can accept a single platform to continue other distribution work
 when the other environment is unavailable. Missing platforms remain unverified
 and are not declared supported. No build or download runs during installation.
 The `actql` launcher uses npm optional OS binary packages and checks target,
-source, executable digest and Linux glibc before starting Native. It never
+source, executable digest, macOS deployment bound and Linux glibc before starting Native. It never
 chooses another binary or executes a Node fallback engine.
 
 Use the same fixed tarballs for independent external installation, global

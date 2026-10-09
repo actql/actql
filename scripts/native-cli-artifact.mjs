@@ -15,10 +15,14 @@ const run = (command, args) => execFileSync(command, args, {cwd: repository,
 
 export function inspectNativeAbi(binary, platform, execute = execFileSync) {
   const inspect = (tool, args) => execute(tool, args, {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
-  if (platform === 'darwin-arm64') return {format: 'Mach-O',
-    sharedLibraries: inspect('otool', ['-L', binary]).split('\n').slice(1).filter(Boolean).map(v => v.trim()),
-    loadCommands: inspect('otool', ['-l', binary]),
-    httpLibrary: '/usr/lib/libcurl.4.dylib', httpLibraryBundled: false};
+  if (platform === 'darwin-arm64') {
+    const loadCommands = inspect('otool', ['-l', binary]);
+    const minimumMacOS = /\bcmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos (\d+\.\d+(?:\.\d+)?)/u.exec(loadCommands)?.[1];
+    assert(minimumMacOS, 'No observed macOS executable deployment requirement');
+    return {format: 'Mach-O', minimumMacOS,
+      sharedLibraries: inspect('otool', ['-L', binary]).split('\n').slice(1).filter(Boolean).map(v => v.trim()),
+      loadCommands, httpLibrary: '/usr/lib/libcurl.4.dylib', httpLibraryBundled: false};
+  }
   const versionInfo = inspect('readelf', ['--version-info', binary]);
   const versions = [...versionInfo.matchAll(/\bGLIBC_(\d+)\.(\d+)\b/gu)]
     .map(v => [Number(v[1]), Number(v[2])]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);

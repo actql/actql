@@ -14,13 +14,22 @@ export function platformKey({platform, arch, glibc}) {
   throw Object.assign(Error(`Unsupported platform: ${platform}/${arch}; Linux requires identifiable glibc. No alternative binary is used.`), {exitCode: 64});
 }
 
-export function admitInstalledBinary({key, expected, metadata, binary, glibc}) {
+export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}) {
   if (!expected || metadata.version !== 'actql-native-cli-artifact/0.1' ||
       metadata.platform !== key || metadata.sourceSha !== expected.sourceSha ||
       metadata.binarySha256 !== expected.binarySha256 ||
       metadata.binaryBytes !== expected.binaryBytes || binary.length !== expected.binaryBytes ||
       createHash('sha256').update(binary).digest('hex') !== expected.binarySha256) {
     throw Object.assign(Error('Native artifact identity mismatch; reinstall the fixed package cohort.'), {exitCode: 65});
+  }
+  if (key === 'darwin-arm64') {
+    const parse = value => typeof value === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(value)
+      ? [...value.split('.').map(Number), 0].slice(0, 3) : null;
+    const required = parse(metadata.abi.minimumMacOS), actual = parse(macOS);
+    const difference = required && actual && actual.map((v, i) => v - required[i]).find(v => v !== 0);
+    if (!required || !actual || difference < 0) {
+      throw Object.assign(Error(`Unsupported macOS ${macOS}; Native executable requires at least ${metadata.abi.minimumMacOS}.`), {exitCode: 64});
+    }
   }
   if (key === 'linux-x64-gnu') {
     const parse = value => typeof value === 'string' && /^\d+\.\d+$/u.test(value) ? value.split('.').map(Number) : null;
@@ -47,7 +56,8 @@ export function launch(args) {
     throw Object.assign(Error('Native executable is missing, non-regular or not executable.'), {exitCode: 65});
   }
   admitInstalledBinary({key, expected, metadata: JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8')),
-    binary: readFileSync(executable), glibc});
+    binary: readFileSync(executable), glibc,
+    macOS: process.platform === 'darwin' ? spawnSync('/usr/bin/sw_vers', ['-productVersion'], {encoding: 'utf8'}).stdout?.trim() : undefined});
   const child = spawnSync(executable, args, {stdio: 'inherit'});
   if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Check the documented shared-library requirements.`), {exitCode: 69});
   return child.status ?? 128 + (constants.signals[child.signal] ?? 1);

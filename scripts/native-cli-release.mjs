@@ -27,6 +27,7 @@ export async function admitNativeArtifact(directory, sourceSha) {
   if (record.platform === 'darwin-arm64') {
     assert.equal(bytes.readUInt32LE(0), 0xfeedfacf); assert.equal(bytes.readUInt32LE(4), 0x0100000c);
     assert.equal(record.abi.format, 'Mach-O');
+    assert.match(record.abi.minimumMacOS, /^\d+\.\d+(?:\.\d+)?$/u);
   } else {
     assert.equal(bytes.subarray(0, 4).toString('hex'), '7f454c46'); assert.equal(bytes[4], 2); assert.equal(bytes[5], 1);
     assert.equal(bytes.readUInt16LE(18), 62); assert.equal(record.abi.format, 'ELF');

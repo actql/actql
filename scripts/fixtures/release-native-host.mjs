@@ -15,11 +15,13 @@ const host = await openInstalledRemoteHttpHost({directory: join(root, 'host-stat
   beforeDispatch: () => {computes++;}, authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
 const certificate = await readFile('remote.crt');
 const server = createServer({key: await readFile('remote.key'), cert: certificate,
-  ca: certificate, requestCert: true, rejectUnauthorized: true}, (request, response) => {
-  host.handle(request, response).catch(error => {response.destroy(error);});
-});
+  ca: certificate, requestCert: true, rejectUnauthorized: true}, host.handler);
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const endpoint = `https://127.0.0.1:${server.address().port}/`;
+// The Native transport uses mTLS. The independent SDK schema check uses its
+// standard server-authenticated HTTPS transport against the same Host owner.
+const schemaServer = createServer({key: await readFile('remote.key'), cert: certificate}, host.handler);
+await new Promise(resolve => schemaServer.listen(0, '127.0.0.1', resolve));
 await writeFile('connection.json', JSON.stringify({mode: 'remote', owner: 'remote', durability: 'durable', consentRefs: [], runners: []}));
 await writeFile('token.txt', 'fixture-token\n', {mode: 0o600});
 await writeFile('query.sql', 'SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id');
@@ -60,7 +62,8 @@ try {
   assert.equal(delivery.attempt.attempt_id, 'native-release-read');
   assert.equal(delivery.record.state, 'succeeded');
   assert(delivery.hostReleaseReceipt, 'The real Host must retain its Result release evidence');
-  client = await connect({mode: 'remote', endpoint, token: 'fixture-token', durability: 'durable'});
+  client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${schemaServer.address().port}/`,
+    token: 'fixture-token', durability: 'durable'});
   const execution = await client.attach(accepted.ref);
   assert.deepEqual((await execution.result('answer').describe()).columns,
     [{name: 'id', contract: {type: 'number', nullable: false}}]);
@@ -76,6 +79,7 @@ try {
   console.log('Installed Native Remote CLI: real Host connect, submit, wait, lookup, Result/schema, terminal cancel and cleanup passed');
 } finally {
   await client?.close();
+  await new Promise(resolve => schemaServer.close(resolve));
   await new Promise(resolve => server.close(resolve));
   await host.close();
 }
