@@ -6,7 +6,9 @@ import {writeSyntheticHistoricalHeldValues} from '../../scripts/fixtures/synthet
 // resumed by the Host. The packed, multi-process acceptance is
 // scripts/test-packed-client-checkpoint.mjs.
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
+import {nodeTestArguments} from '../../scripts/test-execution.mjs';
+import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
@@ -640,8 +642,13 @@ async function remoteHost(t, authorization, {directory,
     host = await openHost();
     return authored;
   };
+  const responses = [];
   const server = createServer({key: tlsKey, cert: tlsCertificate},
-    (request, response) => host.handler(request, response));
+    (request, response) => {
+      response.once('finish', () => responses.push({
+        path: request.url, status: response.statusCode}));
+      return host.handler(request, response);
+    });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -666,7 +673,7 @@ async function remoteHost(t, authorization, {directory,
     if (token === 'owner-token') historicalFixtureWriters.set(client, seedHistorical);
     return client;
   };
-  return {as, options, dispatches: () => dispatches, close};
+  return {as, options, dispatches: () => dispatches, responses, close};
 }
 
 const reviewers = [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -730,31 +737,57 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
 
 test('a claimed start with lost execution observation reconciles after restart',
   async t => {
-    const directory = await mkdtemp(join(scratch, 'unknown-run-'));
+    const childDirectory = process.env.ACTQL_TEST_CLAIMED_START_CRASH_DIRECTORY;
+    const directory = childDirectory ?? await mkdtemp(join(scratch, 'unknown-run-'));
+    if (childDirectory !== undefined) {
+      const first = await remoteHost(t, protectedHost('allow', {
+        faultInjection(name, detail) {
+          if (name === 'physical_start_reserved') {
+            writeFileSync(join(directory, 'reserved-run.json'), JSON.stringify(detail.ref));
+            // A real process loss leaves the durable reservation unresolved.
+            // Throwing here instead lets the setup owner confirm cleanup.
+            process.exit(77);
+          }
+        },
+      }), {directory});
+      const client = await first.as('owner-token');
+      const submissionRef = client.newSubmission({nonce: 'unknown-start'});
+      writeFileSync(join(directory, 'original-submission.json'), JSON.stringify(submissionRef));
+      await client.startSource(document, {format: 'json', submissionRef});
+      await new Promise(resolve => setTimeout(resolve, 20000));
+      assert.fail('The child must terminate at the physical reservation');
+    }
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const first = await remoteHost(t, protectedHost('allow', {
-      faultInjection(name) {
-        if (name === 'physical_start_reserved') {
-          throw new Error('LostExecutionObservation');
-        }
-      },
-    }), {directory});
-    const client = await first.as('owner-token');
-    const execution = await client.startSource(document, {format: 'json',
-      submissionRef: client.newSubmission({nonce: 'unknown-start'})});
-    const unknown = await waitFor(async () => {
-      const state = await execution.status();
-      return state.status === 'needs_reconciliation' ? state : undefined;
-    });
+    const file = fileURLToPath(import.meta.url);
+    const keyFile = join(directory, 'host-crash-keys.json');
+    await writeFile(keyFile, JSON.stringify({host: pem(hostKeys.privateKey),
+      reviewer: pem(reviewerKeys.privateKey)}), {mode: 0o600});
+    const {NODE_TEST_CONTEXT: _outerContext, ...environment} = process.env;
+    const crashed = spawnSync(process.execPath, nodeTestArguments([
+      '--test-name-pattern', '^a claimed start with lost execution observation reconciles after restart$', file]),
+    {cwd: repository, encoding: 'utf8', timeout: 90000, killSignal: 'SIGKILL',
+      maxBuffer: 4 * 1024 * 1024,
+      env: {...environment, ACTQL_TEST_CLAIMED_START_CRASH_DIRECTORY: directory,
+        ACTQL_TEST_HOST_CRASH_KEYS: keyFile}});
+    assertPartialEffectSeedExit(crashed, file);
+    const ref = JSON.parse(await readFile(join(directory, 'reserved-run.json'), 'utf8'));
+    const submissionRef = JSON.parse(await readFile(join(directory, 'original-submission.json'), 'utf8'));
+    const db = new DatabaseSync(join(directory, 'state/requests/client-requests.sqlite3'), {readOnly: true});
+    try {
+      const rows = db.prepare('SELECT run_definition_cid, physical_start_reserved, physical_close_confirmed FROM client_requests').all();
+      assert.deepEqual(rows.map(row => ({...row})), [{run_definition_cid: ref.runDefinitionCid,
+        physical_start_reserved: 1, physical_close_confirmed: 0}]);
+    } finally {db.close();}
+    const restarted = await remoteHost(t, protectedHost('allow'), {directory});
+    const client = await restarted.as('owner-token');
+    const original = await client.lookupSubmission(submissionRef);
+    assert.equal(original.kind, 'ready');
+    assert.deepEqual(original.admission.ref, ref);
+    const attached = await client.attach(ref);
+    const unknown = await attached.status();
+    assert.equal(unknown.status, 'needs_reconciliation');
     assert.deepEqual(unknown.next_action,
       {kind: 'reconcile_run', reason: 'execution_unknown'});
-    assert.equal(first.dispatches(), 1);
-    await first.close();
-    const restarted = await remoteHost(t, protectedHost('allow'),
-      {directory});
-    const attached = await (await restarted.as('owner-token'))
-      .attach(execution.ref);
-    assert.equal((await attached.status()).status, 'needs_reconciliation');
     assert.equal(restarted.dispatches(), 0);
     await restarted.close();
   });
@@ -865,7 +898,9 @@ test('a synthetic historical held request is reviewed, answered and resumed by t
       submissionRef: reviewerRef}), error => {
       assert.equal(error.code, 'SubmissionUnknown');
       assert.equal(error.cause?.code, 'ClientConnectionDenied');
-      assert.equal(error.cause?.status, 403);
+      assert.equal(error.cause?.status, undefined);
+      assert.deepEqual(host.responses.at(-1), {
+        path: '/actql/client/0.1/submit-intent', status: 403});
       assert.deepEqual(error.submissionRef, reviewerRef);
       return true;
     });
@@ -3039,7 +3074,9 @@ test('same submitted identity preserves one Run and refuses changed intent', asy
   await assert.rejects(client.startSource(JSON.stringify(changed), {format: 'json', submissionRef}), error => {
     assert.equal(error.code, 'SubmissionUnknown');
     assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
-    assert.equal(error.cause?.status, 409);
+    assert.equal(error.cause?.status, undefined);
+      assert.deepEqual(host.responses.at(-1), {
+        path: '/actql/client/0.1/submit-intent', status: 409});
     assert.deepEqual(error.submissionRef, submissionRef);
     return true;
   });

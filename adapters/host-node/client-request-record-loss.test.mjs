@@ -18,7 +18,8 @@ for (const entrance of ['local', 'https']) {
       const fixture = await openReadOpeningFixture(scratch.path);
       const host = await connectOpeningHost(fixture, entrance, scratch.path);
       try {
-        const run = await host.client.start(openingProgram, {requestId: 'original-request'});
+        const submissionRef = host.client.newSubmission({nonce: 'original-request'});
+        const run = await host.client.start(openingProgram, {submissionRef});
         const originalInput = sdk.getSubmissionInput(run);
         const before = await host.client.lookupRequest('original-request');
         assert.equal(before.kind, 'found');
