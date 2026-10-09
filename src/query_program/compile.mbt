@@ -5091,6 +5091,14 @@ pub fn compile(
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
   }
+  if query_has_join_set_operand(query) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
+  }
   if @query.join_part_count(query) > 0 &&
     (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
     context.captured_stage is Some(_) {
