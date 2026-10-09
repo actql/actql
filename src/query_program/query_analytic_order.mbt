@@ -36,8 +36,27 @@ fn analytic_order_field(
       raise Abort(UnknownColumn)
     }
   }
+  let mut reuse_work = max_work
   for (value, field) in evaluated {
-    if same_expression(expression, value) {
+    // The list belongs to one immutable clause scope. Compare resolved
+    // receivers before members, so a range column and an explicit object
+    // receiver never become equal merely through their source spelling.
+    let cost = 1 +
+      @query.expression_node_count(expression) +
+      @query.expression_node_count(value)
+    if cost > reuse_work {
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @query.expression_origin(
+            expression,
+            @query.expression_root(expression),
+          ),
+        }),
+      )
+    }
+    reuse_work -= cost
+    if same_group_expression_in_scopes(expression, value, resolve, resolve) {
       return field
     }
   }
