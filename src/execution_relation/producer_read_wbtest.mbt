@@ -36,6 +36,98 @@ test "producer read keeps immutable ownership and resolves receiving columns onc
 }
 
 ///|
+test "producer read stages raw Text without synchronous admission or lost binding" {
+  let text = String::make(513, 'x')
+  let owner = row_owner(
+    ",{\"derive\":{\"label\":{\"literal\":\"" + text + "\"}}}",
+  )
+  let completion = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["derive_1"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  ).unwrap()
+  let receiver = producer_consumer(owner, Step(1))
+  let output = completed_output(completion, Step(1)).unwrap()
+  let read = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, owner, output).unwrap(),
+    100,
+    100,
+  ).unwrap()
+  let mut column = -1
+  for index in 0..<@schema.field_count(producer_read_schema(read)) {
+    if @schema.field_at(producer_read_schema(read), index).unwrap().name ==
+      @schema.Unqualified("label") {
+      column = index
+    }
+  }
+  assert_true(column >= 0)
+  assert_true(
+    producer_read_cell(read, 0, column) is Some(Text(value)) && value == text,
+  )
+  let limits : @admitted.Limits = {
+    max_nodes: 1,
+    max_depth: 1,
+    max_text_bytes: 513,
+  }
+  let cursor = start_producer_read_cell_recheck(read, 0, column, limits).unwrap()
+  assert_eq(@admitted.recheck_pending_frames(cursor), 1)
+  // One node poll and nine 64-unit Text fragments; no early checked value.
+  for _ in 0..<(1 + 9) {
+    assert_true(
+      @admitted.advance_recheck_runtime_value(cursor)
+      is @admitted.RecheckContinue,
+    )
+  }
+  assert_true(
+    @admitted.advance_recheck_runtime_value(cursor)
+    is @admitted.RecheckComplete(value, 1, 513) &&
+    value.value is @admitted.Text(payload) &&
+    payload == text,
+  )
+  let cancelled = start_producer_read_cell_recheck(read, 0, column, limits).unwrap()
+  for _ in 0..<3 {
+    assert_true(
+      @admitted.advance_recheck_runtime_value(cancelled)
+      is @admitted.RecheckContinue,
+    )
+  }
+  @admitted.cancel_recheck_runtime_value(cancelled)
+  assert_eq(@admitted.recheck_pending_frames(cancelled), 0)
+  assert_true(
+    @admitted.advance_recheck_runtime_value(cancelled)
+    is @admitted.RecheckFailed,
+  )
+  assert_true(producer_read_available(read))
+  assert_true(
+    producer_read_cell(read, 0, column) is Some(Text(value)) && value == text,
+  )
+  assert_true(
+    start_producer_read_cell_recheck(read, -1, column, limits) is None,
+  )
+  assert_true(start_producer_read_cell_recheck(read, 0, -1, limits) is None)
+  let mut live = true
+  let restricted = prepare_producer_read(
+    receiver,
+    bind_completed_input(
+      receiver,
+      0,
+      owner,
+      restrict_completed_output(output, fn() { live }),
+    ).unwrap(),
+    100,
+    100,
+  ).unwrap()
+  live = false
+  assert_true(
+    start_producer_read_cell_recheck(restricted, 0, column, limits) is None,
+  )
+}
+
+///|
 test "ordinary read preserves an internal operation binding for managed input" {
   let owner = row_owner(",{\"select\":[\"b\",\"a\"]}")
   let completion = evaluate_sequence_components(

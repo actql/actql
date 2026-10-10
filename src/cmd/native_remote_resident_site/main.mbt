@@ -2213,6 +2213,25 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("retained-current-unavailable", [("request_cid", identity)])
         }
       }
+      Ok(Some(@remote.EffectResume(delivery))) => {
+        backoff_ms = 0
+        let request = @remote.remote_poll_effect_resume_request(delivery)
+        let identity = @remote.dispatch_request_identity(request)
+        // Routing alone cannot install a review Owner, verify a current claim
+        // or grant permission to send. Keep the original pending custody.
+        match
+          @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          ) {
+          Err(refusal) =>
+            report("effect-resume-refused", [("reason", refusal_code(refusal))])
+          Ok(_) =>
+            report("effect-resume-pending", [
+              ("request_cid", identity),
+              ("reason", "review-owner-unavailable"),
+            ])
+        }
+      }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
         // Relay unchanged to the live holder. If it has exited, select only

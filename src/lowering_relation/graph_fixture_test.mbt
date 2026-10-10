@@ -45,25 +45,10 @@ fn graph_current_owner(
 }
 
 ///|
-test "unconnected lowering consumers cannot issue retired Graph kernels for a current definition" {
+test "unconnected subgraph and incomplete Mean cannot issue retired Graph kernels" {
   for
     (name, body) in [
-      (
-        "reach",
-        "{\"start\":{\"ids\":[" +
-        graph_match_identity(2) +
-        "]},\"direction\":\"out\",\"max_depth\":1}",
-      ),
-      (
-        "shortest_path",
-        "{\"source\":{\"ids\":[" +
-        graph_match_identity(2) +
-        "]},\"target\":{\"ids\":[" +
-        graph_match_identity(2) +
-        "]},\"direction\":\"out\",\"max_hops\":1}",
-      ),
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
-      ("graft_graph", "{\"with\":\"peer\"}"),
       (
         "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
       ),
@@ -97,11 +82,16 @@ test "unconnected lowering consumers cannot issue retired Graph kernels for a cu
     guard checked is Err(issue) else {
       fail("unsupported consumer issued a pipeline")
     }
-    if !(issue.kind is @pipeline.Graph(@graph.UnsupportedGraphOperation) ||
+    let expected = if name == "mean_graphs" {
+      issue.kind is @pipeline.Graph(@graph.InvalidPropertyStrategy("active"))
+    } else {
+      issue.kind is @pipeline.Graph(@graph.UnsupportedGraphOperation) ||
       issue.kind
       is @pipeline.GraphMatch(
         @graph.Structure(@graph.UnsupportedGraphOperation)
-      )) {
+      )
+    }
+    if !expected {
       fail(
         "unexpected refusal from " + name + ": " + @debug.to_string(issue.kind),
       )

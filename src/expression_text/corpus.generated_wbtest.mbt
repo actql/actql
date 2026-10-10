@@ -231,6 +231,176 @@ test "expression corpus accepted: 46" {
 }
 
 ///|
+test "expression corpus accepted: 47" {
+  assert_tree("ltrim(s)", "{\"ltrim\":{\"field\":\"s\"}}")
+}
+
+///|
+test "expression corpus accepted: 48" {
+  assert_tree("ltrim($p)", "{\"ltrim\":{\"$param\":\"p\"}}")
+}
+
+///|
+test "expression corpus accepted: 49" {
+  assert_tree("ltrim(NULL)", "{\"ltrim\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 50" {
+  assert_tree("ltrim('\u{2003}\u{1f600}e\u{301}\u{2003}')", "{\"ltrim\":{\"literal\":\"\u{2003}\u{1f600}e\u{301}\u{2003}\"}}")
+}
+
+///|
+test "expression corpus accepted: 51" {
+  assert_tree("ltrim('')", "{\"ltrim\":{\"literal\":\"\"}}")
+}
+
+///|
+test "expression corpus accepted: 52" {
+  assert_tree("rtrim(s)", "{\"rtrim\":{\"field\":\"s\"}}")
+}
+
+///|
+test "expression corpus accepted: 53" {
+  assert_tree("rtrim($p)", "{\"rtrim\":{\"$param\":\"p\"}}")
+}
+
+///|
+test "expression corpus accepted: 54" {
+  assert_tree("rtrim(NULL)", "{\"rtrim\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 55" {
+  assert_tree("rtrim('\u{2003}\u{1f600}e\u{301}\u{2003}')", "{\"rtrim\":{\"literal\":\"\u{2003}\u{1f600}e\u{301}\u{2003}\"}}")
+}
+
+///|
+test "expression corpus accepted: 56" {
+  assert_tree("rtrim('')", "{\"rtrim\":{\"literal\":\"\"}}")
+}
+
+///|
+test "expression corpus accepted: 57" {
+  assert_tree("trim(s,' ')", "{\"trim\":[{\"field\":\"s\"},{\"literal\":\" \"}]}")
+}
+
+///|
+test "expression corpus accepted: 58" {
+  assert_tree("trim($p,s)", "{\"trim\":[{\"$param\":\"p\"},{\"field\":\"s\"}]}")
+}
+
+///|
+test "expression corpus accepted: 59" {
+  assert_tree("trim(NULL,'x')", "{\"trim\":[{\"literal\":null},{\"literal\":\"x\"}]}")
+}
+
+///|
+test "expression corpus accepted: 60" {
+  assert_tree("trim('x',NULL)", "{\"trim\":[{\"literal\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 61" {
+  assert_tree("trim(NULL,NULL)", "{\"trim\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 62" {
+  assert_tree("trim('\u{1f600}e\u{301}','\u{1f600}\u{301}')", "{\"trim\":[{\"literal\":\"\u{1f600}e\u{301}\"},{\"literal\":\"\u{1f600}\u{301}\"}]}")
+}
+
+///|
+test "expression corpus accepted: 63" {
+  assert_tree("trim('x','')", "{\"trim\":[{\"literal\":\"x\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 64" {
+  assert_tree("trim(s,concat('a','b'))", "{\"trim\":[{\"field\":\"s\"},{\"concat\":[{\"literal\":\"a\"},{\"literal\":\"b\"}]}]}")
+}
+
+///|
+test "expression corpus accepted: 65" {
+  assert_tree("ltrim(s,' ')", "{\"ltrim\":[{\"field\":\"s\"},{\"literal\":\" \"}]}")
+}
+
+///|
+test "expression corpus accepted: 66" {
+  assert_tree("ltrim($p,s)", "{\"ltrim\":[{\"$param\":\"p\"},{\"field\":\"s\"}]}")
+}
+
+///|
+test "expression corpus accepted: 67" {
+  assert_tree("ltrim(NULL,'x')", "{\"ltrim\":[{\"literal\":null},{\"literal\":\"x\"}]}")
+}
+
+///|
+test "expression corpus accepted: 68" {
+  assert_tree("ltrim('x',NULL)", "{\"ltrim\":[{\"literal\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 69" {
+  assert_tree("ltrim(NULL,NULL)", "{\"ltrim\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 70" {
+  assert_tree("ltrim('\u{1f600}e\u{301}','\u{1f600}\u{301}')", "{\"ltrim\":[{\"literal\":\"\u{1f600}e\u{301}\"},{\"literal\":\"\u{1f600}\u{301}\"}]}")
+}
+
+///|
+test "expression corpus accepted: 71" {
+  assert_tree("ltrim('x','')", "{\"ltrim\":[{\"literal\":\"x\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 72" {
+  assert_tree("ltrim(s,concat('a','b'))", "{\"ltrim\":[{\"field\":\"s\"},{\"concat\":[{\"literal\":\"a\"},{\"literal\":\"b\"}]}]}")
+}
+
+///|
+test "expression corpus accepted: 73" {
+  assert_tree("rtrim(s,' ')", "{\"rtrim\":[{\"field\":\"s\"},{\"literal\":\" \"}]}")
+}
+
+///|
+test "expression corpus accepted: 74" {
+  assert_tree("rtrim($p,s)", "{\"rtrim\":[{\"$param\":\"p\"},{\"field\":\"s\"}]}")
+}
+
+///|
+test "expression corpus accepted: 75" {
+  assert_tree("rtrim(NULL,'x')", "{\"rtrim\":[{\"literal\":null},{\"literal\":\"x\"}]}")
+}
+
+///|
+test "expression corpus accepted: 76" {
+  assert_tree("rtrim('x',NULL)", "{\"rtrim\":[{\"literal\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 77" {
+  assert_tree("rtrim(NULL,NULL)", "{\"rtrim\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 78" {
+  assert_tree("rtrim('\u{1f600}e\u{301}','\u{1f600}\u{301}')", "{\"rtrim\":[{\"literal\":\"\u{1f600}e\u{301}\"},{\"literal\":\"\u{1f600}\u{301}\"}]}")
+}
+
+///|
+test "expression corpus accepted: 79" {
+  assert_tree("rtrim('x','')", "{\"rtrim\":[{\"literal\":\"x\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 80" {
+  assert_tree("rtrim(s,concat('a','b'))", "{\"rtrim\":[{\"field\":\"s\"},{\"concat\":[{\"literal\":\"a\"},{\"literal\":\"b\"}]}]}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -473,4 +643,44 @@ test "expression corpus rejected: 48" {
 ///|
 test "expression corpus rejected: 49" {
   assert_true(parse("trunc(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 50" {
+  assert_true(parse("ltrim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 51" {
+  assert_true(parse("ltrim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 52" {
+  assert_true(parse("LTRIM(s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 53" {
+  assert_true(parse("rtrim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 54" {
+  assert_true(parse("rtrim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 55" {
+  assert_true(parse("RTRIM(s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 56" {
+  assert_true(parse("trim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 57" {
+  assert_true(parse("trim(s,' ',s)", test_limits()) is Err(_))
 }

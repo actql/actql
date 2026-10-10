@@ -157,7 +157,7 @@ test "current TRAIL obligations retain typed selector ownership and source prove
 }
 
 ///|
-test "unsupported Graph consumers cannot issue legacy selector or structural fold obligations" {
+test "Shortest rejects empty literal identities before issuing selector obligations" {
   for
     (body, key) in [
       (
@@ -172,8 +172,8 @@ test "unsupported Graph consumers cannot issue legacy selector or structural fol
       None,
       limits(),
     ).unwrap_err()
-    assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-    assert_eq(issue.path, [Index(0), Key(key)])
+    assert_eq(issue.kind, GraphMatch(@graph.Structure(@graph.InvalidBody)))
+    assert_eq(issue.path, [Index(0), Key(key), Key("source"), Key("ids")])
   }
 }
 

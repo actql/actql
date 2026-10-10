@@ -8,6 +8,8 @@ priv enum Phase {
   Normalizing
   StartUnion
   Unioning
+  StartMean
+  Meaning
   ApplyingDelta
   StartProjection
   Projection
@@ -55,6 +57,8 @@ priv struct Execution {
   constructions : Array[@bridge.RowsToGraphExecution]
   mut normalization : @sga.NormalizeExecution?
   mut union : @sga.UnionExecution?
+  mean_policy : MeanPolicy?
+  mut mean : @sga.MeanExecution?
   mut graph : @graph.Completed?
   mut transform : @sga.SubgraphExecution?
   mut delta_apply : @sga.DeltaApplyExecution?
@@ -92,6 +96,40 @@ pub(all) struct DeltaPolicy {
 pub(all) struct UnionPolicy {
   max_workspace_slots : Int
   workspace_bytes : Int64
+}
+
+///|
+/// Separate installed scratch from the unchanged retained output quota.
+/// Workspace bytes include logical cursor slots and temporary value/number
+/// roots. This reservation is not a compiler allocator/heap-size theorem.
+pub(all) struct MeanPolicy {
+  limits : @sga.MeanLimits
+  max_workspace_slots : Int
+  workspace_bytes : Int64
+}
+
+///|
+fn valid_mean_policy(value : MeanPolicy) -> Bool {
+  @sga.mean_limits_valid(value.limits) &&
+  value.max_workspace_slots >= 0 &&
+  value.workspace_bytes >=
+  value.max_workspace_slots.to_int64() * 16L +
+  value.limits.max_temporary_bytes.to_int64()
+}
+
+///|
+fn mean_material(sequence : @execution.GeneratedSequence) -> Bool {
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  if selected is None && @execution.generated_sequence_step_count(sequence) != 1 {
+    return false
+  }
+  @lower.sequence_step(
+    @execution.generated_prepared_sequence(sequence),
+    selected.unwrap_or(0),
+  )
+  is Some(@lower.GraphMeanStep(_))
 }
 
 ///|
@@ -180,6 +218,7 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
     Some(@lower.GraphConstructionStep(_))
     | Some(@lower.GraphNormalizeStep(_))
     | Some(@lower.GraphUnionStep(_))
+    | Some(@lower.GraphMeanStep(_))
     | Some(@lower.GraphSubtractionStep(_)) => true
     _ => false
   }
@@ -218,7 +257,8 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   maximum <= 2147483647L &&
   (
     @lower.graph_traverse_start_id_count(value) > 0 ||
-    @lower.graph_traverse_start_relation_field(value) is Some(_)
+    @lower.graph_traverse_start_relation_field(value) is Some(_) ||
+    @lower.graph_traverse_start_predicate(value) is Some(_)
   ) &&
   hop_count > 0 &&
   ({
@@ -281,7 +321,14 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           return false
         }
         current_graph(carrier) &&
-        @lower.operation(node) == "SGA.traverse" &&
+        @lower.operation(node) ==
+        (if @lower.graph_traverse_shortest(traverse) is Some(_) {
+          "SGA.shortest_path"
+        } else if @lower.graph_traverse_is_reach(traverse) {
+          "SGA.reachable"
+        } else {
+          "SGA.traverse"
+        }) &&
         accepts_traverse(traverse)
       }
       @lower.GraphSubgraphStep(subgraph) => {
@@ -348,9 +395,30 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         )
         (
           @lower.operation(node) == "SGA.union_structural" ||
+          (@lower.operation(node) == "SGA.graft" && count == 2) ||
           (@lower.operation(node) == "SGA.diff_structural" && count == 2)
         ) &&
         count >= 2 &&
+        @lower.node_input_count(node) == count &&
+        ({
+          let mut valid = true
+          for input in 0..<count {
+            if !@lower.node_input_target(node, input)
+              .bind(target => @lower.preparation_carrier_at(prepared, target))
+              .map(current_graph)
+              .unwrap_or(false) {
+              valid = false
+            }
+          }
+          valid
+        })
+      }
+      @lower.GraphMeanStep(mean) => {
+        let count = @graph_type.mean_sample_count(
+          @graph_type.checked_mean_options(@lower.graph_mean_checked(mean)),
+        )
+        @lower.operation(node) == "SGA.mean_structural" &&
+        count >= 1 &&
         @lower.node_input_count(node) == count &&
         ({
           let mut valid = true
@@ -637,6 +705,60 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@sga.UnionStopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
+      StartMean => {
+        guard value.mean_policy is Some(policy) else {
+          return fail_execution(value)
+        }
+        match
+          @sga.start_mean_views(
+            value.control,
+            value.sequence,
+            value.selected_step.unwrap_or(0),
+            value.carrier_inputs,
+            value.limits,
+            policy.limits,
+            value.storage_bytes,
+            () => true,
+            control_work_limit=Some(value.limits.max_work),
+          ) {
+          Ok(active) => value.mean = Some(active)
+          Err(_) => return fail_execution(value)
+        }
+        value.phase = Meaning
+        reset_stage(value)
+      }
+      Meaning => {
+        guard value.mean is Some(active) else { return fail_execution(value) }
+        match @sga.advance_mean(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@sga.MeanContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.MeanComplete(output, progress~, work~)) =>
+            return complete_graph_poll(
+              value,
+              output,
+              value.selected_step.unwrap_or(0),
+              progress,
+              work,
+            )
+          Ok(@sga.MeanFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.MeanStopped(_, progress~, work~)) => {
             guard terminal_poll(value, progress, work, true) is Some(poll) else {
               return fail_execution(value)
             }
@@ -1084,13 +1206,18 @@ fn advance_execution(
                 Err(_) => return fail_execution(value)
               }
             }
-          Some(@lower.GraphTraverseStep(_)) => {
+          Some(@lower.GraphTraverseStep(traverse)) => {
             // The checked search envelope is independent of output cardinality.
             // Public dispatch always binds it from the captured limit owner.
-            let (paths, rows) = @execution.generated_traversal_ceilings(
+            let ceilings = @execution.generated_traversal_ceilings(
               value.generated,
               value.projection_step,
-            ).unwrap_or(
+            )
+            if @lower.graph_traverse_shortest(traverse) is Some(_) &&
+              ceilings is None {
+              return fail_execution(value)
+            }
+            let (paths, rows) = ceilings.unwrap_or(
               (
                 value.limits.max_workspace_slots.to_int64(),
                 value.max_rows.to_int64(),
@@ -1599,6 +1726,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.mean is Some(active) {
+    match @sga.cleanup_mean(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   discard(value.graph) |> ignore
   value.graph = None
   let mut construction_pending = false
@@ -1638,6 +1771,7 @@ fn cleanup_execution(
   let union_pending = value.union
     .map(@sga.union_cleanup_pending)
     .unwrap_or(false)
+  let mean_pending = value.mean.map(@sga.mean_cleanup_pending).unwrap_or(false)
   if failed {
     return Err(issue())
   }
@@ -1646,7 +1780,8 @@ fn cleanup_execution(
     transform_pending ||
     normalization_pending ||
     delta_pending ||
-    union_pending {
+    union_pending ||
+    mean_pending {
     return Ok(false)
   }
   value.reference_issuer = None
@@ -1664,6 +1799,7 @@ pub fn provider(
   snapshot_policy? : SnapshotPolicy? = None,
   delta_policy? : DeltaPolicy? = None,
   union_policy? : UnionPolicy? = None,
+  mean_policy? : MeanPolicy? = None,
   reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> @local.ManagedProvider {
   let eligible = fn(sequence) {
@@ -1671,6 +1807,10 @@ pub fn provider(
     (
       (!delta_material(sequence) && !delta_diff_material(sequence)) ||
       (delta_policy is Some(policy) && valid_delta_policy(policy))
+    ) &&
+    (
+      !mean_material(sequence) ||
+      (mean_policy is Some(policy) && valid_mean_policy(policy))
     )
   }
   let capacity_for = fn(sequence) {
@@ -1726,7 +1866,35 @@ pub fn provider(
       if delta_workspace > 9223372036854775807L - snapshot_workspace {
         return None
       }
-      let private_workspace = snapshot_workspace + delta_workspace
+      let mean_workspace = if mean_material(sequence) {
+        guard mean_policy is Some(policy) &&
+          valid_mean_policy(policy) &&
+          @lower.sequence_step(
+            @execution.generated_prepared_sequence(sequence),
+            @execution.completion_preparation_selected_step(
+              @execution.generated_completion_preparation(sequence),
+            ).unwrap_or(0),
+          )
+          is Some(@lower.GraphMeanStep(mean)) &&
+          @sga.prepare_mean_reservation(
+            @lower.graph_mean_checked(mean),
+            { ..limits, max_workspace_slots: policy.max_workspace_slots, },
+            policy.limits,
+          )
+          is Ok(_) else {
+          return None
+        }
+        policy.workspace_bytes
+      } else {
+        0L
+      }
+      if mean_workspace >
+        9223372036854775807L - snapshot_workspace - delta_workspace {
+        return None
+      }
+      let private_workspace = snapshot_workspace +
+        delta_workspace +
+        mean_workspace
       if union_workspace > 9223372036854775807L - private_workspace {
         return None
       }
@@ -1751,7 +1919,11 @@ pub fn provider(
       if !eligible(sequence) ||
         storage_bytes < 0L ||
         (
-          (delta_material(sequence) || delta_diff_material(sequence)) &&
+          (
+            delta_material(sequence) ||
+            delta_diff_material(sequence) ||
+            mean_material(sequence)
+          ) &&
           capacity_for(sequence) is None
         ) ||
         (snapshot_policy is Some(policy) && !valid_snapshot_policy(policy)) {
@@ -1806,12 +1978,26 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.GraphTraverseStep(traverse)) =>
-          if @lower.graph_traverse_start_relation_field(traverse) is Some(_) {
+        Some(@lower.GraphTraverseStep(traverse)) => {
+          let source_count = if @lower.graph_traverse_start_relation_field(
+              traverse,
+            )
+            is Some(_) {
             1
           } else {
             0
           }
+          let target_count = if @lower.graph_traverse_target_selector(traverse)
+            .map(selector => {
+              @graph_type.selector_form(selector) is @graph_type.RelationIds(..)
+            })
+            .unwrap_or(false) {
+            1
+          } else {
+            0
+          }
+          source_count + target_count
+        }
         _ => 1
       }
       let direct_match = match
@@ -1857,8 +2043,26 @@ pub fn provider(
           Some(@graph_type.union_input_count(@lower.graph_union_checked(union)))
         _ => None
       }
-      let limits = if direct_union_inputs is Some(_) &&
-        union_policy is Some(policy) {
+      let direct_mean_inputs = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphMeanStep(mean)) =>
+          Some(
+            @graph_type.mean_sample_count(
+              @graph_type.checked_mean_options(@lower.graph_mean_checked(mean)),
+            ),
+          )
+        _ => None
+      }
+      let limits = if direct_mean_inputs is Some(_) &&
+        mean_policy is Some(policy) {
+        guard capacity_for(sequence) is Some(_) else {
+          return Err(@connector.InvalidLimits)
+        }
+        { ..limits, max_workspace_slots: policy.max_workspace_slots, }
+      } else if direct_union_inputs is Some(_) && union_policy is Some(policy) {
         guard capacity_for(sequence) is Some(_) else {
           return Err(@connector.InvalidLimits)
         }
@@ -1902,15 +2106,18 @@ pub fn provider(
         direct_equality ||
         direct_diff ||
         direct_normalize ||
+        direct_mean_inputs is Some(_) ||
         direct_union_inputs is Some(_) ||
         direct_delta {
         if carriers.length() !=
-          direct_union_inputs.unwrap_or(
-            if direct_equality || direct_diff {
-              2
-            } else {
-              1
-            },
+          direct_mean_inputs.unwrap_or(
+            direct_union_inputs.unwrap_or(
+              if direct_equality || direct_diff {
+                2
+              } else {
+                1
+              },
+            ),
           ) ||
           relations.length() !=
           (if direct_traverse {
@@ -1949,7 +2156,9 @@ pub fn provider(
           @execution.generated_sequence_step_count(sequence) - 1,
         ),
         construction_steps,
-        phase: if direct_union_inputs is Some(_) {
+        phase: if direct_mean_inputs is Some(_) {
+          StartMean
+        } else if direct_union_inputs is Some(_) {
           StartUnion
         } else if direct_normalize {
           StartNormalize
@@ -1965,6 +2174,8 @@ pub fn provider(
         constructions: [],
         normalization: None,
         union: None,
+        mean_policy,
+        mean: None,
         graph: None,
         transform: None,
         delta_apply: None,
