@@ -520,7 +520,10 @@ test "native Effect Ledger custody reconstruction reads original claims without 
     .unwrap()
   assert_eq(after.revision, original.revision)
   assert_eq(after.body, original.body)
-  let foreign = test_request("another-effect-ledger-restore")
+  let foreign = test_request_for(
+    "another-effect-ledger-restore", 8, 4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
   native_effect_ledger_ready(restored, foreign)
   assert_true(
     restored.effect_ledger_custody(
