@@ -41,6 +41,7 @@ pub(all) struct NativeResultAccessRequest {
 }
 
 type NativeResultAccessService
+pub fn NativeResultAccessService::custody_location(Self) -> Result[(String, UInt64, UInt64), NativeResultAccessIssue]
 
 type NativeResultAccessSession
 pub fn NativeResultAccessSession::attempt_cid(Self) -> String

@@ -316,17 +316,10 @@ pub fn install_native_client_cancellation_publication(
     Ok(value) => value
     Err(issue) => return Err(PublicationObservation(issue))
   }
-  let binding = try {
-    let writer = @encode.writer(4096, 8, 2)
-    @encode.begin_array(writer)
-    for
-      value in [namespace_id, authority, device.to_string(), inode.to_string()] {
-      @encode.string_value(writer, value)
-    }
-    @encode.end_array(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Encoding)
+  let binding = match
+    installed_publication_binding(namespace_id, authority, device, inode) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   Ok({
     binding: Some(binding),
@@ -344,6 +337,29 @@ pub fn install_native_client_cancellation_publication(
       .map_err(issue => PublicationObservation(issue))
     },
   })
+}
+
+///|
+/// Same retained binding for cancellation and original-Submission reads.
+/// Values are preserved; this is physical custody, not configuration identity.
+fn installed_publication_binding(
+  namespace_id : String,
+  authority : String,
+  device : UInt64,
+  inode : UInt64,
+) -> Result[String, NativeClientRunJournalIssue] {
+  try {
+    let writer = @encode.writer(4096, 8, 2)
+    @encode.begin_array(writer)
+    for
+      value in [namespace_id, authority, device.to_string(), inode.to_string()] {
+      @encode.string_value(writer, value)
+    }
+    @encode.end_array(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
 }
 
 ///|

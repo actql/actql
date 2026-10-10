@@ -18,30 +18,56 @@ fn local_client_source_publication_case(
   let path = root_path + "/" + name
   let root = @filesystem.open_root(root_path).unwrap()
   resident_compute_database(library, path)
-  let database = sqlite
+  let mut database = sqlite
     .open_database(root_path + "/" + name + ".sqlite3", 131072L)
     .unwrap()
   // This is an independently authored test-owned initial row, not production
   // bootstrap or a repair of an adopted Host. No Submission receipt is faked.
   database.insert("client_run_custody", "issued", b"0").unwrap() |> ignore
   database.insert("client_cancel_custody", "issued", b"0").unwrap() |> ignore
-  let journal = @client.open_native_client_run_journal(database, 8).unwrap()
+  database.insert("client_submitted_intent_custody", "issued", b"0").unwrap()
+  |> ignore
+  database
+  .insert(
+    "client_submission_epoch", "authority", b"{\"authentication_key\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"observed_at\":0,\"version\":\"actql-native-submission-epoch-custody/0.1\"}",
+  )
+  .unwrap()
+  |> ignore
+  let mut journal = @client.open_native_client_run_journal(database, 8).unwrap()
+  let crypto = @signature.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
+  ).unwrap()
+  let mut authority = @client.open_native_client_epoch_authority(
+    database, crypto, 100.0,
+  ).unwrap()
+  let scope = "sha256:" + "a".repeat(64)
+  let reference = @client.prepare_native_client_submission_reference(
+    authority.issue_epoch(scope, true, 1000.0).unwrap(),
+    "original-source-request",
+  ).unwrap()
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
     "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
-  guard @client.prepare_native_client_program(
-      resident_compute_document,
-      Json,
-      environment,
-      None,
-      None,
-      [],
-      @host.client_standard_effect_computation_limits(),
-    )
-    is Ok(@client.Computation(prepared)) else {
+  let intent = @host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    resident_compute_document +
+    ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let preparation = @client.prepare_native_client_submitted_program(
+    intent,
+    environment,
+    None,
+    [],
+    @host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  guard @client.native_client_submitted_preparation(preparation)
+    is @client.Computation(prepared) else {
     fail("Native frontend did not prepare the ordinary Source Program")
   }
   assert_true(@resident.resident_source_compute_shape_supported(prepared))
@@ -76,7 +102,7 @@ fn local_client_source_publication_case(
   let request = @host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
-    "original-source-request",
+    @client.native_client_submission_request_id(reference),
   ).unwrap()
   let configured = resident_compute_configuration(library, path)
   // Keep the representative execution inside a declared 512 MiB envelope;
@@ -108,7 +134,16 @@ fn local_client_source_publication_case(
     8L,
     1000000L,
   ).unwrap()
-  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  journal
+  .record_submitted_intent(authority, reference, intent, scope, true, 1001.0)
+  .unwrap()
+  |> ignore
+  journal
+  .accept_submitted_run(
+    authority, reference, preparation, request, compiled, definition, scope, true,
+    1002.0,
+  )
+  .unwrap()
   |> ignore
   let installed = @client.install_native_client_cancellation_publication(
     initial_store, "native-client-fixture", 1000000, 100000, 100,
@@ -337,8 +372,21 @@ fn local_client_source_publication_case(
     )
   }
   if !race {
+    // Reopen actual admission custody as well as the Result Store. This is
+    // same-process restoration, not the final separate-process CLI acceptance.
+    database.close_checked().unwrap()
+    database = sqlite
+      .open_database(root_path + "/" + name + ".sqlite3", 131072L)
+      .unwrap()
+    journal = @client.open_native_client_run_journal(database, 8).unwrap()
+    authority = @client.open_native_client_epoch_authority(
+      database, crypto, 100.0,
+    ).unwrap()
+    let restored_reference = @client.admit_native_client_submission_reference(
+      @client.native_client_submission_reference_wire(reference),
+    ).unwrap()
     local_client_read_result_sink(
-      store, definition, request, "native-cli-sink-after-reopen",
+      journal, authority, restored_reference, store, definition, request, "native-cli-sink-after-reopen",
     )
     assert_eq(acquisitions, 1)
     assert_eq(consumers, 1)

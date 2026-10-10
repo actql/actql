@@ -198,6 +198,15 @@ fn observed_at(
 }
 
 ///|
+/// Original physical custody only, not a grant or a current read permit.
+/// An original-Run adapter uses it to reject a substituted installed Store.
+pub fn NativeResultAccessService::custody_location(
+  self : NativeResultAccessService,
+) -> Result[(String, UInt64, UInt64), NativeResultAccessIssue] {
+  self.store.custody_location().map_err(issue => Store(issue))
+}
+
+///|
 pub fn open_native_result_access(
   service : NativeResultAccessService,
   request : NativeResultAccessRequest,

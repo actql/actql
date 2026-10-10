@@ -448,11 +448,15 @@ fn local_client_read_committed_result(
 /// adapter used by Native CLI. This creates an explicit new read attempt,
 /// not another Source/Compute operation or a replay of an old delivery grant.
 fn local_client_read_result_sink(
+  journal : @client.NativeClientRunJournal,
+  epoch_authority : @client.NativeClientEpochAuthority,
+  reference : @client.NativeClientSubmissionReference,
   store : @store.Store,
   definition : @publication.PublicationContract,
   request : @host.ClientRequestIdentity,
   attempt : String,
 ) -> Unit raise {
+  let admissions = Ref(0)
   let authority = @access.install_native_result_access_authority(
     requested => {
       requested.run_definition_cid ==
@@ -462,6 +466,7 @@ fn local_client_read_result_sink(
       requested.principal_id == "fixture-principal"
     },
     _ => {
+      admissions.val += 1
       Some({
         authorization_context_cid: local_client_publication_cid(
           attempt + "-read-authority",
@@ -487,17 +492,167 @@ fn local_client_read_result_sink(
     128,
     3,
   ).unwrap()
-  let session = match
-    @access.open_native_result_access(service, {
-      namespace_id: "native-client-fixture",
-      authority_scope_cid: @host.client_request_authority_scope_cid(request),
-      run_definition_cid: @publication.publication_contract_identity(definition),
-      principal_id: "fixture-principal",
-      purpose: "inspect",
-      result_name: "answer",
-      format: "jsonl",
-      attempt_id: attempt,
-    }) {
+  let selection : @client.NativeClientResultSelection = {
+    namespace_id: "native-client-fixture",
+    principal_id: "fixture-principal",
+    purpose: "inspect",
+    result_name: "answer",
+    format: "jsonl",
+    attempt_id: attempt,
+  }
+  let scope = @host.client_request_authority_scope_cid(request)
+  let read_epoch = epoch_authority.issue_epoch(scope, true, 1101.0).unwrap()
+  let unresolved = @client.prepare_native_client_submission_reference(
+    read_epoch, "unresolved-read-reference",
+  ).unwrap()
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      unresolved,
+      scope,
+      () => true,
+      1102.0,
+      service,
+      selection,
+    )
+    is Err(@client.UnresolvedSubmissionHistory),
+  )
+  let unadmitted = @client.prepare_native_client_submission_reference(
+    read_epoch, "unadmitted-read-reference",
+  ).unwrap()
+  let unadmitted_intent = @host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    resident_compute_document +
+    ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  journal
+  .record_submitted_intent(
+    epoch_authority, unadmitted, unadmitted_intent, scope, true, 1102.0,
+  )
+  .unwrap()
+  |> ignore
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      unadmitted,
+      scope,
+      () => true,
+      1103.0,
+      service,
+      selection,
+    )
+    is Err(@client.RunNotAdmitted),
+  )
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      reference,
+      "sha256:" + "b".repeat(64),
+      () => true,
+      1103.0,
+      service,
+      selection,
+    )
+    is Err(@client.Journal(@client.Epoch(@client.ScopeMismatch))),
+  )
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root = @filesystem.open_root(root_path).unwrap()
+  let foreign_name = "native-client-read-foreign-" + @env.now().to_string()
+  root.create_directory(foreign_name).unwrap() |> ignore
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let (store_authority, _, _) = store.custody_location().unwrap()
+  let foreign_store = @store.open_store(
+    library,
+    root_path + "/" + foreign_name,
+    store_authority,
+    128L,
+    8L,
+    1000000L,
+  ).unwrap()
+  let foreign_service = @access.install_native_result_access_service(
+    foreign_store,
+    authority,
+    () => "2026-10-10T00:00:08.000Z",
+    1000000,
+    100000,
+    16,
+    128,
+    3,
+  ).unwrap()
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      reference,
+      scope,
+      () => true,
+      1103.0,
+      foreign_service,
+      selection,
+    )
+    is Err(@client.Journal(@client.ForeignRun)),
+  )
+  assert_true(foreign_store.close().unwrap())
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      reference,
+      scope,
+      () => false,
+      1101.0,
+      service,
+      selection,
+    )
+    is Err(@client.Journal(@client.AuthorizationDenied)),
+  )
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      reference,
+      scope,
+      () => true,
+      1101.0,
+      service,
+      { ..selection, namespace_id: "foreign-publication-namespace", },
+    )
+    is Err(@client.Journal(@client.ForeignRun)),
+  )
+  let authorization_calls = Ref(0)
+  assert_true(
+    journal.open_submitted_result(
+      epoch_authority,
+      reference,
+      scope,
+      () => {
+        authorization_calls.val += 1
+        authorization_calls.val < 3
+      },
+      1101.0,
+      service,
+      selection,
+    )
+    is Err(@client.Journal(@client.AuthorizationDenied)),
+  )
+  assert_eq(admissions.val, 0)
+  let accessed = match
+    journal.open_submitted_result(
+      epoch_authority,
+      reference,
+      scope,
+      () => true,
+      1101.0,
+      service,
+      selection,
+    ) {
+    Ok(value) => Ok(value)
+    Err(@client.ResultAccess(issue)) => Err(issue)
+    Err(_) => fail("actual original Submission Result resolution refused")
+  }
+  let session = match accessed {
     Ok(value) => value
     Err(@access.InvalidRequest) =>
       fail("actual Source Result access: InvalidRequest")
@@ -579,6 +734,7 @@ fn local_client_read_result_sink(
   }
   assert_eq(receipt.confirmed_bytes, 9L)
   assert_eq(receipt.delivery_attempt_cid, session.attempt_cid())
+  assert_eq(admissions.val, 1)
   assert_true(sink.poll() is Ok(@access.SinkComplete(_)))
   assert_eq(output.length(), 9)
   assert_eq(finishes.val, 1)
