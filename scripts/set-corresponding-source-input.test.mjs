@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 30);
-  assert.equal(setCorrespondingRefusals.length, 17);
+  assert.equal(setCorrespondingSuccesses.length, 35);
+  assert.equal(setCorrespondingRefusals.length, 19);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -39,6 +39,27 @@ test('positional windows retain opposing order keys and different functions', ()
     assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
     assert.equal(item.format, 'aql-text');
   }
+});
+
+test('anonymous analytic ordinals retain scope without authored private receivers', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.includes('-anonymous-analytic-'));
+  assert.equal(cases.length, 5);
+  for (const item of cases) {
+    assert.deepEqual(item.columns.map(x => [x.name, x.contract.type, x.contract.nullable]),
+      [['a', 'number', false], ['b', 'number', false]]);
+    assert.deepEqual(item.expected, item.name.endsWith('-typed-empty') ? []
+      : [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}]);
+  }
+  const pipe = cases.find(x => x.name.endsWith('-scoped-pipe'));
+  assert.ok(pipe.text.includes('SET x = -x'));
+  assert.ok(pipe.text.includes('ORDER BY original.x'));
+  assert.ok(pipe.text.includes('OVER (ORDER BY x)'));
+  assert.equal(cases.find(x => x.name.endsWith('-source-orders')).sourceReadSessionCount, 1);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.includes('-anonymous-analytic-'));
+  assert.equal(refusals.length, 2);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+  assert.ok(refusals.some(x => x.text.includes('QUALIFY aql_analytic_output_1')));
+  assert.ok(refusals.some(x => x.text.includes('QUALIFY aql_set_anonymous_3')));
 });
 
 test('duplicate aggregate aliases retain different COUNT arguments and empty global rows', () => {

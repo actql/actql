@@ -1755,7 +1755,7 @@ fn same_analytic_window(
 
 ///|
 // This table belongs to one SELECT input snapshot, not a clause alias scope.
-// A repeated positional alias cannot identify an evaluated window call.
+// Positional column names do not identify evaluated window calls.
 fn positional_set_analytic_slot(
   call : @query.AnalyticCall,
   slots : Array[(@query.AnalyticCall, String)],
@@ -4518,27 +4518,46 @@ fn compile_steps(
           if projection.analytic is None {
             continue
           }
-          let name = projection.name.unwrap().value
-          let positional_duplicate = !order_window &&
+          let positional_terminal = !order_window &&
             positional_set_output &&
             @query.operation_at(query, @query.operation_count(query) - 1)
-            is Some(Select(_, _)) &&
-            duplicate_projection_alias(projections, name)
-          if !positional_duplicate &&
-            outputs.any(output => ascii_upper(output.0) == ascii_upper(name)) {
-            raise Abort(DuplicateOutput)
+            is Some(Select(_, _))
+          let positional_private = positional_terminal &&
+            (match projection.name {
+              None => true
+              Some(name) => duplicate_projection_alias(projections, name.value)
+            })
+          let slot = match projection.name {
+            None => {
+              if !positional_terminal {
+                raise Abort(UnsupportedProjection)
+              }
+              pipe_physical_name(physical, "aql_analytic_output_")
+            }
+            Some(name) => {
+              if !positional_private &&
+                outputs.any(output => {
+                  ascii_upper(output.0) == ascii_upper(name.value)
+                }) {
+                raise Abort(DuplicateOutput)
+              }
+              if positional_private ||
+                active_fields.any(field => {
+                  ascii_upper(field) == ascii_upper(name.value)
+                }) {
+                pipe_physical_name(physical, "aql_analytic_output_")
+              } else {
+                name.value
+              }
+            }
           }
-          // Analytic results are evaluated slots, not new SELECT input names.
-          // A colliding authored alias is restored only by final projection.
-          let slot = if positional_duplicate ||
-            active_fields.any(field => ascii_upper(field) == ascii_upper(name)) {
-            pipe_physical_name(physical, "aql_analytic_output_")
-          } else {
-            name
-          }
+          // Only authored aliases enter clause lookup. Anonymous evaluated
+          // slots stay private until the existing ordinal projection.
           physical.push(slot)
-          outputs.push((name, slot))
-          if positional_duplicate {
+          if projection.name is Some(name) {
+            outputs.push((name.value, slot))
+          }
+          if positional_private {
             positional_set_analytic_slots.push(
               (projection.analytic.unwrap(), slot),
             )
@@ -4870,10 +4889,22 @@ fn compile_steps(
                 continue
               }
               if projection.analytic is Some(call) {
-                let name = projection.name.unwrap().value
+                let name = match projection.name {
+                  Some(name) => name.value
+                  None => {
+                    if !positional_set_output ||
+                      i != @query.operation_count(query) - 1 {
+                      raise Abort(UnsupportedProjection)
+                    }
+                    anonymous_set_projection_name(projections, physical, names)
+                  }
+                }
                 let source = if positional_set_output &&
                   i == @query.operation_count(query) - 1 &&
-                  duplicate_projection_alias(projections, name) {
+                  (
+                    projection.name is None ||
+                    duplicate_projection_alias(projections, name)
+                  ) {
                   positional_set_analytic_slot(
                     call,
                     positional_set_analytic_slots,
@@ -5207,7 +5238,10 @@ fn compile_steps(
                 let source = if projection.analytic is Some(call) {
                   if positional_set_output &&
                     i == @query.operation_count(query) - 1 &&
-                    duplicate_projection_alias(projections, name) {
+                    (
+                      projection.name is None ||
+                      duplicate_projection_alias(projections, name)
+                    ) {
                     positional_set_analytic_slot(
                       call,
                       positional_set_analytic_slots,
