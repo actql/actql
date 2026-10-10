@@ -21,19 +21,87 @@ fn graph_relation_join_cases() -> Array[(String, String, String, String)] {
 }
 
 ///|
+test "Ordered Graph Relation JOIN distinguishes existing common order gaps" {
+  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 10 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
+  for
+    (operation, arguments, source_arguments, field) in graph_relation_join_cases() {
+    let source = prefix +
+      "FROM g |> " +
+      operation +
+      "(" +
+      source_arguments +
+      ") |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l." +
+      field +
+      " AS value, rr.tag AS tag |> ORDER BY tag"
+    for
+      program in [
+        graph_relation_join_control(operation, arguments, field, ordered=true),
+        compile_data_set(source),
+      ] {
+      let checked = @check.check_parsed_with_evidence(
+        program,
+        graph_rows_environment(),
+        None,
+        [],
+        graph_rows_check_limits(),
+      )
+      if operation == "graphs_equal" {
+        guard checked is Rejected(diagnostic) else {
+          fail(
+            "update the Graph equality order gap when the common owner is connected",
+          )
+        }
+        assert_true(
+          @check.diagnostic_cause(diagnostic)
+          is Source(
+            SourceView(
+              Program(
+                Program(
+                  Order(
+                    _,
+                    PipelineOrder({ kind: @pipeline.UnresolvedOrder, .. })
+                  )
+                )
+              )
+            )
+          ),
+          msg=operation,
+        )
+      } else {
+        match checked {
+          Checked(_) => ()
+          Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+          NeedsInputs(_) => fail("ordered control needs no external Source")
+        }
+      }
+    }
+  }
+}
+
+///|
 // Independent complete common operations, not source-compiler output.
 fn graph_relation_join_control(
   operation : String,
   arguments : String,
   field : String,
+  ordered? : Bool = false,
 ) -> @program.Program {
   let source =
-    #|{"version":"actql/0.1","id":"fixture.graph_relation_join","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"node_key":{"type":"number","nullable":false},"p":{"type":"number","nullable":false}},"rows":[{"node_key":1,"p":7}]},"as":"n"},{"values":{"schema":{"tag":{"type":"number","nullable":false}},"rows":[{"tag":10}]},"as":"r"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"n","key":["node_key"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[{"name":"E","from":"n","key":["node_key"],"source":{"definition":"N","key":["node_key"]},"target":{"definition":"N","key":["node_key"]},"labels":[{"name":"R","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}]},"as":"g"},{"from":"g","__operation__":__arguments__,"as":"stats"},{"from":"stats","cross_join":{"with":"r","max_output_rows":10,"select":{"value":"left.__field__","tag":"right.tag"}},"as":"joined"}],"results":{"rows":{"from":"joined","fields":["value","tag"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    #|{"version":"actql/0.1","id":"fixture.graph_relation_join","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"node_key":{"type":"number","nullable":false},"p":{"type":"number","nullable":false}},"rows":[{"node_key":1,"p":7}]},"as":"n"},{"values":{"schema":{"tag":{"type":"number","nullable":false}},"rows":[{"tag":10}]},"as":"r"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"n","key":["node_key"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[{"name":"E","from":"n","key":["node_key"],"source":{"definition":"N","key":["node_key"]},"target":{"definition":"N","key":["node_key"]},"labels":[{"name":"R","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}]},"as":"g"},{"from":"g","__operation__":__arguments__,"as":"stats"},{"from":"stats","cross_join":{"with":"r","max_output_rows":10,"select":{"value":"left.__field__","tag":"right.tag"}},"as":"joined"}__sort__],"results":{"rows":{"from":"__result__","fields":["value","tag"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   @program.parse(
     source
     .replace(old="__operation__", new=operation)
     .replace(old="__arguments__", new=arguments)
-    .replace(old="__field__", new=field),
+    .replace(old="__field__", new=field)
+    .replace(
+      old="__sort__",
+      new=if ordered {
+        ",{\"from\":\"joined\",\"sort\":[{\"field\":\"tag\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"sorted\"}"
+      } else {
+        ""
+      },
+    )
+    .replace(old="__result__", new=if ordered { "sorted" } else { "joined" }),
     construction_limits().program,
     format=Json,
   ).unwrap()

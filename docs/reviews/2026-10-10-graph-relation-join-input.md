@@ -102,9 +102,55 @@ Post-fix JS 35/35: run-OqoXud, focused-test-qC46BO.
 Node 35/35: run-01VUF0, focused-test-D9ieKf.
 Only changed MoonBit files were directly formatted; git diff --check passed.
 
-At this document's commit, normal five-package production and selected packed
-Local/HTTPS are pending. Exact source SHA, digests and original retained receipts
-will be recorded in the PR after execution. Parent successes remain evidence
-for their own SHAs, not this merged source. No full Core, all packed campaign,
-Wasm/Native execution or CI success is claimed. Final merge destination is main;
-retain the parent dependency until it reaches main.
+## Packed attempt and common order handoff
+
+Normal five-package production completed at clean source
+c6159647547f0de3f60f258ca1d5f15e4882a751. The focused Local/HTTPS coordinator
+then failed at the JSON graphs_equal control with ClientProgramInvalidInput
+before Run admission. Both transports had passed the JSON and text controls
+for degree, components and graph_bounds (six per transport). Later positives,
+the nine refusals and execution ceiling case were not reached.
+
+Original receipt:
+/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-xDElWi/summary.json.
+The first error and completed cases remain in 010.stderr.log / 010.stdout.log;
+transport-processes.json retains the two workers' terminal states. Guard:
+run-oLIrsU. Consumer artifacts were reclaimed after retaining evidence.
+This is a failed partial public cohort, not acceptance completion.
+
+Complete ordered controls were added to the focused MoonBit test rather than
+inferring the cause from the public error. JSON and text for graphs_equal both
+reject at Source/SourceView/Program/Program/Order/PipelineOrder(UnresolvedOrder).
+The other six ordered operations, including graph_diff, check successfully.
+The unsorted controls remain successful. Final changed test: 3/3,
+run-fD8le4 / focused-test-cq83wO. The diagnostic probe before fixing the test's
+incorrect assumption that graph_diff also shared this gap is retained at
+run-90cGbx / focused-test-yvV8G7; that failure was an expectation error, not a
+new product defect. The earlier full ordered diagnostic probe is run-n6T6t6 /
+focused-test-BSLusU (0/2).
+
+Common-owner handoff for A:
+
+- Authored complete source, independent JSON and unchanged ordered rows/column
+  contracts: docs/reviews/fixtures/graph-relation-join-order-repro.aql,
+  graph-relation-join-order-repro.program.json and
+  graph-relation-join-order-repro.expected.json.
+- Expected two rows: value=true with tags 10 then 20. Neither ORDER BY nor the
+  explicit JOIN ceiling 10 is removed.
+- pipeline_typing/logical_order.mbt::derive_logical_orders establishes a checked
+  singleton order for GraphDelta(Difference), but not GraphEquality.
+  Its CrossJoin dependency requires both retained operand orders; sorting after
+  the comparison therefore has no retained tie-order or complete key evidence.
+  pipeline_typing/contextual_orders.mbt::resolve_contextual_orders rejects it.
+- Existing query_program/graph_equality_test.mbt already records the standalone
+  ordered equality boundary. This unit does not change that Owner or fabricate
+  uniqueness, add an assertion, coerce Boolean to a numeric value, or approximate
+  a tie rule. Apply the common fix through existing order ownership and rerun
+  the preserved complete public cohort; do not convert these desired positive
+  fixtures into refusal expectations.
+
+The final test/document-only follow-up has not been freshly packed. Parent
+successes and the six c61596475 public cases remain evidence for their own SHAs,
+not later HEADs. Full public completion, final-HEAD CI, full Core, all packed,
+Wasm/Native and the wider Frontend objective remain unverified. Final merge
+destination is main; retain the parent dependency until it reaches main.
