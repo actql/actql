@@ -85,6 +85,24 @@ export const graphProjectionPropertySuccesses = [
     'WHERE NODE_ID(a) IS NOT NULL AND a.payload.score > @min '
       + '|> SELECT a.id AS id, a.payload.score AS score', [{id: 1, score: 20}],
     {parameterDeclarations: {...declarations, min: number}, parameters: {...parameters, min: 10}}),
+  {name: 'graph-projection-property-grouped-identity-independent-json', format: 'json',
+    text: JSON.stringify({...identityProgram, id: 'fixture.graph_grouped_identity'}), results: result([{id: 1, score: 20}]), sourceReadCount: 0},
+  ...['(a)', '(((a)))', '(`A`)'].map((argument, index) =>
+    sourceCase('grouped-identity-' + index,
+      'WHERE NODE_ID(' + argument + ') IS NOT NULL AND a.payload.score > @min '
+        + '|> SELECT a.id AS id, a.payload.score AS score', [{id: 1, score: 20}],
+      {parameterDeclarations: {...declarations, min: number}, parameters: {...parameters, min: 10}})),
+  sourceCase('grouped-identity-typed-empty',
+    'WHERE NODE_ID((a)) IS NOT NULL AND a.payload.score > 100 '
+      + '|> SELECT a.id AS id, a.payload.score AS score', []),
+  {name: 'graph-projection-property-grouped-path-independent-json', format: 'json',
+    text: JSON.stringify({...pathProgram, id: 'fixture.graph_grouped_path'}), results: pathResult, sourceReadCount: 0},
+  ...['p', '((p))', '(`P`)'].map((argument, index) => ({
+    name: 'graph-projection-property-grouped-path-' + index, format: 'aql-text',
+    text: pathData + pathGraph + 'FROM GRAPH g |> MATCH p = WALK (a:Node)-[:R]->(b:Node) '
+      + '|> SELECT PATH_LENGTH(' + argument + ') AS depth |> ORDER BY depth |> RESULT matched',
+    results: pathResult, sourceReadCount: 0,
+  })),
   {name: 'graph-projection-property-identity-independent-json', format: 'json',
     text: JSON.stringify(identityProgram), results: result([{id: 1, score: 20}]), sourceReadCount: 0},
   ...['`NODE_ID`', '`nOdE_iD`', '`\\x4eODE_ID`'].map((name, index) =>
@@ -126,6 +144,11 @@ export const graphProjectionPropertyRefusals = [
   ['folded-missing-member', 'SELECT a.payload.MISSING AS score'],
   ['scalar-receiver', 'SELECT a.id.score AS score'],
   ['removed-graph-variable', 'SELECT a.id AS id |> WHERE a.payload.score > 0'],
+  ['grouped-macro-property', 'SELECT NODE_ID((a.payload)) AS score'],
+  ['grouped-macro-expression', 'SELECT NODE_ID((a + 1)) AS score'],
+  ['grouped-macro-wrong-role', 'SELECT PATH_LENGTH((a)) AS score'],
+  ['grouped-macro-wrong-arity', 'SELECT NODE_ID((a), (a)) AS score'],
+  ['grouped-macro-removed-binding', 'SELECT a.id AS id |> WHERE NODE_ID((a)) IS NOT NULL'],
   ['same-select-alias', 'SELECT a.payload AS kept, kept.score AS score'],
   ['quoted-unknown-macro', 'SELECT `UNKNOWN`(a) AS score'],
   ['quoted-macro-namespace', 'SELECT `ACTQL`.`NODE_ID`(a) AS score'],
@@ -133,4 +156,6 @@ export const graphProjectionPropertyRefusals = [
   ['quoted-macro-wrong-arity', 'SELECT `NODE_ID`(a, a) AS score'],
   ['quoted-macro-removed-binding', 'SELECT a.id AS id |> WHERE `NODE_ID`(a) IS NOT NULL'],
 ].map(([name, tail]) => ({name: 'graph-projection-property-invalid-' + name,
-  format: 'aql-text', text: head + tail, parameterDeclarations: declarations, parameters}));
+  format: 'aql-text', text: head + tail, parameterDeclarations: declarations, parameters,
+  ...(name === 'grouped-macro-property'
+    ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
