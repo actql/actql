@@ -8,6 +8,12 @@ test "dispatch binding preserves denial and exact delegated context" {
     cid("a"),
     cid("b"),
   ).unwrap()
+  assert_eq(
+    dispatch_authorization_action(allowed),
+    runtime_action_for(
+      evaluate_account(configuration, tuple("customers", "read")),
+    ).unwrap(),
+  )
   assert_true(
     dispatch_authorization_matches(
       allowed,
@@ -40,6 +46,15 @@ test "dispatch binding preserves denial and exact delegated context" {
     request,
     Permit({ subject: request.subject(), authority: "approver-a", }, []),
   ).unwrap()
+  let delegated = bind_dispatch_authorization(
+    configuration,
+    tuple("customers", "write"),
+    Activation,
+    cid("a"),
+    cid("b"),
+    delegated_action=Some(permit),
+  ).unwrap()
+  assert_eq(dispatch_authorization_action(delegated), permit)
   assert_true(
     bind_dispatch_authorization(
       configuration,
