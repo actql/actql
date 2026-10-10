@@ -88,3 +88,14 @@ write requests and Resolution requests. Their failed receipts are retained at
 Native build and final test are pending the existing shared heavy-check lock.
 They must establish the added terminal persistence failure and unchanged
 no-write mode before this PR can claim completed Native acceptance.
+
+The later clean source `1e348aa321aac42f4d525267b307894fe6caaccb` passed
+one actual original-holder Native case after a separately bounded build,
+without extending the 180-second execution budget. It exercised both raw
+response and terminal-save failures and retries. The physical receipt records
+one Preview read, one Provider write, one signed Resolution request and final
+Count 3. Evidence: `_build/effect-approved-row-1791612750465/receipt.json`.
+This is a local HTTPS/SQLite fixture, not an external Salesforce service or
+public Cloud approval. The old trailing no-write label in that run was inherited
+from the original mode; the physical receipt and explicit row markers record
+the executed write. The mode-aware label is corrected in this branch.

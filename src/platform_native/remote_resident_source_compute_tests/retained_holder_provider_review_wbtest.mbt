@@ -378,6 +378,10 @@ fn retained_holder_provider_review(
   assert_true(owned_context.facts(journal) is None)
   assert_true(work.result_capture() is None)
   println(
-    "native-effect-original-review: production review and exact journal report retained; no Cloud commit, approval or write",
+    if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
+      "native-effect-original-review: original signed approval, one physical write and common row terminal; no Cloud commit, public approval, restart or formal Run release"
+    } else {
+      "native-effect-original-review: production review and exact journal report retained; no Cloud commit, approval or write"
+    },
   )
 }
