@@ -68,3 +68,30 @@ test "an unnamed whole SQL aggregate retains no authored output alias" {
     _ => fail("GROUP is followed by the authored aggregate projection")
   }
 }
+
+///|
+test "an unnamed whole window retains no authored output alias" {
+  for
+    source in [
+      "SELECT ROW_NUMBER() OVER (ORDER BY id) FROM records", "FROM records |> SELECT ROW_NUMBER() OVER (ORDER BY id)",
+    ] {
+    let query = parse_query(source, query_limits()).unwrap()
+    let mut count = 0
+    for index in 0..<operation_count(query) {
+      if operation_at(query, index) is Some(Select(projections, _)) {
+        assert_eq(projections.length(), 1)
+        assert_eq(projections[0].name, None)
+        assert_true(projections[0].analytic is Some(_))
+        count += 1
+      }
+    }
+    assert_eq(count, 1)
+  }
+  assert_true(
+    parse_query(
+      "FROM records |> EXTEND ROW_NUMBER() OVER (ORDER BY id)",
+      query_limits(),
+    )
+    is Err({ issue: Syntax(_), .. }),
+  )
+}
