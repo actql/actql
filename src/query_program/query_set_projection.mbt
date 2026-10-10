@@ -15,7 +15,8 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Extend(_)
       | Alias(_)
       | Analytic(_)
-      | AnalyticExpressions(_, _) => index -= 1
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => index -= 1
       Select(projections, _) => {
         projection = Some(index)
         if projections.length() == 1 &&
