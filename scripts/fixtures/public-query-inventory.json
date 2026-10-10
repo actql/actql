@@ -1,6 +1,6 @@
 {
   "version": "actql-public-query-fixture-inventory/0.1",
-  "sourceBaseline": "17ec72d42932c7d49e1726a5f91c88a9575bf531",
+  "sourceBaseline": "ac872c75a53b99c19927e8032a3f0f4d7ad32032",
   "totalCases": 3198,
   "inventorySha256": "83c4fe2d98b96e7bab17318b8f42733bff87337e79d4131122dcb0c178cd46d7",
   "counts": {
