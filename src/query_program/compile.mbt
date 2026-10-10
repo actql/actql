@@ -3381,8 +3381,46 @@ fn compile_steps(
         if pipe_value_table {
           raise Abort(UnsupportedGrouping)
         }
+        let row_witness = if clause.count_star {
+          // Every matching row counts, including NULLs in other columns.
+          // This private value is not an implicit grouping column.
+          let reserved = active_fields + pipe_columns.map(column => column.0)
+          for entry in clause.values {
+            let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
+            reserved.push(
+              clause.prefix
+              .map(prefix => prefix.value + "_" + suffix)
+              .unwrap_or(suffix),
+            )
+          }
+          let name = pipe_physical_name(reserved, "aql_pivot_row_")
+          entries.push(
+            (
+              "derive",
+              construction.object([
+                (
+                  name,
+                  construction.object([
+                    ("literal", construction.add(Number(1.0))),
+                  ]),
+                ),
+              ]),
+            ),
+          )
+          step_entries.push(entries.copy())
+          entries.clear()
+          active_fields.push(name)
+          Some(name)
+        } else {
+          None
+        }
         let (pivot, visible) = compile_pipe_pivot(
-          construction, clause, pipe_visible, pipe_columns, pipe_ranges,
+          construction,
+          clause,
+          pipe_visible,
+          pipe_columns,
+          pipe_ranges,
+          row_witness~,
         )
         entries.push(("pivot", pivot))
         step_entries.push(entries)

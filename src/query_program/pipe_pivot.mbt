@@ -8,9 +8,21 @@ fn compile_pipe_pivot(
   visible : Array[(String, String)],
   columns : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
+  row_witness? : String? = None,
 ) -> (@builder.Node, Array[(String, String)]) raise Abort {
-  guard pipe_slot(clause.argument, visible, ranges) is Some(value) &&
-    pipe_slot(clause.column, visible, ranges) is Some(column) else {
+  let value = if clause.count_star {
+    guard clause.function_name == "COUNT" && clause.argument.is_empty() else {
+      raise Abort(UnsupportedAggregate)
+    }
+    guard row_witness is Some(name) else { raise Abort(InvalidContext) }
+    name
+  } else {
+    guard pipe_slot(clause.argument, visible, ranges) is Some(name) else {
+      raise Abort(UnknownColumn)
+    }
+    name
+  }
+  guard pipe_slot(clause.column, visible, ranges) is Some(column) else {
     raise Abort(UnknownColumn)
   }
   let index = columns.filter(pair => pair.1 != value && pair.1 != column)

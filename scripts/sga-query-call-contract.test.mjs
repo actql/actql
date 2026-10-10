@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:81c194e574cb92623e23bf9e81075a718e14111cdfcb0308507c4f6d0b6b0586';
+  const currentExpected = 'sha256:179bf543f875423582fe4ae0d5154e80086c97feb120f84d530a8e3907bdc6b9';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -472,12 +472,19 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeStrposBody, {...beforePivotIntegrationBody,
     query_text_grammar_sha256: 'dad903a0a27a05f7211fc4689ac89cf3a74b14b25b79621edf8f87e807a38f97',
     query_text_rules_sha256: '4635956e68e7d5862fd0553053bde9fc5a855e661c9cd4fd10339cdd1e61739a'});
-  assert.deepEqual(currentBody, {...beforeStrposBody,
+  const {grammar_manifest_cid: beforeCountStarCid, ...beforeCountStarBody} =
+    read('scripts/fixtures/pre-pivot-count-star-values-identities.json').grammar;
+  assert.equal(cid(beforeCountStarBody), beforeCountStarCid);
+  assert.equal(beforeCountStarCid, 'sha256:81c194e574cb92623e23bf9e81075a718e14111cdfcb0308507c4f6d0b6b0586');
+  assert.deepEqual(beforeCountStarBody, {...beforeStrposBody,
     source_grammar_cid: 'sha256:9996b5ecd898044665b6d113ef4636b5a56f27fe3321ba278ad5ad6983700fb6',
     expression_contract_cid: 'sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd',
     expression_text_grammar_sha256: '12dfcd8853b43a66946036e8c9cc7bdf092b8cf2d911062fec57a9614f66285b',
     expression_text_rules_sha256: 'af98f75d2a1b4199171f72c3a88c36378a87b9be25955c9f112b4cfe56527313',
     query_text_rules_sha256: '915d8b74175a34f5d71729796bd97262b5192874f0bab94d2eaead9f9f406b65'});
+  assert.deepEqual(currentBody, {...beforeCountStarBody,
+    query_text_grammar_sha256: '65ee11202d1b943d918b3345511c44d5a4e0e8cd9403be85207c49216c47d770',
+    query_text_rules_sha256: '445548865bf586cfdb8f481553719d2ac0ab99acede953acd0bd9f2ea1531f35'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);

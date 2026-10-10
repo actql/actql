@@ -138,6 +138,7 @@ pub(all) struct KeepItem {
 ///|
 pub(all) struct PivotClause {
   function_name : String
+  count_star : Bool
   argument : Array[NamePart]
   column : Array[NamePart]
   prefix : NamePart?

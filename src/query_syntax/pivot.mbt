@@ -9,7 +9,16 @@ fn QueryParser::pivot_clause(
     raise QueryAbort("Unsupported PIVOT aggregate", self.peek().start)
   }
   self.symbol(40)
-  let argument = self.path()
+  let count_star = self.peek().value == Symbol(42)
+  let argument = if count_star {
+    if function_name != "COUNT" {
+      raise QueryAbort("Only COUNT accepts PIVOT star", self.peek().start)
+    }
+    self.symbol(42)
+    []
+  } else {
+    self.path()
+  }
   self.symbol(41)
   let prefix = self.optional_output_alias()
   self.keyword("FOR")
@@ -35,5 +44,5 @@ fn QueryParser::pivot_clause(
   }
   self.symbol(41)
   self.symbol(41)
-  { function_name, argument, column, prefix, values, }
+  { function_name, count_star, argument, column, prefix, values, }
 }
