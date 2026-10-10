@@ -110,3 +110,44 @@ Values Run consuming tests, including exact max_output_rows=10 checks on the
 JOIN Programs. Compilation manifest, document metadata, spec family, canonical,
 Workers and Node fixture read-only freshness checks pass. Main remains
 eefdda1a85c4e033d6dcefcc774095949cc97262 at the pre-submission fetch.
+
+## First public gate and retained identity projection
+
+Normal five-package producer at fc52b3998ab434ba8fa6d9c510c43e3ceac44428 passed
+actual digest/revision checks. Public guard run-abheUb then failed at
+pipe-pivot-from-empty-global: local Host preparation returned 500, surfaced as
+SubmissionUnknown. Seven preceding new FROM cases passed on both transports;
+no completed inventory or later-case success is claimed. Original receipt/logs:
+/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-r6HfEe.
+Both children terminated, failed guard released locks; private install removed.
+
+run-OdIM3e shows lowering/common checker success (1/1) and retains the exact
+Program at /private/tmp/actql-b-from-pivot-empty-program-fc52b3998.json. The main
+stage had steps=[] because SELECT * was elided when its input was a Stage Result.
+The exact packaged runtime module (SHA-256
+897d55bbcc38a9bae560b96a94e5db3b71d8323ac88558b247c8526c000633cf) matches its
+bytes in the retained local-node tarball. run-uAe48r diagnoses both source and
+unchanged JSON as prepared but task compilation rejected. Source-matched
+unminified diagnostic run-ehROdp decodes the same failure:
+ClientTaskCompilationIssue.Plan → ClientValuesExecutablePlanIssue.TaskGraph →
+ClientTaskPlanGraphIssue.Fragment → ClientTaskFragmentIssue.Pipeline →
+ClientTaskPipelineIssue.MissingOutput. Direct Values rejects this multi-stage
+profile as UnsupportedGraph; that is not an alternate accepted execution route.
+No public pass is inferred from these diagnostics.
+
+B fixes only compile_steps' identity-select elision: retain the explicit SELECT
+when a Stage Result consumer has no other operation, using the ordinary existing
+projection branch. Already materialized JOIN continuations keep their existing
+elision. This does not alter CTE capture/predicate handling, common task emission,
+Run owners, input rows, limits or the expected global row A=0. run-jaz5F7 is 28/28
+for the new projection plus FROM/nested/CTE/range-lifetime callers.
+
+The independently legal JSON pass-through stage remains a separate common-owner
+counterexample for A: src/run_publication_host/client_program.mbt::
+emit_prepared_client_task_pipeline returns MissingOutput when
+client_task_output_step/node_at cannot identify an output step. Preserve source/JSON, issue chains and fixed
+runtime at /private/tmp/actql-b-from-pivot-empty-{program,bridge-diagnostic,
+unminified-diagnostic}-fc52b3998.json. The frontend now preserves its authored
+projection instead of introducing that unimplemented empty consumer. This
+common JSON coverage obligation is not silently marked fixed by the frontend
+optimization change. No Owner implementation is duplicated here.
