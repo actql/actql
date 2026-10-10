@@ -592,3 +592,38 @@ public failure/cleanup retry evidence, and the Reach/Shortest selector-prefix
 boundedness audit. Existing selector admission still contains whole-value
 rechecking; the stepped output cursor alone does not close that separate
 boundary. Final portable caller coverage follows any necessary cursor change.
+
+### Independent sample and connectivity controls
+
+The next fixture checkpoint adds distinguishable Mean inputs in the same
+definition domain: a declared `number_sum` union doubles properties and the
+explicit sample order is `[doubled, g, doubled]`, with weights `[1, 2, 0]`.
+Independent arithmetic fixes node `p` at `28/3` and edge `w` at `8/3` and
+`20/3`. Swapping the two positive sample positions changes these results.
+JSON and AQL use the same semantic expectation, not a captured union output.
+
+Reach controls now include descending node inputs, two parallel edges, a
+self-loop and a two-hop path. The independent out-direction expectation is
+nodes 1, 2, 3 at depths 0, 1, 2; in-direction from node 1 retains only depth 0.
+The JSON case checks complete typed identities; AQL checks the corresponding
+ordered depth projection. The original two-consumer and empty-schema controls
+remain present.
+
+Focused local checks on this working fixture checkpoint:
+
+- `node scripts/local-checks.mjs test moon -- --target js src/query_program
+  --filter 'Mean*'`: 4/4, `run-sBhmIL`, `focused-test-HUSIiO`.
+- `node scripts/local-checks.mjs test node --` with the four
+  `scripts/graph-{graft,reach,shortest,mean}-source-input.test.mjs` files and
+  `scripts/public-query-profiles.test.mjs`: 47/47, `run-Gt0K6w`,
+  `focused-test-2d6h9n`.
+- Before the caller correction, `run-WdVJdX`/`focused-test-gsCWhq` fixed a
+  stale Reach test assertion: it listed three Graph restart selections and
+  omitted Mean. The corrected assertion retains the same post-producer
+  fresh-process reader requirement and names all four selections.
+
+These are source admission and authored fixture checks, not executed Host or
+packed acceptance. The inventory has 3,461 authored occurrences (2,193
+success, 48 execution-failure and 1,220 refusal controls). Its digest is
+`5889d25a00415bed55e61187c759ca72ba5e2ff487c1bafcf031e72959461365`.
+No operation is promoted to completed delivery by registering these controls.

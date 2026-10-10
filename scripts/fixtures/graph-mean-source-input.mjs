@@ -38,6 +38,21 @@ const empty = structuredClone(graphMeanProgram);
 empty.id = 'fixture.graph_mean_empty';
 for (const step of empty.stages[0].steps.slice(0, 2)) step.values.rows = [];
 
+// Distinguishable samples share one admitted definition domain. The declared
+// number_sum union doubles complete properties, not keys or edge identities.
+// These expectations are arithmetic on authored inputs, never a union result.
+const asymmetric = structuredClone(graphMeanProgram);
+asymmetric.id = 'fixture.graph_mean_asymmetric';
+asymmetric.stages[0].steps.splice(3, 0, {from: 'g',
+  union_graphs: {with: ['g'], merge: {node_properties: {p: 'number_sum'},
+    edge_properties: {w: 'number_sum'}}}, as: 'doubled'});
+asymmetric.stages[0].steps[4].mean_graphs.with = ['doubled', 'g', 'doubled'];
+const asymmetricResults = {
+  nodes: {...results.nodes, rows: [{p: 28 / 3, part: 7, node_key: 1, labels: ['Person']}]},
+  edges: {...results.edges, rows: [{w: 8 / 3, part: 7, edge_key: 10, labels: ['R']},
+    {w: 20 / 3, part: 7, edge_key: 11, labels: ['R']}]},
+};
+
 // Independently authored public acceptance controls. Registration is not an
 // execution receipt; the delivery record reports which boundaries were run.
 export const graphMeanSourceOracles = [
@@ -52,6 +67,14 @@ export const graphMeanSourceOracles = [
         ? 'FROM combined |> node_rows() |> SELECT p, part, node_key, labels |> RESULT nodes'
         : 'FROM combined |> edge_rows() |> WHERE w > 0 |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges'),
     results: {[kind]: results[kind]}, sourceReadCount: 0})),
+  {name: 'graph-mean-json-asymmetric-ordered-samples', format: 'json',
+    text: JSON.stringify(asymmetric), results: asymmetricResults, sourceReadCount: 0},
+  {name: 'graph-mean-aql-asymmetric-ordered-samples', format: 'aql-text',
+    text: prefix + "DATA doubled = FROM g |> union_graphs(with: [g], " +
+      "merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}}); " +
+      'DATA combined = ' + call.replace('[g, g, g]', '[doubled, g, doubled]') + '; ' +
+      'FROM combined |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges',
+    results: {edges: asymmetricResults.edges}, sourceReadCount: 0},
 ];
 
 export const graphMeanSourceRefusalOracles = [

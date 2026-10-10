@@ -38,7 +38,7 @@ test('Mean public acceptance reuses the existing fresh-process retained cohort r
 });
 
 test('Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input', () => {
-  const aql = graphMeanSourceOracles.filter(sample => sample.format === 'aql-text');
+  const aql = graphMeanSourceOracles.filter(sample => sample.name.startsWith('graph-mean-aql-generator-'));
   assert.equal(aql.length, 2);
   for (const sample of aql) {
     assert.match(sample.text, /DATA combined = mean_graphs\(with: \[g, g, g\], weights: \[1, 2, 0\]/u);
@@ -48,4 +48,22 @@ test('Mean AQL oracle uses a generator, not a Pipe left operand or implicit curr
   assert.match(graphMeanSourceRefusalOracles[0], /FROM g \|> mean_graphs/u);
   assert.match(graphMeanSourceRefusalOracles[1], /weights: \[0, 0, 0\]/u);
   assert.match(graphMeanSourceRefusalOracles[2], /with: \[g, missing, g\]/u);
+});
+
+test('Mean asymmetric controls distinguish sample port order from producer order', () => {
+  const samples = graphMeanSourceOracles.filter(sample => sample.name.includes('asymmetric-ordered'));
+  assert.equal(samples.length, 2);
+  const machine = samples.find(sample => sample.format === 'json');
+  const steps = JSON.parse(machine.text).stages[0].steps;
+  assert.equal(steps[2].as, 'g');
+  assert.equal(steps[3].as, 'doubled');
+  assert.deepEqual(steps[4].mean_graphs.with, ['doubled', 'g', 'doubled']);
+  assert.deepEqual(steps[4].mean_graphs.weights, [1, 2, 0]);
+  assert.deepEqual(machine.results.nodes.rows.map(row => row.p), [28 / 3]);
+  assert.deepEqual(machine.results.edges.rows.map(row => [row.edge_key, row.w]),
+    [[10, 8 / 3], [11, 20 / 3]]);
+  const source = samples.find(sample => sample.format === 'aql-text');
+  assert.match(source.text, /with: \[doubled, g, doubled\], weights: \[1, 2, 0\]/u);
+  assert.deepEqual(source.results.edges, machine.results.edges);
+  assert.notEqual(28 / 3, 35 / 3, 'swapping distinct positive samples changes the independent result');
 });
