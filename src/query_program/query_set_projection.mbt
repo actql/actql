@@ -1,12 +1,16 @@
 ///|
-// ORDER/LIMIT, WHERE and a star preserve anonymous positional columns.
+// ORDER/LIMIT, WHERE, analytic steps and a star retain positional inputs.
 // EXCEPT/REPLACE address named columns without naming retained anonymous values.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
   let mut projection : Int? = None
   while index >= 0 {
     match @query.operation_at(query, index).unwrap() {
-      Order(_) | Limit(_, _) | Where(_) => index -= 1
+      Order(_)
+      | Limit(_, _)
+      | Where(_)
+      | Analytic(_)
+      | AnalyticExpressions(_, _) => index -= 1
       Select(projections, _) => {
         projection = Some(index)
         if projections.length() == 1 &&
