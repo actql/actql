@@ -124,3 +124,31 @@ test "Pipe PIVOT does not fabricate names or ignore unknown references" {
     )
   }
 }
+
+///|
+test "Pipe PIVOT consumes named UNION ALL output without hiding anonymous label gaps" {
+  let named = "(SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale' AS product, CAST(NULL AS FLOAT64) AS sales, 'Q2' AS quarter) |> PIVOT(COUNT(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first)) AS shaped |> SELECT shaped.product, shaped.second, shaped.first"
+  let actual = compile(
+    @query.parse_query(named, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    _ => fail("closed combined output must check without Source I/O")
+  }
+  assert_true(
+    semantic(actual).contains("\"fields\":[\"product\",\"second\",\"first\"]"),
+  )
+  // This is an existing source-free output-label gap, not a PIVOT refusal.
+  let anonymous = "(SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale', 51, 'Q1' UNION ALL SELECT 'kale', CAST(NULL AS FLOAT64), 'Q2') |> PIVOT(COUNT(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))"
+  assert_true(
+    compile(
+      @query.parse_query(anonymous, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(UnsupportedProjection),
+  )
+}

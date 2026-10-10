@@ -126,3 +126,22 @@ fixture now records that literal-derived bound; neither product typing nor
 the independent rows changed. Node fixture/inventory checks pass 38/38
 (`run-vfFKQc`). The failed receipt remains at
 `/private/tmp/.codex-scratch/public-query-evidence-K85XBw/summary.json`.
+
+The next packed run at `63084e122` passed seven normal cases per transport;
+its last original source used anonymous literal projections in two UNION
+operands. The exact compiler diagnosis is `UnsupportedProjection`, before
+PIVOT execution. This is the pre-existing anonymous-output-label profile gap
+explicitly recorded in `docs/spec/query-text.md` (Source-free SELECT), not a
+PIVOT or set continuation implementation defect.
+
+The duplicate/NULL normal case now supplies explicit operand aliases while
+keeping identical values, multiplicity, PIVOT and expected output. The exact
+original input is retained as an additional implementation-limit refusal,
+not discarded or called invalid SQL. Added a compiler regression checking
+both the named continuation and the original typed gap. Its focused selection
+passed 6/6 (`run-wvVEWU`); fixture/inventory Node checks passed 38/38. The public
+selection is eight normal plus nine refusal cases. Anonymous label support
+remains unimplemented and is not claimed as part of this PR.
+
+The failed second receipt is retained at
+`/private/tmp/.codex-scratch/public-query-evidence-ovg9Aj/summary.json`.

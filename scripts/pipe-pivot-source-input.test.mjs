@@ -21,7 +21,8 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-current-value').expected, [{product: 'kale', present: 99}]);
   assert.equal(cases.get('pipe-pivot-duplicate-null-json-control').columns[0].contract.max_utf8_bytes, undefined);
   assert.equal(cases.get('pipe-pivot-min-missing-authored-order').columns[0].contract.max_utf8_bytes, Buffer.byteLength('kale', 'utf8'));
-  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 16);
+  assert.equal(pipePivotRefusals.find(input => input.name.endsWith('anonymous-set-operands')).expectedCode, 'ClientProgramImplementationLimit');
+  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 17);
 });
 
 test('PIVOT uses the same cases in the normal corpus and scoped packed execution', async () => {
