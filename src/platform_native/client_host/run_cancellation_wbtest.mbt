@@ -488,3 +488,23 @@ test "Native publication fence permits only original readback and blocks nested 
   assert_false(after.cancellation_requested)
   database.close_checked().unwrap()
 }
+
+///|
+test "Native original cancellation refuses a structurally valid immutable outcome substitution" {
+  let (database, journal, request) = cancellation_test_run("client-cancel-valid-substitution")
+  let original = journal.cancellation_test_operation(
+    request, "namespace-a", "original", 1, () => true, () => false,
+  ).unwrap()
+  assert_eq(original.action, @host.AcceptCancellation)
+  let key = cancellation_index("namespace-a", @host.client_request_authority_scope_cid(request), "original").unwrap()
+  let ns = @utf8.encode("client_cancellations")
+  let bytes = @utf8.encode(key)
+  assert_true(submitted_test_remove_record(database, ns, ns.length(), bytes, bytes.length()))
+  // Keep exact key, intent and immutable physical revision zero. Only the
+  // original operation outcome is substituted, so syntax/revision checks alone
+  // cannot establish original-result custody.
+  let changed = { ..original, action: @host.AlreadyRequested, observed_revision: 1L }
+  database.insert("client_cancellations", key, cancellation_body(changed).unwrap()).unwrap() |> ignore
+  assert_true(journal.lookup_cancellation(request, "namespace-a", "original", 1, () => true) is Err(CustodyLost))
+  database.close_checked().unwrap()
+}
