@@ -211,6 +211,18 @@ fn retained_holder_write_row(
   assert_eq(row.retry_response_custody().unwrap(), true)
   assert_eq(row.retry_response_custody().unwrap(), false)
   assert_eq(peer.read("site_effect_response_bytes", cid).unwrap().body, b"")
+  // Current write permission is gone. Historical custody remains observable
+  // and can settle its exact saved response without another approval or send.
+  allowed.val = false
+  current_resume.val = { ..observed, settlement_only: true, }
+  let restored = work.restore_row_custody(limits.ledger).unwrap().unwrap()
+  assert_eq(@effect.effect_ledger_entry_cid(restored.dispatching.unwrap()), cid)
+  assert_eq(restored.response.unwrap().status_code, 204)
+  assert_eq(restored.response.unwrap().credential_use_cid, observed_use.use_cid)
+  assert_eq(restored.response.unwrap().body, b"")
+  assert_true(prepare() is Err(Resolution(_)))
+  assert_true(work.retry_cleanup() is Err(Unavailable))
+  assert_eq(consumer.usage().reserved_retention_bytes, before)
   let dispatch_head = peer
     .read(
       "site_effect_ledger_head",
@@ -221,8 +233,10 @@ fn retained_holder_write_row(
   println(
     "native-approved-row: retaining responsibility after terminal save failure",
   )
-  assert_true(row.settle() is Err(Journal(Physical(_))))
-  assert_true(work.retry_cleanup() is Err(Unavailable))
+  assert_true(work.settle_saved_row(limits) is Err(Journal(Physical(_))))
+  // Custody is unconfirmed and the same peer still holds SQLite's write lock.
+  // Cleanup must preserve the concrete Store failure and all reservations.
+  assert_true(work.retry_cleanup() is Err(Journal(Physical(_))))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   let pending_head = peer
     .read(
@@ -234,7 +248,7 @@ fn retained_holder_write_row(
   assert_eq(pending_head.body, dispatch_head.body)
   assert_true(row.send(access) is Err(ReconciliationRequired))
   peer.rollback().unwrap()
-  let (receipt, terminal) = row.settle().unwrap()
+  let (receipt, terminal) = work.settle_saved_row(limits).unwrap()
   assert_eq(row.retry_response_custody().unwrap(), false)
   assert_true(terminal.state is @effect.Applied)
   assert_eq(
@@ -249,7 +263,11 @@ fn retained_holder_write_row(
     )
     .unwrap()
   assert_eq(original.revision, 1L)
-  let repeated = row.settle().unwrap()
+  let repeated = work.settle_saved_row(limits).unwrap()
+  assert_eq(
+    @effect.effect_ledger_entry_cid(row.settle().unwrap().1),
+    @effect.effect_ledger_entry_cid(terminal),
+  )
   assert_eq(
     @effect.effect_ledger_entry_cid(repeated.1),
     @effect.effect_ledger_entry_cid(terminal),
@@ -266,6 +284,13 @@ fn retained_holder_write_row(
   assert_true(row.send(access) is Err(ReconciliationRequired))
   assert_true(result.output.result_schema_wire() is Ok(_))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
+  // Failed cleanup probes retained the pending write, rather than starting
+  // holder retirement. Original approval evidence remains admissible under
+  // independently supplied current authority; it does not permit a resend.
+  assert_true(
+    work.admit_resolution(wire, authentication, reviewers, keys, () => true, at)
+    is Ok(_),
+  )
   // Row terminality discharges only this pending physical write. Overall Run
   // publication and formal Site release are not implied by these saved facts.
   ignore(client.close())

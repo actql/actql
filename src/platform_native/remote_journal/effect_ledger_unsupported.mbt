@@ -54,3 +54,17 @@ pub fn Journal::record_effect_row_receipt(
 ] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Journal::effect_ledger_custody(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+  _scope : @request_scope.LogicalRequestScope,
+  _locator : @effect.LogicalItemLocator,
+  _key : @effect.EffectDispatchKey,
+  _basis : @effect.EffectLedgerBasis,
+  _limits : @checkpoint.WireLimits,
+  _checkpoint_limits : @checkpoint.WireLimits,
+) -> Result[NativeEffectRowCustody?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
