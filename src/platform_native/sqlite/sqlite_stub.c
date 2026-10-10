@@ -88,6 +88,7 @@ typedef struct {
   int test_close_failures;
   int test_commit_failures;
   int test_commit_reply_failures;
+  int transaction_fenced;
   int test_checked_close_count;
 } actql_native_sqlite_database;
 
@@ -1007,6 +1008,19 @@ int32_t actql_native_sqlite_database_begin_immediate(
   actql_clear_result(database);
   int code = actql_exec(database, "BEGIN IMMEDIATE");
   return code == SQLITE_OK ? 0 : actql_operation_code(code);
+}
+
+// An adapter that cannot confirm commit/rollback fences this physical handle.
+// There is deliberately no reset: a new handle still requires durable-state
+// reconciliation by its owning adapter, never an assumption of non-execution.
+void actql_native_sqlite_database_fence_transactions(
+    actql_native_sqlite_database *database) {
+  if (database != NULL) database->transaction_fenced = 1;
+}
+
+int32_t actql_native_sqlite_database_transaction_fenced(
+    actql_native_sqlite_database *database) {
+  return database == NULL || database->transaction_fenced;
 }
 
 int32_t actql_native_sqlite_database_commit(

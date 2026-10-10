@@ -163,6 +163,9 @@ fn read_run_record(
 fn initialize_native_client_run_journal(
   database : @sqlite.Database,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  if database.transaction_fenced() {
+    return Err(Fenced)
+  }
   match database.scan_after("client_run_custody", "") {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
@@ -250,6 +253,9 @@ pub fn open_native_client_run_journal(
   database : @sqlite.Database,
   max_records : Int,
 ) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
+  if database.transaction_fenced() {
+    return Err(Fenced)
+  }
   if max_records < 1 || max_records > 1024 {
     return Err(CapacityExceeded)
   }
@@ -264,7 +270,7 @@ fn[T] NativeClientRunJournal::transaction(
   self : NativeClientRunJournal,
   work : () -> Result[T, NativeClientRunJournalIssue],
 ) -> Result[T, NativeClientRunJournalIssue] {
-  if self.fenced {
+  if self.fenced || self.database.transaction_fenced() {
     return Err(Fenced)
   }
   match self.database.begin_immediate() {
@@ -281,6 +287,7 @@ fn[T] NativeClientRunJournal::transaction(
         Ok(_) => Ok(value)
         Err(_) => {
           self.fenced = true
+          self.database.fence_transactions()
           Err(TransactionUnknown)
         }
       }
@@ -289,6 +296,7 @@ fn[T] NativeClientRunJournal::transaction(
         Ok(_) => Err(issue)
         Err(_) => {
           self.fenced = true
+          self.database.fence_transactions()
           Err(TransactionUnknown)
         }
       }

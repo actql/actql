@@ -112,6 +112,14 @@ extern "C" fn database_commit_ffi(database : Database) -> Int = "actql_native_sq
 extern "C" fn database_rollback_ffi(database : Database) -> Int = "actql_native_sqlite_database_rollback"
 
 ///|
+#borrow(database)
+extern "C" fn database_fence_transactions_ffi(database : Database) -> Unit = "actql_native_sqlite_database_fence_transactions"
+
+///|
+#borrow(database)
+extern "C" fn database_transaction_fenced_ffi(database : Database) -> Bool = "actql_native_sqlite_database_transaction_fenced"
+
+///|
 #borrow(database, scope, key)
 extern "C" fn database_reserve_capacity_ffi(
   database : Database,
@@ -427,6 +435,19 @@ pub fn Database::commit(self : Database) -> Result[Unit, NativeSqliteIssue] {
   } else {
     Err(operation_issue(self, code))
   }
+}
+
+///|
+/// Share an adapter's uncertain transaction outcome with other adapters on
+/// this same physical handle. This does not classify the durable outcome or
+/// authorize a replacement connection. There is no in-place fence reset.
+pub fn Database::fence_transactions(self : Database) -> Unit {
+  database_fence_transactions_ffi(self)
+}
+
+///|
+pub fn Database::transaction_fenced(self : Database) -> Bool {
+  database_transaction_fenced_ffi(self)
 }
 
 ///|

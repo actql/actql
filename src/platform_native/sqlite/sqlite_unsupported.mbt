@@ -119,6 +119,16 @@ pub fn Database::rollback(_self : Database) -> Result[Unit, NativeSqliteIssue] {
 }
 
 ///|
+pub fn Database::fence_transactions(_self : Database) -> Unit {
+  ()
+}
+
+///|
+pub fn Database::transaction_fenced(_self : Database) -> Bool {
+  true
+}
+
+///|
 pub fn Database::reserve_capacity(
   _self : Database,
   _scope : String,

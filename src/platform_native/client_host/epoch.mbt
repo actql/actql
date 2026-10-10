@@ -182,6 +182,9 @@ fn initialize_native_client_epoch_authority(
   database : @sqlite.Database,
   crypto : @crypto.Library,
 ) -> Result[Unit, NativeClientEpochIssue] {
+  if database.transaction_fenced() {
+    return Err(Fenced)
+  }
   match database.begin_immediate() {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
@@ -204,11 +207,21 @@ fn initialize_native_client_epoch_authority(
     Err(issue) => Err(Physical(issue))
   }
   match result {
-    Ok(_) => database.commit().map_err(_ => TransactionUnknown)
+    Ok(_) =>
+      match database.commit() {
+        Ok(_) => Ok(())
+        Err(_) => {
+          database.fence_transactions()
+          Err(TransactionUnknown)
+        }
+      }
     Err(issue) =>
       match database.rollback() {
         Ok(_) => Err(issue)
-        Err(_) => Err(TransactionUnknown)
+        Err(_) => {
+          database.fence_transactions()
+          Err(TransactionUnknown)
+        }
       }
   }
 }
@@ -219,6 +232,9 @@ pub fn open_native_client_epoch_authority(
   crypto : @crypto.Library,
   ttl_ms : Double,
 ) -> Result[NativeClientEpochAuthority, NativeClientEpochIssue] {
+  if database.transaction_fenced() {
+    return Err(Fenced)
+  }
   if !valid_epoch_clock(ttl_ms) || ttl_ms < 1.0 || ttl_ms > 86400000.0 {
     return Err(InvalidInput)
   }
@@ -235,7 +251,7 @@ fn NativeClientEpochAuthority::clock(
   self : NativeClientEpochAuthority,
   now : Double,
 ) -> Result[(Bytes, Double), NativeClientEpochIssue] {
-  if self.fenced {
+  if self.fenced || self.database.transaction_fenced() {
     return Err(Fenced)
   }
   if !valid_epoch_clock(now) {
@@ -267,6 +283,7 @@ fn NativeClientEpochAuthority::clock(
         Ok(_) => Ok(value)
         Err(_) => {
           self.fenced = true
+          self.database.fence_transactions()
           Err(TransactionUnknown)
         }
       }
@@ -275,6 +292,7 @@ fn NativeClientEpochAuthority::clock(
         Ok(_) => Err(issue)
         Err(_) => {
           self.fenced = true
+          self.database.fence_transactions()
           Err(TransactionUnknown)
         }
       }
