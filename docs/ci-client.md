@@ -138,6 +138,33 @@ the same explicit source-built limitation above.
 
 ## Assessing the result
 
+### Packed real GCS Content campaign
+
+With a clean source revision and its normal five-package producer, run
+`node scripts/test-packed-gcs-content.mjs /absolute/authorized-environment.json`.
+Set `ACTQL_PACKED_CLIENT_PACKAGES` to that exact verified producer directory
+to reuse the packages. Stale source, changed tarballs and dirty build inputs
+remain refusals; no prepack or artifact checks are bypassed.
+
+The external application imports only the installed public Local/HTTPS Client
+entrances and SDK. Only four authored fixture/helper modules are bundled.
+Product source, compiled checkout runtime, source overlays and undisclosed
+imports are forbidden. Fixture digests and the bundle digest are recorded
+separately from all five actual tarball digests.
+
+Both entrances execute the independently expected version-fixed capture and
+empty-selection Programs. A fresh process then attaches the original Runs with
+all credential resolution forbidden, comparing full rows and descriptions.
+The two capture children split the authorized request/response reservation
+ceilings and share one absolute campaign deadline. No GCS write, delete or
+version mutation is included. This is not unfinished capture or Model/COMMAND
+recovery, full Core or Hosted CI evidence.
+
+Original Run/credential journals, expected rows and private synthetic Host keys
+remain outside the disposable npm installation under the reported evidence
+directory. The successful installation is reclaimed only after every child
+and Host has ended. Failed campaigns and their custody are retained.
+
 Report both elapsed wall span (first Client dependency start to aggregate finish)
 and summed runner duration across all five Client jobs, including setup, packing,
 artifact transfer, private runtime/native builds and aggregation. Also report
