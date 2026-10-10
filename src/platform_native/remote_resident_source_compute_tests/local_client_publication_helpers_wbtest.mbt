@@ -487,38 +487,62 @@ fn local_client_read_result_sink(
     128,
     3,
   ).unwrap()
-  let session = match @access.open_native_result_access(service, {
-    namespace_id: "native-client-fixture",
-    authority_scope_cid: @host.client_request_authority_scope_cid(request),
-    run_definition_cid: @publication.publication_contract_identity(definition),
-    principal_id: "fixture-principal",
-    purpose: "inspect",
-    result_name: "answer",
-    format: "jsonl",
-    attempt_id: attempt,
-  }) {
+  let session = match
+    @access.open_native_result_access(service, {
+      namespace_id: "native-client-fixture",
+      authority_scope_cid: @host.client_request_authority_scope_cid(request),
+      run_definition_cid: @publication.publication_contract_identity(definition),
+      principal_id: "fixture-principal",
+      purpose: "inspect",
+      result_name: "answer",
+      format: "jsonl",
+      attempt_id: attempt,
+    }) {
     Ok(value) => value
-    Err(@access.InvalidRequest) => fail("actual Source Result access: InvalidRequest")
-    Err(@access.InvalidProgress) => fail("actual Source Result access: InvalidProgress")
-    Err(@access.AccessDenied) => fail("actual Source Result access: AccessDenied")
-    Err(@access.ResultUnavailable) => fail("actual Source Result access: ResultUnavailable")
-    Err(@access.Publication(issue)) => fail("actual Source Result access publication: " + @debug.to_string(issue))
-    Err(@access.Store(@store.ClockRegression)) => fail("actual Source Result access: StoreClockRegression")
-    Err(@access.Store(@store.InvalidConfiguration)) => fail("actual Source Result access: StoreInvalidConfiguration")
-    Err(@access.Store(@store.DeliveryIssuance(issue))) => fail("actual Source Result access delivery: " + @debug.to_string(issue))
-    Err(@access.Store(@store.Database(@sqlite.NotFound))) => fail("actual Source Result access: StoreRecordMissing")
-    Err(@access.Store(@store.StateCollision)) => fail("actual Source Result access: StoreStateCollision")
-    Err(@access.Store(@store.DigestMismatch)) => fail("actual Source Result access: StoreDigestMismatch")
-    Err(@access.Store(@store.DeliveryLimit)) => fail("actual Source Result access: StoreDeliveryLimit")
-    Err(@access.Store(@store.CleanupPending)) => fail("actual Source Result access: StoreCleanupPending")
-    Err(@access.Store(@store.ExistingDeliveryAttempt)) => fail("actual Source Result access: StoreExistingAttempt")
-    Err(@access.Store(@store.ExistingPayload)) => fail("actual Source Result access: StoreExistingPayload")
-    Err(@access.Store(@store.RecoveryRequired)) => fail("actual Source Result access: StoreRecoveryRequired")
-    Err(@access.Store(@store.ReaderBusy)) => fail("actual Source Result access: StoreReaderBusy")
-    Err(@access.Store(@store.Closed)) => fail("actual Source Result access: StoreClosed")
-    Err(@access.Store(@store.RowFrame(issue))) => fail("actual Source Result row frame: " + @debug.to_string(issue))
-    Err(@access.Store(@store.Delivery(issue))) => fail("actual Source Result serialization: " + @debug.to_string(issue))
-    Err(@access.Store(_)) => fail("actual Source Result access: StorePhysicalBoundary")
+    Err(@access.InvalidRequest) =>
+      fail("actual Source Result access: InvalidRequest")
+    Err(@access.InvalidProgress) =>
+      fail("actual Source Result access: InvalidProgress")
+    Err(@access.AccessDenied) =>
+      fail("actual Source Result access: AccessDenied")
+    Err(@access.ResultUnavailable) =>
+      fail("actual Source Result access: ResultUnavailable")
+    Err(@access.Publication(issue)) =>
+      fail(
+        "actual Source Result access publication: " + @debug.to_string(issue),
+      )
+    Err(@access.Store(@store.ClockRegression)) =>
+      fail("actual Source Result access: StoreClockRegression")
+    Err(@access.Store(@store.InvalidConfiguration)) =>
+      fail("actual Source Result access: StoreInvalidConfiguration")
+    Err(@access.Store(@store.DeliveryIssuance(issue))) =>
+      fail("actual Source Result access delivery: " + @debug.to_string(issue))
+    Err(@access.Store(@store.Database(@sqlite.NotFound))) =>
+      fail("actual Source Result access: StoreRecordMissing")
+    Err(@access.Store(@store.StateCollision)) =>
+      fail("actual Source Result access: StoreStateCollision")
+    Err(@access.Store(@store.DigestMismatch)) =>
+      fail("actual Source Result access: StoreDigestMismatch")
+    Err(@access.Store(@store.DeliveryLimit)) =>
+      fail("actual Source Result access: StoreDeliveryLimit")
+    Err(@access.Store(@store.CleanupPending)) =>
+      fail("actual Source Result access: StoreCleanupPending")
+    Err(@access.Store(@store.ExistingDeliveryAttempt)) =>
+      fail("actual Source Result access: StoreExistingAttempt")
+    Err(@access.Store(@store.ExistingPayload)) =>
+      fail("actual Source Result access: StoreExistingPayload")
+    Err(@access.Store(@store.RecoveryRequired)) =>
+      fail("actual Source Result access: StoreRecoveryRequired")
+    Err(@access.Store(@store.ReaderBusy)) =>
+      fail("actual Source Result access: StoreReaderBusy")
+    Err(@access.Store(@store.Closed)) =>
+      fail("actual Source Result access: StoreClosed")
+    Err(@access.Store(@store.RowFrame(issue))) =>
+      fail("actual Source Result row frame: " + @debug.to_string(issue))
+    Err(@access.Store(@store.Delivery(issue))) =>
+      fail("actual Source Result serialization: " + @debug.to_string(issue))
+    Err(@access.Store(_)) =>
+      fail("actual Source Result access: StorePhysicalBoundary")
   }
   let output : Array[Byte] = []
   let finishes = Ref(0)
