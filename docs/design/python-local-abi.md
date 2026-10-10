@@ -194,6 +194,22 @@ estimates/selection before dispatch; no Python task counter or replacement
 selector is introduced. Source capture custody outlives its consumers, and
 closing Compute does not revoke the caller's acquisition Owner.
 
+`configure_local_native_source` binds one existing checked query requirement to
+the installed physical database/schema/table and its read account, access tuple
+and context. The configured Native candidate requires the existing registered
+receipt Capabilities; publication or a general Allow entry cannot manufacture
+them. The caller principal must match the original Run, while physical read
+authority remains separate from Run activation authority.
+
+`start_local_native_source` requires that exact plan's retained pre-I/O start
+decision and a current Acquisition permit bound to the requirement CID, read
+tuple and context. Revoked authority, a different database, another requirement
+or another Run's start decision is refused before an attempt is issued. The
+existing Native acquisition Owner alone validates metadata, both receipts and
+the settled read-view observation. The installing Host must retain the issued
+attempt and durably record its physical invocation; these in-process adapter
+values neither reserve the whole runtime nor establish process recovery.
+
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
 without physical dispatch. Registry, Values, ordered derive and expression
