@@ -39,6 +39,7 @@ fn local_client_effect_source_original(
   .unwrap()
   |> ignore
   database.insert("client_run_custody", "issued", b"0").unwrap() |> ignore
+  database.insert("client_cancel_custody", "issued", b"0").unwrap() |> ignore
   database.insert("client_submitted_intent_custody", "issued", b"0").unwrap()
   |> ignore
   let journal = @client.open_native_client_run_journal(database, 8).unwrap()

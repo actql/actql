@@ -21,6 +21,7 @@ test "Native Client original Run reaches actual Source Compute Result export and
   // This is an independently authored test-owned initial row, not production
   // bootstrap or a repair of an adopted Host. No Submission receipt is faked.
   database.insert("client_run_custody", "issued", b"0").unwrap() |> ignore
+  database.insert("client_cancel_custody", "issued", b"0").unwrap() |> ignore
   let journal = @client.open_native_client_run_journal(database, 8).unwrap()
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
