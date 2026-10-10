@@ -145,7 +145,55 @@ fn retained_effect_review_retention_store(
       }
     })
     let failed = retention.persist(store)
-    assert_true(lost.val)
+    assert_true(
+      lost.val,
+      msg=match failed {
+        Err(@resident.Capture(@resident.Binding(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Capture(@resident.Capacity(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Capture(@resident.Unavailable)) => "Capture unavailable"
+        Err(@resident.Capture(@resident.Store(_))) => "Capture Store rejected"
+        Err(@resident.Preview(_)) =>
+          "Preview rejected before commit observation"
+        Err(@resident.Preparation(@resident.Unavailable)) =>
+          "Checkpoint input unavailable"
+        Err(@resident.Preparation(@resident.ForeignCapture)) =>
+          "Foreign Checkpoint capture"
+        Err(@resident.Preparation(@resident.InvalidLimits)) =>
+          "Invalid Checkpoint limits"
+        Err(@resident.Preparation(@resident.RunLifetimeUnavailable)) =>
+          "Original Run lifetime unavailable"
+        Err(@resident.Preparation(@resident.Request(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.Keys(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.Checkpoint(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.RunBinding(@host.Run(_)))) =>
+          "Checkpoint checked Run mismatch"
+        Err(
+          @resident.Preparation(@resident.RunBinding(@host.Checkpoint(issue)))
+        ) => @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.RunBinding(@host.ForeignSubject))) =>
+          "Checkpoint subject mismatch"
+        Err(
+          @resident.Preparation(@resident.RunBinding(@host.UnsupportedReview))
+        ) => "Unsupported Checkpoint review"
+        Err(@resident.Preparation(@resident.RunBinding(@host.OriginalLifetime))) =>
+          "Checkpoint exceeds original lifetime"
+        Err(@resident.Preparation(@resident.Encoding)) =>
+          "Checkpoint encoding failed"
+        Err(@resident.Preparation(@resident.Capture(_))) =>
+          "Checkpoint capture readback failed"
+        Err(@resident.Preparation(@resident.Preview(_))) =>
+          "Checkpoint Preview readback failed"
+        Err(@resident.Checkpoint(_)) => "Checkpoint custody rejected"
+        Err(@resident.Unavailable) => "Review inputs unavailable"
+        Err(@resident.InvalidConfiguration) => "Invalid review configuration"
+        Ok(_) => "Expected durable commit observation was not emitted"
+      },
+    )
     match step {
       "effect-capture-persisted" =>
         assert_true(failed is Err(Capture(Store(Closed))))

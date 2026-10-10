@@ -175,6 +175,51 @@ fn retained_effect_preview_inputs(
   let (wire, preview) = @publication.author_effect_preview_semantic_wire(
     draft, run_cid, authoring_cid, 65536, 4096, 64,
   ).unwrap()
+  let (wire, preview) = if original_work is Some(_) {
+    let scope = @host.client_request_logical_scope(materials.request.unwrap())
+    // Semantic authoring leaves dispatch bindings unfinished. The original
+    // request Owner, not a transported seed or row position, supplies scope.
+    assert_true(
+      @effect.recover_effect_preview_apply_keys(
+        preview, scope, 1, 10000, 20000, 4096, 32, 8,
+      )
+      is Err(@effect.Mismatch(@effect.RowKeyMismatch(0, 0))),
+    )
+    let key = @effect.prepare_effect_dispatch_key(
+      scope,
+      @publication.effect_preview_semantic_identity(preview),
+      @publication.effect_preview_row_correlation_wire(preview, 0, 0).unwrap(),
+      4096,
+      32,
+      8,
+    ).unwrap()
+    let completed = @publication.complete_effect_preview_dispatch_keys(
+      wire,
+      [[@effect.effect_dispatch_key_cid(key)]],
+      run_cid,
+      authoring_cid,
+      65536,
+      4096,
+      64,
+    ).unwrap()
+    let admitted = @effect.admit_effect_preview_apply_identity(
+      completed,
+      run_cid,
+      authoring_cid,
+      scope,
+      [[key]],
+      65536,
+      4096,
+      64,
+    ).unwrap()
+    assert_eq(
+      @publication.effect_preview_semantic_identity(admitted),
+      @publication.effect_preview_semantic_identity(preview),
+    )
+    (completed, admitted)
+  } else {
+    (wire, preview)
+  }
   let result = @publication.admit_publication_contract(
     "result_artifact",
     @host.client_effect_local_result_artifact_json(artifact),
