@@ -33,10 +33,13 @@ if(process.argv.includes('--build-and-consume')){
   const result=JSON.parse(output);
   assert.equal(result.success,true);
   assert.equal(result.module_sha256,digest);
+  const preparation=JSON.parse(run(python,['scripts/fixtures/python-local-preparation-abi.py',module]));
+  assert.equal(preparation.success,true);
+  assert.equal(preparation.module_sha256,digest);
   const receipt=join(root,'_build/python-local-core/artifacts',source.slice(0,9));
   await mkdir(receipt,{recursive:true});
   await writeFile(join(receipt,'receipt.json'),JSON.stringify({source_sha:source,module,
-    module_sha256:digest,moonc:run('moonc',['-v']),python:run(python,['--version']),result},null,2)+'\n');
+    module_sha256:digest,moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation},null,2)+'\n');
 }else{
   process.exitCode=await runLocalCheck({root,heavy:true,timeoutSeconds:240,graceSeconds:5,steps:[{
     name:'Actual Python/Core buffer ABI',command:process.execPath,
