@@ -246,7 +246,7 @@
         {
           "path": "spec/contracts/actql-managed-retained-execution.json",
           "pointer": "",
-          "cid": "sha256:6ef08b38272e235f9c7000bd11333036b4dc52b068ea1a69e83959902917d53f",
+          "cid": "sha256:830ecb11cc8edef7994119dec27bc7c0b23d6d349320bfbc0ae23daf0e740740",
           "version": "actql-managed-retained-execution-contract/0.1"
         },
         {
@@ -1196,7 +1196,7 @@
         {
           "owner": "actql.execution",
           "version": "actql/0.1",
-          "document_cid": "sha256:d62b9b0deb856248f5fae4e7d67c32bff2e436534b54a05a33c8f021693053c4"
+          "document_cid": "sha256:4e4634020da41d15aa76733526828bcab6d843c79b27640a6b5b202c3d9719ce"
         }
       ]
     },
@@ -1518,7 +1518,7 @@
         {
           "owner": "actql.execution",
           "version": "actql/0.1",
-          "document_cid": "sha256:d62b9b0deb856248f5fae4e7d67c32bff2e436534b54a05a33c8f021693053c4"
+          "document_cid": "sha256:4e4634020da41d15aa76733526828bcab6d843c79b27640a6b5b202c3d9719ce"
         },
         {
           "owner": "actql.protocol.contracts",
@@ -1683,7 +1683,7 @@
         {
           "owner": "actql.execution",
           "version": "actql/0.1",
-          "document_cid": "sha256:d62b9b0deb856248f5fae4e7d67c32bff2e436534b54a05a33c8f021693053c4"
+          "document_cid": "sha256:4e4634020da41d15aa76733526828bcab6d843c79b27640a6b5b202c3d9719ce"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1870,7 +1870,7 @@
         {
           "owner": "actql.execution",
           "version": "actql/0.1",
-          "document_cid": "sha256:d62b9b0deb856248f5fae4e7d67c32bff2e436534b54a05a33c8f021693053c4"
+          "document_cid": "sha256:4e4634020da41d15aa76733526828bcab6d843c79b27640a6b5b202c3d9719ce"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1914,7 +1914,7 @@
         {
           "owner": "actql.execution",
           "version": "actql/0.1",
-          "document_cid": "sha256:d62b9b0deb856248f5fae4e7d67c32bff2e436534b54a05a33c8f021693053c4"
+          "document_cid": "sha256:4e4634020da41d15aa76733526828bcab6d843c79b27640a6b5b202c3d9719ce"
         },
         {
           "owner": "actql.protocol.contracts",
