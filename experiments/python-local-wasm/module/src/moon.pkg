@@ -1,9 +1,19 @@
 supported_targets = "wasm"
+
 pkgtype(kind: "foreign_library")
+
 import {
   "actql/actql/source_value" @source,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/run_publication_host" @host,
   "moonbitlang/core/encoding/utf8",
 }
-options(link: {"wasm": {"export-memory-name": "memory", "memory-limits": {"min": 1, "max": 256}}})
+
+options(
+  link: {
+    "wasm": {
+      "export-memory-name": "memory",
+      "memory-limits": { "min": 1, "max": 256 },
+    },
+  },
+)

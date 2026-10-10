@@ -1,4 +1,5 @@
 // Experimental primitive callback bridge, not a public Client ABI or Run Owner.
+
 ///|
 fn request_input(ticket : Int) -> Int = "python_probe" "request_input"
 
@@ -21,15 +22,22 @@ pub fn transfer(ticket : Int, length : Int) -> Int {
     return -1
   }
   let input = Bytes::makei(length, index => input_byte(ticket, index).to_byte())
-  match @source.parse_json_bytes_preserving(input, {
-    max_input_bytes: 16384,
-    max_nodes: 1024,
-    max_depth: 32,
-  }) {
+  match
+    @source.parse_json_bytes_preserving(input, {
+      max_input_bytes: 16384,
+      max_nodes: 1024,
+      max_depth: 32,
+    }) {
     Err(_) => -2
-    Ok(node) => {
+    Ok(node) =>
       try {
-        let value = @canonical.from_source(node, 1024, 32, 16384, data_keys=true)
+        let value = @canonical.from_source(
+          node,
+          1024,
+          32,
+          16384,
+          data_keys=true,
+        )
         let wire = @canonical.stringify_value(value, 16384, 32, 16384)
         let bytes = @utf8.encode(wire)
         for byte in bytes {
@@ -39,7 +47,6 @@ pub fn transfer(ticket : Int, length : Int) -> Int {
       } catch {
         _ => -3
       }
-    }
   }
 }
 
