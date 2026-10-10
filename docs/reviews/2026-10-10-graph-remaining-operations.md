@@ -643,3 +643,24 @@ Only `node --check scripts/graph-public-host.test.mjs` and `git diff --check`
 have run for this addition. Executable public Host and packed acceptance remain
 unverified pending the shared heavy slot; this is not cancellation evidence
 until those selected cases execute.
+
+### Combined four-operation packed selection
+
+`node scripts/test-packed-public-query.mjs --graph-remaining-operations-only`
+selects the original 27 success, 16 refusal and one Graft conflict oracles. It
+uses one external installation for the Local and HTTPS producers, then the
+existing fresh-process retained Result reader. The ordinary corpus continues
+to register each family once. No expected row, schema or identity is changed.
+The same clean-HEAD package manifest can also serve
+`node scripts/test-packed-graph.mjs --remaining-operations-only` for the
+operation-advance cancellation boundaries. These are prepared selections,
+not completed public acceptance receipts.
+
+The focused Node selection for
+`scripts/graph-remaining-operation-inputs.test.mjs`,
+`scripts/graph-reach-source-input.test.mjs` and
+`scripts/graph-mean-source-input.test.mjs` passed 9/9 using
+`node scripts/local-checks.mjs test node --` on the working tree based on
+`144fb8a51d3c03c93b49a2528ed98b64c94943cc`.
+Evidence: `run-OE6GE1`, `focused-test-SxuaCN`. This verifies selection/oracle
+preservation only, not Host execution or pristine tarball delivery.

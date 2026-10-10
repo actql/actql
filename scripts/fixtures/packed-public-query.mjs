@@ -52,6 +52,7 @@ import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
 import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
+import {graphRemainingOperationInputs} from './graph-remaining-operation-inputs.mjs';
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -236,9 +237,10 @@ const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
+const graphRemainingOperationsOnly = process.env.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY === '1';
 const graphMeanOnly = process.env.ACTQL_TEST_GRAPH_MEAN_ONLY === '1';
 const graphReachOnly = process.env.ACTQL_TEST_GRAPH_REACH_ONLY === '1';
-const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly || graphMeanOnly;
+const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly || graphMeanOnly || graphRemainingOperationsOnly;
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
 const negatedPredicateReuseOnly = process.env.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY === '1';
@@ -332,7 +334,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
+const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
+  : concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
   : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
   : countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}
   : minMaxDistinctOnly ? {successes: minMaxDistinctSuccesses, refusals: minMaxDistinctRefusals}
