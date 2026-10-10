@@ -18,6 +18,8 @@ from actql_sdk._local_duckdb import DuckDBLibrary, DuckDBConnection, DuckDBTrans
 
 
 module_path, library_path, library_digest = sys.argv[1:4]
+cleanup_only = sys.argv[4:] == ['--native-cleanup-only']
+assert sys.argv[4:] in ([], ['--native-cleanup-only'])
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -211,109 +213,116 @@ try:
     event(6)
     assert call('source', 'completed', fixture.attempt) == 0
     assert fixture.queries == 3, 'One original metadata/validation/query sequence only'
-    compute = call('compute', 'reserve', fixture.attempt, copy({**read_account, **bodies}))
-    assert compute > 0 and call('compute', 'configure', compute) == 0
-    assert call('compute', 'configured', compute) == 0
-    tasks = []
-    for _ in range(2):
-        task = call('task', 'reserve', compute, configuration)
-        assert task > 0 and call('task', 'start', task) == 0
-        assert call('task', 'started', task) == 0, ('Original typed task failure', _, call('task', 'issue', task))
-        for _ in range(1000):
-            assert call('task', 'feed', task, 1) == 0
-            if call('task', 'inputs_ready', task) == 0:
-                break
-        else:
-            raise AssertionError('Input feeding did not complete within the fixture bound')
-        for _ in range(1000):
-            assert call('task', 'advance', task, 1) == 0
-            if call('task', 'progress', task, 0) == 1:
-                break
-        else:
-            raise AssertionError('Compute did not complete within the fixture bound')
-        assert call('task', 'prepare_finalization', task) == 0
-        assert call('task', 'complete', task) == -7, 'Execution completion is not finalization'
-        for _ in range(1000):
-            assert call('task', 'advance_finalization', task, 1) == 0
-            if call('task', 'progress', task, 0) == 1:
-                break
-        else:
-            raise AssertionError('Finalization did not complete within the fixture bound')
-        assert call('task', 'complete', task) == 0
-        tasks.append(task)
-    assert call('result', 'reserve', tasks[0], 0) == -2, 'Named Result belongs to the checked final producer'
-    result = call('result', 'reserve', tasks[1], 0)
-    assert result > 0 and call('result', 'start', result) == 0
-    for _ in range(1000):
-        assert call('result', 'feed', result, 1) == 0
-        if call('result', 'inputs_ready', result) == 0:
-            break
+    if cleanup_only:
+        # Closing the pool seals new admission, but cannot erase a live
+        # Native reservation before physical stop and cleanup are observed.
+        assert fixture.call('close_pool') == -9
     else:
-        raise AssertionError('Result bridge did not finish within the fixture bound')
-    assert call('result', 'finish_preparation', result) == -7
-    for _ in range(1000):
-        assert call('result', 'advance', result, 1) == 0
-        if call('result', 'progress', result, 0) == 1:
+        compute = call('compute', 'reserve', fixture.attempt, copy({**read_account, **bodies}))
+        assert compute > 0 and call('compute', 'configure', compute) == 0
+        assert call('compute', 'configured', compute) == 0
+        tasks = []
+        for _ in range(2):
+            task = call('task', 'reserve', compute, configuration)
+            assert task > 0 and call('task', 'start', task) == 0
+            assert call('task', 'started', task) == 0, ('Original typed task failure', _, call('task', 'issue', task))
+            for _ in range(1000):
+                assert call('task', 'feed', task, 1) == 0
+                if call('task', 'inputs_ready', task) == 0:
+                    break
+            else:
+                raise AssertionError('Input feeding did not complete within the fixture bound')
+            for _ in range(1000):
+                assert call('task', 'advance', task, 1) == 0
+                if call('task', 'progress', task, 0) == 1:
+                    break
+            else:
+                raise AssertionError('Compute did not complete within the fixture bound')
+            assert call('task', 'prepare_finalization', task) == 0
+            assert call('task', 'complete', task) == -7, 'Execution completion is not finalization'
+            for _ in range(1000):
+                assert call('task', 'advance_finalization', task, 1) == 0
+                if call('task', 'progress', task, 0) == 1:
+                    break
+            else:
+                raise AssertionError('Finalization did not complete within the fixture bound')
+            assert call('task', 'complete', task) == 0
+            tasks.append(task)
+        assert call('result', 'reserve', tasks[0], 0) == -2, 'Named Result belongs to the checked final producer'
+        result = call('result', 'reserve', tasks[1], 0)
+        assert result > 0 and call('result', 'start', result) == 0
+        for _ in range(1000):
+            assert call('result', 'feed', result, 1) == 0
+            if call('result', 'inputs_ready', result) == 0:
+                break
+        else:
+            raise AssertionError('Result bridge did not finish within the fixture bound')
+        assert call('result', 'finish_preparation', result) == -7
+        for _ in range(1000):
+            assert call('result', 'advance', result, 1) == 0
+            if call('result', 'progress', result, 0) == 1:
+                break
+        else:
+            raise AssertionError('Result preparation did not finish within the fixture bound')
+        assert call('result', 'finish_preparation', result) == 0
+        chunks = []
+        for _ in range(100):
+            ticket += 1
+            chunk = call('result', 'reserve_chunk', result, ticket, 131_300)
+            assert chunk > 0
+            fixture.inputs[ticket] = b''
+            assert call('result', 'reserve_chunk', result, ticket + 100, 131_300) == -3
+            assert call('result', 'close', result) == -9
+            # Closing an export seals new production, so its already reserved
+            # read is retired below; use a separate export for the positive stream.
+            assert call('result', 'produce_chunk', chunk) == -5
+            assert call('result', 'close_chunk', chunk) == 0
+            assert call('result', 'close', result) == 0
             break
-    else:
-        raise AssertionError('Result preparation did not finish within the fixture bound')
-    assert call('result', 'finish_preparation', result) == 0
-    chunks = []
-    for _ in range(100):
-        ticket += 1
-        chunk = call('result', 'reserve_chunk', result, ticket, 131_300)
-        assert chunk > 0
-        fixture.inputs[ticket] = b''
-        assert call('result', 'reserve_chunk', result, ticket + 100, 131_300) == -3
-        assert call('result', 'close', result) == -9
-        # Closing an export seals new production, so its already reserved
-        # read is retired below; use a separate export for the positive stream.
-        assert call('result', 'produce_chunk', chunk) == -5
-        assert call('result', 'close_chunk', chunk) == 0
+        result = call('result', 'reserve', tasks[1], 0)
+        assert result > 0 and call('result', 'start', result) == 0
+        for _ in range(1000):
+            assert call('result', 'feed', result, 1) == 0
+            if call('result', 'inputs_ready', result) == 0:
+                break
+        else:
+            raise AssertionError('Second Result bridge did not finish')
+        for _ in range(1000):
+            assert call('result', 'advance', result, 1) == 0
+            if call('result', 'progress', result, 0) == 1:
+                break
+        else:
+            raise AssertionError('Second Result preparation did not finish')
+        assert call('result', 'finish_preparation', result) == 0
+        for _ in range(100):
+            ticket += 1
+            chunk = call('result', 'reserve_chunk', result, ticket, 131_300)
+            assert chunk > 0
+            fixture.inputs[ticket] = b''
+            assert call('result', 'produce_chunk', chunk) == 0
+            assert call('result', 'produce_chunk', chunk) == 0, 'Acknowledgement loss must not consume another chunk'
+            size = call('result', 'chunk_length', chunk)
+            assert 0 <= size <= 65_536
+            chunks.append(bytes(fixture.call('byte', chunk, index) for index in range(size)))
+            final = call('result', 'chunk_final', chunk)
+            assert final in (0, 1)
+            assert call('result', 'close_chunk', chunk) == 0
+            if final:
+                break
+        else:
+            raise AssertionError('No acknowledged export terminator')
+        assert b''.join(chunks) == b'[{"next":5}]'
+        assert fixture.queries == 3, 'Result reads must not repeat Source or Compute'
+        assert call('task', 'close', tasks[1]) == -9
+        assert call('result', 'reserve', tasks[1], 0) == -2
         assert call('result', 'close', result) == 0
-        break
-    result = call('result', 'reserve', tasks[1], 0)
-    assert result > 0 and call('result', 'start', result) == 0
-    for _ in range(1000):
-        assert call('result', 'feed', result, 1) == 0
-        if call('result', 'inputs_ready', result) == 0:
-            break
-    else:
-        raise AssertionError('Second Result bridge did not finish')
-    for _ in range(1000):
-        assert call('result', 'advance', result, 1) == 0
-        if call('result', 'progress', result, 0) == 1:
-            break
-    else:
-        raise AssertionError('Second Result preparation did not finish')
-    assert call('result', 'finish_preparation', result) == 0
-    for _ in range(100):
-        ticket += 1
-        chunk = call('result', 'reserve_chunk', result, ticket, 131_300)
-        assert chunk > 0
-        fixture.inputs[ticket] = b''
-        assert call('result', 'produce_chunk', chunk) == 0
-        assert call('result', 'produce_chunk', chunk) == 0, 'Acknowledgement loss must not consume another chunk'
-        size = call('result', 'chunk_length', chunk)
-        assert 0 <= size <= 65_536
-        chunks.append(bytes(fixture.call('byte', chunk, index) for index in range(size)))
-        final = call('result', 'chunk_final', chunk)
-        assert final in (0, 1)
-        assert call('result', 'close_chunk', chunk) == 0
-        if final:
-            break
-    else:
-        raise AssertionError('No acknowledged export terminator')
-    assert b''.join(chunks) == b'[{"next":5}]'
-    assert fixture.queries == 3, 'Result reads must not repeat Source or Compute'
-    assert call('task', 'close', tasks[1]) == -9
-    assert call('result', 'reserve', tasks[1], 0) == -2
-    assert call('result', 'close', result) == 0
-    for task in reversed(tasks):
-        assert call('task', 'close', task) == 0
-    assert call('compute', 'close', compute) == 0
+        for task in reversed(tasks):
+            assert call('task', 'close', task) == 0
+        assert call('compute', 'close', compute) == 0
     root_before_cleanup = fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce)
-    assert root_before_cleanup > 16_777_216 + 67_108_864
+    # Fixed Wasm memory + physical DuckDB workspace + full transfer pool.
+    base_execution = 16_777_216 + 67_108_864 + 8_388_608
+    assert root_before_cleanup > base_execution
     fixture.native_stop_ready = False
     assert call('source', 'close_attempt', fixture.attempt) == -9
     assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == root_before_cleanup
@@ -323,7 +332,7 @@ try:
     assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == root_before_cleanup
     fixture.native_cleanup_ready = True
     assert call('source', 'close_attempt', fixture.attempt) == 0
-    assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == 16_777_216 + 67_108_864
+    assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == base_execution
     assert call('source', 'close_configuration', source) == 0
     assert call('run', 'close_physical_start', start) == 0
     assert call('run', 'close', run) == 0
@@ -343,15 +352,19 @@ finally:
     fixture.close()
 print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'library_sha256': library_digest, 'success': True,
-                  'scope': 'private_unmetered_native_compute_result_boundary',
+                  'scope': ('private_unmetered_native_cleanup_boundary' if cleanup_only
+                            else 'private_unmetered_native_compute_result_boundary'),
                   'execution_bytes': 536_870_912, 'source_queries': fixture.queries,
                   'public_local_acceptance': False, 'durable_run_acceptance': False,
                   'default_fuel_acceptance': False,
                   'global_memory_accounting': False,
-                  'cases': ['real_duckdb_owned_read_view', 'same_native_capture',
+                  'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
+                             'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
+                             'native_capacity_retained_until_cleanup', 'formal_private_release']
+                            if cleanup_only else ['real_duckdb_owned_read_view', 'same_native_capture',
                             'two_checked_tasks', 'execution_not_finalization',
                             'checked_named_result', 'foreign_producer_refusal',
                             'parent_pin_retention', 'close_seals_reserved_chunk',
                             'lost_chunk_acknowledgement', 'exact_independent_result',
                             'source_non_reexecution', 'native_stop_and_cleanup_retry',
-                            'native_capacity_retained_until_cleanup', 'formal_private_release']}))
+                            'native_capacity_retained_until_cleanup', 'formal_private_release'])}))
