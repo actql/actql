@@ -66,4 +66,5 @@ export const rightJoinRefusals = [
   'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',
   'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 0',
   'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS @missing',
-].map((text, index) => ({name: 'right-join-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'right-join-refuse-' + index, format: 'sql', text,
+  ...(index === 2 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));

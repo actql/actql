@@ -134,3 +134,52 @@ test('retained schemas keep set multiplicity, CTE column order and nullable obje
     assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
   }
 });
+
+// Object value-table members are readable, but SET requires projected columns.
+// Rebind p after SELECT so SET changes current slots without changing p's row.
+test('correlated SET positives project editable columns and retain their original range', () => {
+  const byName = new Map(correlatedUnnestSuccesses.map(value => [value.name, value]));
+  const names = ['correlated-unnest-immutable-range', 'correlated-unnest-current-column',
+    'correlated-unnest-inner-immutable-parent', 'correlated-unnest-star-immutable-range',
+    'correlated-unnest-star-current-column'];
+  for (const name of names) {
+    const item = byName.get(name);
+    assert.match(item.text, /^FROM UNNEST\(@parents\) p \|> SELECT id, items \|> AS p \|> SET (items = \[9\]|id = 99) /u);
+    assert.equal(item.format, 'aql-text');
+    assert.equal(item.sourceReadCount, 0);
+    assert.equal(item.sourceReadSessionCount, 0);
+    assert.equal(item.parameterDeclarations.parents.max_items, 4);
+    assert.equal(item.parameterDeclarations.parents.items.fields.items.max_items, 3);
+  }
+  assert.match(byName.get(names[0]).text, /UNNEST\(p\.items\)/u);
+  assert.match(byName.get(names[1]).text, /UNNEST\(items\)/u);
+  assert.match(byName.get(names[2]).text, /UNNEST\(p\.items\).*ON element = p\.id/u);
+  const originalObject = byName.get('correlated-unnest-star-object-json-control');
+  assert.deepEqual(byName.get(names[3]).expected, originalObject.expected);
+  assert.deepEqual(byName.get(names[3]).columns, originalObject.columns);
+  const number = {type: 'number', nullable: false};
+  assert.deepEqual(byName.get(names[4]).columns, [{name: 'id', contract: number},
+    {name: 'items', contract: {type: 'array', nullable: false, max_items: 1, items: number}},
+    {name: 'e', contract: number}, {name: 'position', contract: number}]);
+  assert.deepEqual(byName.get(names[4]).expected, [
+    {id: 1, items: [9], e: 9, position: 0}, {id: 2, items: [9], e: 9, position: 0},
+    {id: 3, items: [9], e: 9, position: 0}, {id: 4, items: [9], e: 9, position: 0}]);
+});
+
+test('object UNNEST before JOIN projects SET targets and preserves the saved receiver', () => {
+  const item = correlatedUnnestSuccesses.find(value => value.name === 'unnest-join-immutable-range');
+  assert.match(item.text, /^FROM UNNEST\(@objects\) e WITH OFFSET position \|> SELECT code, label, position \|> AS e \|> SET code = 99 \|> JOIN/u);
+  assert.match(item.text, /ON e\.code = k\.key MAX_OUTPUT_ROWS 10/u);
+  assert.equal(item.parameterDeclarations.objects.max_items, 4);
+  assert.equal(item.sourceReadCount, 0);
+  assert.equal(item.sourceReadSessionCount, 0);
+  assert.deepEqual(item.expected, [
+    {current: 99, original: 2, label: 'b', position: 0, key: 2},
+    {current: 99, original: 2, label: 'b', position: 2, key: 2}]);
+  assert.deepEqual(item.columns, [
+    {name: 'current', contract: {type: 'number', nullable: false}},
+    {name: 'original', contract: {type: 'number', nullable: true}},
+    {name: 'label', contract: {type: 'string', nullable: true}},
+    {name: 'position', contract: {type: 'number', nullable: false}},
+    {name: 'key', contract: {type: 'number', nullable: false}}]);
+});
