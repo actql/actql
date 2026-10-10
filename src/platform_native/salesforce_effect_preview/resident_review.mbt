@@ -94,6 +94,7 @@ struct NativeResidentEffectReview {
     ),
   ]?
   mut target_failure : NativeResidentEffectTargetIssue?
+  mut completing : Bool
   mut captured : NativeResidentEffectReviewCapture?
   mut retention : @resident.ResidentEffectReviewRetention?
   mut retention_configuration : (
@@ -320,6 +321,7 @@ pub fn prepare_native_resident_effect_review(
     uses: [],
     targets: None,
     target_failure: None,
+    completing: false,
     captured: None,
     retention: None,
     retention_configuration: None,
@@ -433,155 +435,192 @@ pub fn NativeResidentEffectReview::target_uses(
 /// facts. This performs no Provider I/O, Source acquisition, Compute or write.
 pub fn NativeResidentEffectReview::complete(
   self : NativeResidentEffectReview,
+  phase_observe? : (String) -> Unit = _ => (),
 ) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue] {
-  if !self.current() {
+  if self.completing {
     return Err(Unavailable)
   }
-  if self.captured is Some(value) {
-    return Ok(value)
-  }
-  let targets = match self.targets {
-    Some(rows) => rows
-    None => return Err(Unavailable)
-  }
-  let policy = self.policy
-  let bounds = policy.preview_limits
-  let preview = match
-    prepare_native_resident_effect_preview(
-      self.consumer,
-      self.materials,
-      self.inputs,
-      self.request,
-      policy.stage,
-      policy.effect_id,
-      policy.result_index,
-      self.artifact,
-      self.invocation,
-      policy.retention,
-      policy.source_binding_cid,
-      policy.store_authority_cid,
-      policy.mapping,
-      policy.runtime_bundle_cid,
-      policy.catalog,
-      targets,
-      bounds,
-      policy.export_limits,
-      policy.dispatch_limits,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Preview(issue))
-  }
-  let contract = match
-    @publication.admit_publication_contract(
-      "result_artifact",
-      @host.client_effect_local_result_artifact_json(self.artifact),
-      bounds.max_wire_bytes,
-      bounds.max_nodes,
-      bounds.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Contract(issue))
-  }
-  let source = match
-    @publication.admit_captured_effect_source_from_result(
-      @strategy.captured_effect_preview_ledger_identity(preview.preview),
-      0,
-      self.invocation,
-      preview.source,
-      contract,
-      policy.store_authority_cid,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Source(issue))
-  }
-  let dependencies = []
-  for
-    (artifact, index) in [
-      (self.receiver, self.root_index),
-      (self.artifact, policy.result_index),
-    ] {
-    match
-      self.consumer.capture_effect_dependency(
+  self.completing = true
+  let result = (fn() -> Result[
+    NativeResidentEffectReviewCapture,
+    NativeResidentEffectReviewIssue,
+  ] {
+    let phase = (name : String) => {
+      phase_observe(name)
+      self.current()
+    }
+    if !self.current() {
+      return Err(Unavailable)
+    }
+    if self.captured is Some(value) {
+      return Ok(value)
+    }
+    let targets = match self.targets {
+      Some(rows) => rows
+      None => return Err(Unavailable)
+    }
+    let policy = self.policy
+    let bounds = policy.preview_limits
+    if !phase("preview") {
+      return Err(Unavailable)
+    }
+    let preview = match
+      prepare_native_resident_effect_preview(
+        self.consumer,
         self.materials,
         self.inputs,
-        artifact,
-        index,
+        self.request,
+        policy.stage,
+        policy.effect_id,
+        policy.result_index,
+        self.artifact,
+        self.invocation,
+        policy.retention,
+        policy.source_binding_cid,
+        policy.store_authority_cid,
+        policy.mapping,
+        policy.runtime_bundle_cid,
+        policy.catalog,
+        targets,
+        bounds,
         policy.export_limits,
+        policy.dispatch_limits,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Preview(issue))
+    }
+    if !phase("artifact") {
+      return Err(Unavailable)
+    }
+    let contract = match
+      @publication.admit_publication_contract(
+        "result_artifact",
+        @host.client_effect_local_result_artifact_json(self.artifact),
         bounds.max_wire_bytes,
         bounds.max_nodes,
         bounds.max_depth,
       ) {
-      Ok(value) => dependencies.push(value)
-      Err(issue) => return Err(Dependency(issue))
+      Ok(value) => value
+      Err(issue) => return Err(Contract(issue))
     }
-  }
-  let manifest = match
-    @host.issue_client_effect_local_manifest(
-      self.materials.prepared,
-      @host.client_effect_imported_invocation(self.imported),
-      [self.artifact],
-      bounds.max_wire_bytes,
-      bounds.max_nodes,
-      bounds.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Manifest(issue))
-  }
-  let (local_source, inventory) = match
-    @host.issue_client_effect_capture_inventory(
-      self.materials,
-      self.inputs,
-      0,
-      source,
+    if !phase("source") {
+      return Err(Unavailable)
+    }
+    let source = match
+      @publication.admit_captured_effect_source_from_result(
+        @strategy.captured_effect_preview_ledger_identity(preview.preview),
+        0,
+        self.invocation,
+        preview.source,
+        contract,
+        policy.store_authority_cid,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Source(issue))
+    }
+    if !phase("dependencies") {
+      return Err(Unavailable)
+    }
+    let dependencies = []
+    for
+      (artifact, index) in [
+        (self.receiver, self.root_index),
+        (self.artifact, policy.result_index),
+      ] {
+      match
+        self.consumer.capture_effect_dependency(
+          self.materials,
+          self.inputs,
+          artifact,
+          index,
+          policy.export_limits,
+          bounds.max_wire_bytes,
+          bounds.max_nodes,
+          bounds.max_depth,
+        ) {
+        Ok(value) => dependencies.push(value)
+        Err(issue) => return Err(Dependency(issue))
+      }
+    }
+    if !phase("manifest") {
+      return Err(Unavailable)
+    }
+    let manifest = match
+      @host.issue_client_effect_local_manifest(
+        self.materials.prepared,
+        @host.client_effect_imported_invocation(self.imported),
+        [self.artifact],
+        bounds.max_wire_bytes,
+        bounds.max_nodes,
+        bounds.max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Manifest(issue))
+    }
+    if !phase("inventory") {
+      return Err(Unavailable)
+    }
+    let (local_source, inventory) = match
+      @host.issue_client_effect_capture_inventory(
+        self.materials,
+        self.inputs,
+        0,
+        source,
+        manifest,
+        self.artifact,
+        self.imported,
+        self.producer.acquired,
+        self.producer.acquired_bodies.0,
+        self.producer.acquired_bodies.1,
+        dependencies,
+        policy.retention_dependencies,
+        policy.dependency_limits,
+        bounds.max_nodes,
+        bounds.max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Inventory(issue))
+    }
+    if !phase("captured-run") {
+      return Err(Unavailable)
+    }
+    let captured = match
+      self.consumer.capture_effect_run(
+        self.materials,
+        self.inputs,
+        self.result,
+        self.invocation,
+        preview.preview,
+        [preview.proof],
+        [source],
+        [local_source],
+        inventory,
+        preview.authoring,
+        policy.max_fields,
+        policy.max_work,
+        bounds.max_wire_bytes,
+        bounds.max_nodes,
+        bounds.max_depth,
+        policy.max_capture_workspace_entries,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Capture(issue))
+    }
+    let complete : NativeResidentEffectReviewCapture = {
+      artifact: self.artifact,
       manifest,
-      self.artifact,
-      self.imported,
-      self.producer.acquired,
-      self.producer.acquired_bodies.0,
-      self.producer.acquired_bodies.1,
-      dependencies,
-      policy.retention_dependencies,
-      policy.dependency_limits,
-      bounds.max_nodes,
-      bounds.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Inventory(issue))
-  }
-  let captured = match
-    self.consumer.capture_effect_run(
-      self.materials,
-      self.inputs,
-      self.result,
-      self.invocation,
-      preview.preview,
-      [preview.proof],
-      [source],
-      [local_source],
+      preview,
+      source,
+      local_source,
       inventory,
-      preview.authoring,
-      policy.max_fields,
-      policy.max_work,
-      bounds.max_wire_bytes,
-      bounds.max_nodes,
-      bounds.max_depth,
-      policy.max_capture_workspace_entries,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Capture(issue))
-  }
-  let complete : NativeResidentEffectReviewCapture = {
-    artifact: self.artifact,
-    manifest,
-    preview,
-    source,
-    local_source,
-    inventory,
-    dependencies,
-    captured,
-  }
-  self.captured = Some(complete)
-  Ok(complete)
+      dependencies,
+      captured,
+    }
+    self.captured = Some(complete)
+    Ok(complete)
+  })()
+  self.completing = false
+  result
 }
 
 ///|

@@ -157,7 +157,13 @@ fn retained_holder_provider_review(
     review=Some(work),
   ).unwrap()
   mark("provider-observed")
-  let complete = match work.complete() {
+  let complete = match
+    work.complete(phase_observe=phase => {
+      mark(phase)
+      if !(work.complete() is Err(Unavailable)) {
+        abort("original review: reentrant completion accepted")
+      }
+    }) {
     Ok(value) => value
     Err(Preview(_)) => abort("original review: Preview owner refused")
     Err(Contract(_)) => abort("original review: artifact contract refused")
