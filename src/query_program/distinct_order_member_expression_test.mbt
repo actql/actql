@@ -65,7 +65,7 @@ test "selected member mapping cannot restore an unselected member or receiver" {
         group_receiver_scope_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=text,
     )
   }
@@ -82,7 +82,7 @@ test "selected member mapping cannot recover another input object" {
       group_property_context(),
       construction_limits(),
     )
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
 }
 

@@ -6,6 +6,7 @@
 fn acquisition_runtime_case(
   through_consumer : Bool,
   effect? : Bool = false,
+  provider? : Bool = false,
   parent_ack_failure? : Bool = false,
   revoke_effect_at_start? : Bool = false,
   expire_effect_at_start? : Bool = false,
@@ -78,7 +79,7 @@ fn acquisition_runtime_case(
     536870912L,
   ).unwrap()
   let effect_pair = if effect {
-    Some(retained_compute_effect_materials())
+    Some(retained_compute_effect_materials(provider~))
   } else {
     None
   }
@@ -157,9 +158,17 @@ fn acquisition_runtime_case(
       is Err(@resident.ForeignInput),
     )
   }
+  let (effect_environment, effect_environment_cid, effect_document) = if provider {
+    resident_provider_environment()
+  } else {
+    (
+      resident_effect_source_environment, "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+      resident_native_effect_document,
+    )
+  }
   let environment = @host.admit_client_check_environment(
-    resident_effect_source_environment,
-    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    effect_environment,
+    effect_environment_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -169,10 +178,11 @@ fn acquisition_runtime_case(
         pair.0.allowed,
         pair.0.run_definition,
         environment,
-        resident_effect_source_environment,
-        resident_native_effect_document,
+        effect_environment,
+        effect_document,
         None,
         retained_compute_effect_limits(),
+        request=pair.0.request,
       ).unwrap()
     None =>
       @host.issue_client_task_run_materials(
@@ -646,6 +656,7 @@ fn acquisition_runtime_case(
       name,
       effect_pair~,
       effect_producer=original_effect_producer.val,
+      provider~,
       through_consumer_holder~,
       cancel_consumer_before_start~,
       cancel_consumer_after_borrow~,
@@ -923,4 +934,14 @@ test "Effect consumer holder output failure does not acquire input or execute tw
 ///|
 test "Effect poll admission keeps durable original intent after ACK failure without queuing execution" {
   acquisition_runtime_case(false, effect=true, parent_ack_failure=true)
+}
+
+///|
+test "Effect original holders retain physical Provider review and Checkpoint without reacquisition" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    provider=true,
+    through_consumer_holder=true,
+  )
 }

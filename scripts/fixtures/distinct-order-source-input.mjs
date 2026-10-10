@@ -42,7 +42,7 @@ export const distinctOrderRefusals = [
   'SELECT DISTINCT -amount AS amount FROM records ORDER BY records.amount',
   'FROM records AS original |> SELECT DISTINCT -amount AS amount |> ORDER BY original.amount',
 ].map((text, index) => ({name: 'distinct-order-unselected-' + index,
-  format: 'aql-text', text, expectedCode: 'ClientProgramImplementationLimit'}));
+  format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput'}));
 
 // The shared Source is read once; JOIN duplicates are removed using only the
 // public amount before an ORDER helper negates its evaluated output value.
@@ -73,7 +73,7 @@ for (const [index, order] of ['l.amount', 'l.id + 1', 'r.amount + 1'].entries())
   distinctOrderRefusals.push({name: 'distinct-order-join-unselected-' + index,
     format: 'sql', text: 'SELECT DISTINCT -l.amount AS amount FROM records AS l '
       + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 ORDER BY ' + order,
-    expectedCode: 'ClientProgramImplementationLimit'});
+    expectedCode: 'ClientProgramInvalidInput'});
 }
 
 // The SELECT input property and ORDER property have different AST spellings,
@@ -139,5 +139,5 @@ for (const [index, query] of [
   'SELECT DISTINCT payload.score AS score FROM objects ORDER BY objects.id',
 ].entries()) {
   distinctOrderRefusals.push({...receiverCase('unselected-' + index, query),
-    expectedCode: 'ClientProgramImplementationLimit'});
+    expectedCode: 'ClientProgramInvalidInput'});
 }

@@ -12,12 +12,22 @@ fn lower_script_set_relation(
   steps : Array[@builder.Node],
   reserved : Array[String],
   output : String,
+  graphs? : Array[ScriptGraph] = [],
 ) -> Input raise Abort {
   let first_step = steps.length()
   let first = pipe_physical_name(reserved, "aql_data_set_term_")
   reserved.push(first)
   let left = lower_script_relation_term(
-    construction, query, known, context, sources, limits, steps, reserved, first,
+    construction,
+    query,
+    known,
+    context,
+    sources,
+    limits,
+    steps,
+    reserved,
+    first,
+    graphs~,
   )
   let sql_inner_count = set_inner_chain_length(query)
   let sql_rights : Array[Input] = []
@@ -38,6 +48,7 @@ fn lower_script_set_relation(
         steps,
         reserved,
         term,
+        graphs~,
       ),
     )
   }
@@ -76,6 +87,7 @@ fn lower_script_set_relation(
         steps,
         reserved,
         term,
+        graphs~,
       )
     }
     let output_fields = if index < sql_inner_count {

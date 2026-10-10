@@ -64,6 +64,8 @@ pub(all) struct Limits {
 ///|
 pub(all) enum Issue {
   InvalidContext
+  // A proven authored semantic violation, distinct from a lowering gap.
+  InvalidQuery
   UnknownRelation
   // The existing relation resolver exhausted the admitted inputs for this
   // exact semantic path. This witness alone is not a Source absence proof.
@@ -425,6 +427,34 @@ fn same_expression(
     }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
+    if two_operand_coalesce_shape(left, a_index) is Some(a_items) &&
+      two_operand_coalesce_shape(right, b_index) is Some(b_items) {
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
+    if negated_is_predicate_shape(left, a_index) is Some((a_name, a_items)) &&
+      negated_is_predicate_shape(right, b_index) is Some((b_name, b_items)) {
+      if a_name != b_name || a_items.length() != b_items.length() {
+        return false
+      }
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
+    if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
+      literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
+      if a_name != b_name || a_items.length() != b_items.length() {
+        return false
+      }
+      pending.push((a_value, b_value))
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
     if strict_concat_pair(a) is Some((a_left, a_right)) &&
       strict_concat_pair(b) is Some((b_left, b_right)) {
       // These two spellings already lower to the same ordered two-operand
@@ -1289,9 +1319,10 @@ fn group_key_expression(
   for projection in projections {
     match projection_alias(projection) {
       Some(name) if same_name(name, path[0]) => {
-        if matched is Some(_) ||
-          projection.aggregate is Some(_) ||
-          projection.analytic is Some(_) {
+        if matched is Some(_) {
+          raise Abort(InvalidQuery)
+        }
+        if projection.aggregate is Some(_) || projection.analytic is Some(_) {
           raise Abort(UnsupportedGrouping)
         }
         matched = projection.expression
@@ -3361,7 +3392,7 @@ fn compile_steps(
               ).any(column => !key_names.contains(column.1)) {
               // Excluded input columns are not projected; every retained star
               // value must still be grouped before aggregate slots are added.
-              raise Abort(UnsupportedGrouping)
+              raise Abort(InvalidQuery)
             }
           }
         }

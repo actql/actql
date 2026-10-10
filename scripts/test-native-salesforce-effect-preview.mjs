@@ -6,7 +6,8 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentCheckpoint = process.argv.includes('--resident-checkpoint-custody');
+const residentOriginalHolder = process.argv.includes('--resident-original-holder-review');
+const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
 const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-runtime-capture');
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
@@ -126,13 +127,15 @@ try {
         .toString('base64url'),
     });
   }
-  const selection = residentProposals
+  const selection = residentOriginalHolder
+    ? 'src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt'
+    : residentProposals
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
     : 'src/platform_native/salesforce_effect_preview/target_native_wbtest.mbt';
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + (residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
+    JSON.stringify(selection) + (residentOriginalHolder ? ", '--filter', 'Effect original holders retain physical Provider review*'" : residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
     "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
@@ -140,7 +143,9 @@ try {
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes,
     provider: bearer?.effectTargets(),
-    scope: residentEffectRuntimeCapture
+    scope: residentOriginalHolder
+      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint; live Ledger retained; no Cloud waiting commit, approval or write'
+      : residentEffectRuntimeCapture
       ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
       : residentProposals
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'

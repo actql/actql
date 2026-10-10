@@ -38,7 +38,7 @@ test "JOIN DISTINCT ORDER cannot revive removed input columns" {
         join_order_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=source,
     )
   }

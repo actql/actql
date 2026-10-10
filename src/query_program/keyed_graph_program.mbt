@@ -198,6 +198,33 @@ fn keyed_property_field(
 }
 
 ///|
+// A heterogeneous binding is not connected yet, but a directly requested
+// property must still exist in each candidate. Reuse the admitted Graph name
+// resolver; do not invent nullable cells or inspect a later, rebound scope.
+fn check_keyed_initial_projection_presence(
+  query : @query.Query,
+  node : @query.GraphNodePattern,
+  candidate_fields : Array[Array[String]],
+) -> Unit raise Abort {
+  guard node.variable is Some(variable) &&
+    @query.operation_at(query, 0) is Some(Select(projections, _)) else {
+    return
+  }
+  for projection in projections {
+    if projection.expression is Some(expression) &&
+      @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind
+      is Reference(path) &&
+      path.length() == 2 &&
+      same_name(path[0], variable) &&
+      candidate_fields.any(fields => {
+        keyed_property_field(path, Some(variable), fields) is None
+      }) {
+      raise Abort(InvalidQuery)
+    }
+  }
+}
+
+///|
 fn keyed_constraint(
   construction : Construction,
   constraint : @query.GraphConstraint?,
@@ -355,22 +382,39 @@ fn lower_script_keyed_graph_query(
   let definitions = keyed_start_definitions(graph.mapping, pattern.nodes[0])
   let definition = definitions[0]
   let input = property_mapping_input(definition.producer, graph.inputs)
-  let fields = keyed_node_fields(definition, pattern.nodes[0], input)
-  let identity = pipe_physical_name(fields, "aql_keyed_identity_")
-  let mut seeds = ""
-  for selected in definitions {
-    let selected_input = property_mapping_input(selected.producer, graph.inputs)
-    let selected_fields = keyed_node_fields(
+  let candidate_fields = definitions.map(selected => {
+    keyed_node_fields(
       selected,
       pattern.nodes[0],
-      selected_input,
+      property_mapping_input(selected.producer, graph.inputs),
     )
+  })
+  let fields = candidate_fields[0]
+  // Inspect the complete static candidate set before classifying a missing
+  // direct property. A shared projection still has the original support gap.
+  if candidate_fields.any(selected => {
+      let names : Map[String, Bool] = Map([])
+      for field in selected {
+        names[ascii_upper(field)] = true
+      }
+      selected.length() != fields.length() ||
+      fields.any(field => !names.contains(ascii_upper(field)))
+    }) {
+    check_keyed_initial_projection_presence(
+      query,
+      pattern.nodes[0],
+      candidate_fields,
+    )
+    raise Abort(UnsupportedGraph)
+  }
+  let identity = pipe_physical_name(fields, "aql_keyed_identity_")
+  let mut seeds = ""
+  for index in 0..<definitions.length() {
+    let selected = definitions[index]
+    let selected_fields = candidate_fields[index]
     // The current common match exposes a definition-specific closed schema.
     // Combine equivalent property sets without guessing missing-property NULLs
     // or converting element identities into scalar keys.
-    if selected_fields.length() != fields.length() {
-      raise Abort(UnsupportedGraph)
-    }
     let names : Map[String, String] = Map([])
     for field in selected_fields {
       names[ascii_upper(field)] = field

@@ -176,7 +176,7 @@ test "Graph equality rejects unknown arguments and repeated Carrier transitions"
       assert_eq(span.start_byte, 473)
       assert_eq(span.end_byte, 481)
     } else {
-      assert_true(result is Err(UnsupportedGraph), msg=suffix)
+      assert_true(result is Err(InvalidQuery), msg=suffix)
     }
   }
 }
