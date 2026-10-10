@@ -203,7 +203,17 @@
     {"source":"strpos($value, $part)","tree":{"strpos":[{"$param":"value"},{"$param":"part"}]}},
     {"source":"strpos('😀éx', 'x')","tree":{"strpos":[{"literal":"😀éx"},{"literal":"x"}]}},
     {"source":"strpos('', '')","tree":{"strpos":[{"literal":""},{"literal":""}]}},
-    {"source":"strpos(NULL, NULL)","tree":{"strpos":[{"literal":null},{"literal":null}]}}
+    {"source":"strpos(NULL, NULL)","tree":{"strpos":[{"literal":null},{"literal":null}]}},
+    {"source":"round(x)","tree":{"round":{"field":"x"}}},
+    {"source":"trunc(x)","tree":{"trunc":{"field":"x"}}},
+    {"source":"round(-1)","tree":{"round":{"literal":-1}}},
+    {"source":"trunc(-1)","tree":{"trunc":{"literal":-1}}},
+    {"source":"round(-x)","tree":{"round":{"negate":{"field":"x"}}}},
+    {"source":"trunc(-x)","tree":{"trunc":{"negate":{"field":"x"}}}},
+    {"source":"round(negate(1))","tree":{"round":{"negate":{"literal":1}}}},
+    {"source":"trunc(negate(1))","tree":{"trunc":{"negate":{"literal":1}}}},
+    {"source":"round(NULL)","tree":{"round":{"literal":null}}},
+    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -250,6 +260,10 @@
     "strpos()",
     "strpos(x)",
     "strpos(x,y,z)",
-    "STRPOS(x,y)"
+    "STRPOS(x,y)",
+    "round()",
+    "trunc()",
+    "round(x,y)",
+    "trunc(x,y)"
   ]
 }

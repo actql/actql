@@ -21,6 +21,15 @@ import {verifyCurrentFamily} from './final.mjs';
 import {sealAcceptance} from './acceptance.mjs';
 import {storedArchive} from './archive-fixture.mjs';
 
+// Independent authored observations for controlled archive composition only.
+// These markers do not assert an actual Bridge or Actions execution.
+const bridgeObservation = [
+  'ACTQL_EVENTS_BRIDGE:{"case":"empty-number","clock":"number","rows":0}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"nullable-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"duplicate-payload-number","clock":"number","rows":2}',
+  'ACTQL_EVENTS_BRIDGE:{"case":"timestamp-original-text","clock":"timestamp","rows":1}',
+].join('\n') + '\n';
+
 const root = fileURLToPath(new URL('../../', import.meta.url));
 export const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
 
@@ -112,7 +121,8 @@ export async function archiveFixture(t, {repository = root, revision: suppliedRe
   for (const action of catalog.actions) {
     const output = action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n`
       : action.id === 'mutations-js' ? mutationIds.map(id => `${id}: detected by replacement tests`).join('\n')
-        : `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n`;
+        : (action.id.startsWith('events-connection-') ? bridgeObservation : '') +
+          `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n`;
     const paths = ['runtime-distributions.json', 'comparison-plan.json'];
     if (action.id === 'mutations-js') paths.push('isolated-inputs.json', 'isolated-observation.json', 'isolated-execution.json', 'results/mutations-js.json');
     members.set('comparison-plan.json', jsonBytes(comparison));

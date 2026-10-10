@@ -25,7 +25,10 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   const transferManifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
   assert(packageImports(tree.read(transferManifest).toString('utf8')).imports.includes('actql/actql/sha256'),
     'Transfer destination reader identity requires the literal SHA-256 dependency');
-  for (const path of [transferManifest, 'src/platform_native/remote_journal/moon.pkg',
+  for (const path of [transferManifest, 'src/native_values_integration/moon.pkg',
+    'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
+    'src/platform_native/remote_journal/moon.pkg', 'src/platform_native/remote_transfer_client/moon.pkg',
+    'src/platform_native/signature/moon.pkg', 'src/query_integration/moon.pkg',
     'src/platform_native/remote_standard_host/moon.pkg']) {
     assert(selected.packageConfigurations.some(entry => entry.path === path &&
       entry.digest === hash(tree.read(path))), `Missing exact current configuration review: ${path}`);
@@ -35,7 +38,9 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   }
   const allSources = [...tree.entries.keys()].filter(path => path.startsWith('src/'));
   assert(selected.paths.length < allSources.length, 'Full-source fallback is not narrowed-cohort coverage');
-  for (const directory of ['src/client_row_source_host', 'src/bounded_graph_diff',
+  for (const directory of ['src/native_values_integration', 'src/platform_native/publication_store',
+    'src/platform_native/remote_client', 'src/platform_native/signature', 'src/checkpoint_runtime',
+    'src/effect_application', 'src/logical_request_scope', 'src/client_row_source_host', 'src/bounded_graph_diff',
     'src/platform_native/remote_transfer_journal', 'src/sha256',
     'src/platform_native/remote_journal', 'src/platform_native/remote_standard_host',
     'src/platform_native/retained_task_file']) {
@@ -73,8 +78,11 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
     stagedBytes: staged.bytes, scope: 'Git/filesystem correspondence; no compiler, image execution or reuse'}));
 });
 
-for (const manifest of ['src/platform_native/remote_transfer_journal/moon.pkg',
-  'src/platform_native/remote_journal/moon.pkg', 'src/platform_native/remote_standard_host/moon.pkg'])
+for (const manifest of ['src/native_values_integration/moon.pkg',
+  'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
+  'src/platform_native/remote_journal/moon.pkg', 'src/platform_native/remote_transfer_client/moon.pkg',
+  'src/platform_native/remote_transfer_journal/moon.pkg', 'src/platform_native/signature/moon.pkg',
+  'src/query_integration/moon.pkg', 'src/platform_native/remote_standard_host/moon.pkg'])
 test(`an unreviewed ${manifest} retains full-source fallback and unresolved reuse`, () => {
   const repository = fileURLToPath(new URL('../../', import.meta.url));
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();

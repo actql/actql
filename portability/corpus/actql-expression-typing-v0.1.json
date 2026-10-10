@@ -195,7 +195,17 @@
     {"source":"strpos('', '')","type":"number"},
     {"source":"strpos(s,$p)","type":"number"},
     {"source":"strpos(NULL,s)","type":"number?"},
-    {"source":"strpos(s,NULL)","type":"number?"}
+    {"source":"strpos(s,NULL)","type":"number?"},
+    {"source":"round(n)","type":"number"},
+    {"source":"trunc(n)","type":"number"},
+    {"source":"round(nn)","type":"number?"},
+    {"source":"trunc(nn)","type":"number?"},
+    {"source":"round(NULL)","type":"number?"},
+    {"source":"trunc(NULL)","type":"number?"},
+    {"source":"round($q)","type":"number?"},
+    {"source":"trunc($q)","type":"number?"},
+    {"source":"round(-1)","type":"number"},
+    {"source":"trunc(-1)","type":"number"}
   ],
   "negative": [
     {"source":"missing","issue":"UnknownField"},
@@ -283,6 +293,20 @@
     {"source":"strpos(r,s)","issue":"TypeMismatch"},
     {"source":"strpos(s,a)","issue":"TypeMismatch"},
     {"source":"strpos(d,s)","issue":"TypeMismatch"},
-    {"source":"strpos(s,v)","issue":"TypeMismatch"}
+    {"source":"strpos(s,v)","issue":"TypeMismatch"},
+    {"source":"round(s)","issue":"TypeMismatch"},
+    {"source":"trunc(s)","issue":"TypeMismatch"},
+    {"source":"round(b)","issue":"TypeMismatch"},
+    {"source":"trunc(b)","issue":"TypeMismatch"},
+    {"source":"round(d)","issue":"TypeMismatch"},
+    {"source":"trunc(d)","issue":"TypeMismatch"},
+    {"source":"round(j)","issue":"TypeMismatch"},
+    {"source":"trunc(j)","issue":"TypeMismatch"},
+    {"source":"round(r)","issue":"TypeMismatch"},
+    {"source":"trunc(r)","issue":"TypeMismatch"},
+    {"source":"round(a)","issue":"TypeMismatch"},
+    {"source":"trunc(a)","issue":"TypeMismatch"},
+    {"source":"round(v)","issue":"TypeMismatch"},
+    {"source":"trunc(v)","issue":"TypeMismatch"}
   ]
 }
