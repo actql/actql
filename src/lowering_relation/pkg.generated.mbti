@@ -373,6 +373,8 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_mean_checked(PreparedGraphMean) -> @graph_typing.CheckedMean
+
 pub fn graph_subgraph_edge_fields(PreparedGraphSubgraph) -> @carrier_contract.Knowledge
 
 pub fn graph_subgraph_edge_predicate(PreparedGraphSubgraph) -> Expression?
@@ -1331,6 +1333,10 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectAllEntities
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphMeanIssue {
+  InvalidGraphMeanWiring
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphSubgraphIssue {
   InvalidGraphSubgraphLimits
   InvalidGraphSubgraphWiring
@@ -1541,6 +1547,7 @@ pub enum Payload {
   GraphNormalizeValue(@graph_typing.CheckedNormalize)
   GraphDeltaValue(@graph_typing.CheckedDelta)
   GraphUnionValue(@graph_typing.CheckedUnion)
+  GraphMeanValue(@graph_typing.CheckedMean)
   GraphSubtractionValue(@graph_typing.CheckedSubtraction)
   GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
@@ -1627,6 +1634,8 @@ type PreparedGraphEquality
 
 type PreparedGraphMatch
 
+type PreparedGraphMean
+
 type PreparedGraphSubgraph
 
 type PreparedGraphTraverse
@@ -1709,6 +1718,7 @@ pub enum PreparedStep {
   GraphNormalizeStep(Int)
   GraphDeltaStep(PreparedGraphDelta)
   GraphUnionStep(PreparedGraphUnion)
+  GraphMeanStep(PreparedGraphMean)
   GraphSubtractionStep(PreparedGraphUnion)
   GraphTraverseStep(PreparedGraphTraverse)
   GraphConstructionStep(PreparedGraphConstruction)
@@ -1803,6 +1813,7 @@ pub(all) enum SequenceIssue {
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphDeltaFailure(Int, GraphDeltaIssue)
   GraphUnionFailure(Int, GraphUnionIssue)
+  GraphMeanFailure(Int, GraphMeanIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)

@@ -1988,6 +1988,12 @@ fn compile_steps(
               positional_destination_names.push(name)
             }
           }
+        Some(UnnestSource(_, element, offset)) => {
+          positional_destination_names.push(element)
+          if offset is Some(name) {
+            positional_destination_names.push(name)
+          }
+        }
         _ => ()
       }
     }
@@ -2255,6 +2261,7 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
+        UnnestSource(expression, _, _) => [expression]
         Set(assignments) => assignments.map(assignment => assignment.1)
         Select(columns, _)
         | Extend(columns)
@@ -2266,6 +2273,7 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is UnnestSource(_, _, _) ||
           operation is Set(_) ||
           operation is Extend(_) ||
           operation is Select(_, _) ||

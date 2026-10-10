@@ -21,12 +21,15 @@ const profiles = {
   'graph-graft': 'Graph graft preserves complete records through Store reload and public',
   'graph-reach': 'Graph Reach preserves typed selectors and depth through Store reload and public',
   'graph-shortest': 'Graph Shortest preserves selected paths through Store reload and public',
+  'graph-mean': 'Graph Mean preserves explicit samples through Store reload and public',
   'graph-subtraction': 'Graph subtraction preserves typed records through Store reload and public',
 };
 
 export const graphPublicHostCases = Object.freeze(['local','remote'].flatMap(mode =>
-  Object.entries(profiles).map(([profile,title]) => Object.freeze({mode,profile,
-    name:`${title} ${mode}`}))));
+  Object.entries(profiles).flatMap(([profile,title]) => profile === 'graph-mean'
+    ? ['basic', 'asymmetric'].map(partition => Object.freeze({mode,profile,partition,
+      name:`${title} ${mode}${partition === 'basic' ? '' : ' (asymmetric)'}`}))
+    : [Object.freeze({mode,profile,name:`${title} ${mode}`})])));
 
 export const graphPublicHostPattern = name => '^' +
   name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&') + '$';

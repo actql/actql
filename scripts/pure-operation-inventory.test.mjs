@@ -29,8 +29,8 @@ test('acceptance evidence index covers the complete operation scope exactly once
 test('evidence paths exist and both embedded Program schemas contain each operation', () => {
   const registry = JSON.parse(read('spec/contracts/actql-protocol-schemas.json'));
   assert.deepEqual(Object.keys(graphClassification).filter(refused).toSorted(),
-    ['mean_graphs', 'shortest_path'],
-    'Unimplemented consumers must retain public refusal evidence');
+    [],
+    'Current bounded Graph connections are partial, not completed coverage');
   for (const [names, unit, pipeline, owner] of rows) {
     const operations = names.split(', ');
     if (operations.some(refused)) {

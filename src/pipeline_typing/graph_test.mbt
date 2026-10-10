@@ -331,7 +331,7 @@ test "missing or wrong Graph evidence cannot fabricate current MATCH rows" {
 }
 
 ///|
-test "unconnected current Graph consumers cannot manufacture a legacy checked pipeline" {
+test "current Mean requires strategies for its declared properties" {
   for
     (name, body) in [
       (
@@ -357,12 +357,8 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
       None,
       limits(),
     ).unwrap_err()
-    assert_true(
-      issue.kind is Graph(@graph.UnsupportedGraphOperation) ||
-      issue.kind
-      is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
-    )
-    assert_eq(issue.path, [Index(0), Key(name)])
+    assert_eq(issue.kind, Graph(@graph.InvalidPropertyStrategy("active")))
+    assert_true(issue.path.contains(Key(name)))
   }
   for
     (name, body) in [
@@ -428,7 +424,7 @@ test "current Graph graft preserves independent definition and property contract
 }
 
 ///|
-test "unsupported mean generator keeps required alias and conflicting from diagnostics" {
+test "Mean generator keeps required alias and conflicting from diagnostics" {
   let body = "\"mean_graphs\":{\"with\":[\"g\",\"g\"],\"weights\":[1,0],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}"
   for
     (extra, expected) in [
@@ -447,13 +443,13 @@ test "unsupported mean generator keeps required alias and conflicting from diagn
 }
 
 ///|
-test "unsupported mean validates authored options without issuing Graph work" {
+test "Mean validates authored options before issuing typed Graph work" {
   let valid = "{\"with\":[\"g\",\"g\"],\"weights\":[1,0],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}"
   for
     (body, kind, path) in [
       (
         valid,
-        @graph.UnsupportedGraphOperation,
+        @graph.InvalidPropertyStrategy("active"),
         [@source.Index(0), @source.Key("mean_graphs")],
       ),
       (

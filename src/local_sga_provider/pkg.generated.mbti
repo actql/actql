@@ -7,18 +7,25 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/decode_core",
   "actql/actql/execution_relation",
+  "actql/actql/local_sga",
   "actql/actql/managed_graph_storage",
   "actql/actql/value_admission",
 }
 
 // Values
-pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?, union_policy? : UnionPolicy?, reference_issuer? : @value_admission.ReferenceIssuer?) -> @local.ManagedProvider
+pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?, union_policy? : UnionPolicy?, mean_policy? : MeanPolicy?, reference_issuer? : @value_admission.ReferenceIssuer?) -> @local.ManagedProvider
 
 // Errors
 
 // Types and methods
 pub(all) struct DeltaPolicy {
   limits : @bounded_graph_diff.Limits
+  workspace_bytes : Int64
+}
+
+pub(all) struct MeanPolicy {
+  limits : @local_sga.MeanLimits
+  max_workspace_slots : Int
   workspace_bytes : Int64
 }
 
