@@ -1,0 +1,71 @@
+# Python Local in-process Host boundary
+
+The Local adapter invokes MoonBit directly through Wasmtime. Node is a build
+tool, not a runtime dependency or a transport fallback. The public Client wire,
+remote-site protocol and in-process ABI are distinct contracts.
+
+## Transfer custody
+
+`client_host_buffers` composes the existing physical resource Ledger's shared
+capacity, allocations and borrows. A pool reserves its allowance once. A transfer
+charges both mutable staging and immutable wire payload capacity, including the
+overlap during sealing, plus the physical adapter's copy allowance. All live
+transfers share that allowance; byte equality does not merge allocations.
+
+The source decoder preserves raw JSON strings and keys, including Unicode and
+NULL. It distinguishes parsing limits from malformed input. Sealing a transfer
+does not check a Program or admit a Run.
+
+An allocation is retired before cleanup. Readers must acknowledge physical stop
+before their exact borrow is returned. Failed stop or cleanup retains the same
+handle and allocation for retry. The root reservation is settled only after all
+allocations are released. Closing a pool blocks further admission immediately.
+
+## Instance-private Wasm facade
+
+The physical adapter installs one fresh positive instance nonce. It supplies
+positive physical input identifiers that cannot be reused while live. Core
+issues monotonically increasing handles from a shared sequence for input and
+reader kinds. Handles are never serialized Client references, durable operation
+identities or execution authority. The adapter must keep handles private to the
+owning instance; neither a handle nor a nonce is an authorization token.
+
+All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
+and admitted before the physical callback runs. The three imports are
+`actql_host.input_byte`, `input_cleanup` and `reader_stop`. Bytes must be in
+0..255. Cleanup and stop return zero only when the corresponding physical fact
+has completed; nonzero retains custody. Adapters must convert physical failures
+to pending results rather than destroy the instance holding cleanup obligations.
+
+The `actql_buffer_*` exports return zero for completed actions, positive handles
+for reservations and borrows, or these negative outcomes:
+
+| Code | Meaning |
+| --- | --- |
+| -1 | Foreign instance |
+| -2 | Missing, stale or wrong-kind handle |
+| -3 | Invalid configuration |
+| -4 | Capacity refusal |
+| -5 | Closed or unavailable transferred bytes |
+| -6 | Invalid chunk position |
+| -7 | Incomplete transfer |
+| -8 | Malformed JSON input |
+| -9 | Physical stop or cleanup pending |
+| -10 | Other typed Ledger refusal |
+| -11 | Input, node or depth parsing budget exhausted |
+| -12 | Invalid physical byte |
+
+Usage exports return signed 64-bit byte counts, or -1 for a foreign instance.
+The module's linear memory has a 16 MiB maximum. This bound and the transfer
+pool's payload allowance are separate limits. Transfer accounting alone does
+not account for parsed object metadata, the complete Wasm heap, Python retained
+objects, DuckDB workspace or aggregate Local execution. A product Host must
+reserve and account for those resources using their existing Owners before
+claiming an aggregate execution bound.
+
+## Execution boundary
+
+Run admission, checked task progress, publication, cancellation eligibility and
+durable recovery remain MoonBit Owner responsibilities. Python provides physical
+callbacks and persistence, not a second Run or recovery state machine. This
+transfer facade provides no execution or recovery operation.
