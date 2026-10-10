@@ -161,6 +161,7 @@ fn lower_script_relation_term(
       reserved,
       retained,
       preserved_scope=preserved,
+      positional_set_output~,
     )
     if preserved is Some(scopes) {
       sources.ranges[bound.name] = scopes[0]
