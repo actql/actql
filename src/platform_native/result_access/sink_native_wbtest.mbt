@@ -213,3 +213,93 @@ test "Native sink output limit does not expose the private probe byte or finish 
   sink.close().unwrap()
   assert_true(store.close().unwrap())
 }
+
+///|
+test "Native sink finish failure cannot certify complete output" {
+  let (store, session, _) = sink_access_case("finish-failed")
+  let written = Ref(0)
+  let finishes = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    64,
+    bytes => {
+      written.val += bytes.length()
+      SinkChunkConfirmed
+    },
+    () => {
+      finishes.val += 1
+      false
+    },
+  ).unwrap()
+  let mut failed = false
+  for _ in 0..<40 {
+    match sink.poll().unwrap() {
+      SinkFailed(SinkFinishFailed, record) => {
+        assert_eq(record.confirmed_bytes, 12L)
+        assert_eq(record.state, "failed")
+        failed = true
+        break
+      }
+      SinkProgress => ()
+      _ => fail("failed sink finish cannot be completion")
+    }
+  }
+  assert_true(failed)
+  assert_eq(written.val, 12)
+  assert_eq(finishes.val, 1)
+  assert_true(sink.poll() is Ok(SinkFailed(SinkFinishFailed, _)))
+  assert_eq(finishes.val, 1)
+  sink.close().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "Native sink invalid prefix claim never enters receipt or another physical write" {
+  let (store, session, _) = sink_access_case("invalid-prefix")
+  let writes = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    64,
+    bytes => {
+      writes.val += 1
+      SinkChunkFailed(bytes.length() + 1, 0)
+    },
+    () => true,
+  ).unwrap()
+  assert_true(sink.poll() is Ok(SinkProgress))
+  guard sink.poll() is Ok(SinkFailed(InvalidSinkWrite, failure)) else {
+    fail("invalid sink claim not refused")
+  }
+  assert_eq(failure.confirmed_bytes, 0L)
+  assert_eq(writes.val, 1)
+  sink.close().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "Native sink early close does not imply completion or permit a later write" {
+  let (store, session, _) = sink_access_case("early-close")
+  let writes = Ref(0)
+  let finishes = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    64,
+    _ => {
+      writes.val += 1
+      SinkChunkConfirmed
+    },
+    () => {
+      finishes.val += 1
+      true
+    },
+  ).unwrap()
+  sink.close().unwrap()
+  sink.close().unwrap()
+  assert_true(sink.poll() is Err(Access(InvalidProgress)))
+  assert_eq(writes.val, 0)
+  assert_eq(finishes.val, 0)
+  assert_true(store.close().unwrap())
+}

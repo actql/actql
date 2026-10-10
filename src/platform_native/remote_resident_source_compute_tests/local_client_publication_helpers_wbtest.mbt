@@ -442,3 +442,98 @@ fn local_client_read_committed_result(
   )
   delivery.close().unwrap()
 }
+
+///|
+/// The already-published actual Source result reaches the same bounded sink
+/// adapter used by Native CLI. This creates an explicit new read attempt,
+/// not another Source/Compute operation or a replay of an old delivery grant.
+fn local_client_read_result_sink(
+  store : @store.Store,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity,
+  attempt : String,
+) -> Unit raise {
+  let authority = @access.install_native_result_access_authority(
+    requested => {
+      requested.run_definition_cid ==
+      @publication.publication_contract_identity(definition) &&
+      requested.authority_scope_cid ==
+      @host.client_request_authority_scope_cid(request) &&
+      requested.principal_id == "fixture-principal"
+    },
+    _ => {
+      Some({
+        authorization_context_cid: local_client_publication_cid(
+          attempt + "-read-authority",
+        ),
+        data_ceiling_cid: local_client_publication_cid(attempt + "-ceiling"),
+        egress_admission_cid: local_client_publication_cid(
+          attempt + "-read-egress",
+        ),
+        expires_at: "2099-01-01T00:00:00.000Z",
+        max_bytes: 128,
+        max_uses: 1,
+      })
+    },
+    _ => true,
+  )
+  let service = @access.install_native_result_access_service(
+    store,
+    authority,
+    () => "2026-10-10T00:00:08.000Z",
+    1000000,
+    100000,
+    100,
+    128,
+    3,
+  ).unwrap()
+  let session = @access.open_native_result_access(service, {
+    namespace_id: "native-client-fixture",
+    authority_scope_cid: @host.client_request_authority_scope_cid(request),
+    run_definition_cid: @publication.publication_contract_identity(definition),
+    principal_id: "fixture-principal",
+    purpose: "inspect",
+    result_name: "answer",
+    format: "jsonl",
+    attempt_id: attempt,
+  }).unwrap()
+  let output : Array[Byte] = []
+  let finishes = Ref(0)
+  let sink = @access.install_native_result_sink(
+    session,
+    3,
+    9,
+    bytes => {
+      for byte in bytes {
+        output.push(byte)
+      }
+      @access.SinkChunkConfirmed
+    },
+    () => {
+      finishes.val += 1
+      true
+    },
+  ).unwrap()
+  let mut receipt = None
+  for _ in 0..<40 {
+    match sink.poll().unwrap() {
+      @access.SinkProgress => ()
+      @access.SinkComplete(value) => {
+        receipt = Some(value)
+        break
+      }
+      @access.SinkFailed(_, _) => fail("actual Source sink failed")
+    }
+  }
+  assert_eq(@utf8.decode(Bytes::from_array(output)), "{\"id\":3}\n")
+  assert_eq(finishes.val, 1)
+  guard receipt is Some(receipt) else {
+    fail("actual Source sink did not complete")
+  }
+  assert_eq(receipt.confirmed_bytes, 9L)
+  assert_eq(receipt.delivery_attempt_cid, session.attempt_cid())
+  assert_true(sink.poll() is Ok(@access.SinkComplete(_)))
+  assert_eq(output.length(), 9)
+  assert_eq(finishes.val, 1)
+  sink.close().unwrap()
+}

@@ -336,6 +336,14 @@ fn local_client_source_publication_case(
       @host.AlreadyTerminal,
     )
   }
+  if !race {
+    local_client_read_result_sink(
+      store, definition, request, "native-cli-sink-after-reopen",
+    )
+    assert_eq(acquisitions, 1)
+    assert_eq(consumers, 1)
+    assert_eq(cleanups, 1)
+  }
   assert_true(store.close().unwrap())
   guard journal.lookup(request, true)
     is Ok(@client.Retained(before_failed_observation)) else {
