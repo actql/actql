@@ -348,6 +348,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         )
         (
           @lower.operation(node) == "SGA.union_structural" ||
+          (@lower.operation(node) == "SGA.graft" && count == 2) ||
           (@lower.operation(node) == "SGA.diff_structural" && count == 2)
         ) &&
         count >= 2 &&

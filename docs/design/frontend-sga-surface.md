@@ -102,7 +102,7 @@ argument or certify every backend.
 | `degree`, `graph_bounds`, `components` | Graph → Relation | [Diagnostic rows](../../src/query_program/graph_diagnostics_program.mbt); authored bodies and parameters retained |
 | `graphs_equal`, `graph_diff` | Graph pair → Relation | [Pair rows](../../src/query_program/graph_equality_program.mbt); explicit earlier DATA peer, existing Boolean/Delta columns |
 | `subgraph` | Graph → Graph | [Subgraph calls](../../src/query_program/subgraph_script_program.mbt); existing retained Relation selector, common membership/closure rules |
-| `union_graphs`, `subtract_graphs` | Graph inputs → Graph | [Composition calls](../../src/query_program/graph_composition_program.mbt); preserve authored peer order and policies, binary subtraction |
+| `union_graphs`, `subtract_graphs`, `graft_graph` | Graph inputs → Graph | [Composition calls](../../src/query_program/graph_composition_program.mbt); preserve authored peer order and policies, binary subtraction and closed exact-equal graft |
 | `apply_graph_delta` | Graph + Delta Relation → Graph | [Delta application](../../src/query_program/graph_delta_program.mbt); explicit producer and field, common Delta validation |
 
 Both DATA and terminal query routing reuse these boundaries. A Relation-returning
@@ -112,7 +112,7 @@ Graph-returning call retains the checked Graph contract until explicit rows
 or MATCH processing; it does not acquire, save, copy or select an execution
 location itself.
 
-`reach`, `shortest_path`, `graft_graph` and `mean_graphs` remain adopted but
+`reach`, `shortest_path` and `mean_graphs` remain adopted but
 unconnected in this Script frontend. In particular, the generator-style
 `mean_graphs` binding is not an implemented constructor. Parser vocabulary
 and historical machine-input execution are not successful public text routes.

@@ -227,7 +227,12 @@ pub fn operation(value : PreparedNode) -> String {
     GraphDegreeRows(_) => "SGA.degree_metrics"
     GraphEqualityRows(_) => "SGA.equal"
     GraphNormalizeValue(_) => "SGA.normalize"
-    GraphUnionValue(_) => "SGA.union_structural"
+    GraphUnionValue(value) =>
+      if @graph.union_is_graft(value) {
+        "SGA.graft"
+      } else {
+        "SGA.union_structural"
+      }
     GraphSubtractionValue(_) => "SGA.diff_structural"
     GraphDeltaValue(value) =>
       match @graph.delta_operation(value) {
@@ -446,7 +451,14 @@ pub fn prepare(
       GraphDegreeRows(_) => ("degree", 1)
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphUnionValue(value) =>
-        ("union_graphs", @graph.union_input_count(value))
+        (
+          if @graph.union_is_graft(value) {
+            "graft_graph"
+          } else {
+            "union_graphs"
+          },
+          @graph.union_input_count(value),
+        )
       GraphSubtractionValue(_) => ("subtract_graphs", 2)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
       GraphDeltaValue(value) =>

@@ -29,10 +29,15 @@ fn lower_script_graph_composition(
   reserved : Array[String],
 ) -> String raise Abort {
   guard (
-      call.operation == "union_graphs" || call.operation == "subtract_graphs"
+      call.operation == "union_graphs" ||
+      call.operation == "subtract_graphs" ||
+      call.operation == "graft_graph"
     ) &&
     call.arguments.filter(argument => argument.0 == "with").length() == 1 &&
-    call.arguments.all(argument => argument.0 == "with" || argument.0 == "merge") else {
+    call.arguments.all(argument => {
+      argument.0 == "with" ||
+      (call.operation != "graft_graph" && argument.0 == "merge")
+    }) else {
     raise Abort(UnsupportedGraph)
   }
   let origin = match

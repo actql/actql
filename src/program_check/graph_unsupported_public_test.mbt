@@ -13,7 +13,7 @@ test "current public Graph admission refuses unsupported SGA rather than reachin
   for
     operation in [
       "\"reach\":{\"start\":{\"ids\":[1]},\"max_hops\":1}", "\"shortest_path\":{\"start\":{\"ids\":[1]},\"end\":{\"ids\":[1]}}",
-      "\"graft_graph\":{\"other\":\"g\"}", "\"mean_graphs\":{\"inputs\":[\"g\"]}",
+      "\"mean_graphs\":{\"inputs\":[\"g\"]}",
     ] {
     let source = "{\"version\":\"actql/0.1\",\"id\":\"unsupported-current-graph\",\"stages\":[{\"id\":\"source\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"nodes\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\"}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\"," +
       operation +
@@ -52,6 +52,7 @@ test "public Graph composition rejects malformed options through current checkin
   for
     operation in [
       "\"union_graphs\":{\"inputs\":[\"g\"]}", "\"subtract_graphs\":{\"other\":\"g\"}",
+      "\"graft_graph\":{\"other\":\"g\"}",
     ] {
     let source = "{\"version\":\"actql/0.1\",\"id\":\"malformed-composition\",\"stages\":[{\"id\":\"source\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"nodes\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\"}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\"," +
       operation +

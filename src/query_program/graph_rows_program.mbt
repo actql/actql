@@ -142,7 +142,9 @@ fn lower_script_graph_rows(
       // The preceding operation already established an ordinary Relation.
       raise Abort(InvalidQuery)
     }
-    if call.operation == "union_graphs" || call.operation == "subtract_graphs" {
+    if call.operation == "union_graphs" ||
+      call.operation == "subtract_graphs" ||
+      call.operation == "graft_graph" {
       current = lower_script_graph_composition(
         construction, query, call, current, graphs, known, limits, steps, reserved,
       )

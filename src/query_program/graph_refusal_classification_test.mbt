@@ -38,8 +38,6 @@ test "Graph row classification does not reinterpret unconnected operation option
     tail in [
       "DATA reached = FROM g |> reach(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 1); FROM reached |> SELECT depth",
       "DATA paths = FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1); FROM paths |> SELECT hop_count",
-      // Graft preserves Graph, so this reaches the Graph-row prefix owner.
-       "FROM g |> graft_graph(with: g) |> node_rows() |> SELECT node_key",
     ] {
     assert_true(
       classified_graph_source(prefix + tail) is Err(UnsupportedGraph),

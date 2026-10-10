@@ -63,7 +63,6 @@ test "unconnected lowering consumers cannot issue retired Graph kernels for a cu
         "]},\"direction\":\"out\",\"max_hops\":1}",
       ),
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
-      ("graft_graph", "{\"with\":\"peer\"}"),
       (
         "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
       ),

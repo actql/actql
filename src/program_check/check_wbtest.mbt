@@ -161,7 +161,7 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"traverse\":{}}]", true),
       ("[{\"reach\":{}}]", false),
       ("[{\"shortest_path\":{}}]", false),
-      ("[{\"graft_graph\":{}}]", false),
+      ("[{\"graft_graph\":{}}]", true),
       ("[{\"union_graphs\":{}}]", true),
       ("[{\"subtract_graphs\":{}}]", true),
       ("[{\"mean_graphs\":{}}]", false),

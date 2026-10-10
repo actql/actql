@@ -592,10 +592,22 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       }
       return;
     }
-    if (profile === 'graph-union') {
+    if (profile === 'graph-union' || profile === 'graph-graft') {
+      const graft = profile === 'graph-graft';
+      const graftDocument = document => {
+        if (!graft) return;
+        document.id = document.id.replace('union-', 'graft-');
+        for (const step of document.stages[0].steps) if (step.union_graphs) {
+          if (step.union_graphs.with[0] === 'applied') step.from = 'applied';
+          step.graft_graph = {with: step.union_graphs.with[0] === 'applied' ? 'g' : step.union_graphs.with[0]};
+          delete step.union_graphs;
+        }
+      };
       for (const projection of ['node_rows','edge_rows']) for (const numeric of [false,true]) for (const empty of [false,true]) {
+        if (graft && numeric) continue;
         const {document,graphSnapshots,relationSnapshots:expectedStores,fields,expected} =
           unionGraphScenario(presenceFixture,projection,{numeric,empty});
+        graftDocument(document);
         const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -620,6 +632,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       }
       const conflict = unionEndpointConflictScenario(presenceFixture);
+      graftDocument(conflict.document);
       const rejected = await client.startSource(canonicalText(conflict.document),{
         format:'json',submissionRef:client.newSubmission({nonce:`${conflict.document.id}-${mode}`}),
       });
@@ -630,7 +643,8 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       await assert.rejects((await client.attach(rejected.ref)).result('answer').all());
       assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       const {document} = unionGraphScenario(presenceFixture,'node_rows');
-      document.stages[0].steps[6].union_graphs.extra = true;
+      graftDocument(document);
+      document.stages[0].steps[6][graft ? 'graft_graph' : 'union_graphs'].extra = true;
       const before = physicalSteps.length;
       const requestId = `union-extra-field-${mode}`;
       const submissionRef = client.newSubmission({nonce: requestId});

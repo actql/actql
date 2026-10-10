@@ -930,9 +930,16 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "union_graphs" {
+    if key == "union_graphs" || key == "graft_graph" {
       let object = match
-        @decode.closed_object(operation_body, ["with", "merge"]) {
+        @decode.closed_object(
+          operation_body,
+          if key == "graft_graph" {
+            ["with"]
+          } else {
+            ["with", "merge"]
+          },
+        ) {
         Ok(object) => object
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -941,7 +948,7 @@ fn check_impl(
         Err(_) => fail(operation_body, InvalidBody)
       }
       let peers = if @decode.array_length(at) is Some(count) {
-        if count == 0 {
+        if count == 0 || key == "graft_graph" {
           fail(at, InvalidBody)
         }
         spend(b, at, count)
@@ -956,12 +963,17 @@ fn check_impl(
         operands.push(target)
         carriers.push(carrier(target, inputs, steps))
       }
+      let graph_limits : @graph.Limits = {
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_text_bytes: b.text,
+        max_depth: limits.max_depth,
+      }
       let checked = match
-        @graph.check_union(operation_body, carriers, {
-          max_work: b.work,
-          max_nodes: b.nodes,
-          max_text_bytes: b.text,
-          max_depth: limits.max_depth,
+        (if key == "graft_graph" {
+          @graph.check_graft(operation_body, carriers, graph_limits)
+        } else {
+          @graph.check_union(operation_body, carriers, graph_limits)
         }) {
         Ok(checked) => checked
         Err(issue) =>
@@ -1061,27 +1073,6 @@ fn check_impl(
       }
       current = Some(target)
       continue
-    }
-    if key == "graft_graph" {
-      let object = match @decode.closed_object(operation_body, ["with"]) {
-        Ok(object) => object
-        Err(_) => fail(operation_body, InvalidBody)
-      }
-      let at = match @decode.required(object, "with") {
-        Ok(at) => at
-        Err(_) => fail(operation_body, InvalidBody)
-      }
-      ignore(resolve_target(b, at, names))
-      // Graft has no current realization. It cannot issue an old tuple output
-      // or reuse the checked permission of a supported structural composition.
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
-      }
     }
     if key == "shortest_path" {
       let root = match

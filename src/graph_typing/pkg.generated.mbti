@@ -25,6 +25,8 @@ pub fn check_components(@decode_core.Cursor, @carrier_contract.Carrier, @paramet
 
 pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedDegree, Issue]
 
+pub fn check_graft(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
+
 pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
 
 pub fn check_graph_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedGraphConstruction, Issue]
@@ -354,6 +356,8 @@ pub fn union_fold_output(CheckedUnion, Int) -> @carrier_contract.Carrier?
 pub fn union_input_at(CheckedUnion, Int) -> @carrier_contract.Carrier?
 
 pub fn union_input_count(CheckedUnion) -> Int
+
+pub fn union_is_graft(CheckedUnion) -> Bool
 
 pub fn union_output(CheckedUnion) -> @carrier_contract.Carrier
 

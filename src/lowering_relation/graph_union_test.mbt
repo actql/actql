@@ -1,4 +1,49 @@
 ///|
+test "graft retains its registered operation and ordered binary bindings" {
+  let graph = graph_match_carrier()
+  let checked = @pipeline.check_carriers(
+    cursor("[{\"from\":\"g\",\"graft_graph\":{\"with\":\"peer\"}}]"),
+    [("g", graph), ("peer", graph)],
+    None,
+    None,
+    {
+      max_steps: 100,
+      max_work: 100000,
+      max_text_bytes: 100000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 4000,
+    },
+  ).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let plan = @lowering_relation.bound_preparation(owner)
+  let node = @lowering_relation.node_at(plan, 0).unwrap()
+  assert_eq(@lowering_relation.operation(node), "SGA.graft")
+  assert_eq(@lowering_relation.node_input_count(node), 2)
+  assert_eq(
+    @lowering_relation.node_input_target(node, 0),
+    Some(@pipeline.Input(0)),
+  )
+  assert_eq(
+    @lowering_relation.node_input_target(node, 1),
+    Some(@pipeline.Input(1)),
+  )
+  assert_true(@lowering_relation.node_can_split_carrier_transform(node))
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  let writer = @encode.writer(20000, 2000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "[{\"id\":\"graft_graph_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.graft\",\"params\":{}}]",
+  )
+}
+
+///|
 test "union lowers one finite ordered fold without deduplicating shared inputs" {
   let graph = graph_match_carrier()
   let checked = @pipeline.check_carriers(

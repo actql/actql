@@ -123,7 +123,12 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
     GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
     GraphUnionValue(checked) =>
-      operation(node) == "SGA.union_structural" &&
+      operation(node) ==
+      (if @graph.union_is_graft(checked) {
+        "SGA.graft"
+      } else {
+        "SGA.union_structural"
+      }) &&
       node.input_targets.length() == @graph.union_input_count(checked)
     GraphSubtractionValue(_) =>
       operation(node) == "SGA.diff_structural" &&
@@ -247,8 +252,13 @@ pub fn node_prefers_fused_without_relation_consumer(
 pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
   (node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize") ||
   (
-    node.payload is GraphUnionValue(_) &&
-    operation(node) == "SGA.union_structural"
+    node.payload is GraphUnionValue(checked) &&
+    operation(node) ==
+    (if @graph.union_is_graft(checked) {
+      "SGA.graft"
+    } else {
+      "SGA.union_structural"
+    })
   ) ||
   (
     node.payload is GraphSubtractionValue(_) &&
