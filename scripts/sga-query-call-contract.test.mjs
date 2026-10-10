@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:c3547f64ef37dc31982be2edb2067de0b6c76d6e25111fdaa801b789f16f2388';
+  const currentExpected = 'sha256:e70b946c81182b086c5ede1fb047eebe512699e7d71313986906d8d29acf8ab5';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -457,9 +457,14 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid(beforeMainIntegrationBody),
     'sha256:242daac87cc7b2c539f5f8bbe8e9b2bec841a09edf07739aa225c305f1d815c8');
   // Retain the pinned main Graph JOIN/MATCH DATA grammar and combined rules.
-  assert.deepEqual(currentBody, {...beforeMainIntegrationBody,
+  const beforePivotIntegrationBody = {...beforeMainIntegrationBody,
     query_text_grammar_sha256: '8028584026fe4ac133f25ec5d75bfaea5c4733993c3eb988c0290a0383102288',
-    query_text_rules_sha256: '3166801c63cf1143c1601ef30649247b9a87a3b0c33f340983481193e5a63e36'});
+    query_text_rules_sha256: '3166801c63cf1143c1601ef30649247b9a87a3b0c33f340983481193e5a63e36'};
+  assert.equal(cid(beforePivotIntegrationBody),
+    'sha256:c3547f64ef37dc31982be2edb2067de0b6c76d6e25111fdaa801b789f16f2388');
+  assert.deepEqual(currentBody, {...beforePivotIntegrationBody,
+    query_text_grammar_sha256: 'dad903a0a27a05f7211fc4689ac89cf3a74b14b25b79621edf8f87e807a38f97',
+    query_text_rules_sha256: '4635956e68e7d5862fd0553053bde9fc5a855e661c9cd4fd10339cdd1e61739a'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);

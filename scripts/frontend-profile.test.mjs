@@ -145,7 +145,7 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
     for (const id of feature.acceptance_case_ids) assert.ok(ids.has(id), id);
     const retired = ['text.envelope', 'text.total'].includes(feature.feature_id);
     assert.equal(feature.implementation_status, retired ? 'retired' :
-      (['acquisition.infer', 'vector.nearest', 'effect.hidden', 'effect.declaration', 'query.set'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
+      (['acquisition.infer', 'vector.nearest', 'effect.hidden', 'effect.declaration', 'query.set', 'query.pipe'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
     assert.deepEqual(feature.execution_evidence_ids,
       []);
     for (const evidence of feature.execution_evidence_ids) {

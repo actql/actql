@@ -374,14 +374,19 @@ fn comparison_numeric_atoms(
   let atoms : Array[Result[Double?, @expression.Issue]] = []
   for index in 0..<@query.expression_node_count(expression) {
     let atom = match @query.expression_node(expression, index).unwrap().kind {
-      Number(text) => @expression.numeric_literal(text).map(value => Some(value))
+      Number(text) =>
+        @expression.numeric_literal(text).map(value => Some(value))
       Parenthesized(child) | Unary("+", child) => atoms[child]
       Unary("-", child) =>
         // Keep the existing source-literal rejection of negative zero,
         // including a nested negation whose final mathematical value is zero.
         match atoms[child] {
           Ok(Some(value)) =>
-            if value == 0.0 { Err(@expression.InvalidNumber) } else { Ok(Some(-value)) }
+            if value == 0.0 {
+              Err(@expression.InvalidNumber)
+            } else {
+              Ok(Some(-value))
+            }
           other => other
         }
       _ => Ok(None)
@@ -444,8 +449,10 @@ fn same_expression(
       }
       continue
     }
-    if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
-      literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
+    if literal_membership_shape(left, a_index)
+      is Some((a_name, a_value, a_items)) &&
+      literal_membership_shape(right, b_index)
+      is Some((b_name, b_value, b_items)) {
       if a_name != b_name || a_items.length() != b_items.length() {
         return false
       }
@@ -1923,6 +1930,7 @@ fn compile_steps(
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
   prefix_context? : Context? = None,
+  positional_set_output? : Bool = false,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1946,6 +1954,7 @@ fn compile_steps(
   let mut analytic_input_scope : JoinChainScope? = None
   let qualify_values : Array[(@query.Expression, String)] = []
   let sql_group_aggregate_slots : Array[(String, String)] = []
+  let anonymous_set_aggregate_slots : Array[(@query.AggregateCall, String)] = []
   let having_aggregate_slots : Array[(String, String)] = []
   let order_aggregate_slots : Array[(String, String)] = []
   let order_analytic_slots : Array[(String, String)] = []
@@ -2140,6 +2149,36 @@ fn compile_steps(
       first = false
     }
     match operation {
+      Unpivot(clause) => {
+        if pipe_value_table {
+          raise Abort(UnsupportedProjection)
+        }
+        let (lowered, visible, physical) = lower_pipe_unpivot(
+          construction, clause, pipe_columns,
+        )
+        for index in 0..<lowered.length() {
+          if index == 0 {
+            entries.append(lowered[index])
+            step_entries.push(entries.copy())
+            entries.clear()
+          } else {
+            step_entries.push(lowered[index])
+          }
+        }
+        pipe_visible = visible
+        pipe_columns = visible.copy()
+        active_fields = physical
+        output = visible.map(column => column.0)
+        pipe_ranges = []
+        pipe_star_ranges = []
+        value_table_receivers = []
+        pipe_value_columns = []
+        scalar_value_table_ranges = []
+        pipe_value_table = false
+        pipe_rebound = true
+        pipe_changed = true
+        deferred = true
+      }
       UnnestSource(expression, element, offset) => {
         let correlated = i != 0 || !@query.relation(query).is_empty()
         if correlated && pipe_ranges.any(range => same_name(range.0, element)) {
@@ -2984,7 +3023,30 @@ fn compile_steps(
         pipe_changed = true
         deferred = true
       }
+      Pivot(clause) => {
+        if pipe_value_table {
+          raise Abort(UnsupportedGrouping)
+        }
+        let (pivot, visible) = compile_pipe_pivot(
+          construction, clause, pipe_visible, pipe_columns, pipe_ranges,
+        )
+        entries.push(("pivot", pivot))
+        step_entries.push(entries)
+        pipe_visible = visible
+        pipe_columns = visible.copy()
+        active_fields = visible.map(pair => pair.1)
+        output = visible.map(pair => pair.0)
+        pipe_ranges = []
+        pipe_star_ranges = []
+        value_table_receivers = []
+        scalar_value_table_ranges = []
+        pipe_value_columns = []
+        pipe_rebound = true
+        pipe_changed = true
+        deferred = true
+      }
       Group(keys, projections, grouping_scope) => {
+        anonymous_set_aggregate_slots.clear()
         let scoped = pipe_changed || pipe_rebound
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
@@ -3440,8 +3502,21 @@ fn compile_steps(
           }
           match projection.aggregate {
             Some(call) => {
-              let name = projection.name.unwrap().value
-              let embedded = pipe_embedded.contains(projection.name.unwrap()) ||
+              let name = match projection.name {
+                Some(name) => name.value
+                None => {
+                  if !positional_set_output || !sql_group_projection {
+                    raise Abort(UnsupportedProjection)
+                  }
+                  pipe_physical_name(
+                    order_reserved + result_fields,
+                    "aql_set_aggregate_",
+                  )
+                }
+              }
+              let embedded = projection.name
+                .map(name => pipe_embedded.contains(name))
+                .unwrap_or(false) ||
                 (
                   sql_group_projection &&
                   !selected.any(item => {
@@ -3518,6 +3593,9 @@ fn compile_steps(
                 // The SELECT alias may have the same name as a retained key.
                 // The input binding and aggregate result are distinct values.
                 sql_group_aggregate_slots.push((name, slot))
+                if projection.name is None {
+                  anonymous_set_aggregate_slots.push((call, slot))
+                }
               }
               if embedded && sql_group_projection {
                 // Only parser-owned embedded calls enter SELECT's scalar
@@ -3881,6 +3959,14 @@ fn compile_steps(
           pipe_rebound = true
         } else {
           pipe_visible = result_fields.map(name => (name, name))
+        }
+        if !anonymous_set_aggregate_slots.is_empty() {
+          // Anonymous set aggregates remain physical values for terminal SELECT
+          // and ordinal alignment. They are never authored HAVING bindings.
+          pipe_visible = pipe_visible.filter(entry => {
+            !anonymous_set_aggregate_slots.any(pair => pair.1 == entry.1)
+          })
+          pipe_changed = true
         }
         pipe_columns = pipe_visible.copy()
         value_table_receivers = []
@@ -4658,17 +4744,40 @@ fn compile_steps(
               }
             Some(_) => raise Abort(UnsupportedProjection)
             None => {
-              if projection.aggregate is Some(_) {
-                let name = projection.name.unwrap().value
-                let matches = sql_group_aggregate_slots.filter(entry => {
-                  entry.0 == name
-                })
-                if !sql_group_projection ||
-                  matches.length() != 1 ||
-                  !active_fields.contains(matches[0].1) {
+              if projection.aggregate is Some(call) {
+                if !sql_group_projection {
                   raise Abort(UnsupportedAggregate)
                 }
-                let slot = matches[0].1
+                let (name, slot) = match projection.name {
+                  Some(name) => {
+                    let matches = sql_group_aggregate_slots.filter(entry => {
+                      entry.0 == name.value
+                    })
+                    if matches.length() != 1 {
+                      raise Abort(UnsupportedAggregate)
+                    }
+                    (name.value, matches[0].1)
+                  }
+                  None => {
+                    if !positional_set_output ||
+                      i != @query.operation_count(query) - 1 {
+                      raise Abort(UnsupportedProjection)
+                    }
+                    (
+                      anonymous_set_projection_name(
+                        projections, physical, names,
+                      ),
+                      anonymous_set_aggregate_slot(
+                        call,
+                        anonymous_set_aggregate_slots,
+                        sql_group_expression_input_scope.unwrap(),
+                      ),
+                    )
+                  }
+                }
+                if !active_fields.contains(slot) {
+                  raise Abort(UnsupportedAggregate)
+                }
                 names.push(name)
                 bindings.push((name, slot))
                 selected.push(
@@ -4763,7 +4872,13 @@ fn compile_steps(
                   }
                 }
               }
-              let name = projection_output_name(projection)
+              let name = if positional_set_output &&
+                i == @query.operation_count(query) - 1 &&
+                projection_alias(projection) is None {
+                anonymous_set_projection_name(projections, physical, names)
+              } else {
+                projection_output_name(projection)
+              }
               names.push(name)
               bindings.push((name, source))
               expressions.push(
@@ -4975,16 +5090,22 @@ fn compile_steps(
               // after GROUP retains only its evaluated key. This naming
               // snapshot does not authorize reading the original receiver:
               // grouped expression lowering below still owns value access.
-              let name = output_name(
-                projection,
-                query,
-                input,
-                if sql_group_projection {
-                  sql_group_input_columns.map(entry => entry.0)
-                } else {
-                  select_fields
-                },
-              )
+              let name = if positional_set_output &&
+                i == @query.operation_count(query) - 1 &&
+                projection_alias(projection) is None {
+                anonymous_set_projection_name(projections, active_fields, names)
+              } else {
+                output_name(
+                  projection,
+                  query,
+                  input,
+                  if sql_group_projection {
+                    sql_group_input_columns.map(entry => entry.0)
+                  } else {
+                    select_fields
+                  },
+                )
+              }
               names.push(name)
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
@@ -4993,6 +5114,20 @@ fn compile_steps(
                     Some(slot) => slot
                     None => raise Abort(UnsupportedAnalytic)
                   }
+                } else if projection.name is None &&
+                  projection.aggregate is Some(call) {
+                  if !grouped || !sql_group_projection {
+                    raise Abort(UnsupportedAggregate)
+                  }
+                  let slot = anonymous_set_aggregate_slot(
+                    call,
+                    anonymous_set_aggregate_slots,
+                    sql_group_expression_input_scope.unwrap(),
+                  )
+                  if !active_fields.contains(slot) {
+                    raise Abort(UnsupportedAggregate)
+                  }
+                  slot
                 } else {
                   if !grouped || !active_fields.contains(name) {
                     raise Abort(UnsupportedAggregate)
@@ -7348,6 +7483,8 @@ fn compile_set_stages(
       term_name,
       parameter_declarations=context.parameter_declarations,
       prefix_context=Some(context),
+      positional_set_output=index > 0 &&
+        !@query.set_part_at(query, index - 1).unwrap().by_name,
     )
     let term_steps : Array[@builder.Node] = []
     for step in body {

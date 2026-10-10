@@ -65,7 +65,7 @@ fn materialize_clause_aliases(
       // the already evaluated aggregate slot, never the colliding key.
       let mut slot = name.value
       for (logical, physical) in aggregate_outputs {
-        if same_name(name, {value: logical, quoted: false}) {
+        if same_name(name, { value: logical, quoted: false, }) {
           slot = physical
           break
         }

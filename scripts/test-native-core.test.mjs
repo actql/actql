@@ -83,6 +83,15 @@ if (process.env.PROBE_MODE === 'signal') process.kill(process.pid, 'SIGTERM');
 setTimeout(() => console.log('child stopped'), 100);
 `);
   chmodSync(moon, 0o755);
+  writeFileSync(join(checkout, 'scripts', 'test-native-salesforce-effect-preview.mjs'), `
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+assert.equal(process.argv[2], '--core-test-json');
+const args = JSON.parse(process.argv[3]);
+console.log('CORE_TARGET_FIXTURE_PROVISIONED');
+const result = spawnSync('moon', ['test', '--target', 'native', ...args], {stdio: 'inherit'});
+process.exit(result.status ?? 1);
+`);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
     ACTQL_TEST_PRESERVE_SCRATCH: '',
@@ -120,9 +129,19 @@ test('two local native verification invocations own fresh roots', t => {
     paths.push(...invocationPaths);
     assert.match(result.stdout, /child stopped/u);
     assert.match(result.stdout, /Native core SQLite: removed/u);
+    assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   }
   assert.equal(new Set(paths).size, 4);
   assert.deepEqual(readdirSync(f.parent).sort(), f.originals.sort());
+  f.verifyExternal();
+});
+
+test('selected Native tests do not activate the unrelated target fixture', t => {
+  const f = fixture(t);
+  const result = run(f);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+  assert.match(result.stdout, /child stopped/u);
   f.verifyExternal();
 });
 

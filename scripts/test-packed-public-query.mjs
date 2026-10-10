@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/pipe-pivot-source-input.mjs', 'pipe-pivot-source-input.mjs'],
   ['scripts/fixtures/match-data-producer-source-input.mjs', 'match-data-producer-source-input.mjs'],
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
@@ -50,6 +51,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
+  ['scripts/fixtures/pipe-unpivot-source-input.mjs', 'pipe-unpivot-source-input.mjs'],
   ['scripts/fixtures/correlated-unnest-source-input.mjs', 'correlated-unnest-source-input.mjs'],
   ['scripts/fixtures/correlated-unnest-star-source-input.mjs', 'correlated-unnest-star-source-input.mjs'],
   ['scripts/fixtures/joined-unnest-star-source-input.mjs', 'joined-unnest-star-source-input.mjs'],
@@ -429,6 +431,9 @@ if (process.argv.includes('--unnest-checked-array-only')) {
 if (process.argv.includes('--unnest-parameter-path-only')) {
   runtimeEnvironment.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY = '1';
 }
+if (process.argv.includes('--pipe-unpivot-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_UNPIVOT_ONLY = '1';
+}
 if (process.argv.includes('--unnest-source-only')) {
   runtimeEnvironment.ACTQL_TEST_UNNEST_SOURCE_ONLY = '1';
 }
@@ -561,6 +566,9 @@ if (process.argv.includes('--computed-object-property-only')) {
 if (process.argv.includes('--having-projection-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_PROJECTION_ONLY = '1';
 }
+if (process.argv.includes('--pipe-pivot-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_PIVOT_ONLY = '1';
+}
 if (process.argv.includes('--between-only')) {
   runtimeEnvironment.ACTQL_TEST_BETWEEN_ONLY = '1';
 }
@@ -650,7 +658,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -748,6 +756,7 @@ if (process.argv.includes('--membership-expression-reuse-only')) return;
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
 if (process.argv.includes('--correlated-unnest-only')) return;
+if (process.argv.includes('--pipe-unpivot-only')) return;
 if (process.argv.includes('--unnest-source-only')) return;
 if (process.argv.includes('--unnest-checked-array-only')) return;
 if (process.argv.includes('--unnest-parameter-path-only')) return;
@@ -773,6 +782,7 @@ if (process.argv.includes('--min-max-distinct-only')) return;
 if (process.argv.includes('--graph-relation-join-only')) return;
 if (process.argv.includes('--traversal-join-only')) return;
 if (process.argv.includes('--graph-rows-join-only')) return;
+if (process.argv.includes('--pipe-pivot-only')) return;
 if (process.argv.includes('--between-only')) return;
 if (process.argv.includes('--countif-distinct-only')) return;
 if (process.argv.includes('--select-all-only')) return;

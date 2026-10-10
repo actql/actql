@@ -126,6 +126,28 @@ pub fn ResidentEffectReviewInputContext::facts(
 }
 
 ///|
+/// Retention is selected by the trusted caller before the original producer
+/// artifact is issued. A later Provider review cannot substitute another policy.
+pub fn ResidentEffectReviewInputContext::retention_matches(
+  self : ResidentEffectReviewInputContext,
+  retention : @publication.PublicationContract,
+) -> Bool {
+  !self.retiring &&
+  !self.closed &&
+  @publication.publication_contract_identity(self.retention) ==
+  @publication.publication_contract_identity(retention)
+}
+
+///|
+pub fn ResidentEffectReviewInputContext::matches_holder(
+  self : ResidentEffectReviewInputContext,
+  holder : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> Bool {
+  physical_equal(self.holder, holder) && self.facts(journal) is Some(_)
+}
+
+///|
 /// Capture the actual consumer Result from the original acquired Source and
 /// invocation. Normalization and binding metadata must come from the trusted
 /// Host; this connection does not invent a normalization journal. The returned

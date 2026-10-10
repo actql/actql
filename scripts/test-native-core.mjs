@@ -7,6 +7,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {nativeCompletedRestorationBundle} from './native-completed-restoration-fixture.mjs';
+import {classifyMoon} from './local-checks-policy.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -21,8 +22,13 @@ for (const name of ['standard', 'bundles', 'executor-slot']) {
   mkdirSync(join(scratch.path, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
-const result = spawnSync('moon', ['test', '--target', 'native',
-  ...process.argv.slice(2)], {cwd: root, stdio: 'inherit', env: {
+const args = process.argv.slice(2);
+const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+// The full suite includes real target-observation tests. Provision their
+// private HTTPS/credential fixture instead of treating missing inputs as passes.
+const result = spawnSync(full ? process.execPath : 'moon', full
+  ? ['scripts/test-native-salesforce-effect-preview.mjs', '--core-test-json', JSON.stringify(args)]
+  : ['test', '--target', 'native', ...args], {cwd: root, stdio: 'inherit', env: {
   ...process.env,
   ...bundle,
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(scratch.path, 'standard'),
