@@ -44,10 +44,12 @@ assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
 assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
 assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
   'Core must not activate unrelated shared Store fixtures');
+assert.equal(process.env.ACTQL_REQUIRE_NATIVE_RETAINED_TEST, '1');
 for (const [variable, child] of [
   ['ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT', 'standard'],
   ['ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT', 'bundles'],
   ['ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT', 'executor-slot'],
+  ['ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT', 'retained-task-file'],
 ]) {
   assert.equal(process.env[variable], join(root, child));
   const info = statSync(process.env[variable]);
@@ -142,6 +144,15 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
+  f.verifyExternal();
+});
+
+test('Core retained-file fixture never adopts a caller-owned root', t => {
+  const f = fixture(t);
+  const result = run(f, {ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: f.parent});
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(existsSync(result.path), false);
+  assert.deepEqual(readdirSync(f.parent).sort(), f.originals.sort());
   f.verifyExternal();
 });
 
