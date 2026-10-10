@@ -1,0 +1,535 @@
+///|
+/// Physical rows for the existing Client request/start Owner. A retained
+/// admission is not an execution continuation. The caller owns format
+/// inspection, fresh bootstrap, current authorization and database cleanup.
+struct NativeClientRunJournal {
+  database : @sqlite.Database
+  max_records : Int
+  mut fenced : Bool
+}
+
+///|
+pub(all) enum NativeClientRunJournalIssue {
+  CustodyLost
+  CapacityExceeded
+  AuthorizationDenied
+  ChangedIntent
+  ForeignRun
+  Fenced
+  TransactionUnknown
+  Encoding
+  Physical(@sqlite.NativeSqliteIssue)
+  Start(@host.ClientRunStartIssue)
+}
+
+///|
+struct NativeClientRunRecord {
+  request : @host.ClientRequestIdentity
+  definition : @publication.PublicationContract
+  dispatch_reserved : Bool
+  physical_start_claimed : Bool
+  cancellation_requested : Bool
+  revision : Int64
+}
+
+///|
+pub enum NativeClientRunLookup {
+  // No retained record is not evidence of non-execution or resend permission.
+  UnresolvedHistory
+  Retained(NativeClientRunRecord)
+}
+
+///|
+pub fn native_client_run_definition(
+  record : NativeClientRunRecord,
+) -> @publication.PublicationContract {
+  record.definition
+}
+
+///|
+pub fn native_client_run_record_revision(
+  record : NativeClientRunRecord,
+) -> Int64 {
+  record.revision
+}
+
+///|
+fn run_record_body(
+  record : NativeClientRunRecord,
+) -> Result[Bytes, NativeClientRunJournalIssue] {
+  let request = match
+    @host.client_request_identity_record_wire(record.request) {
+    Ok(value) => value
+    Err(_) => return Err(Encoding)
+  }
+  try {
+    let writer = @encode.writer(131072, 32, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "cancellation_requested")
+    @encode.bool_value(writer, record.cancellation_requested)
+    @encode.key(writer, "dispatch_reserved")
+    @encode.bool_value(writer, record.dispatch_reserved)
+    @encode.key(writer, "physical_start_claimed")
+    @encode.bool_value(writer, record.physical_start_claimed)
+    @encode.key(writer, "request")
+    @encode.string_value(writer, request)
+    @encode.key(writer, "run_definition")
+    @encode.string_value(
+      writer,
+      @publication.publication_contract_json(record.definition),
+    )
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-native-client-run-row/0.1")
+    @encode.end_object(writer)
+    Ok(@utf8.encode(@encode.finish(writer)))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+fn read_run_record(
+  row : @sqlite.NativeJournalValue,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  let source = match
+    @source.parse_json_bytes_preserving(row.body, {
+      max_input_bytes: 131072,
+      max_nodes: 32,
+      max_depth: 4,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let cursor = match
+    @decode.admit(source, {
+      max_nodes: 32,
+      max_depth: 4,
+      max_string_bytes: 131072,
+      max_total_string_bytes: 131072,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  guard @decode.closed_object(cursor, [
+      "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
+      "cancellation_requested",
+    ])
+    is Ok(object) &&
+    epoch_text(object, "version") == Some("actql-native-client-run-row/0.1") &&
+    epoch_text(object, "request") is Some(request_wire) &&
+    epoch_text(object, "run_definition") is Some(definition_wire) else {
+    return Err(CustodyLost)
+  }
+  let flag = key => {
+    @decode.lookup(object, key).bind(value => @decode.boolean(value).to_option())
+  }
+  guard flag("dispatch_reserved") is Some(dispatch_reserved) &&
+    flag("physical_start_claimed") is Some(physical_start_claimed) &&
+    flag("cancellation_requested") is Some(cancellation_requested) else {
+    return Err(CustodyLost)
+  }
+  if physical_start_claimed && !dispatch_reserved {
+    return Err(CustodyLost)
+  }
+  let request = match
+    @host.admit_client_request_identity_record_wire(request_wire) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let definition = match
+    @publication.admit_publication_contract(
+      "run_definition", definition_wire, 65536, 4096, 64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let record : NativeClientRunRecord = {
+    request,
+    definition,
+    dispatch_reserved,
+    physical_start_claimed,
+    cancellation_requested,
+    revision: row.revision,
+  }
+  match run_record_body(record) {
+    Ok(body) if body == row.body => Ok(record)
+    _ => Err(CustodyLost)
+  }
+}
+
+///|
+/// Only the eventual fresh-format bootstrap may call this initializer. It is
+/// private so a caller cannot repair missing custody in an adopted journal.
+fn initialize_native_client_run_journal(
+  database : @sqlite.Database,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  match database.scan_after("client_run_custody", "") {
+    Err(@sqlite.NotFound) => ()
+    _ => return Err(CustodyLost)
+  }
+  match database.scan_after("client_runs", "") {
+    Err(@sqlite.NotFound) => ()
+    _ => return Err(CustodyLost)
+  }
+  database
+  .insert("client_run_custody", "issued", b"0")
+  .map(_ => ())
+  .map_err(issue => Physical(issue))
+}
+
+///|
+fn run_journal_custody(
+  database : @sqlite.Database,
+  max_records : Int,
+) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
+  match database.scan_after("client_run_custody", "") {
+    Ok(row) if row.key == "issued" => ()
+    _ => return Err(CustodyLost)
+  }
+  match database.scan_after("client_run_custody", "issued") {
+    Err(@sqlite.NotFound) => ()
+    _ => return Err(CustodyLost)
+  }
+  let retained = match database.read("client_run_custody", "issued") {
+    Ok(value) => value
+    _ => return Err(CustodyLost)
+  }
+  let text = @utf8.decode(retained.body) catch { _ => return Err(CustodyLost) }
+  if text.is_empty() || text.length() > 4 {
+    return Err(CustodyLost)
+  }
+  let mut count = 0
+  for unit in text {
+    let digit = unit.to_int() - 48
+    if digit < 0 || digit > 9 {
+      return Err(CustodyLost)
+    }
+    count = count * 10 + digit
+  }
+  if count < 0 || count > max_records || count.to_string() != text {
+    return Err(CustodyLost)
+  }
+  let mut cursor = ""
+  let mut observed = 0
+  let definitions : Map[String, Bool] = Map([], capacity=max_records)
+  while true {
+    let row = match database.scan_after("client_runs", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    observed = observed + 1
+    if observed > count {
+      return Err(CustodyLost)
+    }
+    let record = match
+      read_run_record({ body: row.body, revision: row.revision, }) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if row.key != @host.client_request_scope_cid(record.request) {
+      return Err(CustodyLost)
+    }
+    let definition = @publication.publication_contract_identity(
+      record.definition,
+    )
+    if definitions.contains(definition) {
+      return Err(CustodyLost)
+    }
+    definitions[definition] = true
+    cursor = row.key
+  }
+  if observed != count {
+    return Err(CustodyLost)
+  }
+  Ok((count, retained.revision))
+}
+
+///|
+pub fn open_native_client_run_journal(
+  database : @sqlite.Database,
+  max_records : Int,
+) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
+  if max_records < 1 || max_records > 1024 {
+    return Err(CapacityExceeded)
+  }
+  match run_journal_custody(database, max_records) {
+    Ok(_) => Ok({ database, max_records, fenced: false, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn[T] NativeClientRunJournal::transaction(
+  self : NativeClientRunJournal,
+  work : () -> Result[T, NativeClientRunJournalIssue],
+) -> Result[T, NativeClientRunJournalIssue] {
+  if self.fenced {
+    return Err(Fenced)
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let result = match run_journal_custody(self.database, self.max_records) {
+    Ok(_) => work()
+    Err(issue) => Err(issue)
+  }
+  match result {
+    Ok(value) =>
+      match self.database.commit() {
+        Ok(_) => Ok(value)
+        Err(_) => {
+          self.fenced = true
+          Err(TransactionUnknown)
+        }
+      }
+    Err(issue) =>
+      match self.database.rollback() {
+        Ok(_) => Err(issue)
+        Err(_) => {
+          self.fenced = true
+          Err(TransactionUnknown)
+        }
+      }
+  }
+}
+
+///|
+fn NativeClientRunJournal::retained(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
+  let row = match
+    self.database.read("client_runs", @host.client_request_scope_cid(requested)) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let retained = match read_run_record(row) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @host.client_request_identity_relation(requested, retained.request) {
+    SameRequest => Ok(Some(retained))
+    ChangedIntent => Err(ChangedIntent)
+    DifferentRequest => Err(CustodyLost)
+  }
+}
+
+///|
+pub fn NativeClientRunJournal::lookup(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+  current_authorization : Bool,
+) -> Result[NativeClientRunLookup, NativeClientRunJournalIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  self.transaction(() => {
+    self
+    .retained(requested)
+    .map(record => {
+      match record {
+        Some(value) => Retained(value)
+        None => UnresolvedHistory
+      }
+    })
+  })
+}
+
+///|
+/// Persist one checked Run binding and its independent issuance count in the
+/// same transaction. Compilation and request intent are rechecked by Owners.
+/// This method does not record Submission receipt or authorize physical work.
+pub fn NativeClientRunJournal::bind_run(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  current_authorization : Bool,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  let identity = @host.prepared_client_identity(prepared)
+  if !@host.client_compiled_run_matches(compiled, prepared) ||
+    @host.client_request_program_cid(request) != identity.program_definition_cid ||
+    @host.client_request_parameters_cid(request) !=
+    identity.parameter_values_cid {
+    return Err(ChangedIntent)
+  }
+  if @host.check_client_compiled_run_definition(compiled, definition) is Err(_) {
+    return Err(ForeignRun)
+  }
+  self.transaction(() => {
+    match self.retained(request) {
+      Err(issue) => return Err(issue)
+      Ok(Some(retained)) => {
+        if @publication.publication_contract_identity(definition) !=
+          @publication.publication_contract_identity(retained.definition) {
+          return Err(ForeignRun)
+        }
+        return Ok(retained)
+      }
+      Ok(None) => ()
+    }
+    let (count, revision) = match
+      run_journal_custody(self.database, self.max_records) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if count == self.max_records {
+      return Err(CapacityExceeded)
+    }
+    let mut cursor = ""
+    while true {
+      let row = match self.database.scan_after("client_runs", cursor) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => break
+        Err(issue) => return Err(Physical(issue))
+      }
+      let other = match
+        read_run_record({ body: row.body, revision: row.revision, }) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if @publication.publication_contract_identity(other.definition) ==
+        @publication.publication_contract_identity(definition) {
+        return Err(ForeignRun)
+      }
+      cursor = row.key
+    }
+    let record : NativeClientRunRecord = {
+      request,
+      definition,
+      dispatch_reserved: false,
+      physical_start_claimed: false,
+      cancellation_requested: false,
+      revision: 0L,
+    }
+    let body = match run_record_body(record) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let revision = match
+      self.database.compare_exchange(
+        "client_run_custody",
+        "issued",
+        revision,
+        @utf8.encode((count + 1).to_string()),
+      ) {
+      Ok(_) =>
+        match
+          self.database.insert(
+            "client_runs",
+            @host.client_request_scope_cid(request),
+            body,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Physical(issue))
+        }
+      Err(issue) => return Err(Physical(issue))
+    }
+    Ok({ ..record, revision, })
+  })
+}
+
+///|
+fn NativeClientRunJournal::save(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  let body = match run_record_body(record) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.database
+  .compare_exchange(
+    "client_runs",
+    @host.client_request_scope_cid(record.request),
+    record.revision,
+    body,
+  )
+  .map(revision => { ..record, revision, })
+  .map_err(issue => Physical(issue))
+}
+
+///|
+pub fn NativeClientRunJournal::reserve_dispatch(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : Bool,
+) -> Result[@host.ClientRunStartAction, NativeClientRunJournalIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  self.transaction(() => {
+    let record = match self.retained(request) {
+      Ok(Some(record)) => record
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    let action = match
+      @host.prepare_client_run_start(
+        request,
+        record.request,
+        record.definition,
+        @publication.publication_contract_identity(record.definition),
+        record.dispatch_reserved,
+        current_authorization,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Start(issue))
+    }
+    if action == @host.ReserveDispatch {
+      match self.save({ ..record, dispatch_reserved: true, }) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    Ok(action)
+  })
+}
+
+///|
+/// The returned true is available only after the durable physical-start claim
+/// commits. A claimed/unknown dispatch can never obtain another true here.
+pub fn NativeClientRunJournal::claim_physical_start(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : Bool,
+) -> Result[Bool, NativeClientRunJournalIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  self.transaction(() => {
+    let record = match self.retained(request) {
+      Ok(Some(record)) => record
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    let eligible = match
+      @host.prepare_client_run_physical_start(
+        request,
+        record.request,
+        record.definition,
+        @publication.publication_contract_identity(record.definition),
+        record.dispatch_reserved,
+        !record.physical_start_claimed,
+        current_authorization,
+        cancellation_requested=record.cancellation_requested,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Start(issue))
+    }
+    if eligible {
+      match self.save({ ..record, physical_start_claimed: true, }) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    Ok(eligible)
+  })
+}

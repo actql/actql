@@ -1,0 +1,413 @@
+///|
+/// Physical custody for the existing SubmissionEpoch identity law. The caller
+/// must admit the journal format before opening SQLite and retain its cleanup
+/// owner; this adapter neither creates a directory nor opens a missing DB.
+struct NativeClientEpochAuthority {
+  database : @sqlite.Database
+  crypto : @crypto.Library
+  ttl_ms : Double
+  mut fenced : Bool
+}
+
+///|
+pub(all) enum NativeClientEpochIssue {
+  InvalidInput
+  Encoding
+  AlreadyInitialized
+  CustodyLost
+  AuthorizationDenied
+  Unverifiable
+  ScopeMismatch
+  Fenced
+  TransactionUnknown
+  Physical(@sqlite.NativeSqliteIssue)
+  Crypto(@crypto.NativeSignatureIssue)
+  Identity(@scope.SubmissionIdentityIssue)
+}
+
+///|
+struct NativeClientSubmissionEpoch {
+  body : @scope.SubmissionEpoch
+  tag : Bytes
+  wire : String
+}
+
+///|
+fn valid_epoch_clock(now : Double) -> Bool {
+  !now.is_nan() &&
+  !now.is_inf() &&
+  now >= 0.0 &&
+  now <= 9007199254740991.0 - 86400000.0 &&
+  now.trunc() == now &&
+  !(now == 0.0 && 1.0 / now < 0.0)
+}
+
+///|
+fn epoch_hex(bytes : Bytes) -> String {
+  let out = StringBuilder(size_hint=bytes.length() * 2)
+  for byte in bytes {
+    let text = byte.to_hex()
+    if text.length() == 1 {
+      out.write_char('0')
+    }
+    out.write_string(text)
+  }
+  out.to_string()
+}
+
+///|
+fn epoch_hex_bytes(text : String) -> Bytes? {
+  if text.length() != 64 {
+    return None
+  }
+  let out : Array[Byte] = []
+  for i in 0..<32 {
+    let digit = fn(unit : UInt16) {
+      let ch = unit.to_int()
+      if ch >= 48 && ch <= 57 {
+        Some(ch - 48)
+      } else if ch >= 97 && ch <= 102 {
+        Some(ch - 87)
+      } else {
+        None
+      }
+    }
+    guard digit(text[i * 2]) is Some(a) && digit(text[i * 2 + 1]) is Some(b) else {
+      return None
+    }
+    out.push((a * 16 + b).to_byte())
+  }
+  Some(Bytes::makei(32, i => out[i]))
+}
+
+///|
+fn epoch_cursor(wire : String) -> @decode.Cursor? {
+  let value = @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+    max_input_bytes: 4096,
+    max_nodes: 32,
+    max_depth: 4,
+  }).to_option()
+  value.bind(value => {
+    @decode.admit(value, {
+      max_nodes: 32,
+      max_depth: 4,
+      max_string_bytes: 1024,
+      max_total_string_bytes: 4096,
+    }).to_option()
+  })
+}
+
+///|
+fn epoch_text(object : @decode.ObjectView, key : String) -> String? {
+  @decode.lookup(object, key).bind(value => @decode.text(value).to_option())
+}
+
+///|
+fn epoch_number(object : @decode.ObjectView, key : String) -> Double? {
+  @decode.lookup(object, key).bind(value => {
+    @decode.finite_number(value).to_option()
+  })
+}
+
+///|
+fn epoch_custody_body(
+  key : Bytes,
+  now : Double,
+) -> Result[Bytes, NativeClientEpochIssue] {
+  let writer = @encode.writer(4096, 16, 4) catch { _ => return Err(Encoding) }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "authentication_key")
+    @encode.string_value(writer, @base64.encode(key))
+    @encode.key(writer, "observed_at")
+    @encode.number_value(writer, now)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-native-submission-epoch-custody/0.1")
+    @encode.end_object(writer)
+    Ok(@utf8.encode(@encode.finish(writer)))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+fn read_epoch_custody(
+  database : @sqlite.Database,
+) -> Result[(Bytes, Double, Int64), NativeClientEpochIssue] {
+  match database.scan_after("client_submission_epoch", "") {
+    Ok(entry) if entry.key == "authority" => ()
+    Ok(_) | Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  match database.scan_after("client_submission_epoch", "authority") {
+    Err(@sqlite.NotFound) => ()
+    Ok(_) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let row = match database.read("client_submission_epoch", "authority") {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let wire = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }
+  guard epoch_cursor(wire) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "authentication_key", "observed_at", "version",
+    ])
+    is Ok(object) &&
+    epoch_text(object, "version") ==
+    Some("actql-native-submission-epoch-custody/0.1") &&
+    epoch_text(object, "authentication_key") is Some(encoded) &&
+    epoch_number(object, "observed_at") is Some(now) &&
+    valid_epoch_clock(now) else {
+    return Err(CustodyLost)
+  }
+  let key = @base64.decode(encoded) catch { _ => return Err(CustodyLost) }
+  let expected = match epoch_custody_body(key, now) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if key.length() != 32 ||
+    @base64.encode(key) != encoded ||
+    expected != row.body {
+    return Err(CustodyLost)
+  }
+  Ok((key, now, row.revision))
+}
+
+///|
+/// Establish custody only in an explicitly admitted fresh journal. A caller
+/// must not call this to repair a missing record in an existing journal.
+fn initialize_native_client_epoch_authority(
+  database : @sqlite.Database,
+  crypto : @crypto.Library,
+) -> Result[Unit, NativeClientEpochIssue] {
+  match database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let result = match database.scan_after("client_submission_epoch", "") {
+    Ok(_) => Err(AlreadyInitialized)
+    Err(@sqlite.NotFound) =>
+      match crypto.random_bytes(32) {
+        Err(issue) => Err(Crypto(issue))
+        Ok(key) =>
+          match epoch_custody_body(key, 0.0) {
+            Err(issue) => Err(issue)
+            Ok(body) =>
+              database
+              .insert("client_submission_epoch", "authority", body)
+              .map(_ => ())
+              .map_err(issue => Physical(issue))
+          }
+      }
+    Err(issue) => Err(Physical(issue))
+  }
+  match result {
+    Ok(_) => database.commit().map_err(_ => TransactionUnknown)
+    Err(issue) =>
+      match database.rollback() {
+        Ok(_) => Err(issue)
+        Err(_) => Err(TransactionUnknown)
+      }
+  }
+}
+
+///|
+pub fn open_native_client_epoch_authority(
+  database : @sqlite.Database,
+  crypto : @crypto.Library,
+  ttl_ms : Double,
+) -> Result[NativeClientEpochAuthority, NativeClientEpochIssue] {
+  if !valid_epoch_clock(ttl_ms) || ttl_ms < 1.0 || ttl_ms > 86400000.0 {
+    return Err(InvalidInput)
+  }
+  match read_epoch_custody(database) {
+    Ok(_) => Ok({ database, crypto, ttl_ms, fenced: false, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// The watermark commits even when the subsequent admission is refused.
+/// Clock rollback must not make an expired, authenticated epoch reusable.
+fn NativeClientEpochAuthority::clock(
+  self : NativeClientEpochAuthority,
+  now : Double,
+) -> Result[(Bytes, Double), NativeClientEpochIssue] {
+  if self.fenced {
+    return Err(Fenced)
+  }
+  if !valid_epoch_clock(now) {
+    return Err(InvalidInput)
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let result = match read_epoch_custody(self.database) {
+    Err(issue) => Err(issue)
+    Ok((key, retained, revision)) => {
+      let clock = if now > retained { now } else { retained }
+      match epoch_custody_body(key, clock) {
+        Err(issue) => Err(issue)
+        Ok(body) =>
+          self.database
+          .compare_exchange(
+            "client_submission_epoch", "authority", revision, body,
+          )
+          .map(_ => (key, clock))
+          .map_err(issue => Physical(issue))
+      }
+    }
+  }
+  match result {
+    Ok(value) =>
+      match self.database.commit() {
+        Ok(_) => Ok(value)
+        Err(_) => {
+          self.fenced = true
+          Err(TransactionUnknown)
+        }
+      }
+    Err(issue) =>
+      match self.database.rollback() {
+        Ok(_) => Err(issue)
+        Err(_) => {
+          self.fenced = true
+          Err(TransactionUnknown)
+        }
+      }
+  }
+}
+
+///|
+pub fn NativeClientEpochAuthority::issue_epoch(
+  self : NativeClientEpochAuthority,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+) -> Result[NativeClientSubmissionEpoch, NativeClientEpochIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  let (key, clock) = match self.clock(now) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let nonce = match self.crypto.random_bytes(32) {
+    Ok(value) => epoch_hex(value)
+    Err(issue) => return Err(Crypto(issue))
+  }
+  let body = match
+    @scope.prepare_submission_epoch(
+      authority_scope_cid,
+      nonce,
+      clock,
+      clock + self.ttl_ms,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Identity(issue))
+  }
+  let tag = match
+    self.crypto.hmac_sha256(
+      key,
+      @utf8.encode(@scope.submission_epoch_wire(body)),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Crypto(issue))
+  }
+  let writer = @encode.writer(4096, 16, 4) catch { _ => return Err(Encoding) }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "authenticator")
+    @encode.string_value(writer, epoch_hex(tag))
+    @encode.key(writer, "authorityScopeCid")
+    @encode.string_value(writer, authority_scope_cid)
+    @encode.key(writer, "epochNonce")
+    @encode.string_value(writer, nonce)
+    @encode.key(writer, "expiresAt")
+    @encode.number_value(writer, clock + self.ttl_ms)
+    @encode.key(writer, "notBefore")
+    @encode.number_value(writer, clock)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-submission-epoch/0.1")
+    @encode.end_object(writer)
+    Ok({ body, tag, wire: @encode.finish(writer), })
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+pub fn native_client_submission_epoch_wire(
+  epoch : NativeClientSubmissionEpoch,
+) -> String {
+  epoch.wire
+}
+
+///|
+/// Shape and common identity admission are not authentication or read rights.
+pub fn admit_native_client_submission_epoch(
+  wire : String,
+) -> Result[NativeClientSubmissionEpoch, NativeClientEpochIssue] {
+  guard epoch_cursor(wire) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "version", "authorityScopeCid", "epochNonce", "notBefore", "expiresAt", "authenticator",
+    ])
+    is Ok(object) &&
+    epoch_text(object, "version") == Some("actql-submission-epoch/0.1") &&
+    epoch_text(object, "authorityScopeCid") is Some(authority) &&
+    epoch_text(object, "epochNonce") is Some(nonce) &&
+    epoch_number(object, "notBefore") is Some(before) &&
+    epoch_number(object, "expiresAt") is Some(expires) &&
+    epoch_text(object, "authenticator").bind(epoch_hex_bytes) is Some(tag) else {
+    return Err(Unverifiable)
+  }
+  let body = match
+    @scope.prepare_submission_epoch(authority, nonce, before, expires) {
+    Ok(value) => value
+    Err(issue) => return Err(Identity(issue))
+  }
+  Ok({ body, tag, wire, })
+}
+
+///|
+/// Expired authentication can still identify an original lookup. This returns
+/// identity validity only, never a new acceptance or physical-start permit.
+pub fn NativeClientEpochAuthority::verify_epoch(
+  self : NativeClientEpochAuthority,
+  epoch : NativeClientSubmissionEpoch,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  let (key, clock) = match self.clock(now) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    self.crypto.verify_hmac_sha256(
+      key,
+      @utf8.encode(@scope.submission_epoch_wire(epoch.body)),
+      epoch.tag,
+    ) {
+    Ok(true) => ()
+    Ok(false) => return Err(Unverifiable)
+    Err(issue) => return Err(Crypto(issue))
+  }
+  guard epoch_cursor(@scope.submission_epoch_wire(epoch.body)) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "authority_scope_cid", "epoch_nonce", "expires_at", "not_before", "version",
+    ])
+    is Ok(object) &&
+    epoch_text(object, "authority_scope_cid") == Some(authority_scope_cid) else {
+    return Err(ScopeMismatch)
+  }
+  @scope.submission_epoch_validity(epoch.body, clock).map_err(issue => {
+    Identity(issue)
+  })
+}

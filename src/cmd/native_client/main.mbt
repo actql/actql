@@ -747,19 +747,22 @@ fn request_body(
 fn command() -> @argparse.Command {
   @argparse.Command(
     "actql-native-client",
-    about="Bounded native Client Host transport",
+    about="Bounded Native Client operations",
     version="0.1",
     subcommand_required=true,
     options=[
-      @argparse.OptionArg("endpoint", required=true, global=true),
-      @argparse.OptionArg("connection-root", required=true, global=true),
-      @argparse.OptionArg("connection-file", required=true, global=true),
-      @argparse.OptionArg("token-root", required=true, global=true),
-      @argparse.OptionArg("token-file", required=true, global=true),
-      @argparse.OptionArg("http-library", required=true, global=true),
-      @argparse.OptionArg("ca", required=true, global=true),
-      @argparse.OptionArg("cert", required=true, global=true),
-      @argparse.OptionArg("key", required=true, global=true),
+      @argparse.OptionArg("mode", default_values=["remote"], global=true),
+      @argparse.OptionArg("config-root", default_values=["."], global=true),
+      @argparse.OptionArg("config-file", global=true),
+      @argparse.OptionArg("endpoint", global=true),
+      @argparse.OptionArg("connection-root", global=true),
+      @argparse.OptionArg("connection-file", global=true),
+      @argparse.OptionArg("token-root", global=true),
+      @argparse.OptionArg("token-file", global=true),
+      @argparse.OptionArg("http-library", global=true),
+      @argparse.OptionArg("ca", global=true),
+      @argparse.OptionArg("cert", global=true),
+      @argparse.OptionArg("key", global=true),
       @argparse.OptionArg(
         "max-request-bytes",
         default_values=["65536"],
@@ -772,6 +775,12 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
+      @argparse.Command("check", options=[
+        @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("format", required=true),
+        @argparse.OptionArg("parameters-file"),
+        @argparse.OptionArg("parameter-declarations-file"),
+      ]),
       @argparse.Command("connect"),
       @argparse.Command("new-submission", options=[
         @argparse.OptionArg("request-id", required=true),
@@ -838,6 +847,14 @@ fn command() -> @argparse.Command {
 
 ///|
 fn execute(matches : @argparse.Matches) -> String raise ClientStop {
+  match required(matches, "mode") {
+    "local" => return execute_native_local(matches)
+    "remote" =>
+      if matches.subcommand is Some(("check", _)) {
+        stop("check requires an explicit Local configuration")
+      }
+    _ => stop("unsupported Client mode")
+  }
   let endpoint = endpoint_url(required(matches, "endpoint"))
   let request_max = positive_int(
     required(matches, "max-request-bytes"),
