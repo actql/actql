@@ -131,3 +131,31 @@ and the no-additional-I/O checks on attach/resend/reread are unchanged. No
 product, owner, planning policy, execution ceiling or acquisition implementation
 is changed to satisfy this fixture. The correction follows the existing receipt
 contract rather than treating an arbitrary observed count as correct.
+
+
+## Submitted fixture campaign and narrow-routing correction
+
+At a3d6c90957b2ac48004d481968c32c517305f2d6, Node fixture/inventory tests
+passed 27/27 (run-6zr4kw, focused-test-fmzrTq). Fresh five-package packing and
+digest checks succeeded in run-94YbzU. Both public transport workers completed
+all 10 normal and 7 refusal cases with matching inventory digests and no live
+children. Named Result rows, declared columns/nullability, empty schema, keyed
+parallel-path multiplicity, one acquired Source session/two native receipts,
+resend and Result reread invariants all passed. Every refusal observed no new Run
+admission or provider I/O.
+
+Receipt: worktrees/.codex-scratch/public-query-evidence-Lcmq8V. Command 010 and
+its transport-processes/transport-completion reports are successful. The
+**enclosing driver remains failed**, because the new selection was missing from
+its narrowPublicQuery list and incorrectly entered the separate planner corpus.
+Command 011 failed with SubmissionReferenceRequired in
+planner-selection-public-query.mjs::exercisePlannerSelectionPublicQuery. This is
+not a failed DATA MATCH case; it also does not prove the unrelated corpus works.
+The raw failure remains in 011.stderr.log.
+
+Register the new flag alongside existing narrow flags, keeping full-corpus
+planner execution unchanged. A direct regression asserts this precise routing
+list includes the flag. No planner expectation, SDK admission rule or product
+implementation is weakened. A new clean-SHA narrow campaign is still required
+for a successful enclosing receipt; prior transport success remains attributed
+to its own SHA.

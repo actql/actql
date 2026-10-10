@@ -628,7 +628,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-a
   '--qualify-only',
   '--named-window-only',
   '--analytic-offset-only',
-  '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
+  '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--match-data-producer-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',

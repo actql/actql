@@ -62,4 +62,9 @@ test('MATCH DATA is copied and registered in ordinary packed acceptance', async 
   assert.ok(packed.includes('scopeInputs.refusals.push(...matchDataProducerRefusals)'));
   assert.ok(driver.includes("['scripts/fixtures/match-data-producer-source-input.mjs', 'match-data-producer-source-input.mjs']"));
   assert.ok(driver.includes('--match-data-producer-only'));
+  const narrowStart = driver.indexOf('const narrowPublicQuery =');
+  const narrowEnd = driver.indexOf('async function retainTransportReports', narrowStart);
+  assert.ok(narrowStart >= 0 && narrowEnd > narrowStart);
+  assert.ok(driver.slice(narrowStart, narrowEnd).includes('--match-data-producer-only'),
+    'the selected cohort must not trigger unrelated planner/two-source corpora');
 });
