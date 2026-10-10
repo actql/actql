@@ -1,4 +1,33 @@
 ///|
+test "source-free left set operand keeps capture before the Values task" {
+  // The installed captured DAG owns acquisition at unit zero. Ordinal left
+  // and right operands still determine append order, not stage placement.
+  let source = "SELECT 0 AS a, 0 AS b UNION ALL SELECT amount AS x, amount + 1 AS x FROM orders WHERE amount > 0 ORDER BY a, b"
+  let context = { ..fixture_context(), captured_stage: Some("capture"), }
+  let actual = compile(
+    @query.parse_query(source, syntax_limits()).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.stages(actual).map(stage => stage.id), [
+    "capture", "aql_set_seed_0", "aql_set_term_0", "aql_set_term_1", "aql_set_aligned_0",
+    "aql_set_merge_0", "main",
+  ])
+  let wire = semantic(actual)
+  assert_true(
+    wire.contains(
+      "\"filter\":{\"gt\":[{\"field\":\"amount\"},{\"literal\":0}]}",
+    ),
+  )
+  assert_true(wire.contains("\"append\":{\"with\":\"r\"}"))
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("captured input keeps its existing declaration")
+  }
+}
+
+///|
 test "the ordinary positional JSON public control admits its Values source" {
   // The independent public control publishes the same typed NULL rows as the
   // source fixture. A Values generator requires an explicit logical producer.
