@@ -19,6 +19,8 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-empty-keyed').expected, []);
   assert.ok(cases.get('pipe-pivot-empty-keyed').columns.slice(1).every(column => column.contract.nullable));
   assert.deepEqual(cases.get('pipe-pivot-current-value').expected, [{product: 'kale', present: 99}]);
+  assert.equal(cases.get('pipe-pivot-duplicate-null-json-control').columns[0].contract.max_utf8_bytes, undefined);
+  assert.equal(cases.get('pipe-pivot-min-missing-authored-order').columns[0].contract.max_utf8_bytes, Buffer.byteLength('kale', 'utf8'));
   assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 16);
 });
 

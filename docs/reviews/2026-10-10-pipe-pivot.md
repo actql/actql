@@ -118,3 +118,11 @@ and 384 canonical identities passed (`run-em6B80`). Applied formatter output
 only to changed files; unchanged main formatting findings are not hidden.
 Fresh public packed acceptance is pending at this source revision. CI remains
 stopped; these results do not establish full Core or all-target coverage.
+
+The first integrated packed run at `fab19aa12` exposed an independently
+incorrect fixture schema: text literal `kale` carries its existing four-byte
+UTF-8 bound, unlike the explicitly unbounded machine control schema. The
+fixture now records that literal-derived bound; neither product typing nor
+the independent rows changed. Node fixture/inventory checks pass 38/38
+(`run-vfFKQc`). The failed receipt remains at
+`/private/tmp/.codex-scratch/public-query-evidence-K85XBw/summary.json`.
