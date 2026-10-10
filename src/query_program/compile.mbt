@@ -425,6 +425,16 @@ fn same_expression(
     }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
+    if negated_is_predicate_shape(left, a_index) is Some((a_name, a_items)) &&
+      negated_is_predicate_shape(right, b_index) is Some((b_name, b_items)) {
+      if a_name != b_name || a_items.length() != b_items.length() {
+        return false
+      }
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
     if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
       literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
       if a_name != b_name || a_items.length() != b_items.length() {
