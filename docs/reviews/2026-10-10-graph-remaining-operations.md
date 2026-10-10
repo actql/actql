@@ -51,7 +51,7 @@ original SHAs, commands and receipts. Three private commit messages were
 wrapped before publication with trees and mapped parents unchanged; no test
 receipt is rewritten to the replacement SHA.
 
-Latest adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
+Earlier adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
 Integration commit: `33118a87b303011999d81b8d33a6efc9c2fd42ab`.
 JS source callers pass 8/8, authored Node fixtures pass 38/38, and Node Host
 and Workers generation checks pass on the merged tree before the merge commit
@@ -510,3 +510,85 @@ Remaining Mean delivery work is finite: bind the selected peak-resource
 profile, connect checked generator/lowering/provider/AQL, then execute the
 authored public Local/HTTPS and retained fresh-process fixtures. No Mean
 executable inventory entry, compatibility fallback or CI execution is claimed.
+
+### Mean checked execution and current integration
+
+This checkpoint supersedes the connection gaps in the preceding private-fold
+checkpoint, not its historical receipts. Adopted main is
+`152a7e0df1c2eb031803e1de075c037b3dccf143`; integrated source is
+`67b721f73bd37e0cd33ba5d9b02c4b9731d60a72`. PR #1284 remains an
+unmerged dependency. No CI has been started.
+
+| Boundary | Current connection | Outstanding delivery evidence |
+| --- | --- | --- |
+| Typed Mean admission | Existing checked options and complete Graph alignment, seven occurrence-bound obligations | Public refusal and execution through packed packages |
+| Lowering and provider | `SGA.mean_structural`, exact ordered Sample ports, explicitly configured bounded Graph provider | Actual standard Host selection and retained publication |
+| AQL | Explicit-list DATA generator, shared structured Program admission | Local/HTTPS DATA and terminal query execution |
+| Retention and reread | Existing Carrier completion and authored packed cohort/restart harness | Real Store save, fresh-process read and zero repeated Source/Compute |
+
+There is no implicit Pipe input, pairwise mean, tuple conversion or synchronous
+row fallback. Repeated samples and zero weights retain distinct ordered input
+occurrences. Borrowed inputs outlive private stopped cleanup; successful output
+ownership transfers through the existing Graph completion owner.
+
+The selected profile caps samples at 64, exact arithmetic operations at
+100,000 and coefficient width at 8,192 bits. Its 36,400-byte arithmetic scratch
+quota is separate from the existing retained-value byte quota. Scratch slots
+are reserved before output construction and included in provider capacity;
+this is not a complete physical heap upper-bound claim.
+
+The empty two-sample regression independently decomposes work as 23 and
+workspace as 7,846 slots. Quantum 1, 7 and 64 preserve the total. One-short
+work, workspace and exact-arithmetic operation budgets retain their distinct
+typed causes. Cancellation enumerates the positive-work yield prefixes,
+including the private-finished/output-handoff boundary, and preserves input
+custody until stopped cleanup.
+
+On the integrated source SHA above:
+
+- JS: 9/9 with `node scripts/local-checks.mjs test moon -- --target js`
+  and `src/query_integration/graph_mean_wbtest.mbt`,
+  `src/query_program/graph_mean_source_test.mbt`,
+  `src/lowering_relation/graph_mean_test.mbt`,
+  `src/local_sga/mean_resources_wbtest.mbt`.
+- Node: 65/65 with `node scripts/local-checks.mjs test node --`
+  and `scripts/public-query-profiles.test.mjs`,
+  `proofs/relation-pipeline/provider-construction.test.mjs`,
+  `scripts/pure-operation-inventory.test.mjs`.
+- Both selections ran under one bounded `runLocalCheck` invocation,
+  `run-SkBSlZ`, with separate focused receipts `focused-test-RT9VQd` and
+  `focused-test-r3OrPV`. This is local execution, not CI.
+
+Earlier working-source portable selections pass 9/9 each on Wasm and Native
+(`run-IgrK4D`, `focused-test-p9Vk7f`, `focused-test-0ZKy3h`). They precede
+the positional-star main integration and are not relabelled as final-SHA
+portable evidence. The earlier caller selection passes JS 34/34
+(`run-Kjs5Tg`); authored registration and transitive copies pass Node 47/47
+(`run-XehmpA`, `focused-test-x0qfel`). The same invocation checks Workers and
+Node Host generated fixtures read-only; no generated oracle was rewritten.
+
+The only `generated_sequence.mbt` change is one alternative in its existing
+row-kernel false branch. Removing that exact line yields the full integrated
+parent blob, including all construction, record, callback, capture and array
+bytes. The source-review variant pins actual commit
+`4fd03c918b8e125fd712904c58dbef9fbc1dbe82`; historical recipe pins and
+the construction-only 2,344-byte component remain unchanged. Executed source
+correspondence is not a Mean execution-capacity theorem.
+
+The latest main merge conflicted only in authored fixture inventory metadata
+and its count test. Both main's positional-star controls and the four Graph
+families remain present; hashes describe authored registration, not results.
+Coverage now calls Shortest and Mean partial rather than falsely refusing
+already admitted operations. No operation is promoted to completed delivery.
+
+Actual Host execution has not started: `run-N2VUu9` was refused by another
+owner's shared heavy lock. No lock or process belonging to another worktree
+was changed. Prepared acceptance includes all four operation families and
+`--graph-mean-only` reuses the existing retained-cohort fresh-process reader.
+Neither fixture registration nor same-process attach proves that acceptance.
+
+Remaining work is the public Local/HTTPS and packed Store/restart acceptance,
+public failure/cleanup retry evidence, and the Reach/Shortest selector-prefix
+boundedness audit. Existing selector admission still contains whole-value
+rechecking; the stepped output cursor alone does not close that separate
+boundary. Final portable caller coverage follows any necessary cursor change.
