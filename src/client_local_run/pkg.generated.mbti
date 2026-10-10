@@ -3,14 +3,26 @@ package "actql/actql/client_local_run"
 
 import {
   "actql/actql/client_local_preparation",
+  "actql/actql/connectors/local/driver",
+  "actql/actql/connectors_builtin",
   "actql/actql/execution_authorization",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
   "actql/actql/program_check",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
 
 // Values
+pub fn configure_source_free_local_compute(LocalRunPlan, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
+pub fn confirm_local_compute_start(LocalComputeHost, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalComputeStart, LocalComputeIssue]
+
 pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
+
+pub fn local_compute_producers(LocalComputeHost) -> Array[Int]
+
+pub fn local_compute_run(LocalComputeHost) -> @physical_strategy.CapturedDAG
 
 pub fn local_run_admission(LocalRunPlan) -> @run_publication.RunPublicationAdmission
 
@@ -30,9 +42,32 @@ pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInpu
 
 pub fn restore_local_run_materials(String, String) -> Result[@run_publication_host.ClientTaskRunMaterials, LocalRunIssue]
 
+pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
+
 // Errors
 
 // Types and methods
+pub struct LocalComputeHost {
+  plan : LocalRunPlan
+  setup : @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+}
+
+pub(all) enum LocalComputeIssue {
+  AuthorizationMismatch
+  UnsupportedCapability
+  Configuration
+  Task(@physical_strategy.RunIssue)
+  Obligations(@execution_relation.ManagedObligationIssue)
+  Dispatch(@connectors_builtin.ConfiguredDispatchIssue[@physical_strategy.RunIssue])
+  Managed(@driver.LocalDispatchIssue)
+  Start(LocalRunIssue)
+  StartNotPermitted
+}
+
+pub struct LocalComputeStart {
+  host : LocalComputeHost
+}
+
 pub(all) enum LocalRunIssue {
   AuthorizationMismatch
   UnsupportedCapability

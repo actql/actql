@@ -117,3 +117,36 @@ Run admission, checked task progress, publication, cancellation eligibility and
 durable recovery remain MoonBit Owner responsibilities. Python provides physical
 callbacks and persistence, not a second Run or recovery state machine. This
 transfer facade provides no execution or recovery operation.
+
+## Checked task Host
+
+`client_local_run` installs the existing retained Local compute driver for a
+checked source-free plan. Configuration opens task Owners and resource accounting
+without physical dispatch. Registry, Values, ordered derive and expression
+fragment bodies are admitted through the existing engine contracts. The existing
+registry generator supplies these bodies to the focused Core consumer; expected
+rows remain independently authored.
+
+Before the first task activation, the physical Host must supply the original
+durable request, definition identity, reservation, physical-start and cancellation
+facts to `confirm_local_compute_start`. The existing Run start Owner decides
+whether those facts permit work. Its accepted result is retained as an opaque
+`LocalComputeStart` bound to the exact configured Host. Configuration alone,
+another Host's decision, or a cancelled/pre-start-failed request cannot authorize
+task dispatch. These in-process values do not constitute durable journal records.
+
+Every `start_local_compute_task` matches the original subject, account, access
+tuple and context against the current authorization. The checked DAG supplies
+the next task and exact producer occurrences; the managed driver checks the
+completed input materials and resource obligations. Activation consumes the
+existing task Owner's exact revision-bound, single-use grant. The authorization
+Owner projects its already evaluated dispatch action; callers cannot manufacture
+the read-only action constructor. No Python task counter or recovery decision is
+introduced.
+
+Managed operations retain their existing quantum, finalization, stop and cleanup
+interfaces. Their retained outputs remain charged until those Owners release
+them. A missing next task proves neither public Run success nor Named Result
+publication. Durable admission, publication storage and restoration of completed
+materials must be connected separately before the ordinary Python Client can
+advertise Local execution.
