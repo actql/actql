@@ -460,3 +460,53 @@ The earlier checker-only Wasm/Native evidence is not promoted to these claims.
 Mean still lacks its checked finite-list execution connection; its exact
 weighted semantics must not be replaced by pairwise union means. All four
 operations remain delivery-incomplete, and CI remains disabled.
+
+### Mean complete-record reduction checkpoint
+
+`local_sga/mean_fold.mbt` now reduces the complete ordered sample list into
+the existing typed Graph Store builder. It does not use a pairwise Graph
+mean. Candidate selection, occurrence matching, endpoint checks, retained
+endpoint closure, field policy lookup and record append are cursor phases.
+Complete typed identity tokens are compared with the existing bounded
+comparison cursor. Parallel edge identities remain independent.
+
+Support uses the existing exact binary64 rational owner. Each retained field
+uses the existing Mean property cursor; whole-entity absence, present NULL
+and zero weight remain distinct. A shared allowance counts calls to exact
+weight addition, support comparison, weighted contribution and final rounding
+across every sample, identity and field. The coefficient ceiling is at most
+8192 bits per exact primitive; this is neither a bit-operation counter nor
+a total physical-memory proof. The enclosing provider's simultaneous input,
+accumulator, temporary and output reservation still needs connection before
+Mean may be accepted as executable.
+
+Independent fixtures cover repeated samples, canonical original keys, parallel
+edges, the four normative missing/NULL weighted results (6, 2, 1.5 and 1), a
+zero denominator, reordered case-insensitive field declarations, the exact
+support threshold 1/4 and its next binary64 value, and endpoint conflicts.
+The empty three-sample fixture independently counts 17 control actions and
+three exact weight additions; exact and one-short use typed failures. A
+separate nine-action exact allowance exhausts at the second identity rather
+than resetting the meter.
+
+Private lifecycle tests run this cursor under the existing bounded session.
+Cancellation at field supply, staged append and completed-record handoff does
+not discard borrowed inputs or private output before stop acknowledgement.
+A deliberately pending first cleanup keeps that custody; retry releases the
+private builder without another compute call. Repeated cleanup reports no new
+transition. This is not public Host or provider dispatch evidence.
+
+On working sources based on `0ae29e1b12a85daab66bab5b410b0d78f4696870`,
+the explicit files `src/local_sga/mean_fold_wbtest.mbt` and
+`src/local_sga/mean_property_wbtest.mbt` pass 13/13 each on JS, Wasm and Native.
+The guarded calls use `runFocusedTests("moon", ["--target", target, ...files])`;
+JS receipt is `run-tkYxMF` / `focused-test-bnmUlE`, and the sequential portable
+receipt is `run-9U1ZOB` / `focused-test-4u7vto` / `focused-test-7VxJGO`.
+Receipts retain working-source identity; they are not clean-HEAD acceptance.
+Earlier fixture compilation failures and the incorrect repeated-cleanup
+transition assertion remain in their original failure receipts.
+
+Remaining Mean delivery work is finite: bind the selected peak-resource
+profile, connect checked generator/lowering/provider/AQL, then execute the
+authored public Local/HTTPS and retained fresh-process fixtures. No Mean
+executable inventory entry, compatibility fallback or CI execution is claimed.

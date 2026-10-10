@@ -14,6 +14,7 @@ priv enum MeanPropertyIssue {
   MeanPropertyConflict
   MeanPropertyNull
   MeanPropertyWorkLimit
+  MeanPropertyExactWorkLimit
   MeanPropertyValueLimit
   MeanPropertyArithmetic(@exact.Issue)
   MeanPropertyEquality(@value.CompleteEqualityIssue)
@@ -36,6 +37,7 @@ priv struct MeanProperty {
   mut equality : @value.CompleteEquality?
   mut admission : @value.RecheckCursor?
   mut arithmetic : @exact.Mean?
+  arithmetic_budget : MeanArithmeticBudget?
   mut weight : Double
 }
 
@@ -55,6 +57,7 @@ fn start_mean_property(
   samples : Int,
   remaining : Int,
   max_bits : Int,
+  arithmetic_budget? : MeanArithmeticBudget? = None,
 ) -> MeanProperty? {
   if samples < 1 ||
     remaining < 0 ||
@@ -88,6 +91,7 @@ fn start_mean_property(
     equality: None,
     admission: None,
     arithmetic,
+    arithmetic_budget,
     weight: 0.0,
   })
 }
@@ -227,6 +231,14 @@ fn advance_mean_property(
               Some({ value: @value.Number(number), .. }) => number
               _ => return mean_property_failed(value, InvalidMeanProperty, work)
             }
+            if value.arithmetic_budget is Some(budget) &&
+              !take_mean_arithmetic(budget) {
+              return mean_property_failed(
+                value,
+                MeanPropertyExactWorkLimit,
+                work,
+              )
+            }
             match
               @exact.add_weighted_value(
                 value.arithmetic.unwrap(),
@@ -270,6 +282,14 @@ fn advance_mean_property(
                 return mean_property_failed(value, InvalidMeanProperty, work)
             }
           @graph_type.WeightedMean(_, _) => {
+            if value.arithmetic_budget is Some(budget) &&
+              !take_mean_arithmetic(budget) {
+              return mean_property_failed(
+                value,
+                MeanPropertyExactWorkLimit,
+                work,
+              )
+            }
             let result = @exact.finish_weighted_mean(value.arithmetic.unwrap())
             value.arithmetic = None
             match result {
