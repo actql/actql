@@ -820,6 +820,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.GraphNormalizeStep(_)
       | @lower.GraphDeltaStep(_)
       | @lower.GraphUnionStep(_)
+      | @lower.GraphMeanStep(_)
       | @lower.GraphSubtractionStep(_)
       | @lower.GraphConstructionStep(_)
       | @lower.VectorStep(_)

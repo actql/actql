@@ -89,6 +89,7 @@ pub fn node_accepts_managed_carrier_view(
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
     "SGA.traverse" => index == 0
+    "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
@@ -106,12 +107,39 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     GraphTraverseRows(checked) =>
-      operation(node) == "SGA.traverse" &&
+      operation(node) ==
+      (if @graph.traverse_shortest(checked) is Some(_) {
+        "SGA.shortest_path"
+      } else if @graph.traverse_is_reach(checked) {
+        "SGA.reachable"
+      } else {
+        "SGA.traverse"
+      }) &&
       (
-        node.input_targets.length() == 2 ||
+        (if @graph.traverse_shortest(checked) is Some(shortest) {
+          let relation = fn(selector) {
+            if @graph.selector_form(selector) is @graph.RelationIds(..) {
+              1
+            } else {
+              0
+            }
+          }
+          node.input_targets.length() ==
+          1 +
+          relation(@graph.shortest_starts(shortest)) +
+          relation(@graph.shortest_targets(shortest))
+        } else {
+          false
+        }) ||
         (
-          @graph.traverse_emission(checked) == @graph.TraversedNodes &&
-          node.input_targets.length() == 1
+          @graph.traverse_shortest(checked) is None &&
+          (
+            node.input_targets.length() == 2 ||
+            (
+              @graph.traverse_emission(checked) == @graph.TraversedNodes &&
+              node.input_targets.length() == 1
+            )
+          )
         )
       )
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
@@ -123,8 +151,17 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
     GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
     GraphUnionValue(checked) =>
-      operation(node) == "SGA.union_structural" &&
+      operation(node) ==
+      (if @graph.union_is_graft(checked) {
+        "SGA.graft"
+      } else {
+        "SGA.union_structural"
+      }) &&
       node.input_targets.length() == @graph.union_input_count(checked)
+    GraphMeanValue(checked) =>
+      operation(node) == "SGA.mean_structural" &&
+      node.input_targets.length() ==
+      @graph.mean_sample_count(@graph.checked_mean_options(checked))
     GraphSubtractionValue(_) =>
       operation(node) == "SGA.diff_structural" &&
       node.input_targets.length() == 2
@@ -245,10 +282,19 @@ pub fn node_prefers_fused_without_relation_consumer(
 /// Other families keep their existing fused choice until their own handoff is
 /// registered and tested.
 pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
+  (
+    node.payload is GraphMeanValue(_) &&
+    operation(node) == "SGA.mean_structural"
+  ) ||
   (node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize") ||
   (
-    node.payload is GraphUnionValue(_) &&
-    operation(node) == "SGA.union_structural"
+    node.payload is GraphUnionValue(checked) &&
+    operation(node) ==
+    (if @graph.union_is_graft(checked) {
+      "SGA.graft"
+    } else {
+      "SGA.union_structural"
+    })
   ) ||
   (
     node.payload is GraphSubtractionValue(_) &&
@@ -282,9 +328,23 @@ pub fn node_accepts_managed_relation_view(
       index >= 0 &&
       index < node.input_targets.length()
   }
+  if node.payload is GraphTraverseRows(checked) &&
+    @graph.traverse_shortest(checked) is Some(_) {
+    return operation(node) == "SGA.shortest_path" &&
+      node_supports_selected_managed_execution(node) &&
+      index > 0 &&
+      index < node.input_targets.length()
+  }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
-      GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphTraverseRows(checked) =>
+        index == 1 &&
+        operation(node) ==
+        (if @graph.traverse_is_reach(checked) {
+          "SGA.reachable"
+        } else {
+          "SGA.traverse"
+        })
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       GraphDeltaValue(checked) =>
         index == 1 &&

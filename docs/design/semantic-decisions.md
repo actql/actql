@@ -340,7 +340,7 @@ The normative owner is [Scalar expressions](../spec/language.md#scalar-expressio
 The GoogleSQL [LTRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#ltrim)
 and [RTRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#rtrim)
 references select the leading-only and trailing-only variants of trimming.
-This increment admits only their unary STRING form, using exactly the pinned
+That unary increment admitted only their unary STRING form, using exactly the pinned
 Unicode 16.0 `White_Space` set already selected for unary TRIM. This is an
 explicit ActQL Unicode pin, not a claim that the GoogleSQL pages pin a release.
 The opposite end and all retained scalar sequences are unchanged; combining
@@ -350,6 +350,37 @@ New closed source and machine schema cases and scalar laws receive coordinated
 expression, scalar-manifest, AoA, registry, environment, compilation and consumer
 identities. Exact predecessor bodies and complete identity preimages are frozen
 before extending the current owners; existing history remains immutable. TRIM
-keeps its adopted two-sided rule. Optional trim sets, BYTES and collation remain
-excluded, and registration alone does not establish execution conformance on an
+kept its adopted two-sided rule. Optional trim sets, BYTES and collation were
+excluded at that adoption; the following decision extends STRING sets.
+Registration alone does not establish execution conformance on an
 unverified target or consumer.
+
+
+## Explicit STRING trim character sets
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+The selected GoogleSQL [TRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#trim),
+[LTRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#ltrim)
+and [RTRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#rtrim)
+references define the optional STRING argument as a set of Unicode code points.
+Their combining-mark example makes membership independent of the surrounding
+base character. Accordingly, this increment admits exactly two STRING operands
+for each operation; substring, grapheme and normalized matching are excluded.
+Duplicates and order in the set do not affect values, and an empty explicit set
+is a no-op rather than a request for the omitted whitespace default. Unary
+behavior keeps the existing explicit Unicode 16.0 White_Space pin.
+
+The existing tags retain their unary expression body and additionally admit an
+exact two-element operand array in common source and machine forms. This avoids
+rewriting authored unary nodes or changing their canonical bytes. Equivalent set
+values do not authorize constant folding or deduplication of authored children.
+The common strict-null rule evaluates both demanded children once, left to
+right, before propagating NULL, preserving a failure in the second child after
+a NULL first child. Runtime membership work, including large sets and repeated
+nonmatches, remains subject to the existing cooperative budgets and cancellation.
+
+Exact pre-set contract bodies, complete identity envelopes and independent
+Values Program/Run preimages are retained before changing the owners; older
+history is unchanged. Schema, scalar law, expression and dependent identities
+move together. This initial 0.1 extension does not admit BYTES or collation and
+does not claim conformance on unverified targets or live BigQuery.

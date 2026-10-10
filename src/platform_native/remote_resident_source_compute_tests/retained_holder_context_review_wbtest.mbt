@@ -56,8 +56,6 @@ fn retained_holder_context_review(
       journal,
       rejected_context,
       invocation.0,
-      [],
-      [],
       retained_holder_review_policy(
         holder,
         rejected_context.facts(journal).unwrap().inputs,
@@ -137,7 +135,7 @@ fn retained_holder_context_review(
   assert_true(context.close())
   assert_true(context.facts(journal) is None)
   assert_true(
-    context.capture_result(journal, normalization, [], [], 65536, 4096, 64)
+    context.capture_result(journal, normalization, 65536, 4096, 64)
     is Err(Unavailable),
   )
   assert_true(consumer.request_for_effect_review(facts.inputs) is None)

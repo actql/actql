@@ -33,6 +33,7 @@ priv struct UnionFold {
 /// One checked left fold. Every operand occurrence and positional alignment is
 /// retained; neither repeated references nor equal values erase an application.
 struct CheckedUnion {
+  graft : Bool
   source : @decode.Cursor
   inputs : Array[@carrier.Carrier]
   folds : Array[UnionFold]
@@ -167,6 +168,8 @@ fn union_definition(
   strategies : Map[String, UnionPropertyStrategy],
   seen : Map[String, Bool],
   b : Budget,
+  nullable_numbers? : Map[String, Bool] = Map([]),
+  common_roles? : Bool = false,
 ) -> (@carrier.GraphNodeDefinition, Array[UnionField]) raise Stop {
   spend(b, source, 1)
   let name = @carrier.graph_element_definition_name(left)
@@ -179,13 +182,17 @@ fn union_definition(
   }
   let key_contracts = []
   let key_columns = []
+  let mut same_key_columns = true
   for index in 0..<keys {
     spend(b, source, 1)
     let first = @carrier.graph_element_definition_key_column_at(left, index)
     let second = @carrier.graph_element_definition_key_column_at(right, index)
     if first.map(@carrier.graph_name_identity) !=
       second.map(@carrier.graph_name_identity) {
-      fail(source, IncompatibleGraphDomains)
+      if !common_roles {
+        fail(source, IncompatibleGraphDomains)
+      }
+      same_key_columns = false
     }
     if first is Some(name) {
       key_columns.push(name)
@@ -202,6 +209,9 @@ fn union_definition(
       fail(source, UnionKeyIdentityMismatch(name, index))
     }
     key_contracts.push(joined)
+  }
+  if !same_key_columns {
+    key_columns.clear()
   }
   let left_properties = @carrier.graph_element_definition_properties(left)
   let right_properties = @carrier.graph_element_definition_properties(right)
@@ -246,6 +256,12 @@ fn union_definition(
         if !(joined.shape is @contract.Number) {
           fail(source, IncompatiblePropertyStrategy(name))
         }
+    }
+    if nullable_numbers.contains(key) {
+      if !(joined.shape is @contract.Number) {
+        fail(source, IncompatiblePropertyStrategy(name))
+      }
+      joined = @contract.with_nullability(joined, true)
     }
     fields.push((field.name, Some(joined)))
     alignment.push({ left: index, right: other, strategy, })
@@ -328,13 +344,18 @@ fn union_graph_definition(
 }
 
 ///|
-fn union_fold(
+/// Align identity, property extents and label exposure only. This type-level
+/// operation does not execute a union or a pairwise numerical reduction.
+fn align_graph_domains(
   source : @decode.Cursor,
   left : @carrier.Carrier,
   right : @carrier.Carrier,
   node_strategies : Map[String, UnionPropertyStrategy],
   edge_strategies : Map[String, UnionPropertyStrategy],
   b : Budget,
+  nullable_nodes? : Map[String, Bool] = Map([]),
+  nullable_edges? : Map[String, Bool] = Map([]),
+  common_roles? : Bool = false,
 ) -> UnionFold raise Stop {
   let first = union_graph_definition(source, left)
   let second = union_graph_definition(source, right)
@@ -372,7 +393,14 @@ fn union_fold(
       fail(source, IncompatibleGraphDomains)
     }
     let (output, fields) = union_definition(
-      source, definition, candidate, node_strategies, seen_nodes, b,
+      source,
+      definition,
+      candidate,
+      node_strategies,
+      seen_nodes,
+      b,
+      nullable_numbers=nullable_nodes,
+      common_roles~,
     )
     node_definitions.push(output)
     node_alignment.push({ right: other, fields, })
@@ -415,6 +443,8 @@ fn union_fold(
       edge_strategies,
       seen_edges,
       b,
+      nullable_numbers=nullable_edges,
+      common_roles~,
     )
     edge_definitions.push(
       @carrier.graph_edge_definition(output, src, dst).unwrap(),
@@ -461,6 +491,28 @@ pub fn check_union(
 }
 
 ///|
+/// Graft uses the exact-equal structural fold, but retains its own checked
+/// operation identity and closed binary body. No merge policy is admitted.
+pub fn check_graft(
+  source : @decode.Cursor,
+  inputs : Array[@carrier.Carrier],
+  limits : Limits,
+) -> Result[CheckedUnion, Issue] {
+  check_structural_composition(
+    source,
+    inputs,
+    limits,
+    allow_list=false,
+    graft=true,
+  )
+}
+
+///|
+pub fn union_is_graft(value : CheckedUnion) -> Bool {
+  value.graft
+}
+
+///|
 /// Shared compatibility and field alignment construction. The operation's
 /// closed operand form remains distinct; subtraction never admits a fold list.
 fn check_structural_composition(
@@ -468,6 +520,7 @@ fn check_structural_composition(
   inputs : Array[@carrier.Carrier],
   limits : Limits,
   allow_list~ : Bool,
+  graft? : Bool = false,
 ) -> Result[CheckedUnion, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -483,7 +536,16 @@ fn check_structural_composition(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    let body = decoded(@decode.closed_object(source, ["with", "merge"]))
+    let body = decoded(
+      @decode.closed_object(
+        source,
+        if graft {
+          ["with"]
+        } else {
+          ["with", "merge"]
+        },
+      ),
+    )
     let at = decoded(@decode.required(body, "with"))
     let peers = if @decode.array_length(at) is Some(count) {
       if !allow_list || count == 0 {
@@ -520,7 +582,7 @@ fn check_structural_composition(
     let mut output = inputs[0]
     for index in 1..<inputs.length() {
       spend(b, peers[index - 1], 1)
-      let fold = union_fold(
+      let fold = align_graph_domains(
         peers[index - 1],
         output,
         inputs[index],
@@ -544,6 +606,7 @@ fn check_structural_composition(
     node_entries.sort_by((a, z) => @canonical.compare_utf16(a.0, z.0))
     edge_entries.sort_by((a, z) => @canonical.compare_utf16(a.0, z.0))
     Ok({
+      graft,
       source,
       inputs: inputs.copy(),
       folds,
