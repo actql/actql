@@ -217,3 +217,36 @@ setCorrespondingRefusals.push(...[
 ].map(item => ({...item, text: 'DATA r = SELECT 1 AS x; ' + item.text,
   name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
   expectedCode: 'ClientProgramInvalidInput'})));
+
+// Anonymous window values have no clause alias. Positional alignment publishes
+// the first operand's a/b names; these are independently authored expectations.
+const anonymousAnalyticHead = 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+  + 'ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r';
+const anonymousAnalytic = (name, text, extra = {}) => positional('anonymous-analytic-' + name, text,
+  {columns: aggregateColumns, expected: windowRows, ...extra});
+setCorrespondingSuccesses.push(
+  anonymousAnalytic('opposing-orders', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + anonymousAnalyticHead + ' ORDER BY a, b', {format: 'aql-text'}),
+  anonymousAnalytic('scoped-pipe', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + 'SELECT 0 AS a, 0 AS b |> UNION ALL (FROM r |> AS original |> SET x = -x '
+    + '|> SELECT ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x)) '
+    + '|> ORDER BY a, b', {format: 'aql-text'}),
+  anonymousAnalytic('named-qualify', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), '
+    + 'ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r QUALIFY n > 0 ORDER BY a, b',
+    {format: 'aql-text'}),
+  anonymousAnalytic('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+    + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), '
+    + 'ROW_NUMBER() OVER (ORDER BY x DESC) FROM r ORDER BY a, b',
+    {format: 'aql-text', expected: []}),
+  anonymousAnalytic('source-orders', 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY id), ROW_NUMBER() OVER (ORDER BY id DESC) '
+    + 'FROM records ORDER BY a, b',
+    {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'anonymous-analytic-private-slot', field: 'aql_analytic_output_1'},
+  {name: 'anonymous-analytic-private-projection', field: 'aql_set_anonymous_3'},
+].map(item => ({name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
+  text: 'DATA r = SELECT 1 AS x; ' + anonymousAnalyticHead + ' QUALIFY ' + item.field + ' > 0',
+  expectedCode: 'ClientProgramInvalidInput'})));
