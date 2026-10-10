@@ -144,7 +144,18 @@ fn retained_holder_provider_review(
     original_invocation=Some(invocation),
     review=Some(work),
   ).unwrap()
-  let complete = work.complete().unwrap()
+  let complete = match work.complete() {
+    Ok(value) => value
+    Err(Preview(_)) => abort("original review: Preview owner refused")
+    Err(Contract(_)) => abort("original review: artifact contract refused")
+    Err(Source(_)) => abort("original review: Source evidence refused")
+    Err(Dependency(_)) => abort("original review: dependency capture refused")
+    Err(Manifest(_)) => abort("original review: manifest refused")
+    Err(Inventory(_)) => abort("original review: inventory refused")
+    Err(Capture(_)) => abort("original review: Captured Run refused")
+    Err(_) => abort("original review: completion unavailable")
+  }
+  println("native-original-review: captured completion confirmed")
   assert_eq(complete.preview.keys.length(), 1)
   assert_true(
     complete.preview.wire.contains(

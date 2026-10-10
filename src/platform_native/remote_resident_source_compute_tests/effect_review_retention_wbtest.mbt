@@ -39,6 +39,7 @@ fn retained_effect_review_retention_store(
       "2026-10-11T00:00:00.000Z", bounds,
     )
   }
+  println("native-original-review: preparing review retention")
   let baseline = consumer.usage().reserved_retention_bytes
   assert_true(
     prepare({ ..materials, request: None, }, key, limits) is Err(Unavailable),
@@ -117,8 +118,10 @@ fn retained_effect_review_retention_store(
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
+  println("native-original-review: persistence fault retries confirmed")
   let report = retention.persist(store).unwrap()
   if review_work is Some(work) {
+    println("native-original-review: retaining journal report")
     let queued = work
       .persist_and_retain_report(
         store, crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
