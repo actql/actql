@@ -283,6 +283,16 @@ test "Native original accepted Effect Run acquires once computes its Result and 
 
 ///|
 test "Native original Effect captures its real acquired producer and local import without Remote dispatch" {
+  native_local_effect_capture_acceptance(false)
+}
+
+///|
+test "Native original Local Effect persists waiting rejects explicitly and retries cleanup" {
+  native_local_effect_capture_acceptance(true)
+}
+
+///|
+fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Effect capture requires actual DuckDB")
   }
@@ -384,71 +394,78 @@ test "Native original Effect captures its real acquired producer and local impor
     64,
   ).unwrap()
   let before = work.usage()
-  assert_true(
-    work.prepare_capture_context(
+  // Budget-exhaustion counterexamples have their own original Run. They
+  // must not consume the review acceptance Run's finite attempt allowance.
+  if !review {
+    assert_true(
+      work.prepare_capture_context(
+        retained_compute_effect_retention(),
+        normalization,
+        resident_compute_limits(),
+        65536,
+        4096,
+        64,
+        max_work=0,
+      )
+      is Err(@client.Capture(@resident.InvalidLimits)),
+    )
+    assert_eq(work.usage(), before)
+    let limited = work.prepare_capture_context(
       retained_compute_effect_retention(),
       normalization,
       resident_compute_limits(),
       65536,
       4096,
       64,
-      max_work=0,
+      max_work=1,
     )
-    is Err(@client.Capture(@resident.InvalidLimits)),
-  )
-  assert_eq(work.usage(), before)
-  let limited = work.prepare_capture_context(
-    retained_compute_effect_retention(),
-    normalization,
-    resident_compute_limits(),
-    65536,
-    4096,
-    64,
-    max_work=1,
-  )
-  assert_true(
-    limited is Err(@client.Capture(@resident.Pins(@strategy.PreviewWorkLimit))),
-    msg=match limited {
-      Err(@client.Capture(@resident.Invocation(@resident.Invocation(issue)))) =>
-        @debug.to_string(issue)
-      Err(@client.Capture(@resident.Invocation(@resident.ForeignRun))) =>
-        "Foreign original Run"
-      Err(@client.Capture(@resident.Invocation(@resident.Unavailable))) =>
-        "Original Source unavailable"
-      Err(
-        @client.Capture(
-          @resident.Invocation(@resident.Observation(@resident.Unavailable))
-        )
-      ) => "Source observation unavailable"
-      Err(
-        @client.Capture(
-          @resident.Invocation(@resident.Observation(@resident.Identity(_)))
-        )
-      ) => "Source identity unavailable"
-      Err(
-        @client.Capture(
-          @resident.Invocation(@resident.Observation(@resident.Logical(_)))
-        )
-      ) => "Source logical input refused"
-      Err(
-        @client.Capture(
-          @resident.Invocation(@resident.Observation(@resident.Evidence(issue)))
-        )
-      ) => @debug.to_string(issue)
-      Err(@client.Original(_)) => "Original journal or authorization refused"
-      Err(@client.Capture(@resident.Source(_))) => "Source evidence refused"
-      _ => "Unexpected capture budget result"
-    },
-  )
-  assert_eq(work.usage().held_bytes, before.held_bytes)
-  assert_eq(
-    work.usage().reserved_retention_bytes,
-    before.reserved_retention_bytes,
-  )
-  assert_eq(
-    work.usage().reserved_execution_bytes,
-    before.reserved_execution_bytes,
-  )
+    assert_true(
+      limited
+      is Err(@client.Capture(@resident.Pins(@strategy.PreviewWorkLimit))),
+      msg=match limited {
+        Err(@client.Capture(@resident.Invocation(@resident.Invocation(issue)))) =>
+          @debug.to_string(issue)
+        Err(@client.Capture(@resident.Invocation(@resident.ForeignRun))) =>
+          "Foreign original Run"
+        Err(@client.Capture(@resident.Invocation(@resident.Unavailable))) =>
+          "Original Source unavailable"
+        Err(
+          @client.Capture(
+            @resident.Invocation(@resident.Observation(@resident.Unavailable))
+          )
+        ) => "Source observation unavailable"
+        Err(
+          @client.Capture(
+            @resident.Invocation(@resident.Observation(@resident.Identity(_)))
+          )
+        ) => "Source identity unavailable"
+        Err(
+          @client.Capture(
+            @resident.Invocation(@resident.Observation(@resident.Logical(_)))
+          )
+        ) => "Source logical input refused"
+        Err(
+          @client.Capture(
+            @resident.Invocation(
+              @resident.Observation(@resident.Evidence(issue))
+            )
+          )
+        ) => @debug.to_string(issue)
+        Err(@client.Original(_)) => "Original journal or authorization refused"
+        Err(@client.Capture(@resident.Source(_))) => "Source evidence refused"
+        _ => "Unexpected capture budget result"
+      },
+    )
+    assert_eq(work.usage().held_bytes, before.held_bytes)
+    assert_eq(
+      work.usage().reserved_retention_bytes,
+      before.reserved_retention_bytes,
+    )
+    assert_eq(
+      work.usage().reserved_execution_bytes,
+      before.reserved_execution_bytes,
+    )
+  }
   let foreign = @host.issue_client_effect_run_definition(
     allowed, "native-client-effect-fixture", "foreign-local-effect-capture-run",
     "2026-10-10T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
@@ -681,7 +698,7 @@ test "Native original Effect captures its real acquired producer and local impor
     facts.acquired_bodies,
     dependencies,
     facts.result,
-    original_work=Some((work, journal)),
+    original_work=if review { Some((work, journal)) } else { None },
   )
   authorized = false
   assert_true(capture.facts() is None)
@@ -719,10 +736,14 @@ test "Native original Effect captures its real acquired producer and local impor
     ),
     @publication.publication_contract_identity(definition),
   )
-  assert_eq(
-    @client.native_client_run_checkpoint_state(restored).unwrap().status,
-    @publication.Cancelled,
-  )
+  if review {
+    assert_eq(
+      @client.native_client_run_checkpoint_state(restored).unwrap().status,
+      @publication.Cancelled,
+    )
+  } else {
+    assert_true(@client.native_client_run_checkpoint_state(restored) is None)
+  }
   assert_false(journal.claim_physical_start(request, true).unwrap())
   reopened.close_checked().unwrap()
 }

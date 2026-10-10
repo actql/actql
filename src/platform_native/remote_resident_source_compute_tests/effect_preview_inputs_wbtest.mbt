@@ -234,9 +234,14 @@ fn retained_effect_preview_inputs(
     materials, inputs, admitted_source, local_manifest, artifact, imported, acquired,
     acquired_bodies, dependencies,
   )
-  retained_effect_source_store(
-    consumer, materials, inputs, artifact, admitted_source, local_result, stop_custodies,
-  )
+  // Source custody has independent physical Store/cleanup acceptance.
+  // Keep that fault exercise in its own Run; review retains the same actual
+  // source/dependency facts through the complete computation capture Owner.
+  if original_work is None {
+    retained_effect_source_store(
+      consumer, materials, inputs, artifact, admitted_source, local_result, stop_custodies,
+    )
+  }
   assert_true(
     @publication.captured_effect_source_matches_result_facts(
       admitted_source, result, "r",
