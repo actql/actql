@@ -107,6 +107,33 @@ pub fn start_complete_equality(
 }
 
 ///|
+/// Live continuations only. A single poll can grow the stack by at most two.
+/// Borrowed immutable payloads are not copied or transferred by this cursor.
+pub fn complete_equality_pending_frames(value : CompleteEquality) -> Int {
+  value.frames.length()
+}
+
+///|
+/// Upper bound on live continuations after the next one-unit poll. Inspect
+/// only its frame tag: scalar continuation polls do not reserve container
+/// growth that they cannot perform.
+pub fn complete_equality_next_frame_bound(value : CompleteEquality) -> Int {
+  let growth = match value.frames.last() {
+    Some(CompareValue(_, _, _) | CompareObject(_, _, _, _)) => 2
+    Some(CompareObjectNames(_, _, _, _, _) | CompareArray(_, _, _, _)) => 1
+    _ => 0
+  }
+  value.frames.length() + growth
+}
+
+///|
+/// Cancel only the comparison's private continuations, never its input owners.
+pub fn cancel_complete_equality(value : CompleteEquality) -> Unit {
+  value.frames.clear()
+  value.terminal = true
+}
+
+///|
 fn equality_result(
   value : CompleteEquality,
   equal : Bool,

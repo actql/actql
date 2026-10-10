@@ -187,7 +187,24 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
   assert_eq(domain.length(), 71)
   // Each identity has two key components (Text "a", Number 1) and two key
   // descriptors, not the one-component identity used by public smoke inputs.
-  let control_work = 5 +
+  // Each source/target selector uses 32 recheck frames plus its terminal.
+  // Complete equality: JsonData/Object (2), field continuations (5), names
+  // (3*28), definition Text (4), domain Text (1+3*71), key array (9), type
+  // descriptor arrays (72), terminal (1), membership setup (1). Text/name
+  // bytes are charged on both roots, then their UTF-16 units are compared.
+  let selector_work = 32 +
+    1 +
+    2 +
+    5 +
+    3 * 28 +
+    4 +
+    (1 + 3 * 71) +
+    9 +
+    72 +
+    1 +
+    1
+  let control_work = 2 * selector_work +
+    5 +
     4 +
     7 +
     2 +
@@ -226,7 +243,7 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
         10000,
         [],
       ).unwrap()
-      for _ in 0..<1000 {
+      for _ in 0..<(control_work + 1) {
         match @local_sga.advance_traverse(active, quantum).unwrap() {
           @local_sga.TraverseContinue(..) => ()
           @local_sga.TraverseComplete(output, work~, ..) => {
@@ -274,7 +291,7 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
       10000,
       [],
     ).unwrap()
-    for _ in 0..<1000 {
+    for _ in 0..<(control_work + 1) {
       assert_true(
         @local_sga.advance_traverse(active, 1).unwrap()
         is @local_sga.TraverseContinue(..),
