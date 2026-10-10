@@ -111,6 +111,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientProgram, Int, String) -> @program_check.HostRequestValuePolicyEvidence?
+
 pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
@@ -165,6 +167,8 @@ pub fn client_program_check_environment_with_graph_profile(String, String, Bool,
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
 
+pub fn client_program_check_environment_with_request_value_policies(@program_check.CheckEnvironment, Array[@program_check.HostRequestValuePolicyEvidence]) -> @program_check.CheckEnvironment
+
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, @effect_application.RecoveredEffectTargetGuards, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
@@ -179,7 +183,7 @@ pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) 
 
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
-pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture) -> Bool
+pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture, Int?) -> Bool
 
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -246,6 +250,8 @@ pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_applic
 pub fn client_program_effect_apply_member_count(@physical_strategy.CapturedEffectPreviewInputs) -> Int?
 
 pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffectPreviewInputs) -> String?
+
+pub fn client_program_effect_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientEffectComputation, Int, String) -> @program_check.HostRequestValuePolicyEvidence?
 
 pub fn client_program_effect_capture_result_import(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectResultImport, @physical_strategy.RunIssue]
 
@@ -427,6 +433,8 @@ pub fn client_program_effect_request_authority(@logical_request_scope.LogicalReq
 
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_effect_request_value_policy_subjects(@run_publication_host.PreparedClientEffectComputation) -> Array[String] raise @program_check.UnitBuildFailure
+
 pub fn client_program_effect_result_count(@run_publication_host.PreparedClientEffectComputation) -> Int
 
 pub fn client_program_effect_result_import_count(@run_publication_host.PreparedClientEffectComputation, Int) -> Int?
@@ -468,6 +476,8 @@ pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedC
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
+
+pub fn client_program_export_source_original_read(@execution_relation.SuppliedRelationRead) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
 
 pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
 
@@ -813,9 +823,11 @@ pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInp
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
+
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 
-pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
+pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
 
@@ -948,6 +960,8 @@ pub fn client_program_source_capture_export_descriptor(@client_local_host.Client
 pub fn client_program_source_capture_export_requirement(@client_local_host.ClientSourceCaptureExport) -> String
 
 pub fn client_program_source_capture_export_rows(@client_local_host.ClientSourceCaptureExport) -> Array[String]
+
+pub fn client_program_source_capture_original_read(@client_local_host.ClientAccountedSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
 pub fn client_program_source_capture_retain_task(@client_local_host.ClientAccountedSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue]
 

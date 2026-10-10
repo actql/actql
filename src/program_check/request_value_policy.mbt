@@ -66,6 +66,17 @@ fn request_value_identity(
   request : @sourceviews.AcquisitionRequest,
   budget : IdentityBudget,
 ) -> String raise UnitBuildFailure {
+  let writer = identity_writer(budget)
+  emit_request_value_body(request, budget, writer)
+  identity_finish(budget, writer)
+}
+
+///|
+fn emit_request_value_body(
+  request : @sourceviews.AcquisitionRequest,
+  budget : IdentityBudget,
+  writer : @encode.Writer,
+) -> Unit raise UnitBuildFailure {
   let count = match request {
     @sourceviews.Direct(_, value) =>
       @sourceviews.parameterized_request_field_count(value)
@@ -87,7 +98,6 @@ fn request_value_identity(
     fields.push((field.field.slot.field_name, field))
   }
   identity_sort(fields, budget)
-  let writer = identity_writer(budget)
   try {
     @encode.begin_object(writer)
     for (name, field) in fields {
@@ -105,7 +115,179 @@ fn request_value_identity(
   } catch {
     e => raise Encoding(e)
   }
-  identity_finish(budget, writer)
+}
+
+///|
+/// Read the exact static subject for a trusted Host verifier, not a public
+/// credential or authored assertion. Preserve raw value strings and origins.
+pub fn request_value_policy_subject_wire(
+  check : SourceExecution,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise UnitBuildFailure {
+  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+    raise BudgetExceeded
+  }
+  let budget = IdentityBudget::{
+    work: max_work,
+    bytes: max_bytes,
+    nodes: max_nodes,
+    depth: max_depth,
+  }
+  request_value_policy_subject_body(check, budget)
+}
+
+///|
+/// Bound the whole trusted descriptor inventory with one existing identity
+/// budget; per-request ceilings must not multiply into unaccounted retention.
+pub fn request_value_policy_subject_wires(
+  checks : Array[SourceExecution],
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Array[String] raise UnitBuildFailure {
+  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+    raise BudgetExceeded
+  }
+  let budget = IdentityBudget::{
+    work: max_work,
+    bytes: max_bytes,
+    nodes: max_nodes,
+    depth: max_depth,
+  }
+  identity_charge(budget, checks.length())
+  checks.map(check => request_value_policy_subject_body(check, budget))
+}
+
+///|
+fn request_value_policy_subject_body(
+  check : SourceExecution,
+  budget : IdentityBudget,
+) -> String raise UnitBuildFailure {
+  let subject = check.subject
+  let request_cid = request_value_identity(subject.request, budget)
+  let origins = request_value_origins(subject.request, budget)
+  let writer = @encode.writer(budget.bytes, budget.nodes, budget.depth) catch {
+    e => raise Encoding(e)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "input")
+    @encode.number_value(writer, subject.input.to_double())
+    @encode.key(writer, "origins")
+    @encode.begin_object(writer)
+    for (name, origin) in origins {
+      @encode.key(writer, name)
+      match origin {
+        Literal => @encode.string_value(writer, "literal")
+        Parameter(name, origin) => {
+          @encode.begin_object(writer)
+          @encode.key(writer, "origin")
+          @encode.string_value(
+            writer,
+            if origin is @parameters.Default {
+              "default"
+            } else {
+              "supplied"
+            },
+          )
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+        }
+      }
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "parameters_cid")
+    @encode.string_value(
+      writer,
+      @context.program_identity_parameter_values_cid(subject.owner),
+    )
+    @encode.key(writer, "program_cid")
+    @encode.string_value(
+      writer,
+      @context.program_identity_definition_cid(subject.owner),
+    )
+    @encode.key(writer, "request")
+  } catch {
+    e => raise Encoding(e)
+  }
+  emit_request_value_body(subject.request, budget, writer)
+  try {
+    @encode.key(writer, "request_cid")
+    @encode.string_value(writer, request_cid)
+    @encode.key(writer, "source_ref")
+    @encode.string_value(
+      writer,
+      @environment.data_policy_source(
+        @environment.source_view_data_policy(
+          subject.response_policy.authoritative,
+        ),
+      ),
+    )
+    @encode.key(writer, "source_view_contract_cid")
+    @encode.string_value(writer, @sourceviews.selected_cid(subject.source))
+    @encode.key(writer, "stage")
+    @encode.number_value(writer, subject.stage.to_double())
+    @encode.end_object(writer)
+  } catch {
+    e => raise Encoding(e)
+  }
+  let (body, bytes, nodes, _) = @encode.finish_text_usage(writer) catch {
+    e => raise Encoding(e)
+  }
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  body
+}
+
+///|
+/// Select only an already admitted policy from this request's Environment.
+/// A matching CID is not verification: the trusted Host must first establish
+/// that this policy covers every actual static value contributor.
+pub fn bind_host_verified_request_value_policy_cid(
+  check : SourceExecution,
+  policy_cid : String,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> HostRequestValuePolicyEvidence raise UnitBuildFailure {
+  let budget = IdentityBudget::{
+    work: max_work,
+    bytes: max_bytes,
+    nodes: max_nodes,
+    depth: max_depth,
+  }
+  let policies = source_data_policies(check.subject.source)
+  let count = @environment.data_policy_usage(policies).1
+  identity_charge(budget, count)
+  for index in 0..<count {
+    let policy = @environment.data_policy_at(policies, index).unwrap()
+    if identity_compare(
+        policy_cid,
+        @environment.contract_identity(
+          @environment.data_policy_envelope(policy),
+        ).2,
+        budget,
+      ) ==
+      0 {
+      return bind_host_verified_request_value_policy(
+        check,
+        policy,
+        budget.work,
+        budget.bytes,
+        budget.nodes,
+        budget.depth,
+      )
+    }
+  }
+  raise ForeignOwner
 }
 
 ///|

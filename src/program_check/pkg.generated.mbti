@@ -91,6 +91,8 @@ pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publica
 
 pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 
+pub fn bind_host_verified_request_value_policy_cid(SourceExecution, String, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
+
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
@@ -136,6 +138,8 @@ pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.
 pub fn checking_environment_profile_selection(CheckEnvironment) -> CheckProfileSelection
 
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
+
+pub fn checking_environment_with_request_value_policies(CheckEnvironment, Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
@@ -528,6 +532,10 @@ pub fn reidentified_source_input_reference(ReidentifiedSourceInput) -> String
 pub fn reidentified_source_input_rows(ReidentifiedSourceInput) -> @capacity_witness.LimitClaim
 
 pub fn reidentified_source_input_unit(ReidentifiedSourceInput) -> String
+
+pub fn request_value_policy_subject_wire(SourceExecution, Int, Int, Int, Int) -> String raise UnitBuildFailure
+
+pub fn request_value_policy_subject_wires(Array[SourceExecution], Int, Int, Int, Int) -> Array[String] raise UnitBuildFailure
 
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 

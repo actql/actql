@@ -191,6 +191,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientProgram, Int, String) -> @program_check.HostRequestValuePolicyEvidence?
+
 pub fn client_program_bind_infer_compute_suffix(@client_infer_host.Execution, @execution_relation.GeneratedSequence) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_bind_infer_dispatch_admission(@client_infer_host.Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
@@ -300,6 +302,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
+
+pub fn client_program_check_environment_with_request_value_policies(@program_check.CheckEnvironment, Array[@program_check.HostRequestValuePolicyEvidence]) -> @program_check.CheckEnvironment
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
@@ -452,6 +456,8 @@ pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_applic
 pub fn client_program_effect_apply_member_count(@physical_strategy.CapturedEffectPreviewInputs) -> Int?
 
 pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffectPreviewInputs) -> String?
+
+pub fn client_program_effect_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientEffectComputation, Int, String) -> @program_check.HostRequestValuePolicyEvidence?
 
 pub fn client_program_effect_capture_result_import(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectResultImport, @physical_strategy.RunIssue]
 
@@ -642,6 +648,8 @@ pub fn client_program_effect_request_authority(@logical_request_scope.LogicalReq
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_program_effect_request_scope(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> @logical_request_scope.LogicalRequestScope?
+
+pub fn client_program_effect_request_value_policy_subjects(@run_publication_host.PreparedClientEffectComputation) -> Array[String] raise @program_check.UnitBuildFailure
 
 pub fn client_program_effect_result_count(@run_publication_host.PreparedClientEffectComputation) -> Int
 
@@ -1496,6 +1504,8 @@ pub fn client_program_release_infer_slot_replay(@model_execution.ModelSlotReplay
 pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows, String, @model_execution.ModelCaptureBundle) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
+
+pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
 pub fn client_program_require_infer_call_entry(@client_infer_host.Execution) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 

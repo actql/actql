@@ -60,6 +60,17 @@ pub fn checking_environment_model_tasks(
 }
 
 ///|
+/// Trusted Host-only supplementation of the original checker configuration.
+/// Each opaque proof is still matched to the checked subjects during recheck.
+/// This does not change the admitted wire Environment or grant any execution.
+pub fn checking_environment_with_request_value_policies(
+  value : CheckEnvironment,
+  evidence : Array[HostRequestValuePolicyEvidence],
+) -> CheckEnvironment {
+  { ..value, request_value_policies: evidence.copy(), }
+}
+
+///|
 /// Return the exact admitted Check Environment selected for this checker.
 /// This CID is preparation evidence, not a later Host execution decision.
 pub fn checking_environment_cid(value : CheckEnvironment) -> String {

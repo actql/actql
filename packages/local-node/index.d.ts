@@ -1,7 +1,9 @@
 import type {Client} from '@actql/sdk';
-import type {HostCapacityPolicy, HostLookupExecutionPolicy} from './host-policy.js';
+import type {HostCapacityPolicy, HostLookupExecutionPolicy, HostRequestValuePolicyVerifier} from './host-policy.js';
 import type {HostObservationConnection} from './observation.js';
-export type {HostCapacityPolicy, HostLookupExecutionPolicy} from './host-policy.js';
+export type {HostCapacityPolicy, HostLookupExecutionPolicy,
+  HostRequestValuePolicySubject, HostRequestValuePolicyValue,
+  HostRequestValuePolicyVerifier} from './host-policy.js';
 
 declare const installedConnectorTableBrand: unique symbol;
 /** An admitted, process-local table of trusted Host installation loaders. */
@@ -63,6 +65,7 @@ export type HostInstallation = Readonly<{
   authorization?: Readonly<Record<string, unknown>>;
   modelInstallation?: Readonly<Record<string, unknown>>;
   registerModelProviders?: (...args: any[]) => any;
+  verifyRequestValuePolicy?: HostRequestValuePolicyVerifier;
   resultDataPolicy?: Readonly<Record<string, unknown>>;
   inferEvidence?: Readonly<{
     target: string | readonly string[]; destination: string; maxBytes: number;

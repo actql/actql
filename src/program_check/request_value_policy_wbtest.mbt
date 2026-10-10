@@ -4,6 +4,89 @@ fn request_policy_budget() -> IdentityBudget {
 }
 
 ///|
+test "trusted subject inventory shares work bytes and nodes across requests" {
+  let program = checked_direct_program_fixture(
+    selected_environment=Some(request_policy_internal_environment()),
+  )
+  let check = program.units[0].source_execution[0]
+  let budget = request_policy_budget()
+  let expected = request_value_policy_subject_body(check, budget)
+  let work = 1000000 - budget.work + 1
+  let bytes = 1000000 - budget.bytes
+  let nodes = 100000 - budget.nodes
+  assert_eq(
+    request_value_policy_subject_wires([check], work, bytes, nodes, 100),
+    [expected],
+  )
+  for
+    (w, b, n) in [
+      (work, 1000000, 100000),
+      (1000000, bytes, 100000),
+      (1000000, 1000000, nodes),
+    ] {
+    try request_value_policy_subject_wires([check, check], w, b, n, 100) catch {
+      BudgetExceeded | Encoding(_) => ()
+      error => raise error
+    } noraise {
+      _ => fail("request inventory reset its aggregate allowance")
+    }
+  }
+}
+
+///|
+test "trusted subject reader and admitted CID binder retain exact request provenance" {
+  let environment = request_policy_internal_environment()
+  let program = checked_direct_program_fixture(
+    selected_environment=Some(environment),
+    request_parameter=true,
+  )
+  let check = program.units[0].source_execution[0]
+  let wire = request_value_policy_subject_wire(
+    check, 1000000, 1000000, 100000, 100,
+  )
+  assert_true(wire.contains("\"request\":{\"id\":1,\"tenant\":null}"))
+  assert_true(wire.contains("\"origin\":\"default\",\"parameter\":\"key\""))
+  assert_true(
+    wire.contains(@context.program_identity_definition_cid(program.identity)),
+  )
+  let cid = @environment.contract_identity(
+      @environment.data_policy_envelope(
+        @environment.source_view_data_policy(
+          check.subject.response_policy.authoritative,
+        ),
+      ),
+    ).2
+  let evidence = bind_host_verified_request_value_policy_cid(
+    check, cid, 1000000, 1000000, 100000, 100,
+  )
+  let selected = checking_environment(
+    environment,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  )
+  let augmented = checking_environment_with_request_value_policies(selected, [
+    evidence,
+  ])
+  assert_true(physical_equal(augmented.wire, selected.wire))
+  assert_eq(augmented.request_value_policies.length(), 1)
+  try
+    bind_host_verified_request_value_policy_cid(
+      check,
+      "sha256:" + "0".repeat(64),
+      1000000,
+      1000000,
+      100000,
+      100,
+    )
+  catch {
+    ForeignOwner => ()
+    error => raise error
+  } noraise {
+    _ => fail("unadmitted policy CID supplied request provenance")
+  }
+}
+
+///|
 test "equal default and supplied request values do not exchange provenance" {
   let environment = request_policy_internal_environment()
   let original = checked_direct_program_fixture(

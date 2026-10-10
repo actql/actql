@@ -1566,14 +1566,19 @@ test(verifyUnattestedRefusal
     readKeyed: async ({requestWire, consumePage, captureContent, chargePage}) => {
       gets++;
       const charge = chargePage(payload);
-      const content = await captureContent({bytes: payload, mediaType: 'application/pdf'});
+      const content = await captureContent({bytes: payload, mediaType: 'application/pdf',
+        contentCid: `sha256:${createHash('sha256').update(payload).digest('hex')}`});
       await consumePage([{...JSON.parse(requestWire), content}], {charge});
     }});
   const profileVersion = 'actql-installed-content-fixture-source/0.1';
   const connectorTable = createInstalledConnectorTable([{name: 'fixture', registration: 'fixture',
     revision: 'fixture/0.1', source: {profileVersion, load: async () => ({
       check: profile => profile, identityParts: profile => [profile],
-      load: async () => Object.freeze({...value.adapter, requiresRunContentCapture: true}),
+      load: async () => Object.freeze({...value.adapter, requiresRunContentCapture: true,
+        async openKeyedLookup(options) {
+          try { return await value.adapter.openKeyedLookup(options); }
+          catch (error) { physicalIssue = error; throw error; }
+        }}),
     })}}]);
   const sourceProfilePath = join(scratch.path, 'source-profile.json');
   await writeFile(sourceProfilePath, canonical({version: profileVersion,
@@ -1596,6 +1601,22 @@ test(verifyUnattestedRefusal
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
       observe: (event, detail) => events.push({event, detail})}};
+  if (!verifyUnattestedRefusal) {
+    const files = value.declared.views.find(view => view.resource === 'files');
+    const declaredView = JSON.parse(value.environmentWire).source_views.find(
+      view => view.contract_cid === files.view_cid);
+    assert.ok(declaredView);
+    installation.verifyRequestValuePolicy = async subject => {
+      // Trusted fixture policy for this exact synthetic selector, not a
+      // classification inferred from arbitrary values or the response policy.
+      assert.equal(subject.source_ref, files.source_ref);
+      assert.equal(subject.source_view_contract_cid, files.view_cid);
+      assert.deepEqual(subject.request, {glob: null, paths: ['invoice.pdf']});
+      assert.deepEqual(subject.origins, {glob: 'literal', paths: 'literal'});
+      assert.ok(Object.isFrozen(subject.request.paths));
+      return declaredView.output.data_policy.cid;
+    };
+  }
   t.after(async () => {
     await client?.close();
     if (server !== undefined) {
@@ -1625,9 +1646,8 @@ test(verifyUnattestedRefusal
   const submission = client.startSource(JSON.stringify(value.program), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'original-keyed-model'})});
   if (verifyUnattestedRefusal) {
-    // Keep the positive chain above as an unfinished acceptance obligation.
     // This separate regression proves the existing fail-closed boundary; it
-    // must not convert the requested successful chain into a refusal pass.
+    // cannot substitute for the original Program's successful chain above.
     await assert.rejects(submission, error => error.code === 'SubmissionPreparationFailed' &&
       error.outcome?.problem?.code === 'ClientProgramUnsupported');
     const admission = events.find(value => value.event === 'infer_preparation_rejected');

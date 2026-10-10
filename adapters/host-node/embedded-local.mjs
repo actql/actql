@@ -171,6 +171,7 @@ async function embeddedInstallationIdentity(root, installation) {
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
     registerModelProviders: installation?.registerModelProviders,
+    verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
     inferEvidence: installation?.inferEvidence,
     observation: installation?.observation,
     decide: authorization?.decide, observe: authorization?.observe,
@@ -212,7 +213,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
-  hostLookupExecutionPolicy,
+  hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -560,6 +561,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
+    verifyRequestValuePolicy,
     allowEffects: effectInstallation !== undefined});
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
@@ -2787,7 +2789,7 @@ export async function openInstalledRemoteHttpHost({directory,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
   resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy,
-  hostLookupExecutionPolicy, valuesMaxRows, observation}) {
+  hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (typeof directory !== 'string' || !directory ||
@@ -2801,7 +2803,7 @@ export async function openInstalledRemoteHttpHost({directory,
     beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
-    retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, valuesMaxRows, observation});
+    retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
   });
@@ -2923,6 +2925,7 @@ export async function connectEmbeddedLocal(options) {
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,
+        verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
         resultDataPolicy: installation?.resultDataPolicy,
         inferEvidence: installation?.inferEvidence,
         hostCapacityPolicy: installation?.hostCapacityPolicy,

@@ -80,17 +80,7 @@ fn source_classification(
 fn prepare_source_response_policy(
   source : @sourceviews.ResolvedInput,
 ) -> SourceResponsePolicy raise UnitBuildFailure {
-  let policies = @environment.value_contract_policies(
-    @environment.source_view_shape_values(
-      @environment.read_mode_shapes(
-        @environment.carrier_schema_modes(
-          @environment.source_request_carriers(
-            @sourceviews.catalog_owner(source),
-          ),
-        ),
-      ),
-    ),
-  )
+  let policies = source_data_policies(source)
   let selected_member = @environment.source_request_member(
     @sourceviews.selected_contract(source),
   )
@@ -110,4 +100,22 @@ fn prepare_source_response_policy(
       minimum,
     ),
   }
+}
+
+///|
+fn source_data_policies(
+  source : @sourceviews.ResolvedInput,
+) -> @environment.SourceDataPolicies {
+  let policies = @environment.value_contract_policies(
+    @environment.source_view_shape_values(
+      @environment.read_mode_shapes(
+        @environment.carrier_schema_modes(
+          @environment.source_request_carriers(
+            @sourceviews.catalog_owner(source),
+          ),
+        ),
+      ),
+    ),
+  )
+  policies
 }
