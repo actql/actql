@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
+const originalLocalReview = process.argv.includes('--original-local-review');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
@@ -41,12 +42,31 @@ await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
   {mode: 0o600});
 const paths = [];
 let resolutionRequests = 0;
+let localRejectionRequests = 0;
 let writes = 0;
 let rejectedWrites = 0;
 const writeBodies = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (request.method === 'POST' && request.url === '/fixture/native-local-effect-rejection') {
+    if (request.headers.authorization !== 'Bearer native-target-test') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks = []; let bytes = 0;
+    request.on('data', chunk => {bytes += chunk.length;
+      if (bytes > 262144) request.destroy(); else chunks.push(chunk);});
+    request.on('end', () => {
+      try {
+        const fixture = nativeResolutionFixture(Buffer.concat(chunks).toString('utf8'),
+          {decision: 'rejected'});
+        localRejectionRequests++;
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify(fixture));
+      } catch {response.writeHead(422); response.end();}
+    });
+    return;
+  }
   if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
     if (request.headers.authorization !== 'Bearer native-target-test') {
       response.writeHead(403); response.end(); return;
@@ -160,6 +180,15 @@ try {
     ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY:
       keys.publicKey.export({type: 'spki', format: 'pem'}),
   };
+  if (originalLocalReview) {
+    assert(!residentProposals && coreArgs === undefined,
+      'Original Local review selects its own focused Native caller');
+    assert(testEnv.ACTQL_TEST_DUCKDB_LIBRARY, 'Native DuckDB library is required');
+    const retainedRoot = join(root, 'retained');
+    await mkdir(retainedRoot, {mode: 0o700});
+    Object.assign(testEnv, {ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: retainedRoot,
+      ACTQL_TEST_NATIVE_SQLITE_ROOT: retainedRoot, ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS: '1'});
+  }
   if (residentProposals) {
     assert(testEnv.ACTQL_TEST_DUCKDB_LIBRARY, 'Native DuckDB library is required');
     const target = process.platform === 'darwin' && process.arch === 'arm64'
@@ -210,13 +239,15 @@ try {
       else testEnv[key] = process.env[key];
     }
   }
-  const selection = residentOriginalHolder
+  const selection = originalLocalReview
+    ? 'src/platform_native/remote_resident_source_compute_tests/local_client_effect_source_wbtest.mbt'
+    : residentOriginalHolder
     ? 'src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt'
     : residentProposals
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
     : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
-  const moonArgs = coreArgs === undefined ? ['--target', 'native', '--strip', selection,
-    ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
+  const moonArgs = coreArgs === undefined ? ['--target', 'native', ...(!originalLocalReview ? ['--strip'] : []), selection,
+    ...(!residentProposals && !originalLocalReview ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
       'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt',
       'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'] : []),
     ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
@@ -227,15 +258,17 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
-    "{timeout: " + (coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests,
+    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, localRejectionRequests,
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
-    scope: residentApprovedRow
+    scope: originalLocalReview
+      ? 'Actual accepted original Local Run -> acquired Source and imported Result -> checked protocol Preview -> encrypted capture/Preview/Checkpoint -> original journal waiting -> signed explicit rejection -> retryable cleanup; no public CLI or Provider write or separate-process recovery'
+      : residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
       : residentOriginalHolder
       ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
@@ -245,12 +278,15 @@ try {
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
       : 'Native HTTPS target observation, signed credential admission and exact bounded Provider write transport; no signed Effect approval, Effect Ledger, Source capture, whole Preview or Cloud apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
-  const expectedWrites = residentProposals ? 0 : 2;
+  const expectedWrites = residentProposals || originalLocalReview ? 0 : 2;
   assert.equal(writes, expectedWrites);
-  assert.equal(rejectedWrites, residentProposals ? 0 : 1);
+  assert.equal(rejectedWrites, residentProposals || originalLocalReview ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
-  if (residentProposals) {
+  if (originalLocalReview) {
+    assert.equal(localRejectionRequests, 1);
+    assert.deepEqual(paths, []);
+  } else if (residentProposals) {
     assert.deepEqual(paths, []);
     assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
     assert.equal(bearer.effectTargetValue(), residentApprovedRow ? 3 : 7);

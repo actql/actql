@@ -562,6 +562,7 @@ test "Native original Effect captures its real acquired producer and local impor
     @host.client_effect_local_artifact_definition_cid(facts.producer) !=
     @host.client_effect_local_artifact_definition_cid(facts.consumer),
   )
+  let dependencies : Array[@host.ClientEffectDependencyCapture] = []
   for
     (artifact, index, expected) in [
       (
@@ -596,6 +597,7 @@ test "Native original Effect captures its real acquired producer and local impor
       .map(@publication.captured_effect_dependency_body_json),
       [expected],
     )
+    dependencies.push(dependency)
   }
   assert_true(
     owner.capture_effect_dependency(
@@ -655,6 +657,32 @@ test "Native original Effect captures its real acquired producer and local impor
       "actql-acquisition-scope/0.1",
     ),
   )
+  let consumer_manifest = @host.issue_client_effect_local_manifest(
+    facts.materials.prepared,
+    @host.client_effect_imported_invocation(facts.imported),
+    [facts.consumer],
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  // Reuse the existing checked Preview, full capture and persistence fault
+  // fixtures. Protocol target metadata is explicit; no Provider write occurs.
+  retained_effect_preview_inputs(
+    owner,
+    facts.materials,
+    facts.inputs,
+    facts.invocation,
+    facts.consumer,
+    facts.consumer_index,
+    [],
+    consumer_manifest,
+    facts.imported,
+    facts.acquired,
+    facts.acquired_bodies,
+    dependencies,
+    facts.result,
+    original_work=Some((work, journal)),
+  )
   authorized = false
   assert_true(capture.facts() is None)
   assert_false(work.close())
@@ -673,4 +701,28 @@ test "Native original Effect captures its real acquired producer and local impor
   assert_eq(work.usage().reserved_retention_bytes, 0L)
   assert_eq(work.usage().reserved_execution_bytes, 0L)
   database.close_checked().unwrap()
+  // Reopening the actual original journal is not a new process claim. The
+  // original rejected Run and its Checkpoint state must survive unchanged.
+  let sqlite = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let reopened = sqlite
+    .open_database(root_path + "/" + name + ".sqlite3", 131072L)
+    .unwrap()
+  let journal = @client.open_native_client_run_journal(reopened, 8).unwrap()
+  guard journal.lookup(request, true) is Ok(@client.Retained(restored)) else {
+    fail("original Local review Run missing after journal reopen")
+  }
+  assert_eq(
+    @publication.publication_contract_identity(
+      @client.native_client_run_definition(restored),
+    ),
+    @publication.publication_contract_identity(definition),
+  )
+  assert_eq(
+    @client.native_client_run_checkpoint_state(restored).unwrap().status,
+    @publication.Cancelled,
+  )
+  assert_false(journal.claim_physical_start(request, true).unwrap())
+  reopened.close_checked().unwrap()
 }

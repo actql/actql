@@ -284,6 +284,50 @@ pub fn ResidentEffectReviewRetention::report(
 }
 
 ///|
+/// Hand the original Run Owner the common-issued persistence witness only
+/// after authenticating all three existing custody Owners. Equal report bytes
+/// do not substitute for those holdings or authorize a waiting transition.
+pub fn ResidentEffectReviewRetention::confirm_original_checkpoint(
+  self : ResidentEffectReviewRetention,
+  consumer : ResidentSourceCompute,
+  request : @host.ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
+) -> Result[@checkpoint.PersistedCheckpoint, ResidentEffectReviewRetentionIssue] {
+  if self.retiring ||
+    self.retired ||
+    !physical_equal(self.consumer, consumer) ||
+    self.request != request ||
+    @publication.publication_contract_identity(self.materials.run_definition) !=
+    @publication.publication_contract_identity(run_definition) ||
+    !consumer.resident_effect_inputs_current(self.inputs) {
+    return Err(Unavailable)
+  }
+  guard self.capture_saved &&
+    self.preview_saved &&
+    self.capture_owner is Some(capture) &&
+    self.preview_owner is Some(preview) &&
+    self.checkpoint_owner is Some(checkpoint) else {
+    return Err(Unavailable)
+  }
+  match capture.confirm() {
+    Ok(_) => ()
+    Err(issue) => return Err(Capture(issue))
+  }
+  match preview.confirm() {
+    Ok(_) => ()
+    Err(issue) => return Err(Preview(issue))
+  }
+  let (persisted, _) = match checkpoint.confirm() {
+    Ok(value) => value
+    Err(issue) => return Err(Checkpoint(issue))
+  }
+  if self.retiring || !consumer.resident_effect_inputs_current(self.inputs) {
+    return Err(Unavailable)
+  }
+  Ok(persisted)
+}
+
+///|
 /// Called only after the caller discharges review/recovery obligations. Each
 /// existing owner confirms retirement before returning its reservation. The
 /// input borrow, producer, receiver and Named Result remain separately owned.

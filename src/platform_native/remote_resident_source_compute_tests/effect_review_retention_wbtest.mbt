@@ -15,6 +15,10 @@ fn retained_effect_review_retention_store(
   authoring_cid : String,
   review_work? : @effect_provider.NativeResidentEffectReview? = None,
   original_journal_path? : String? = None,
+  original_work? : (
+    @client.NativeClientEffectSourceWork,
+    @client.NativeClientRunJournal,
+  )? = None,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-review-retention-" + @env.now().to_string()
@@ -84,6 +88,43 @@ fn retained_effect_review_retention_store(
     None => prepare(materials, key, limits).unwrap()
   }
   assert_true(retention.report() is Err(Unavailable))
+  let request = materials.request.unwrap()
+  let confirm = () => {
+    retention.confirm_original_checkpoint(
+      consumer,
+      request,
+      materials.run_definition,
+    )
+  }
+  assert_true(confirm() is Err(Unavailable))
+  let binding : @checkpoint.ResumeBinding = {
+    // The original Local fixture explicitly installed these Host bindings at
+    // admission. They are not inferred from Source, Preview or a report.
+    authorization_context_cid: retained_compute_cid("a"),
+    environment_binding_cid: retained_compute_cid("b"),
+  }
+  if original_work is Some((work, journal)) {
+    guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
+      fail("original Local review Run missing before persistence")
+    }
+    assert_true(
+      work.wait_review_checkpoint(
+        retention,
+        @client.native_client_run_record_revision(before),
+        binding,
+        [],
+      )
+      is Err(@client.Retention(@resident.Unavailable)),
+    )
+    guard journal.lookup(request, true) is Ok(@client.Retained(after)) else {
+      fail("original Local review Run changed before persistence")
+    }
+    assert_eq(
+      @client.native_client_run_record_revision(after),
+      @client.native_client_run_record_revision(before),
+    )
+    assert_true(@client.native_client_run_checkpoint_state(after) is None)
+  }
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   let open = () => {
     @store.open_store(sqlite, path, authority, 536870912L, 8L, 262144L).unwrap()
@@ -115,12 +156,75 @@ fn retained_effect_review_retention_store(
     let pending = consumer.usage().reserved_retention_bytes
     assert_true(pending > baseline)
     assert_true(retention.report() is Err(_))
+    assert_true(confirm() is Err(_))
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
   println("native-original-review: persistence fault retries confirmed")
   let report = retention.persist(store).unwrap()
+  let persisted = confirm().unwrap()
+  assert_eq(
+    persisted.artifact.checkpoint_cid,
+    @remote.remote_effect_checkpoint_report_checkpoint(report).checkpoint_cid,
+  )
+  let foreign_run = @host.issue_client_effect_run_definition(
+    materials.allowed,
+    "local-review-fixture",
+    "foreign-original-review",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    retention.confirm_original_checkpoint(consumer, request, foreign_run)
+    is Err(Unavailable),
+  )
+  let foreign_request = @host.prepare_client_effect_request_identity(
+    materials.prepared,
+    @host.client_request_authority_scope_cid(request),
+    "foreign-original-review",
+    @host.client_request_input_cid(request),
+  ).unwrap()
+  assert_true(
+    retention.confirm_original_checkpoint(
+      consumer,
+      foreign_request,
+      materials.run_definition,
+    )
+    is Err(Unavailable),
+  )
+  if original_work is Some((work, journal)) {
+    guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
+      fail("original Local review Run missing")
+    }
+    let revision = @client.native_client_run_record_revision(before)
+    assert_true(
+      work.wait_review_checkpoint(retention, revision + 1L, binding, [])
+      is Err(@client.Journal(@client.Checkpoint(@client.StaleRevision))),
+    )
+    assert_true(
+      work.wait_review_checkpoint(retention, revision, binding, [
+        "foreign-effect",
+      ])
+      is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
+    )
+    let waiting = work
+      .wait_review_checkpoint(retention, revision, binding, [])
+      .unwrap()
+    assert_eq(@client.native_client_run_record_revision(waiting), revision + 1L)
+    let state = @client.native_client_run_checkpoint_state(waiting).unwrap()
+    assert_eq(state.run_id, "original-local-effect-source-run")
+    assert_eq(state.status, @publication.WaitingCheckpoint)
+    assert_true(
+      work.wait_review_checkpoint(retention, revision + 1L, binding, [])
+      is Err(
+        @client.Journal(@client.Checkpoint(@client.NeedsOriginalContinuation))
+      ),
+    )
+    // Discharge this test's actual review obligation before exercising custody
+    // cleanup below. No fixture receipt replaces the signed common rejection.
+    native_local_effect_reject_review(journal, request, persisted.artifact)
+  }
   let resolution_fixture = if review_work is Some(work) {
     println("native-original-review: retaining journal report")
     let queued = work
@@ -247,6 +351,7 @@ fn retained_effect_review_retention_store(
     assert_true(pending.val > baseline)
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
     assert_true(retention.report() is Err(Unavailable))
+    assert_true(confirm() is Err(Unavailable))
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
@@ -256,6 +361,7 @@ fn retained_effect_review_retention_store(
   assert_false(retention.retry_cleanup().unwrap())
   assert_true(retention.restore_store(store) is Err(Unavailable))
   assert_true(retention.report() is Err(Unavailable))
+  assert_true(confirm() is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(consumer.request_for_effect_review(inputs), materials.request)

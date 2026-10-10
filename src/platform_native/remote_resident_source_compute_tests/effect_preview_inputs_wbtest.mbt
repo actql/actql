@@ -19,6 +19,10 @@ fn retained_effect_preview_inputs(
   acquired_bodies : (String, String),
   dependencies : Array[@host.ClientEffectDependencyCapture],
   public_capture : @resident.ResidentEffectResultCapture,
+  original_work? : (
+    @client.NativeClientEffectSourceWork,
+    @client.NativeClientRunJournal,
+  )? = None,
 ) -> Unit raise {
   let owner = materials.prepared
   let retention = retained_compute_effect_retention()
@@ -160,7 +164,10 @@ fn retained_effect_preview_inputs(
       old="@ARTIFACT@",
       new=@host.client_effect_local_result_artifact_cid(artifact),
     )
-    .replace_all(old="@AUTHORITY@", new=retained_compute_cid("c"))
+    .replace_all(
+      old="@AUTHORITY@",
+      new=@host.client_request_authority_scope_cid(materials.request.unwrap()),
+    )
     .replace_all(old="@FIXTURE@", new=retained_compute_cid("d"))
   let draft = @publication.canonical_effect_preview_draft_wire(
     raw, 65536, 4096, 64,
@@ -252,8 +259,20 @@ fn retained_effect_preview_inputs(
     .unwrap()
   assert_true(@strategy.captured_effect_plan_proof_matches(proof, captured, 0))
   retained_effect_complete_capture(
-    consumer, materials, inputs, invocation, captured, proof, admitted_source, local_source,
-    inventory, authoring, public_capture,
+    consumer,
+    materials,
+    inputs,
+    invocation,
+    captured,
+    proof,
+    admitted_source,
+    local_source,
+    inventory,
+    authoring,
+    public_capture,
+    review_retention=original_work is Some(_),
+    private_preview=Some((wire, authoring_cid)),
+    original_work~,
   )
   public_capture.output.cancel()
   assert_true(
