@@ -698,3 +698,40 @@ Targeted working-tree checks based on `19eb8fd3` passed: Node fixtures and
 inventory 43/43 (`run-FIZaaN`, `focused-test-m5hfZg`), common Reach JS 2/2
 (`run-LU95MD`, `focused-test-TQeiTp`) and Shortest JS 3/3 (`run-gE576Z`,
 `focused-test-6rt0B1`). These checks do not establish repaired Host acceptance.
+
+### Stepped predicate-property admission
+
+The shared traversal owner now prepares predicate bindings with the existing
+`value_admission.RecheckCursor`, instead of synchronously checking a complete
+Graph property. Each poll consumes one control-work unit, and stop/input
+liveness checks precede every poll. The binding is unavailable to the
+expression owner until rechecking finishes. This applies to Reach start,
+Shortest source/target and existing hop predicates; it does not change their
+property scopes, NULL rules, values or identities.
+
+Workspace reserves the binding root, cursor and live continuation frames.
+One additional growth slot is admitted before each poll (which pops one frame
+and can push at most two), then unused reservation is released. A new read-only
+`recheck_pending_frames` projection exposes those existing frames; it is not
+a value measure or a new retention owner. Cleanup cancels the cursor, clears
+the private binding and releases its reservation once, retaining borrowed
+Graph inputs. The generated interface comes from `moon info`.
+
+The independent 132-unit Text control includes decomposed Unicode and CRLF.
+With an always-false `display IS NULL` selector, each selection costs
+initialize + resolve + binding + recheck (node, three fragments, terminal)
++ four expression transitions: 12. Collection and finish add two, giving
+Reach work 14 and Shortest work 26. Workspace is respectively 5 and 6 slots,
+including selection bitmaps and the growth reservation. Quantum 1/7/64,
+typed work/workspace one-short refusals, cancellation at work 6 before the
+expression starts, final zero private holdings and unchanged input Text are
+tested without deriving limits from a successful run's measurements.
+
+Targeted JS checks on the working tree based on `1dc0caef` passed 13/13
+(`run-o2nozf`, `focused-test-RnCsPq`): cursor frame projection, the new selector
+control, existing Reach/Shortest and hop-predicate custody. The initial
+fixture's raising-helper compilation error is retained in `run-fYwLiw`;
+it is not a passed test. The added unchanged-input assertion passed 1/1
+(`run-wfFOzS`, `focused-test-9D0Pkd`). Public Host, external packed and
+portable checks of this new source are still pending. Literal/Relation
+identity lookup admission remains a separate synchronous-prefix obligation.

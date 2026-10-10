@@ -30,6 +30,7 @@ priv enum TraversePathsPhase {
   BeginEdgePredicate
   BeginNodePredicate
   PreparePredicate
+  RecheckPredicateBinding
   EvaluatePredicate
   AddPath
   CopyPathNodes
@@ -123,6 +124,9 @@ priv struct TraversePathsState {
   mut predicate_field : Int
   mut predicate_slots : Int
   predicate_input : Map[String, @execution.Value]
+  mut predicate_recheck : @value.RecheckCursor?
+  mut predicate_binding_name : String?
+  mut predicate_recheck_slots : Int
   mut predicate_execution : @execution.PredicateExpressionExecution?
   mut predicate_work_remaining : Int
   mut emit_index : Int
@@ -531,7 +535,7 @@ fn prepare_traverse_path_candidate(
 ///|
 fn traverse_path_predicate_binding(
   state : TraversePathsState,
-) -> (String, @execution.Value)? {
+) -> (String, @value.CheckedValue, @contract.Contract)? {
   let hop = traverse_path_hop(state)
   let fields = match state.predicate_kind {
     EdgePredicate => @lower.graph_traverse_hop_edge_fields(state.prepared, hop)
@@ -593,12 +597,7 @@ fn traverse_path_predicate_binding(
         })
       })
   }
-  value.bind(checked => {
-    @value.recheck_runtime_value(checked.value, contract, state.value_limits).map(value => {
-        (@schema.reference_name(field.name), @execution.capture(value.value))
-      },
-    )
-  })
+  value.map(checked => (@schema.reference_name(field.name), checked, contract))
 }
 
 ///|
@@ -1122,24 +1121,34 @@ fn traverse_paths_step(
         }
         if state.predicate_field < @carrier.field_count(fields) {
           used += 1
-          if state.workspace_slots >= state.max_workspace_slots {
+          // Binding root, cursor and its initial frame. Borrowed property
+          // payload remains owned by the live Graph, not a copied value.
+          if 3 > state.max_workspace_slots - state.workspace_slots {
             return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
           }
-          guard traverse_path_predicate_binding(state) is Some((name, value)) else {
+          guard traverse_path_predicate_binding(state)
+            is Some((name, value, contract)) &&
+            @value.start_recheck_runtime_value(
+              value.value,
+              contract,
+              state.value_limits,
+            )
+            is Some(cursor) else {
             return @bounded.Failed(
               TraversePathsInputUnavailable,
               progress,
               used,
             )
           }
-          state.predicate_input[name] = value
-          state.predicate_field += 1
-          state.predicate_slots += 1
-          state.workspace_slots += 1
+          state.predicate_binding_name = Some(name)
+          state.predicate_recheck = Some(cursor)
+          state.predicate_recheck_slots = 3
+          state.workspace_slots += 3
           state.workspace_peak = Int::max(
             state.workspace_peak,
             state.workspace_slots,
           )
+          state.phase = RecheckPredicateBinding
         } else {
           let predicate = match state.predicate_kind {
             EdgePredicate =>
@@ -1173,6 +1182,52 @@ fn traverse_paths_step(
               state.predicate_starts.val += 1
               state.phase = EvaluatePredicate
             }
+          }
+        }
+      }
+      RecheckPredicateBinding => {
+        used += 1
+        guard state.predicate_recheck is Some(cursor) &&
+          state.predicate_binding_name is Some(name) else {
+          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+        }
+        // A frame poll pops one continuation and pushes at most two. Reserve
+        // growth before advancing so a nested value never exceeds the limit.
+        let frames = @value.recheck_pending_frames(cursor)
+        let available = state.max_workspace_slots -
+          (state.workspace_slots - state.predicate_recheck_slots)
+        if available < 3 || frames > available - 3 {
+          return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
+        }
+        let slots = 3 + frames
+        let added = slots - state.predicate_recheck_slots
+        state.workspace_slots += added
+        state.predicate_recheck_slots = slots
+        state.workspace_peak = Int::max(
+          state.workspace_peak,
+          state.workspace_slots,
+        )
+        match @value.advance_recheck_runtime_value(cursor) {
+          @value.RecheckContinue => {
+            let retained = 2 + @value.recheck_pending_frames(cursor)
+            state.workspace_slots -= state.predicate_recheck_slots - retained
+            state.predicate_recheck_slots = retained
+          }
+          @value.RecheckFailed =>
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
+          @value.RecheckComplete(value, _, _) => {
+            state.predicate_input[name] = @execution.capture(value.value)
+            state.workspace_slots -= state.predicate_recheck_slots - 1
+            state.predicate_recheck_slots = 0
+            state.predicate_recheck = None
+            state.predicate_binding_name = None
+            state.predicate_field += 1
+            state.predicate_slots += 1
+            state.phase = PreparePredicate
           }
         }
       }
@@ -2092,6 +2147,12 @@ fn traverse_paths_step(
 
 ///|
 fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
+  if state.predicate_recheck is Some(cursor) {
+    @value.cancel_recheck_runtime_value(cursor)
+    state.predicate_recheck = None
+  }
+  state.predicate_binding_name = None
+  state.predicate_recheck_slots = 0
   if state.output_row is Some(row) {
     @execution.cleanup_admitted_output_row(row) |> ignore
     state.output_row = None
@@ -2145,7 +2206,8 @@ fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
     state.row_values.length() +
     traverse_paths_state_workspace_usage(state).0 -
     state.workspace_slots +
-    state.predicate_slots
+    state.predicate_slots +
+    state.predicate_recheck_slots
   for path in state.frontier {
     count += path.nodes.length() + path.edges.length() + 1
   }
@@ -2478,6 +2540,9 @@ fn start_traverse_paths_read(
     predicate_field: 0,
     predicate_slots: 0,
     predicate_input: Map([]),
+    predicate_recheck: None,
+    predicate_binding_name: None,
+    predicate_recheck_slots: 0,
     predicate_execution: None,
     predicate_work_remaining: limits.max_work,
     emit_index: 0,

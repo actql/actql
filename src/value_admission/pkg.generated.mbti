@@ -150,6 +150,8 @@ pub fn prepare_vector_value(Int) -> VectorBuilder?
 
 pub fn recheck_json_payload_usage(Value, Limits) -> (CheckedValue, Int, Int)?
 
+pub fn recheck_pending_frames(RecheckCursor) -> Int
+
 pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
 
 pub fn recheck_runtime_value_usage(Value, @value_contract.Contract, Limits) -> (CheckedValue, Int, Int)?
