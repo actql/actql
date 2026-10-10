@@ -1,6 +1,7 @@
 ///|
 pub(all) enum ResidentEffectReviewRetentionIssue {
   Unavailable
+  InvalidConfiguration
   Capture(ResidentEffectCaptureCustodyIssue)
   Preview(ResidentEffectPreviewCustodyIssue)
   Preparation(ResidentEffectReviewCheckpointIssue)
@@ -66,14 +67,17 @@ pub fn ResidentSourceCompute::prepare_effect_review_retention(
     Some(value) if materials.request == Some(value) => value
     _ => return Err(Unavailable)
   }
-  if !self.resident_effect_inputs_current(inputs) ||
+  if !self.resident_effect_inputs_current(inputs) {
+    return Err(Unavailable)
+  }
+  if key.length() != 32 ||
     limits.max_wire_bytes < 1 ||
     limits.max_wire_bytes > 262144 ||
     limits.max_nodes < 1 ||
     limits.max_nodes > 10000 ||
     limits.max_depth < 1 ||
     limits.max_depth > 64 {
-    return Err(Unavailable)
+    return Err(InvalidConfiguration)
   }
   Ok({
     consumer: self,

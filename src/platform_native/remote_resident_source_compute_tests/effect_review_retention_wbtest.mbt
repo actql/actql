@@ -31,17 +31,26 @@ fn retained_effect_review_retention_store(
     max_nodes: 10000,
     max_depth: 64,
   }
-  let prepare = material => {
+  let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(
       material, inputs, result, invocation, preview, captured, wire, authoring_cid,
-      authority, crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-      "2026-10-11T00:00:00.000Z", limits,
+      authority, crypto, secret, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
+      "2026-10-11T00:00:00.000Z", bounds,
     )
   }
   let baseline = consumer.usage().reserved_retention_bytes
-  assert_true(prepare({ ..materials, request: None, }) is Err(Unavailable))
+  assert_true(
+    prepare({ ..materials, request: None, }, key, limits) is Err(Unavailable),
+  )
+  assert_true(
+    prepare(materials, Bytes::make(31, 0), limits) is Err(InvalidConfiguration),
+  )
+  assert_true(
+    prepare(materials, key, { ..limits, max_depth: 0, })
+    is Err(InvalidConfiguration),
+  )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
-  let retention = prepare(materials).unwrap()
+  let retention = prepare(materials, key, limits).unwrap()
   assert_true(retention.report() is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   let open = () => {
@@ -88,7 +97,9 @@ fn retained_effect_review_retention_store(
   let continuation = inspection
     .read("effect_continuation_custody", holding)
     .unwrap()
-  let sealed = inspection.read("effect_checkpoint_custody", holding).unwrap()
+  let checkpoint_record = inspection
+    .read("effect_checkpoint_custody", holding)
+    .unwrap()
   assert_false(@utf8.decode(continuation.body).contains("Count__c"))
   let reserved = consumer.usage().reserved_retention_bytes
   let physical_reserved = store.capacity_usage().unwrap().reserved_bytes
@@ -108,8 +119,8 @@ fn retained_effect_review_retention_store(
     assert_eq(current.body, continuation.body)
     assert_eq(current.revision, continuation.revision)
     let current = inspection.read("effect_checkpoint_custody", holding).unwrap()
-    assert_eq(current.body, sealed.body)
-    assert_eq(current.revision, sealed.revision)
+    assert_eq(current.body, checkpoint_record.body)
+    assert_eq(current.revision, checkpoint_record.revision)
   }
   // Retirement is independently confirmed by each existing custody owner.
   // Loss at a later boundary must not reopen earlier retired owners or return

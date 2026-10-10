@@ -365,6 +365,7 @@ pub fn ResidentEffectReviewRetention::retry_cleanup(Self) -> Result[Bool, Reside
 
 pub(all) enum ResidentEffectReviewRetentionIssue {
   Unavailable
+  InvalidConfiguration
   Capture(ResidentEffectCaptureCustodyIssue)
   Preview(ResidentEffectPreviewCustodyIssue)
   Preparation(ResidentEffectReviewCheckpointIssue)
