@@ -72,11 +72,26 @@
     "normalization": "none_for_string_values",
     "ordering": "preserved-value-utf16-code-unit",
     "length": "unicode-scalar-count",
-    "trim": "ascii-whitespace",
+    "trim": "unicode-white-space",
     "contains": "case-sensitive",
     "like": "case-sensitive-percent-underscore-backslash-escape",
     "replace": "non-overlapping-left-to-right-empty-pattern-no-op",
-    "identifier_normalization": "NFC_then_CRLF_or_CR_to_LF"
+    "identifier_normalization": "NFC_then_CRLF_or_CR_to_LF",
+    "trim_white_space_code_points": [
+      "0009..000D",
+      "0020",
+      "0085",
+      "00A0",
+      "1680",
+      "2000..200A",
+      "2028",
+      "2029",
+      "202F",
+      "205F",
+      "3000"
+    ],
+    "ltrim": "unicode-white-space-leading",
+    "rtrim": "unicode-white-space-trailing"
   },
   "conversion_truth_table": {
     "to_number": {

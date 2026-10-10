@@ -1974,6 +1974,24 @@ fn compile_steps(
   }
   let positional_private_fields : Array[String] = []
   let positional_authored_aliases : Array[(String, String)] = []
+  // A later authored column destination is a real column name. Reserve it
+  // before assigning private storage names to anonymous/duplicate occurrences.
+  let positional_destination_names : Array[@query.NamePart] = []
+  if positional_projection is Some(projection) {
+    for index in (projection + 1)..<@query.operation_count(query) {
+      match @query.operation_at(query, index) {
+        Some(Rename(names)) =>
+          positional_destination_names.append(names.map(pair => pair.1))
+        Some(Extend(columns)) =>
+          for column in columns {
+            if projection_alias(column) is Some(name) {
+              positional_destination_names.push(name)
+            }
+          }
+        _ => ()
+      }
+    }
+  }
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
   let mut requires_graph_projection = graph_bindings_only
@@ -2187,6 +2205,33 @@ fn compile_steps(
       sql_group_projection = false
     }
     if positional_projection is Some(projection) && i > projection {
+      if operation is Rename(names) {
+        for (target, _) in names {
+          if positional_private_fields.any(field => {
+              same_name(target, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
+      if operation is Drop(names) {
+        for name in names {
+          if positional_private_fields.any(field => {
+              same_name(name, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
+      if operation is Set(assignments) {
+        for assignment in assignments {
+          if positional_private_fields.any(field => {
+              same_name(assignment.0, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
       // EXCEPT/REPLACE address authored names, never the storage name of an
       // anonymous value. The ordinary star helper retains all other columns.
       if operation is Select(columns, _) {
@@ -2210,7 +2255,9 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
+        Set(assignments) => assignments.map(assignment => assignment.1)
         Select(columns, _)
+        | Extend(columns)
         | Analytic(columns)
         | AnalyticExpressions(columns, _)
         | OrderAnalytic(columns, _) =>
@@ -2219,6 +2266,8 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is Set(_) ||
+          operation is Extend(_) ||
           operation is Select(_, _) ||
           operation is Analytic(_) ||
           operation is AnalyticExpressions(_, _) ||
@@ -2250,12 +2299,62 @@ fn compile_steps(
           pipe_columns.any(column => column.0 == mapping.0)
         })
       })
+      let ambiguous_current_name = name => {
+        pipe_columns
+        .filter(column => {
+          same_name(name, {
+            value: positional_authored_column_name(
+              column.0,
+              positional_authored_aliases,
+            ),
+            quoted: false,
+          })
+        })
+        .length() >
+        1
+      }
+      if operation is Rename(names) {
+        for (target, _) in names {
+          if ambiguous_current_name(target) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
+      }
+      if operation is Set(assignments) {
+        for assignment in assignments {
+          if ambiguous_current_name(assignment.0) ||
+            duplicate_projection_alias(
+              remaining_projections,
+              assignment.0.value,
+            ) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
+      }
       for expression in expressions {
         let references = join_reference_paths(expression)
         reject_duplicate_projection_references(
           remaining_projections, references, resolve_input,
         )
         for path in references {
+          if path.length() > 1 &&
+            pipe_ranges.any(range => {
+              same_name(path[0], range.0) &&
+              range.1
+              .filter(column => {
+                same_name(path[1], { value: column.0, quoted: false, })
+              })
+              .length() >
+              1
+            }) {
+            raise Abort(AmbiguousColumn)
+          }
+          if ambiguous_current_name(path[0]) &&
+            !order_reference_identity(path, resolve_input)
+            .map(identity => identity.1 > 1)
+            .unwrap_or(false) {
+            raise Abort(AmbiguousColumn)
+          }
           // Physical outputs are ordinal values, never authored aliases.
           // A longer valid input range prefix retains its own resolution.
           if positional_private_fields.any(field => {
@@ -2946,6 +3045,35 @@ fn compile_steps(
         }
       }
       Drop(names) => {
+        // A positional DROP removes all occurrences of an authored name. Use
+        // the star-exclusion correspondence before ordinary physical removal.
+        let names = if positional_projection is Some(projection) &&
+          i > projection {
+          let physical : Array[@query.NamePart] = []
+          for name in names {
+            if names.filter(other => same_name(name, other)).length() != 1 {
+              raise Abort(DuplicateOutput)
+            }
+            let matches = pipe_columns.filter(column => {
+              same_name(name, {
+                value: positional_authored_column_name(
+                  column.0,
+                  positional_authored_aliases,
+                ),
+                quoted: false,
+              })
+            })
+            if matches.is_empty() {
+              raise Abort(UnknownColumn)
+            }
+            physical.append(
+              matches.map(column => { value: column.0, quoted: false, }),
+            )
+          }
+          physical
+        } else {
+          names
+        }
         // A structural DROP does not read values from retained columns. When
         // the current visible names already are the physical row slots, use
         // the existing operation rather than manufacturing a final SELECT
@@ -3111,6 +3239,32 @@ fn compile_steps(
         output = next.map(entry => entry.0)
         pipe_changed = true
         deferred = true
+        if positional_projection is Some(projection) && i > projection {
+          let names = next.map(entry => entry.0)
+          let bindings = next.copy()
+          let selected = next.map(entry => {
+            construction.object([(entry.0, construction.text(entry.1))])
+          })
+          let private_fields = privatize_positional_duplicate_columns(
+            construction,
+            names,
+            bindings,
+            selected,
+            active_fields,
+            authored_aliases=Some(positional_authored_aliases),
+            reserved_names=positional_destination_names,
+          )
+          if !private_fields.is_empty() {
+            positional_private_fields.append(private_fields)
+            entries.push(("select", construction.array(selected)))
+            active_fields = names.copy()
+            output = names
+            pipe_visible = names.map(name => (name, name))
+            pipe_columns = pipe_visible.copy()
+            pipe_changed = false
+            deferred = false
+          }
+        }
       }
       Alias(name) => {
         // Preserve a single value table. On an ordinary row, former value
@@ -3132,12 +3286,21 @@ fn compile_steps(
             pipe_ranges = [(name, [])]
           }
         } else {
-          pipe_ranges = [
-            (
-              name,
-              unnest_expression_columns(pipe_visible, [], [], pipe_columns),
-            ),
-          ]
+          let columns = unnest_expression_columns(
+            pipe_visible,
+            [],
+            [],
+            pipe_columns,
+          )
+          let columns = if positional_projection is Some(projection) &&
+            i > projection {
+            positional_named_expression_columns(
+              columns, positional_private_fields, positional_authored_aliases,
+            )
+          } else {
+            columns
+          }
+          pipe_ranges = [(name, columns)]
           scalar_value_table_ranges = []
           value_table_receivers = []
           pipe_value_table = false
@@ -4955,7 +5118,10 @@ fn compile_steps(
                     }
                     (
                       anonymous_set_projection_name(
-                        projections, physical, names,
+                        projections,
+                        physical,
+                        names,
+                        reserved_names=positional_destination_names,
                       ),
                       positional_set_aggregate_slot(
                         call,
@@ -4992,7 +5158,12 @@ fn compile_steps(
                       positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
-                    anonymous_set_projection_name(projections, physical, names)
+                    anonymous_set_projection_name(
+                      projections,
+                      physical,
+                      names,
+                      reserved_names=positional_destination_names,
+                    )
                   }
                 }
                 let source = if positional_set_output &&
@@ -5097,7 +5268,12 @@ fn compile_steps(
               let name = if positional_set_output &&
                 positional_projection == Some(i) &&
                 projection_alias(projection) is None {
-                anonymous_set_projection_name(projections, physical, names)
+                anonymous_set_projection_name(
+                  projections,
+                  physical,
+                  names,
+                  reserved_names=positional_destination_names,
+                )
               } else {
                 projection_output_name(projection)
               }
@@ -5134,6 +5310,7 @@ fn compile_steps(
               selected,
               physical,
               authored_aliases=Some(positional_authored_aliases),
+              reserved_names=positional_destination_names,
             ),
           )
           // ORDER reuses evaluated occurrences after duplicate aliases are
@@ -5347,7 +5524,12 @@ fn compile_steps(
               let name = if positional_set_output &&
                 positional_projection == Some(i) &&
                 projection_alias(projection) is None {
-                anonymous_set_projection_name(projections, active_fields, names)
+                anonymous_set_projection_name(
+                  projections,
+                  active_fields,
+                  names,
+                  reserved_names=positional_destination_names,
+                )
               } else {
                 output_name(
                   projection,
@@ -5502,6 +5684,7 @@ fn compile_steps(
               selected,
               active_fields,
               authored_aliases=Some(positional_authored_aliases),
+              reserved_names=positional_destination_names,
             ),
           )
           for index in 0..<expressions.length() {

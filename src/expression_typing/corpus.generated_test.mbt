@@ -732,6 +732,76 @@ test "expression type corpus accepted: 145" {
 }
 
 ///|
+test "expression type corpus accepted: 146" {
+  assert_type("\"ltrim(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 147" {
+  assert_type("\"ltrim(sn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 148" {
+  assert_type("\"ltrim(NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 149" {
+  assert_type("\"ltrim($p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 150" {
+  assert_type("\"ltrim('\u{2003}\u{1f600}e\u{301}\u{2003}')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 151" {
+  assert_type("{\"ltrim\":{\"literal\":null}}", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 152" {
+  assert_type("{\"ltrim\":{\"field\":\"sn\"}}", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 153" {
+  assert_type("\"rtrim(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 154" {
+  assert_type("\"rtrim(sn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 155" {
+  assert_type("\"rtrim(NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 156" {
+  assert_type("\"rtrim($p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 157" {
+  assert_type("\"rtrim('\u{2003}\u{1f600}e\u{301}\u{2003}')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 158" {
+  assert_type("{\"rtrim\":{\"literal\":null}}", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 159" {
+  assert_type("{\"rtrim\":{\"field\":\"sn\"}}", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
 test "expression type corpus rejected: 1" {
   assert_rejected("\"missing\"", corpus_fields(), corpus_parameters(), "UnknownField")
 }
@@ -1229,4 +1299,104 @@ test "expression type corpus rejected: 99" {
 ///|
 test "expression type corpus rejected: 100" {
   assert_rejected("\"trunc(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 101" {
+  assert_rejected("\"ltrim(n)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 102" {
+  assert_rejected("\"ltrim(b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 103" {
+  assert_rejected("\"ltrim(d)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 104" {
+  assert_rejected("\"ltrim(j)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 105" {
+  assert_rejected("\"ltrim(r)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 106" {
+  assert_rejected("\"ltrim(a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 107" {
+  assert_rejected("\"ltrim(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 108" {
+  assert_rejected("\"ltrim(o)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 109" {
+  assert_rejected("\"ltrim(dt)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 110" {
+  assert_rejected("\"ltrim(ts)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 111" {
+  assert_rejected("\"rtrim(n)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 112" {
+  assert_rejected("\"rtrim(b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 113" {
+  assert_rejected("\"rtrim(d)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 114" {
+  assert_rejected("\"rtrim(j)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 115" {
+  assert_rejected("\"rtrim(r)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 116" {
+  assert_rejected("\"rtrim(a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 117" {
+  assert_rejected("\"rtrim(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 118" {
+  assert_rejected("\"rtrim(o)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 119" {
+  assert_rejected("\"rtrim(dt)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 120" {
+  assert_rejected("\"rtrim(ts)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
 }

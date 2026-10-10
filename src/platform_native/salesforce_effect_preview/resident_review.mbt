@@ -453,6 +453,11 @@ pub fn NativeResidentEffectReview::target_uses(
 pub fn NativeResidentEffectReview::complete(
   self : NativeResidentEffectReview,
   phase_observe? : (String) -> Unit = _ => (),
+  capture_progress? : (@resident.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit = (
+    _,
+    _,
+    _,
+  ) => (),
 ) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue] {
   if self.completing {
     return Err(Unavailable)
@@ -619,6 +624,7 @@ pub fn NativeResidentEffectReview::complete(
         bounds.max_nodes,
         bounds.max_depth,
         policy.max_capture_workspace_entries,
+        progress=capture_progress,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Capture(issue))

@@ -166,6 +166,8 @@ fn flatten(
       | "lower"
       | "upper"
       | "trim"
+      | "ltrim"
+      | "rtrim"
       | "nfkc"
       | "case_fold" => children.push((body, Form))
       _ =>

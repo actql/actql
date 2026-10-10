@@ -231,6 +231,56 @@ test "expression corpus accepted: 46" {
 }
 
 ///|
+test "expression corpus accepted: 47" {
+  assert_tree("ltrim(s)", "{\"ltrim\":{\"field\":\"s\"}}")
+}
+
+///|
+test "expression corpus accepted: 48" {
+  assert_tree("ltrim($p)", "{\"ltrim\":{\"$param\":\"p\"}}")
+}
+
+///|
+test "expression corpus accepted: 49" {
+  assert_tree("ltrim(NULL)", "{\"ltrim\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 50" {
+  assert_tree("ltrim('\u{2003}\u{1f600}e\u{301}\u{2003}')", "{\"ltrim\":{\"literal\":\"\u{2003}\u{1f600}e\u{301}\u{2003}\"}}")
+}
+
+///|
+test "expression corpus accepted: 51" {
+  assert_tree("ltrim('')", "{\"ltrim\":{\"literal\":\"\"}}")
+}
+
+///|
+test "expression corpus accepted: 52" {
+  assert_tree("rtrim(s)", "{\"rtrim\":{\"field\":\"s\"}}")
+}
+
+///|
+test "expression corpus accepted: 53" {
+  assert_tree("rtrim($p)", "{\"rtrim\":{\"$param\":\"p\"}}")
+}
+
+///|
+test "expression corpus accepted: 54" {
+  assert_tree("rtrim(NULL)", "{\"rtrim\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 55" {
+  assert_tree("rtrim('\u{2003}\u{1f600}e\u{301}\u{2003}')", "{\"rtrim\":{\"literal\":\"\u{2003}\u{1f600}e\u{301}\u{2003}\"}}")
+}
+
+///|
+test "expression corpus accepted: 56" {
+  assert_tree("rtrim('')", "{\"rtrim\":{\"literal\":\"\"}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -473,4 +523,44 @@ test "expression corpus rejected: 48" {
 ///|
 test "expression corpus rejected: 49" {
   assert_true(parse("trunc(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 50" {
+  assert_true(parse("ltrim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 51" {
+  assert_true(parse("ltrim(s,' ')", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 52" {
+  assert_true(parse("ltrim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 53" {
+  assert_true(parse("LTRIM(s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 54" {
+  assert_true(parse("rtrim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 55" {
+  assert_true(parse("rtrim(s,' ')", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 56" {
+  assert_true(parse("rtrim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 57" {
+  assert_true(parse("RTRIM(s)", test_limits()) is Err(_))
 }

@@ -62,6 +62,8 @@ fn Parser::call(
     | "lower"
     | "upper"
     | "trim"
+    | "ltrim"
+    | "rtrim"
     | "to_number"
     | "to_string"
     | "to_boolean"
