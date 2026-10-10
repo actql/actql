@@ -156,6 +156,7 @@ export const subgraphSourceRefusals = [
     // This is an existing common support gap, not a permanent language limit.
     ['common-where-selector-gap', 'subgraph(nodes: {where: {literal: true}})'],
   ].map(([name, call]) => ({name: 'subgraph-' + name, format: 'aql-text',
+    ...(name === 'common-where-selector-gap' ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
     text: prefix + 'DATA selected = FROM g |> node_rows() |> SELECT id, node_key; FROM g |> ' + call + tail(false)})),
   {name: 'subgraph-forward-selector', format: 'aql-text', text: prefix +
     'DATA slice = FROM g |> subgraph(nodes: {from: later, id: "id"}); DATA later = FROM g |> node_rows(); FROM slice' + tail(false)},
