@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 41);
-  assert.equal(setCorrespondingRefusals.length, 22);
+  assert.equal(setCorrespondingSuccesses.length, 50);
+  assert.equal(setCorrespondingRefusals.length, 26);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -140,4 +140,30 @@ test('parenthesized operands preserve independent ordinal values and private sco
   assert.equal(source.format, 'sql');
   assert.deepEqual(normals.find(x => x.name.endsWith('typed-empty')).expected, []);
   assert.equal(setCorrespondingRefusals.filter(x => x.name.includes('refuse-parenthesized-')).length, 3);
+});
+
+test('positional inner ORDER LIMIT has independent values and opposite alias controls', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-limited-'));
+  assert.equal(normals.length, 9);
+  const find = suffix => normals.find(x => x.name.endsWith('-' + suffix));
+  assert.deepEqual(find('source-scalar').expected, [{a: -2}, {a: 0}]);
+  for (const name of ['ordinal-scalar', 'output-alias', 'parameter-offset']) {
+    assert.deepEqual(find(name).expected, [{a: -1}, {a: 0}]);
+  }
+  assert.deepEqual(find('qualified-input').expected, [{a: -2}, {a: 0}]);
+  assert.deepEqual(find('source-window').expected, [{a: 0}, {a: 2}]);
+  assert.deepEqual(find('duplicate-ordinal').expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.deepEqual(find('source-aggregate').columns.map(x => [x.name, x.contract.nullable]),
+    [['a', true], ['b', false]]);
+  assert.deepEqual(find('parameter-offset').parameters, {take: 1, skip: 1});
+  assert.ok(find('parameter-offset').text.includes('LIMIT @take OFFSET @skip) ORDER BY a'));
+  const steps = positionalOrderLimitProgram.stages[0].steps;
+  assert.deepEqual(steps[1].derive, {neg: {negate: {field: 'x'}}});
+  assert.deepEqual(steps[2].sort, [{field: 'x', dir: 'desc', nulls: 'last'}]);
+  assert.deepEqual(steps[3].take, {count: 1, offset: 0});
+  assert.deepEqual(steps[4].select, [{a: 'neg'}]);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-limited-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
