@@ -1,4 +1,65 @@
 ///|
+test "Native Result service rejects unsupported frame limits before admission or delivery" {
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let parent = @filesystem.open_root(root_path).unwrap()
+  let name = "sink-invalid-limits-" + @env.now().to_string()
+  parent.create_directory(name).unwrap() |> ignore
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let store = @store.open_store(
+    library,
+    root_path + "/" + name,
+    native_access_cid(name),
+    256L,
+    8L,
+    65536L,
+  ).unwrap()
+  let calls = Ref(0)
+  let authority = install_native_result_access_authority(
+    _ => {
+      calls.val += 1
+      true
+    },
+    _ => {
+      calls.val += 1
+      None
+    },
+    _ => {
+      calls.val += 1
+      true
+    },
+  )
+  let now = () => {
+    calls.val += 1
+    "2026-09-20T01:00:00.000Z"
+  }
+  for
+    limits in [
+      (0, 128, 3),
+      (65, 128, 3),
+      (32, 16777217, 3),
+      (32, 128, 16777217),
+    ] {
+    let (depth, row_bytes, chunk_bytes) = limits
+    assert_true(
+      install_native_result_access_service(
+        store, authority, now, 65536, 4096, depth, row_bytes, chunk_bytes,
+      )
+      is Err(InvalidRequest),
+    )
+  }
+  assert_true(
+    install_native_result_access_service(
+      store, authority, now, 65536, 4096, 64, 128, 3,
+    )
+    is Ok(_),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(store.close().unwrap())
+}
+
+///|
 fn sink_access_case(
   case : String,
 ) -> (@store.Store, NativeResultAccessSession, Ref[Bool]) {
