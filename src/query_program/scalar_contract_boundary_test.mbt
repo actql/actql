@@ -10,6 +10,12 @@ test "scalar boundary source preserves the complete independent Program" {
       (
         "TRIM('\\u2003value\\u2003')", "{\"trim\":{\"literal\":\" value \"}}",
       ),
+      (
+        "LTRIM('\\u2003value\\u2003')", "{\"ltrim\":{\"literal\":\" value \"}}",
+      ),
+      (
+        "RTRIM('\\u2003value\\u2003')", "{\"rtrim\":{\"literal\":\" value \"}}",
+      ),
     ] {
     let expected = @program.parse(
       (

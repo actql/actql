@@ -332,3 +332,24 @@ they are not regenerated from current bodies with selected laws removed.
 This initial 0.1 alignment adds neither an optional set or BYTES overload nor
 LTRIM/RTRIM. Contract registration does not establish execution conformance on
 an unverified target or consumer.
+
+
+## Unary Unicode side trimming
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+The GoogleSQL [LTRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#ltrim)
+and [RTRIM](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#rtrim)
+references select the leading-only and trailing-only variants of trimming.
+This increment admits only their unary STRING form, using exactly the pinned
+Unicode 16.0 `White_Space` set already selected for unary TRIM. This is an
+explicit ActQL Unicode pin, not a claim that the GoogleSQL pages pin a release.
+The opposite end and all retained scalar sequences are unchanged; combining
+sequences and line breaks receive no normalization or special conversion.
+
+New closed source and machine schema cases and scalar laws receive coordinated
+expression, scalar-manifest, AoA, registry, environment, compilation and consumer
+identities. Exact predecessor bodies and complete identity preimages are frozen
+before extending the current owners; existing history remains immutable. TRIM
+keeps its adopted two-sided rule. Optional trim sets, BYTES and collation remain
+excluded, and registration alone does not establish execution conformance on an
+unverified target or consumer.
