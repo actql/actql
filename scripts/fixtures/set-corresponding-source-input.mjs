@@ -352,6 +352,54 @@ setCorrespondingRefusals.push(
       + 'ORDER BY v LIMIT 1) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
 );
 
+
+// Independent star control selects the evaluated negation twice without
+// re-evaluation. The positional alignment gives it the public left name a.
+export const positionalStarProgram = {version: 'actql/0.1', id: 'fixture.positional_star',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: ['neg']}, {select: ['neg']}, {select: [{a: 'neg'}], as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const starTail = (name, text, extra = {}) => success('positional-star-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}], ...extra});
+const starScalar = 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -id |> SELECT *';
+setCorrespondingSuccesses.push(
+  starTail('json-control', JSON.stringify(positionalStarProgram), {format: 'json', sourceReadSessionCount: 0}),
+  starTail('source-scalar', starScalar + ') ORDER BY a'),
+  starTail('repeated-star-limit', starScalar + ' |> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a',
+    {expected: [{a: -1}, {a: 0}]}),
+  starTail('distinct', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -id |> SELECT DISTINCT *) ORDER BY a',
+    {sourceRows: [{id: 2, amount: 20}, {id: 2, amount: 20}, {id: 1, amount: 10}]}),
+  starTail('window', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT ROW_NUMBER() OVER (ORDER BY id) '
+    + '|> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a', {expected: [{a: 0}, {a: 2}]}),
+  starTail('aggregate', 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT SUM(id), COUNT(id) FROM records |> SELECT *) ORDER BY a, b',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 3, b: 2}]}),
+  starTail('duplicate-ordinal', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+    + '|> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}], expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  starTail('nullable', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -amount |> SELECT *) ORDER BY a NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: -10}, {a: 0}, {a: null}]}),
+  starTail('typed-empty', 'SELECT 0 AS a WHERE FALSE UNION ALL (FROM records |> SELECT -id |> SELECT *) ORDER BY a',
+    {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_2', '`AQL_SET_ANONYMOUS_2`', 'aql_set_anonymous_2.member'].map((field, index) => ({
+    name: 'set-corresponding-refuse-star-private-' + index, format: 'sql',
+    text: starScalar + ' |> ORDER BY ' + field + ') ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-star-duplicate-alias', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+      + '|> SELECT * |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
 // The right-hand filter cannot remove the left zero or regain discarded
 // input columns. NULL is an unknown Boolean predicate, so it selects no rows.
 export const positionalFilterProgram = {version: 'actql/0.1', id: 'fixture.positional_filter',
