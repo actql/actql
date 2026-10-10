@@ -146,7 +146,7 @@ test('standard Node execution uses the connector-free serial driver and exact re
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);
   assert.match(driver, /core\.completed\(setup, index\)/);
   assert.match(entry,
-    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*authorization,\s*taskStartObserver\(observer\),\s*taskObservation,\s*\)/u);
+    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*authorization,\s*taskStartObserver\(observer\),\s*taskObservation,\s*retainPreflightCleanup,\s*\)/u);
   const observation = readFileSync('adapters/host-common/task-observation.mjs', 'utf8');
   assert.doesNotMatch(observation, /\b(?:import|require)\b/);
   assert.match(observation, /project\(Object\.freeze\(\{event, task, durationMs\}\)\)/);
