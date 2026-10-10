@@ -514,6 +514,8 @@ fn infer(
     "lower"
     | "upper"
     | "trim"
+    | "ltrim"
+    | "rtrim"
     | "len"
     | "concat"
     | "concat_strict"

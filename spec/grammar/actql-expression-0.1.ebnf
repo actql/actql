@@ -45,7 +45,7 @@ call = function_name, "(", expression, { ",", expression }, ")" ;
    vector_concat has at least two expression arguments. These spellings require
    the separately admitted VecA expression profile; grammar is not execution support. *)
 function_name = "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "sqrt" | "abs" | "sign" | "round" | "trunc" | "floor"
-              | "lower" | "upper" | "trim" | "replace" | "nullif" | "negate"
+              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff"
               | "to_number" | "to_string" | "to_boolean" | "to_timestamp"
