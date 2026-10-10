@@ -103,3 +103,17 @@ test('derived value-table aliases retain scalar/object type and old-name refusal
  [{name:'value',contract:{type:'number',nullable:true}},{name:'position',contract:{type:'number',nullable:false}}]);
  assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('derived-value-refusal-')).length,4);
 });
+
+
+test('ordinary row fixtures distinguish NULL fields, immutable bindings and rebound columns',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const source=cases.get('whole-row-offset-receiver'),control=cases.get('whole-row-json-control');
+ assert.deepEqual(source.expected,[{row:{element:2,position:0},value:2,position:0},{row:{element:null,position:1},value:null,position:1},{row:{element:2,position:2},value:2,position:2}]);
+ assert.deepEqual(source.expected,control.expected);assert.deepEqual(source.columns,control.columns);
+ assert.equal(source.columns[0].contract.nullable,false);assert.equal(source.columns[0].contract.fields.element.nullable,true);
+ assert.deepEqual(cases.get('whole-row-immutable-set').expected[1],{row:{element:null,position:1},value:11,position:1});
+ assert.deepEqual(cases.get('whole-row-rebound-set').expected[1],{row:{element:11,position:1},value:11,position:1});
+ assert.deepEqual(cases.get('whole-row-computed-order').expected.map(r=>r.row.position),[2,1,0]);
+ assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('whole-row-')).length,9);
+ assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('whole-row-refusal-')).length,4);
+});

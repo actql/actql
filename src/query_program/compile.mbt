@@ -940,6 +940,7 @@ fn output_name(
   query : @query.Query,
   input : Input,
   fields : Array[String],
+  row_ranges? : Array[(@query.NamePart, Array[(String, String)])]? = None,
 ) -> String raise Abort {
   let name = projection_output_name(projection)
   if projection.name is None &&
@@ -959,6 +960,21 @@ fn output_name(
         raise Abort(AmbiguousColumn)
       }
       length -= 1
+    }
+    let ranges = row_ranges.unwrap_or(
+      if @query.relation(query).is_empty() {
+        []
+      } else {
+        [(query_range_name(query), fields.map(field => (field, field)))]
+      },
+    )
+    if row_reference_fields(
+        path,
+        name => ambiguous_column([name], query, input, fields),
+        ranges,
+      )
+      is Some(_) {
+      return name
     }
     if @query.expression_origin(expression, @query.expression_root(expression))
       is Some(origin) {
@@ -1020,6 +1036,19 @@ fn append_expression(
       construction.builder,
       remaining,
       resolve_parameter=construction.parameter_resolver(),
+      resolve_row=Some(path => {
+        if @query.relation(query).is_empty() {
+          return None
+        }
+        row_reference_fields(
+          path,
+          name => {
+            resolve([name]) is Some(_) ||
+            ambiguous_column([name], query, input, fields)
+          },
+          [(query_range_name(query), fields.map(field => (field, field)))],
+        )
+      }),
     )
   } else {
     @expression.append_with_macros(
@@ -1150,6 +1179,19 @@ fn append_order_expression(
       construction.builder,
       max_work,
       resolve_parameter=construction.parameter_resolver(),
+      resolve_row=Some(path => {
+        if @query.relation(query).is_empty() {
+          return None
+        }
+        row_reference_fields(
+          path,
+          name => {
+            resolve([name]) is Some(_) ||
+            ambiguous_column([name], query, input, fields)
+          },
+          [(query_range_name(query), fields.map(field => (field, field)))],
+        )
+      }),
     )
   } else {
     @expression.append_with_macros(
@@ -5625,6 +5667,7 @@ fn compile_steps(
                   } else {
                     select_fields
                   },
+                  row_ranges=Some(pipe_ranges),
                 )
               }
               if positional_projection == Some(i) &&
@@ -6042,6 +6085,20 @@ fn compile_steps(
                           )
                         },
                         max_work,
+                        resolve_row=Some(path => {
+                          row_reference_fields(
+                            path,
+                            name => {
+                              resolve([name]) is Some(_) ||
+                              pipe_name_exists(pipe_visible, name)
+                            },
+                            pipe_ranges.filter(range => {
+                              range.1.all(field => {
+                                active_fields.contains(field.1)
+                              })
+                            }),
+                          )
+                        }),
                       )
                     }
                     derives.push((slot, value))

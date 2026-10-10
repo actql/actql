@@ -666,6 +666,19 @@ expressions, WHERE and ORDER BY. AS does not restore dropped names or expose
 compiler helper slots. These are the adopted
 [GoogleSQL Pipe scope rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax).
 
+A bare surviving range over an ordinary Relation denotes a non-NULL closed
+object of that range's declared columns, read from its evaluated value slots.
+NULL field values do not make the row object NULL. A column/value binding with
+the same name takes precedence. The expression uses the common object form;
+AS itself neither derives an object nor changes an acquisition boundary.
+SET, DROP and RENAME retain a surviving range's original field names/slots;
+AS rebinds only the current visible columns. A removed range or unavailable
+post-projection slot cannot be recovered through whole-row construction.
+A single value-table range still denotes its original scalar or object value,
+not a one-field wrapper. Common typing owns property validity, field presence
+and nullability. This follows the selected
+[GoogleSQL range-variable rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#range_variables).
+
 Ordinary SELECT may order by a visible non-output input expression. After
 DISTINCT, ordering must be resolvable from the selected expressions or their
 aliases. Helper slots do not participate in DISTINCT equality or Named Result

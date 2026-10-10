@@ -364,6 +364,35 @@ queryCompositionSuccesses.push(
  [{element:2,position:0},{element:null,position:1},{element:2,position:2}],[optionalNumber('element',true),optionalNumber('position')]),
 );
 
+// Independent ordinary-row expectations. A NULL element is one NULL field,
+// not a NULL row; the declared OFFSET remains non-NULL.
+const wholeRowHead='FROM UNNEST(@items) element WITH OFFSET position';
+const wholeRowFields={element:{type:'number',nullable:true},position:{type:'number',nullable:false}};
+const wholeRowColumn={name:'row',contract:{type:'object',nullable:false,fields:wholeRowFields,additional_properties:false}};
+const wholeRowRows=[{row:{element:2,position:0},value:2,position:0},{row:{element:null,position:1},value:null,position:1},{row:{element:2,position:2},value:2,position:2}];
+const wholeRowColumns=[wholeRowColumn,optionalNumber('value',true),optionalNumber('position')];
+const wholeRowSource='SELECT chosen AS row,chosen.element AS value,chosen.position FROM ('+wholeRowHead+') chosen ORDER BY position';
+const wholeRowControl={version:'actql/0.1',id:'fixture.whole_row_range',params:derivedScalarDeclarations,stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'element',with_index:'position'}},
+ {derive:{row:{object:{element:{field:'element'},position:{field:'position'}}}}},
+ {select:['row',{value:'element'},'position']},
+ {sort:[{field:'position',dir:'asc',nulls:'first'}],as:'out'},
+ ],results:{rows:{from:'out',fields:['row','value','position']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const wholeRowCase=(name,text,expected=wholeRowRows,columns=wholeRowColumns,extra={})=>({name:'whole-row-'+name,format:'sql',text,expected,columns,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},sourceReadCount:0,sourceReadSessionCount:0,...extra});
+queryCompositionSuccesses.push(
+ wholeRowCase('json-control',JSON.stringify(wholeRowControl),wholeRowRows,wholeRowColumns,{format:'json',parameterDeclarations:undefined}),
+ wholeRowCase('offset-receiver',wholeRowSource),
+ wholeRowCase('empty',wholeRowSource,[],wholeRowColumns,{parameters:{items:[]}}),
+ wholeRowCase('implicit-output-name','FROM ('+wholeRowHead+') chosen |> SELECT chosen |> ORDER BY chosen.position',wholeRowRows.map(r=>({chosen:r.row})),[{...wholeRowColumn,name:'chosen'}],{format:'aql-text'}),
+ wholeRowCase('immutable-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({...r,value:r.position+10})),[wholeRowColumn,optionalNumber('value'),optionalNumber('position')]),
+ wholeRowCase('rebound-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> AS fresh |> SELECT fresh AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({row:{element:r.position+10,position:r.position},value:r.position+10,position:r.position})),[{...wholeRowColumn,contract:{...wholeRowColumn.contract,fields:{...wholeRowFields,element:{type:'number',nullable:false}}}},optionalNumber('value'),optionalNumber('position')]),
+ wholeRowCase('drop-rename-rebind','FROM ('+wholeRowHead+') chosen |> DROP element |> RENAME position AS index |> AS fresh |> SELECT fresh AS row,index |> ORDER BY index',[{row:{index:0},index:0},{row:{index:1},index:1},{row:{index:2},index:2}],[{name:'row',contract:{type:'object',nullable:false,fields:{index:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('index')]),
+ wholeRowCase('column-priority','FROM ('+wholeRowHead+') chosen |> AS element |> SELECT element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({value:r.value,position:r.position})),[optionalNumber('value',true),optionalNumber('position')]),
+ wholeRowCase('computed-order','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT fresh AS row |> ORDER BY IF(TRUE,fresh,NULL).position DESC',wholeRowRows.toReversed().map(r=>({row:r.row})),[wholeRowColumn]),
+);
+
 export const queryCompositionRefusals = [
   {name: 'nested-cte-octal-range', format: 'sql',
     text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
@@ -421,6 +450,13 @@ queryCompositionRefusals.push(...[
  ['duplicate-derived-alias','SELECT chosen.value FROM (FROM UNNEST(@items) element) chosen CROSS JOIN (SELECT 1 AS value) chosen MAX_OUTPUT_ROWS 10'],
 ].map(([name,text])=>({name:'derived-value-refusal-'+name,format:'sql',text,
  parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['displaced','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT chosen AS row'],
+ ['removed','FROM ('+wholeRowHead+') chosen |> SELECT element |> WHERE element > 0 |> SELECT chosen AS row'],
+ ['missing-member','SELECT (chosen).missing AS value FROM ('+wholeRowHead+') chosen'],
+ ['distinct-hidden','FROM ('+wholeRowHead+') chosen |> SELECT DISTINCT element |> ORDER BY IF(TRUE,chosen,NULL).position'],
+].map(([name,text])=>({name:'whole-row-refusal-'+name,format:'sql',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 export const querySuccesses = [
   {name: 'sql', format: 'sql',

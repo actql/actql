@@ -1,4 +1,31 @@
 ///|
+// A value/column binding wins over a row range. Fields are evaluated slots,
+// never expanded SELECT expressions or inferred from actual rows.
+fn row_reference_fields(
+  path : Array[@query.NamePart],
+  value_name_exists : (@query.NamePart) -> Bool,
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+) -> Array[(String, String)]? {
+  if path.length() != 1 || value_name_exists(path[0]) {
+    return None
+  }
+  let matches = ranges.filter(range => same_name(path[0], range.0))
+  if matches.length() != 1 {
+    return None
+  }
+  let fields = matches[0].1
+  let seen : Map[String, Bool] = Map([])
+  for (name, _) in fields {
+    let key = ascii_upper(name)
+    if seen.contains(key) {
+      return None
+    }
+    seen[key] = true
+  }
+  Some(fields.copy())
+}
+
+///|
 // A parenthesized range receiver is qualification of its existing column,
 // whereas a receiver that resolves to a value remains ordinary property access.
 // Bind only the former through the source owner's span-preserving AST operation.
@@ -90,6 +117,13 @@ fn append_pipe_range_expression(
     path => pipe_slot(path, visible, ranges),
     name => pipe_name_exists(visible, name),
     max_work,
+    resolve_row=Some(path => {
+      row_reference_fields(
+        path,
+        name => pipe_name_exists(visible, name),
+        ranges,
+      )
+    }),
   )
 }
 
@@ -102,6 +136,7 @@ fn append_resolved_range_expression(
   resolve : (Array[@query.NamePart]) -> String?,
   value_name_exists : (@query.NamePart) -> Bool,
   max_work : Int,
+  resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
 ) -> @builder.Node raise Abort {
   let (lowered, slots, remaining) = bind_range_property_expression(
     expression, resolve, value_name_exists, max_work,
@@ -122,6 +157,7 @@ fn append_resolved_range_expression(
       construction.builder,
       remaining,
       resolve_parameter=construction.parameter_resolver(),
+      resolve_row~,
     ) {
     Ok(node) => node
     Err(issue) => raise Abort(Expression(issue))
