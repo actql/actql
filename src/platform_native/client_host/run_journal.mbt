@@ -24,6 +24,7 @@ pub(all) enum NativeClientRunJournalIssue {
   InvalidSubmission
   SubmissionEpochRejected(@scope.SubmissionEpochValidity)
   UnsupportedPreparation
+  Checkpoint(NativeClientCheckpointIssue)
 }
 
 ///|
@@ -34,6 +35,7 @@ struct NativeClientRunRecord {
   physical_start_claimed : Bool
   cancellation_requested : Bool
   revision : Int64
+  checkpoint : NativeClientCheckpointRecord?
 }
 
 ///|
@@ -71,6 +73,17 @@ fn run_record_body(
     @encode.begin_object(writer)
     @encode.key(writer, "cancellation_requested")
     @encode.bool_value(writer, record.cancellation_requested)
+    @encode.key(writer, "checkpoint")
+    match record.checkpoint {
+      Some(value) => {
+        let body = match checkpoint_record_body(value) {
+          Ok(value) => value
+          Err(_) => return Err(Encoding)
+        }
+        @encode.string_value(writer, body)
+      }
+      None => @encode.null_value(writer)
+    }
     @encode.key(writer, "dispatch_reserved")
     @encode.bool_value(writer, record.dispatch_reserved)
     @encode.key(writer, "physical_start_claimed")
@@ -116,7 +129,7 @@ fn read_run_record(
   }
   guard @decode.closed_object(cursor, [
       "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
-      "cancellation_requested",
+      "cancellation_requested", "checkpoint",
     ])
     is Ok(object) &&
     epoch_text(object, "version") == Some("actql-native-client-run-row/0.1") &&
@@ -154,6 +167,23 @@ fn read_run_record(
     physical_start_claimed,
     cancellation_requested,
     revision: row.revision,
+    checkpoint: match @decode.lookup(object, "checkpoint") {
+      Some(value) if @decode.is_null(value) => None
+      Some(value) => {
+        let wire = match @decode.text(value) {
+          Ok(value) => value
+          Err(_) => return Err(CustodyLost)
+        }
+        match read_checkpoint_record(wire, definition) {
+          Ok(value) => Some(value)
+          Err(_) => return Err(CustodyLost)
+        }
+      }
+      None => return Err(CustodyLost)
+    },
+  }
+  if record.checkpoint is Some(_) && !physical_start_claimed {
+    return Err(CustodyLost)
   }
   match run_record_body(record) {
     Ok(body) if body == row.body => Ok(record)
@@ -447,6 +477,7 @@ fn NativeClientRunJournal::bind_run_locked(
     physical_start_claimed: false,
     cancellation_requested: false,
     revision: 0L,
+    checkpoint: None,
   }
   let body = match run_record_body(record) {
     Ok(value) => value
@@ -563,6 +594,11 @@ pub fn NativeClientRunJournal::claim_physical_start(
       Err(issue) => return Err(Start(issue))
     }
     if eligible {
+      // A waiting/resuming continuation is owned by its original Checkpoint;
+      // the initial physical-start seam cannot dispatch it again.
+      if record.checkpoint is Some(_) {
+        return Err(Checkpoint(NeedsOriginalContinuation))
+      }
       match self.save({ ..record, physical_start_claimed: true, }) {
         Ok(_) => ()
         Err(issue) => return Err(issue)

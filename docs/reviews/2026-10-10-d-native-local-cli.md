@@ -484,3 +484,52 @@ Store lookup contract uses the latter. The fixture now uses that immutable ID
 and independently refuses the CID as a replacement key. The first failed Store
 and its durable receipt are retained; no payload reopen, grant reconsumption,
 Owner change or expectation replacement resolves this fixture mistake.
+
+## Original Native Checkpoint transaction connection
+
+Main `8d187fd2368c7d2d85931592af95d4f79b1eb543` was merged normally in
+`c02255c192946d4d5424e9144ab5bdb1ee8ec082`. The sole generated journal API
+conflict was resolved by actual `moon info`; existing history declarations
+were preserved. Native Client and CLI caller typechecking passed.
+
+The original Client Run row now holds the Store-confirmed Checkpoint, checked
+Result declarations, bound authorization/environment identities, common Run
+projection, unresolved Effect names, verified Resolution and common resume
+identity. Checkpoint closure, Run revision and resume identity commit in one
+existing SQLite transaction. The common Checkpoint Owner decides closure,
+duplicates, conflicts, status transitions and unknown-Effect refusal. Current
+Native Host keys and reviewer authentication are independently checked before
+the write transaction; callbacks cannot overwrite an intervening revision.
+An open Checkpoint's current deadline is checked at commitment, independently
+of historical verification time. A duplicate still identifies its original
+durable answer after the deadline. No physical send or cleanup proof is issued.
+
+This is private, not-yet-shipped Client journal material. The decoder refuses
+missing/new malformed custody instead of repairing old rows or inferring a
+fresh continuation. The existing 131072-byte Run-row limit, actual SQLite
+record bound and 512 MiB execution envelope remain unchanged. Additional
+Checkpoint material must fit those limits; no replay fallback is installed.
+
+The signing fixture compiles original references, then independently signs the
+existing protocol with ephemeral Node Ed25519 keys. It never produces expected
+Run statuses or rows. Native verifies actual signatures through pinned OpenSSL.
+The transaction fixture uses an explicit durable Checkpoint artifact attached
+to a Values Run; it is not proof of Native Effect preview/write acceptance.
+Full/selected Native Client wrapper invocations provision these signatures;
+unrelated selected packages do not invoke the producer.
+
+The dirty diagnostic `run-uia7rg` passed 39 Native Client cases, then failed the
+Source caller because the D runner omitted `ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT`.
+That failed log and scratch are retained. The runner now supplies the existing
+owned fixture root; neither product expectations nor limits changed. Additional
+revision/authority races require fixed-SHA verification recorded separately.
+Eleven Node wrapper regressions passed in `run-l1PjrQ`; actual shared API
+generation and Native caller compilation passed in `run-LJwIcI`/`run-qZggab`.
+
+The remaining Direct Local connection is a durable resume claim/generation/
+lease/fence plus physical storage for entries issued by the existing Effect
+Ledger Owner. Main's new Native Resident row write/recovery is real, but binds
+an actual retained consumer, Site and DispatchRequest. Those identities must
+not be fabricated to open a Direct Local executor. Provider writes, CLI ingress,
+separate-process Run recovery, packed installation and Hosted CI remain
+unverified for this component. This does not complete the Local CLI goal.

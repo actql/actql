@@ -21,6 +21,7 @@ function fixture(t) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
+    'native-client-checkpoint-fixture.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
@@ -28,6 +29,8 @@ function fixture(t) {
   mkdirSync(join(checkout, 'scripts/fixtures'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
+  copyFileSync(new URL('fixtures/native-effect-resolution-fixture.mjs', import.meta.url),
+    join(checkout, 'scripts/fixtures/native-effect-resolution-fixture.mjs'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
   writeFileSync(join(checkout, '.github/workflows/ci.yml'),
     JSON.stringify({jobs: {core: {'timeout-minutes': 30, steps: [coreStep]}}}));
@@ -41,6 +44,18 @@ const {writeFileSync, existsSync, statSync} = require('node:fs');
 const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
+if (process.argv.includes('src/platform_native/client_host/run_checkpoint_wbtest.mbt') &&
+    process.argv.includes('--index')) {
+  const fixed = digit => 'sha256:' + digit.repeat(64);
+  console.log('ACTQL_CLIENT_CHECKPOINT ' + JSON.stringify({
+    checkpoint_id: 'mock-checkpoint', checkpoint_cid: fixed('1'),
+    run_id: 'mock-run', run_definition_cid: fixed('2'),
+    required_artifact: {artifact_cid: fixed('3')}, review_projection_cid: fixed('4'),
+    requirements: ['effect_scope_approved'], created_at: '2026-10-10T00:00:00.000Z',
+  }));
+  console.log('Total tests: 1, passed: 1, failed: 0.');
+  process.exit(0);
+}
 const root = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT;
 console.log('CHILD_ROOT=' + root);
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);

@@ -188,6 +188,8 @@ pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.Publicati
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_compiled_run_result_names(ClientCompiledRun) -> Array[String]
+
 pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClientProgram, Int) -> Result[ClientResultTransformation?, ClientCompiledRunIssue]
 
 pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> @run_publication.CapturedEffectDependencyBody?
