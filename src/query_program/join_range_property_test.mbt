@@ -100,7 +100,7 @@ test "JOIN range properties retain precise unknown-range and work refusals" {
   ).unwrap()
   assert_true(
     compile(removed, join_property_context(), construction_limits())
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
   assert_true(
     compile_query_script(
@@ -108,7 +108,7 @@ test "JOIN range properties retain precise unknown-range and work refusals" {
       join_property_context(),
       construction_limits(),
     )
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
   let query = @query.parse_query(
     "SELECT ((l)).missing AS value FROM objects AS l JOIN others AS r ON l.id = r.id",
