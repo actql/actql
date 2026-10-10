@@ -117,9 +117,10 @@ class LocalCore:
     def __init__(self, module: bytes, *, digest: str, transfer_capacity: int,
                  slots: int = 32, fuel: int = 100_000_000) -> None:
         if (type(module) is not bytes or hashlib.sha256(module).hexdigest() != digest
-                or type(transfer_capacity) is not int or transfer_capacity <= 0
+                or type(transfer_capacity) is not int
+                or not 0 < transfer_capacity <= 2**63 - 1
                 or type(slots) is not int or not 1 <= slots <= 1024
-                or type(fuel) is not int or fuel <= 0):
+                or type(fuel) is not int or not 0 < fuel <= 2**64 - 1):
             raise ValueError('Invalid installed Local Core artifact or capacity')
         # Remote-only imports never import or initialize the optional engine.
         try:

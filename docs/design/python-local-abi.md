@@ -40,6 +40,11 @@ version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
 
+The transfer allowance must fit a positive signed 64-bit ABI value; instruction
+fuel must fit a positive unsigned 64-bit Wasmtime value. Reject out-of-range
+Python integers before loading the engine. Foreign conversion must not wrap a
+configured capacity or fuel budget into a different value.
+
 Calls into an instance are serialized. Physical callbacks cannot reenter it.
 Input loans belong to their exact bridge object; copying a loan or using it in
 another instance cannot acquire custody. Python retains immutable bytes and
