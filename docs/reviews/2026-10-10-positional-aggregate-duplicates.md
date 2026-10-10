@@ -132,3 +132,24 @@ success is claimed for this unit. The shared heavy gate is respected, not
 removed or bypassed. The parent scalar and this aggregate connection's
 completion remain distinct from #1243's common JOIN capacity rejection and
 the wider frontend work.
+
+### Parent fixture integration
+
+Normal merge `67fc59bfefd9ed96aa4af074b3f9d9f317179196` retains parent
+#1251 at `a72d7f587e8072bd5cdff78732866bdf94f6816f`. It includes the
+independent Values producer link and correct `aql-text` format for DATA script
+controls. Expected rows, column types/order, NULL rules, acquisition counts
+and all aggregate product changes are unchanged. The sole conflict was authored
+inventory metadata; the existing enumerator resolves it to 3,334 occurrences,
+digest `7ee4f1bce060abcb02ed86be6ae370a7595d97ca165ad3b87d659e97a2b64c96`,
+with main's historical baseline retained. No product output generates expected values.
+
+Focused scalar/aggregate JS passed 12/12 (`run-2TdbQK`,
+`focused-test-ouToGC`) and Node fixture/inventory passed 40/40 (`run-1ck93T`,
+`focused-test-uWMeSX`) at that integrated revision. This follow-up changes
+only the evidence record. These are executed local checks, not hosted CI or
+pristine packed success. The unchanged 51-case-per-transport public cohort
+still requires normal exact-SHA packages and a complete Local/HTTPS receipt.
+The parent's earlier partial packed runs remain evidence of their own
+revisions, not this aggregate path. Shared heavy-slot waiting does not start a
+producer/consumer or establish acceptance; no lock is removed manually.
