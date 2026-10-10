@@ -14,6 +14,8 @@ import {
 }
 
 // Values
+pub fn[T] inspect_sqlite_source(@sqlite.Library, String, Int64, Int64, (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue]) -> Result[T, NativeRemoteJournalIssue]
+
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
 
 pub fn native_output_file_custody_generation(NativeOutputFileCustody) -> @filesystem.NativeFileGeneration
