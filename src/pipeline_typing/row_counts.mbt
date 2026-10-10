@@ -330,6 +330,7 @@ fn selector_count(
     ExplicitIds =>
       Some(count(@graph.selector_id_count(selector).to_int64(), false))
     RelationIds(_) => reduce_count(target.bind(t => count_at(t, rows)))
+    NodeWhere => reduce_count(nodes)
   }
   match (selected, nodes) {
     (Some(a), Some(z)) =>

@@ -332,26 +332,8 @@ test "missing or wrong Graph evidence cannot fabricate current MATCH rows" {
 
 ///|
 test "unconnected current Graph consumers cannot manufacture a legacy checked pipeline" {
-  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
-    "0".repeat(64) +
-    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   for
     (name, body) in [
-      (
-        "reach",
-        "{\"start\":{\"ids\":[" +
-        identity +
-        "]},\"direction\":\"out\",\"max_depth\":1}",
-      ),
-      (
-        "shortest_path",
-        "{\"source\":{\"ids\":[" +
-        identity +
-        "]},\"target\":{\"ids\":[" +
-        identity +
-        "]},\"direction\":\"out\",\"max_hops\":1}",
-      ),
-      ("graft_graph", "{\"with\":\"peer\"}"),
       (
         "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
       ),
@@ -399,6 +381,50 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
       is Ok(_),
     )
   }
+}
+
+///|
+test "current Graph graft preserves independent definition and property contracts" {
+  let checked = @pipeline_typing.check_carriers(
+    cursor("[{\"from\":\"g\",\"graft_graph\":{\"with\":\"peer\"}}]"),
+    [("g", graph_graph_scope_input()), ("peer", graph_graph_scope_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  guard carrier_at(checked, Step(0)) is Some(@carrier.GraphValue(graph)) else {
+    fail("Graft must retain a Graph")
+  }
+  let profile = @carrier.graph_definition(graph)
+  assert_eq(@carrier.graph_domain(profile), "sha256:" + "0".repeat(64))
+  assert_eq(@carrier.graph_node_count(profile), 1)
+  assert_eq(@carrier.graph_edge_count(profile), 1)
+  let node = @carrier.graph_node_at(profile, 0).unwrap()
+  assert_eq(@carrier.graph_element_definition_name(node), "N")
+  assert_eq(@carrier.graph_element_definition_labels(node), ["Node"])
+  assert_eq(@carrier.graph_element_definition_key_count(node), 1)
+  let key = @carrier.graph_element_definition_key_at(node, 0).unwrap()
+  assert_true(key.shape is @contract.Number)
+  assert_false(key.nullable)
+  assert_true(
+    @carrier.lookup(
+      @carrier.graph_element_definition_properties(node),
+      Unqualified("active"),
+    )
+    is Present({ contract: Some(c), .. }) &&
+    c.shape is @contract.Boolean &&
+    c.nullable,
+  )
+  let edge = @carrier.graph_edge_at(profile, 0).unwrap()
+  assert_eq(@carrier.graph_edge_endpoints(edge), ("N", "N"))
+  assert_eq(
+    @carrier.graph_element_definition_name(@carrier.graph_edge_element(edge)),
+    "E",
+  )
+  assert_eq(
+    @carrier.graph_element_definition_labels(@carrier.graph_edge_element(edge)),
+    ["Link"],
+  )
 }
 
 ///|

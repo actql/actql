@@ -557,15 +557,25 @@ fn lower_expression_measured(
         (@graph.predicate_expression(predicate), references)
       }
       GraphTraverseRows(checked) => {
-        let hop_index = binding_index / 2
-        guard binding_index >= 0 &&
-          @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        let predicate = if binding_index % 2 == 0 {
-          @graph.hop_edge_predicate(hop)
+        let selector = @graph.traverse_start(checked)
+        let predicate = if binding_index ==
+          @graph.traverse_hop_count(checked) * 2 {
+          @graph.selector_predicate(selector)
+        } else if binding_index == @graph.traverse_hop_count(checked) * 2 + 1 {
+          @graph.traverse_shortest(checked)
+          .map(@graph.shortest_targets)
+          .bind(@graph.selector_predicate)
         } else {
-          @graph.hop_node_predicate(hop)
+          let hop_index = binding_index / 2
+          guard binding_index >= 0 &&
+            @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
+            expression_fail(step.source, MissingCheckedBinding)
+          }
+          if binding_index % 2 == 0 {
+            @graph.hop_edge_predicate(hop)
+          } else {
+            @graph.hop_node_predicate(hop)
+          }
         }
         guard predicate is Some(predicate) else {
           expression_fail(step.source, MissingCheckedBinding)

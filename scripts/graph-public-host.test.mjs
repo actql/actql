@@ -12,6 +12,8 @@ import {graphPresenceOracle, deltaApplicationScenario as deltaScenario,
   './fixtures/graph-delta-application.mjs';
 import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/graph-union.mjs';
 import {subtractionScenario} from './fixtures/graph-subtraction.mjs';
+import {graphReachSourceSuccesses} from './fixtures/graph-reach-source-input.mjs';
+import {graphShortestSourceSuccesses} from './fixtures/graph-shortest-source-input.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -63,7 +65,7 @@ const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value
 // does not infer types from product rows or change Graph/Delta identity bodies.
 const graphIdentityRowWire = rows => rows.map(row => {
   const wire = {...row};
-  for (const name of ['id','src','dst','start_id','end_id','node_id']) {
+  for (const name of ['id','src','dst','start_id','end_id','node_id','source_id','target_id']) {
     if (Object.hasOwn(row,name) && row[name] !== null) wire[name] = {$json:row[name]};
   }
   for (const name of ['node_ids','edge_ids']) {
@@ -538,6 +540,53 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'graph-reach' || profile === 'graph-shortest') {
+      const samples = profile === 'graph-reach' ? graphReachSourceSuccesses : graphShortestSourceSuccesses;
+      for (const sample of samples) {
+        const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
+        const run = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        const state = await run.wait();
+        assert.equal(state.status, 'succeeded', JSON.stringify(state));
+        // Result publication is durable before the physical completion hook.
+        // Observe that exact hook before asserting its Store receipts/counts;
+        // an absent observation must never become an empty successful receipt.
+        if (!relationSnapshots.has(run.ref.runDefinitionCid)) {
+          const signal = AbortSignal.timeout(5_000);
+          await new Promise((resolve, reject) => {
+            const abort = () => reject(signal.reason);
+            signal.addEventListener('abort', abort, {once: true});
+            snapshotWaiters.set(run.ref.runDefinitionCid, () => {
+              signal.removeEventListener('abort', abort);
+              snapshotWaiters.delete(run.ref.runDefinitionCid);
+              resolve();
+            });
+          });
+        }
+        const physicalCount = () => physicalSteps.filter(name =>
+          name === 'physical_start_reserved' || name === 'computed').length;
+        const completedCount = physicalCount();
+        const attached = await client.attach(run.ref);
+        for (const [name, expected] of Object.entries(sample.results)) {
+          assert.deepEqual(await run.result(name).all(), expected.rows, sample.name);
+          assert.deepEqual((await run.result(name).describe()).columns, expected.columns, sample.name);
+          assert.deepEqual(await attached.result(name).all(), expected.rows, sample.name);
+        }
+        const repeated = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        assert.deepEqual(repeated.ref, run.ref);
+        assert.equal(physicalCount(), completedCount, 'Result reads and same intent must not repeat Compute');
+        const retained = relationSnapshots.get(run.ref.runDefinitionCid) ?? [];
+        if (Object.values(sample.results).some(result => result.rows.length > 0)) {
+          assert.ok(retained.length > 0, 'Graph query must traverse the retained Relation Store');
+        }
+        for (const receipt of retained) {
+          assert.equal(receipt.restored, true);
+          assert.equal(receipt.sourceReleased, true);
+          assert.equal(receipt.temporaryBodyReclaimed, true);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+      }
+      return;
+    }
     if (profile === 'graph-subtraction') {
       // Small authored cases cover both projections without multiplying every
       // property strategy by every transport/failure. Conditional p crosses the
@@ -592,17 +641,33 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       }
       return;
     }
-    if (profile === 'graph-union') {
+    if (profile === 'graph-union' || profile === 'graph-graft') {
+      const graft = profile === 'graph-graft';
+      const graftDocument = document => {
+        if (!graft) return;
+        document.id = document.id.replace('union-', 'graft-');
+        for (const step of document.stages[0].steps) if (step.union_graphs) {
+          if (step.union_graphs.with[0] === 'applied') step.from = 'applied';
+          step.graft_graph = {with: step.union_graphs.with[0] === 'applied' ? 'g' : step.union_graphs.with[0]};
+          delete step.union_graphs;
+        }
+      };
       for (const projection of ['node_rows','edge_rows']) for (const numeric of [false,true]) for (const empty of [false,true]) {
+        if (graft && numeric) continue;
         const {document,graphSnapshots,relationSnapshots:expectedStores,fields,expected} =
           unionGraphScenario(presenceFixture,projection,{numeric,empty});
+        graftDocument(document);
         const run = await client.startSource(canonicalText(document),{format:'json',submissionRef:client.newSubmission({nonce:`${document.id}-${mode}`})});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         // Preserve the independently specified canonical Graph row order on
         // both initial read and reattach; sorting actual results hides damage.
+        const startsBeforeRead = physicalSteps.filter(step => step === 'physical_start_reserved').length;
+        const computesBeforeRead = physicalSteps.filter(step => step === 'computed').length;
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
+        assert.equal(physicalSteps.filter(step => step === 'physical_start_reserved').length,startsBeforeRead);
+        assert.equal(physicalSteps.filter(step => step === 'computed').length,computesBeforeRead);
         assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
         assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),graphSnapshots.map(([task,bytes])=>({
           task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
@@ -620,6 +685,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       }
       const conflict = unionEndpointConflictScenario(presenceFixture);
+      graftDocument(conflict.document);
       const rejected = await client.startSource(canonicalText(conflict.document),{
         format:'json',submissionRef:client.newSubmission({nonce:`${conflict.document.id}-${mode}`}),
       });
@@ -630,7 +696,8 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       await assert.rejects((await client.attach(rejected.ref)).result('answer').all());
       assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       const {document} = unionGraphScenario(presenceFixture,'node_rows');
-      document.stages[0].steps[6].union_graphs.extra = true;
+      graftDocument(document);
+      document.stages[0].steps[6][graft ? 'graft_graph' : 'union_graphs'].extra = true;
       const before = physicalSteps.length;
       const requestId = `union-extra-field-${mode}`;
       const submissionRef = client.newSubmission({nonce: requestId});

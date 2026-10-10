@@ -212,8 +212,26 @@ test "keyed node traversal has independent exact budgets and every zero-hop stop
   // separate work budget or fabricated cleanup cost is introduced.
   // Peak private entries: start index (1), depth index (1), seed path (2)
   // and endpoint order index (1). Neither number comes from measured output.
-  let work = 3 + 1 + 1 + 3 + 1 + 1 + 2 * 5 * edge_count
-  let workspace = 1 + 1 + 2 + 1
+  // Added selector polls: recheck frames (32) and terminal (1), membership
+  // setup (1), equality root dispatches (2), field continuations (5), both
+  // name walks and comparison (3*28), definition (4), domain (214), key
+  // array (9), two type descriptors (72), and comparison terminal (1).
+  let selector_work = 32 +
+    1 +
+    1 +
+    2 +
+    5 +
+    3 * 28 +
+    4 +
+    (1 + 3 * 71) +
+    9 +
+    72 +
+    1
+  let work = 3 + 1 + 1 + 3 + 1 + 1 + 2 * 5 * edge_count + selector_work
+  // The pending selector retains a root, comparator and six live frames;
+  // these overlap the selected-start table (1), then are released before
+  // the independently counted five-slot path/output phase.
+  let workspace = 1 + 2 + 6
   for viewed in [false, true] {
     let start = fn(control, slots, allowed, rows, paths) {
       let limits : @execution.ValueLimits = {
