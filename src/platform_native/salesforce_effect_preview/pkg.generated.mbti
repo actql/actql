@@ -10,6 +10,7 @@ import {
   "actql/actql/platform_native/credential_resource",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/remote_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_resident_host",
   "actql/actql/platform_native/signature",
@@ -117,7 +118,7 @@ pub fn NativeResidentEffectReview::retry_cleanup(Self) -> Result[Bool, NativeRes
 pub fn NativeResidentEffectReview::review_projection(Self, () -> Bool, Int) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::settle_saved_row(Self, NativeResidentEffectWriteLimits) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::target_uses(Self) -> Array[NativeSalesforceTargetAccess]
-pub fn NativeResidentEffectReview::upload_review_projection(Self, @http_client.Client, String, () -> Bool) -> Result[Unit, NativeResidentEffectReviewUploadIssue]
+pub fn NativeResidentEffectReview::upload_review_projection(Self, @http_client.Client, String, String, () -> Bool) -> Result[Unit, NativeResidentEffectReviewUploadIssue]
 
 pub(all) struct NativeResidentEffectReviewCapture {
   artifact : @run_publication_host.ClientEffectLocalResultArtifact
@@ -189,6 +190,7 @@ pub(all) enum NativeResidentEffectReviewPreparationIssue {
 
 pub(all) enum NativeResidentEffectReviewUploadIssue {
   Review(NativeResidentEffectReviewIssue)
+  Report(@remote_client.NativeRemoteClientIssue)
   Http(@http_client.NativeHttpIssue)
   HttpStatus(Int)
   InvalidResponse

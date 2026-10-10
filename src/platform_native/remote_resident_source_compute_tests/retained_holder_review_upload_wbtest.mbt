@@ -16,26 +16,34 @@ fn retained_holder_upload_original_review(
     )
     .unwrap()
   let url = required("ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL")
+  let report_url = required("ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL")
   let (before_report, before_wire) = work
     .review_projection(() => true, 65536)
     .unwrap()
   assert_true(
-    work.upload_review_projection(client, url, () => false) is Err(Review(_)),
+    work.upload_review_projection(client, report_url, url, () => false)
+    is Err(Review(_)),
+  )
+  // The fixture's first response is bare HTTP success, not a typed ACK.
+  // No artifact upload may follow it, and the original report stays pending.
+  assert_true(
+    work.upload_review_projection(client, report_url, url, () => true)
+    is Err(Report(Protocol(_))),
   )
   assert_true(
-    work.upload_review_projection(client, url, () => true)
+    work.upload_review_projection(client, report_url, url, () => true)
     is Err(HttpStatus(503)),
   )
   let reads = Ref(0)
   assert_true(
-    work.upload_review_projection(client, url, () => {
+    work.upload_review_projection(client, report_url, url, () => {
       reads.val += 1
-      reads.val < 3
+      reads.val < 5
     })
     is Err(Review(_)),
   )
-  assert_eq(reads.val, 3)
-  work.upload_review_projection(client, url, () => true).unwrap()
+  assert_eq(reads.val, 5)
+  work.upload_review_projection(client, report_url, url, () => true).unwrap()
   let (after_report, after_wire) = work
     .review_projection(() => true, 65536)
     .unwrap()
