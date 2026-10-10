@@ -43,11 +43,33 @@ test "window expression extraction retains ordinary parser budgets and invalid p
   for
     invalid in [
       "SELECT ROW_NUMBER() OVER (ORDER BY id) + AS pos FROM orders", "SELECT id FROM orders WHERE ROW_NUMBER() OVER (ORDER BY id) > 1",
-      "FROM orders |> EXTEND ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos",
+      "FROM orders |> EXTEND ROW_NUMBER() OVER (ORDER BY id) + AS pos",
     ] {
     assert_true(
       parse_query(invalid, limits) is Err({ issue: Syntax(_), .. }),
       msg=invalid,
     )
   }
+}
+
+///|
+test "EXTEND scalar window operands use the adopted private analytic binding" {
+  let text = "FROM orders |> EXTEND ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos"
+  let parsed = parse_query(text, query_limits()).unwrap()
+  guard operation_at(parsed, 0) is Some(AnalyticExpressions(projections, names)) else {
+    fail("EXTEND window operands require explicit private bindings")
+  }
+  assert_eq(names.length(), 1)
+  assert_eq(names[0].value, "aql_select_window_0")
+  assert_eq(projections.length(), 2)
+  guard operation_at(parsed, 1) is Some(Extend(extended)) else {
+    fail("EXTEND retains its ordinary scalar continuation")
+  }
+  assert_eq(extended.length(), 1)
+  assert_eq(extended[0].name.unwrap().value, "pos")
+  let expression = extended[0].expression.unwrap()
+  assert_true(
+    expression_node(expression, expression_root(expression)).unwrap().kind
+    is Binary("+", _, _),
+  )
 }

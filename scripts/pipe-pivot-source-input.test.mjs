@@ -26,9 +26,17 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-anonymous-set-operands').columns,
     cases.get('pipe-pivot-duplicate-null-source').columns);
   assert.equal(pipePivotRefusals.some(input => input.name.endsWith('anonymous-set-operands')), false);
-  assert.equal(pipePivotSuccesses.length, 9);
-  assert.equal(pipePivotRefusals.length, 8);
-  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 17);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-empty-source').expected,
+    [{second: 0, first: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-identity-source').expected,
+    [{other: 0, second: 1, first: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').expected,
+    cases.get('pipe-pivot-anonymous-count-identity-source').expected);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').columns,
+    cases.get('pipe-pivot-anonymous-count-identity-source').columns);
+  assert.equal(pipePivotSuccesses.length, 15);
+  assert.equal(pipePivotRefusals.length, 11);
+  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 26);
 });
 
 test('PIVOT uses the same cases in the normal corpus and scoped packed execution', async () => {
@@ -42,4 +50,17 @@ test('PIVOT uses the same cases in the normal corpus and scoped packed execution
   assert.ok(driver.includes("['scripts/fixtures/pipe-pivot-source-input.mjs', 'pipe-pivot-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--pipe-pivot-only'/u);
   assert.ok(driver.includes("if (process.argv.includes('--pipe-pivot-only')) return;"));
+});
+
+test('HAVING scope oracles preserve named aliases and reject actual anonymous slots', () => {
+  const cases = new Map(pipePivotSuccesses.map(input => [input.name, input]));
+  const control = cases.get('pipe-pivot-aggregate-having-json-control');
+  for (const name of ['pipe-pivot-anonymous-aggregate-having-call',
+    'pipe-pivot-authored-aggregate-having-alias']) {
+    assert.deepEqual(cases.get(name).expected, control.expected);
+    assert.deepEqual(cases.get(name).columns, control.columns);
+  }
+  const refusals = pipePivotRefusals.filter(input => input.name.includes('anonymous-aggregate-having'));
+  assert.equal(refusals.length, 3);
+  for (const input of refusals) assert.equal(input.expectedCode, 'ClientProgramInvalidInput');
 });

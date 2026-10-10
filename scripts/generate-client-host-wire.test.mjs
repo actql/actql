@@ -17,10 +17,22 @@ test('generated Client–Host guards and types match the machine contract',
     'utf8'));
     assert.equal(outputs.native, await readFile(new URL(
       '../src/cmd/native_client/wire.generated.mbt', import.meta.url), 'utf8'));
+    assert.equal(outputs.nativeTests, await readFile(new URL(
+      '../src/cmd/native_client/wire_owner_observations.generated_wbtest.mbt', import.meta.url), 'utf8'));
     assert.equal(outputs.types, await readFile(new URL(
       '../packages/client-wire/client-host.generated.d.ts', import.meta.url),
     'utf8'));
   });
+
+test('Native observation-only guards remain tested without adding a CLI operation', () => {
+  const output = buildClientHostWire(registry, protocol);
+  assert.doesNotMatch(output.native, /fn wire_owner_observations_shape\(/u);
+  assert.match(output.nativeTests, /fn wire_owner_observations_shape\(/u);
+  const changed = structuredClone(registry);
+  changed.schemas.owner_observations.properties.owners.maxItems = 4;
+  assert.notEqual(buildClientHostWire(changed, protocol).nativeTests, output.nativeTests);
+  assert.equal(buildClientHostWire(changed, protocol).native, output.native);
+});
 
 test('Native cancellation shapes retain each registered operation boundary', () => {
   const original = buildClientHostWire(registry, protocol).native;

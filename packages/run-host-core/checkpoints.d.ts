@@ -12,6 +12,10 @@ export declare function checkpointWaitingState(sealedWire: string,
 export declare function checkpointSealBody(bodyWire: string): string;
 export declare function checkpointLifecycleState(runId: string, status: string,
   updatedAt: string, declaredResultsJson: string): string;
+/** Project rejection/expiry/cancellation without dispatch from common Owner facts.
+ * Unknown Effect outcomes remain needs_reconciliation, never completed cleanup. */
+export declare function waitingExitState(runId: string, updatedAt: string,
+  declaredResultsJson: string, unknownEffectsJson: string): string;
 export declare function checkpointExpiredAt(checkpointWire: string, now: string): string;
 export declare function runStateAdmit(wire: string): string;
 export declare function runTransitionAllowed(from: string, to: string): boolean;

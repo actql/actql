@@ -35,10 +35,10 @@ test "Native attested Effect resolution verifies installed Host and current revi
     { key_id: "reviewer-key", reviewer_id: "native-reviewer", },
   ]
   let crypto = @signature.load_library(crypto_path).unwrap()
-  let keys : Array[NativeEffectHostAuthority] = [
+  let keys : Array[@preview.NativeEffectHostAuthority] = [
     { key_id: "host-key", public_key_pem: public_key, },
   ]
-  let admitted = admit_native_effect_resolution(
+  let admitted = @preview.admit_native_effect_resolution(
     crypto,
     checkpoint,
     verified_wire,
@@ -53,7 +53,7 @@ test "Native attested Effect resolution verifies installed Host and current revi
   assert_eq(admitted.wire, verified_wire)
   assert_true(admitted.resume_intent_id is Some(_))
   assert_true(
-    admit_native_effect_resolution(
+    @preview.admit_native_effect_resolution(
       crypto,
       checkpoint,
       verified_wire,
@@ -63,10 +63,10 @@ test "Native attested Effect resolution verifies installed Host and current revi
       () => true,
       limits,
     )
-    is Err(AttestationRejected),
+    is Err(@preview.AttestationRejected),
   )
   assert_true(
-    admit_native_effect_resolution(
+    @preview.admit_native_effect_resolution(
       crypto,
       checkpoint,
       verified_wire,
@@ -76,10 +76,10 @@ test "Native attested Effect resolution verifies installed Host and current revi
       () => true,
       limits,
     )
-    is Err(AttestationRejected),
+    is Err(@preview.AttestationRejected),
   )
   assert_true(
-    admit_native_effect_resolution(
+    @preview.admit_native_effect_resolution(
       crypto,
       checkpoint,
       verified_wire,
@@ -89,10 +89,10 @@ test "Native attested Effect resolution verifies installed Host and current revi
       () => true,
       limits,
     )
-    is Err(AttestationRejected),
+    is Err(@preview.AttestationRejected),
   )
   assert_true(
-    admit_native_effect_resolution(
+    @preview.admit_native_effect_resolution(
       crypto,
       checkpoint,
       verified_wire,
@@ -102,11 +102,11 @@ test "Native attested Effect resolution verifies installed Host and current revi
       () => true,
       limits,
     )
-    is Err(AttestationRejected),
+    is Err(@preview.AttestationRejected),
   )
   let current_calls = Ref(0)
   assert_true(
-    admit_native_effect_resolution(
+    @preview.admit_native_effect_resolution(
       crypto,
       checkpoint,
       verified_wire,
@@ -119,11 +119,11 @@ test "Native attested Effect resolution verifies installed Host and current revi
       },
       limits,
     )
-    is Err(AuthorityDenied),
+    is Err(@preview.AuthorityDenied),
   )
   assert_eq(current_calls.val, 2)
   assert_true(
-    admit_native_effect_resolution(
+    @preview.admit_native_effect_resolution(
       crypto,
       checkpoint,
       verified_wire,

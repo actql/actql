@@ -47,11 +47,24 @@ test "optional AS does not swallow clause starters or incomplete syntax" {
   for
     text in [
       "SELECT 1 QUALIFY TRUE", "SELECT 1 WINDOW w", "SELECT 1 id extra", "SELECT 1 id FROM",
-      "SELECT COUNT(*) FROM records", "SELECT * alias FROM records",
+      "SELECT COUNT(*) AS", "SELECT * alias FROM records",
     ] {
     assert_true(
       parse_query(text, query_limits()) is Err({ issue: Syntax(_), .. }),
       msg=text,
     )
+  }
+}
+
+///|
+test "an unnamed whole SQL aggregate retains no authored output alias" {
+  let query = parse_query("SELECT COUNT(*) FROM records", query_limits()).unwrap()
+  match operation_at(query, 1) {
+    Some(Select(projections, _)) => {
+      assert_eq(projections.length(), 1)
+      assert_eq(projections[0].name, None)
+      assert_true(projections[0].aggregate is Some(_))
+    }
+    _ => fail("GROUP is followed by the authored aggregate projection")
   }
 }
