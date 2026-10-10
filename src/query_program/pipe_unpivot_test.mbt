@@ -44,6 +44,30 @@ test "UNPIVOT parameter input remains a checked ordinary Program" {
     },
     construction_limits(),
   ).unwrap()
+  let renamed = compile(
+    @query.parse_query(
+      "FROM UNNEST(@rows) AS item |> SELECT item.id AS id, item.jan AS jan, item.feb AS feb |> SET jan = jan + 100 |> RENAME feb AS february |> UNPIVOT INCLUDE NULLS(amount FOR month IN (jan,february)) |> ORDER BY id, month",
+      syntax_limits(),
+    ).unwrap(),
+    {
+      ..fixture_context(),
+      inputs: [],
+      parameter_declarations: Some(declarations),
+    },
+    construction_limits(),
+  ).unwrap()
+  // This complete machine control is authored from slot/scope contracts,
+  // not generated from the lowerer output. The same control is retained in
+  // docs/reviews/fixtures/pipe-unpivot-current-slots.program.json for the
+  // common capacity/lifetime owner to reproduce its public refusal.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"rows":{"type":"array","nullable":false,"max_items":3,"items":{"type":"object","nullable":false,"fields":{"id":{"type":"number","nullable":false},"jan":{"type":"number","nullable":true},"feb":{"type":"number","nullable":true}}}}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_source_free"},{"from":"aql_source_free","derive":{"aql_unnest_array_2":{"$param":"rows"}}},{"unnest":{"column":"aql_unnest_array_2","as":"aql_unnest_element_3"}},{"derive":{"aql_unnest_field_4":{"property":{"value":{"field":"aql_unnest_element_3"},"name":"feb"}},"aql_unnest_field_5":{"property":{"value":{"field":"aql_unnest_element_3"},"name":"id"}},"aql_unnest_field_6":{"property":{"value":{"field":"aql_unnest_element_3"},"name":"jan"}}}},{"select":[{"id":"aql_unnest_field_5"},{"jan":"aql_unnest_field_6"},{"feb":"aql_unnest_field_4"}]},{"derive":{"aql_pipe_set_3":{"add":[{"field":"jan"},{"literal":100}]}}},{"select":[{"id":"id"},{"jan":"aql_pipe_set_3"},{"february":"feb"}]},{"unpivot":{"columns":["jan","february"],"keep":["id"],"name_column":"aql_unpivot_name_3","value_column":"aql_unpivot_value_4"}},{"sort":[{"field":"id","dir":"asc","nulls":"first"},{"field":"aql_unpivot_name_3","dir":"asc","nulls":"first"}]},{"select":["id",{"amount":"aql_unpivot_value_4"},{"month":"aql_unpivot_name_3"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id","amount","month"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_eq(semantic(renamed), semantic(expected))
   assert_false(semantic(actual).contains("aql_unpivot_input_"))
   assert_false(semantic(actual).contains("aql_unpivot_label_"))
   match
