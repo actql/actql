@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 35);
-  assert.equal(setCorrespondingRefusals.length, 19);
+  assert.equal(setCorrespondingSuccesses.length, 41);
+  assert.equal(setCorrespondingRefusals.length, 22);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -115,4 +115,26 @@ test('CORRESPONDING matching participates in both normal and narrow packed accep
   assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}'));
   assert.ok(corpus.includes('scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals)'));
+});
+
+
+test('parenthesized operands preserve independent ordinal values and private scopes', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-parenthesized-'));
+  assert.equal(normals.length, 6);
+  for (const f of normals) assert.deepEqual(f.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: false}}]);
+  const nested = normals.find(x => x.name.endsWith('nested-set'));
+  assert.deepEqual(nested.expected, [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}, {a: 3, b: 4}]);
+  const scoped = normals.find(x => x.name.endsWith('scoped-windows'));
+  assert.ok(scoped.text.includes('SET x = x + 10'));
+  assert.ok(scoped.text.includes('ORDER BY original.x'));
+  assert.ok(scoped.text.includes('ORDER BY x DESC'));
+  assert.deepEqual(scoped.expected, [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}]);
+  assert.deepEqual(normals.find(x => x.name.endsWith('anonymous-aggregate')).expected, [{a: 0, b: 0}, {a: 3, b: 2}]);
+  assert.deepEqual(normals.find(x => x.name.endsWith('anonymous-scalars')).expected, [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]);
+  const source = normals.find(x => x.name.endsWith('source-windows'));
+  assert.equal(source.sourceReadSessionCount, 1);
+  assert.equal(source.format, 'sql');
+  assert.deepEqual(normals.find(x => x.name.endsWith('typed-empty')).expected, []);
+  assert.equal(setCorrespondingRefusals.filter(x => x.name.includes('refuse-parenthesized-')).length, 3);
 });
