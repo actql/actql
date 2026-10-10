@@ -155,3 +155,37 @@ them. A missing next task proves neither public Run success nor Named Result
 publication. Durable admission, publication storage and restoration of completed
 materials must be connected separately before the ordinary Python Client can
 advertise Local execution.
+
+## Physical persistence
+
+The private Python `LocalByteStore` provides opaque byte storage and an atomic
+compare-and-exchange. It does not decode Program, Submission, Run, task or Result
+records. The existing Core must issue and re-admit their closed records, original
+identities and transitions. A missing physical row is not a Source absence fact
+or permission to retry an operation. A store generation is only a physical CAS
+token; it is not a Run revision, observation cursor or execution epoch.
+
+The SQLite file uses a closed private physical schema and format identity. An
+unknown format is refused without migration or deletion. The trusted Host supplies
+a private owned directory; files are created with owner-only permissions and
+existing symlinks or nonprivate files are refused. This physical adapter requires
+POSIX ownership checks and SQLite STRICT-table support. Those requirements do not
+apply to importing or using the Remote Client.
+
+Transactions use SQLite's existing exclusive write serialization and FULL
+synchronization. Competing generations cannot replace one another. A failed
+commit acknowledgement remains an exception; the adapter neither reports success
+nor repeats the write. The Host must read the same original bytes and let Core
+decide the next operation. If both commit and rollback fail, the retained connection cannot return its
+uncommitted bytes or accept another write. Only its pending cleanup may proceed.
+Close releases the connection, preserves persisted records and performs no Run
+cancellation or recovery. Failed close retains its
+exact cleanup handle, including initialization failures.
+
+Record count, individual byte length and aggregate payload length have explicit
+physical ceilings. Oversized retained rows are refused before returning their
+payload to Python. These payload limits do not cover the SQLite page cache,
+rollback journal, file/schema overhead, Python descriptors, Core Wasm memory or
+DuckDB workspace. Their simultaneous holdings still require the existing shared
+resource Owner; a byte-store test alone establishes no aggregate Local bound or
+successful Run recovery.
