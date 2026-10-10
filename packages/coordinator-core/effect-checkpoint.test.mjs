@@ -135,3 +135,50 @@ test('portable resume delivery refuses invalid and unbounded caller inputs befor
     assert.throws(() => resumeDelivery(original, {limits: {...limits, maxWireBytes: maximum}}), invalid);
   }
 });
+
+test('resume input limits apply before UTF-8 allocation, including the remaining aggregate budget', () => {
+  const original = report();
+  const NativeEncoder = globalThis.TextEncoder;
+  const encoded = [];
+  globalThis.TextEncoder = class extends NativeEncoder {
+    encode(value) {
+      encoded.push(value.length);
+      assert.ok(value.length <= limits.maxWireBytes, 'oversized text reached the encoder');
+      return super.encode(value);
+    }
+  };
+  try {
+    const invalid = {message: 'InvalidEffectResumeDeliveryInput'};
+    const huge = 'x'.repeat(limits.maxWireBytes + 1);
+    for (const changes of [{wire: huge},
+      {authentication: {...resume.authentication, proof_preimage: huge}},
+      {reviewers: [{key_id: huge, reviewer_id: resume.authentication.reviewer_id}]},
+      {claim: {claimant: huge, generation: 1n}}]) {
+      assert.throws(() => resumeDelivery(original, changes), invalid);
+    }
+    encoded.length = 0;
+    assert.throws(() => resumeDelivery(original, {
+      wire: 'x'.repeat(64), limits: {...limits, maxWireBytes: 65},
+    }), invalid);
+    assert.deepEqual(encoded, ['original-coordinator'.length, 64]);
+  } finally {
+    globalThis.TextEncoder = NativeEncoder;
+  }
+});
+
+test('resume admission snapshots typed caller facts once without implicit string coercion', () => {
+  const original = report();
+  let reads = 0;
+  const authentication = {...resume.authentication};
+  Object.defineProperty(authentication, 'key_id', {enumerable: true, get() {
+    reads++;
+    return reads === 1 ? resume.authentication.key_id : {toString() {
+      throw new Error('CallerValueCoerced');
+    }};
+  }});
+  assert.equal(resumeDelivery(original, {authentication}), resume.delivery.canonical);
+  assert.equal(reads, 1);
+  authentication.key_id;
+  assert.throws(() => resumeDelivery(original, {authentication}),
+    {message: 'InvalidEffectResumeDeliveryInput'});
+});

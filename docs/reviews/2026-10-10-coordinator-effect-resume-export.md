@@ -15,6 +15,12 @@ bounded, claim generation uses an exact positive Int64 `bigint`, and sparse or
 oversized Reviewer arrays are refused. Authentication facts use the existing
 Checkpoint Owner's field names without normalizing their values.
 
+The JavaScript boundary snapshots typed caller facts once. It rejects strings
+using their UTF-16 length before UTF-8 encoding, then checks actual encoded bytes
+against the remaining aggregate budget. An oversized rejected input cannot first
+allocate an unbounded encoded buffer, and mutable accessors cannot substitute
+different facts between validation and the common Owner call.
+
 This is serialization and common metadata admission, not physical signature
 verification or current permission. The Cloud caller must authenticate and
 persist the original Resolution through the existing Run Owner, durably acquire

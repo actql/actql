@@ -129,38 +129,58 @@ const effectCheckpointValue = handle => {
 };
 const effectResumeAuthenticationFields = ['key_id', 'reviewer_id',
   'expected_authority_scope_cid', 'authority_context_cid', 'policy_cid', 'proof_preimage'];
-const closedTextRecord = (value, fields) => value !== null && typeof value === 'object' &&
-  Object.keys(value).length === fields.length &&
-  fields.every(key => Object.hasOwn(value, key) && typeof value[key] === 'string');
+const snapshotTextRecord = (value, fields) => {
+  if (value === null || typeof value !== 'object' ||
+      Object.keys(value).length !== fields.length ||
+      !fields.every(key => Object.hasOwn(value, key))) return null;
+  const snapshot = fields.map(key => value[key]);
+  return snapshot.every(item => typeof item === 'string') ? snapshot : null;
+};
 
 // This only serializes an original, approved common Resolution. Authenticate
 // and persist the claim through the existing Run Owner, then fence immediately
 // before handout. A transported claim is never a current Site observation.
 export const effectResumeDeliveries = Object.freeze({
   prepareJson: (report, resolutionWire, authentication, reviewers, claim, limits) => {
-    const utf8 = new TextEncoder();
-    if (typeof resolutionWire !== 'string' ||
-        !closedTextRecord(authentication, effectResumeAuthenticationFields) ||
-        !siteArray(reviewers, value => closedTextRecord(value, ['key_id', 'reviewer_id'])) ||
-        claim === null || typeof claim !== 'object' || Object.keys(claim).length !== 2 ||
+    const invalid = () => { throw new TypeError('InvalidEffectResumeDeliveryInput'); };
+    if (typeof resolutionWire !== 'string' || !Array.isArray(reviewers)) invalid();
+    const count = reviewers.length;
+    if (count > 64 || claim === null || typeof claim !== 'object' || Object.keys(claim).length !== 2 ||
         !Object.hasOwn(claim, 'claimant') || !Object.hasOwn(claim, 'generation') ||
-        typeof claim.claimant !== 'string' || utf8.encode(claim.claimant).length === 0 ||
-        utf8.encode(claim.claimant).length > 256 || !siteInteger(claim.generation) ||
-        claim.generation === 0n || limits === null || typeof limits !== 'object' ||
-        ![['maxWireBytes', 262144], ['maxNodes', 4096], ['maxDepth', 32]].every(
-          ([key, maximum]) => Number.isSafeInteger(limits[key]) && limits[key] > 0 &&
-            limits[key] <= maximum)) {
-      throw new TypeError('InvalidEffectResumeDeliveryInput');
+        limits === null || typeof limits !== 'object') invalid();
+    // Snapshot caller values once; validation and the Owner see the same facts.
+    const claimant = claim.claimant, generation = claim.generation;
+    const bounds = [limits.maxWireBytes, limits.maxNodes, limits.maxDepth];
+    if (typeof claimant !== 'string' || claimant.length === 0 || claimant.length > 256 ||
+        !siteInteger(generation) || generation === 0n ||
+        !bounds.every((value, index) => Number.isSafeInteger(value) && value > 0 &&
+          value <= [262144, 4096, 32][index])) invalid();
+    const fields = snapshotTextRecord(authentication, effectResumeAuthenticationFields);
+    if (fields === null) invalid();
+    const keys = [], ids = [];
+    for (let index = 0; index < count; index++) {
+      if (!Object.hasOwn(reviewers, index)) invalid();
+      const pair = snapshotTextRecord(reviewers[index], ['key_id', 'reviewer_id']);
+      if (pair === null) invalid();
+      keys.push(pair[0]);
+      ids.push(pair[1]);
     }
-    const fields = effectResumeAuthenticationFields.map(key => authentication[key]);
-    const keys = reviewers.map(value => value.key_id), ids = reviewers.map(value => value.reviewer_id);
-    if ([resolutionWire, ...fields, ...keys, ...ids].reduce((sum, value) =>
-      sum + utf8.encode(value).length, 0) > limits.maxWireBytes) {
-      throw new TypeError('InvalidEffectResumeDeliveryInput');
+    const utf8 = new TextEncoder();
+    // UTF-16 length is a safe lower bound on UTF-8 bytes. Reject first so the
+    // encoder cannot allocate an arbitrarily large buffer for a refused input.
+    const byteLength = (value, maximum) => {
+      if (value.length > maximum) invalid();
+      const length = utf8.encode(value).length;
+      if (length > maximum) invalid();
+      return length;
+    };
+    byteLength(claimant, 256);
+    let remaining = bounds[0];
+    for (const value of [resolutionWire, ...fields, ...keys, ...ids]) {
+      remaining -= byteLength(value, remaining);
     }
     return checked(owner.coordinatorEffectResumeDeliveryJson(effectCheckpointValue(report),
-      resolutionWire, fields, keys, ids, claim.claimant, claim.generation,
-      limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      resolutionWire, fields, keys, ids, claimant, generation, ...bounds));
   },
 });
 export const effectCheckpointReports = Object.freeze({
