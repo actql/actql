@@ -117,6 +117,38 @@ test "positional tails preserve ordinal order offset aggregate and alias scopes"
 }
 
 ///|
+test "positional ORDER duplicate aliases cannot fall back to an input column" {
+  let source = "SELECT 0 AS a, 0 AS b UNION ALL (SELECT x AS x, -x AS `X` FROM t ORDER BY x) ORDER BY a, b"
+  assert_true(
+    compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    )
+    is Err(AmbiguousColumn),
+  )
+  let qualified = compile(
+    @query.parse_query(
+      "SELECT 0 AS a, 0 AS b UNION ALL (SELECT x AS x, -x AS `X` FROM t ORDER BY t.x) ORDER BY a, b",
+      syntax_limits(),
+    ).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  ).unwrap()
+  match
+    @check.check_parsed(
+      qualified,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("qualified ORDER retains its closed input scope")
+  }
+}
+
+///|
 test "positional ORDER cannot resolve duplicate aliases or generated output names" {
   for receiver in ["v", "`V`", "v.member"] {
     let source = "SELECT 0 AS a, 0 AS b UNION ALL (SELECT x AS v, -x AS `V` FROM t ORDER BY " +
