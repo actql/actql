@@ -181,6 +181,106 @@ test "expression corpus accepted: 36" {
 }
 
 ///|
+test "expression corpus accepted: 37" {
+  assert_tree("round(x)", "{\"round\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 38" {
+  assert_tree("trunc(x)", "{\"trunc\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 39" {
+  assert_tree("round(-1)", "{\"round\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 40" {
+  assert_tree("trunc(-1)", "{\"trunc\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 41" {
+  assert_tree("round(-x)", "{\"round\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 42" {
+  assert_tree("trunc(-x)", "{\"trunc\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 43" {
+  assert_tree("round(negate(1))", "{\"round\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 44" {
+  assert_tree("trunc(negate(1))", "{\"trunc\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 45" {
+  assert_tree("round(NULL)", "{\"round\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 46" {
+  assert_tree("trunc(NULL)", "{\"trunc\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 47" {
+  assert_tree("ltrim(s)", "{\"ltrim\":{\"field\":\"s\"}}")
+}
+
+///|
+test "expression corpus accepted: 48" {
+  assert_tree("ltrim($p)", "{\"ltrim\":{\"$param\":\"p\"}}")
+}
+
+///|
+test "expression corpus accepted: 49" {
+  assert_tree("ltrim(NULL)", "{\"ltrim\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 50" {
+  assert_tree("ltrim('\u{2003}\u{1f600}e\u{301}\u{2003}')", "{\"ltrim\":{\"literal\":\"\u{2003}\u{1f600}e\u{301}\u{2003}\"}}")
+}
+
+///|
+test "expression corpus accepted: 51" {
+  assert_tree("ltrim('')", "{\"ltrim\":{\"literal\":\"\"}}")
+}
+
+///|
+test "expression corpus accepted: 52" {
+  assert_tree("rtrim(s)", "{\"rtrim\":{\"field\":\"s\"}}")
+}
+
+///|
+test "expression corpus accepted: 53" {
+  assert_tree("rtrim($p)", "{\"rtrim\":{\"$param\":\"p\"}}")
+}
+
+///|
+test "expression corpus accepted: 54" {
+  assert_tree("rtrim(NULL)", "{\"rtrim\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 55" {
+  assert_tree("rtrim('\u{2003}\u{1f600}e\u{301}\u{2003}')", "{\"rtrim\":{\"literal\":\"\u{2003}\u{1f600}e\u{301}\u{2003}\"}}")
+}
+
+///|
+test "expression corpus accepted: 56" {
+  assert_tree("rtrim('')", "{\"rtrim\":{\"literal\":\"\"}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -403,4 +503,64 @@ test "expression corpus rejected: 44" {
 ///|
 test "expression corpus rejected: 45" {
   assert_true(parse("STRPOS(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 46" {
+  assert_true(parse("round()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 47" {
+  assert_true(parse("trunc()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 48" {
+  assert_true(parse("round(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 49" {
+  assert_true(parse("trunc(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 50" {
+  assert_true(parse("ltrim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 51" {
+  assert_true(parse("ltrim(s,' ')", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 52" {
+  assert_true(parse("ltrim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 53" {
+  assert_true(parse("LTRIM(s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 54" {
+  assert_true(parse("rtrim()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 55" {
+  assert_true(parse("rtrim(s,' ')", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 56" {
+  assert_true(parse("rtrim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 57" {
+  assert_true(parse("RTRIM(s)", test_limits()) is Err(_))
 }

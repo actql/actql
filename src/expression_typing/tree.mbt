@@ -160,10 +160,14 @@ fn flatten(
       | "sqrt"
       | "abs"
       | "sign"
+      | "round"
+      | "trunc"
       | "floor"
       | "lower"
       | "upper"
       | "trim"
+      | "ltrim"
+      | "rtrim"
       | "nfkc"
       | "case_fold" => children.push((body, Form))
       _ =>

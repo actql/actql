@@ -1360,8 +1360,11 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
     bytesLimit.unit, bytesLimit.effective_max],
   ['rows', 2, 'bytes', 1000]);
-  assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.role),
-    ['proven_upper_bound', 'host_ceiling']);
+  // Expected witnesses are independently assembled from the fixture's
+  // normative preimages, then sorted by their current witness CIDs. Extending
+  // the expression contract can change that order without changing the caps.
+  assert.deepEqual(rowsLimit.candidates,
+    expected.limits.find(limit => limit.unit === 'rows').candidates);
   assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.witness_cid),
     [...rowsLimit.candidates.map(candidate => candidate.witness_cid)].sort());
   for (const limit of [rowsLimit, bytesLimit]) {

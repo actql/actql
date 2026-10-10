@@ -1868,10 +1868,15 @@ pub(all) enum UnaryOperator {
   Length
   Upper
   Lower
+  Trim
+  LTrim
+  RTrim
   Floor
   Sqrt
   Abs
   Sign
+  Round
+  Trunc
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

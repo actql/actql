@@ -55,8 +55,8 @@ pub fn unary(
   value : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
-    // Expanding text is evaluated only by the bounded expression continuation.
-    Upper | Lower => Err(InvalidOperand)
+    // Constructed text is evaluated only by the bounded expression continuation.
+    Upper | Lower | Trim | LTrim | RTrim => Err(InvalidOperand)
     Length =>
       match value {
         Null => Ok(Null)
@@ -81,6 +81,28 @@ pub fn unary(
       match value {
         Null => Ok(Null)
         Number(n) => finite(n.floor())
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+    Round | Trunc =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else {
+            let magnitude = if n < 0.0 { -n } else { n }
+            let integral = magnitude.floor()
+            // Compare the fractional part before adding: magnitude + 0.5
+            // would round the predecessor of 0.5 up and change large odd
+            // integers. Fractional binary64 inputs are below 2^52, so this
+            // conditional integer increment is exact and cannot overflow.
+            let rounded = if op == @lower.Round && magnitude - integral >= 0.5 {
+              integral + 1.0
+            } else {
+              integral
+            }
+            finite(if n < 0.0 { -rounded } else { rounded })
+          }
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
     Sign =>
