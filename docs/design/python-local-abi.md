@@ -105,6 +105,16 @@ aggregate allowance. Standalone `open_pool` uses the same implementation with
 its own bounded Ledger. This composition hook does not establish that all
 product components are already connected to the root.
 
+`reserve_workspace` reserves the configured physical allowance on that same
+existing Ledger before physical allocation. `close_workspace` marks cleanup
+pending, then waits separately for physical stop and physical cleanup. It
+retains the same loan/reservation on either failure and remembers successful
+observations, so settlement retry does not repeat physical cleanup. Logical
+Compute completion, cancellation requests and transfer-pool closure cannot
+return this allowance. The trusted physical adapter must supply observations
+of the exact reserved workspace; this binding does not authorize I/O or imply
+that the product's complete runtime footprint has been accounted for.
+
 ## Physical DuckDB boundary
 
 The private Python adapter loads an explicitly installed standalone DuckDB C

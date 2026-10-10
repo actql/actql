@@ -247,7 +247,14 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   }).unwrap()
   // An independent Host workspace stays reserved while this same root runs
   // and later releases Compute. This is a fixed reservation, not RSS evidence.
-  let workspace = @resources.reserve_attempt(root, 0L, 0L, 128L).unwrap()
+  let physical_stopped = Ref(false)
+  let physical_cleaned = Ref(false)
+  let workspace = @buffers.reserve_workspace(
+    root,
+    128L,
+    () => physical_stopped.val,
+    () => physical_cleaned.val,
+  ).unwrap()
   let host = @local_run.configure_captured_source_local_compute_on_ledger(
     plan,
     source,
@@ -434,8 +441,13 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
     128L,
   )
-  assert_true(@resources.reservation_open(workspace))
-  @resources.settle_reservation(root, workspace).unwrap()
+  assert_eq(@buffers.close_workspace(workspace), Err(@buffers.CleanupPending))
+  assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 128L)
+  physical_stopped.val = true
+  assert_eq(@buffers.close_workspace(workspace), Err(@buffers.CleanupPending))
+  assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 128L)
+  physical_cleaned.val = true
+  @buffers.close_workspace(workspace).unwrap()
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
   assert_true(@mock.mock_captured_source(issuer, attempt, observation) is Ok(_))
   @mock.close_mock_query_issuer(issuer)
