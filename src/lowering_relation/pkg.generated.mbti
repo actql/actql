@@ -1072,6 +1072,10 @@ pub(all) enum BinaryOperator {
   Subtract
   Multiply
   Divide
+  SafeDivide
+  SafeAdd
+  SafeSubtract
+  SafeMultiply
   Modulo
   Strpos
   TrimSet
@@ -1867,6 +1871,7 @@ pub(all) enum UnaryOperator {
   Sign
   Round
   Trunc
+  SafeNegate
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

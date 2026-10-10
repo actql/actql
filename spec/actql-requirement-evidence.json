@@ -1962,7 +1962,7 @@
     },
     {
       "requirement_id": "actql.language/scalar-expressions.functions-input-result-null-failure-rule-beyond",
-      "statement_sha256": "d3ef4a61d35f228ea3bc04b046bfa18e684f0e55afe12ac5501eeb442fbd7711",
+      "statement_sha256": "4d50d2b5e713a507f21de0bdbf7854cf28ac0477ad1a7738504a6a05af9faac1",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2182,7 +2182,7 @@
     },
     {
       "requirement_id": "actql.language/expression-text.signatures-mapping-constraints-len-x-sqrt-x",
-      "statement_sha256": "369ea9a8a97e155c2fa3e7da0a8dd3e02521a75640a38b9aa601db528cf00d79",
+      "statement_sha256": "10e11597e29e8d505d98774cda0a759106ed80854435f1a6e14bf30db693680b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8815,7 +8815,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "ed30333639e843584b3ae78bee1f2c689b91c73707b9dd0f2c1373d4ae2af002",
+      "statement_sha256": "9bd960a6ed86a598444786c59c9c334ec2df95a61add95149f6082578266dcf6",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13457,7 +13457,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "2d3f16ee3071c20b46915ce04ce2d5b15e3e8c2ecdf126cf905e7747558acd66",
+      "statement_sha256": "b76b6e935a75a94d0d2731c67fbf9949167bc25d405dc6f6977c1a212cfca20f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
