@@ -80,7 +80,7 @@ def structured_checks(client):
         assert get_check_input(Observation(checked.to_dict()), 'parameters') is None
         assert resolve_check_location(checked, dict(reason['location'], revision='rev:' + '0' * 64)) is None
         assert 'private-leaf' not in json.dumps(checked.to_dict(), ensure_ascii=False)
-        assert 'private-leaf' not in json.dumps(explain_check_reason(reason))
+        assert 'private-leaf' not in json.dumps(dict(explain_check_reason(reason)))
     absent = yield client.check(program, kind='program', scope='bound_input', parameters={})
     assert absent['report']['verdict'] == 'undetermined'
     assert absent['report']['requirements'][0]['location']['pointer'] == '/params/payload'
