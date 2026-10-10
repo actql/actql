@@ -48,7 +48,7 @@ export function managedBeforePausePolls(source) {
 
 // These are exact historical source comparisons, never runtime fallbacks.
 // The lower cleanup Bool reports a transition; the managed Bool reports completion.
-// Values/UNNEST extend private-scratch eligibility without changing the factory,
+// Values/Append/analytic/UNPIVOT/UNNEST extend private-scratch eligibility without changing the factory,
 // parent state or capture roles. Their accepted output lifetime remains separate.
 export function selectedBeforeReviewedLifecycle(source) {
   const execution = reviewedFunction(source, 'selected_binding_rows_execution');
@@ -75,10 +75,13 @@ export function selectedBeforeReviewedLifecycle(source) {
       // Cleanup releases only private scratch; downstream ports keep the
       // original output generation, including duplicate expansion rows.
       Some(@lower.ValuesStep(_)) => ()
+      Some(@lower.AppendStep(_)) => ()
       Some(@lower.RowStep(kernel)) =>
         if !selected_binding_rows_supported(kernel) &&
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return false
         }
