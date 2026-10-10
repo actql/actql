@@ -103,7 +103,7 @@ against the materialized Results instead.
 
 ### Managed retained execution profile
 
-<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:6ef08b38272e235f9c7000bd11333036b4dc52b068ea1a69e83959902917d53f -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:e171e524aac08ada3129953d34b1b5f9017de8d7d90899f8a8701e58f33d9db8 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
 
