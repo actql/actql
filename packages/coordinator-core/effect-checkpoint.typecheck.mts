@@ -52,3 +52,8 @@ effectCurrentObservations.replyFacts(currentFacts);
 // @ts-expect-error The returned unknown outcome inventory is immutable.
 currentFacts.unknownEffects.push('fake');
 void currentReply;
+
+const currentPoll: string = effectCurrentObservations.pollJson(currentQuery);
+// @ts-expect-error A plain reply cannot stand in for the query Owner.
+effectCurrentObservations.pollJson(currentReply);
+void currentPoll;

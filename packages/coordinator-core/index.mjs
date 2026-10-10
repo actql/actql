@@ -212,6 +212,7 @@ export const effectCurrentObservations = Object.freeze({
     const handle = Object.freeze({}); effectCurrentQueries.set(handle, value); return handle;
   },
   queryJson: query => owner.coordinatorEffectCurrentQueryProjection(effectCurrentValue(effectCurrentQueries, query))[0],
+  pollJson: query => checked(owner.coordinatorEffectCurrentPollJson(effectCurrentValue(effectCurrentQueries, query))),
   queryFacts: query => {
     const [, queryCid, reportCid, dispatchCid, checkpointCid, effectId, queryId] =
       owner.coordinatorEffectCurrentQueryProjection(effectCurrentValue(effectCurrentQueries, query));

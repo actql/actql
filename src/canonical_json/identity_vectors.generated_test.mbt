@@ -6286,6 +6286,16 @@ test "contract spec/contracts/actql-remote-site-wire.json#/schemas/effect_curren
 }
 
 ///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_current" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"query_json\",\"request_json\",\"version\"],\"properties\":{\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"query_json\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":65536},\"request_json\":{\"type\":\"string\",\"minLength\":1},\"version\":{\"const\":\"actql-remote-poll-effect-current/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 22, 3, 436)
+  assert_eq(@canonical_json.cid_value(value, 436, 22, 3), "sha256:ec96478794b68708c384b01df952e25d99961e909927137398a9a05c4920079f")
+  assert_eq(@canonical_json.measure_value(value, 436, 22, 3), 436)
+}
+
+///|
 test "contract spec/contracts/actql-discovery.json#/schemas/host_capabilities" {
   let input = @json.parse([
     "{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"version\":{\"const\":\"actql-host-capabilities/0.1\"},\"supported_profiles\":{\"type\":\"array\",\"minItems\":0,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"profile_id\":{\"type\":\"string\",\"minLength\":1},\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"},\"status\":{\"enum\":[\"conformant\",\"partial\"]}},\"required\":[\"profile_id\",\"contract_cid\",\"status\"]}},\"interfaces\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"enum\":[\"discovery\",\"read_collection\"]},\"uniqueItems\":true,\"contains\":{\"const\":\"discovery\"}}},\"required\":[\"version\",\"supported_profiles\",\"interfaces\"]}",
@@ -7480,6 +7490,18 @@ test "Remote Effect current query" {
   assert_eq(@canonical_json.cid_value(value, 376, 7, 1), "sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb")
   assert_eq(@canonical_json.measure_value(value, 376, 7, 1), 376)
   assert_eq(@canonical_json.stringify_value(value, 376, 7, 1), "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"effect_id\":\"write-1\",\"query_id\":\"query-original\",\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"version\":\"actql-remote-effect-current-query/0.1\"}")
+}
+
+///|
+test "Remote Effect current poll" {
+  let input = @json.parse([
+    "{\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"query_json\":\"{\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"dispatch_request_cid\\\":\\\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\\\",\\\"effect_id\\\":\\\"write-1\\\",\\\"query_id\\\":\\\"query-original\\\",\\\"report_cid\\\":\\\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\\\",\\\"version\\\":\\\"actql-remote-effect-current-query/0.1\\\"}\",\"request_json\":\"{\\\"budget_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"connector_registration\\\":\\\"local\\\",\\\"connector_revision\\\":\\\"local/1\\\",\\\"coordinator_authority\\\":\\\"coordinator-a\\\",\\\"dispatch_id\\\":\\\"consumer-a\\\",\\\"evidence_issuer_capability_cid\\\":\\\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\\\",\\\"grant_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"input_binding_cid\\\":\\\"sha256:11111111111111111111111",
+    "11111111111111111111111111111111111111111\\\",\\\"obligations_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"run_definition_cid\\\":\\\"sha256:0000000000000000000000000000000000000000000000000000000000000000\\\",\\\"runtime_bundle_cid\\\":\\\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"site_generation\\\":1,\\\"site_key\\\":\\\"site-a\\\",\\\"strategy_revision\\\":\\\"strategy/1\\\",\\\"task_attempt\\\":1,\\\"task_key\\\":\\\"task-a\\\",\\\"version\\\":\\\"actql-remote-dispatch-request/0.1\\\"}\",\"version\":\"actql-remote-poll-effect-current/0.1\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 5, 1, 1589)
+  assert_eq(@canonical_json.cid_value(value, 1589, 5, 1), "sha256:f71e8afcef6b1faae04960cd2cc937e7c966098a0a5daacd1664c1297bb53819")
+  assert_eq(@canonical_json.measure_value(value, 1589, 5, 1), 1589)
+  assert_eq(@canonical_json.stringify_value(value, 1589, 5, 1), "{\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"query_json\":\"{\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"dispatch_request_cid\\\":\\\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\\\",\\\"effect_id\\\":\\\"write-1\\\",\\\"query_id\\\":\\\"query-original\\\",\\\"report_cid\\\":\\\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\\\",\\\"version\\\":\\\"actql-remote-effect-current-query/0.1\\\"}\",\"request_json\":\"{\\\"budget_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"connector_registration\\\":\\\"local\\\",\\\"connector_revision\\\":\\\"local/1\\\",\\\"coordinator_authority\\\":\\\"coordinator-a\\\",\\\"dispatch_id\\\":\\\"consumer-a\\\",\\\"evidence_issuer_capability_cid\\\":\\\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\\\",\\\"grant_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"input_binding_cid\\\":\\\"sha256:1111111111111111111111111111111111111111111111111111111111111111\\\",\\\"obligations_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"run_definition_cid\\\":\\\"sha256:0000000000000000000000000000000000000000000000000000000000000000\\\",\\\"runtime_bundle_cid\\\":\\\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"site_generation\\\":1,\\\"site_key\\\":\\\"site-a\\\",\\\"strategy_revision\\\":\\\"strategy/1\\\",\\\"task_attempt\\\":1,\\\"task_key\\\":\\\"task-a\\\",\\\"version\\\":\\\"actql-remote-dispatch-request/0.1\\\"}\",\"version\":\"actql-remote-poll-effect-current/0.1\"}")
 }
 
 ///|
