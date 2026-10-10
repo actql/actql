@@ -157,6 +157,39 @@ pub fn native_source_configured(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+/// Private typed construction evidence, not a public Source-disclosure reason
+/// or permission to dispatch. The original failed outcome remains unchanged.
+#export_name("actql_source_configuration_issue")
+pub fn native_source_configuration_issue(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.native_sources.get(handle) is Some(record) else {
+    return -2
+  }
+  match record.outcome {
+    None => -33
+    Some(Ok(_)) => 0
+    Some(Err(issue)) =>
+      match issue {
+        UnsupportedCapability => 1
+        InvalidReadBinding => 2
+        ForeignRunStart => 3
+        AuthorizationMismatch => 4
+        Requirement(_) => 5
+        Configuration(issue) =>
+          match issue {
+            InvalidSource => 61
+            InvalidContracts => 62
+            Preparation => 63
+            Registration => 64
+            Candidate => 65
+            Selection => 66
+          }
+        Host(_) => 7
+      }
+  }
+}
+
+///|
 #export_name("actql_source_close_configuration")
 pub fn close_native_source_configuration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&

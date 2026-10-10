@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 10; this private ABI
+before opening the instance. `actql_host_abi_version` returns 11; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 10 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 11 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -676,3 +676,10 @@ parent task waits for retained exports. Public read authorization, durable
 publication/replay, original Run admission and the ordinary Python Client
 connection remain additional boundaries. This ABI grants no public Result
 access and performs no Run cancellation or automatic execution/replay.
+
+Private ABI 11 adds a scalar projection of the retained Native configuration
+issue for trusted physical Host diagnosis. It preserves the original typed
+failure and distinguishes setup boundaries without interpreting messages or
+dispatching a replacement attempt. These private categories are not public
+Source reasons; caller disclosure and public diagnostic contracts remain
+separate gates.

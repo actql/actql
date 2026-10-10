@@ -168,6 +168,7 @@ _SOURCE_SIGNATURES = {
     'reserve_configuration': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
     'configured': ('i64 i32', 'i32'),
+    'configuration_issue': ('i64 i32', 'i32'),
     'close_configuration': ('i64 i32', 'i32'),
     'reserve_attempt': ('i64 i32 i32 i32', 'i32'),
     'start': ('i64 i32', 'i32'),
@@ -340,7 +341,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 10:
+            if self._exports['actql_host_abi_version'](self._store) != 11:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,

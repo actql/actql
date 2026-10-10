@@ -134,7 +134,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 10
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 11
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -191,7 +191,8 @@ try:
         'read_account': account, 'read_principal': 'local-user', 'read_connection': 'python.local',
         'read_resource': 'records', 'read_operation': 'read', 'read_context_cid': CONFIGURATION['context_cid']}))
     assert source > 0 and call('source', 'configure', source) == 0
-    assert call('source', 'configured', source) == 0
+    configured = call('source', 'configured', source)
+    assert configured == 0, ('Original typed Source construction failure', call('source', 'configuration_issue', source))
     fixture.attempt = call('source', 'reserve_attempt', source, start, copy({
         **read_account, 'attempt_nonce': 'native-result-private-fixture'}))
     assert fixture.attempt > 0 and call('source', 'start', fixture.attempt) == 0
