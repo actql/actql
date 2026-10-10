@@ -574,3 +574,23 @@ full product accounting for Wasmtime compilation/code memory, Python metadata,
 parsed command values, SQLite cache or DuckDB workspace. The installed assembly
 must bind the remaining physical limits and reservations before advertising an
 aggregate runtime guarantee.
+
+## Physical DuckDB workspace assembly
+
+The private `DuckDBWorkspace` obtains an existing Core workspace loan before
+entering database configuration/open/connect. Root-capacity rejection therefore
+starts no native database operation. Its callbacks bind the same connection
+and original loan; failed native construction keeps its original cleanup handle
+and Root reservation rather than opening another database.
+
+Stop observation first seals new connection I/O and then inspects the original
+I/O lock. Busy physical work remains pending; coroutine cancellation does not
+substitute for that observation. Statement and read-view handles must still
+complete cleanup before the connection can close and release its reservation.
+The assembly neither requests interruption nor changes a Run's terminal state.
+
+The trusted Host must obtain Source/Run authorization from existing Core Owners
+before calling this physical assembly. Its configured workspace envelope and
+DuckDB buffer-manager memory limit are distinct. This connection does not claim
+that the buffer-manager setting limits every DuckDB allocation, or that all
+Python/native runtime memory is already covered by the product Root budget.

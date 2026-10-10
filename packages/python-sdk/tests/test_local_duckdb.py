@@ -39,6 +39,23 @@ class PhysicalDuckDBTests(unittest.TestCase):
         owner._closed = False
         return owner
 
+    def test_stop_observation_seals_admission_without_interrupting_live_io(self):
+        owner = self.connection()
+        owner._api.duckdb_interrupt = Mock()
+        owner._api.duckdb_prepare = Mock()
+        owner._io.acquire()
+        try:
+            self.assertFalse(owner.stop_new_io())
+            self.assertTrue(owner._closing)
+            owner._api.duckdb_interrupt.assert_not_called()
+        finally:
+            owner._io.release()
+        self.assertTrue(owner.stop_new_io())
+        with self.assertRaises(DuckDBPhysicalError):
+            owner.prepare('SELECT 1', DuckDBTransferLimits())
+        owner._api.duckdb_prepare.assert_not_called()
+        self.assertTrue(owner.close())
+
     def read_view(self):
         owner = self.connection()
         owner._connection.value = 41

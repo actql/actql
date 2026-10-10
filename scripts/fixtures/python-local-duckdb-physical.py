@@ -20,13 +20,18 @@ from actql_sdk._local_duckdb import (  # noqa: E402
     DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBTransferLimits, DuckDBParameter,
     _Result,
 )
+from actql_sdk._local_core import LocalCore, LocalCoreError, LocalCoreResources
+from actql_sdk._local_duckdb_workspace import DuckDBWorkspace
 from actql_sdk._local_command import native_command  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('library', type=Path)
 parser.add_argument('--digest', required=True)
 parser.add_argument('--version', required=True)
+parser.add_argument('--module', type=Path)
+parser.add_argument('--workspace-only', action='store_true')
 args = parser.parse_args()
+assert not args.workspace_only or args.module is not None, 'Workspace selection requires a real module'
 assert subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT,
                                text=True) == '', 'Use committed physical adapter source'
 library = DuckDBLibrary(args.library, digest=args.digest, version=args.version)
@@ -368,14 +373,125 @@ class StandaloneDuckDBTests(unittest.TestCase):
             self.assertTrue(self.connection.close())
 
 
+class SharedWorkspaceTests(unittest.TestCase):
+    def setUp(self):
+        self.module = args.module.read_bytes()
+        self.digest = hashlib.sha256(self.module).hexdigest()
+        self.workspace_bytes = 67_108_864
+        self.core = LocalCore(self.module, digest=self.digest, transfer_capacity=65536,
+            resources=LocalCoreResources(0, 16, 0, 0, 0,
+                16 * 1024 * 1024 + 65536 + self.workspace_bytes))
+        self.workspace = None
+        self.stream = None
+
+    def tearDown(self):
+        if self.stream is not None:
+            self.assertTrue(self.stream.close())
+        if self.workspace is not None:
+            self.assertTrue(self.workspace.close())
+        self.assertTrue(self.core.close())
+
+    def open(self):
+        self.workspace = DuckDBWorkspace(self.core, library, '',
+            workspace_bytes=self.workspace_bytes, memory_bytes=self.workspace_bytes,
+            readonly=False)
+        return self.workspace.connection()
+
+    def reserved(self):
+        return self.core._call('workspace', 'root_reserved')
+
+    def test_capacity_refusal_has_zero_native_open(self):
+        self.workspace_bytes += 1
+        with patch.object(library.api, 'duckdb_open_ext', wraps=library.api.duckdb_open_ext) as opened:
+            with self.assertRaises(LocalCoreError) as caught:
+                self.open()
+            self.assertEqual(caught.exception.code, -4)
+            self.assertEqual(opened.call_count, 0)
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_actual_rows_and_closed_statement_keep_workspace_until_release(self):
+        connection = self.open()
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+        self.stream = connection.prepare(
+            "SELECT 1.5::DOUBLE AS n, NULL::VARCHAR AS nullable, 'é' || chr(13) || chr(10) || '😀' AS text",
+            DuckDBTransferLimits(max_rows=1, max_row_bytes=4096))
+        self.stream.execute()
+        destination = bytearray(4096)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]),
+            b'[["3ff8000000000000"],[null],["e\xcc\x81\\u000d\\u000a\xf0\x9f\x98\x80"]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+        self.assertFalse(self.workspace.close())
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+        self.assertTrue(self.stream.close())
+        self.stream = None
+        self.assertTrue(self.workspace.close())
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_original_native_disconnect_failure_retains_same_root_loan(self):
+        connection = self.open()
+        original = library.api.duckdb_disconnect
+        handles = []
+        def disconnect(pointer):
+            handles.append(C.cast(pointer, C.POINTER(C.c_void_p))[0])
+            if len(handles) == 1:
+                raise OSError('independent physical disconnect failure')
+            return original(pointer)
+        with patch.object(library.api, 'duckdb_disconnect', side_effect=disconnect):
+            self.assertFalse(self.workspace.close())
+            self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+            self.assertIs(self.workspace._connection, connection)
+            self.assertTrue(self.workspace.close())
+        self.assertEqual(len(handles), 2)
+        self.assertEqual(handles[0], handles[1])
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_failed_connect_and_native_cleanup_retain_original_database(self):
+        original = library.api.duckdb_close
+        handles = []
+        def close(pointer):
+            handles.append(C.cast(pointer, C.POINTER(C.c_void_p))[0])
+            if len(handles) <= 2:
+                raise OSError('independent database cleanup failure')
+            return original(pointer)
+        with patch.object(library.api, 'duckdb_connect', return_value=1) as connected, \
+             patch.object(library.api, 'duckdb_close', side_effect=close), \
+             patch.object(library.api, 'duckdb_open_ext', wraps=library.api.duckdb_open_ext) as opened:
+            with self.assertRaises(DuckDBPhysicalError) as caught:
+                self.open()
+            self.workspace = caught.exception.physical_cleanup
+            self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+            self.assertTrue(self.workspace.close())
+            self.assertEqual(opened.call_count, 1)
+            self.assertEqual(connected.call_count, 1)
+        self.assertEqual(len(handles), 3)
+        self.assertTrue(all(handle == handles[0] for handle in handles))
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_callback_busy_observation_holds_reservation_without_interrupt(self):
+        connection = self.open()
+        with patch.object(library.api, 'duckdb_interrupt', wraps=library.api.duckdb_interrupt) as interrupted:
+            connection._io.acquire()
+            try:
+                self.assertFalse(self.workspace.close())
+                self.assertEqual(interrupted.call_count, 0)
+                self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+            finally:
+                connection._io.release()
+            self.assertTrue(self.workspace.close())
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+
 output = io.StringIO()
 result = unittest.TextTestRunner(stream=output, verbosity=2).run(
-    unittest.defaultTestLoader.loadTestsFromTestCase(StandaloneDuckDBTests))
+    unittest.defaultTestLoader.loadTestsFromTestCase(
+        SharedWorkspaceTests if args.workspace_only else StandaloneDuckDBTests))
 sys.stderr.write(output.getvalue())
 source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
 print(json.dumps({'source_sha': source, 'library': str(args.library),
     'library_sha256': args.digest, 'library_version': args.version,
     'python': sys.version, 'platform': platform.platform(),
     'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
-    'public_local_acceptance': False, 'wheel_acceptance': False}))
-sys.exit(0 if result.wasSuccessful() and result.testsRun == 20 and not result.skipped else 1)
+    'module_source': str(args.module) if args.module is not None else None,
+    'workspace_selection': args.workspace_only, 'public_local_acceptance': False, 'wheel_acceptance': False}))
+sys.exit(0 if result.wasSuccessful() and result.testsRun == (5 if args.workspace_only else 20) and not result.skipped else 1)
