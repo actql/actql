@@ -422,7 +422,9 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   }
   assert_true(finalized)
   (operations.settle)().unwrap()
-  let first_output = (operations.complete)(1, operations.storage_bytes, () => available.val).unwrap()
+  let first_output = (operations.complete)(1, operations.storage_bytes, () => {
+    available.val
+  }).unwrap()
   assert_eq((operations.output_rows)(), 1)
   assert_eq((operations.output_row)(0).unwrap(), "{\"value\":4}")
   assert_eq(
@@ -432,28 +434,123 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     ["answer"],
   )
   let second = @local_run.start_local_compute_task(
-    host, compute_start, [first_output], permit, account, tuple, context,
-  ).unwrap().unwrap()
+      host,
+      compute_start,
+      [first_output],
+      permit,
+      account,
+      tuple,
+      context,
+    )
+    .unwrap()
+    .unwrap()
   for transfer in second.inputs {
     (transfer.append)((operations.output_row)(0).unwrap()).unwrap()
     (transfer.finish)().unwrap()
   }
   let mut second_executed = false
   for _ in 0..<1000 {
-    if (second.advance)(1).unwrap().complete { second_executed = true; break }
+    if (second.advance)(1).unwrap().complete {
+      second_executed = true
+      break
+    }
   }
   assert_true(second_executed)
   let second_available = Ref(true)
-  (second.prepare_finalization)(2, second.storage_bytes, () => second_available.val).unwrap()
+  (second.prepare_finalization)(2, second.storage_bytes, () => {
+    second_available.val
+  }).unwrap()
   let mut second_finalized = false
   for _ in 0..<1000 {
-    if (second.advance_finalization)(1).unwrap().complete { second_finalized = true; break }
+    if (second.advance_finalization)(1).unwrap().complete {
+      second_finalized = true
+      break
+    }
   }
   assert_true(second_finalized)
   (second.settle)().unwrap()
-  (second.complete)(2, second.storage_bytes, () => second_available.val).unwrap() |> ignore
+  let second_output = (second.complete)(2, second.storage_bytes, () => {
+    second_available.val
+  }).unwrap()
   assert_eq((second.output_rows)(), 1)
   assert_eq((second.output_row)(0).unwrap(), "{\"next\":5}")
+  // Named Result selection uses its checked occurrence, not the last task's
+  // raw rows or another producer with an equivalent schema.
+  let value_limits : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 10000,
+    max_depth: 20,
+    max_work: 10000,
+  }
+  let bridge = @execution.prepare_managed_publication_bridge(
+    second_output,
+    (second.material)().unwrap(),
+    100,
+    value_limits,
+    100,
+    10000,
+  ).unwrap()
+  @execution.append_managed_publication_bridge_wire(
+    bridge,
+    (second.output_row)(0).unwrap(),
+    { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+  ).unwrap()
+  let result_output = @execution.finish_managed_publication_bridge(bridge).unwrap()
+  let result_limits : @publication_host.PublicationOutputExportLimits = {
+    max_result_fields: 10,
+    max_result_mapping_work: 100,
+    max_result_order_work: 100,
+    max_result_workspace_entries: 100,
+    max_rows: 100,
+    values: value_limits,
+    payload_wire: row_wire_limits(),
+    logical_wire: row_wire_limits(),
+    schema: {
+      max_fields: 10,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
+    },
+    max_batch_bytes: 16,
+  }
+  assert_true(
+    @publication_host.start_captured_managed_result_publication_export(
+      run, 0, first_output, bridge, result_output, result_limits,
+    )
+    is Err(ForeignSelection),
+  )
+  let result_preparation = @publication_host.start_captured_managed_result_publication_export(
+    run,
+    0,
+    second_output,
+    bridge,
+    result_output,
+    result_limits,
+    max_pins=1,
+  ).unwrap()
+  let mut result_ready = false
+  for _ in 0..<1000 {
+    let (done, work) = result_preparation.advance(1).unwrap()
+    assert_true(work <= 1)
+    if done {
+      result_ready = true
+      break
+    }
+  }
+  assert_true(result_ready)
+  let exported_result = result_preparation.finish().unwrap()
+  result_preparation.cancel()
+  assert_true(result_preparation.finish() is Err(InvalidState))
+  let result_rows = StringBuilder()
+  while exported_result.next().unwrap() is Some(chunk) {
+    result_rows.write_string(chunk)
+  }
+  result_rows.write_string(exported_result.finish().unwrap())
+  assert_eq(result_rows.to_string(), "[{\"next\":5}]")
+  assert_eq(exported_result.result_fields().unwrap(), ["next"])
+  assert_eq(exported_result.row_count().unwrap(), 1)
+  exported_result.cancel()
+  @execution.close_managed_publication_bridge(bridge)
   second_available.val = false
   (second.close)()
   @strategy.close_captured_task_output(run, 2)
