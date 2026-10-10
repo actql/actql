@@ -42,6 +42,17 @@ test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias v
   assert.deepEqual(control.stages[1].steps[2], {select: ['id']});
 });
 
+test('single JOIN GROUP refusals distinguish unsupported keys from invalid scope', () => {
+  assert.deepEqual(havingAggregateRefusals.filter(item =>
+    item.name.startsWith('single-join-group-refuse-')), [
+    {name: 'single-join-group-refuse-0', format: 'sql',
+      text: 'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id > s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
+      expectedCode: 'ClientProgramImplementationLimit'},
+    {name: 'single-join-group-refuse-1', format: 'sql',
+      text: 'SELECT records.amount, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id'},
+  ]);
+});
+
 test('HAVING aggregate cases join the ordinary packed corpus and a focused selection', async () => {
   const all = [...havingAggregateSuccesses, ...havingAggregateRefusals,
     ...havingAggregateExecutionFailures];
@@ -62,8 +73,20 @@ test('HAVING aggregate cases join the ordinary packed corpus and a focused selec
 test('hidden property order distinguishes HAVING aliases from selected input slots', () => {
   const cases = new Map(havingAggregateSuccesses.map(item => [item.name, item]));
   const alias = cases.get('having-aggregate-property-alias-input-collision');
+  const qualified = cases.get('having-aggregate-property-qualified-input-control');
   assert.deepEqual(alias.expected, [{n: 5, payload: {score: 5}, original: 'b|b|a|c'}]);
-  assert.deepEqual(cases.get('having-aggregate-property-qualified-input-control').expected, []);
+  assert.deepEqual(qualified.expected, []);
+  const checkedColumns = [
+    {name: 'n', contract: {type: 'number', nullable: false}},
+    {name: 'payload', contract: {type: 'object', nullable: false,
+      additional_properties: false, fields: {score: {type: 'number', nullable: false}}}},
+    {name: 'original', contract: {type: 'string', nullable: true}},
+  ];
+  assert.deepEqual(alias.columns, checkedColumns);
+  assert.deepEqual(qualified.columns, checkedColumns);
+  assert.deepEqual(alias.parameterDeclarations.o1,
+    {type: 'object', nullable: false, fields: {score: {type: 'number', nullable: false}}});
+  assert.deepEqual(havingPropertyOrderProgram.params.o1, alias.parameterDeclarations.o1);
   assert.deepEqual(alias.parameters.o1, {score: 5});
   assert.equal(alias.parameters.p3, null);
   assert.equal(alias.parameters.p4.score, null);

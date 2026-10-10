@@ -43,6 +43,7 @@ fn retained_effect_provider_capture(
   facts : ResidentProviderFacts,
   public_result : @host.PublicationOutputExport,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
+  checkpoint_custody? : Bool = false,
 ) -> Unit raise {
   let (prepared, source) = resident_provider_preview(
     consumer, materials, inputs, result_index, result, invocation, facts,
@@ -82,16 +83,22 @@ fn retained_effect_provider_capture(
     materials, inputs, source, manifest, result, imported, acquired, acquired_bodies,
     dependencies,
   )
-  retained_effect_source_store(
-    consumer,
-    materials,
-    inputs,
-    result,
-    source,
-    result_index,
-    stop_custodies,
-    provider=true,
-  )
+  // The pre-existing Source custody fault campaign consumes cumulative
+  // attempts on this consumer. Keep that complete campaign in its original
+  // case; the separate Checkpoint case uses the same acquisition/capture
+  // without rerunning unrelated fault allocations or increasing its budget.
+  if !checkpoint_custody {
+    retained_effect_source_store(
+      consumer,
+      materials,
+      inputs,
+      result,
+      source,
+      result_index,
+      stop_custodies,
+      provider=true,
+    )
+  }
   retained_effect_complete_capture(
     consumer,
     materials,
@@ -105,6 +112,7 @@ fn retained_effect_provider_capture(
     prepared.authoring,
     public_capture,
     provider=true,
+    checkpoint_custody~,
     private_preview=Some(
       (
         prepared.wire,
