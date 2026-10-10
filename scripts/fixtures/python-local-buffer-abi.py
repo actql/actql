@@ -103,14 +103,14 @@ try:
     assert left.cleanups[1] == 2
     assert left.call('byte', handle, 0) == -2
     assert left.call('allocated') == 0
-    next_handle = left.copy(2, b'null', 4)
+    next_handle = left.copy(2, b'null', sys.getsizeof(b'null'))
     assert next_handle > reader
     assert left.call('close_pool') == 0
     assert left.call('close_pool') == 0
     assert left.call('reserved') == 0
     assert left.call('reserve', 3, 4, 4) == -5
+    bad = right.call('reserve', 1, 4, sys.getsizeof(b'null'))
     right.inputs[1] = b'null'
-    bad = right.call('reserve', 1, 4, 4)
     right.invalid_byte = True
     assert right.call('fill', bad, 0, 4) == -12
     assert right.call('seal', bad) == -7
