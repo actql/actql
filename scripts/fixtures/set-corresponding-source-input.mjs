@@ -658,3 +658,62 @@ setCorrespondingRefusals.push(
     text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
       + '|> SET kept = old.id) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
 );
+
+
+// DROP removes authored names, retaining anonymous values at their positions.
+export const positionalDropProgram = {version: 'actql/0.1', id: 'fixture.positional_drop',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, amount: number}, rows: [{id: 2, amount: 20}, {id: 1, amount: 10}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'id'}}}},
+    {select: [{kept: 'id'}, {removed: 'amount'}, 'neg']},
+    {drop: ['removed']}, {select: [{a: 'kept'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const positionalDrop = (name, text, extra = {}) => success('positional-pipe-drop-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 1, b: -1}, {a: 2, b: -2}], ...extra});
+const positionalDropHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, amount AS removed, -id |> DROP ';
+setCorrespondingSuccesses.push(
+  positionalDrop('json-control', JSON.stringify(positionalDropProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalDrop('source', positionalDropHead + 'removed) ORDER BY a, b'),
+  positionalDrop('duplicates-removed', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 |> DROP `v`) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: 0}, {a: 11}, {a: 12}]}),
+  positionalDrop('duplicates-retained', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, amount AS removed |> DROP removed) ORDER BY a, b'),
+  positionalDrop('chain-ordinal-limit', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> DROP first |> DROP `SECOND` '
+    + '|> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: -1}, {a: 0}]}),
+  positionalDrop('filter-expression-limit', positionalDropHead + 'removed |> WHERE kept > 1 |> ORDER BY -kept |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  positionalDrop('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, id + 10 AS removed, -amount '
+    + '|> DROP removed) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: null}]}),
+  positionalDrop('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, amount AS removed, -id '
+    + '|> DROP removed) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_6', '`AQL_SET_ANONYMOUS_6`', 'removed, `REMOVED`'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-drop-target-' + index, format: 'sql',
+    text: positionalDropHead + value + ') ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-drop-removed', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id |> DROP kept |> WHERE kept > 0) ORDER BY a',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-drop-input-order', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS id, -id |> DROP id |> ORDER BY id) ORDER BY a',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-drop-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, amount AS removed, -id '
+      + '|> DROP removed |> WHERE old.id > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-drop-ambiguous-order', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS removed '
+      + '|> DROP removed |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
