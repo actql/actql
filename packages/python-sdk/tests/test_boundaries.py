@@ -52,6 +52,19 @@ class ValueTests(unittest.TestCase):
             decode_json(b'{"value":9007199254740993}')
         self.assertFalse(wire.valid(9007199254740992.0, {'type': 'integer'}))
 
+    def test_shortest_binary64_integer_spelling_roundtrips_without_metadata_relaxation(self):
+        number = float.fromhex('0x1p+63')
+        for value, raw in [(number, b'{"n":9223372036854776000}'),
+                           (-number, b'{"n":-9223372036854776000}')]:
+            self.assertEqual(wire_bytes({'n': value}), raw)
+            decoded = decode_json(raw)['n']
+            self.assertIs(type(decoded), float)
+            self.assertEqual(decoded.hex(), value.hex())
+            self.assertFalse(wire.valid(decoded, {'type': 'integer'}))
+        for raw in [b'{"n":9223372036854776001}', b'{"n":9007199254740993}']:
+            with self.assertRaises(ClientError):
+                decode_json(raw)
+
     def test_canonical_identity_domains_remain_distinct(self):
         self.assertEqual(canonical_bytes({'e\u0301': 'e\u0301\r\n'}), b'{"\xc3\xa9":"e\xcc\x81\\r\\n"}')
         self.assertEqual(canonical_bytes({'e\u0301': 1}, data_keys=True), b'{"e\xcc\x81":1}')
