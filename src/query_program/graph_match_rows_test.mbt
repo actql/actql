@@ -112,14 +112,15 @@ test "named Graph match refuses undefined output shape and subsequent Graph call
       graph_rows_prefix() + suffix,
       syntax_limits(),
     ).unwrap()
-    assert_true(
-      compile_query_script(
-        parsed,
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnsupportedGraph),
-      msg=suffix,
+    let actual = compile_query_script(
+      parsed,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
     )
+    if suffix.has_prefix("FROM n") || suffix.has_suffix("|> node_rows()") {
+      assert_true(actual is Err(InvalidQuery), msg=suffix)
+    } else {
+      assert_true(actual is Err(UnsupportedGraph), msg=suffix)
+    }
   }
 }

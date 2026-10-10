@@ -44,6 +44,37 @@ fn lower_analytic_offset(
             { ..construction, generated: origin, }.parameter_text(parameter),
           ),
         ])
+      // These forms cannot supply the required literal/whole-parameter role.
+      Reference(_) | Binary(_, _, _) => raise Abort(InvalidQuery)
+      Unary("-", child) => {
+        if work >= max_work {
+          raise Abort(Expression({ issue: WorkLimit, origin: Some(origin), }))
+        }
+        work += 1
+        let child = @query.expression_node(expression, child).unwrap()
+        if child.kind is Number(text) {
+          let mut positive = false
+          for unit in text {
+            if work >= max_work {
+              raise Abort(
+                Expression({ issue: WorkLimit, origin: Some(origin), }),
+              )
+            }
+            work += 1
+            let digit = unit.to_int() - 48
+            if digit < 0 || digit > 9 {
+              raise Abort(UnsupportedAnalytic)
+            }
+            positive = positive || digit > 0
+          }
+          // A directly negated positive integer atom proves a domain violation.
+          // Zero and other signed spellings retain their existing support limit.
+          if positive {
+            raise Abort(InvalidQuery)
+          }
+        }
+        raise Abort(UnsupportedAnalytic)
+      }
       _ => raise Abort(UnsupportedAnalytic)
     }
   } nobreak {

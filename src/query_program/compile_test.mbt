@@ -1132,8 +1132,7 @@ test "JOIN orders by hidden input without exposing it or weakening DISTINCT" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(distinct, set_context(), construction_limits())
-    is Err(UnsupportedOrdering),
+    compile(distinct, set_context(), construction_limits()) is Err(InvalidQuery),
   )
 }
 
@@ -1305,7 +1304,7 @@ test "one CTE lowers to a shared checked Stage Result" {
   ).unwrap()
   assert_true(
     compile(recursive, set_context(), construction_limits())
-    is Err(UnsupportedCte),
+    is Err(UnresolvedRelation(_)),
   )
   let reused = @query.parse_query(
     "WITH chosen AS (SELECT a, b FROM left_rows WHERE a > 0) SELECT l.a AS a, r.b AS right_b FROM chosen AS l JOIN chosen AS r ON l.a = r.a",
@@ -1366,7 +1365,7 @@ test "CTE chain references prior declarations without source substitution" {
   ).unwrap()
   assert_true(
     compile(forward, set_context(), construction_limits())
-    is Err(UnsupportedCte),
+    is Err(UnresolvedRelation(_)),
   )
 }
 
@@ -1891,7 +1890,7 @@ test "DISTINCT compares projected fields and refuses inaccessible source order" 
   ).unwrap()
   assert_true(
     compile(rejected, fixture_context(), construction_limits())
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
   let selected_expression = compile(
     @query.parse_query(
@@ -1919,7 +1918,7 @@ test "DISTINCT compares projected fields and refuses inaccessible source order" 
   ).unwrap()
   assert_true(
     compile(different_call, fixture_context(), construction_limits())
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
 }
 
@@ -2335,7 +2334,7 @@ test "ORDER BY reuses selected expressions and hides computed input sort slots" 
   ).unwrap()
   assert_true(
     compile(forbidden, fixture_context(), construction_limits())
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
 }
 

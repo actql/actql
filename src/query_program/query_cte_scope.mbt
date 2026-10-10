@@ -23,7 +23,7 @@ fn validate_cte_scope(
     // derived-table body cannot add externally visible exports.
     for operation_index in 0..<@query.operation_count(body) {
       if @query.operation_at(body, operation_index) is Some(RetainResult(_)) {
-        raise Abort(UnsupportedResult)
+        raise Abort(InvalidQuery)
       }
     }
     if @query.cte_count(body) != 0 {
@@ -39,7 +39,9 @@ fn validate_cte_scope(
             @query.cte_at(query, future).unwrap().name,
           ]) &&
           !known_outer {
-          raise Abort(UnsupportedCte)
+          // A hidden outer producer can use this name before the CTE binds.
+          // Retain resolution evidence; filtered absence is not invalid input.
+          raise Abort(unresolved_relation_issue(body_relation))
         }
       }
       // A nonrecursive body can still name an outer producer before its own
