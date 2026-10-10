@@ -3,7 +3,8 @@ import wasmtime
 
 
 class PhysicalFixture:
-    def __init__(self, module, nonce, capacity=256, slots=8, fuel=None):
+    def __init__(self, module, nonce, capacity=256, slots=8, fuel=None,
+                 execution_bytes=None):
         self.inputs = {}
         self.cleanups = {}
         self.reads = 0
@@ -27,9 +28,9 @@ class PhysicalFixture:
             ('input_byte', [i32, i32], self.read),
             ('input_cleanup', [i32], self.cleanup),
             ('reader_stop', [i32, i32], self.stop),
-            ('native_settled', [i32], self.unexpected_native),
-            ('native_stopped', [i32], self.unexpected_native),
-            ('native_cleaned', [i32], self.unexpected_native)):
+            ('native_settled', [i32], self.native_settled),
+            ('native_stopped', [i32], self.native_stopped),
+            ('native_cleaned', [i32], self.native_cleaned)):
             self.linker.define_func('actql_host', name,
                 wasmtime.FuncType(params, [i32]), callback)
         assert {(item.module, item.name) for item in self.module.imports} == {
@@ -37,8 +38,9 @@ class PhysicalFixture:
             ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned')}
         self.instance = self.linker.instantiate(self.store, self.module)
         self.exports = self.instance.exports(self.store)
+        envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
         assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
-                              32000000, 200000000, 16 * 1024 * 1024 + capacity) == 0
+                              32000000, 200000000, envelope) == 0
 
     def call(self, name, *args):
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)
@@ -49,6 +51,15 @@ class PhysicalFixture:
 
     def unexpected_native(self, handle):
         raise AssertionError('This non-Native fixture cannot acknowledge Source physical facts')
+
+    def native_settled(self, handle):
+        return self.unexpected_native(handle)
+
+    def native_stopped(self, handle):
+        return self.unexpected_native(handle)
+
+    def native_cleaned(self, handle):
+        return self.unexpected_native(handle)
 
     def cleanup(self, ticket):
         self.cleanups[ticket] = self.cleanups.get(ticket, 0) + 1
