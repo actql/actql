@@ -765,18 +765,20 @@
         "|> RENAME",
         "|> AS",
         "|> ASSERT UNIQUE BY (fields)",
-        "|> DISTINCT"
+        "|> DISTINCT",
+        "|> PIVOT"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
         "snapshot field slots",
         "range-alias preservation",
-        "DISTINCT compares visible value slots and preserves only surviving range columns"
+        "DISTINCT compares visible value slots and preserves only surviving range columns",
+        "PIVOT retains current unaggregated keys and authored result column order; common checker owns type and NULL rules"
       ],
       "spec_section": "7.2-7.4",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-4",
       "acceptance_case_ids": [
         "SQL-01",

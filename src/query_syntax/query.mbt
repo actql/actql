@@ -104,6 +104,7 @@ pub(all) enum QueryOperation {
   Drop(Array[NamePart])
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
+  Pivot(PivotClause)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
   Qualify(Expression, Array[(NamePart, AggregateCall)])
@@ -123,6 +124,15 @@ pub(all) struct KeepItem {
   path : Array[NamePart]
   wildcard : Bool
   name : NamePart?
+}
+
+///|
+pub(all) struct PivotClause {
+  function_name : String
+  argument : Array[NamePart]
+  column : Array[NamePart]
+  prefix : NamePart?
+  values : Array[(String, NamePart?)]
 }
 
 ///|
@@ -438,6 +448,12 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Drop(xs) => Some(Drop(xs.copy()))
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
+    Pivot(clause) => Some(Pivot({
+      ..clause,
+      argument: clause.argument.copy(),
+      column: clause.column.copy(),
+      values: clause.values.copy(),
+    }))
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
       Some(
@@ -2830,6 +2846,11 @@ fn QueryParser::pipe_tail(
         ignore(self.advance())
       }
       operations.push(Rename(values))
+    } else if self.has("PIVOT") {
+      operations.push(Pivot(self.pivot_clause()))
+      if self.optional_output_alias() is Some(result_range) {
+        operations.push(Alias(result_range))
+      }
     } else if self.has("AS") {
       self.keyword("AS")
       operations.push(Alias(self.name()))

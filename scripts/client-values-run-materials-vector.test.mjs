@@ -1000,8 +1000,15 @@ test('baseline preimages and changed normative pins independently determine the 
     barrierCid, valuesProgramOracle()), beforeMatchData.run_preimages);
   assert.equal(beforeMatchData.run_preimages.run.run_definition_cid,
     'sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf');
-  assert.equal(current.run.run_definition_cid,
+  const beforePipePivot = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-pivot-grammar.json', 'utf8'));
+  const {grammar_manifest_cid: beforePivotCid, ...beforePivotBody} = beforePipePivot.grammar;
+  assert.equal(cid(beforePivotBody), beforePivotCid);
+  assert.deepEqual(vector(beforePivotCid, cid(aoaContract), valuesDependencyOracle(),
+    barrierCid, valuesProgramOracle()), beforePipePivot.run_preimages);
+  assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
+  assert.equal(current.run.run_definition_cid,
+    'sha256:d848446acc09f209842f19258f701c4e9dc887701936e7165a8b371557bce227');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1078,7 +1085,7 @@ test('current contract inputs independently determine the Values Run and consumi
     barrier.barrier_contract_manifest_cid, identity), beforeDouble.run_preimages);
   assert.equal(beforeDouble.run_preimages.run.run_definition_cid,
     'sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf');
-  assert.equal(current.run.run_definition_cid, "sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f");
+  assert.equal(current.run.run_definition_cid, "sha256:d848446acc09f209842f19258f701c4e9dc887701936e7165a8b371557bce227");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
