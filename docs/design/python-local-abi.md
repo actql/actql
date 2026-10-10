@@ -532,3 +532,12 @@ selects the existing single-Source or source-free compilation profile from the
 checked acquisition inventory; unsupported profiles are refused by those
 Owners before physical dispatch. This boundary does not provide durable
 acceptance, an acquisition callback or recovery of completed physical work.
+
+## Interrupted physical bridge calls
+
+An exception after entering Wasm puts the private bridge into closing mode.
+It retains the instance, original physical tickets and issued loans; fresh
+reservation, transfer production, Native start and receipt feed are refused
+before further I/O. Explicit retirement of an existing loan remains possible.
+This barrier does not assert that a trapped Core retired its resources, refill
+instruction fuel, retry the interrupted operation or dispose a pending Run.

@@ -251,6 +251,11 @@ class LocalCore:
         try:
             result = self._exports[f'actql_{family}_{name}'](
                 self._store, self._nonce, *arguments)
+        except BaseException:
+            # The Core may already own the original invocation/ticket. Block
+            # new work while retaining this instance for explicit retirement.
+            self._closing = True
+            raise
         finally:
             self._invoking = False
         if type(result) is not int:
@@ -414,6 +419,8 @@ class LocalCore:
     def start_native_attempt(self, value: _NativeAttempt) -> None:
         with self._lock:
             self._owned_native(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
             self._check('start_native_attempt', self._call('source', 'start', value.handle))
             self._check('native_attempt_started', self._call('source', 'started', value.handle))
 
@@ -421,6 +428,8 @@ class LocalCore:
         with self._lock:
             self._owned_native(value)
             self._owned_input(input)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
             if type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6):
                 raise ValueError('Invalid Local Native event kind')
             self._check('accept_native_event', self._call('source', 'accept',
@@ -496,6 +505,8 @@ class LocalCore:
     def _produce_output(self, value: _Output, family: str, operation: str) -> None:
         with self._lock:
             self._owned_output(value, family)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
             self._check(operation, self._call(family, operation, value.handle))
 
     def read_material(self, value: _Output) -> bytes:
@@ -546,11 +557,15 @@ class LocalCore:
     def fill_input(self, value: _Input, start: int, count: int) -> None:
         with self._lock:
             self._owned_input(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
             self._check('fill', self._call('buffer', 'fill', value.handle, start, count))
 
     def seal_input(self, value: _Input) -> None:
         with self._lock:
             self._owned_input(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
             self._check('seal', self._call('buffer', 'seal', value.handle))
 
     def close_input(self, value: _Input) -> bool:

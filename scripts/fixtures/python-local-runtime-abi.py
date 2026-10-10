@@ -65,6 +65,17 @@ try:
         pass
     else:
         raise AssertionError('Expected a physical interruption during transfer')
+    assert trapped._closing and not trapped._retired
+    registered = len(trapped._inputs)
+    try:
+        trapped.reserve_input(b'new', cleanup=lambda: True, stopped=lambda _: True)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Trapped bridge accepted fresh physical custody')
+    assert len(trapped._inputs) == registered
+    assert trapped._loans[loan.ticket] is loan
+    # Explicit fixture-only cleanup funding; the bridge never refills fuel.
     trapped._store.set_fuel(100000000)
     assert trapped._call('buffer', 'allocated') == retained
     assert trapped.close_input(loan) is False
@@ -132,4 +143,5 @@ print(json.dumps({'success': True, 'module_sha256': digest,
               'foreign_instance_refusal', 'copied_handle_refusal',
               'cleanup_exception_retention', 'same_instance_retry',
               'idempotent_final_close', 'real_transfer_trap_custody',
+              'trapped_bridge_refuses_fresh_custody',
               'callback_reentry_refusal', 'lost_cleanup_acknowledgement']}))
