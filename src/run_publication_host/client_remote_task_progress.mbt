@@ -53,6 +53,32 @@ pub fn inspect_client_remote_task_progress(
     @strategy.graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
+  inspect_bound_client_remote_task_progress(
+    prepared,
+    definition,
+    authority,
+    client_task_run_binding_definition_cid(binding),
+    client_task_run_binding_result_names(binding),
+    durable,
+  )
+}
+
+///|
+/// Both public entries validate their original Run before using this shared
+/// observation-only path. The private Effect computation view never escapes.
+fn inspect_bound_client_remote_task_progress(
+  prepared : PreparedClientProgram,
+  definition : @publication.PublicationContract,
+  authority : String,
+  definition_cid : String,
+  result_names : Array[String],
+  durable : Array[@remote.DurableCoordinatorDispatchRecord],
+) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue] {
+  let graph = prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  if count == 0 || authority.is_empty() {
+    return Err(UnsupportedGraph)
+  }
   let keys : Array[String] = []
   for task in 0..<count {
     let fragment = match
@@ -83,7 +109,7 @@ pub fn inspect_client_remote_task_progress(
   for saved in durable {
     let request = @remote.durable_coordinator_dispatch_record_request(saved)
     let (run, key) = @remote.dispatch_request_task_scope(request)
-    if run != client_task_run_binding_definition_cid(binding) {
+    if run != definition_cid {
       return Err(ForeignObservation)
     }
     let mut ordinal = None
@@ -153,7 +179,7 @@ pub fn inspect_client_remote_task_progress(
     prepared,
     authority,
     definition,
-    result_names: client_task_run_binding_result_names(binding),
+    result_names: result_names.copy(),
     completed,
     keys,
     requests,
