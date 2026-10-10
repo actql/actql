@@ -5,7 +5,8 @@ import { lstatSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { hash } from './inventory.mjs';
-import { foundationAncestorQuery, populateFoundationTrees } from './foundation-trees.mjs';
+import { foundationAncestorQuery, populateFoundationTrees, populateFoundationBlobs,
+  foundationBlobOutputLimit } from './foundation-trees.mjs';
 const sha = /^[0-9a-f]{40}$/;
 const digest = /^[0-9a-f]{64}$/;
 const id = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -89,7 +90,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const inspectedPaths = [...new Set([...protectedPaths, ...immutablePaths, ...immutable.map(entry => entry.sourcePath ?? entry.path)])];
   function git(args, { allowedFailure = false, input } = {}) {
     const result = spawnSync('git', ['--no-replace-objects', ...args], {
-      cwd: root, input, env: { ...process.env, GIT_NO_REPLACE_OBJECTS: '1' }, maxBuffer: 64 * 1024 * 1024,
+      cwd: root, input, env: { ...process.env, GIT_NO_REPLACE_OBJECTS: '1' },
+      maxBuffer: args[0] === 'cat-file' && args[1] === '--batch'
+        ? foundationBlobOutputLimit : 64 * 1024 * 1024,
     });
     assert(!result.error, `Foundation Git failed: ${result.error}`);
     if (!allowedFailure) assert.equal(result.status, 0, `Missing foundation Git history: git ${args.join(' ')}\n${result.stderr}`);
@@ -119,7 +122,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const ancestor = foundationAncestorQuery(completeParents);
   assert(ancestor(checkpoint, head), 'Foundation checkpoint is not an ancestor of HEAD');
   const revisions = git(['rev-list', '--reverse', '--topo-order', `${checkpoint}..${head}`]).stdout.toString().trim().split('\n').filter(Boolean);
-  const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Set();
+  const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Map();
   function parents(revision) {
     assert(completeParents.has(revision), `Missing foundation parent facts ${revision}`);
     return completeParents.get(revision);
@@ -140,10 +143,16 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       const batch = unchecked.slice(offset, offset + 256);
       const checked = git(['cat-file', '--batch-check'], { input: `${batch.join('\n')}\n` }).stdout.toString().trim().split('\n');
       assert.equal(checked.length, batch.length, 'Incomplete foundation Git object check');
-      checked.forEach((line, index) => {
-        assert.match(line, new RegExp(`^${batch[index]} blob [0-9]+$`), 'Missing foundation Git blob');
-        verifiedObjects.add(batch[index]);
+      const objects = checked.map((line, index) => {
+        const match = new RegExp(`^${batch[index]} blob (0|[1-9][0-9]*)$`).exec(line);
+        assert(match, 'Missing foundation Git blob');
+        return {object: batch[index], size: Number(match[1])};
       });
+      // Independently checked object kind/size still precedes every body read.
+      // Batch only transport; all actual bytes feed the unchanged validation.
+      populateFoundationBlobs({objects, blobs,
+        git: (args, input) => git(args, {input}).stdout});
+      for (const entry of objects) verifiedObjects.set(entry.object, entry.size);
     }
   }
   function tree(revision) {
@@ -163,7 +172,8 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     return trees.get(revision);
   }
   function bytes(entry) {
-    if (!blobs.has(entry.object)) blobs.set(entry.object, git(['cat-file', 'blob', entry.object]).stdout);
+    if (!blobs.has(entry.object)) verifyObjects([entry.object]);
+    assert(blobs.has(entry.object), 'Missing verified foundation blob bytes');
     return blobs.get(entry.object);
   }
   function identity(revision, path) {
@@ -222,6 +232,68 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert(!singleBaseNormalizations.has(record.target?.id), 'Duplicate foundation single-base normalization');
     singleBaseNormalizations.set(record.target?.id, record);
   }
+  // An exact copied introduction can be reconciled only after a real merge of
+  // the original declaration commit. The source must still be in HEAD's DAG;
+  // this record never admits an unrelated source or rewrites an introduction.
+  const declarationCopies = new Map(), checkedCopyRecords = new Map();
+  for (const [path, entry] of supplementsAt(head)) {
+    const raw = bytes(entry), record = JSON.parse(raw);
+    if (record.version !== 'actql-foundation-declaration-copy/0.1') continue;
+    assert(raw.equals(Buffer.from(`${JSON.stringify(record, null, 2)}\n`)), 'Noncanonical foundation copy JSON');
+    keys(record, ['version', 'id', 'target', 'original', 'copy', 'reconciliation', 'reason'], 'foundation copy');
+    assert.match(record.id, id, 'Invalid foundation copy ID');
+    assert.equal(path, `${supplementDirectory}/${record.id}.json`, 'Ambiguous foundation copy filename');
+    keys(record.target, ['id', 'digest'], 'foundation copy target');
+    assert.match(record.target.id, id, 'Invalid foundation copy target ID');
+    assert.match(record.target.digest, digest, 'Invalid foundation copy target digest');
+    assert(typeof record.reason === 'string' && record.reason.trim(), 'Missing foundation copy rationale');
+    assert(!declarationCopies.has(record.target.id), 'Duplicate foundation copy target');
+    const targetPath = `${directory}/${record.target.id}.json`, target = declarationsAt(head).get(targetPath);
+    assert(target && target.mode === '100644', 'Missing or wrong-mode foundation copy target');
+    assert.equal(hash(bytes(target)), record.target.digest, 'Changed foundation copy target');
+    const declaration = JSON.parse(bytes(target));
+    assert(revisionSet.has(declaration.revision), 'Unrelated foundation copy supporting revision');
+    for (const name of ['original', 'copy', 'reconciliation']) {
+      const binding = record[name];
+      keys(binding, ['revision', 'parents'], `foundation copy ${name}`);
+      assert(sha.test(binding.revision) && revisionSet.has(binding.revision), 'Unrelated foundation copy commit');
+      assert.deepEqual(binding.parents, parents(binding.revision), 'Incorrect foundation copy parents');
+      assert(same(tree(binding.revision).get(targetPath), target), 'Different foundation copy bytes or mode');
+    }
+    const original = record.original.revision, copy = record.copy.revision, merge = record.reconciliation.revision;
+    assert(record.original.parents.length === 1 && record.copy.parents.length === 1,
+      'Foundation copy must name single-parent introductions');
+    assert(original !== copy && declaration.revision !== original && ancestor(declaration.revision, original),
+      'Foundation copy original must follow its source');
+    assert(!ancestor(declaration.revision, copy), 'Foundation copy must identify a non-ancestral introduction');
+    for (const binding of [record.original, record.copy]) {
+      assert(!tree(binding.parents[0]).has(targetPath)
+        && introductions.get(targetPath).revisions.includes(binding.revision), 'Not a foundation copy introduction');
+      // Inspect the whole commit, including unprotected paths. These two exact
+      // commits may only introduce this declaration, with no bundled changes.
+      assert.deepEqual(git(['diff-tree', '--no-commit-id', '--name-only', '-r', '-z',
+        binding.parents[0], binding.revision]).stdout.toString().split('\0').filter(Boolean), [targetPath],
+      'Foundation copy introduction contains other changes');
+    }
+    assert(record.reconciliation.parents.length === 2 && record.reconciliation.parents[1] === original,
+      'Foundation copy reconciliation must merge its exact original');
+    const first = record.reconciliation.parents[0];
+    assert(ancestor(copy, first) && !ancestor(original, first), 'Incorrect foundation copy reconciliation ancestry');
+    assert.equal(git(['rev-parse', `${merge}^{tree}`]).stdout.toString().trim(),
+      git(['rev-parse', `${first}^{tree}`]).stdout.toString().trim(),
+      'Foundation copy reconciliation changed the copied tree');
+    const automaticMerge = git(['merge-tree', '--write-tree', first, original], { allowedFailure: true });
+    assert.equal(automaticMerge.status, 0, 'Foundation copy reconciliation is not a clean normal merge');
+    assert.equal(automaticMerge.stdout.toString().trim(),
+      git(['rev-parse', `${merge}^{tree}`]).stdout.toString().trim(),
+      'Foundation copy reconciliation differs from normal merge');
+    const introduced = sorted(introductions.get(path).revisions);
+    for (const introduction of introduced) {
+      assert(introduction !== merge && ancestor(merge, introduction), 'Foundation copy record must follow reconciliation');
+    }
+    declarationCopies.set(record.target.id, record);
+    checkedCopyRecords.set(path, { path, digest: hash(raw), introductions: introduced, ...record });
+  }
   const declarations = [], byRevision = new Map(), byId = new Map();
   for (const [path, entry] of declarationsAt(head)) {
     const declarationBytes = bytes(entry);
@@ -252,6 +324,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     } else assert(!Object.hasOwn(declaration, 'mergeBases'), 'Spurious foundation merge bases');
     const declarationIntroductions = sorted(introductions.get(path).revisions);
     for (const introduction of declarationIntroductions) {
+      if (declarationCopies.get(declaration.id)?.copy.revision === introduction) continue;
       assert(introduction !== declaration.revision && ancestor(declaration.revision, introduction), 'Foundation declaration must follow its source commit');
     }
     assert(Array.isArray(declaration.changes) && declaration.changes.length, 'Empty foundation declaration');
@@ -283,6 +356,10 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const effectiveChanges = declaration => [...declaration.changes,
     ...(completionsByTarget.get(declaration.id) ?? []).flatMap(record => record.changes)];
   for (const [path, entry] of supplementsAt(head)) {
+    if (checkedCopyRecords.has(path)) {
+      supplements.push(checkedCopyRecords.get(path));
+      continue;
+    }
     const raw = bytes(entry), supplement = JSON.parse(raw);
     assert(raw.equals(Buffer.from(`${JSON.stringify(supplement, null, 2)}\n`)), 'Noncanonical foundation supplement JSON');
     const completion = supplement.version === 'actql-foundation-change-completion/0.1';

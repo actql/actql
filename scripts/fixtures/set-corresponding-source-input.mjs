@@ -217,3 +217,503 @@ setCorrespondingRefusals.push(...[
 ].map(item => ({...item, text: 'DATA r = SELECT 1 AS x; ' + item.text,
   name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
   expectedCode: 'ClientProgramInvalidInput'})));
+
+// Anonymous window values have no clause alias. Positional alignment publishes
+// the first operand's a/b names; these are independently authored expectations.
+const anonymousAnalyticHead = 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+  + 'ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r';
+const anonymousAnalytic = (name, text, extra = {}) => positional('anonymous-analytic-' + name, text,
+  {columns: aggregateColumns, expected: windowRows, ...extra});
+setCorrespondingSuccesses.push(
+  anonymousAnalytic('opposing-orders', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + anonymousAnalyticHead + ' ORDER BY a, b', {format: 'aql-text'}),
+  anonymousAnalytic('scoped-pipe', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + 'SELECT 0 AS a, 0 AS b |> UNION ALL (FROM r |> AS original |> SET x = -x '
+    + '|> SELECT ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x)) '
+    + '|> ORDER BY a, b', {format: 'aql-text'}),
+  anonymousAnalytic('named-qualify', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), '
+    + 'ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r QUALIFY n > 0 ORDER BY a, b',
+    {format: 'aql-text'}),
+  anonymousAnalytic('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+    + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), '
+    + 'ROW_NUMBER() OVER (ORDER BY x DESC) FROM r ORDER BY a, b',
+    {format: 'aql-text', expected: []}),
+  anonymousAnalytic('source-orders', 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY id), ROW_NUMBER() OVER (ORDER BY id DESC) '
+    + 'FROM records ORDER BY a, b',
+    {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'anonymous-analytic-private-slot', field: 'aql_analytic_output_1'},
+  {name: 'anonymous-analytic-private-projection', field: 'aql_set_anonymous_3'},
+].map(item => ({name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
+  text: 'DATA r = SELECT 1 AS x; ' + anonymousAnalyticHead + ' QUALIFY ' + item.field + ' > 0',
+  expectedCode: 'ClientProgramInvalidInput'})));
+
+// Parentheses preserve operand ownership and ordinal values. These results
+// are authored from the same two input rows as the independent JSON control.
+const parenthesized = (name, text, extra = {}) => positional('parenthesized-' + name,
+  text, {format: 'aql-text', columns: aggregateColumns, expected: windowRows, ...extra});
+const parenthesizedInput = 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; ';
+setCorrespondingSuccesses.push(
+  parenthesized('scoped-windows', parenthesizedInput + 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + '(FROM r |> AS original |> SET x = x + 10 |> SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x DESC)) '
+    + 'ORDER BY a, b'),
+  parenthesized('nested-set', parenthesizedInput + 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + '(SELECT ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r '
+    + 'UNION ALL SELECT 3 AS a, 4 AS b) ORDER BY a, b',
+    {expected: [...windowRows, {a: 3, b: 4}]}),
+  parenthesized('anonymous-aggregate', parenthesizedInput + 'SELECT 0 AS a, 0 AS b '
+    + 'UNION ALL ((SELECT SUM(x), COUNT(x) FROM r)) ORDER BY a, b',
+    // SUM has a nullable result even for a nonnullable argument: an empty
+    // global group returns NULL. COUNT remains nonnullable; UNION joins both.
+    {expected: [{a: 0, b: 0}, {a: 3, b: 2}],
+      columns: [{name: 'a', contract: {...number, nullable: true}},
+        {name: 'b', contract: number}]}),
+  parenthesized('anonymous-scalars', parenthesizedInput + 'SELECT 0 AS a, 0 AS b '
+    + 'UNION ALL (SELECT x + 10, -x FROM r) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]}),
+  parenthesized('source-windows', 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + '((SELECT ROW_NUMBER() OVER (ORDER BY id), ROW_NUMBER() OVER (ORDER BY id DESC) '
+    + 'FROM records)) ORDER BY a, b',
+    {format: 'sql', sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
+  parenthesized('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+    + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r) '
+    + 'ORDER BY a, b', {expected: []}),
+);
+setCorrespondingRefusals.push(
+  {name: 'set-corresponding-refuse-parenthesized-by-name', format: 'aql-text',
+    text: 'DATA r = SELECT 1 AS x; SELECT 0 AS a UNION ALL BY NAME '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)',
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'set-corresponding-refuse-parenthesized-authored-cte', format: 'aql-text',
+    text: 'DATA r = SELECT 1 AS x; WITH hidden AS '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) '
+      + 'SELECT 0 AS a UNION ALL (SELECT * FROM hidden)',
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'set-corresponding-refuse-parenthesized-private-qualify', format: 'aql-text',
+    text: 'DATA r = SELECT 1 AS x; SELECT 0 AS a UNION ALL '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r QUALIFY aql_analytic_output_1 > 0)',
+    expectedCode: 'ClientProgramInvalidInput'},
+);
+
+
+// Independent input x=1,2: ORDER x DESC LIMIT 1 chooses x=2, whereas ORDER
+// on the evaluated -x DESC chooses x=1. LIMIT/OFFSET stay inside the operand.
+export const positionalOrderLimitProgram = {version: 'actql/0.1', id: 'fixture.positional_order_limit',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {sort: [{field: 'x', dir: 'desc', nulls: 'last'}]},
+    {take: {count: 1, offset: 0}},
+    {select: [{a: 'neg'}], as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const limited = (name, text, extra = {}) => success('positional-limited-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: 0}], ...extra});
+const limitedScalar = 'SELECT 0 AS a UNION ALL (SELECT -id FROM records ORDER BY ';
+setCorrespondingSuccesses.push(
+  limited('json-control', JSON.stringify(positionalOrderLimitProgram),
+    {format: 'json', sourceReadSessionCount: 0}),
+  limited('source-scalar', limitedScalar + 'id DESC LIMIT 1) ORDER BY a'),
+  limited('ordinal-scalar', limitedScalar + '1 DESC LIMIT 1) ORDER BY a',
+    {expected: [{a: -1}, {a: 0}]}),
+  limited('parameter-offset', limitedScalar + 'id DESC LIMIT @take OFFSET @skip) ORDER BY a',
+    {parameterDeclarations: {take: number, skip: number}, parameters: {take: 1, skip: 1},
+      expected: [{a: -1}, {a: 0}]}),
+  limited('source-window', 'SELECT 0 AS a UNION ALL (SELECT ROW_NUMBER() OVER (ORDER BY id) '
+    + 'FROM records ORDER BY id DESC LIMIT 1) ORDER BY a', {expected: [{a: 0}, {a: 2}]}),
+  limited('source-aggregate', 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT SUM(id), COUNT(id) '
+    + 'FROM records ORDER BY 1 DESC LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 3, b: 2}]}),
+  limited('duplicate-ordinal', 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT id AS v, -id AS `V` '
+    + 'FROM records ORDER BY 1 DESC LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  limited('output-alias', 'SELECT 0 AS a UNION ALL (SELECT -id AS id FROM records '
+    + 'ORDER BY id DESC LIMIT 1) ORDER BY a', {expected: [{a: -1}, {a: 0}]}),
+  limited('qualified-input', 'SELECT 0 AS a UNION ALL (SELECT -id AS id FROM records '
+    + 'ORDER BY records.id DESC LIMIT 1) ORDER BY a'),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_2', '`AQL_SET_ANONYMOUS_2`', 'aql_set_anonymous_2.member'].map((field, index) => ({
+    name: 'set-corresponding-refuse-limited-private-' + index, format: 'sql',
+    text: limitedScalar + field + ' LIMIT 1) ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-limited-duplicate-alias', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT id AS v, -id AS `V` FROM records '
+      + 'ORDER BY v LIMIT 1) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+
+// Independent star control selects the evaluated negation twice without
+// re-evaluation. The positional alignment gives it the public left name a.
+export const positionalStarProgram = {version: 'actql/0.1', id: 'fixture.positional_star',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: ['neg']}, {select: ['neg']}, {select: [{a: 'neg'}], as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const starTail = (name, text, extra = {}) => success('positional-star-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}], ...extra});
+const starScalar = 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -id |> SELECT *';
+setCorrespondingSuccesses.push(
+  starTail('json-control', JSON.stringify(positionalStarProgram), {format: 'json', sourceReadSessionCount: 0}),
+  starTail('source-scalar', starScalar + ') ORDER BY a'),
+  starTail('repeated-star-limit', starScalar + ' |> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a',
+    {expected: [{a: -1}, {a: 0}]}),
+  starTail('distinct', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -id |> SELECT DISTINCT *) ORDER BY a',
+    {sourceRows: [{id: 2, amount: 20}, {id: 2, amount: 20}, {id: 1, amount: 10}]}),
+  starTail('window', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT ROW_NUMBER() OVER (ORDER BY id) '
+    + '|> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a', {expected: [{a: 0}, {a: 2}]}),
+  starTail('aggregate', 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT SUM(id), COUNT(id) FROM records |> SELECT *) ORDER BY a, b',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 3, b: 2}]}),
+  starTail('duplicate-ordinal', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+    + '|> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}], expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  starTail('nullable', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -amount |> SELECT *) ORDER BY a NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: -10}, {a: 0}, {a: null}]}),
+  starTail('typed-empty', 'SELECT 0 AS a WHERE FALSE UNION ALL (FROM records |> SELECT -id |> SELECT *) ORDER BY a',
+    {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_2', '`AQL_SET_ANONYMOUS_2`', 'aql_set_anonymous_2.member'].map((field, index) => ({
+    name: 'set-corresponding-refuse-star-private-' + index, format: 'sql',
+    text: starScalar + ' |> ORDER BY ' + field + ') ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-star-duplicate-alias', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+      + '|> SELECT * |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// The right-hand filter cannot remove the left zero or regain discarded
+// input columns. NULL is an unknown Boolean predicate, so it selects no rows.
+export const positionalFilterProgram = {version: 'actql/0.1', id: 'fixture.positional_filter',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{a: 'neg'}]},
+    {filter: {literal: false}, as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const filtered = (name, text, extra = {}) => limited('filtered-' + name, text,
+  {format: 'aql-text', expected: [{a: 0}], ...extra});
+const filteredHead = 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -id |> WHERE ';
+setCorrespondingSuccesses.push(
+  filtered('json-control', JSON.stringify(positionalFilterProgram), {format: 'json', sourceReadSessionCount: 0}),
+  filtered('false', filteredHead + 'FALSE) ORDER BY a'),
+  filtered('true', filteredHead + 'TRUE) ORDER BY a', {expected: [{a: -2}, {a: -1}, {a: 0}]}),
+  filtered('null-predicate', filteredHead + 'CAST(NULL AS BOOL)) ORDER BY a'),
+  filtered('kept-alias', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS original '
+    + '|> SELECT id AS kept, -id |> WHERE kept = 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -1}]}),
+  filtered('window', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY id), -id |> WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  filtered('duplicate-ordinal', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V` |> WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+);
+setCorrespondingRefusals.push(
+  ...['id', 'original.id', 'aql_set_anonymous_3'].map((receiver, index) => ({
+    name: 'set-corresponding-refuse-filtered-receiver-' + index, format: 'aql-text',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> AS original |> SELECT -id '
+      + '|> WHERE ' + receiver + ' > 0) ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-filtered-duplicate-alias', format: 'aql-text',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+      + '|> WHERE v > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// EXCEPT names authored columns; anonymous values remain ordinal-only. The
+// independent JSON control projects already evaluated values before append.
+export const positionalExclusionProgram = {version: 'actql/0.1', id: 'fixture.positional_exclusion',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{kept: 'x'}, 'neg']}, {select: ['neg']},
+    {select: [{a: 'neg'}], as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const exclusion = (name, text, extra = {}) => success('positional-exclusion-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}], ...extra});
+const exclusionHead = 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * EXCEPT (';
+setCorrespondingSuccesses.push(
+  exclusion('json-control', JSON.stringify(positionalExclusionProgram), {format: 'json', sourceReadSessionCount: 0}),
+  exclusion('source-scalar', exclusionHead + 'kept)) ORDER BY a'),
+  exclusion('quoted-repeated-limit', exclusionHead + '`KEPT`) |> SELECT * |> WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a',
+    {expected: [{a: -1}, {a: 0}]}),
+  exclusion('duplicate-aliases', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 '
+    + '|> SELECT * EXCEPT (v)) ORDER BY a', {expected: [{a: 0}, {a: 11}, {a: 12}]}),
+  exclusion('distinct', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT DISTINCT * EXCEPT (kept)) ORDER BY a',
+    {sourceRows: [{id: 2, amount: 20}, {id: 2, amount: 20}, {id: 1, amount: 10}]}),
+  exclusion('analytic', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, ROW_NUMBER() OVER (ORDER BY id) '
+    + '|> SELECT * EXCEPT (kept) |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a', {expected: [{a: 0}, {a: 2}]}),
+  exclusion('global', 'SELECT 0 AS a UNION ALL (SELECT COUNT(id) AS kept, SUM(id) FROM records |> SELECT * EXCEPT (kept)) ORDER BY a',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: 0}, {a: 3}]}),
+  exclusion('nullable', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -amount |> SELECT * EXCEPT (kept)) ORDER BY a NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: -10}, {a: 0}, {a: null}]}),
+  exclusion('typed-empty', 'SELECT 0 AS a WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * EXCEPT (kept)) ORDER BY a',
+    {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4', '`AQL_SET_ANONYMOUS_4`', 'missing'].map((field, index) => ({
+    name: 'set-corresponding-refuse-exclusion-name-' + index, format: 'sql',
+    text: exclusionHead + field + ')) ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-exclusion-dropped-alias', format: 'sql',
+    text: exclusionHead + 'kept) |> ORDER BY kept) ORDER BY a', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-exclusion-old-range', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SELECT * EXCEPT (kept) |> ORDER BY old.id) ORDER BY a', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-exclusion-retained-duplicate', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS dropped '
+      + '|> SELECT * EXCEPT (dropped) |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// REPLACE changes only the named value. The anonymous negation is evaluated
+// before replacement and remains the second positional column.
+export const positionalReplacementProgram = {version: 'actql/0.1', id: 'fixture.positional_replacement',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{kept: 'x'}, 'neg']},
+    {derive: {changed: {add: [{field: 'kept'}, {literal: 10}]}}},
+    {select: [{kept: 'changed'}, 'neg']},
+    {select: [{a: 'kept'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const replacement = (name, text, extra = {}) => success('positional-replacement-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}], ...extra});
+const replacementHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * REPLACE (';
+setCorrespondingSuccesses.push(
+  replacement('json-control', JSON.stringify(positionalReplacementProgram), {format: 'json', sourceReadSessionCount: 0}),
+  replacement('source-scalar', replacementHead + 'kept + 10 AS kept)) ORDER BY a, b'),
+  replacement('quoted-chain-limit', replacementHead + 'kept + 10 AS `KEPT`) |> SELECT * |> WHERE kept > 11 |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 12, b: -2}]}),
+  replacement('simultaneous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> SELECT * REPLACE (second AS first, first AS second)) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 10, b: 1, c: -1}, {a: 20, b: 2, c: -2}]}),
+  replacement('excluded-names', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS dropped, amount AS kept, -id '
+    + '|> SELECT * EXCEPT (dropped) REPLACE (kept + 1 AS kept) |> SELECT * EXCEPT (kept)) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}]}),
+  replacement('retained-duplicates', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> SELECT * REPLACE (kept + 1 AS kept)) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 12}, {a: 2, b: -2, c: 13}]}),
+  replacement('distinct', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> SELECT DISTINCT * REPLACE (0 AS kept)) ORDER BY a, b',
+    {sourceRows: [{id: 2, amount: 20}, {id: 2, amount: 20}, {id: 1, amount: 10}],
+      expected: [{a: 0, b: -2}, {a: 0, b: -1}, {a: 0, b: 0}]}),
+  replacement('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> SELECT * REPLACE (kept + 10 AS kept)) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]}),
+  replacement('value-type', "SELECT 'anchor' AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id "
+    + "|> SELECT * REPLACE ('changed' AS kept)) ORDER BY a, b",
+    // Literal UTF-8 bounds are 6 for anchor and 7 for changed; append keeps 7.
+    {columns: [{name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}}, {name: 'b', contract: number}],
+      expected: [{a: 'anchor', b: 0}, {a: 'changed', b: -2}, {a: 'changed', b: -1}]}),
+  replacement('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> SELECT * REPLACE (kept + 10 AS kept)) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['0 AS aql_set_anonymous_4', '0 AS `AQL_SET_ANONYMOUS_4`', 'kept + aql_set_anonymous_4 AS kept', '1 AS kept, 2 AS `KEPT`'].map((value, index) => ({
+    name: 'set-corresponding-refuse-replacement-private-' + index, format: 'sql',
+    text: replacementHead + value + ')) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  ...['0 AS v', 'v + 1 AS kept'].map((value, index) => ({
+    name: 'set-corresponding-refuse-replacement-ambiguous-' + index, format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+      + '|> SELECT * REPLACE (' + value + ')) ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-replacement-excluded-target', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id '
+      + '|> SELECT * EXCEPT (kept) REPLACE (0 AS kept)) ORDER BY a', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-replacement-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SELECT * REPLACE (old.id AS kept)) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// Window replacement reads the current named input and retains the anonymous
+// value. The JSON control uses existing analytic/projection operations only.
+export const positionalWindowReplacementProgram = {version: 'actql/0.1', id: 'fixture.positional_window_replacement',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{kept: 'x'}, 'neg']},
+    {analytic: {partition_by: [], order_by: [{field: 'kept', dir: 'desc', nulls: 'last'}], functions: {rank: {fn: 'row_number'}}}},
+    {select: [{a: 'rank'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const windowReplacement = (name, text, extra = {}) => success('positional-analytic-replacement-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 1, b: -2}, {a: 2, b: -1}], ...extra});
+const windowReplacementHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * REPLACE (';
+setCorrespondingSuccesses.push(
+  windowReplacement('json-control', JSON.stringify(positionalWindowReplacementProgram), {format: 'json', sourceReadSessionCount: 0}),
+  windowReplacement('source', windowReplacementHead + 'ROW_NUMBER() OVER (ORDER BY kept DESC) AS kept)) ORDER BY a, b'),
+  windowReplacement('expression', windowReplacementHead + 'ROW_NUMBER() OVER (ORDER BY kept DESC) + 5 AS kept)) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 6, b: -2}, {a: 7, b: -1}]}),
+  windowReplacement('named-window-filter', windowReplacementHead + 'ROW_NUMBER() OVER w AS `KEPT`) WINDOW w AS (ORDER BY kept DESC) '
+    + '|> SELECT * |> WHERE kept > 1) ORDER BY a, b', {expected: [{a: 0, b: 0}, {a: 2, b: -1}]}),
+  windowReplacement('opposing-windows', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> SELECT * REPLACE '
+    + '(ROW_NUMBER() OVER (ORDER BY first DESC) AS first, ROW_NUMBER() OVER (ORDER BY second) AS second)) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 2, c: -2}, {a: 2, b: 1, c: -1}]}),
+  windowReplacement('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY kept DESC) AS kept)) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  {name: 'set-corresponding-refuse-analytic-replacement-private', format: 'sql',
+    text: windowReplacementHead + 'ROW_NUMBER() OVER (ORDER BY aql_set_anonymous_4) AS kept)) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-analytic-replacement-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY old.id) AS kept)) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-analytic-replacement-ambiguous', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS kept '
+      + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY v) AS kept)) ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// SET reads the pre-assignment snapshot; anonymous values retain their ordinal.
+const positionalSet = (name, text, extra = {}) => success('positional-pipe-set-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}], ...extra});
+const positionalSetHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> SET ';
+setCorrespondingSuccesses.push(
+  positionalSet('json-control', JSON.stringify(positionalReplacementProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalSet('source', positionalSetHead + 'kept = kept + 10) ORDER BY a, b'),
+  // Current -id selects original id=1. Reusing the earlier -id selects id=2.
+  positionalSet('current-expression-limit', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS id, -id |> SET id = -id |> ORDER BY -id |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: -1, b: -1}, {a: 0, b: 0}]}),
+  positionalSet('quoted-chain-limit', positionalSetHead + '`KEPT` = kept + 10 |> WHERE kept > 11 |> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 12, b: -2}]}),
+  positionalSet('simultaneous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> SET first = second, second = first) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 10, b: 1, c: -1}, {a: 20, b: 2, c: -2}]}),
+  positionalSet('retained-duplicates', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> SET kept = kept + 1) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 12}, {a: 2, b: -2, c: 13}]}),
+  positionalSet('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> SET kept = kept + 10) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]}),
+  positionalSet('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> SET kept = kept + 10) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4 = 0', '`AQL_SET_ANONYMOUS_4` = 0', 'kept = aql_set_anonymous_4 + 1', 'kept = 1, `KEPT` = 2'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-set-private-' + index, format: 'sql',
+    text: positionalSetHead + value + ') ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  ...['v = 0', 'kept = v + 1'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-set-ambiguous-' + index, format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+      + '|> SET ' + value + ') ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-set-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SET kept = old.id) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+
+// DROP removes authored names, retaining anonymous values at their positions.
+export const positionalDropProgram = {version: 'actql/0.1', id: 'fixture.positional_drop',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, amount: number}, rows: [{id: 2, amount: 20}, {id: 1, amount: 10}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'id'}}}},
+    {select: [{kept: 'id'}, {removed: 'amount'}, 'neg']},
+    {drop: ['removed']}, {select: [{a: 'kept'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const positionalDrop = (name, text, extra = {}) => success('positional-pipe-drop-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 1, b: -1}, {a: 2, b: -2}], ...extra});
+const positionalDropHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, amount AS removed, -id |> DROP ';
+setCorrespondingSuccesses.push(
+  positionalDrop('json-control', JSON.stringify(positionalDropProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalDrop('source', positionalDropHead + 'removed) ORDER BY a, b'),
+  positionalDrop('duplicates-removed', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 |> DROP `v`) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: 0}, {a: 11}, {a: 12}]}),
+  positionalDrop('duplicates-retained', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, amount AS removed |> DROP removed) ORDER BY a, b'),
+  positionalDrop('chain-ordinal-limit', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> DROP first |> DROP `SECOND` '
+    + '|> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: -1}, {a: 0}]}),
+  positionalDrop('filter-expression-limit', positionalDropHead + 'removed |> WHERE kept > 1 |> ORDER BY -kept |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  positionalDrop('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, id + 10 AS removed, -amount '
+    + '|> DROP removed) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: null}]}),
+  positionalDrop('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, amount AS removed, -id '
+    + '|> DROP removed) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_6', '`AQL_SET_ANONYMOUS_6`', 'removed, `REMOVED`'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-drop-target-' + index, format: 'sql',
+    text: positionalDropHead + value + ') ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-drop-removed', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id |> DROP kept |> WHERE kept > 0) ORDER BY a',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-drop-input-order', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS id, -id |> DROP id |> ORDER BY id) ORDER BY a',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-drop-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, amount AS removed, -id '
+      + '|> DROP removed |> WHERE old.id > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-drop-ambiguous-order', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS removed '
+      + '|> DROP removed |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);

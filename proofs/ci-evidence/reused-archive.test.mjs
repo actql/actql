@@ -10,6 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {archiveFixture, jsonBytes} from './final-archive-fixture.mjs';
 import {storedArchive} from './archive-fixture.mjs';
 import {hash, gitTree} from './inputs.mjs';
+import {isolatedContract, isolatedExperimentPaths, isolatedExperimentDigest} from './isolated-contract.mjs';
 import {comparisonPlan} from './plan.mjs';
 import {verifyCurrentFamily} from './final.mjs';
 import {sealAcceptance, readReadyOrigin, acceptanceName} from './acceptance.mjs';
@@ -36,9 +37,22 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
       'commit', '--quiet', '-m', `test: record controlled ${phase} fixture`]);
     return git(['rev-parse', 'HEAD']);
   };
+  // This positive fixture needs the exact reviewed finite experiment. Current
+  // product integrations may change that experiment and correctly leave reuse
+  // open. Restore only its independently pinned bytes in this private fixture
+  // repository; never rewrite the user's checkout, original receipt or policy.
+  const reviewed = gitTree(root, isolatedContract.reviewRevision);
+  reviewed.prefetch(isolatedExperimentPaths);
+  for (const path of isolatedExperimentPaths) {
+    await writeFile(join(historical, path), reviewed.read(path));
+    git(['add', path]);
+  }
   const first = await revision('first-fresh'), second = await revision('second-fresh');
   const current = await revision('mixed-candidate');
   git(['checkout', '--quiet', '--detach', second]);
+
+  assert.equal(isolatedExperimentDigest(gitTree(historical, first)), isolatedContract.experimentDigest);
+  assert.equal(isolatedExperimentDigest(gitTree(historical, second)), isolatedContract.experimentDigest);
 
   const runs = new Map(), jobs = new Map(), artifacts = new Map(), archives = new Map();
   const request = async path => {

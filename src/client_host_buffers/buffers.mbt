@@ -133,7 +133,9 @@ pub fn reserve_buffer(
     allocation,
     wire_length: wire_bytes,
     cleanup,
-    bytes: Array::make(wire_bytes, 0),
+    // Keep reservation free of the large transfer allocation. The caller
+    // receives custody before fill can trap while growing linear memory.
+    bytes: [],
     wire: None,
     written: 0,
     source: None,
@@ -177,6 +179,9 @@ pub fn fill_buffer(
     count > 16384 ||
     count > slot.wire_length - slot.written {
     return Err(InvalidPosition)
+  }
+  if count > 0 && slot.bytes.is_empty() {
+    slot.bytes = Array::make(slot.wire_length, 0)
   }
   for index in start..<(start + count) {
     guard read_byte(index) is Some(byte) else { return Err(InvalidByte) }
@@ -234,6 +239,21 @@ pub fn buffer_source(pool : BufferPool, slot : BufferSlot) -> @source.Node? {
     None
   } else {
     slot.source
+  }
+}
+
+///|
+/// Immutable original bytes for a trusted Core consumer. A consumer retaining
+/// this view must hold its exact borrow until it has finished using the bytes.
+pub fn buffer_wire(pool : BufferPool, slot : BufferSlot) -> Bytes? {
+  if !physical_equal(pool, slot.owner) ||
+    pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    !slot.input_complete {
+    None
+  } else {
+    slot.wire
   }
 }
 

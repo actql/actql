@@ -146,3 +146,20 @@ test "bad callback bytes and decode budget remain distinct from completed input"
   assert_eq(buffer_pool_usage(pool).allocated, 27L)
   close_pool(pool).unwrap()
 }
+
+///|
+test "reservation issues custody before transfer storage and failed cleanup retains it" {
+  let pool = open_pool(4096L, 4, 1024).unwrap()
+  let cleaned = Ref(false)
+  let slot = reserve_buffer(pool, 1024, 1024L, () => cleaned.val).unwrap()
+  assert_true(lookup_buffer(pool, buffer_serial(slot)) is Some(_))
+  assert_true(slot.bytes.is_empty())
+  assert_eq(buffer_pool_usage(pool).allocated, 3072L)
+  assert_eq(close_buffer(pool, slot), Err(CleanupPending))
+  assert_eq(buffer_pool_usage(pool).allocated, 3072L)
+  assert_true(slot.bytes.is_empty())
+  cleaned.val = true
+  close_buffer(pool, slot).unwrap()
+  assert_eq(buffer_pool_usage(pool).allocated, 0L)
+  close_pool(pool).unwrap()
+}

@@ -7,7 +7,7 @@ test "ordered node identity covers complete graph step while source excludes mac
   // Complete fixed body: portability/corpus/expression-fragment-identities.json.
   assert_eq(
     artifact.graph.cid,
-    "sha256:ea0c1c4059f46335db46b13ade8bacda6313b3a3be95b88d6e595059c5032ef8",
+    "sha256:a1b783425c6e8c9e81091d41d1eb7db75bf4af370fed3b9531defabbc86f8797",
   )
   let source = @identity.stringify_value(
     artifact.source.value,

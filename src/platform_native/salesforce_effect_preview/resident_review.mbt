@@ -453,6 +453,11 @@ pub fn NativeResidentEffectReview::target_uses(
 pub fn NativeResidentEffectReview::complete(
   self : NativeResidentEffectReview,
   phase_observe? : (String) -> Unit = _ => (),
+  capture_progress? : (@resident.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit = (
+    _,
+    _,
+    _,
+  ) => (),
 ) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue] {
   if self.completing {
     return Err(Unavailable)
@@ -619,6 +624,7 @@ pub fn NativeResidentEffectReview::complete(
         bounds.max_nodes,
         bounds.max_depth,
         policy.max_capture_workspace_entries,
+        progress=capture_progress,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Capture(issue))
@@ -739,6 +745,33 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(
     Ok(_) => Ok(report)
     Err(issue) => Err(Journal(issue))
   }
+}
+
+///|
+/// Read the original confirmed review projection for authorized transport.
+/// The returned report names the original dispatch and Checkpoint; no JSON,
+/// Preview, approval or Run is regenerated. Input and review custody stay owned.
+pub fn NativeResidentEffectReview::review_projection(
+  self : NativeResidentEffectReview,
+  authorize_evidence_read : () -> Bool,
+  max_bytes : Int,
+) -> Result[
+  (@remote.RemoteEffectCheckpointReport, String),
+  NativeResidentEffectReviewIssue,
+] {
+  if self.closed || self.retiring || !self.current() {
+    return Err(Unavailable)
+  }
+  guard self.retention is Some(retention) else { return Err(Unavailable) }
+  let projection = match
+    retention.review_projection(authorize_evidence_read, max_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Retention(issue))
+  }
+  if self.closed || self.retiring || !self.current() {
+    return Err(Unavailable)
+  }
+  Ok(projection)
 }
 
 ///|
