@@ -119,6 +119,8 @@ test "DISTINCT ORDER recognizes binary strict CONCAT without restoring input" {
 }
 
 ///|
+// DISTINCT cannot restore an unselected input expression. The adopted
+// semantic refusal is InvalidQuery, rather than an unimplemented ORDER path.
 test "strict CONCAT reuse preserves argument order arity and clause receivers" {
   for
     source in [
@@ -131,7 +133,7 @@ test "strict CONCAT reuse preserves argument order arity and clause receivers" {
         concat_reuse_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=source,
     )
   }
