@@ -75,3 +75,145 @@ export const setCorrespondingRefusals = [
   {name: 'dropped-column', text: left + ' UNION ALL CORRESPONDING ' + right + ' ORDER BY left_only'},
   {name: 'undeclared-parameter', text: 'SELECT id FROM records WHERE id >= @missing UNION ALL CORRESPONDING SELECT id, amount FROM records'},
 ].map(item => ({format: 'sql', ...item, name: 'set-corresponding-refuse-' + item.name}));
+
+// Positional operands have no name-matching obligation. The duplicate right
+// aliases describe two distinct values, not one field to keep or overwrite.
+const positionalColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}];
+const positionalRows = [{a: 0, b: 0}, {a: 1, b: null}];
+const positionalProgram = {version: 'actql/0.1', id: 'fixture.positional_duplicates',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {a: number, b: {...number, nullable: true}}, rows: positionalRows}, as: 'seed'},
+    {from: 'seed', sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+      {field: 'b', dir: 'asc', nulls: 'last'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const positional = (name, text, extra = {}) => success('positional-' + name, text,
+  {sourceRows: [], sourceReadSessionCount: 0, columns: positionalColumns,
+    expected: positionalRows, ...extra});
+setCorrespondingSuccesses.push(
+  positional('json-control', JSON.stringify(positionalProgram), {format: 'json'}),
+  positional('duplicate-aliases', 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT 1 AS x, CAST(NULL AS FLOAT64) AS `X` ORDER BY a, b NULLS LAST'),
+  positional('scoped-current-and-original', 'DATA n = SELECT 1 AS x; '
+    + 'FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original '
+    + '|> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 2}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: number}]}),
+  positional('typed-empty', 'DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE '
+    + 'UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; '
+    + 'FROM e |> ORDER BY a, b', {format: 'aql-text', expected: []}),
+  positional('shared-source', 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT id AS repeated, amount AS repeated FROM records WHERE id > 0 ORDER BY a, b NULLS LAST',
+    {sourceRows, sourceReadSessionCount: 1,
+      expected: [{a: 0, b: 0}, {a: 1, b: null}, {a: 2, b: 20},
+        {a: 3, b: 30}, {a: 3, b: 30}]}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'positional-public-duplicates', text: 'SELECT 1 AS x, 2 AS x'},
+  {name: 'positional-by-name-duplicates',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL BY NAME SELECT 1 AS a, 2 AS a'},
+  {name: 'positional-private-output',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x ORDER BY aql_set_duplicate_2'},
+].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
+  format: 'sql', expectedCode: 'ClientProgramInvalidInput'})));
+
+// Independent COUNT semantics: a single NULL input is counted by COUNT(*)
+// and excluded by COUNT(field). Both output columns are nonnullable numbers.
+const aggregateColumns = [{name: 'a', contract: number}, {name: 'b', contract: number}];
+const aggregateRows = [{a: 0, b: 0}, {a: 1, b: 0}];
+export const positionalAggregateProgram = {version: 'actql/0.1', id: 'fixture.aggregate_duplicates',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {nullable_input: {...number, nullable: true}},
+      rows: [{nullable_input: null}]}, as: 'input'},
+    {from: 'input', group: {by: [], aggregates: {
+      one: {fn: 'count'}, zero: {fn: 'count', field: 'nullable_input'},
+    }}},
+    {select: [{a: 'one'}, {b: 'zero'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+      {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const aggregateText = 'SELECT 0 AS a, 0 AS b UNION ALL '
+  + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n';
+const aggregateQualify = 'DATA r = SELECT 1 AS x; SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL '
+  + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n, '
+  + 'ROW_NUMBER() OVER (ORDER BY r.x) AS rn FROM r GROUP BY r.x QUALIFY ';
+const aggregate = (name, text, extra = {}) => positional('aggregate-' + name, text,
+  {columns: aggregateColumns, expected: aggregateRows, ...extra});
+setCorrespondingSuccesses.push(
+  aggregate('json-control', JSON.stringify(positionalAggregateProgram), {format: 'json'}),
+  aggregate('distinct-count-inputs', aggregateText + ' ORDER BY a, b'),
+  aggregate('data-case-aliases', 'DATA combined = SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS `N`; '
+    + 'FROM combined |> ORDER BY a, b', {format: 'aql-text'}),
+  aggregate('empty-global', aggregateText + ' WHERE FALSE ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 0, b: 0}]}),
+  aggregate('explicit-having-call', aggregateText + ' HAVING COUNT(*) > 0 ORDER BY a, b'),
+  aggregate('qualified-input-having', 'DATA r = SELECT 1 AS x; '
+    + aggregateText + ' FROM r AS n GROUP BY n.x HAVING n.x > 0 ORDER BY a, b',
+    {format: 'aql-text'}),
+  aggregate('undemanded-qualify-aliases', aggregateQualify + 'r.x > 0 AND rn = 1 ORDER BY a, b, c',
+    {format: 'aql-text', expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 0, c: 1}],
+      columns: [...aggregateColumns, {name: 'c', contract: number}]}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'aggregate-ambiguous-having', text: aggregateText + ' HAVING n > 0'},
+  {name: 'aggregate-ambiguous-receiver', text: aggregateText + ' HAVING n.member = 1'},
+  {name: 'aggregate-private-having', text: aggregateText + ' HAVING aql_select_aggregate_2 > 0'},
+  {name: 'aggregate-ambiguous-qualify', format: 'aql-text', text: aggregateQualify + 'n > 0'},
+].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
+  format: item.format ?? 'sql', expectedCode: 'ClientProgramInvalidInput'})));
+
+// The two window calls consume the same input snapshot, but opposing ORDER
+// keys produce different values. Authored duplicate names cannot select a slot.
+export const positionalWindowProgram = {version: 'actql/0.1', id: 'fixture.window_duplicates',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', analytic: {partition_by: [],
+      order_by: [{field: 'x', dir: 'asc', nulls: 'first'}],
+      functions: {up: {fn: 'row_number'}}}},
+    {analytic: {partition_by: [], order_by: [{field: 'x', dir: 'desc', nulls: 'last'}],
+      functions: {down: {fn: 'row_number'}}}},
+    {select: [{a: 'up'}, {b: 'down'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+      {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const windowRows = [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}];
+const windowHead = 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+  + 'ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r';
+const window = (name, text, extra = {}) => positional('window-' + name, text,
+  {columns: aggregateColumns, expected: windowRows, ...extra});
+setCorrespondingSuccesses.push(
+  window('json-control', JSON.stringify(positionalWindowProgram), {format: 'json'}),
+  window('opposing-orders', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + windowHead + ' ORDER BY a, b', {format: 'aql-text'}),
+  window('different-functions', 'DATA r = SELECT 1 AS x UNION ALL SELECT 1 AS x; '
+    + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, '
+    + 'RANK() OVER (ORDER BY x) AS n FROM r ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 1}, {a: 2, b: 1}]}),
+  window('aggregate-functions', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT SUM(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n, '
+    + 'COUNT(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n FROM r ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 1}, {a: 3, b: 2}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}]}),
+  window('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+    + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r '
+    + 'ORDER BY a, b', {format: 'aql-text', expected: []}),
+  window('source-orders', 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY id) AS n, ROW_NUMBER() OVER (ORDER BY id DESC) AS n '
+    + 'FROM records ORDER BY a, b',
+    {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'window-ambiguous-qualify', text: windowHead + ' QUALIFY n > 0'},
+  {name: 'window-private-qualify', text: windowHead + ' QUALIFY aql_analytic_output_3 > 0'},
+].map(item => ({...item, text: 'DATA r = SELECT 1 AS x; ' + item.text,
+  name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
+  expectedCode: 'ClientProgramInvalidInput'})));

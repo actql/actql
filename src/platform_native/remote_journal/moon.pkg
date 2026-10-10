@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/effect_application" @effect,
+  "actql/actql/run_publication" @publication,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/sha256" @sha,
   "actql/actql/checkpoint_runtime" @checkpoint,
@@ -27,6 +28,7 @@ options(
   "native-stub": [ "inspection_stub.c" ],
   targets: {
     "effect_ledger_native.mbt": [ "native" ],
+    "effect_ledger_custody_native.mbt": [ "native" ],
     "effect_ledger_native_wbtest.mbt": [ "native" ],
     "effect_ledger_unsupported.mbt": [ "not", "native" ],
     "effect_checkpoint_reports_native.mbt": [ "native" ],

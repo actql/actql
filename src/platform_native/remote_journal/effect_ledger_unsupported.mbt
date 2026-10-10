@@ -34,3 +34,37 @@ pub fn Journal::effect_ledger_response(
 ) -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Journal::record_effect_row_receipt(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+  _dispatching : @effect.EffectLedgerEntry,
+  _preview : @publication.EffectPreviewIdentity,
+  _scope : @request_scope.LogicalRequestScope,
+  _locator : @effect.LogicalItemLocator,
+  _key : @effect.EffectDispatchKey,
+  _canonical_request_cid : String,
+  _outcome_wire : String,
+  _max_response_bytes : Int,
+  _limits : @checkpoint.WireLimits,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeRemoteJournalIssue,
+] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::effect_ledger_custody(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+  _scope : @request_scope.LogicalRequestScope,
+  _locator : @effect.LogicalItemLocator,
+  _key : @effect.EffectDispatchKey,
+  _basis : @effect.EffectLedgerBasis,
+  _limits : @checkpoint.WireLimits,
+  _checkpoint_limits : @checkpoint.WireLimits,
+) -> Result[NativeEffectRowCustody?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}

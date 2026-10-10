@@ -14,6 +14,7 @@ fn retained_effect_review_retention_store(
   wire : String,
   authoring_cid : String,
   review_work? : @effect_provider.NativeResidentEffectReview? = None,
+  original_journal_path? : String? = None,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-review-retention-" + @env.now().to_string()
@@ -136,6 +137,17 @@ fn retained_effect_review_retention_store(
   } else {
     None
   }
+  if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
+    retained_holder_write_row(
+      review_work.unwrap(),
+      report,
+      resolution_fixture.unwrap(),
+      invocation,
+      original_journal_path.unwrap(),
+      consumer,
+      result,
+    )
+  }
   let report_wire = @remote.remote_effect_checkpoint_report_json(report)
   let checkpoint = @remote.remote_effect_checkpoint_report_checkpoint(report)
   let holding = checkpoint.checkpoint_cid
@@ -194,6 +206,7 @@ fn retained_effect_review_retention_store(
           // recheck the actual holder after the callback, without dropping
           // the pending original retention owner or returning capacity.
           let cleanup_failed = Ref(false)
+          let cleanup_observation = Ref("cleanup callback not reached")
           assert_true(
             work.admit_resolution(
               wire,
@@ -202,11 +215,23 @@ fn retained_effect_review_retention_store(
               keys,
               () => true,
               () => {
-                cleanup_failed.val = work.retry_cleanup() is Err(Retention(_))
+                let cleanup = work.retry_cleanup()
+                cleanup_failed.val = cleanup is Err(Retention(_))
+                cleanup_observation.val = match cleanup {
+                  Err(Retention(_)) => "retention cleanup pending"
+                  Err(Journal(StateCollision)) => "journal custody collision"
+                  Err(Journal(Closed)) => "journal closed"
+                  Err(Journal(Physical(_))) => "journal physical failure"
+                  Err(Journal(_)) => "journal custody rejected"
+                  Err(Unavailable) => "review custody unavailable"
+                  Err(_) => "review cleanup rejected"
+                  Ok(_) => "review cleanup succeeded"
+                }
                 "2026-10-10T00:01:00.000Z"
               },
             )
             is Err(AuthorityDenied),
+            msg=cleanup_observation.val[:],
           )
           assert_true(cleanup_failed.val)
         } else {

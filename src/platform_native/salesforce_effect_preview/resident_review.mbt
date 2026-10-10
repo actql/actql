@@ -110,6 +110,9 @@ struct NativeResidentEffectReview {
     String,
     @checkpoint.WireLimits,
   )?
+  mut approved_row : NativeResidentEffectApprovedRow?
+  mut row_custody_confirmed : Bool
+  mut effect_pending : Bool
   mut retiring : Bool
   mut closed : Bool
 }
@@ -333,6 +336,9 @@ pub fn prepare_native_resident_effect_review(
     captured: None,
     retention: None,
     retention_configuration: None,
+    approved_row: None,
+    row_custody_confirmed: false,
+    effect_pending: false,
     retiring: false,
     closed: false,
   })
@@ -750,6 +756,7 @@ pub fn NativeResidentEffectReview::restore_journal(
     return Err(Unavailable)
   }
   self.journal = journal
+  self.row_custody_confirmed = false
   Ok(())
 }
 
@@ -762,6 +769,31 @@ pub fn NativeResidentEffectReview::retry_cleanup(
 ) -> Result[Bool, NativeResidentEffectReviewIssue] {
   if self.closed {
     return Ok(false)
+  }
+  // Read durable responsibility before starting retirement. This synchronous
+  // journal read invokes no caller callback; uncertain custody remains pending
+  // without prematurely retiring the original holder.
+  if !self.row_custody_confirmed &&
+    self.retention_configuration is Some((_, _, _, _, _, limits)) &&
+    self.captured is Some(capture) &&
+    self.targets is Some(targets) &&
+    targets.length() == 1 &&
+    capture.preview.keys.length() == 1 {
+    // Checkpoint budgets may exceed the common Ledger contract's ceilings.
+    // Narrow this read's budget; never relax the Ledger Owner's admission.
+    let ledger_limits : @checkpoint.WireLimits = {
+      max_wire_bytes: Int::min(limits.max_wire_bytes, 1000000),
+      max_nodes: Int::min(limits.max_nodes, 1000),
+      max_depth: Int::min(limits.max_depth, 32),
+    }
+    match self.restore_row_custody(ledger_limits) {
+      Ok(_) => ()
+      Err(Journal(issue)) => return Err(Journal(issue))
+      Err(_) => return Err(Unavailable)
+    }
+  }
+  if self.effect_pending {
+    return Err(Unavailable)
   }
   self.retiring = true
   if self.retention is Some(retention) {

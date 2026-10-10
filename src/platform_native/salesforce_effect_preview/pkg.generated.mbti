@@ -45,6 +45,23 @@ pub(all) struct NativeEffectHostAuthority {
   public_key_pem : String
 }
 
+pub(all) struct NativeEffectResumeObservation {
+  checkpoint_cid : String
+  resolution_cid : String
+  resume_intent_id : String
+  view : @checkpoint_runtime.ResumeIntentView
+  claim : @checkpoint_runtime.ResumeClaim
+  now_ms : Int64
+  settlement_only : Bool
+}
+
+type NativeResidentEffectApprovedRow
+pub fn NativeResidentEffectApprovedRow::dispatch_entry(Self) -> @effect_application.EffectLedgerEntry?
+pub fn NativeResidentEffectApprovedRow::request(Self) -> @catalog.SingleWriteRequest
+pub fn NativeResidentEffectApprovedRow::retry_response_custody(Self) -> Result[Bool, NativeResidentEffectWriteIssue]
+pub fn NativeResidentEffectApprovedRow::send(Self, NativeSalesforceTargetAccess) -> Result[Unit, NativeResidentEffectWriteIssue]
+pub fn NativeResidentEffectApprovedRow::settle(Self) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
+
 pub(all) struct NativeResidentEffectPreview {
   wire : String
   authoring : @run_publication.RunEvidenceValue
@@ -90,10 +107,13 @@ pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> U
 pub fn NativeResidentEffectReview::dispatch_identity(Self) -> String
 pub fn NativeResidentEffectReview::observe(Self, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_store.Store, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::prepare_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_retention(Self, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_resident_host.ResidentEffectReviewRetention, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal) -> Result[Unit, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::restore_row_custody(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::result_capture(Self) -> @remote_resident_host.ResidentEffectResultCapture?
 pub fn NativeResidentEffectReview::retry_cleanup(Self) -> Result[Bool, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::settle_saved_row(Self, NativeResidentEffectWriteLimits) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::target_uses(Self) -> Array[NativeSalesforceTargetAccess]
 
 pub(all) struct NativeResidentEffectReviewCapture {
@@ -172,6 +192,22 @@ pub(all) enum NativeResidentEffectTargetIssue {
   Mapping(@catalog.DeclarationUseIssue)
   Provider(NativeSalesforcePreviewIssue)
   Proposal(@remote_resident_host.ResidentEffectProposalIssue)
+}
+
+pub(all) enum NativeResidentEffectWriteIssue {
+  Unavailable
+  AuthorityDenied
+  ForeignRequest
+  ReconciliationRequired
+  Resolution(NativeResidentEffectResolutionIssue)
+  Credential(@credential_resource.NativeCredentialResourceIssue)
+  Journal(@remote_journal.NativeRemoteJournalIssue)
+  UnclassifiedResponse
+}
+
+pub(all) struct NativeResidentEffectWriteLimits {
+  response : @catalog.WriteCollectionResponseLimits
+  ledger : @checkpoint_runtime.WireLimits
 }
 
 pub(all) enum NativeSalesforcePreviewIssue {
