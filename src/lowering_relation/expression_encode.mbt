@@ -167,6 +167,8 @@ fn emit_frames(
                   Upper => "upper"
                   Lower => "lower"
                   Trim => "trim"
+                  LTrim => "ltrim"
+                  RTrim => "rtrim"
                   Floor => "floor"
                   Sqrt => "sqrt"
                   Abs => "abs"

@@ -891,3 +891,103 @@ setCorrespondingRefusals.push(
       + '|> SELECT id AS v, -id AS `V` |> AS r |> ' + tail + ') ORDER BY a, b')),
   refusePureTail('undeclared-parameter', pureExtendHead + 'kept + @missing AS extra) ORDER BY a, b, c'),
 );
+
+// A hidden ORDER window consumes the current projected snapshot, not discarded input.
+export const positionalOrderWindowProgram = {"version":"actql/0.1","id":"fixture.positional_order_window","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[{"x":1},{"x":2}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"x"}}}},{"select":[{"kept":"x"},"neg"]},{"analytic":{"partition_by":[],"order_by":[{"field":"kept","dir":"desc","nulls":"last"}],"functions":{"position":{"fn":"row_number"}}}},{"sort":[{"field":"position","dir":"asc","nulls":"first"}]},{"take":{"count":1,"offset":0}},{"select":[{"a":"kept"},{"b":"neg"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const orderWindow = (name, text, extra = {}) => success('positional-order-window-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 2, b: -2}], ...extra});
+const positionalOrderHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id ';
+setCorrespondingSuccesses.push(
+  orderWindow('json-control', JSON.stringify(positionalOrderWindowProgram), {format: 'json', sourceReadSessionCount: 0}),
+  orderWindow('source', positionalOrderHead + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b'),
+  orderWindow('immutable-range', positionalOrderHead + '|> AS r |> SET kept = -kept '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY r.kept DESC) |> LIMIT 1) ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: -2, b: -2}, {a: 0, b: 0}]}),
+  orderWindow('scalar-parameter-offset', positionalOrderHead
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept) + @shift DESC |> LIMIT 1 OFFSET 1) ORDER BY a, b',
+    {sourceRows: [{id: 3, amount: 30}, {id: 1, amount: 10}, {id: 2, amount: 20}],
+      parameterDeclarations: {shift: number}, parameters: {shift: 10}}),
+  orderWindow('duplicate-authored-columns', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]}),
+  orderWindow('private-shaped-authored-column', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS aql_order_window_0, -id '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY aql_order_window_0 DESC) |> LIMIT 1) ORDER BY a, b'),
+  orderWindow('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 2, b: null}]}),
+  orderWindow('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+const refuseOrderWindow = (name, text) => ({name: 'set-corresponding-refuse-order-window-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refuseOrderWindow('private-anonymous', positionalOrderHead
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY aql_set_anonymous_4) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('dropped-input', positionalOrderHead
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY id) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('ambiguous', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY v) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('displaced-range', positionalOrderHead + '|> AS before |> AS current '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY before.kept) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('private-window', positionalOrderHead + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept) '
+    + '|> WHERE aql_order_window_0 > 0) ORDER BY a, b'),
+  refuseOrderWindow('qualified-private-anonymous', positionalOrderHead + '|> AS r '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY r.aql_set_anonymous_4) |> LIMIT 1) ORDER BY a, b'),
+);
+
+// DISTINCT compares both named and anonymous occurrences, not just authored keys.
+export const positionalDistinctProgram = {"version":"actql/0.1","id":"fixture.positional_distinct","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":1,"y":20},{"x":1,"y":10}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"distinct":["kept","neg"]},{"select":[{"a":"kept"},{"b":"neg"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalDistinctColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}];
+const positionalDistinct = (name, text, extra = {}) => success('positional-pipe-distinct-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}, {id: 1, amount: 10}],
+    columns: positionalDistinctColumns, expected: [{a: 0, b: 0}, {a: 1, b: -20}, {a: 1, b: -10}], ...extra});
+const positionalDistinctHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount ';
+setCorrespondingSuccesses.push(
+  positionalDistinct('json-control', JSON.stringify(positionalDistinctProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalDistinct('anonymous-source', positionalDistinctHead + '|> DISTINCT) ORDER BY a, b NULLS LAST'),
+  positionalDistinct('duplicate-aliases', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS v, -amount AS `V` |> DISTINCT) ORDER BY a, b NULLS LAST'),
+  positionalDistinct('surviving-range', positionalDistinctHead + '|> AS r |> DISTINCT '
+    + '|> WHERE r.kept > 0) ORDER BY a, b NULLS LAST', {format: 'aql-text'}),
+  positionalDistinct('displaced-value-not-an-equality-key', positionalDistinctHead + '|> AS r |> SET kept = 1 '
+    + '|> DISTINCT) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: 10}, {id: 1, amount: 10}], expected: [{a: 0, b: 0}, {a: 1, b: -10}]}),
+  // DROP follows DISTINCT. Different complete rows can become equal afterward.
+  positionalDistinct('drop-keeps-result-multiplicity', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, amount + 1 |> DISTINCT |> DROP v) ORDER BY a',
+    {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 10}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: 0}, {a: 11}, {a: 11}]}),
+  positionalDistinct('nullable', positionalDistinctHead + '|> DISTINCT) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 1, amount: null}, {id: 1, amount: 10}, {id: 1, amount: null}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 1, b: null}]}),
+  positionalDistinct('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records '
+    + '|> SELECT id AS kept, -amount |> DISTINCT) ORDER BY a, b NULLS LAST', {sourceRows: [], expected: []}),
+  positionalDistinct('parameter-order-limit', positionalDistinctHead + '|> DISTINCT |> WHERE kept > @min '
+    + '|> ORDER BY -kept, 2 ASC NULLS LAST |> LIMIT 1 OFFSET @skip) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}, {id: 2, amount: 30}, {id: 2, amount: 30}],
+      parameterDeclarations: {min: number, skip: number}, parameters: {min: 0, skip: 1},
+      expected: [{a: 0, b: 0}, {a: 1, b: -20}]}),
+);
+const refusePositionalDistinct = (name, text) => ({name: 'set-corresponding-refuse-pipe-distinct-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalDistinct('private-anonymous', positionalDistinctHead
+    + '|> DISTINCT |> WHERE aql_set_anonymous_4 > 0) ORDER BY a, b'),
+  refusePositionalDistinct('ambiguous', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS v, -amount AS `V` |> DISTINCT |> WHERE v > 0) ORDER BY a, b'),
+  refusePositionalDistinct('dropped-input', positionalDistinctHead + '|> DISTINCT |> WHERE amount > 0) ORDER BY a, b'),
+  refusePositionalDistinct('displaced-range', positionalDistinctHead + '|> AS before |> AS current '
+    + '|> DISTINCT |> WHERE before.kept > 0) ORDER BY a, b'),
+  refusePositionalDistinct('pruned-range-value', positionalDistinctHead + '|> AS r |> SET kept = 1 '
+    + '|> DISTINCT |> WHERE r.kept > 0) ORDER BY a, b'),
+  refusePositionalDistinct('qualified-private-anonymous', positionalDistinctHead + '|> AS r '
+    + '|> DISTINCT |> WHERE r.aql_set_anonymous_4 > 0) ORDER BY a, b'),
+);
