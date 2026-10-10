@@ -2,8 +2,9 @@
 
 ## Baseline and independent counterexample
 
-Normal main baseline: `d596c9fc5146925e5707e69afe82c2b07807a456`, including
-#1234's terminal scalar-expression connection. This is a separate frontend
+Adopted main baseline: `d4c8ed4987e8e25d4fc4f408b98705d90e7b7f53`, including
+#1234's terminal scalar-expression connection at
+`d596c9fc5146925e5707e69afe82c2b07807a456`. This is a separate frontend
 follow-up; no shared computation, acquisition or Result owner is replaced.
 
 ```aql
@@ -67,7 +68,7 @@ JSON control have the same independent values/types. No test-side Program patch,
 DISTINCT, fill, coercion or limit increase is used. The updated data-only inventory
 contains 3,291 occurrences, with only these three normal registrations added.
 
-## Executed focused checks and remaining public work
+## Executed checks and remaining coverage
 
 The minimal post-fix counterexample passed 1/1 (`run-QKqJCe`,
 `focused-test-h8vWcV`). The first consuming selection passed 24/25
@@ -84,12 +85,51 @@ node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src
 node scripts/local-checks.mjs test node --timeout-seconds 180 -- scripts/pipe-pivot-source-input.test.mjs scripts/public-query-profiles.test.mjs
 ```
 
-Clean fixed-SHA five-package production and public Local/authenticated HTTPS
-execution remain required at this implementation-record revision. The existing
-runner must compare all twelve normal/eight refusal cases, rows, real description
-contracts, hidden-field absence, same-request resend/reread and zero admission
-and Source I/O for refusals. Final receipts and package digests are recorded
-separately on the Draft PR. Whole Core, Native/Wasm, full packed corpus and
-hosted CI success are not claimed. Anonymous public labels, nonterminal scopes,
-analytic outputs and the separate DATA-script set connection remain independent
-unconnected coverage; the wider frontend goal stays active.
+The additional authored-HAVING counterexample
+`SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING aql_set_aggregate_1 > 0`
+is rejected with `Expression(UnknownReference)`, not a generic error. The four
+aggregate test cases passed 4/4 (`run-vHVVwc`, `focused-test-viQ5zQ`). No product
+change was needed for this boundary; the check uses the existing name resolver.
+
+Public execution used clean implementation SHA
+`83a8c620f811568fed3e07fd0f194dc0d928200b`. The normal producer generated all
+five packages, and an independent SHA-256 comparison verified their manifest.
+The existing `--pipe-pivot-only` cohort passed **20/20 on Embedded Local and
+20/20 on authenticated HTTPS**: twelve normal and eight refusal cases in each.
+The checks include actual rows, Result.describe contracts and declared column
+order, hidden-field absence, same-request resend/reread, and zero Run admission
+and Source I/O for preparation refusals.
+
+- Bounded gate: `_build/local-checks/attempts/run-ZDP2q6/summary.json`.
+- Retained command evidence (workspace-relative):
+  `worktrees/.codex-scratch/public-query-evidence-7bKxxj/summary.json` and
+  `010.stdout.log`; the two transport completion receipts report 20/20,
+  terminal success and zero live children.
+- Package directory: `/private/tmp/actql-b-positional-aggregate-83a8c620f-pack`.
+- Case inventory SHA-256:
+  `624e7c6e324ed3e77f57fff9c691928f341cb12d1e816d1d8a808209dab583d3`.
+- The runner removed its disposable installation and Host artifacts after
+  retaining the evidence; `artifactsRemoved: true`, `evidenceErrors: []`.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-positional-aggregate-83a8c620f-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-positional-aggregate-83a8c620f-pack node scripts/test-packed-public-query.mjs --pipe-pivot-only
+```
+
+These commands ran inside the existing bounded gate. Package SHA-256 values:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `712228cbe4c27f071c978c7ad7a7d1ad8867ea6fe8d0d5aae9df0552b9ff9c15` |
+| local-node | `ab4d835e2444d4e3e742eeea32feb2e8442df81608ecbf3aa5fafd020f299601` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The subsequent evidence/test commit does not alter implementation or public
+fixtures. Public success above belongs to the named implementation SHA and its
+normal packages; it is not a new-HEAD packed run or hosted CI success.
+Whole Core, Native/Wasm and the full packed corpus remain unexecuted locally.
+Anonymous public labels, nonterminal scopes, analytic outputs and the separate
+DATA-script set connection remain unconnected coverage; the wider frontend goal
+stays active. This unit introduces no unmerged implementation dependency.

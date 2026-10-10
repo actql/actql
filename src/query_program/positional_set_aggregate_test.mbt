@@ -89,3 +89,17 @@ test "positional anonymous aggregate slots retain COUNT argument identity and em
     }
   }
 }
+
+///|
+test "anonymous aggregate physical slots cannot be addressed by authored HAVING" {
+  let source = "SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING aql_set_aggregate_1 > 0"
+  assert_true(
+    compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      { ..values_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(Expression({ issue: @expression.UnknownReference, .. })),
+    msg=source,
+  )
+}
