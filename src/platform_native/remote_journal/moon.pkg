@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/effect_application" @effect,
+  "actql/actql/run_publication" @publication,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/sha256" @sha,
   "actql/actql/checkpoint_runtime" @checkpoint,

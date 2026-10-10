@@ -270,6 +270,8 @@ pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> Strin
 
 pub fn client_effect_local_invocation_matches(ClientEffectLocalInvocation, PreparedClientEffectComputation, Int) -> Bool
 
+pub fn client_effect_local_invocation_unit_definition_cid(ClientEffectLocalInvocation) -> String
+
 pub fn client_effect_local_manifest_cid(ClientEffectLocalManifest) -> String
 
 pub fn client_effect_local_manifest_json(ClientEffectLocalManifest) -> String
