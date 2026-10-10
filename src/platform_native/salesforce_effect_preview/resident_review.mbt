@@ -111,6 +111,7 @@ struct NativeResidentEffectReview {
     @checkpoint.WireLimits,
   )?
   mut approved_row : NativeResidentEffectApprovedRow?
+  mut row_custody_confirmed : Bool
   mut effect_pending : Bool
   mut retiring : Bool
   mut closed : Bool
@@ -336,6 +337,7 @@ pub fn prepare_native_resident_effect_review(
     retention: None,
     retention_configuration: None,
     approved_row: None,
+    row_custody_confirmed: false,
     effect_pending: false,
     retiring: false,
     closed: false,
@@ -754,6 +756,7 @@ pub fn NativeResidentEffectReview::restore_journal(
     return Err(Unavailable)
   }
   self.journal = journal
+  self.row_custody_confirmed = false
   Ok(())
 }
 
@@ -766,6 +769,21 @@ pub fn NativeResidentEffectReview::retry_cleanup(
 ) -> Result[Bool, NativeResidentEffectReviewIssue] {
   if self.closed {
     return Ok(false)
+  }
+  // Prevent another row send before reading durable responsibility. A
+  // reconstructed connection cannot infer absence from its in-memory flags.
+  if !self.row_custody_confirmed &&
+    self.retention_configuration is Some((_, _, _, _, _, limits)) &&
+    self.captured is Some(capture) &&
+    self.targets is Some(targets) &&
+    targets.length() == 1 &&
+    capture.preview.keys.length() == 1 {
+    self.retiring = true
+    match self.restore_row_custody(limits) {
+      Ok(_) => ()
+      Err(Journal(issue)) => return Err(Journal(issue))
+      Err(_) => return Err(Unavailable)
+    }
   }
   if self.effect_pending {
     return Err(Unavailable)

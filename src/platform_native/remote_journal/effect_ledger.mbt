@@ -6,3 +6,11 @@ pub(all) struct NativeEffectSavedResponse {
   status_code : Int
   body : Bytes
 }
+
+///|
+/// Original Store-owned row facts. These confer no send or cleanup permission.
+pub struct NativeEffectRowCustody {
+  head : @effect.EffectLedgerEntry
+  dispatching : @effect.EffectLedgerEntry?
+  response : NativeEffectSavedResponse?
+}

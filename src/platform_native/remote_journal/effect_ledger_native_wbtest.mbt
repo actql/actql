@@ -421,3 +421,180 @@ test "native Effect Ledger refuses missing review foreign dispatch and stale Sit
   )
   assert_true(journal.close())
 }
+
+///|
+test "native Effect Ledger custody reconstruction reads original claims without dispatching" {
+  let (library, path, journal) = native_effect_ledger_open("restore")
+  let request = test_request("effect-ledger-restore")
+  native_effect_ledger_ready(journal, request)
+  let (scope, locator, key, basis) = native_effect_ledger_fixture()
+  let read = (owner : Journal) => {
+    owner.effect_ledger_custody(
+      request,
+      scope,
+      locator,
+      key,
+      basis,
+      native_effect_ledger_limits(),
+      checkpoint_report_limits(),
+    )
+  }
+  assert_true(read(journal).unwrap() is None)
+  assert_true(
+    journal.database.read(
+      "site_effect_ledger_binding",
+      @effect.logical_item_locator_cid(locator),
+    )
+    is Err(@sqlite.NotFound),
+  )
+  // An uncertain read-only commit returns no custody fact and creates no claim.
+  test_fail_cancel_commit_reply(journal.database, 1)
+  assert_true(read(journal) is Err(Physical(_)))
+  assert_true(read(journal).unwrap() is None)
+  let (won, dispatching) = journal
+    .claim_effect_ledger_dispatch(
+      request,
+      scope,
+      locator,
+      key,
+      basis,
+      native_effect_ledger_limits(),
+      checkpoint_report_limits(),
+    )
+    .unwrap()
+  assert_true(won)
+  let original = journal.database
+    .read("site_effect_ledger_head", @effect.logical_item_locator_cid(locator))
+    .unwrap()
+  assert_true(journal.close())
+  let reopened = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let before = read(reopened).unwrap().unwrap()
+  assert_eq(
+    @effect.effect_ledger_entry_cid(before.dispatching.unwrap()),
+    @effect.effect_ledger_entry_cid(dispatching),
+  )
+  assert_true(before.response is None)
+  assert_eq(
+    @effect.effect_row_recovery_action_from_entry(
+      locator,
+      basis.intent_fingerprint_cid,
+      key,
+      basis.canonical_request_cid,
+      Some(before.head),
+      false,
+    ),
+    3,
+  )
+  let response : NativeEffectSavedResponse = {
+    credential_use_cid: "sha256:" + "7".repeat(64),
+    status_code: 409,
+    body: b"original raw refusal",
+  }
+  reopened
+  .record_effect_ledger_response(
+    request,
+    dispatching,
+    scope,
+    locator,
+    key,
+    basis.canonical_request_cid,
+    response,
+  )
+  .unwrap()
+  assert_true(reopened.close())
+  let restored = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let custody = read(restored).unwrap().unwrap()
+  assert_eq(
+    custody.response.unwrap().credential_use_cid,
+    response.credential_use_cid,
+  )
+  assert_eq(custody.response.unwrap().status_code, response.status_code)
+  assert_eq(custody.response.unwrap().body, response.body)
+  let repeated = read(restored).unwrap().unwrap()
+  assert_eq(
+    @effect.effect_ledger_entry_cid(repeated.head),
+    @effect.effect_ledger_entry_cid(custody.head),
+  )
+  let after = restored.database
+    .read("site_effect_ledger_head", @effect.logical_item_locator_cid(locator))
+    .unwrap()
+  assert_eq(after.revision, original.revision)
+  assert_eq(after.body, original.body)
+  let foreign = test_request("another-effect-ledger-restore")
+  native_effect_ledger_ready(restored, foreign)
+  assert_true(
+    restored.effect_ledger_custody(
+      foreign,
+      scope,
+      locator,
+      key,
+      basis,
+      native_effect_ledger_limits(),
+      checkpoint_report_limits(),
+    )
+    is Err(StateCollision),
+  )
+  let different = @effect.prepare_effect_ledger_basis(
+    scope,
+    locator,
+    key,
+    "sha256:" + "9".repeat(64),
+    basis.original_membership_cid,
+    basis.intent_fingerprint_cid,
+    basis.canonical_request_cid,
+    basis.recovery_contract_cid,
+    basis.capability,
+    basis.reservation_evidence_cid,
+    basis.retention_contract_cid,
+  ).unwrap()
+  assert_true(
+    restored.effect_ledger_custody(
+      request,
+      scope,
+      locator,
+      key,
+      different,
+      native_effect_ledger_limits(),
+      checkpoint_report_limits(),
+    )
+    is Err(StateCollision),
+  )
+  restored.request_cancellation(request).unwrap() |> ignore
+  // Cancellation/generation changes retain historical evidence, not permission
+  // to send or mutate under the old Site binding.
+  restored.database
+  .compare_exchange(
+    "site_metadata", "binding", 0L, b"different-site-generation",
+  )
+  .unwrap()
+  |> ignore
+  assert_eq(
+    read(restored).unwrap().unwrap().response.unwrap().body,
+    response.body,
+  )
+  assert_true(
+    restored.claim_effect_ledger_dispatch(
+      request,
+      scope,
+      locator,
+      key,
+      basis,
+      native_effect_ledger_limits(),
+      checkpoint_report_limits(),
+    )
+    is Err(StaleSiteBinding),
+  )
+  // A head without its immutable chain is not absence or a completed row.
+  let bad = @utf8.encode("corrupt historical entry")
+  restored.database
+  .compare_exchange(
+    "site_effect_ledger_entry",
+    @effect.effect_ledger_entry_cid(dispatching),
+    0L,
+    bad,
+  )
+  .unwrap()
+  |> ignore
+  assert_true(read(restored) is Err(StateCollision))
+  assert_true(restored.close())
+}
