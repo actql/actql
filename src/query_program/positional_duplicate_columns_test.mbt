@@ -18,6 +18,33 @@ test "the ordinary positional JSON public control admits its Values source" {
 }
 
 ///|
+test "public Text routing retains scoped and empty positional DATA controls" {
+  let context = { ..fixture_context(), inputs: [], }
+  for
+    source in [
+      "DATA n = SELECT 1 AS x; FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original |> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b",
+      "DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; FROM e |> ORDER BY a, b",
+    ] {
+    let lowered = @frontend.lower(source, Text, Some(context)).unwrap()
+    let program = @program.parse(
+      lowered.document,
+      construction_limits().program,
+      format=Json,
+    ).unwrap()
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("public positional DATA controls need no acquisition")
+    }
+    assert_true(
+      @frontend.lower(source, Sql, Some(context)) is Err(WrongQueryForm),
+    )
+  }
+}
+
+///|
 test "terminal positional operands keep duplicate authored aliases by position" {
   // The right operand's names are not the Result names. Both positions must
   // survive: the independently expected rows are (0,0) and (1,2).

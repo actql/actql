@@ -165,3 +165,30 @@ that the previous commit or the pristine public campaign passed.
 
 The rejected campaign and retained receipt `run-Pnss1a` remain failures.
 Exact-source packed Local/HTTPS acceptance is still required before merge.
+### Public fixture format repair
+
+The pristine five-package attempt at `d682899013ae377f683841e7fa421c04b963bfe3`
+(`run-Pnss1a`, receipt `worktrees/.codex-scratch/public-query-evidence-oxQD9D`)
+passed the existing 12 CORRESPONDING normal cases and the new positional JSON
+control and SQL duplicate-alias case on both Embedded Local and authenticated
+HTTPS. The next DATA-scoped case received definitive HTTPS
+`ClientProgramInvalidInput`; its Local sibling was cancelled. Later normal,
+refusal and JOIN cases remain unverified at that revision.
+
+Both new DATA-script fixtures incorrectly inherited `format: sql`. Public Sql
+admits a SQL query head, while DATA declarations use the existing Text script
+route. They now explicitly use `aql-text`; sources, independent rows, column
+contracts, sort rules and acquisition counts are unchanged. Node assertions
+retain that format choice. The focused public Text-lowering/checker regression
+also verifies exact `WrongQueryForm` for the mismatched Sql route. No routing
+restriction is removed and no fallback is added.
+
+Focused JS passed 6/6 (`run-KTQoOI`, `focused-test-0yxw18`); authored Node
+fixture/inventory tests passed 39/39 (`run-V9V22W`, `focused-test-lfkydj`).
+An earlier name-filter selection executed zero tests and failed the nonzero
+guard (`run-JvWZlM`); it is not counted as successful evidence. The regenerated
+authored inventory retains 3,323 cases and historical baseline `ce027a937cf780f617d5ed98bb4d56ecbb010877`,
+with digest `e5ccf066018866f3171cf8670670536ad5dca5fdaed7609ced82d874b0b9e64d`.
+These focused checks ran against the pending patch on d68289901, not a claim
+of hosted CI or final fresh-package completion. Repeat the unchanged 40-case
+public cohort from the corrected clean revision.
