@@ -21,6 +21,13 @@ fn retained_holder_provider_review(
   root_path : String,
   name : String,
 ) -> Unit raise {
+  let mark = (phase : String) => {
+    @filesystem.open_root(root_path)
+    .unwrap()
+    .create_directory(name + ".review-" + phase)
+    .unwrap()
+    |> ignore
+  }
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
   let mut result_index = -1
@@ -149,6 +156,7 @@ fn retained_holder_provider_review(
     original_invocation=Some(invocation),
     review=Some(work),
   ).unwrap()
+  mark("provider-observed")
   let complete = match work.complete() {
     Ok(value) => value
     Err(Preview(_)) => abort("original review: Preview owner refused")
@@ -175,6 +183,7 @@ fn retained_holder_provider_review(
       abort("original review: Captured Run unavailable")
     Err(_) => abort("original review: completion unavailable")
   }
+  mark("captured")
   println("native-original-review: captured completion confirmed")
   // The row-export budget (100 entries) cannot cover whole evidence buffers.
   // Keep that rejection and use the independently installed capture budget.
@@ -200,6 +209,7 @@ fn retained_holder_provider_review(
     )
     is Err(Capture(CaptureIssuanceChain(EvidenceRoot(ChainEncoding)))),
   )
+  mark("small-budget-refused")
   assert_eq(complete.preview.keys.length(), 1)
   assert_true(
     complete.preview.wire.contains(
@@ -266,6 +276,7 @@ fn retained_holder_provider_review(
     )
     is Err(ForeignInput),
   )
+  mark("retention-start")
   retained_effect_complete_capture(
     consumer,
     materials,
