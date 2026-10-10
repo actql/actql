@@ -1967,6 +1967,13 @@ fn compile_steps(
   // This parser fact never grants anonymous exports to authored CTEs.
   let positional_set_output = positional_set_output ||
     @query.positional_output(query)
+  let positional_projection = if positional_set_output {
+    positional_set_terminal_projection(query)
+  } else {
+    None
+  }
+  let positional_private_fields : Array[String] = []
+  let positional_authored_aliases : Array[(String, String)] = []
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
   let mut requires_graph_projection = graph_bindings_only
@@ -2177,6 +2184,71 @@ fn compile_steps(
       pipe_value_table = false
       scalar_value_table_ranges = []
       sql_group_projection = false
+    }
+    if positional_projection is Some(projection) && i > projection {
+      // EXCEPT addresses authored names, never the storage name of an
+      // anonymous value. The ordinary star helper retains all other columns.
+      if operation is Select(columns, _) {
+        for column in columns {
+          for excluded in column.except_columns {
+            if positional_private_fields.any(field => {
+                same_name(excluded, { value: field, quoted: false, })
+              }) {
+              raise Abort(UnknownColumn)
+            }
+          }
+        }
+      }
+      let expressions = match operation {
+        Order(terms) => terms.map(term => term.expression)
+        Where(predicate) => [predicate]
+        _ => []
+      }
+      let resolve_input = path => {
+        if operation is Where(_) {
+          pipe_slot(path, pipe_visible, pipe_ranges)
+        } else if pipe_selected || pipe_changed || pipe_rebound {
+          pipe_slot(
+            path,
+            selected_input_scope.visible,
+            selected_input_scope.ranges,
+          )
+        } else {
+          resolve_column(path, query, input, selected_input_fields)
+        }
+      }
+      let projections = match @query.operation_at(query, projection).unwrap() {
+        Select(projections, _) => projections
+        _ => []
+      }
+      let remaining_projections = projections.filter(column => {
+        guard projection_alias(column) is Some(name) &&
+          duplicate_projection_alias(projections, name.value) else {
+          return true
+        }
+        positional_authored_aliases.any(mapping => {
+          same_name(name, { value: mapping.1, quoted: false, }) &&
+          active_fields.contains(mapping.0)
+        })
+      })
+      for expression in expressions {
+        let references = join_reference_paths(expression)
+        reject_duplicate_projection_references(
+          remaining_projections, references, resolve_input,
+        )
+        for path in references {
+          // Physical outputs are ordinal values, never authored aliases.
+          // A longer valid input range prefix retains its own resolution.
+          if positional_private_fields.any(field => {
+              same_name(path[0], { value: field, quoted: false, })
+            }) &&
+            !order_reference_identity(path, resolve_input)
+            .map(identity => identity.1 > 1)
+            .unwrap_or(false) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
     }
     let entries : Array[(String, @builder.Node)] = []
     let mut deferred = false
@@ -3582,11 +3654,7 @@ fn compile_steps(
                     (
                       positional_set_output &&
                       sql_group_projection &&
-                      @query.operation_at(
-                        query,
-                        @query.operation_count(query) - 1,
-                      )
-                      is Some(Select(_, _)) &&
+                      positional_projection is Some(_) &&
                       duplicate_projection_alias(selected, name)
                     ) {
                     pipe_physical_name(
@@ -3642,8 +3710,7 @@ fn compile_steps(
                 // The input binding and aggregate result are distinct values.
                 sql_group_aggregate_slots.push((name, slot))
                 if positional_set_output &&
-                  @query.operation_at(query, @query.operation_count(query) - 1)
-                  is Some(Select(_, _)) &&
+                  positional_projection is Some(_) &&
                   duplicate_projection_alias(selected, name) {
                   positional_set_aggregate_slots.push((call, slot))
                 }
@@ -4524,8 +4591,7 @@ fn compile_steps(
           }
           let positional_terminal = !order_window &&
             positional_set_output &&
-            @query.operation_at(query, @query.operation_count(query) - 1)
-            is Some(Select(_, _))
+            positional_projection is Some(_)
           let positional_private = positional_terminal &&
             (match projection.name {
               None => true
@@ -4820,6 +4886,7 @@ fn compile_steps(
                   } else {
                     unnest_star_ranges(pipe_ranges, pipe_star_ranges)
                   },
+                  authored_aliases=positional_authored_aliases,
                 ) {
                 names.push(visible.0)
                 selected.push(
@@ -4842,7 +4909,7 @@ fn compile_steps(
                 let (name, slot) = match projection.name {
                   Some(name) =>
                     if positional_set_output &&
-                      i == @query.operation_count(query) - 1 &&
+                      positional_projection == Some(i) &&
                       duplicate_projection_alias(projections, name.value) {
                       (
                         name.value,
@@ -4863,7 +4930,7 @@ fn compile_steps(
                     }
                   None => {
                     if !positional_set_output ||
-                      i != @query.operation_count(query) - 1 {
+                      positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
                     (
@@ -4881,6 +4948,11 @@ fn compile_steps(
                 if !active_fields.contains(slot) {
                   raise Abort(UnsupportedAggregate)
                 }
+                if positional_projection == Some(i) &&
+                  projection.star is None &&
+                  projection_alias(projection) is None {
+                  positional_private_fields.push(name)
+                }
                 names.push(name)
                 bindings.push((name, slot))
                 selected.push(
@@ -4897,14 +4969,14 @@ fn compile_steps(
                   Some(name) => name.value
                   None => {
                     if !positional_set_output ||
-                      i != @query.operation_count(query) - 1 {
+                      positional_projection != Some(i) {
                       raise Abort(UnsupportedProjection)
                     }
                     anonymous_set_projection_name(projections, physical, names)
                   }
                 }
                 let source = if positional_set_output &&
-                  i == @query.operation_count(query) - 1 &&
+                  positional_projection == Some(i) &&
                   (
                     projection.name is None ||
                     duplicate_projection_alias(projections, name)
@@ -4919,6 +4991,11 @@ fn compile_steps(
                     Some(slot) => slot
                     None => raise Abort(UnknownColumn)
                   }
+                }
+                if positional_projection == Some(i) &&
+                  projection.star is None &&
+                  projection_alias(projection) is None {
+                  positional_private_fields.push(name)
                 }
                 names.push(name)
                 bindings.push((name, source))
@@ -4998,11 +5075,16 @@ fn compile_steps(
                 }
               }
               let name = if positional_set_output &&
-                i == @query.operation_count(query) - 1 &&
+                positional_projection == Some(i) &&
                 projection_alias(projection) is None {
                 anonymous_set_projection_name(projections, physical, names)
               } else {
                 projection_output_name(projection)
+              }
+              if positional_projection == Some(i) &&
+                projection.star is None &&
+                projection_alias(projection) is None {
+                positional_private_fields.push(name)
               }
               names.push(name)
               bindings.push((name, source))
@@ -5022,9 +5104,16 @@ fn compile_steps(
             }
           }
         }
-        if positional_set_output && i == @query.operation_count(query) - 1 {
-          privatize_positional_duplicate_columns(
-            construction, names, bindings, selected, physical,
+        if positional_projection == Some(i) {
+          positional_private_fields.append(
+            privatize_positional_duplicate_columns(
+              construction,
+              names,
+              bindings,
+              selected,
+              physical,
+              authored_aliases=Some(positional_authored_aliases),
+            ),
           )
         }
         for a in 0..<names.length() {
@@ -5062,7 +5151,11 @@ fn compile_steps(
         }
         selected_output_slots = bindings.copy()
         pipe_columns = bindings.copy()
-        if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
+        if !distinct &&
+          !(positional_projection is Some(projection) &&
+          i > projection &&
+          projections.any(column => !column.except_columns.is_empty())) &&
+          @query.operation_at(query, i + 1) is Some(Order(_)) {
           if entries.length() == 2 && entries[0].0 == "from" {
             ignore(entries.remove(0))
             first = true
@@ -5204,6 +5297,7 @@ fn compile_steps(
                   } else {
                     unnest_star_ranges(pipe_ranges, pipe_star_ranges)
                   },
+                  authored_aliases=positional_authored_aliases,
                 ) {
                 names.push(name)
                 selected.push(
@@ -5221,7 +5315,7 @@ fn compile_steps(
               // snapshot does not authorize reading the original receiver:
               // grouped expression lowering below still owns value access.
               let name = if positional_set_output &&
-                i == @query.operation_count(query) - 1 &&
+                positional_projection == Some(i) &&
                 projection_alias(projection) is None {
                 anonymous_set_projection_name(projections, active_fields, names)
               } else {
@@ -5236,12 +5330,17 @@ fn compile_steps(
                   },
                 )
               }
+              if positional_projection == Some(i) &&
+                projection.star is None &&
+                projection_alias(projection) is None {
+                positional_private_fields.push(name)
+              }
               names.push(name)
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
                 let source = if projection.analytic is Some(call) {
                   if positional_set_output &&
-                    i == @query.operation_count(query) - 1 &&
+                    positional_projection == Some(i) &&
                     (
                       projection.name is None ||
                       duplicate_projection_alias(projections, name)
@@ -5363,9 +5462,16 @@ fn compile_steps(
             }
           }
         }
-        if positional_set_output && i == @query.operation_count(query) - 1 {
-          privatize_positional_duplicate_columns(
-            construction, names, bindings, selected, active_fields,
+        if positional_projection == Some(i) {
+          positional_private_fields.append(
+            privatize_positional_duplicate_columns(
+              construction,
+              names,
+              bindings,
+              selected,
+              active_fields,
+              authored_aliases=Some(positional_authored_aliases),
+            ),
           )
         }
         for a in 0..<names.length() {
@@ -5405,7 +5511,19 @@ fn compile_steps(
           pipe_star_ranges = []
           scalar_value_table_ranges = []
         }
-        let needs_input_order = if distinct {
+        let excludes_columns = positional_projection is Some(projection) &&
+          i > projection &&
+          projections.any(column => !column.except_columns.is_empty())
+        if excludes_columns {
+          // EXCEPT establishes a projected Pipe scope. Its removed values
+          // cannot supply a subsequent ORDER key through a deferred SELECT.
+          pipe_selected = true
+          pipe_rebound = true
+          pipe_ranges = []
+          pipe_star_ranges = []
+          scalar_value_table_ranges = []
+        }
+        let needs_input_order = if distinct || excludes_columns {
           false
         } else {
           match @query.operation_at(query, i + 1) {
