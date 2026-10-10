@@ -67,6 +67,7 @@ _BUFFER_SIGNATURES = {
 }
 _PROGRAM_SIGNATURES = {
     'install_environment': ('i64 i32', 'i32'),
+    'install_source_environment': ('i64 i32', 'i32'),
     'reserve_preparation': ('i64 i32 i32 i32', 'i32'),
     'prepare': ('i64 i32', 'i32'),
     'prepared_results': ('i64 i32', 'i32'),
@@ -190,7 +191,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 3:
+            if self._exports['actql_host_abi_version'](self._store) != 4:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576))

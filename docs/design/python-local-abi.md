@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 3; this private ABI
+before opening the instance. `actql_host_abi_version` returns 4; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -279,7 +279,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 3 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 4 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -308,3 +308,23 @@ handle cannot replace a completed or interrupted invocation. The material loan
 remains live until dependent Run handles close. This is plan restoration only;
 original process recovery still requires durable completed-output, start,
 publication and cleanup observations from their existing Owners.
+
+## Installed Source publication
+
+The private ABI 4 `actql_program_install_source_environment` takes one
+pre-reserved, closed Host configuration with `environment` and `publication`
+strings. The original canonical environment is admitted by the existing Check
+Environment Owner. `client_source_publication` contains the same publication
+interpretation used by the Node Host: generation, Source View, schema, policy,
+Source reference and alias checks precede query binding. The Source-backed
+profile and source-free profile remain explicit supported configurations;
+neither performs Source I/O or grants read authority during installation.
+
+The installed input loan outlives all dependent preparation and Run handles.
+Exported original Run materials carry the admitted environment wire, rather
+than mistaking its outer Host configuration for an environment. Publication
+metadata and authored Program/AQL remain distinct. The scalar Run adapter
+selects the existing single-Source or source-free compilation profile from the
+checked acquisition inventory; unsupported profiles are refused by those
+Owners before physical dispatch. This boundary does not provide durable
+acceptance, an acquisition callback or recovery of completed physical work.

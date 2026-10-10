@@ -174,8 +174,13 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
       return 0
     }
   }
+  let prepare = if @host.prepared_client_acquisition_count(prepared) == 0 {
+    @local_run.prepare_source_free_local_run
+  } else {
+    @local_run.prepare_captured_source_local_run
+  }
   record.outcome = Some(
-    @local_run.prepare_source_free_local_run(
+    prepare(
       input,
       configuration.authority_scope_cid,
       caller_request_id,

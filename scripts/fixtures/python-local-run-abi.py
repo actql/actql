@@ -7,7 +7,7 @@ import wasmtime
 from python_local_physical import PhysicalFixture
 
 
-from python_local_run_inputs import ENVIRONMENT, PROGRAM, AQL, CONFIGURATION, REQUEST, encode
+from python_local_run_inputs import ENVIRONMENT, PROGRAM, AQL, CONFIGURATION, REQUEST, ACCOUNT, encode
 
 
 module = Path(sys.argv[1]).read_bytes()
