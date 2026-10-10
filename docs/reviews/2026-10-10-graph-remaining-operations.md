@@ -664,3 +664,37 @@ The focused Node selection for
 `144fb8a51d3c03c93b49a2528ed98b64c94943cc`.
 Evidence: `run-OE6GE1`, `focused-test-SxuaCN`. This verifies selection/oracle
 preservation only, not Host execution or pristine tarball delivery.
+
+### Public Host execution and targeted repairs
+
+The clean source `19eb8fd3b655b5f6600e94f30e645deac1b947fb` prepared
+`local-node` and `run-host-core`, then executed the eight remaining-operation
+Local/HTTPS Host cases. Four passed and four failed (`run-q4IwUS`,
+`focused-test-chzTM9`). Graft and Mean passed both transports, including
+positive-progress cancellation and retained Store checks. This is checkout
+Host evidence, not formal external-package or fresh-process acceptance.
+
+Reach rejected the connected AQL control because its selector referred to
+`node_key`, a key alias not declared as a node property. The control now
+declares `seed` and predicates on it; its independently authored connectivity
+and depth expectations are unchanged. Weighted Shortest controls use the same
+declared-property rule. The raw-identity JSON Reach control is unchanged.
+Common checker regressions retain rejection of undeclared key aliases.
+
+Shortest's zero-hop rows and schema passed, but the Host test detected that
+its completed path Relation skipped the retained snapshot hook. The local
+dispatch now includes checked Shortest path output in the existing Relation
+snapshot owner; it does not broadly enable other path traversals or add a
+serializer. A follow-up Host execution must prove this connection.
+
+An additional dirty-tree Reach diagnostic (`run-8ZqE3Z`,
+`focused-test-NtFv2H`) timed out before reaching the rejected control. It is
+retained as an unsuccessful diagnostic, not acceptance or a proven cause.
+
+The authored inventory digest after these input corrections is
+`800aa95243f7cc1c1f6c572218647f8b666d7503c6cd89008e04e52fc342a4cf`;
+all 3,461 occurrences, counts and independent expected results are unchanged.
+Targeted working-tree checks based on `19eb8fd3` passed: Node fixtures and
+inventory 43/43 (`run-FIZaaN`, `focused-test-m5hfZg`), common Reach JS 2/2
+(`run-LU95MD`, `focused-test-TQeiTp`) and Shortest JS 3/3 (`run-gE576Z`,
+`focused-test-6rt0B1`). These checks do not establish repaired Host acceptance.

@@ -56,5 +56,7 @@ test('Reach connected expectations distinguish direction, minimum depth and edge
     const machine = samples.find(sample => sample.name === 'graph-reach-json-connected-' + direction);
     const source = samples.find(sample => sample.name === 'graph-reach-aql-connected-' + direction);
     assert.deepEqual(source.results.reached.rows, machine.results.reached.rows.map(({depth}) => ({depth})));
+    assert.ok(source.text.includes('LABEL Node PROPERTIES (seed)'));
+    assert.ok(source.text.includes("where: 'seed = 1'"));
   }
 });

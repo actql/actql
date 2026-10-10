@@ -82,10 +82,13 @@ const connectedProgram = direction => ({version: 'actql/0.1', id: 'fixture.graph
     {from: 'reached', select: ['start_id', 'node_id', 'depth'], as: 'out'},
   ], results: {out: {from: 'out', fields: ['start_id', 'node_id', 'depth']}}}],
   results: {reached: {from: {stage: 'main', result: 'out'}}}});
-const connectedSource = 'DATA n = SELECT 3 AS node_key UNION ALL SELECT 2 AS node_key UNION ALL SELECT 1 AS node_key; ' +
+// Node selector predicates use declared Graph properties, not node_rows key
+// aliases. Keep the authored connectivity oracle and give it an explicit
+// predicate property; the raw-identity JSON control remains independent.
+const connectedSource = 'DATA n = SELECT 3 AS node_key, 3 AS seed UNION ALL SELECT 2 AS node_key, 2 AS seed UNION ALL SELECT 1 AS node_key, 1 AS seed; ' +
   'DATA e = SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst ' +
   'UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) ' +
+  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) ' +
   'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
 export const graphReachSourceSuccesses = [
   {name: 'graph-reach-json-raw-identity-two-consumers', format: 'json',
@@ -109,7 +112,7 @@ export const graphReachSourceSuccesses = [
       text: JSON.stringify(connectedProgram(direction)),
       results: {reached: {rows: connectedRows(direction), columns}}, sourceReadCount: 0},
     {name: 'graph-reach-aql-connected-' + direction, format: 'aql-text',
-      text: connectedSource + "DATA reached = FROM g |> reach(start: {where: 'node_key = 1'}, direction: '" +
+      text: connectedSource + "DATA reached = FROM g |> reach(start: {where: 'seed = 1'}, direction: '" +
         direction + "', max_depth: 2); FROM reached |> SELECT depth |> ORDER BY depth |> RESULT reached",
       results: {reached: {rows: (direction === 'out' ? [0, 1, 2] : [0]).map(depth => ({depth})),
         columns: [{name: 'depth', contract: number}]}}, sourceReadCount: 0},

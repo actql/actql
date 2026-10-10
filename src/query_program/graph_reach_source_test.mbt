@@ -26,6 +26,7 @@ test "Reach refuses malformed finite bounds and nonexistent selector fields befo
   for
     suffix in [
       "FROM g |> reach(start: {where: 'missing = 1'}, direction: 'out', max_depth: 2) |> SELECT depth",
+      "FROM g |> reach(start: {where: 'node_key = 1'}, direction: 'out', max_depth: 2) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 0) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'wrong', max_depth: 2) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 2, extra: true) |> SELECT depth",

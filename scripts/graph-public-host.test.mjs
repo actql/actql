@@ -610,7 +610,23 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         : profile === 'graph-shortest' ? graphShortestSourceSuccesses : graphMeanSourceOracles;
       for (const sample of samples) {
         const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
-        const run = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        let run;
+        try {
+          run = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        } catch (error) {
+          let checked;
+          try {
+            checked = await client.check(sample.format === 'json' ? JSON.parse(sample.text) : sample.text,
+              {kind: sample.format === 'json' ? 'program' : 'text', scope: 'bound_input',
+                ...(sample.format === 'json' ? {} : {format: sample.format}), parameters: null,
+                signal: AbortSignal.timeout(5_000)});
+          } catch (checkError) { checked = {kind: 'unavailable', code: checkError.code}; }
+          t.diagnostic(`${sample.name} rejected: ${JSON.stringify({
+            problem: getSubmissionOutcome(error)?.problem, kind: checked.kind,
+            diagnostics: checked.report?.diagnostics, code: checked.code,
+          })}`);
+          throw error;
+        }
         const state = await run.wait();
         assert.equal(state.status, 'succeeded', JSON.stringify(state));
         const physicalCount = () => physicalSteps.filter(name =>
@@ -627,7 +643,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.equal(physicalCount(), completedCount, 'Result reads and same intent must not repeat Compute');
         const retained = relationSnapshots.get(run.ref.runDefinitionCid) ?? [];
         if (Object.values(sample.results).some(result => result.rows.length > 0)) {
-          assert.ok(retained.length > 0, 'Graph query must traverse the retained Relation Store');
+          assert.ok(retained.length > 0, `${sample.name}: Graph query must traverse the retained Relation Store`);
         }
         for (const receipt of retained) {
           assert.equal(receipt.restored, true);
