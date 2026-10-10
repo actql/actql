@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/remote_client"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "actql/actql/execution_authorization",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/remote_journal",
@@ -14,6 +15,8 @@ pub fn acknowledge_acceptance(@remote_journal.Journal, @http_client.Client, Stri
 pub fn acknowledge_output_plan(@http_client.Client, String, @remote_site_protocol.RemoteOutputPlan) -> Result[Unit, NativeRemoteClientIssue]
 
 pub fn acknowledge_output_result(@http_client.Client, String, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteClientIssue]
+
+pub fn acknowledge_retained_effect_checkpoint(@remote_journal.Journal, @http_client.Client, String, @remote_site_protocol.DispatchRequest, @checkpoint_runtime.WireLimits, checkpoint? : (String) -> Unit) -> Result[Unit, NativeRemoteClientIssue]
 
 pub fn acknowledge_retained_input_current(@http_client.Client, String, @remote_site_protocol.RemoteRetainedCurrentReply) -> Result[Unit, NativeRemoteClientIssue]
 
@@ -51,6 +54,7 @@ pub(all) enum NativeRemoteClientIssue {
   HttpStatus(Int)
   InvalidUtf8
   OutputReportRefused(String)
+  EffectCheckpointRefused(String)
   NotAuthorized
   OutcomeUnknownPersistence(@remote_journal.NativeRemoteJournalIssue, NativeRemoteClientIssue)
 }

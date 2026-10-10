@@ -508,3 +508,172 @@ fn PrivateEffectEvidenceCustody::reserved_bytes(
 ) -> Int64 {
   self.envelope.length().to_int64()
 }
+
+///|
+/// Separate encrypted continuation and Checkpoint holdings. Both use the
+/// existing Store transaction/reservation/retirement mechanism. Their common
+/// Checkpoint identity is the scoped physical key, not a second lifecycle.
+struct EffectCheckpointCustody {
+  continuation : PrivateEffectEvidenceCustody
+  checkpoint : PrivateEffectEvidenceCustody
+  sealed_checkpoint : @checkpoint.SealedCheckpoint
+}
+
+///|
+pub fn Store::prepare_effect_checkpoint_custody(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  continuation_wire : String,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if store_authority != self.authority_cid {
+    return Err(StateCollision)
+  }
+  if "sha256:" + @sha.hex(@sha.digest(@utf8.encode(continuation_wire))) !=
+    checkpoint.checkpoint.continuation_state_cid {
+    return Err(DigestMismatch)
+  }
+  guard checkpoint.checkpoint.subject is @checkpoint.RunUnit(..) &&
+    checkpoint.checkpoint.kind == @checkpoint.EffectSet else {
+    return Err(InvalidConfiguration)
+  }
+  let holding = checkpoint.checkpoint_cid
+  let terminal = "{\"checkpoint_cid\":\"" +
+    holding +
+    "\",\"cleanup_complete\":true}"
+  let continuation = match
+    prepare_private_effect_custody(
+      self,
+      holding,
+      "continuation_record",
+      checkpoint.checkpoint.continuation_state_cid,
+      continuation_wire,
+      "effect_continuation_custody",
+      "effect-continuation",
+      terminal,
+      crypto,
+      key,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let physical_checkpoint = match
+    prepare_private_effect_custody(
+      self,
+      holding,
+      "checkpoint",
+      holding,
+      checkpoint.wire,
+      "effect_checkpoint_custody",
+      "effect-checkpoint",
+      terminal,
+      crypto,
+      key,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    continuation,
+    checkpoint: physical_checkpoint,
+    sealed_checkpoint: checkpoint,
+  })
+}
+
+///|
+pub fn EffectCheckpointCustody::persist(
+  self : EffectCheckpointCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  // Partial persistence is intentionally observable. The caller keeps both
+  // handles/reservations until the exact pair is confirmed or retired.
+  match self.continuation.persist() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.checkpoint.persist()
+}
+
+///|
+pub fn EffectCheckpointCustody::confirm(
+  self : EffectCheckpointCustody,
+) -> Result[
+  (@checkpoint.PersistedCheckpoint, String),
+  NativePublicationStoreIssue,
+] {
+  match self.continuation.read() {
+    Ok((_, false)) => ()
+    Ok((_, true)) => return Err(RecoveryRequired)
+    Err(issue) => return Err(issue)
+  }
+  match self.checkpoint.read() {
+    Ok((_, false)) => ()
+    Ok((_, true)) => return Err(RecoveryRequired)
+    Err(issue) => return Err(issue)
+  }
+  @checkpoint.confirm_checkpoint_persisted(
+    self.sealed_checkpoint,
+    self.checkpoint.wire,
+  )
+  .map(value => (value, self.continuation.wire))
+  .map_err(issue => CheckpointEvidence(issue))
+}
+
+///|
+/// Rebind physical handles for the exact original pair. Missing records are
+/// allowed only as unfinished persistence, never as confirmation or a resume
+/// permit. A terminal record remains terminal and can only finish cleanup.
+pub fn Store::restore_effect_checkpoint_custody(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  continuation_wire : String,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  let custody = match
+    self.prepare_effect_checkpoint_custody(
+      checkpoint, continuation_wire, store_authority, crypto, key,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for physical in [custody.continuation, custody.checkpoint] {
+    match physical.read() {
+      Ok(_) | Err(Database(@sqlite.NotFound)) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(custody)
+}
+
+///|
+pub fn EffectCheckpointCustody::retry_cleanup(
+  self : EffectCheckpointCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  let checkpoint = match self.checkpoint.retry_cleanup() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  self.continuation.retry_cleanup().map(value => value || checkpoint)
+}
+
+///|
+pub fn EffectCheckpointCustody::reserved_bytes(
+  self : EffectCheckpointCustody,
+) -> Int64 {
+  self.checkpoint.reserved_bytes() + self.continuation.reserved_bytes()
+}
+
+///|
+pub fn EffectCheckpointCustody::same_binding(
+  self : EffectCheckpointCustody,
+  other : EffectCheckpointCustody,
+) -> Bool {
+  self.checkpoint.same_binding(other.checkpoint) &&
+  self.continuation.same_binding(other.continuation)
+}

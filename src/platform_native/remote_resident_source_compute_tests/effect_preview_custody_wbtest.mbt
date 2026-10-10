@@ -22,6 +22,7 @@ fn retained_effect_preview_store(
   computation : @resident.ResidentEffectCaptureCustody,
   baseline : Int64,
   computation_bytes : Int64,
+  checkpoint_custody? : Bool = false,
 ) -> @store.Store raise {
   let identity = @strategy.captured_effect_preview_ledger_identity(preview)
   let holding = @publication.effect_preview_private_holding_cid(
@@ -127,6 +128,22 @@ fn retained_effect_preview_store(
   guard first is Err({ issue: Store(Closed), custody: Some(custody), }) else {
     fail("Preview persistence acknowledgement must be lost after the commit")
   }
+  let (_, original_request) = retained_compute_effect_materials(provider=true)
+  let review_limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 262144,
+    max_nodes: 10000,
+    max_depth: 64,
+  }
+  let prepare_checkpoint = (material, request, limits) => {
+    consumer.prepare_effect_review_checkpoint(
+      material, inputs, request, computation, custody, "native-provider-review",
+      "2026-10-10T00:00:00.000Z", "2026-10-11T00:00:00.000Z", limits,
+    )
+  }
+  assert_true(
+    prepare_checkpoint(materials, original_request, review_limits)
+    is Err(Capture(Store(Closed))),
+  )
   let preview_bytes = consumer.usage().reserved_retention_bytes - before
   assert_true(preview_bytes > 0L)
   store = open()
@@ -153,6 +170,93 @@ fn retained_effect_preview_store(
       "\"before\":{\"state\":\"present\",\"value\":{\"Count__c\":7}}",
     ),
   )
+  assert_true(
+    prepare_checkpoint(
+      { ..materials, run_definition: foreign_run, },
+      original_request,
+      review_limits,
+    )
+    is Err(ForeignCapture),
+  )
+  assert_true(
+    prepare_checkpoint(materials, original_request, {
+      ..review_limits,
+      max_wire_bytes: 1,
+    })
+    is Err(Encoding),
+  )
+  let other_request = @host.prepare_client_effect_request_identity(
+    materials.prepared,
+    @host.client_request_authority_scope_cid(original_request),
+    "another-request",
+    @host.client_request_input_cid(original_request),
+  ).unwrap()
+  assert_true(
+    prepare_checkpoint(materials, other_request, review_limits) is Err(Keys(_)),
+  )
+  for
+    window in [
+      ("2026-10-08T00:00:00.000Z", "2026-10-11T00:00:00.000Z"),
+      ("2026-10-10T00:00:00.000Z", "2099-01-02T00:00:00.000Z"),
+    ] {
+    assert_true(
+      consumer.prepare_effect_review_checkpoint(
+        materials,
+        inputs,
+        original_request,
+        computation,
+        custody,
+        "native-provider-review",
+        window.0,
+        window.1,
+        review_limits,
+      )
+      is Err(RunLifetimeUnavailable),
+    )
+  }
+  let prepared_checkpoint = prepare_checkpoint(
+    materials, original_request, review_limits,
+  ).unwrap()
+  let checkpoint = prepared_checkpoint.checkpoint
+  assert_eq(checkpoint.checkpoint.required_artifact_cid, cid)
+  assert_eq(
+    checkpoint.checkpoint.continuation_state_cid,
+    "sha256:" +
+    @sha.hex(@sha.digest(@utf8.encode(prepared_checkpoint.continuation_wire))),
+  )
+  assert_true(
+    checkpoint.checkpoint.continuation_state_cid !=
+    @publication.publication_contract_identity(captured),
+  )
+  assert_eq(
+    checkpoint.checkpoint.review_projection_cid,
+    "sha256:" + @sha.hex(@sha.digest(@utf8.encode(wire))),
+  )
+  assert_eq(prepared_checkpoint.review_wire, wire)
+  assert_true(
+    prepared_checkpoint.continuation_wire.contains("retained_input_binding"),
+  )
+  assert_true(
+    prepared_checkpoint.continuation_wire.contains("captured_run_wire"),
+  )
+  assert_true(
+    prepared_checkpoint.continuation_wire.contains("another-request") == false,
+  )
+  assert_eq(
+    prepare_checkpoint(materials, original_request, review_limits).unwrap().checkpoint.wire,
+    checkpoint.wire,
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, before + preview_bytes)
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    computation_bytes + preview_bytes,
+  )
+  if checkpoint_custody {
+    store = retained_effect_checkpoint_store(
+      consumer, inputs, prepared_checkpoint, computation, custody, store, authority,
+      crypto, key, sqlite, path, review_limits,
+    )
+  }
   let inspection = sqlite
     .open_database(path + "/.actql-publication.sqlite3", 262144L)
     .unwrap()
@@ -228,6 +332,10 @@ fn retained_effect_preview_store(
   assert_true(custody.confirm() is Err(Store(RecoveryRequired)))
   assert_true(custody.retry_cleanup().unwrap())
   assert_false(custody.retry_cleanup().unwrap())
+  assert_true(
+    prepare_checkpoint(materials, original_request, review_limits)
+    is Err(Preview(Unavailable)),
+  )
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, computation_bytes)
   assert_eq(
@@ -248,7 +356,7 @@ fn retained_effect_preview_store(
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, computation_bytes)
   inspection.close()
   println(
-    "retained-effect-preview: original target wire recovered; independent cleanup returned its reservation once",
+    "retained-effect-preview: original target wire and Checkpoint snapshot confirmed; independent cleanup returned its reservation once",
   )
   store
 }
