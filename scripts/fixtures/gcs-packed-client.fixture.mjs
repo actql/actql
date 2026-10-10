@@ -44,7 +44,9 @@ const hostLookupExecutionPolicy = {version: 'actql-lookup-execution-policy/0.1',
   max_total_request_bytes: 73728, max_total_response_bytes: 49152,
   max_total_decoded_response_bytes: 49152, max_total_duration_ms: 30000};
 const installation = {directory: join(configuration.root, 'host'), sourceProfilePath,
-  authorization, hostLookupExecutionPolicy,
+  // Explicit Host declaration of its complete installed selector range. No
+  // query alias or copied Catalog is used to manufacture positive membership.
+  sourceSelectorNamespace: 'packed-gcs-sources', authorization, hostLookupExecutionPolicy,
   resolveSourceSecret: credential?.resolveSecret ?? (() => {
     forbiddenCredentialCalls++;
     throw new Error('PackedGcsRestartMustNotReacquire');
@@ -94,7 +96,8 @@ try {
   if (phase === 'capture') {
     for (const [name, program] of Object.entries(gcsAcceptancePrograms(manifest))) {
       const before = credential.observation();
-      assert.equal((await client.check(program, {kind: 'program', scope: 'bound_input'})).report.verdict, 'verified');
+      const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
+      assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report.coverage));
       assert.deepEqual(credential.observation(), before);
       const run = await client.start(program);
       assert.equal((await run.wait({signal})).status, 'succeeded');
