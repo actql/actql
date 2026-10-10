@@ -1196,13 +1196,38 @@ fn order_aggregate_calls(
 }
 
 ///|
+// Public aliases and lowering share this closed operation-name mapping.
+// COUNTIF's DISTINCT rewrite remains a separate argument/filter contract.
+fn aggregate_common_function(name : String) -> String? {
+  match name {
+    "COUNT" => Some("count")
+    "COUNTIF" => Some("count_if")
+    "SUM" => Some("sum")
+    "AVG" => Some("avg")
+    "MIN" => Some("min")
+    "MAX" => Some("max")
+    "VAR_POP" => Some("var_pop")
+    "VAR_SAMP" | "VARIANCE" => Some("var_samp")
+    "STDDEV_POP" => Some("stddev_pop")
+    "STDDEV_SAMP" | "STDDEV" => Some("stddev_samp")
+    "ARRAY_AGG" => Some("array_agg")
+    "STRING_AGG" => Some("string_agg")
+    _ => None
+  }
+}
+
+///|
 fn same_aggregate_call(
   left : @query.AggregateCall,
   right : @query.AggregateCall,
   left_resolve : (Array[@query.NamePart]) -> String?,
   right_resolve : (Array[@query.NamePart]) -> String?,
 ) -> Bool {
-  if left.function_name != right.function_name ||
+  guard aggregate_common_function(left.function_name) is Some(left_function) &&
+    aggregate_common_function(right.function_name) is Some(right_function) else {
+    return false
+  }
+  if left_function != right_function ||
     left.distinct != right.distinct ||
     left.delimiter != right.delimiter ||
     left.order_by.length() != right.order_by.length() {
@@ -1285,20 +1310,9 @@ fn lower_aggregate_resolved(
   let conditional_count = call.function_name == "COUNTIF" &&
     call.distinct &&
     !analytic
-  let name = match call.function_name {
-    "COUNT" => "count"
-    "COUNTIF" => if conditional_count { "count" } else { "count_if" }
-    "SUM" => "sum"
-    "AVG" => "avg"
-    "MIN" => "min"
-    "MAX" => "max"
-    "VAR_POP" => "var_pop"
-    "VAR_SAMP" | "VARIANCE" => "var_samp"
-    "STDDEV_POP" => "stddev_pop"
-    "STDDEV_SAMP" | "STDDEV" => "stddev_samp"
-    "ARRAY_AGG" => "array_agg"
-    "STRING_AGG" => "string_agg"
-    _ => raise Abort(UnsupportedAggregate)
+  let name = match aggregate_common_function(call.function_name) {
+    Some(name) => if conditional_count { "count" } else { name }
+    None => raise Abort(UnsupportedAggregate)
   }
   let entries : Array[(String, @builder.Node)] = [
     ("fn", construction.text(name)),
