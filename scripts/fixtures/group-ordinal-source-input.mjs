@@ -1,5 +1,7 @@
 import {scalarAliasGroupSuccesses, scalarAliasGroupRefusals}
   from './scalar-alias-group-source-input.mjs';
+import {groupComparisonSuccesses, groupComparisonRefusals}
+  from './group-comparison-source-input.mjs';
 
 // Independent grouped values and named-column contracts, not lowerer output.
 // GROUP 2,1 denotes amount,id in the SELECT list id,amount,n. WHERE excludes
@@ -105,6 +107,7 @@ export const repeatedGroupKeySuccesses = [
 ];
 groupOrdinalSuccesses.push(...repeatedGroupKeySuccesses);
 groupOrdinalSuccesses.push(...scalarAliasGroupSuccesses);
+groupOrdinalSuccesses.push(...groupComparisonSuccesses);
 export const groupOrdinalRefusals = [
   'SELECT id, amount FROM records GROUP BY 0',
   'SELECT *, COUNT(*) AS n FROM records GROUP BY 4',
@@ -114,4 +117,4 @@ export const groupOrdinalRefusals = [
   'FROM records |> AGGREGATE COUNT(*) AS n GROUP BY 1',
 ].map((text, index) => ({name: 'group-ordinal-invalid-' + index,
   format: 'aql-text', text, expectedCode: 'ClientProgramImplementationLimit'}))
-  .concat(scalarAliasGroupRefusals);
+  .concat(scalarAliasGroupRefusals, groupComparisonRefusals);
