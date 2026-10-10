@@ -85,7 +85,12 @@ for (const mode of ['local', 'remote']) for (const scenario of cases) {
         nonce:`graph-${scenario.family}-${scenario.failure}-${mode}`})};
       const run = await client.startSource(source, options);
       const state = await run.wait({signal:AbortSignal.timeout(15_000)});
-      assert.equal(state.status,'failed',JSON.stringify(state));
+      // The existing dispatch Owner cannot observe physical stop while its
+      // retained cleanup is unresolved. execution.md requires unknown to stay
+      // nonterminal; a known Store error alone must not fabricate Run failure.
+      assert.equal(state.status,'needs_reconciliation',JSON.stringify(state));
+      assert.deepEqual(state.next_action,{kind:'reconcile_run',reason:'execution_unknown'});
+      assert.equal(state.control.physical_stop,'unknown');
       assert.equal(faults.leases.filter(value => value.key === scenario.key).length,1);
       const failure = faults.counts();
       assert.equal(failure.failedAppends,scenario.failure === 'append' ? 1 : 0);
@@ -102,8 +107,12 @@ for (const mode of ['local', 'remote']) for (const scenario of cases) {
       const leaseCount = faults.leases.length;
       const repeated = await client.startSource(source, options);
       assert.deepEqual(repeated.ref,run.ref);
-      assert.equal((await repeated.status()).status,'failed');
+      assert.equal((await repeated.status()).status,'needs_reconciliation');
       assert.deepEqual(physical,beforeRetry,'same failed submission must not dispatch or advance Compute');
+      const observed = await run.reconcile();
+      assert.equal(observed.status,'needs_reconciliation');
+      assert.deepEqual(observed.next_action,{kind:'reconcile_run',reason:'execution_unknown'});
+      assert.deepEqual(physical,beforeRetry,'reconciliation observes the retained execution without redispatch');
       await assert.rejects(closeOwner());
       assert(target.physical.status().reservedBytes > 0);
       assert.equal(target.physical.status().cleanupPending,true);
