@@ -2,7 +2,7 @@ import {prepareEffect, compileEffect, issueAllowedEffectRun, issueEffectRunDefin
   issueEffectRunMaterials, admitEffectRunMaterials, effectExecutionShape, compileValues,
   prepareEffectRequest, effectSourceInputBinding, issueEffectSourceDispatch,
   prepareEffectRetainedTaskInputEdge, issueEffectRetainedTaskDispatch,
-  effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts,
+  effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts, effectReviewCheckpointMembers,
   inspectEffectTaskProgress, prepareEffectTaskPhysicalStart,
   type PreparedProgram, type TaskCompilation,
   type ValuesSiteSelection, type RetainedTaskInput, type CheckEnvironment, type PreparedEffectProgram, type EffectCompilation,
@@ -13,6 +13,11 @@ const compiled = compileEffect(prepared);
 const allowed = issueAllowedEffectRun(prepared, compiled, {
   executionContextCid: 'cid', hostPolicyCid: 'policy', expiresAt: 'time'});
 const definition = issueEffectRunDefinition(allowed, 'scope', 'run', 'created', 'valid');
+const memberIds: readonly string[] = effectReviewCheckpointMembers(allowed, definition, '');
+// @ts-expect-error Member metadata is not approval and cannot be mutated.
+memberIds.push('other');
+// @ts-expect-error A prepared computation is not an allowed original Run.
+effectReviewCheckpointMembers(prepared, definition, '');
 const wire = issueEffectRunMaterials(allowed, definition,
   {format: 'json', document: '{}', environment, environmentWire: '{}'});
 const restored = admitEffectRunMaterials(wire, 'definition', {rela: true});

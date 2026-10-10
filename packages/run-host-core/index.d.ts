@@ -90,6 +90,9 @@ export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
     checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
     runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
     continuationCid: string}>;
+/** Project only the members of the original checked unit/Checkpoint. */
+export function effectReviewCheckpointMembers(allowed: AllowedEffectRun,
+  definition: RunDefinition, checkpointWire: string): readonly string[];
 /** Original Catalog evidence; current read authority remains a separate check. */
 export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
