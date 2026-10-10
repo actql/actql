@@ -132,7 +132,7 @@ test "Shortest shares bounded simple-path execution with typed parallel edges an
 }
 
 ///|
-test "Shortest zero-hop execution has independently decomposed retained work workspace and mid-selection cancellation" {
+test "Shortest zero-hop execution has independently decomposed total work workspace and mid-selection cancellation" {
   let nodes = keyed_node_source(
     rows="[{\"id\":1,\"tenant\":\"a\",\"name\":\"one\"}]",
   )
@@ -177,6 +177,23 @@ test "Shortest zero-hop execution has independently decomposed retained work wor
   // and fixed Text contribute 50 bytes plus the authored domain per occurrence;
   // the six output names contribute 53 bytes. Work is nodes + Text bytes.
   let output_work = 38 + 3 * (50 + domain.length()) + 53
+  // Control transitions: selector tables/admission/collection (5), winner
+  // selection/copy/seal (4), scalar fields and path arrays (7), row start and
+  // finish (2). Recheck polls: six reads, three identity trees (32 each),
+  // array framing (3), empty edge array (2), two numbers (2), six terminal
+  // polls and charge start (1). Charge polls: six names and values (12), three
+  // identity trees including JsonData (24 each), node array framing (2), and
+  // final commit (1). Empty arrays and numbers use the bounded small lane.
+  assert_eq(domain.length(), 71)
+  // Each identity has two key components (Text "a", Number 1) and two key
+  // descriptors, not the one-component identity used by public smoke inputs.
+  let control_work = 5 +
+    4 +
+    7 +
+    2 +
+    (6 + 3 * 32 + 3 + 2 + 2 + 6 + 1) +
+    (12 + 3 * 24 + 2 + 1)
+  let total_work = output_work + control_work
   // Workspace before output: two selector entries + winner(path,node,cost,
   // candidate)=4 + two arrays and their single node entry=3. The existing
   // output cursor adds a seven-slot row and at most three measurement frames.
@@ -184,14 +201,14 @@ test "Shortest zero-hop execution has independently decomposed retained work wor
   for quantum in [1, 7, 64] {
     for
       (max_work, workspace, expected_issue) in [
-        (output_work, output_workspace, None),
+        (total_work, output_workspace, None),
         (
-          output_work - 1,
+          total_work - 1,
           output_workspace,
-          Some(@local_sga.TraversePathsOutput(@execution.CaptureLimit)),
+          Some(@local_sga.TraversePathsWorkLimit),
         ),
         (
-          output_work,
+          total_work,
           output_workspace - 1,
           Some(@local_sga.TraversePathsWorkspaceLimit),
         ),
@@ -214,7 +231,7 @@ test "Shortest zero-hop execution has independently decomposed retained work wor
           @local_sga.TraverseContinue(..) => ()
           @local_sga.TraverseComplete(output, work~, ..) => {
             assert_true(expected_issue is None)
-            assert_true(work <= output_work.to_int64())
+            assert_eq(work, control_work.to_int64())
             assert_eq(@execution.completed_row_count(output), 1)
             assert_eq(
               @local_sga.traverse_private_workspace_usage(active).1,
@@ -237,48 +254,56 @@ test "Shortest zero-hop execution has independently decomposed retained work wor
       assert_true(@graphs.producer_read_available(input))
     }
   }
-  let control = @bounded.control()
-  let active = @local_sga.start_traverse_view(
-    control,
-    task_test_completion(owner),
-    prepared_sequence(owner),
-    0,
-    @graphs.producer_read_view(input).unwrap(),
-    1,
-    {
-      max_work: output_work,
-      max_nodes: 10000,
-      max_text_bytes: 10000,
-      max_depth: 50,
-    },
-    output_workspace,
-    10000,
-    10000,
-    [],
-  ).unwrap()
-  for _ in 0..<1000 {
+  for during_row in [false, true] {
+    let control = @bounded.control()
+    let active = @local_sga.start_traverse_view(
+      control,
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      @graphs.producer_read_view(input).unwrap(),
+      1,
+      {
+        max_work: total_work,
+        max_nodes: 10000,
+        max_text_bytes: 10000,
+        max_depth: 50,
+      },
+      output_workspace,
+      10000,
+      10000,
+      [],
+    ).unwrap()
+    for _ in 0..<1000 {
+      assert_true(
+        @local_sga.advance_traverse(active, 1).unwrap()
+        is @local_sga.TraverseContinue(..),
+      )
+      if (if during_row {
+          @local_sga.traverse_private_workspace_usage(active).0 >= 16
+        } else {
+          @local_sga.traverse_shortest_winner_count(active) > 0
+        }) {
+        break
+      }
+    } nobreak {
+      fail("owned winner or locked output row was not reached")
+    }
+    assert_true(@bounded.request_cancel(control))
+    assert_false(@local_sga.traverse_stopped(active))
+    assert_true(@graphs.producer_read_available(input))
     assert_true(
       @local_sga.advance_traverse(active, 1).unwrap()
-      is @local_sga.TraverseContinue(..),
+      is @local_sga.TraverseStopped(_, ..),
     )
-    if @local_sga.traverse_shortest_winner_count(active) > 0 {
-      break
-    }
-  } nobreak {
-    fail("owned winner was not reached")
+    assert_true(@local_sga.traverse_stopped(active))
+    assert_true(@local_sga.cleanup_traverse(active).unwrap())
+    assert_eq(@local_sga.traverse_shortest_winner_count(active), 0)
+    assert_eq(@local_sga.traverse_private_workspace_usage(active).0, 0)
+    assert_true(@graphs.producer_read_available(input))
+    // The bounded owner reports no second cleanup transition once returned.
+    assert_false(@local_sga.cleanup_traverse(active).unwrap())
   }
-  assert_true(@bounded.request_cancel(control))
-  assert_false(@local_sga.traverse_stopped(active))
-  assert_true(@graphs.producer_read_available(input))
-  assert_true(
-    @local_sga.advance_traverse(active, 1).unwrap()
-    is @local_sga.TraverseStopped(_, ..),
-  )
-  assert_true(@local_sga.traverse_stopped(active))
-  assert_true(@local_sga.cleanup_traverse(active).unwrap())
-  assert_eq(@local_sga.traverse_shortest_winner_count(active), 0)
-  assert_eq(@local_sga.traverse_private_workspace_usage(active).0, 0)
-  assert_true(@graphs.producer_read_available(input))
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
 }
 

@@ -142,6 +142,8 @@ priv struct TraversePathsState {
   mut workspace_slots : Int
   mut workspace_peak : Int
   mut control_work_remaining : Int
+  control_work_limit : Int
+  mut charged_control_work : Int
 }
 
 ///|
@@ -674,6 +676,26 @@ fn traverse_node_value(
       state.value_limits,
     )
   })
+}
+
+///|
+fn charge_shortest_control_work(
+  state : TraversePathsState,
+  current : Int,
+) -> Bool {
+  if state.shortest is None {
+    return true
+  }
+  let spent = state.control_work_limit - state.control_work_remaining + current
+  guard state.output is Some(output) &&
+    @execution.admitted_output_charge_control_work(
+      output,
+      spent - state.charged_control_work,
+    ) else {
+    return false
+  }
+  state.charged_control_work = spent
+  true
 }
 
 ///|
@@ -1740,6 +1762,12 @@ fn traverse_paths_step(
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
         }
         if state.shortest is Some(_) {
+          // The shared row cursor exclusively owns the output while yielding.
+          // Charge control before acquiring it and after it releases that lock;
+          // never give a later row a fresh operation-wide work budget.
+          if !charge_shortest_control_work(state, used) {
+            return @bounded.Failed(TraversePathsWorkLimit, progress, used)
+          }
           let remaining = state.max_workspace_slots - state.workspace_slots
           match
             @execution.start_admitted_output_row(output, remaining, column => {
@@ -1786,6 +1814,9 @@ fn traverse_paths_step(
           Ok(true) => {
             @execution.cleanup_admitted_output_row(row) |> ignore
             state.output_row = None
+            if !charge_shortest_control_work(state, used) {
+              return @bounded.Failed(TraversePathsWorkLimit, progress, used)
+            }
             state.workspace_slots -= state.row_value_slots
             state.row_value_slots = 0
             state.shortest_values = []
@@ -2007,6 +2038,9 @@ fn traverse_paths_step(
       }
       Finish => {
         used += 1
+        if !charge_shortest_control_work(state, used) {
+          return @bounded.Failed(TraversePathsWorkLimit, progress, used)
+        }
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
         }
@@ -2436,6 +2470,8 @@ fn start_traverse_paths_read(
     workspace_slots: node_count + target_slots,
     workspace_peak: node_count + target_slots,
     control_work_remaining: limits.max_work,
+    control_work_limit: limits.max_work,
+    charged_control_work: 0,
   }
   let (session, token) = @bounded.start(
     control,

@@ -272,6 +272,37 @@ plus 3 measurement frames. Exact/one-short assert their typed causes at quantum
 separate control/value budgets have been proved to form one operation-wide
 logical-work ceiling. That integration remains a delivery obligation.
 
+### Operation-wide work integration
+
+The later integration normally merged main
+`486401df55f305a6692c1c0ec80b4abd0dcc55ea` at
+`94e20a2bcd970d2f21e8007815e2163ebaccbd99`. Both authored inventory
+conflicts preserve the independently declared main and Graph oracles.
+
+Shortest control now uses the existing admitted-output external-work charge,
+so retained value measurement and search/recheck/comparison control share one
+operation-wide ceiling. Charges accumulate across advance and row boundaries;
+the row cursor's exclusive lock is respected. Retained-value usage still means
+retained values, not control work. No second ledger or per-row budget is added.
+
+For the authored two-component zero-hop identity, value work is 454 and control
+work is 221: selector collection 5, winner ownership 4, row construction and
+finish 9, contract recheck 116, and output charge polls 87. The independent
+total is 675. Exact and one-short (typed TraversePathsWorkLimit), workspace
+19/18, and quantum 1/7/64 are tested. Cancellation observes both the retained
+winner and the exclusively held output row; borrowed inputs survive stopped
+cleanup and a second cleanup causes no second owner transition.
+
+On the amended working source based on `94e20a2b...`, the two selected files
+`src/query_integration/graph_shortest_wbtest.mbt` and
+`src/local_sga/shortest_candidate_wbtest.mbt` pass 6/6 each on JS, Wasm and
+Native. The guarded command uses `runLocalCheck` sequential steps calling
+`runFocusedTests("moon", ["--target", target, ...files])`, with a 900-second
+budget. Receipt `run-2y96d3` retains dirty-source identity and all commands;
+focused receipts are `focused-test-Asvr0J`, `focused-test-SeBvFX` and
+`focused-test-kgzsys`. Prior failed attempts remain separate. This does not
+establish public Host, packed delivery or current-SHA CI success.
+
 The independent public fixtures cover structured zero-hop output with two
 consumers, AQL repeated source/target Relation input in all three selection
 modes, and DATA with an empty target. Five malformed AQL refusals accompany
