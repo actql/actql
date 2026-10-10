@@ -132,7 +132,7 @@ focused-test-BSLusU (0/2).
 Common-owner handoff for A:
 
 - Authored complete source, independent JSON and unchanged ordered rows/column
-  contracts: docs/reviews/fixtures/graph-relation-join-order-repro.aql,
+  contracts: docs/reviews/fixtures/graph-relation-join-order-repro.query.txt,
   graph-relation-join-order-repro.program.json and
   graph-relation-join-order-repro.expected.json.
 - Expected two rows: value=true with tags 10 then 20. Neither ORDER BY nor the
