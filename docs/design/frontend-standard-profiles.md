@@ -228,3 +228,23 @@ INT64/NUMERIC/BIGNUMERIC overloads and non-finite values are unimplemented
 coverage, not restrictions claimed for GoogleSQL. Existing CIDs retain their
 predecessor meaning; new expression/schema/registry identities are propagated
 through the ordinary contract Owners. No adapter-specific evaluator is added.
+
+
+### STRING SUBSTR and SUBSTRING
+
+Both GoogleSQL spellings select common `substring(value,start[,length])`,
+preserving actual omission and the original scalar sequence. The adopted
+[GoogleSQL reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#substr)
+was consulted 2026-10-10. The existing declared fixed-arity interval law and
+text-time membership change together in the common normative owner, schemas
+and dependent identities; historical pins retain the prior rule. STRING uses
+Unicode scalar positions, zero/overly-negative clamping and end-relative
+negative positions. Strict NULL follows all demanded children; invalid index
+data fails only when demanded and non-null. Known input String maxima survive
+in the result, and nested profile calls retain their resource admission.
+
+This supplies executable STRING coverage rather than the complete GoogleSQL
+function domain. Indices use safe-integer-valued finite binary64 numbers;
+BYTES and the rest of INT64 remain gaps. Profile-bound propagation across the
+former substring envelope can conservatively widen nested profile admission,
+as documented in [Semantic decision criteria](semantic-decisions.md#googlesql-string-substring-and-profile-ownership).

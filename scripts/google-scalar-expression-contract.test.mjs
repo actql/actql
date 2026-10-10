@@ -474,9 +474,10 @@ test('explicit trim sets preserve exact unary predecessor bodies and close pair 
     assert.equal(cid(item.body), item.cid);
   }
   const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
-  const expression = read('spec/contracts/actql-expressions.json');
-  const protocol = read('spec/contracts/actql-protocol-schemas.json');
-  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Freeze this transition at its adopted successor, independently of later scalar extensions.
+  const adopted = Object.fromEntries(read('portability/corpus/historical/pre-substring-contract-identities.json').contracts.map(item => [item.id, item.body]));
+  const expression = adopted.expression_contract;
+  const program = adopted.program_schema;
   const trimNames = ['trim', 'ltrim', 'rtrim'];
   function checkExtension(before, current) {
     if (Array.isArray(before)) {
@@ -509,12 +510,12 @@ test('explicit trim sets preserve exact unary predecessor bodies and close pair 
   }
   assert.notEqual(cid(expression), expected.expression_contract);
   assert.notEqual(cid(program), expected.program_schema);
-  const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const scalar = adopted.scalar_law_manifest;
   const expectedScalar = structuredClone(earlier.scalar_law_manifest);
   Object.assign(expectedScalar.unicode, {trim_character_set: 'unicode-code-point-membership',
     trim_empty_character_set: 'preserve-value'});
   assert.deepEqual(scalar, expectedScalar);
-  const aoa = read('spec/contracts/actql-aoa.json');
+  const aoa = adopted.aoa_contract;
   assert.equal(aoa.expression_contract_cid, cid(expression));
   assert.equal(aoa.rela_scalar_law_manifest_cid, cid(scalar));
   for (const entry of history.expression_fragments.cases) {

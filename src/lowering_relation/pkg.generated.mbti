@@ -1475,6 +1475,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Substring
   Between
 } derive(Eq, @debug.Debug)
 

@@ -384,3 +384,43 @@ Values Program/Run preimages are retained before changing the owners; older
 history is unchanged. Schema, scalar law, expression and dependent identities
 move together. This initial 0.1 extension does not admit BYTES or collation and
 does not claim conformance on unverified targets or live BigQuery.
+
+
+## GoogleSQL STRING substring and profile ownership
+
+The current normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+Google's [SUBSTR/SUBSTRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#substr)
+uses optional length, one-based positive positions, zero-to-one clamping and
+end-relative negative positions. The previous common declaration used exact
+interval intersection, fixed arity and the optional text-time profile:
+`substring('abcd',0,2)` meant `a`; the aligned rule means `ab`. That is a semantic
+change, not a spelling alias. Before this change the text/JSON checker and
+text-time bound derivation admitted substring, but executable lowering rejected
+its unresolved HostEnvelope and did not implement its tag; SQL/Pipe did not
+admit either public spelling.
+
+Keep one common `substring` tag with `{value,start,length?}` and its matching
+machine body. Both documented SQL spellings lower to that owner. Preserve
+omission as omission and retain every supplied child once in authored order.
+This adds no frontend evaluator, sentinel expression or fallback alias. The
+existing finite binary64 domain accepts only safe-integer indices; full INT64
+and BYTES remain explicit coverage gaps.
+
+Substring now uses the existing scalar continuation's bounded count, boundary,
+sizing and construction passes. The scalar work/live-value/workspace and
+cancellation owners remain authoritative. Removing substring's text-time
+membership is a coordinated current-contract change, not permission to ignore
+other pending obligations. Current profile source/envelope/barrier schemas
+omit substring, while the inherited base and all historical snapshots keep
+exact old bodies and CIDs. Nested profile operations retain their own profile,
+pattern, policy, envelope and preflight obligations, even in skipped branches.
+
+A substring result inherits sound input byte/codepoint maxima, drops minimum
+length and unions all supplied nullability. Type checking neither evaluates
+length nor rejects invalid literal data. This preserves directly known upper
+bounds. Profile-produced extents derived after typing do not pass through a
+new invented substring envelope: an outer profile falls back to its checked
+input contract or selected-policy preflight. Consequently some formerly
+checkable nested profile plans may need a wider conservative bound and fail a
+tight policy that admitted the old profile chain. The current contract records
+that compatibility effect; it does not claim unchanged historical admission.

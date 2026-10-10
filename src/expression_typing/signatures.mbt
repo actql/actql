@@ -162,9 +162,9 @@ fn cast_target(body : @decode.Cursor) -> @contract.Contract raise Stop {
 ///|
 fn text_time(tag : String) -> Bool {
   [
-    "split_part", "substring", "utf8_truncate", "try_number", "parse_timestamp",
-    "try_timestamp", "format_timestamp", "regex_match", "regex_extract", "regex_replace",
-    "nfkc", "case_fold",
+    "split_part", "utf8_truncate", "try_number", "parse_timestamp", "try_timestamp",
+    "format_timestamp", "regex_match", "regex_extract", "regex_replace", "nfkc",
+    "case_fold",
   ].contains(tag)
 }
 
@@ -233,7 +233,6 @@ fn infer(
           "string"
         }
       } else if (tag == "split_part" && i == 2) ||
-        tag == "substring" ||
         tag == "utf8_truncate" ||
         (tag == "regex_extract" && i == 2) {
         "number"
@@ -281,6 +280,28 @@ fn infer(
     )
   }
   match tag {
+    "substring" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let mut nullable = input.nullable
+      for i in 1..<node.children.length() {
+        nullable = require_type(t, nodes, node.children[i], "number").nullable ||
+          nullable
+      }
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // A slice cannot exceed either input ceiling, but may be empty. Length
+      // expressions are never evaluated or rejected during type derivation.
+      typed(
+        t,
+        @contract.string_contract(
+          nullable~,
+          max_codepoints=limits.max_codepoints,
+          max_utf8_bytes=limits.max_utf8_bytes,
+        ).unwrap(),
+        source,
+      )
+    }
     "#null" => put(t, Hole, true, source)
     "typed_literal" => {
       let text = string(part(node.body, "value"))
