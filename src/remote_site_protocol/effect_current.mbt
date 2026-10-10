@@ -28,13 +28,18 @@ fn effect_current_limits_valid(limits : @checkpoint.WireLimits) -> Bool {
 }
 
 ///|
-pub fn prepare_remote_effect_current_query(
-  report : RemoteEffectCheckpointReport,
+fn effect_current_query_body(
+  checkpoint_cid : String,
+  dispatch_cid : String,
   effect_id : String,
   query_id : String,
+  report_cid : String,
   limits : @checkpoint.WireLimits,
-) -> Result[RemoteEffectCurrentQuery, DispatchIssue] {
+) -> Result[String, DispatchIssue] {
   if !effect_current_limits_valid(limits) ||
+    !valid_cid(checkpoint_cid) ||
+    !valid_cid(dispatch_cid) ||
+    !valid_cid(report_cid) ||
     !effect_current_text_valid(effect_id) ||
     !effect_current_text_valid(query_id) {
     return Err(InvalidDispatch)
@@ -50,27 +55,48 @@ pub fn prepare_remote_effect_current_query(
     @encode.begin_object(writer)
     for
       (name, value) in [
-        ("checkpoint_cid", report.checkpoint.checkpoint_cid),
-        ("dispatch_request_cid", report.dispatch.dispatch_request_cid),
+        ("checkpoint_cid", checkpoint_cid),
+        ("dispatch_request_cid", dispatch_cid),
         ("effect_id", effect_id),
         ("query_id", query_id),
-        ("report_cid", report.report_cid),
+        ("report_cid", report_cid),
         ("version", "actql-remote-effect-current-query/0.1"),
       ] {
       @encode.key(writer, name)
       @encode.string_value(writer, value)
     }
     @encode.end_object(writer)
-    let body = @encode.finish(writer)
-    Ok({
-      report,
-      effect_id,
-      query_id,
-      body,
-      cid: "sha256:" + @sha.hex(@utf8.encode(body)),
-    })
+    Ok(@encode.finish(writer))
   } catch {
     _ => Err(InvalidDispatch)
+  }
+}
+
+///|
+pub fn prepare_remote_effect_current_query(
+  report : RemoteEffectCheckpointReport,
+  effect_id : String,
+  query_id : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[RemoteEffectCurrentQuery, DispatchIssue] {
+  match
+    effect_current_query_body(
+      report.checkpoint.checkpoint_cid,
+      report.dispatch.dispatch_request_cid,
+      effect_id,
+      query_id,
+      report.report_cid,
+      limits,
+    ) {
+    Ok(body) =>
+      Ok({
+        report,
+        effect_id,
+        query_id,
+        body,
+        cid: "sha256:" + @sha.hex(@utf8.encode(body)),
+      })
+    Err(issue) => Err(issue)
   }
 }
 

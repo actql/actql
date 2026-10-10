@@ -301,6 +301,7 @@ fn poll_once(
     Some(@remote.RetainedPlan(_))
     | Some(@remote.RetainedTransfer(_))
     | Some(@remote.RetainedCurrent(_))
+    | Some(@remote.EffectCurrent(_))
     | Some(@remote.EffectResume(_)) =>
       Err("retained input planning requires the resident producer owner")
     Some(@remote.Plan(_)) | Some(@remote.Output(_)) =>

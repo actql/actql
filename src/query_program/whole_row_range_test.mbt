@@ -129,10 +129,14 @@ test "row AS captures slots once while SET changes current columns" {
 }
 
 ///|
-test "a same-named column resolves before a row range" {
+test "an ordinary input range shadows a same-named column" {
   let body = checked_whole_row("FROM pair |> AS x |> SELECT x AS value")
-  assert_false(body.contains("\"object\""))
-  assert_true(body.contains("\"select\":[{\"value\":\"x\"}]"))
+  // Fixed GoogleSQL NameScope::AddNameTarget gives the input range priority.
+  assert_true(
+    body.contains(
+      "\"object\":{\"x\":{\"field\":\"x\"},\"y\":{\"field\":\"y\"}}",
+    ),
+  )
 }
 
 ///|

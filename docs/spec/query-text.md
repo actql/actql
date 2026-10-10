@@ -668,8 +668,13 @@ compiler helper slots. These are the adopted
 
 A bare surviving range over an ordinary Relation denotes a non-NULL closed
 object of that range's declared columns, read from its evaluated value slots.
-NULL field values do not make the row object NULL. A column/value binding with
-the same name takes precedence. The expression uses the common object form;
+NULL field values do not make the row object NULL. Within the input scope, a
+range name shadows a same-named column, including an object column. Value-table
+ranges still denote their original whole-value slot: their kind comes from the
+admitted scope, not from a column name or sampled value. An ORDER output alias
+belongs to a nearer overriding scope and takes precedence over an input name.
+Column-selector positions such as USING and ITEM KEY remain distinct from
+expression reference lookup. The expression uses the common object form;
 AS itself neither derives an object nor changes an acquisition boundary.
 SET, DROP and RENAME retain a surviving range's original field names/slots;
 AS rebinds only the current visible columns. A removed range or unavailable

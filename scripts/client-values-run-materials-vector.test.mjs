@@ -1028,7 +1028,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:980299c966ef566cf2b399e1f4181218586aaa72b0bce8d57b39056e2dc7aff2');
+    'sha256:c9084dedac4c58e0c4d57fdd67c56777a36854f561b7918d652bb093d21cf220');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1221,13 +1221,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:ec354df9bb1f37fce86257be4b3b7571226ff7558cc97f6f4ce763638db775b5');
+    'sha256:e0b2984828e0b8bd51c51e4a63cc11adfadedcb9723f8a0cc3acede8bdfc543f');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:ddcc8a4adcb2f1069858a2b4615beffe8d542b7e455bb2fb549aecf820799158');
+    'sha256:bb881276e4053c125c050f076a97e39ca91ce7e7c1ac7f57b2898ece91d0eea0');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:96978f3c29aca7647b5c8a3f26e1133af7da8312205547c86133b805a8cb9494');
+    'sha256:7cd33a0773baf8765c124cc85faa2c906afa581969b236323a87893f0168956f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:980299c966ef566cf2b399e1f4181218586aaa72b0bce8d57b39056e2dc7aff2');
+    'sha256:c9084dedac4c58e0c4d57fdd67c56777a36854f561b7918d652bb093d21cf220');
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
@@ -2214,4 +2214,14 @@ test('pre-whole-row-range rules retain complete independent Run preimages',()=>{
  assert.deepEqual(vector(gc,frozen.aoa_contract_cid,frozen.values_dependencies,
  frozen.barrier_contract_manifest_cid,frozen.program_identity,{canonicalCandidates:true}),frozen.run_preimages);
  assert.equal(frozen.run_preimages.run.run_definition_cid,'sha256:a24a0a7291b21746a3fc9d6d642c2be5d1aabf9d9166fa6230e5383e6254f654');
+});
+
+
+test('pre-range-name-precedence values retain their independently rebuilt Run',()=>{
+ const frozen=JSON.parse(readFileSync('scripts/fixtures/pre-range-name-precedence-values-identities.json','utf8'));
+ assert.equal(frozen.source_revision,'7bf39c805e1c73e4b871455b8494df2418f538fc');
+ const {grammar_manifest_cid:gc,...body}=frozen.grammar;assert.equal(cid(body),gc);
+ assert.deepEqual(vector(gc,frozen.aoa_contract_cid,frozen.values_dependencies,
+ frozen.barrier_contract_manifest_cid,frozen.program_identity,{canonicalCandidates:true}),frozen.run_preimages);
+ assert.equal(frozen.run_preimages.run.run_definition_cid,'sha256:980299c966ef566cf2b399e1f4181218586aaa72b0bce8d57b39056e2dc7aff2');
 });

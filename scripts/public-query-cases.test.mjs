@@ -114,7 +114,23 @@ test('ordinary row fixtures distinguish NULL fields, immutable bindings and rebo
  assert.deepEqual(cases.get('whole-row-immutable-set').expected[1],{row:{element:null,position:1},value:11,position:1});
  assert.deepEqual(cases.get('whole-row-rebound-set').expected[1],{row:{element:11,position:1},value:11,position:1});
  assert.deepEqual(cases.get('whole-row-computed-order').expected.map(r=>r.row.position),[2,1,0]);
- for(const name of ['implicit-output-name','immutable-set','rebound-set','drop-rename-rebind','column-priority','computed-order']) assert.equal(cases.get('whole-row-'+name).format,'aql-text');
+ assert.deepEqual(cases.get('whole-row-range-priority').expected[1],{value:{element:null,position:1},position:1});
+ assert.equal(cases.get('whole-row-range-priority').columns[0].contract.nullable,false);
+ for(const name of ['implicit-output-name','immutable-set','rebound-set','drop-rename-rebind','range-priority','computed-order']) assert.equal(cases.get('whole-row-'+name).format,'aql-text');
  assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('whole-row-')).length,9);
  assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('whole-row-refusal-')).length,4);
+});
+
+
+test('range-shadow fixtures distinguish input ranges, ORDER aliases and NULL object columns',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(c=>[c.name,c]));
+ assert.deepEqual(cases.get('range-shadow-order-alias').expected,[{element:2},{element:1},{element:0}]);
+ assert.deepEqual(cases.get('range-shadow-set-removes-range').expected,[{value:10,position:0},{value:11,position:1},{value:12,position:2}]);
+ for(const name of ['object-column','null-object-column']) {
+  assert.deepEqual(cases.get('range-shadow-'+name).expected,[{value:90}]);
+  assert.deepEqual(cases.get('range-shadow-'+name).columns,cases.get('range-shadow-object-column-json-control').columns);
+ }
+ assert.deepEqual(cases.get('range-shadow-where-row').expected,[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}]);
+ assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('range-shadow-')).length,7);
+ assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('range-shadow-refusal-')).length,2);
 });
