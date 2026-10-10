@@ -20,6 +20,10 @@ fn retained_holder_provider_review(
   public_result : @resident.ResidentEffectResultCapture,
   root_path : String,
   name : String,
+  owned_context : @resident.ResidentEffectReviewInputContext,
+  normalization : @publication.RunEvidenceValue,
+  original_producer : @resident.ResidentEffectProducerExecuted,
+  producer_journal : @dispatch_journal.Journal,
 ) -> Unit raise {
   let mark = (phase : String) => {
     @filesystem.open_root(root_path)
@@ -142,7 +146,68 @@ fn retained_holder_provider_review(
     is Err(InvalidLimits),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, before)
-  let work = prepare(materials, policy).unwrap()
+  // A failed Result capture consumes only its private pins/export. The actual
+  // Source, receiver and Runtime remain held, and Provider access is not begun.
+  let rejected_context = holder
+    .prepare_effect_review_inputs(
+      journal,
+      original_producer,
+      producer_journal,
+      1,
+      0,
+      policy.retention,
+      policy.export_limits,
+      4,
+      10000,
+      65536,
+      4096,
+      64,
+    )
+    .unwrap()
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_review_from_context(
+      holder,
+      journal,
+      rejected_context,
+      observation,
+      [],
+      [],
+      policy,
+    )
+    is Err(
+      {
+        issue: Result(
+          Receipt(ReceiptIssuanceWrongContract("normalization_journal"))
+        ),
+        pending: None,
+      }
+    ),
+  )
+  assert_true(rejected_context.facts(journal) is None)
+  assert_true(rejected_context.close())
+  assert_eq(consumer.usage().reserved_retention_bytes, before)
+  let work = @effect_provider.prepare_native_resident_effect_review_from_context(
+    holder,
+    journal,
+    owned_context,
+    normalization,
+    [],
+    [],
+    policy,
+  ).unwrap()
+  let owned_result = work.result_capture().unwrap()
+  assert_eq(
+    owned_result.output.result_schema_wire().unwrap(),
+    retained_effect_expected_schema(true),
+  )
+  assert_eq(owned_result.output.row_count().unwrap(), 1)
+  let actual_read = owned_result.output.replay().unwrap()
+  let actual_rows = StringBuilder()
+  while actual_read.next().unwrap() is Some(chunk) {
+    actual_rows.write_string(chunk)
+  }
+  actual_rows.write_string(actual_read.finish().unwrap())
+  assert_eq(actual_rows.to_string(), retained_effect_expected_rows(true))
   assert_true(work.complete() is Err(Unavailable))
   let facts = resident_provider_observe(
     consumer,
@@ -289,7 +354,7 @@ fn retained_holder_provider_review(
     consumer,
     materials,
     inputs,
-    public_result,
+    owned_result,
     invocation,
     complete.preview.preview,
     complete.captured,
@@ -323,7 +388,9 @@ fn retained_holder_provider_review(
   assert_true(work.retry_cleanup().unwrap())
   assert_false(work.retry_cleanup().unwrap())
   assert_true(work.complete() is Err(Unavailable))
-  assert_eq(consumer.request_for_effect_review(inputs), Some(request))
+  assert_true(consumer.request_for_effect_review(inputs) is None)
+  assert_true(owned_context.facts(journal) is None)
+  assert_true(work.result_capture() is None)
   println(
     "native-effect-original-review: production review and exact journal report retained; no Cloud commit, approval or write",
   )

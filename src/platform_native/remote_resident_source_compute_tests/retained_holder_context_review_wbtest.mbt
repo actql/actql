@@ -110,6 +110,10 @@ fn retained_holder_context_review(
     result,
     root_path,
     name,
+    context,
+    normalization,
+    producer,
+    producer_journal,
   )
   result.output.cancel()
   assert_true(context.close())
