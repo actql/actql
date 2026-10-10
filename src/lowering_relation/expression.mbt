@@ -51,6 +51,7 @@ pub(all) enum UnaryOperator {
   Floor
   Sqrt
   Abs
+  Sign
 } derive(Eq, Debug)
 
 ///|
@@ -60,6 +61,8 @@ pub(all) enum BinaryOperator {
   Multiply
   Divide
   Modulo
+  StartsWith
+  EndsWith
   Equal
   NotEqual
   IsDistinctFrom
@@ -196,6 +199,7 @@ fn expression_tag(
     | "floor"
     | "sqrt"
     | "abs"
+    | "sign"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -207,6 +211,8 @@ fn expression_tag(
     | "multiply"
     | "divide"
     | "modulo"
+    | "starts_with"
+    | "ends_with"
     | "eq"
     | "neq"
     | "is_distinct_from"
@@ -266,6 +272,7 @@ fn expression_children(
     | "floor"
     | "sqrt"
     | "abs"
+    | "sign"
     | "not"
     | "is_null"
     | "not_null"
@@ -834,6 +841,7 @@ fn lower_typed_expression_measured(
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
         "abs" => Unary(Abs, args[0])
+        "sign" => Unary(Sign, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
@@ -847,6 +855,8 @@ fn lower_typed_expression_measured(
         "multiply" => Binary(Multiply, args[0], args[1])
         "divide" => Binary(Divide, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
+        "starts_with" => Binary(StartsWith, args[0], args[1])
+        "ends_with" => Binary(EndsWith, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])
         "neq" => Binary(NotEqual, args[0], args[1])
         "is_distinct_from" => Binary(IsDistinctFrom, args[0], args[1])

@@ -49,6 +49,7 @@ fn lower_script_set_relation(
         reserved,
         term,
         graphs~,
+        positional_set_output=!part.by_name,
       ),
     )
   }
@@ -88,6 +89,7 @@ fn lower_script_set_relation(
         reserved,
         term,
         graphs~,
+        positional_set_output=!part.by_name,
       )
     }
     let output_fields = if index < sql_inner_count {
