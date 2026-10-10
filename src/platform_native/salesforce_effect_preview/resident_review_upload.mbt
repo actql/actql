@@ -35,6 +35,10 @@ pub fn NativeResidentEffectReview::upload_review_projection(
     max_nodes: 4096,
     max_depth: 32,
   }
+  match self.confirm_original_review_report(report, limits, false) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match
     @client.acknowledge_retained_effect_checkpoint(
       self.journal,
@@ -58,6 +62,10 @@ pub fn NativeResidentEffectReview::upload_review_projection(
     @remote.remote_effect_checkpoint_report_identity(confirmed_report) !=
     @remote.remote_effect_checkpoint_report_identity(report) {
     return Err(InvalidResponse)
+  }
+  match self.confirm_original_review_report(report, limits, true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let headers : Array[@http.NativeHttpHeader] = [
     { name: "content-type", value: "application/json", },
@@ -86,6 +94,39 @@ pub fn NativeResidentEffectReview::upload_review_projection(
   if current_wire != wire ||
     @remote.remote_effect_checkpoint_report_identity(current_report) !=
     @remote.remote_effect_checkpoint_report_identity(report) {
+    return Err(InvalidResponse)
+  }
+  match self.confirm_original_review_report(report, limits, true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  Ok(())
+}
+
+///|
+/// The ACK Owner reads the journal, whereas the review Owner reads the paired
+/// Store. Bind both originals before any send and recheck the durable Accepted
+/// receipt after I/O; a valid different report for the dispatch is insufficient.
+fn NativeResidentEffectReview::confirm_original_review_report(
+  self : NativeResidentEffectReview,
+  original : @remote.RemoteEffectCheckpointReport,
+  limits : @checkpoint.WireLimits,
+  require_accepted : Bool,
+) -> Result[Unit, NativeResidentEffectReviewUploadIssue] {
+  let dispatch = @remote.remote_effect_checkpoint_report_dispatch(original)
+  let (saved, reply) = match
+    self.journal.effect_checkpoint_report(dispatch, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Report(@client.Journal(issue)))
+  }
+  if @remote.remote_effect_checkpoint_report_identity(saved) !=
+    @remote.remote_effect_checkpoint_report_identity(original) ||
+    @remote.remote_effect_checkpoint_report_json(saved) !=
+    @remote.remote_effect_checkpoint_report_json(original) {
+    return Err(InvalidResponse)
+  }
+  if require_accepted &&
+    !(reply is Some(@remote.RemoteEffectCheckpointReply::Accepted)) {
     return Err(InvalidResponse)
   }
   Ok(())
