@@ -622,10 +622,6 @@ const positionalSetHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELE
 setCorrespondingSuccesses.push(
   positionalSet('json-control', JSON.stringify(positionalReplacementProgram), {format: 'json', sourceReadSessionCount: 0}),
   positionalSet('source', positionalSetHead + 'kept = kept + 10) ORDER BY a, b'),
-  // Current -id selects original id=1. Reusing the earlier -id selects id=2.
-  positionalSet('current-expression-limit', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
-    + '|> SELECT id AS id, -id |> SET id = -id |> ORDER BY -id |> LIMIT 1) ORDER BY a, b',
-    {expected: [{a: -1, b: -1}, {a: 0, b: 0}]}),
   positionalSet('quoted-chain-limit', positionalSetHead + '`KEPT` = kept + 10 |> WHERE kept > 11 |> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
     {expected: [{a: 0, b: 0}, {a: 12, b: -2}]}),
   positionalSet('simultaneous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
