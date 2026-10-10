@@ -19,7 +19,7 @@ test('ARRAY fixtures retain independently authored types order multiplicity and 
   assert.deepEqual(byName.get('array-literal-expand-offsets').expected,
     [{element: 2, position: 0}, {element: 1, position: 1}, {element: 2, position: 2}]);
   for (const fixture of arrayLiteralRefusals.filter(value => value.name.includes('direct-nested'))) {
-    assert.equal(fixture.expectedCode, 'ClientProgramUnsupported');
+    assert.equal(fixture.expectedCode, 'ClientProgramRejected');
   }
   const refusals = new Map(arrayLiteralRefusals.map(value => [value.name, value]));
   const reference = refusals.get('array-literal-direct-nested-parameter-reference');
@@ -41,4 +41,35 @@ test('ordinary public campaign and narrow consumer both include ARRAY fixtures',
   assert.ok(driver.includes("['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_ARRAY_LITERAL_ONLY = '1'"));
   assert.ok(driver.includes("process.argv.includes('--array-literal-only')) return;"));
+});
+
+test('DOUBLE fixtures retain the independent numeric CAST and ARRAY contracts', () => {
+  const cases = new Map(arrayLiteralSuccesses.map(value => [value.name, value]));
+  const control = cases.get('array-literal-double-json-control');
+  assert.deepEqual(JSON.parse(control.text).stages[0].steps[1].derive, {
+    value: {cast: {value: {literal: 1.25}, target: {type: 'number'}}},
+    missing: {cast: {value: {literal: null}, target: {type: 'number'}}},
+    items: {if: [{literal: true}, {array: [{literal: 2}, {literal: null}, {literal: 2}]},
+      {empty_array: {items: {type: 'number', nullable: false}}}]},
+  });
+  assert.deepEqual(control.expected, [{value: 1.25, missing: null, items: [2, null, 2]}]);
+  assert.deepEqual(control.columns, [
+    {name: 'value', contract: {type: 'number', nullable: false}},
+    {name: 'missing', contract: {type: 'number', nullable: true}},
+    {name: 'items', contract: {type: 'array', nullable: false, max_items: 3,
+      items: {type: 'number', nullable: true}}},
+  ]);
+  for (const index of [0, 1, 2]) {
+    assert.deepEqual(cases.get('array-literal-double-type-' + index).expected, control.expected);
+    assert.deepEqual(cases.get('array-literal-double-type-' + index).columns, control.columns);
+  }
+  assert.deepEqual(cases.get('array-literal-double-empty-array').expected, [{items: []}]);
+  assert.deepEqual(cases.get('array-literal-double-typed-empty-result').expected, []);
+  assert.equal(cases.get('array-literal-double-typed-empty-result').columns[0].contract.nullable, true);
+  assert.equal(cases.get('array-literal-double-only-null-array').columns[0].contract.items.type, 'number');
+  assert.ok(cases.get('array-literal-double-lazy-cast').text.includes("CAST('invalid' AS DOUBLE)"));
+  for (const target of ['FLOAT', 'FLOAT32']) {
+    assert.ok(arrayLiteralRefusals.some(value => value.text === `SELECT CAST(1 AS ${target}) AS value`));
+    assert.ok(arrayLiteralRefusals.some(value => value.text === `SELECT ARRAY<${target}>[1] AS items`));
+  }
 });
