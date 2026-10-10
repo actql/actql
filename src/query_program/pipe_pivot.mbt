@@ -8,6 +8,7 @@ fn compile_pipe_pivot(
   visible : Array[(String, String)],
   columns : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
+  authored_aliases? : Array[(String, String)] = [],
 ) -> (@builder.Node, Array[(String, String)]) raise Abort {
   guard pipe_slot(clause.argument, visible, ranges) is Some(value) &&
     pipe_slot(clause.column, visible, ranges) is Some(column) else {
@@ -21,10 +22,13 @@ fn compile_pipe_pivot(
       .map(prefix => prefix.value + "_" + suffix)
       .unwrap_or(suffix)
     if output.any(pair => {
-        same_name({ value: pair.0, quoted: false, }, {
-          value: name,
-          quoted: false,
-        })
+        same_name(
+          {
+            value: positional_authored_column_name(pair.0, authored_aliases),
+            quoted: false,
+          },
+          { value: name, quoted: false, },
+        )
       }) {
       raise Abort(DuplicateOutput)
     }
