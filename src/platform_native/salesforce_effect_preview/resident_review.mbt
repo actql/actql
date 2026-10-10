@@ -770,15 +770,15 @@ pub fn NativeResidentEffectReview::retry_cleanup(
   if self.closed {
     return Ok(false)
   }
-  // Prevent another row send before reading durable responsibility. A
-  // reconstructed connection cannot infer absence from its in-memory flags.
+  // Read durable responsibility before starting retirement. This synchronous
+  // journal read invokes no caller callback; uncertain custody remains pending
+  // without prematurely retiring the original holder.
   if !self.row_custody_confirmed &&
     self.retention_configuration is Some((_, _, _, _, _, limits)) &&
     self.captured is Some(capture) &&
     self.targets is Some(targets) &&
     targets.length() == 1 &&
     capture.preview.keys.length() == 1 {
-    self.retiring = true
     match self.restore_row_custody(limits) {
       Ok(_) => ()
       Err(Journal(issue)) => return Err(Journal(issue))

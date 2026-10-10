@@ -282,6 +282,13 @@ fn retained_holder_write_row(
   assert_true(row.send(access) is Err(ReconciliationRequired))
   assert_true(result.output.result_schema_wire() is Ok(_))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
+  // Failed cleanup probes retained the pending write, rather than starting
+  // holder retirement. Original approval evidence remains admissible under
+  // independently supplied current authority; it does not permit a resend.
+  assert_true(
+    work.admit_resolution(wire, authentication, reviewers, keys, () => true, at)
+    is Ok(_),
+  )
   // Row terminality discharges only this pending physical write. Overall Run
   // publication and formal Site release are not implied by these saved facts.
   ignore(client.close())
