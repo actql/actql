@@ -36,7 +36,9 @@ test('Source Graph member selection is narrow while the normal corpus retains it
   assert.ok(driver.slice(start, end).includes("'--source-graph-member-only'"),
     'the explicit selection must not start the independent Planner/Effect campaigns');
   const sourceEnd = driver.indexOf("if (process.argv.includes('--source-graph-member-only')) return;", end);
-  const restart = driver.indexOf("['packed-query-restart-transports.mjs']", end);
+  // Defining the shared restart helper performs no I/O. Pin its actual
+  // unrelated String invocation, not the retained Graph helper's definition.
+  const restart = driver.indexOf('await exerciseRetainedQueryRestart();', end);
   const acceptance = driver.indexOf("['packed-query-transports.mjs']", end);
   assert.ok(acceptance >= 0 && sourceEnd > acceptance && restart > sourceEnd,
     'finish Source acceptance before any unrelated retained String restart');
@@ -278,8 +280,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
   ]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 43]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 44]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 44]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 45]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();
