@@ -550,7 +550,22 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
         IdentityExport(_) => 80
         CarrierSnapshot(_) => 81
       }
-    Some(Estimate(_)) => 9
+    Some(Estimate(issue)) =>
+      match issue {
+        InvalidConfiguration => 91
+        NoStrategy => 92
+        ForeignSelection => 93
+        EstimateOverflow => 94
+        Resources(issue) =>
+          match issue {
+            RetentionLimit => 951
+            ExecutionLimit => 952
+            AttemptLimit => 953
+            _ => 950
+          }
+        Search(_) => 96
+        Implementation(_) => 97
+      }
     Some(Start(_)) => 10
     Some(StartNotPermitted) => 11
   }
