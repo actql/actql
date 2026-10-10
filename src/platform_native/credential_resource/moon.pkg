@@ -9,3 +9,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
+
+options(
+  targets: { "guarded_write_native_wbtest.mbt": [ "native" ] },
+)
