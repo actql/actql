@@ -1,0 +1,242 @@
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {test} from 'node:test';
+import {createTransportOwner, requireCompleteInventory, sourceFixturePaths}
+  from './fixtures/packed-query-transport-owner.mjs';
+import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
+
+const helper = new URL('./fixtures/packed-query-transport-owner.mjs', import.meta.url).href;
+const command = (name, source) => ({name, args: ['--input-type=module', '-e', source]});
+async function fixture(t) {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-transport-owner-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  return directory;
+}
+
+test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
+  // Independently authored expected identities, not generated from a partition.
+  const expected = ['standard/success/a', 'standard/failure/b', 'standard/refusal/c'];
+  requireCompleteInventory(expected, [...expected]);
+  for (const supplied of [expected.slice(0, 2), [...expected, expected[0]],
+    [...expected, 'standard/success/foreign'], [...expected].reverse()]) {
+    assert.throws(() => requireCompleteInventory(expected, supplied));
+  }
+  assert.throws(() => requireCompleteInventory(['duplicate', 'duplicate'], ['duplicate', 'duplicate']));
+});
+
+test('two actual workers isolate mutable source state and counters and both settle', async t => {
+  const directory = await fixture(t);
+  assert.deepEqual(sourceFixturePaths('local', 'standard', directory), {
+    database: join(directory, 'records.duckdb'), sourceProfilePath: join(directory, 'source-profile.json'),
+  });
+  assert.deepEqual(sourceFixturePaths('remote', 'standard', directory), {
+    database: join(directory, 'records-remote.duckdb'), sourceProfilePath: join(directory, 'source-profile-remote.json'),
+  });
+  const owner = createTransportOwner({deadline: Date.now() + 5000, forward() {}});
+  try {
+    await owner.run([['local', 11], ['remote', 17]].map(([mode, expected]) => command(mode, `
+      import assert from 'node:assert/strict';
+      import {writeFile, readFile} from 'node:fs/promises';
+      import {ownTransportWorker, sourceFixturePaths} from ${JSON.stringify(helper)};
+      const worker = ownTransportWorker();
+      const file = sourceFixturePaths(${JSON.stringify(mode)}, 'standard', ${JSON.stringify(directory)}).database;
+      globalThis.sourceCounter = 0;
+      try {
+        for (let row = 0; row < ${expected}; row++) {
+          worker.check();
+          await writeFile(file, String(row));
+          await new Promise(resolve => setTimeout(resolve, 1));
+          assert.equal(await readFile(file, 'utf8'), String(row));
+          globalThis.sourceCounter++;
+        }
+        await writeFile(file + '.count', String(globalThis.sourceCounter));
+      } finally { worker.release(); }
+    `)));
+    assert.equal(await readFile(join(directory, 'records.duckdb.count'), 'utf8'), '11');
+    assert.equal(await readFile(join(directory, 'records-remote.duckdb.count'), 'utf8'), '17');
+    const report = owner.report();
+    assert.equal(report.liveChildren, 0);
+    assert.equal(new Set(report.children.map(child => child.pid)).size, 2);
+    assert.ok(report.children.every(child => child.terminal && child.status === 0));
+  } finally { owner.close(); }
+});
+
+test('a worker failure remains primary and sibling cancellation finishes cleanup before release', async t => {
+  const directory = await fixture(t);
+  const owner = createTransportOwner({deadline: Date.now() + 5000, forward() {}});
+  const ready = join(directory, 'ready'), cleaned = join(directory, 'cleaned');
+  try {
+    await assert.rejects(owner.run([
+      command('original-failure', `
+        import {access} from 'node:fs/promises';
+        for (;;) { try { await access(${JSON.stringify(ready)}); break; }
+          catch { await new Promise(resolve => setTimeout(resolve, 1)); } }
+        process.exitCode = 9;
+      `),
+      command('sibling', `
+        import {writeFile} from 'node:fs/promises';
+        import {ownTransportWorker} from ${JSON.stringify(helper)};
+        const worker = ownTransportWorker();
+        try {
+          await writeFile(${JSON.stringify(ready)}, 'ready');
+          for (;;) { worker.check(); await new Promise(resolve => setTimeout(resolve, 1)); }
+        } finally { await writeFile(${JSON.stringify(cleaned)}, 'closed'); worker.release(); }
+      `),
+    ]), /PackedQueryWorkerFailed:original-failure/u);
+    assert.equal(await readFile(cleaned, 'utf8'), 'closed');
+    assert.equal(owner.report().liveChildren, 0);
+    assert.ok(owner.report().children.every(child => child.terminal));
+    assert.equal(owner.report().children[0].status, 9);
+  } finally { owner.close(); }
+});
+
+test('one absolute deadline stops both owned workers without granting a new child budget', async () => {
+  const deadline = Date.now() + 200;
+  const owner = createTransportOwner({deadline, forward() {}});
+  try {
+    await assert.rejects(owner.run(['local', 'remote'].map(mode => command(mode, `
+      import {ownTransportWorker} from ${JSON.stringify(helper)};
+      ownTransportWorker();
+      setInterval(() => {}, 1000);
+    `))), /PackedQueryAcceptanceDeadline/u);
+    assert.equal(owner.report().deadline, deadline);
+    assert.equal(owner.report().liveChildren, 0);
+    assert.ok(owner.report().children.every(child => child.terminal && child.signal === 'SIGKILL'));
+    assert.throws(() => owner.check(), /PackedQueryAcceptanceDeadline/u);
+  } finally { owner.close(); }
+});
+
+test('the two workers consume one aggregate output allowance', async () => {
+  const owner = createTransportOwner({deadline: Date.now() + 5000, outputLimit: 100, forward() {}});
+  try {
+    await assert.rejects(owner.run(['local', 'remote'].map(mode => command(mode,
+      `process.stdout.write('x'.repeat(60));`))), /PackedQueryAggregateOutputLimit/u);
+    assert.equal(owner.report().liveChildren, 0);
+    assert.equal(owner.report().outputLimit, 100);
+  } finally { owner.close(); }
+});
+
+test('abrupt coordinator death stops its worker through the owned IPC connection', async t => {
+  const directory = await fixture(t);
+  const stopped = join(directory, 'stopped');
+  const worker = `
+    import {writeFileSync} from 'node:fs';
+    import {ownTransportWorker} from ${JSON.stringify(helper)};
+    ownTransportWorker();
+    process.on('exit', () => writeFileSync(${JSON.stringify(stopped)}, 'physically stopped'));
+    process.send({ready: true});
+    setInterval(() => {}, 1000);
+  `;
+  const parent = spawn(process.execPath, ['--input-type=module', '-e', `
+    import {spawn} from 'node:child_process';
+    const child = spawn(process.execPath, ['--input-type=module', '-e', ${JSON.stringify(worker)}],
+      {stdio: ['ignore', 'ignore', 'ignore', 'ipc'], detached: false});
+    child.once('message', () => process.send({ready: true}));
+    process.on('disconnect', () => { child.kill('SIGKILL'); process.exit(1); });
+  `], {stdio: ['ignore', 'ignore', 'ignore', 'ipc'], detached: false});
+  t.after(() => { if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGKILL'); });
+  const terminal = new Promise(resolve => parent.once('close', resolve));
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('fixture worker did not become ready')), 3000);
+    parent.once('message', () => { clearTimeout(timer); resolve(); });
+    parent.once('error', error => { clearTimeout(timer); reject(error); });
+  });
+  parent.kill('SIGKILL');
+  await terminal;
+  const deadline = Date.now() + 3000;
+  for (;;) {
+    try { assert.equal(await readFile(stopped, 'utf8'), 'physically stopped'); break; }
+    catch (error) {
+      if (error.code !== 'ENOENT' || Date.now() >= deadline) throw error;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+  }
+});
+
+test('the serial tail runs once after both terminal workers and its failure is retained', async t => {
+  const directory = await fixture(t);
+  for (const name of ['packed-query-transports.mjs', 'packed-query-transport-owner.mjs',
+    'packed-query-worker.mjs', 'retained-fixture-values.mjs']) {
+    await writeFile(join(directory, name), await readFile(new URL(`./fixtures/${name}`, import.meta.url)));
+  }
+  await writeFile(join(directory, 'acceptance.mjs'), `
+    import {writeFile, readFile} from 'node:fs/promises';
+    import {encodeRetainedFixture} from './retained-fixture-values.mjs';
+    const mode = process.env.ACTQL_TEST_QUERY_TRANSPORT;
+    if (mode === 'tail') {
+      await readFile('finished.local'); await readFile('finished.remote');
+      await writeFile('tail-once', 'one', {flag: 'wx'});
+      throw new Error('IndependentlyAuthoredTailFailure');
+    }
+    const inventory = [JSON.stringify(['standard', 'refusals', 0, 'authored-case', 'a'.repeat(64)])];
+    await writeFile('transport-completion.' + mode + '.json', JSON.stringify({mode, complete: true,
+      expectedInventory: inventory, completedInventory: inventory, expectedRetainedCohorts: 0, needsTail: true}));
+    await writeFile('retained-cohort-results.' + mode + '.json', encodeRetainedFixture([]));
+    await writeFile('finished.' + mode, 'finished');
+  `);
+  const child = spawn(process.execPath, [join(directory, 'packed-query-transports.mjs')], {
+    cwd: directory, env: {...process.env, ACTQL_TEST_QUERY_DEADLINE: String(Date.now() + 5000)},
+    stdio: ['ignore', 'pipe', 'pipe'], detached: false,
+  });
+  child.stdout.resume(); child.stderr.resume();
+  const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
+  let status;
+  try { status = await new Promise(resolve => child.once('close', resolve)); }
+  finally { clearTimeout(timeout); }
+  assert.equal(status, 1);
+  const report = JSON.parse(await readFile(join(directory, 'transport-processes.json'), 'utf8'));
+  assert.equal(report.complete, false);
+  assert.equal(report.primaryError, 'IndependentlyAuthoredTailFailure');
+  assert.equal(report.liveChildren, 0);
+  assert.equal(report.children.length, 2);
+  assert.ok(report.children.every(receipt => receipt.terminal && receipt.status === 0));
+  assert.equal(await readFile(join(directory, 'tail-once'), 'utf8'), 'one');
+});
+
+test('restart assigns each related root to one of two serial transport workers', async t => {
+  const directory = await fixture(t);
+  for (const name of ['packed-query-restart-transports.mjs', 'packed-query-transport-owner.mjs',
+    'packed-query-worker.mjs', 'retained-fixture-values.mjs']) {
+    await writeFile(join(directory, name), await readFile(new URL(`./fixtures/${name}`, import.meta.url)));
+  }
+  const cohorts = [
+    {mode: 'local', directory: 'local-first'}, {mode: 'local', directory: 'local-next'},
+    {mode: 'remote', directory: 'remote-first'}, {mode: 'remote', directory: 'remote-next'},
+  ];
+  await writeFile(join(directory, 'retained-cohort-results.json'), encodeRetainedFixture(cohorts));
+  await writeFile(join(directory, 'string-values-restart.mjs'), `
+    import {writeFile} from 'node:fs/promises';
+    import {transportWorker} from './packed-query-transport-owner.mjs';
+    const worker = transportWorker(), mode = process.env.ACTQL_TEST_QUERY_TRANSPORT;
+    const expected = mode === 'local' ? ['local-first', 'local-next'] : ['remote-first', 'remote-next'];
+    const completedRoots = [];
+    for (const root of expected) {
+      worker.check();
+      await new Promise(resolve => setTimeout(resolve, 1));
+      completedRoots.push(root);
+    }
+    await writeFile('transport-restart.' + mode + '.json', JSON.stringify({mode, stringComplete: true, completedRoots}));
+  `);
+  const child = spawn(process.execPath, [join(directory, 'packed-query-restart-transports.mjs')], {
+    cwd: directory, env: {...process.env, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 5000)},
+    stdio: ['ignore', 'pipe', 'pipe'], detached: false,
+  });
+  child.stdout.resume(); child.stderr.resume();
+  const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
+  let status;
+  try { status = await new Promise(resolve => child.once('close', resolve)); }
+  finally { clearTimeout(timeout); }
+  assert.equal(status, 0);
+  const report = JSON.parse(await readFile(join(directory, 'transport-restart-processes.json'), 'utf8'));
+  assert.equal(report.timeoutMs, 120_000);
+  assert.equal(report.complete, true);
+  assert.equal(report.liveChildren, 0);
+  assert.equal(report.children.length, 2, 'no new process or allowance per root');
+  assert.deepEqual(report.roots, [
+    {mode: 'local', expectedRoots: 2, completedRoots: 2},
+    {mode: 'remote', expectedRoots: 2, completedRoots: 2},
+  ]);
+});
