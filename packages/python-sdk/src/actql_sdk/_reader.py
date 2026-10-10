@@ -1,4 +1,5 @@
 """Bounded rows with one retained delivery attempt and explicit local cleanup."""
+import asyncio
 import uuid
 from . import _wire as wire
 from ._errors import ClientError
@@ -95,6 +96,7 @@ class AsyncReader:
         self._closed = False
         self._started = False
         self._iterator = None
+        self._advance = None
 
     @property
     def attempt_id(self):
@@ -120,12 +122,34 @@ class AsyncReader:
             raise StopAsyncIteration
         if self._iterator is None:
             self._iterator = self._iterate()
-        return await self._iterator.__anext__()
+        if self._advance is not None and not self._advance.done():
+            raise ClientError('ReaderAdvanceInProgress')
+        self._advance = asyncio.create_task(self._iterator.__anext__())
+        return await self._advance
 
     async def aclose(self):
         self._closed = True
+        if self._advance is not None and self._advance is not asyncio.current_task():
+            pending = not self._advance.done()
+            if pending:
+                self._advance.cancel()
+            try:
+                await self._advance
+            except (asyncio.CancelledError, StopAsyncIteration):
+                pass
+            except ClientError as error:
+                if pending and error.code == 'ReaderCleanupFailed':
+                    raise
+        if self._iterator is not None and self._advance is not asyncio.current_task():
+            await self._iterator.aclose()
+        await self._release()
+
+    async def _release(self):
         if self._response is not None:
-            await self._response.aclose()
+            try:
+                await self._result._run._client._close_response(self._response)
+            except Exception:
+                raise ClientError('ReaderCleanupFailed', attempt_id=self.attempt_id, rows_yielded=self.rows_yielded) from None
             self._response = None
         self._result._run._client._readers.discard(self)
 
@@ -145,7 +169,7 @@ class AsyncReader:
                                                 'format': 'jsonl', 'attemptId': self.attempt_id})
             if self._closed:
                 return
-            async for chunk in self._response.aiter_bytes(chunk_size=min(8192, self._limits['row_wire'])):
+            async for chunk in client._chunks(self._response, min(8192, self._limits['row_wire'])):
                 if self._closed:
                     return
                 count += len(chunk)
@@ -171,9 +195,15 @@ class AsyncReader:
                     raise ClientError('ResultRowWireLimit')
             if buffer != b'\x1e':
                 raise ClientError('IncompleteResultStream')
+        except asyncio.CancelledError as failure:
+            if self._closed:
+                return
+            failure.attempt_id, failure.rows_yielded = self.attempt_id, self.rows_yielded
+            raise
         except ClientError as failure:
             raise ClientError(failure.code, attempt_id=self.attempt_id, rows_yielded=self.rows_yielded) from None
         except Exception:
             raise ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id, rows_yielded=self.rows_yielded) from None
         finally:
-            await self.aclose()
+            self._closed = True
+            await self._release()

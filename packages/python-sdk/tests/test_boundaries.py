@@ -242,6 +242,88 @@ class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(error.exception.code, 'IncompleteResultStream')
         self.assertEqual(error.exception.rows_yielded, 1)
 
+    async def test_close_interrupts_blocked_reader_without_cancel_or_resend(self):
+        run = await self.client.start({}, submission_ref=reference())
+        entered = asyncio.Event()
+        class Stream(httpx.AsyncByteStream):
+            closes = 0
+            async def __aiter__(self):
+                entered.set()
+                await asyncio.Event().wait()
+                yield b'not reached'
+            async def aclose(self):
+                self.closes += 1
+        stream = Stream()
+        async def read(operation, body): return httpx.Response(200, stream=stream)
+        self.next_reply = read
+        reader = run.result('answer').rows()
+        advance = asyncio.create_task(reader.__anext__())
+        await asyncio.wait_for(entered.wait(), 1)
+        with self.assertRaises(ClientError) as error:
+            await reader.__anext__()
+        self.assertEqual(error.exception.code, 'ReaderAdvanceInProgress')
+        await asyncio.wait_for(self.client.aclose(), 1)
+        with self.assertRaises(StopAsyncIteration):
+            await advance
+        await reader.aclose()
+        self.assertEqual(stream.closes, 1)
+        self.assertEqual([item[0] for item in self.requests], ['connect', 'submit-intent', 'read'])
+
+    async def test_failed_reader_cleanup_retries_same_stream_once(self):
+        run = await self.client.start({}, submission_ref=reference())
+        class Stream(httpx.AsyncByteStream):
+            closes = 0
+            async def __aiter__(self): yield b'{"n":1}\n\x1e'
+            async def aclose(self):
+                self.closes += 1
+                if self.closes == 1: raise OSError('close failed')
+        stream = Stream()
+        async def read(operation, body): return httpx.Response(200, stream=stream)
+        self.next_reply = read
+        reader = run.result('answer').rows()
+        self.assertEqual(await reader.__anext__(), {'n': 1})
+        with self.assertRaises(ClientError) as error:
+            await reader.aclose()
+        self.assertEqual(error.exception.code, 'ReaderCleanupFailed')
+        self.assertIn(reader, self.client._readers)
+        self.assertIsNotNone(reader._response)
+        await reader.aclose()
+        await reader.aclose()
+        self.assertEqual(stream.closes, 2)
+        self.assertNotIn(reader, self.client._readers)
+        self.assertEqual([item[0] for item in self.requests], ['connect', 'submit-intent', 'read'])
+
+    async def test_client_transport_cleanup_failure_is_retryable(self):
+        class Transport(httpx.MockTransport):
+            closes = 0
+            async def aclose(self):
+                self.closes += 1
+                if self.closes == 1: raise OSError('close failed')
+        transport = Transport(lambda request: httpx.Response(200, json=PROFILE))
+        client = await AsyncClient.connect('https://host.invalid/', 'token', transport=transport)
+        with self.assertRaises(ClientError) as error:
+            await client.aclose()
+        self.assertEqual(error.exception.code, 'ClientCleanupFailed')
+        await client.aclose()
+        await client.aclose()
+        self.assertEqual(transport.closes, 2)
+
+    async def test_close_during_credential_wait_prevents_submission_io(self):
+        entered, resume = asyncio.Event(), asyncio.Event()
+        async def credential():
+            entered.set()
+            await resume.wait()
+            return 'fixture-token'
+        self.client._token = credential
+        pending = asyncio.create_task(self.client.start({}, submission_ref=reference()))
+        await asyncio.wait_for(entered.wait(), 1)
+        await self.client.aclose()
+        resume.set()
+        with self.assertRaises(ClientError) as error:
+            await pending
+        self.assertEqual(error.exception.code, 'SubmissionNotSent')
+        self.assertEqual([item[0] for item in self.requests], ['connect'])
+
     async def test_cancel_loss_uses_original_cancel_reference(self):
         run = await self.client.start({}, submission_ref=reference())
         async def lost(operation, body): raise httpx.ReadError('lost')

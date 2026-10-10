@@ -52,8 +52,13 @@ class AsyncClient:
         self._endpoint = endpoint if endpoint.endswith('/') else endpoint + '/'
         self._token = token
         self._selected = freeze(snapshot(selected))
-        self._http = httpx.AsyncClient(verify=verify, timeout=timeout, follow_redirects=False,
-                                      trust_env=False, transport=transport)
+        self._transport = transport if transport is not None else httpx.AsyncHTTPTransport(verify=verify)
+        self._http = httpx.AsyncClient(timeout=timeout, follow_redirects=False,
+                                      trust_env=False, transport=self._transport)
+        self._client_cleanup = self._http.aclose
+        self._responses = {}
+        self._cleanup_lock = asyncio.Lock()
+        self._response_cleanup_lock = asyncio.Lock()
         self._profile = None
         self._closed = False
         self._readers = set()
@@ -89,10 +94,55 @@ class AsyncClient:
 
     async def aclose(self):
         self._closed = True
+        async with self._cleanup_lock:
+            await self._release()
+
+    async def _release(self):
         # Failed resources remain owned for an explicit retry. This never cancels a Run.
         for reader in tuple(self._readers):
             await reader.aclose()
-        await self._http.aclose()
+        for response in tuple(self._responses):
+            await self._close_response(response)
+        if self._client_cleanup is not None:
+            try:
+                await self._client_cleanup()
+            except BaseException as failure:
+                self._client_cleanup = self._transport.aclose
+                if not isinstance(failure, Exception):
+                    raise
+                raise ClientError('ClientCleanupFailed') from None
+            self._client_cleanup = None
+
+    async def _close_response(self, response):
+        async with self._response_cleanup_lock:
+            await self._release_response(response)
+
+    async def _release_response(self, response):
+        close = self._responses.get(response)
+        if close is None:
+            return
+        try:
+            await close()
+        except BaseException as failure:
+            # HTTPX marks a response closed before the stream's close completes.
+            # Keep the same physical stream callback for a later explicit retry.
+            self._responses[response] = response.stream.aclose
+            if not isinstance(failure, Exception):
+                raise
+            raise ClientError('ClientResponseCleanupFailed') from None
+        del self._responses[response]
+
+    @staticmethod
+    async def _chunks(response, chunk_size=16384):
+        # Request identity encoding so byte budgets account for the actual JSON.
+        # Iterating the owned stream avoids an implicit close at EOF.
+        if response.is_stream_consumed:
+            for start in range(0, len(response.content), chunk_size):
+                yield response.content[start:start + chunk_size]
+        else:
+            async for chunk in response.stream:
+                for start in range(0, len(chunk), chunk_size):
+                    yield chunk[start:start + chunk_size]
 
     def _body(self, operation, body):
         if self._closed:
@@ -117,14 +167,24 @@ class AsyncClient:
             raise _ExchangeFailure('ClientCredentialUnavailable', False) from None
         if not self._valid_token(credential):
             raise _ExchangeFailure('InvalidConnectionToken', False)
+        if self._closed:
+            raise _ExchangeFailure('ClientClosed', False)
         request = self._http.build_request('POST', urljoin(self._endpoint, 'actql/client/0.1/' + operation),
-            headers={'authorization': 'Bearer ' + credential, 'content-type': 'application/json'}, content=payload)
+            headers={'authorization': 'Bearer ' + credential, 'content-type': 'application/json',
+                     'accept-encoding': 'identity'}, content=payload)
         try:
             response = await self._http.send(request, stream=True)
         except asyncio.CancelledError:
             raise
         except Exception:
             raise _ExchangeFailure('ClientTransportUnknown', True) from None
+        self._responses[response] = response.aclose
+        if self._closed:
+            await self._close_response(response)
+            raise _ExchangeFailure('ClientClosed', True)
+        if response.headers.get('content-encoding', 'identity').lower() != 'identity':
+            await self._close_response(response)
+            raise _ExchangeFailure('UnsupportedHostContentEncoding', True)
         if not 200 <= response.status_code < 300:
             code = 'HostHTTP' + str(response.status_code)
             try:
@@ -134,15 +194,14 @@ class AsyncClient:
             except ClientError:
                 pass
             finally:
-                await response.aclose()
+                await self._close_response(response)
             raise _ExchangeFailure(code, True)
         return response
 
-    @staticmethod
-    async def _json(response, max_bytes=1048576):
+    async def _json(self, response, max_bytes=1048576):
         raw = bytearray()
         try:
-            async for chunk in response.aiter_bytes(chunk_size=16384):
+            async for chunk in self._chunks(response):
                 if len(raw) + len(chunk) > max_bytes:
                     raise ClientError('HostResponseTooLarge')
                 raw.extend(chunk)
@@ -157,7 +216,7 @@ class AsyncClient:
         try:
             return await self._json(response, max_bytes)
         finally:
-            await response.aclose()
+            await self._close_response(response)
 
     def new_submission(self, *, nonce=None):
         if self._closed:
