@@ -9,11 +9,17 @@ from unittest.mock import Mock, patch
 
 from actql_sdk._local_duckdb import (
     DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBStream,
-    DuckDBTransferLimits, _RowWriter,
+    DuckDBTransferLimits, _RowWriter, _bounded_utf8,
 )
 
 
 class PhysicalDuckDBTests(unittest.TestCase):
+    def test_utf8_copy_is_bounded_without_normalization_or_replacement(self):
+        self.assertEqual(_bounded_utf8('e\u0301\r\n😀', 9), b'e\xcc\x81\r\n\xf0\x9f\x98\x80')
+        for value in ('😀😀', '\ud800', '\udfff'):
+            with self.subTest(value=repr(value)), self.assertRaises(ValueError):
+                _bounded_utf8(value, 4)
+
     def connection(self):
         api = SimpleNamespace(duckdb_destroy_prepare=Mock(),
             duckdb_destroy_data_chunk=Mock(), duckdb_destroy_result=Mock(),

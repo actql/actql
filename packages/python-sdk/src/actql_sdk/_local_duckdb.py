@@ -20,6 +20,21 @@ class DuckDBPhysicalError(RuntimeError):
     """A physical failure, not a public Run outcome or permission to retry."""
 
 
+def _bounded_utf8(value: str, maximum: int) -> bytes:
+    # Count raw UTF-8 before allocating a foreign-call copy. Never normalize.
+    if len(value) > maximum:
+        raise ValueError('DuckDB text transfer capacity exceeded')
+    size = 0
+    for character in value:
+        code = ord(character)
+        if 0xD800 <= code <= 0xDFFF:
+            raise ValueError('Invalid DuckDB text transfer')
+        size += 1 if code < 128 else 2 if code < 2048 else 3 if code < 65536 else 4
+        if size > maximum:
+            raise ValueError('DuckDB text transfer capacity exceeded')
+    return value.encode('utf8')
+
+
 # Layouts match vendor/duckdb/1.4.3/duckdb.h and the existing native adapter.
 class _Result(C.Structure):
     _fields_ = [('columns', C.c_uint64), ('rows', C.c_uint64),
@@ -141,9 +156,7 @@ class DuckDBConnection:
                 or '\0' in path or len(path) > 4096
                 or (readonly and not path)):
             raise ValueError('Invalid physical DuckDB configuration')
-        encoded_path = path.encode('utf8')
-        if len(encoded_path) > 4096:
-            raise ValueError('Invalid physical DuckDB configuration')
+        encoded_path = _bounded_utf8(path, 4096)
         self._api = library.api
         self._identity = self
         self._database = C.c_void_p()
@@ -197,9 +210,7 @@ class DuckDBConnection:
                 or len(checked_sql) > 1_048_576
                 or type(limits) is not DuckDBTransferLimits):
             raise ValueError('Invalid checked DuckDB transfer')
-        encoded_sql = checked_sql.encode('utf8')
-        if len(encoded_sql) > 1_048_576:
-            raise ValueError('Invalid checked DuckDB transfer')
+        encoded_sql = _bounded_utf8(checked_sql, 1_048_576)
         with self._io:
             if self._closing or self._closed or self._streams:
                 raise DuckDBPhysicalError('DuckDB connection is unavailable')
