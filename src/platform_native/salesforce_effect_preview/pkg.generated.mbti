@@ -31,7 +31,7 @@ pub fn prepare_native_resident_effect_preview(@remote_resident_host.ResidentSour
 
 pub fn prepare_native_resident_effect_review(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @remote_resident_host.ResidentEffectProducerCapture, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectImportedEvidence, Int, @remote_resident_host.ResidentEffectResultCapture, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewIssue]
 
-pub fn prepare_native_resident_effect_review_from_context(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, @run_publication.RunEvidenceValue, Array[String], Array[String], NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
+pub fn prepare_native_resident_effect_review_from_context(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, @run_publication.RunEvidenceValue, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
 
 // Errors
 
@@ -63,6 +63,24 @@ pub fn NativeResidentEffectApprovedRow::request(Self) -> @catalog.SingleWriteReq
 pub fn NativeResidentEffectApprovedRow::retry_response_custody(Self) -> Result[Bool, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectApprovedRow::send(Self, NativeSalesforceTargetAccess) -> Result[Unit, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectApprovedRow::settle(Self) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
+
+pub(all) struct NativeResidentEffectCompletion {
+  preview : @run_publication.EffectPreviewIdentity
+  row_receipt : @run_publication.PublicationContract
+  member_receipt : @run_publication.PublicationContract
+  set_receipt : @run_publication.PublicationContract
+  final_receipt : @run_publication.PublicationContract
+}
+
+pub(all) enum NativeResidentEffectCompletionIssue {
+  Unavailable
+  EvidenceDenied
+  Row(NativeResidentEffectWriteIssue)
+  Member(@effect_application.EffectMemberReceiptEvidenceIssue)
+  Set(@run_publication.EffectSetApplyReceiptIssuanceIssue)
+  Final(@run_publication.EffectfulFinalReceiptIssuanceIssue)
+  Chain(@run_publication.EffectfulFinalChainIssue)
+}
 
 pub(all) struct NativeResidentEffectPreview {
   wire : String
@@ -105,11 +123,13 @@ pub(all) enum NativeResidentEffectResolutionIssue {
 
 type NativeResidentEffectReview
 pub fn NativeResidentEffectReview::admit_resolution(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
-pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit, capture_progress? : (@remote_resident_host.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::complete_saved_effect(Self, () -> Bool, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectCompletion, NativeResidentEffectCompletionIssue]
 pub fn NativeResidentEffectReview::dispatch_identity(Self) -> String
 pub fn NativeResidentEffectReview::observe(Self, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_store.Store, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, NativeResidentEffectReviewIssue]
-pub fn NativeResidentEffectReview::prepare_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
+pub fn NativeResidentEffectReview::prepare_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits, delivery_claim? : @checkpoint_runtime.ResumeClaim?) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
+pub fn NativeResidentEffectReview::prepare_remote_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_retention(Self, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_resident_host.ResidentEffectReviewRetention, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal) -> Result[Unit, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::restore_row_custody(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue]

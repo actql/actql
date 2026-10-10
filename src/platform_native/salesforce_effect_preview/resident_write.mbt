@@ -40,6 +40,7 @@ struct NativeResidentEffectApprovedRow {
   keys : Array[NativeEffectHostAuthority]
   current_authority : () -> Bool
   observe_resume : () -> NativeEffectResumeObservation?
+  delivery_claim : @checkpoint.ResumeClaim?
   now : () -> String
   preview : @publication.EffectPreviewIdentity
   scope : @request_scope.LogicalRequestScope
@@ -100,6 +101,7 @@ fn NativeResidentEffectApprovedRow::current(
   observed.checkpoint_cid == resolution.checkpoint_cid &&
   observed.resolution_cid == resolution.resolution_cid &&
   Some(observed.resume_intent_id) == resolution.resume_intent_id &&
+  (self.delivery_claim is None || self.delivery_claim == Some(observed.claim)) &&
   !observed.settlement_only &&
   @checkpoint.decide_resume_fence(
     observed.view,
@@ -348,6 +350,7 @@ pub fn NativeResidentEffectReview::prepare_approved_row(
   observe_resume : () -> NativeEffectResumeObservation?,
   now : () -> String,
   limits : NativeResidentEffectWriteLimits,
+  delivery_claim? : @checkpoint.ResumeClaim? = None,
 ) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue] {
   (fn() -> Result[
     NativeResidentEffectApprovedRow,
@@ -375,7 +378,7 @@ pub fn NativeResidentEffectReview::prepare_approved_row(
       return Err(AuthorityDenied)
     }
     if self.approved_row is Some(row) {
-      if row.resolution != resolution {
+      if row.resolution != resolution || row.delivery_claim != delivery_claim {
         return Err(ForeignRequest)
       }
       if !row.current() {
@@ -396,6 +399,7 @@ pub fn NativeResidentEffectReview::prepare_approved_row(
       keys: keys.copy(),
       current_authority,
       observe_resume,
+      delivery_claim,
       now,
       preview,
       scope,

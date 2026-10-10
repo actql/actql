@@ -196,7 +196,8 @@ test('the serial tail runs once after both terminal workers and its failure is r
   assert.equal(await readFile(join(directory, 'tail-once'), 'utf8'), 'one');
 });
 
-test('restart assigns each related root to one of two serial transport workers', async t => {
+for (const cohortOnly of [false, true]) {
+test(`restart assigns each related root to one of two serial transport workers (cohort only: ${cohortOnly})`, async t => {
   const directory = await fixture(t);
   for (const name of ['packed-query-restart-transports.mjs', 'packed-query-transport-owner.mjs',
     'packed-query-worker.mjs', 'retained-fixture-values.mjs']) {
@@ -218,10 +219,12 @@ test('restart assigns each related root to one of two serial transport workers',
       await new Promise(resolve => setTimeout(resolve, 1));
       completedRoots.push(root);
     }
-    await writeFile('transport-restart.' + mode + '.json', JSON.stringify({mode, stringComplete: true, completedRoots}));
+    await writeFile('transport-restart.' + mode + '.json', JSON.stringify({mode,
+      stringComplete: process.env.ACTQL_TEST_RETAINED_COHORT_ONLY !== '1', completedRoots}));
   `);
   const child = spawn(process.execPath, [join(directory, 'packed-query-restart-transports.mjs')], {
-    cwd: directory, env: {...process.env, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 5000)},
+    cwd: directory, env: {...process.env, ACTQL_TEST_RETAINED_COHORT_ONLY: cohortOnly ? '1' : '0',
+      ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 5000)},
     stdio: ['ignore', 'pipe', 'pipe'], detached: false,
   });
   child.stdout.resume(); child.stderr.resume();
@@ -240,3 +243,4 @@ test('restart assigns each related root to one of two serial transport workers',
     {mode: 'remote', expectedRoots: 2, completedRoots: 2},
   ]);
 });
+}
