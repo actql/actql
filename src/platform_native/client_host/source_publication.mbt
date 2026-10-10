@@ -266,3 +266,37 @@ fn NativeClientRunJournal::bind_publication(
     }
   })
 }
+
+///|
+/// Host setup after trusted configuration adoption and original Run admission,
+/// before any physical start. This installs no grant and cannot replace an
+/// existing scope. Started unbound Runs require their original owner materials;
+/// current configuration is not a recovery fallback.
+pub fn NativeClientRunJournal::bind_installed_publication(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  publication : NativeClientCancellationPublication,
+  current : () -> Bool,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if !current() {
+    return Err(AuthorizationDenied)
+  }
+  guard publication.binding is Some(binding) else { return Err(Encoding) }
+  self.transaction(() => {
+    let run = match self.retained(request) {
+      Ok(Some(value)) => value
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    if !current() {
+      return Err(AuthorizationDenied)
+    }
+    match run.publication_binding {
+      Some(original) if original == binding => Ok(())
+      Some(_) => Err(ChangedIntent)
+      None if !run.physical_start_claimed && !run.cancellation_requested =>
+        self.save({ ..run, publication_binding: Some(binding), }).map(_ => ())
+      None => Err(ChangedIntent)
+    }
+  })
+}

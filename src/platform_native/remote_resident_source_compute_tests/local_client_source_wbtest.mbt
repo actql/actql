@@ -3,7 +3,10 @@
 // restart, and this fixture is not public CLI ingress or read authorization.
 
 ///|
-fn local_client_source_publication_case(race : Bool) -> Unit raise {
+fn local_client_source_publication_case(
+  race : Bool,
+  cancel_before_start? : Bool = false,
+) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Source acceptance requires its actual DuckDB fixture")
   }
@@ -94,6 +97,74 @@ fn local_client_source_publication_case(race : Bool) -> Unit raise {
   let mut cleanups = 0
   let mut permitted = true
   let mut clock_calls = 0
+  let store_name = name + "-publication"
+  root.create_directory(store_name).unwrap() |> ignore
+  let store_root = root_path + "/" + store_name
+  let initial_store = @store.open_store(
+    sqlite,
+    store_root,
+    local_client_publication_cid("native-client-original-store"),
+    128L,
+    8L,
+    1000000L,
+  ).unwrap()
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  let installed = @client.install_native_client_cancellation_publication(
+    initial_store, "native-client-fixture", 1000000, 100000, 100,
+  ).unwrap()
+  journal.bind_installed_publication(request, installed, () => true).unwrap()
+  if cancel_before_start {
+    guard journal.lookup(request, true) is Ok(@client.Retained(before_start)) else {
+      fail("accepted original Run missing")
+    }
+    let original = journal
+      .cancel_operation(
+        request,
+        "native-client-fixture",
+        "before-source-start",
+        @client.native_client_run_record_revision(before_start).to_int(),
+        () => true,
+        installed,
+      )
+      .unwrap()
+    assert_eq(
+      @client.native_client_cancellation_action(original),
+      @host.AcceptCancellation,
+    )
+    assert_true(
+      @client.open_native_client_source_work(
+        journal,
+        request,
+        prepared,
+        compiled,
+        definition,
+        configuration,
+        name,
+        () => "2026-10-10T00:00:01.000Z",
+        () => true,
+        observe=event => {
+          match event {
+            @resident.AcquisitionEntered => acquisitions += 1
+            @resident.ConsumerEntered(_) => consumers += 1
+            @resident.CleanupCompleted => cleanups += 1
+            _ => ()
+          }
+          true
+        },
+      )
+      is Err(@client.NeedsOriginalReconciliation),
+    )
+    assert_eq(acquisitions, 0)
+    assert_eq(consumers, 0)
+    assert_eq(cleanups, 0)
+    assert_eq(initial_store.capacity_usage().unwrap().reserved_bytes, 0L)
+    assert_true(initial_store.close().unwrap())
+    database.close_checked().unwrap()
+    resident_compute_reclaim(root, name)
+    return
+  }
+  assert_true(initial_store.close().unwrap())
   let work = @client.open_native_client_source_work(
     journal,
     request,
@@ -171,9 +242,6 @@ fn local_client_source_publication_case(race : Bool) -> Unit raise {
     output.result_schema_wire().unwrap(),
     "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
   )
-  let store_name = name + "-publication"
-  root.create_directory(store_name).unwrap() |> ignore
-  let store_root = root_path + "/" + store_name
   let store = local_client_publication_context(
     work,
     compiled,
@@ -330,4 +398,9 @@ test "Native Client original Run reaches actual Source Compute Result export and
 ///|
 test "Native original publication and cancellation cannot both win the same admission fence" {
   local_client_source_publication_case(true)
+}
+
+///|
+test "Native installed original Store permits public cancellation before Source start" {
+  local_client_source_publication_case(false, cancel_before_start=true)
 }
