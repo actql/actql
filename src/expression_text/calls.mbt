@@ -56,6 +56,8 @@ fn Parser::call(
     | "sqrt"
     | "abs"
     | "sign"
+    | "round"
+    | "trunc"
     | "floor"
     | "lower"
     | "upper"

@@ -181,6 +181,56 @@ test "expression corpus accepted: 36" {
 }
 
 ///|
+test "expression corpus accepted: 37" {
+  assert_tree("round(x)", "{\"round\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 38" {
+  assert_tree("trunc(x)", "{\"trunc\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 39" {
+  assert_tree("round(-1)", "{\"round\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 40" {
+  assert_tree("trunc(-1)", "{\"trunc\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 41" {
+  assert_tree("round(-x)", "{\"round\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 42" {
+  assert_tree("trunc(-x)", "{\"trunc\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 43" {
+  assert_tree("round(negate(1))", "{\"round\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 44" {
+  assert_tree("trunc(negate(1))", "{\"trunc\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 45" {
+  assert_tree("round(NULL)", "{\"round\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 46" {
+  assert_tree("trunc(NULL)", "{\"trunc\":{\"literal\":null}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -403,4 +453,24 @@ test "expression corpus rejected: 44" {
 ///|
 test "expression corpus rejected: 45" {
   assert_true(parse("STRPOS(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 46" {
+  assert_true(parse("round()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 47" {
+  assert_true(parse("trunc()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 48" {
+  assert_true(parse("round(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 49" {
+  assert_true(parse("trunc(x,y)", test_limits()) is Err(_))
 }
