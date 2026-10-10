@@ -7,6 +7,7 @@ import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
 import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
+import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
@@ -287,6 +288,7 @@ try {
     checkpointReportRequests, checkpointReportSha256:checkpointReportWire===undefined?undefined:
       createHash('sha256').update(checkpointReportWire).digest('hex'),
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
+    captureProgress: residentOriginalHolder ? await readNativeEffectCaptureProgress(join(root, 'retained')) : undefined,
     scope: residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
       : residentOriginalHolder
