@@ -7,6 +7,12 @@ const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
 const schema = properties => ({$schema: 'https://json-schema.org/draft/2020-12/schema',
   type: 'object', additionalProperties: false, required: Object.keys(properties), properties});
 export const effectCheckpointSchemas = {
+  effect_resume_delivery: schema({checkpoint_cid: cid,
+    claimant: {type: 'string', minLength: 1, maxLength: 256},
+    dispatch_request_cid: cid, generation: {type: 'string', pattern: '^[1-9][0-9]*$'},
+    report_cid: cid, resolution_cid: cid, resolution_wire: {type: 'string', minLength: 1},
+    resume_intent_id: {type: 'string', minLength: 1},
+    version: {const: 'actql-remote-effect-resume-delivery/0.1'}}),
   effect_checkpoint_report: schema({checkpoint_wire: {type: 'string', minLength: 1},
     dispatch_request_cid: cid, version: {const: 'actql-remote-effect-checkpoint-report/0.1'}}),
   effect_checkpoint_reply: schema({checkpoint_cid: cid, dispatch_request_cid: cid,
