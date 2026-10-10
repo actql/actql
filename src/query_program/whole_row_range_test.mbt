@@ -162,3 +162,77 @@ test "removed row ranges cannot be reconstructed from old slots" {
     }
   }
 }
+
+///|
+test "ordinary row retains the original value-table column after SET" {
+  let p = compile(
+    @query.parse_query(
+      "FROM (FROM UNNEST(@items) element WITH OFFSET position) chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position",
+      syntax_limits(),
+    ).unwrap(),
+    {
+      ..values_context(),
+      inputs: [],
+      parameter_declarations: Some(unnest_parameters()),
+    },
+    construction_limits(),
+  ).unwrap()
+  match
+    @check.check_parsed(
+      p,
+      check_environment(numeric=true),
+      Some(unnest_value_cursor("{\"items\":[2,null,2]}")),
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(error) => {
+      guard @check.diagnostic_cause(error)
+        is Source(SourceView(Program(Program(Pipeline(_, issue))))) else {
+        raise @check.diagnostic_cause(error)
+      }
+      fail(@debug.to_string(issue.kind) + ": " + semantic(p))
+    }
+    _ => fail("closed immutable value column")
+  }
+}
+
+///|
+test "public script preserves the original value-table row after SET" {
+  let script = @query.parse_query_script(
+    "FROM (FROM UNNEST(@items) element WITH OFFSET position) chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position",
+    syntax_limits(),
+  ).unwrap()
+  let p = match
+    compile_query_script(
+      script,
+      {
+        ..values_context(),
+        inputs: [],
+        parameter_declarations: Some(unnest_parameters()),
+      },
+      construction_limits(),
+    ) {
+    Ok(p) => p
+    Err(Expression(issue)) => fail(@debug.to_string(issue.issue))
+    Err(UnsupportedCte) => fail("UnsupportedCte")
+    Err(UnknownColumn) => fail("UnknownColumn")
+    Err(_) => fail("script lowering refusal")
+  }
+  match
+    @check.check_parsed(
+      p,
+      check_environment(numeric=true),
+      Some(unnest_value_cursor("{\"items\":[2,null,2]}")),
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(error) => {
+      guard @check.diagnostic_cause(error)
+        is Source(SourceView(Program(Program(Pipeline(_, issue))))) else {
+        raise @check.diagnostic_cause(error)
+      }
+      fail(@debug.to_string(issue.kind) + ": " + semantic(p))
+    }
+    _ => fail("closed script")
+  }
+}

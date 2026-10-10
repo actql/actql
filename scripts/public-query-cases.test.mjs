@@ -114,6 +114,7 @@ test('ordinary row fixtures distinguish NULL fields, immutable bindings and rebo
  assert.deepEqual(cases.get('whole-row-immutable-set').expected[1],{row:{element:null,position:1},value:11,position:1});
  assert.deepEqual(cases.get('whole-row-rebound-set').expected[1],{row:{element:11,position:1},value:11,position:1});
  assert.deepEqual(cases.get('whole-row-computed-order').expected.map(r=>r.row.position),[2,1,0]);
+ for(const name of ['implicit-output-name','immutable-set','rebound-set','drop-rename-rebind','column-priority','computed-order']) assert.equal(cases.get('whole-row-'+name).format,'aql-text');
  assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('whole-row-')).length,9);
  assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('whole-row-refusal-')).length,4);
 });

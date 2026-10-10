@@ -82,7 +82,7 @@ are included. Shared-source acquisition remains an existing owner responsibility
 
 The entire authored inventory is 3,746 cases (2,363 normal, 1,333 refusal,
 50 execution-failure cases). Its registration digest is
-1333d16fb3085bbfa3475fd8e2ac0c39d7a715f2fa69557cec85fed1b93acfd9.
+d5c07ab8c71cdd4905a08067f89b81a0503896b56b257cf942c33b55a8b62867.
 This count is not a claim that the complete inventory was executed.
 
 ## Identity and delivery
@@ -103,3 +103,29 @@ the exact normal-pack source revision, five tarball digests, original receipt,
 Local/HTTPS outcomes and exact-SHA CI state after execution. Compiler/policy
 success does not establish public execution or complete Frontend coverage.
 No merge or manual CI rerun is part of this unit.
+
+## First packed attempt and exact route correction
+
+At 63b7656d05df424412cc32cc803dd16af0c35ef0, original receipt
+/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-vkiNtH
+retains both terminal workers and the unchanged expectations. JSON control,
+offset receiver, empty input and implicit output name execute successfully in
+Local and HTTPS. Both workers then reject whole-row-immutable-set before
+admission. No later cases or completed inventory are claimed from that attempt.
+The original 900-second/8-MiB worker bounds remain unchanged.
+
+A raw installed bridge probe identifies SourcePreparation.Frontend.WrongQueryForm:
+the new FROM-headed Pipe fixtures incorrectly selected the SQL-only route.
+The same source and declarations prepare using aql-text. The source, rows,
+contracts, sort terms and limits are unchanged; each fixture now explicitly
+selects its existing public format. Pipe refusals also use aql-text so that they
+exercise the intended scope/property error rather than a wrong-form error.
+Two additional query/script regressions preserve the exact SET counterexample
+and pass the ordinary checker. The failed package manifest remains at
+/private/tmp/actql-b-whole-row-range-63b7656d0-pack/packed-client-packages.json;
+its evidence is not relabeled as the corrected-SHA campaign.
+
+After route correction, run-EQm2Cd passes 44/44 focused public fixture/policy
+tests. run-zxoiS8 passes 9/9 row query/script checks, including the exact SET
+source. Neither probe executes a public Run; the subsequent normal-pack receipt
+is required for completed execution evidence.

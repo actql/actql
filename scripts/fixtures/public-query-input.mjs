@@ -386,11 +386,11 @@ queryCompositionSuccesses.push(
  wholeRowCase('offset-receiver',wholeRowSource),
  wholeRowCase('empty',wholeRowSource,[],wholeRowColumns,{parameters:{items:[]}}),
  wholeRowCase('implicit-output-name','FROM ('+wholeRowHead+') chosen |> SELECT chosen |> ORDER BY chosen.position',wholeRowRows.map(r=>({chosen:r.row})),[{...wholeRowColumn,name:'chosen'}],{format:'aql-text'}),
- wholeRowCase('immutable-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({...r,value:r.position+10})),[wholeRowColumn,optionalNumber('value'),optionalNumber('position')]),
- wholeRowCase('rebound-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> AS fresh |> SELECT fresh AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({row:{element:r.position+10,position:r.position},value:r.position+10,position:r.position})),[{...wholeRowColumn,contract:{...wholeRowColumn.contract,fields:{...wholeRowFields,element:{type:'number',nullable:false}}}},optionalNumber('value'),optionalNumber('position')]),
- wholeRowCase('drop-rename-rebind','FROM ('+wholeRowHead+') chosen |> DROP element |> RENAME position AS index |> AS fresh |> SELECT fresh AS row,index |> ORDER BY index',[{row:{index:0},index:0},{row:{index:1},index:1},{row:{index:2},index:2}],[{name:'row',contract:{type:'object',nullable:false,fields:{index:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('index')]),
- wholeRowCase('column-priority','FROM ('+wholeRowHead+') chosen |> AS element |> SELECT element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({value:r.value,position:r.position})),[optionalNumber('value',true),optionalNumber('position')]),
- wholeRowCase('computed-order','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT fresh AS row |> ORDER BY IF(TRUE,fresh,NULL).position DESC',wholeRowRows.toReversed().map(r=>({row:r.row})),[wholeRowColumn]),
+ wholeRowCase('immutable-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({...r,value:r.position+10})),[wholeRowColumn,optionalNumber('value'),optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('rebound-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> AS fresh |> SELECT fresh AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({row:{element:r.position+10,position:r.position},value:r.position+10,position:r.position})),[{...wholeRowColumn,contract:{...wholeRowColumn.contract,fields:{...wholeRowFields,element:{type:'number',nullable:false}}}},optionalNumber('value'),optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('drop-rename-rebind','FROM ('+wholeRowHead+') chosen |> DROP element |> RENAME position AS index |> AS fresh |> SELECT fresh AS row,index |> ORDER BY index',[{row:{index:0},index:0},{row:{index:1},index:1},{row:{index:2},index:2}],[{name:'row',contract:{type:'object',nullable:false,fields:{index:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('index')],{format:'aql-text'}),
+ wholeRowCase('column-priority','FROM ('+wholeRowHead+') chosen |> AS element |> SELECT element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({value:r.value,position:r.position})),[optionalNumber('value',true),optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('computed-order','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT fresh AS row |> ORDER BY IF(TRUE,fresh,NULL).position DESC',wholeRowRows.toReversed().map(r=>({row:r.row})),[wholeRowColumn],{format:'aql-text'}),
 );
 
 export const queryCompositionRefusals = [
@@ -452,11 +452,11 @@ queryCompositionRefusals.push(...[
  parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 queryCompositionRefusals.push(...[
- ['displaced','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT chosen AS row'],
- ['removed','FROM ('+wholeRowHead+') chosen |> SELECT element |> WHERE element > 0 |> SELECT chosen AS row'],
- ['missing-member','SELECT (chosen).missing AS value FROM ('+wholeRowHead+') chosen'],
- ['distinct-hidden','FROM ('+wholeRowHead+') chosen |> SELECT DISTINCT element |> ORDER BY IF(TRUE,chosen,NULL).position'],
-].map(([name,text])=>({name:'whole-row-refusal-'+name,format:'sql',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+ ['displaced','aql-text','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT chosen AS row'],
+ ['removed','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT element |> WHERE element > 0 |> SELECT chosen AS row'],
+ ['missing-member','sql','SELECT (chosen).missing AS value FROM ('+wholeRowHead+') chosen'],
+ ['distinct-hidden','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT DISTINCT element |> ORDER BY IF(TRUE,chosen,NULL).position'],
+].map(([name,format,text])=>({name:'whole-row-refusal-'+name,format,text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 export const querySuccesses = [
   {name: 'sql', format: 'sql',
