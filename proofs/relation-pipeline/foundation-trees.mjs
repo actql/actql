@@ -6,6 +6,68 @@ const sha = /^[a-f0-9]{40}$/u;
 const zero = '0'.repeat(40);
 const modes = new Set(['000000', '100644', '100755']);
 const same = (a, b) => a?.mode === b?.mode && a?.object === b?.object;
+const blobPayloadLimit = 64 * 1024 * 1024;
+// Preserve the existing per-object payload limit. Batch framing is separate,
+// with at most 256 short SHA/type/size headers and one separator per object.
+export const foundationBlobOutputLimit = blobPayloadLimit + 64 * 1024;
+
+export function foundationBlobBatches(objects) {
+  assert(Array.isArray(objects), 'Invalid foundation blob requests');
+  const seen = new Set(), batches = [];
+  let batch = [], payload = 0;
+  for (const entry of objects) {
+    assert(entry && typeof entry === 'object' && !Array.isArray(entry) &&
+      Object.keys(entry).sort().join(',') === 'object,size' && sha.test(entry.object) &&
+      !seen.has(entry.object) && Number.isSafeInteger(entry.size) && entry.size >= 0 &&
+      entry.size <= blobPayloadLimit, 'Invalid foundation blob request');
+    seen.add(entry.object);
+    if (batch.length === 256 || payload + entry.size > blobPayloadLimit) {
+      batches.push(batch); batch = []; payload = 0;
+    }
+    batch.push({object: entry.object, size: entry.size}); payload += entry.size;
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
+}
+
+// Size-delimited binary decoding: source bytes can contain NUL, LF, CRLF or
+// strings resembling protocol headers. None of those are frame delimiters.
+export function readFoundationBlobBatch(output, objects) {
+  const batches = foundationBlobBatches(objects);
+  assert(Buffer.isBuffer(output) && output.length <= foundationBlobOutputLimit &&
+    batches.length === 1, 'Invalid foundation blob batch');
+  let offset = 0;
+  const result = new Map();
+  for (const {object, size} of batches[0]) {
+    const end = output.indexOf(10, offset);
+    assert(end >= offset && output.subarray(offset, end).equals(
+      Buffer.from(`${object} blob ${size}`)), 'Missing/reordered foundation Git blob');
+    offset = end + 1;
+    assert(output.length - offset >= size + 1 && output[offset + size] === 10,
+      'Truncated foundation Git blob payload');
+    // Do not retain an entire transport batch through one small cached blob.
+    result.set(object, Buffer.from(output.subarray(offset, offset + size)));
+    offset += size + 1;
+  }
+  assert.equal(offset, output.length, 'Unexpected extra foundation blob batch');
+  return result;
+}
+
+export function populateFoundationBlobs({objects, git, blobs}) {
+  // This cache belongs to one composer invocation, never a prior acceptance.
+  const batches = foundationBlobBatches(objects);
+  for (const batch of batches) {
+    const missing = batch.filter(({object, size}) => {
+      if (!blobs.has(object)) return true;
+      assert(Buffer.isBuffer(blobs.get(object)) && blobs.get(object).length === size,
+        'Changed cached foundation blob size');
+      return false;
+    });
+    if (!missing.length) continue;
+    const output = git(['cat-file', '--batch'], `${missing.map(entry => entry.object).join('\n')}\n`);
+    for (const [object, bytes] of readFoundationBlobBatch(output, missing)) blobs.set(object, bytes);
+  }
+}
 
 export function foundationAncestorQuery(completeParents) {
   // Snapshot the complete Git-derived graph. Cache reachability only for
