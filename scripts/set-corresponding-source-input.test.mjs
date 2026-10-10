@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 23);
-  assert.equal(setCorrespondingRefusals.length, 14);
+  assert.equal(setCorrespondingSuccesses.length, 24);
+  assert.equal(setCorrespondingRefusals.length, 15);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -28,6 +28,10 @@ test('duplicate aggregate aliases retain different COUNT arguments and empty glo
   assert.deepEqual(empty.expected, [{a: 0, b: 0}, {a: 0, b: 0}]);
   const input = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-aggregate-qualified-input-having');
   assert.ok(input.text.includes('GROUP BY n.x HAVING n.x > 0'));
+  const qualify = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-aggregate-undemanded-qualify-aliases');
+  assert.deepEqual(qualify.expected, [{a: 0, b: 0, c: 0}, {a: 1, b: 0, c: 1}]);
+  assert.deepEqual(qualify.columns.map(x => [x.name, x.contract.nullable]),
+    [['a', false], ['b', false], ['c', false]]);
   for (const fixture of setCorrespondingRefusals.filter(x => x.name.includes('aggregate-'))) {
     assert.equal(fixture.expectedCode, 'ClientProgramInvalidInput');
   }

@@ -138,6 +138,9 @@ export const positionalAggregateProgram = {version: 'actql/0.1', id: 'fixture.ag
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const aggregateText = 'SELECT 0 AS a, 0 AS b UNION ALL '
   + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n';
+const aggregateQualify = 'DATA r = SELECT 1 AS x; SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL '
+  + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n, '
+  + 'ROW_NUMBER() OVER (ORDER BY r.x) AS rn FROM r GROUP BY r.x QUALIFY ';
 const aggregate = (name, text, extra = {}) => positional('aggregate-' + name, text,
   {columns: aggregateColumns, expected: aggregateRows, ...extra});
 setCorrespondingSuccesses.push(
@@ -152,10 +155,14 @@ setCorrespondingSuccesses.push(
   aggregate('qualified-input-having', 'DATA r = SELECT 1 AS x; '
     + aggregateText + ' FROM r AS n GROUP BY n.x HAVING n.x > 0 ORDER BY a, b',
     {format: 'aql-text'}),
+  aggregate('undemanded-qualify-aliases', aggregateQualify + 'r.x > 0 AND rn = 1 ORDER BY a, b, c',
+    {format: 'aql-text', expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 0, c: 1}],
+      columns: [...aggregateColumns, {name: 'c', contract: number}]}),
 );
 setCorrespondingRefusals.push(...[
   {name: 'aggregate-ambiguous-having', text: aggregateText + ' HAVING n > 0'},
   {name: 'aggregate-ambiguous-receiver', text: aggregateText + ' HAVING n.member = 1'},
   {name: 'aggregate-private-having', text: aggregateText + ' HAVING aql_select_aggregate_2 > 0'},
+  {name: 'aggregate-ambiguous-qualify', format: 'aql-text', text: aggregateQualify + 'n > 0'},
 ].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
-  format: 'sql', expectedCode: 'ClientProgramInvalidInput'})));
+  format: item.format ?? 'sql', expectedCode: 'ClientProgramInvalidInput'})));

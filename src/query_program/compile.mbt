@@ -4195,13 +4195,6 @@ fn compile_steps(
         entries.push(("filter", value))
       }
       Qualify(predicate, _) => {
-        if !positional_set_aggregate_slots.is_empty() {
-          reject_duplicate_projection_references(
-            sql_group_selected_projections,
-            join_reference_paths(predicate),
-            path => pipe_slot(path, pipe_visible, pipe_ranges),
-          )
-        }
         let input_scope = if sql_group_projection {
           sql_group_select_scope.unwrap()
         } else {

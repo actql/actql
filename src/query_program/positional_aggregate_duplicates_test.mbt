@@ -49,6 +49,48 @@ test "repeated aggregate aliases cannot supply an ambiguous HAVING receiver" {
 }
 
 ///|
+test "repeated aggregate aliases cannot supply an ambiguous QUALIFY receiver" {
+  let head = "SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n, ROW_NUMBER() OVER (ORDER BY t.x) AS rn FROM t GROUP BY t.x QUALIFY "
+  let control = match
+    compile(
+      @query.parse_query(head + "t.x > 0 AND rn = 1", syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ) {
+    Ok(program) => program
+    Err(UnsupportedAggregate) => fail("QUALIFY control: UnsupportedAggregate")
+    Err(UnsupportedProjection) => fail("QUALIFY control: UnsupportedProjection")
+    Err(AmbiguousColumn) => fail("QUALIFY control: AmbiguousColumn")
+    Err(UnknownColumn) => fail("QUALIFY control: UnknownColumn")
+    Err(UnsupportedAnalytic) => fail("QUALIFY control: UnsupportedAnalytic")
+    Err(UnsupportedSet) => fail("QUALIFY control: UnsupportedSet")
+    Err(DuplicateOutput) => fail("QUALIFY control: DuplicateOutput")
+    Err(Expression({ issue: @expression.UnknownReference, .. })) =>
+      fail("QUALIFY control: UnknownReference")
+    Err(Expression(_)) => fail("QUALIFY control: Expression")
+    Err(ExpressionTyping(_)) => fail("QUALIFY control: ExpressionTyping")
+    Err(_) => fail("QUALIFY control: another rejection")
+  }
+  match
+    @check.check_parsed(control, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("the QUALIFY control uses local Values")
+  }
+  for predicate in ["n > 0", "`N` > 0", "n.member = 1"] {
+    assert_true(
+      compile(
+        @query.parse_query(head + predicate, syntax_limits()).unwrap(),
+        join_order_context(),
+        construction_limits(),
+      )
+      is Err(AmbiguousColumn),
+      msg=predicate,
+    )
+  }
+}
+
+///|
 test "repeated aggregate physical slots cannot become authored HAVING names" {
   for reference in ["aql_select_aggregate_2", "`AQL_SELECT_AGGREGATE_3`"] {
     let source = "SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n HAVING " +
