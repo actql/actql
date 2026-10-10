@@ -405,6 +405,7 @@ pub(all) enum ResidentEffectReviewInputIssue {
 type ResidentEffectReviewRetention
 pub fn ResidentEffectReviewRetention::confirm_original_checkpoint(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract) -> Result[@checkpoint_runtime.PersistedCheckpoint, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::persist(Self, @publication_store.Store) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::persist_original_checkpoint(Self, @publication_store.Store) -> Result[@checkpoint_runtime.PersistedCheckpoint, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::report(Self) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::retry_cleanup(Self) -> Result[Bool, ResidentEffectReviewRetentionIssue]

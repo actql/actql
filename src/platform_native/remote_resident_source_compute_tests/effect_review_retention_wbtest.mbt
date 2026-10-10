@@ -144,7 +144,12 @@ fn retained_effect_review_retention_store(
         store.close().unwrap() |> ignore
       }
     })
-    let failed = retention.persist(store)
+    println("native-original-review: persisting " + step)
+    let failed = if original_work is Some(_) {
+      retention.persist_original_checkpoint(store).map(_ => ())
+    } else {
+      retention.persist(store).map(_ => ())
+    }
     assert_true(
       lost.val,
       msg=match failed {
@@ -188,6 +193,21 @@ fn retained_effect_review_retention_store(
           "Checkpoint capture readback failed"
         Err(@resident.Preparation(@resident.Preview(_))) =>
           "Checkpoint Preview readback failed"
+        Err(@resident.Checkpoint(@resident.Store(@store.InvalidConfiguration))) =>
+          "Checkpoint Store configuration"
+        Err(@resident.Checkpoint(@resident.Store(@store.StateCollision))) =>
+          "Checkpoint Store collision"
+        Err(@resident.Checkpoint(@resident.Store(@store.DigestMismatch))) =>
+          "Checkpoint continuation digest mismatch"
+        Err(@resident.Checkpoint(@resident.Store(@store.Database(_)))) =>
+          "Checkpoint database rejected"
+        Err(
+          @resident.Checkpoint(@resident.Store(@store.PrivateEvidence(issue)))
+        ) => @debug.to_string(issue)
+        Err(@resident.Checkpoint(@resident.Capacity(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Checkpoint(@resident.Unavailable)) =>
+          "Checkpoint inputs unavailable"
         Err(@resident.Checkpoint(_)) => "Checkpoint custody rejected"
         Err(@resident.Unavailable) => "Review inputs unavailable"
         Err(@resident.InvalidConfiguration) => "Invalid review configuration"
@@ -210,12 +230,22 @@ fn retained_effect_review_retention_store(
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
   println("native-original-review: persistence fault retries confirmed")
-  let report = retention.persist(store).unwrap()
+  let report = if original_work is Some(_) {
+    retention.persist_original_checkpoint(store).unwrap() |> ignore
+    assert_true(
+      retention.report() is Err(@resident.Checkpoint(@resident.Unavailable)),
+    )
+    None
+  } else {
+    Some(retention.persist(store).unwrap())
+  }
   let persisted = confirm().unwrap()
-  assert_eq(
-    persisted.artifact.checkpoint_cid,
-    @remote.remote_effect_checkpoint_report_checkpoint(report).checkpoint_cid,
-  )
+  if report is Some(remote_report) {
+    assert_eq(
+      persisted.artifact.checkpoint_cid,
+      @remote.remote_effect_checkpoint_report_checkpoint(remote_report).checkpoint_cid,
+    )
+  }
   let foreign_run = @host.issue_client_effect_run_definition(
     materials.allowed,
     "local-review-fixture",
@@ -289,16 +319,16 @@ fn retained_effect_review_retention_store(
       .unwrap()
     assert_eq(
       @remote.remote_effect_checkpoint_report_json(queued),
-      @remote.remote_effect_checkpoint_report_json(report),
+      @remote.remote_effect_checkpoint_report_json(report.unwrap()),
     )
-    Some(retained_holder_admit_resolution(work, report))
+    Some(retained_holder_admit_resolution(work, report.unwrap()))
   } else {
     None
   }
   if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
     retained_holder_write_row(
       review_work.unwrap(),
-      report,
+      report.unwrap(),
       resolution_fixture.unwrap(),
       invocation,
       original_journal_path.unwrap(),
@@ -306,8 +336,8 @@ fn retained_effect_review_retention_store(
       result,
     )
   }
-  let report_wire = @remote.remote_effect_checkpoint_report_json(report)
-  let checkpoint = @remote.remote_effect_checkpoint_report_checkpoint(report)
+  let report_wire = report.map(@remote.remote_effect_checkpoint_report_json)
+  let checkpoint = persisted.artifact
   let holding = checkpoint.checkpoint_cid
   let inspection = sqlite
     .open_database(path + "/.actql-publication.sqlite3", 262144L)
@@ -323,12 +353,19 @@ fn retained_effect_review_retention_store(
   let physical_reserved = store.capacity_usage().unwrap().reserved_bytes
   assert_true(reserved > baseline)
   for _ in 0..<2 {
-    assert_eq(
-      @remote.remote_effect_checkpoint_report_json(
-        retention.persist(store).unwrap(),
-      ),
-      report_wire,
-    )
+    if report_wire is Some(expected) {
+      assert_eq(
+        @remote.remote_effect_checkpoint_report_json(
+          retention.persist(store).unwrap(),
+        ),
+        expected,
+      )
+    } else {
+      assert_eq(
+        retention.persist_original_checkpoint(store).unwrap().artifact.checkpoint_cid,
+        checkpoint.checkpoint_cid,
+      )
+    }
     assert_eq(consumer.usage().reserved_retention_bytes, reserved)
     assert_eq(store.capacity_usage().unwrap().reserved_bytes, physical_reserved)
     let current = inspection
@@ -410,6 +447,9 @@ fn retained_effect_review_retention_store(
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
     assert_true(retention.persist(store) is Err(Unavailable))
+    assert_true(
+      retention.persist_original_checkpoint(store) is Err(Unavailable),
+    )
   }
   assert_true(retention.retry_cleanup().unwrap())
   assert_false(retention.retry_cleanup().unwrap())

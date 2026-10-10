@@ -120,6 +120,36 @@ pub fn ResidentEffectReviewRetention::persist(
   @remote.RemoteEffectCheckpointReport,
   ResidentEffectReviewRetentionIssue,
 ] {
+  match self.persist_custody(store) {
+    Ok(_) => self.report()
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// The accepted Local Run consumes its actual paired persistence witness,
+/// not a Remote dispatch report. Reuse the same custody Owners and retries;
+/// this neither manufactures a receiver nor commits approval or waiting.
+pub fn ResidentEffectReviewRetention::persist_original_checkpoint(
+  self : ResidentEffectReviewRetention,
+  store : @publication_store.Store,
+) -> Result[@checkpoint.PersistedCheckpoint, ResidentEffectReviewRetentionIssue] {
+  match self.persist_custody(store) {
+    Ok(_) =>
+      self.confirm_original_checkpoint(
+        self.consumer,
+        self.request,
+        self.materials.run_definition,
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn ResidentEffectReviewRetention::persist_custody(
+  self : ResidentEffectReviewRetention,
+  store : @publication_store.Store,
+) -> Result[Unit, ResidentEffectReviewRetentionIssue] {
   if self.retiring || !self.consumer.resident_effect_inputs_current(self.inputs) {
     return Err(Unavailable)
   }
@@ -231,7 +261,7 @@ pub fn ResidentEffectReviewRetention::persist(
       return Err(Checkpoint(failure.issue))
     }
   }
-  self.report()
+  Ok(())
 }
 
 ///|
