@@ -99,7 +99,9 @@ havingAggregateSuccesses.push(
 havingAggregateRefusals.push(...[
   'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id > s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
   'SELECT records.amount, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
-].map((text, index) => ({name: 'single-join-group-refuse-' + index, format: 'sql', text})));
+].map((text, index) => ({name: 'single-join-group-refuse-' + index, format: 'sql', text,
+  // Non-equijoin lowering is unsupported; an ungrouped projection is invalid.
+  ...(index === 0 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})})));
 havingAggregateExecutionFailures.push({name: 'single-join-group-authored-ceiling', format: 'sql',
   text: 'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 3 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 1 GROUP BY records.id ORDER BY id',
   resultNames: ['answer'], sourceReadSessionCount: 1});
@@ -121,7 +123,10 @@ const propertySuccess = (name, tail, extra = {}) => ({...propertyBase,
   name: 'having-aggregate-property-' + name, text: propertyPrefix + tail,
   expected: [{n: 5}], columns: columns(['n']), ...extra});
 const collision = "SELECT COUNT(*) AS n, @o1 AS payload, STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS original FROM objects HAVING STRING_AGG(name, '|' ORDER BY ";
-const collisionColumns = [columnCount(), {name: 'payload', contract: propertyControl.params.o1},
+// Result.describe exposes the checked closed-object contract; author parameter
+// declarations retain their separate shape without the fixed output member.
+const collisionColumns = [columnCount(), {name: 'payload',
+  contract: {...propertyControl.params.o1, additional_properties: false}},
   {name: 'original', contract: {type: 'string', nullable: true}}];
 function columnCount() { return {name: 'n', contract: number}; }
 havingAggregateSuccesses.push(

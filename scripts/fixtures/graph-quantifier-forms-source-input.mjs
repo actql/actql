@@ -51,6 +51,7 @@ export const graphQuantifierFormsRefusals = [
   (() => {
     const fixture = sourceCase('terminal-only-predicate', '{2}', []);
     const {results: ignored, ...input} = fixture;
-    return {...input, text: input.text.replace('(b:Node)', '(b:Node WHERE payload.score > 10)')};
+    return {...input, text: input.text.replace('(b:Node)', '(b:Node WHERE payload.score > 10)'),
+      expectedCode: 'ClientProgramImplementationLimit'};
   })(),
 ];

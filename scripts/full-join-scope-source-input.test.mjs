@@ -60,7 +60,7 @@ test('explicit FULL fixtures preserve the JSON control and distinguish ORDER sco
   assert.deepEqual(cases.get('full-join-scope-explicit-empty').columns, control.columns);
   assert.ok(fullJoinScopeRefusals.at(-1).text.includes('SELECT id FROM lefts'));
   assert.deepEqual(fullJoinScopeRefusals.map(item => item.expectedCode), [
-    'ClientProgramImplementationLimit', 'ClientProgramImplementationLimit',
+    'ClientProgramInvalidInput', 'ClientProgramImplementationLimit',
     'ClientProgramInvalidInput', 'ClientProgramInvalidInput',
   ]);
 });
