@@ -1223,6 +1223,25 @@ try {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }
   }
+  // The control replay case must use a fresh finite peer: original report
+  // bytes and accepted counts belong to this case, not the earlier client test.
+  await effectCheckpointServer.close();
+  effectCheckpointServer = await startNativeEffectCheckpointServer({
+    host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
+  });
+  const checkpointReplay = spawn(process.execPath, ['--input-type=module', '-e',
+    "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+    "process.exitCode=runFocusedTests('moon',['--target','native'," +
+    "'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt']," +
+    "{cwd:process.cwd(),timeout:90000});"], {
+    cwd: new URL('../', import.meta.url), stdio: 'inherit',
+    env: {...testEnvironment, ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin},
+  });
+  const [checkpointReplayCode, checkpointReplaySignal] = await once(checkpointReplay, 'exit');
+  if (checkpointReplayCode !== 0) {
+    throw new Error(`native Checkpoint control replay failed: ${checkpointReplayCode ?? checkpointReplaySignal}`);
+  }
   execFileSync(moon, [
     'build', '--target', 'native', 'src/cmd/native_remote_credential',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});

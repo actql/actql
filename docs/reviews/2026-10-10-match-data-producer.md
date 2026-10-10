@@ -159,3 +159,37 @@ list includes the flag. No planner expectation, SDK admission rule or product
 implementation is weakened. A new clean-SHA narrow campaign is still required
 for a successful enclosing receipt; prior transport success remains attributed
 to its own SHA.
+
+
+## Submitted source acceptance and main integration
+
+Draft PR #1228 was first submitted at
+`0b2b186f2f6ffa03e7f8022c8c497ab66822e5ae`. Its fresh normal five-package
+producer, independent tarball digest verification and focused public campaign
+all exited 0 (run-biKK6V). The immutable receipt is
+`worktrees/.codex-scratch/public-query-evidence-c9RaFf/summary.json`.
+Both Embedded Local and HTTPS completed all 10 normal and 7 refusal cases;
+commands 001–010 and both transport inventories are complete. Discardable
+installations were removed after receipt/log preservation. That success belongs
+to the submitted SHA, not a later merge.
+
+The next normal main merge retains DOUBLE, strict CONCAT expression reuse,
+Effect checkpoint contracts, all main authored fixtures and all DATA MATCH
+fixtures. Generated manifest/document/canonical pins are rebuilt using the
+existing generators. Fixture registration has 3104 occurrences: main's 3087
+plus the independently authored 10 normal and 7 refusal cases. Run preimages
+retain the published DATA MATCH grammar separately; the integrated grammar
+changes the fixed Values Run CID to
+`sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f`.
+No Program, Values Unit or ResultPlan body is changed by this grammar merge.
+Limited integration checks are recorded separately from prior packed success;
+no new full Core, all-target or packed campaign is implied.
+
+Merged-content verification: focused JS callers passed 22/22
+(run-lxHXoO / focused-test-CRIwvv); selected Node fixture, inventory, independent
+Run-vector and manifest tests passed 45/45 (run-K0MT90 / focused-test-flABqf).
+Read-only compilation manifests, document metadata, spec-family imports and
+384 canonical identities passed. These checks covered the resolved merge content
+with an uncommitted merge; they do not establish a clean merged-SHA packed run
+or CI success. git diff --check passed. The product DATA/MATCH implementation
+was not changed by this integration.

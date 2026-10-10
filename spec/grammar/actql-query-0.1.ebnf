@@ -194,7 +194,7 @@ path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
 array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
                     "[", [ expression, { ",", expression } ], "]" ;
-array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64"
+array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64" | "DOUBLE"
                 | "TIMESTAMP" | "JSON" ;
 (* ARRAY annotations and compatible item types use the common checker.
    JSON constructors/default INT64 remain common-contract coverage gaps. *)
