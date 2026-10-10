@@ -6216,6 +6216,26 @@ test "contract spec/contracts/actql-remote-site-wire.json#/schemas/effect_checkp
 }
 
 ///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/effect_resume_delivery" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"checkpoint_cid\",\"claimant\",\"dispatch_request_cid\",\"generation\",\"report_cid\",\"resolution_cid\",\"resolution_wire\",\"resume_intent_id\",\"version\"],\"properties\":{\"checkpoint_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"claimant\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":256},\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"generation\":{\"type\":\"string\",\"pattern\":\"^[1-9][0-9]*$\"},\"report_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"resolution_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"resolution_wire\":{\"type\":\"string\",\"minLength\":1},\"resume_intent_id\":{\"type\":\"string\",\"minLength\":1},\"version\":{\"const\":\"actql-remote-effect-resume-delivery/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 42, 3, 829)
+  assert_eq(@canonical_json.cid_value(value, 829, 42, 3), "sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5")
+  assert_eq(@canonical_json.measure_value(value, 829, 42, 3), 829)
+}
+
+///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_resume" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"delivery_json\",\"dispatch_request_cid\",\"request_json\",\"version\"],\"properties\":{\"delivery_json\":{\"type\":\"string\",\"minLength\":1},\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"request_json\":{\"type\":\"string\",\"minLength\":1},\"version\":{\"const\":\"actql-remote-poll-effect-resume/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 21, 3, 423)
+  assert_eq(@canonical_json.cid_value(value, 423, 21, 3), "sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265")
+  assert_eq(@canonical_json.measure_value(value, 423, 21, 3), 423)
+}
+
+///|
 test "contract spec/contracts/actql-discovery.json#/schemas/host_capabilities" {
   let input = @json.parse([
     "{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"version\":{\"const\":\"actql-host-capabilities/0.1\"},\"supported_profiles\":{\"type\":\"array\",\"minItems\":0,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"profile_id\":{\"type\":\"string\",\"minLength\":1},\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"},\"status\":{\"enum\":[\"conformant\",\"partial\"]}},\"required\":[\"profile_id\",\"contract_cid\",\"status\"]}},\"interfaces\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"enum\":[\"discovery\",\"read_collection\"]},\"uniqueItems\":true,\"contains\":{\"const\":\"discovery\"}}},\"required\":[\"version\",\"supported_profiles\",\"interfaces\"]}",

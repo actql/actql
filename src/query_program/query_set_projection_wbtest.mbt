@@ -140,3 +140,27 @@ test "set result binding preserves bounded arguments and excludes shared steps" 
     assert_eq(@wire.safe_integer(@wire.lookup(take, "offset").unwrap()), Ok(1L))
   }
 }
+
+///|
+test "positional range names exclude anonymous storage without losing duplicate value slots" {
+  let columns = [
+    ("aql_set_anonymous_4", "aql_set_anonymous_4"),
+    ("aql_set_duplicate_5", "aql_set_duplicate_5"),
+    ("aql_set_duplicate_6", "aql_set_duplicate_6"),
+    ("other", "other_slot"),
+    ("aql_set_anonymous_100", "authored_slot"),
+  ]
+  assert_eq(
+    positional_named_expression_columns(
+      columns,
+      ["aql_set_anonymous_4", "aql_set_duplicate_5", "aql_set_duplicate_6"],
+      [("aql_set_duplicate_5", "v"), ("aql_set_duplicate_6", "V")],
+    ),
+    [
+      ("v", "aql_set_duplicate_5"),
+      ("V", "aql_set_duplicate_6"),
+      ("other", "other_slot"),
+      ("aql_set_anonymous_100", "authored_slot"),
+    ],
+  )
+}
