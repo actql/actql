@@ -1,5 +1,5 @@
 ///|
-// A value/column binding wins over a row range. Fields are evaluated slots,
+// A nearer clause binding may override an input range. Fields are evaluated slots,
 // never expanded SELECT expressions or inferred from actual rows.
 fn row_reference_fields(
   path : Array[@query.NamePart],
@@ -110,20 +110,21 @@ fn append_pipe_range_expression(
   visible : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
+  value_ranges? : Array[@query.NamePart] = [],
 ) -> @builder.Node raise Abort {
+  let row_ranges = ranges.filter(range => {
+    !value_ranges.any(name => same_name(name, range.0))
+  })
   append_resolved_range_expression(
     construction,
     expression,
-    path => pipe_slot(path, visible, ranges),
-    name => pipe_name_exists(visible, name),
+    path => pipe_expression_slot(path, visible, ranges, value_ranges~),
+    name => {
+      pipe_name_exists(visible, name) &&
+      !ordinary_range_name(name, ranges, value_ranges)
+    },
     max_work,
-    resolve_row=Some(path => {
-      row_reference_fields(
-        path,
-        name => pipe_name_exists(visible, name),
-        ranges,
-      )
-    }),
+    resolve_row=Some(path => row_reference_fields(path, _ => false, row_ranges)),
   )
 }
 

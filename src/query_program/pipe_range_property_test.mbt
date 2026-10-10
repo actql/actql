@@ -38,7 +38,7 @@ test "parenthesized range binding cannot capture an authored private-looking nam
 }
 
 ///|
-test "an explicit value receiver stays property access despite a same-named range" {
+test "a parenthesized ordinary range keeps priority over an object column" {
   let actual = compile(
     @query.parse_query(
       "FROM objects |> AS payload |> SELECT (payload).score AS value",
@@ -48,9 +48,10 @@ test "an explicit value receiver stays property access despite a same-named rang
     construction_limits(),
   ).unwrap()
   assert_true(
-    semantic(actual).contains(
-      "\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}",
-    ),
+    // The admitted input range binds the score column (90), not the
+    // same-named payload column's score (10). Expectations follow the pin.
+    semantic(actual).contains("\"field\":\"score\"") &&
+    !semantic(actual).contains("\"field\":\"payload\""),
   )
   assert_true(
     @check.check_parsed(actual, check_environment(), None, check_limits())
