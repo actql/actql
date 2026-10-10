@@ -92,6 +92,7 @@ fn local_client_publication_context(
   let service = work
     .install_publication_service(
       store,
+      intent.namespace_id,
       fact => {
         if revoke_during_authorization.val {
           change_source_authorization(false)
@@ -259,13 +260,48 @@ fn local_client_publication_context(
   guard journal.lookup(request, true) is Ok(@client.Retained(original_run)) else {
     fail("original published Run missing")
   }
-  assert_true(journal.cancel_operation(
-    request, intent.namespace_id, "wrong-publication-namespace",
-    @client.native_client_run_record_revision(original_run).to_int(), () => true,
-    @client.install_native_client_cancellation_publication(
-      store, "foreign-publication-namespace", 1000000, 100000, 100,
-    ).unwrap(),
-  ) is Err(@client.ChangedIntent))
+  assert_true(
+    journal.cancel_operation(
+      request,
+      intent.namespace_id,
+      "wrong-publication-namespace",
+      @client.native_client_run_record_revision(original_run).to_int(),
+      () => true,
+      @client.install_native_client_cancellation_publication(
+        store, "foreign-publication-namespace", 1000000, 100000, 100,
+      ).unwrap(),
+    )
+    is Err(@client.ChangedIntent),
+  )
+  let foreign_root = @filesystem.open_root(store_root).unwrap()
+  foreign_root.create_directory("foreign-store").unwrap() |> ignore
+  let foreign_store = @store.open_store(
+    library,
+    store_root + "/foreign-store",
+    authority,
+    128L,
+    8L,
+    1000000L,
+  ).unwrap()
+  assert_true(
+    journal.cancel_operation(
+      request,
+      intent.namespace_id,
+      "wrong-publication-store",
+      @client.native_client_run_record_revision(original_run).to_int(),
+      () => true,
+      @client.install_native_client_cancellation_publication(
+        foreign_store,
+        intent.namespace_id,
+        1000000,
+        100000,
+        100,
+      ).unwrap(),
+    )
+    is Err(@client.ChangedIntent),
+  )
+  assert_eq(foreign_store.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(foreign_store.close().unwrap())
   let terminal = journal
     .cancel_operation(
       request,

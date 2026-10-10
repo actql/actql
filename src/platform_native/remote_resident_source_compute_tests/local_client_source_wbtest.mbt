@@ -246,6 +246,28 @@ fn local_client_source_publication_case(race : Bool) -> Unit raise {
       store, definition, request, "new-read-after-reopen",
     )
   }
+  if !race {
+    guard journal.lookup(request, true)
+      is Ok(@client.Retained(original_after_reopen)) else {
+      fail("original Run missing after Store reopen")
+    }
+    let observed = journal
+      .cancel_operation(
+        request,
+        "native-client-fixture",
+        "after-store-reopen",
+        @client.native_client_run_record_revision(original_after_reopen).to_int(),
+        () => true,
+        @client.install_native_client_cancellation_publication(
+          store, "native-client-fixture", 1000000, 100000, 100,
+        ).unwrap(),
+      )
+      .unwrap()
+    assert_eq(
+      @client.native_client_cancellation_action(observed),
+      @host.AlreadyTerminal,
+    )
+  }
   assert_true(store.close().unwrap())
   guard journal.lookup(request, true)
     is Ok(@client.Retained(before_failed_observation)) else {

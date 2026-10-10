@@ -40,6 +40,7 @@ struct NativeClientRunRecord {
   dispatch_reserved : Bool
   physical_start_claimed : Bool
   cancellation_requested : Bool
+  publication_binding : String?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
 }
@@ -94,6 +95,11 @@ fn run_record_body(
     @encode.bool_value(writer, record.dispatch_reserved)
     @encode.key(writer, "physical_start_claimed")
     @encode.bool_value(writer, record.physical_start_claimed)
+    @encode.key(writer, "publication_binding")
+    match record.publication_binding {
+      Some(value) => @encode.string_value(writer, value)
+      None => @encode.null_value(writer)
+    }
     @encode.key(writer, "request")
     @encode.string_value(writer, request)
     @encode.key(writer, "run_definition")
@@ -135,7 +141,7 @@ fn read_run_record(
   }
   guard @decode.closed_object(cursor, [
       "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
-      "cancellation_requested", "checkpoint",
+      "cancellation_requested", "checkpoint", "publication_binding",
     ])
     is Ok(object) &&
     epoch_text(object, "version") == Some("actql-native-client-run-row/0.1") &&
@@ -172,6 +178,15 @@ fn read_run_record(
     dispatch_reserved,
     physical_start_claimed,
     cancellation_requested,
+    publication_binding: match @decode.lookup(object, "publication_binding") {
+      Some(value) if @decode.is_null(value) => None
+      Some(value) =>
+        match @decode.text(value) {
+          Ok(text) if text != "" && text.length() <= 4096 => Some(text)
+          _ => return Err(CustodyLost)
+        }
+      None => return Err(CustodyLost)
+    },
     revision: row.revision,
     checkpoint: match @decode.lookup(object, "checkpoint") {
       Some(value) if @decode.is_null(value) => None
@@ -624,6 +639,7 @@ fn NativeClientRunJournal::bind_run_locked(
     dispatch_reserved: false,
     physical_start_claimed: false,
     cancellation_requested: false,
+    publication_binding: None,
     revision: 0L,
     checkpoint: None,
   }

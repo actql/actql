@@ -16,7 +16,7 @@ fn NativeClientRunJournal::cancellation_test_operation(
     cancel_id,
     expected_revision,
     current,
-    { observe: _ => Ok(terminal_observed()), },
+    { binding: None, observe: _ => Ok(terminal_observed()), },
   )
 }
 
@@ -433,6 +433,9 @@ test "Native publication fence permits only original readback and blocks nested 
     "client-publication-fence",
   )
   assert_true(journal.claim_physical_start(request, true).unwrap())
+  journal
+  .bind_publication(request, "private-fence-fixture", () => true)
+  .unwrap()
   guard journal.lookup(request, true) is Ok(Retained(before)) else {
     fail("Run missing")
   }
@@ -440,23 +443,29 @@ test "Native publication fence permits only original readback and blocks nested 
   let original_read = Ref(false)
   let nested_refused = Ref(false)
   assert_true(
-    journal.fence_publication(request, before.definition, () => true, () => {
-      original_read.val = match journal.lookup(request, true) {
-        Ok(Retained(inside)) => inside.revision == before.revision
-        _ => false
-      }
-      reads.val += 1
-      nested_refused.val = journal.cancellation_test_operation(
-          request,
-          "namespace-a",
-          "nested",
-          before.revision.to_int(),
-          () => true,
-          () => false,
-        )
-        is Err(Physical(@sqlite.Busy))
-      Err(@native_publication.AccessDenied)
-    })
+    journal.fence_publication(
+      request,
+      before.definition,
+      "private-fence-fixture",
+      () => true,
+      () => {
+        original_read.val = match journal.lookup(request, true) {
+          Ok(Retained(inside)) => inside.revision == before.revision
+          _ => false
+        }
+        reads.val += 1
+        nested_refused.val = journal.cancellation_test_operation(
+            request,
+            "namespace-a",
+            "nested",
+            before.revision.to_int(),
+            () => true,
+            () => false,
+          )
+          is Err(Physical(@sqlite.Busy))
+        Err(@native_publication.AccessDenied)
+      },
+    )
     is Err(@native_publication.AccessDenied),
   )
   assert_eq(reads.val, 1)

@@ -266,6 +266,7 @@ fn cancellation_custody(
 /// Borrow the existing Store only for current-authorized original-Run lookup.
 /// No process-local terminal Bool or foreign publication can enter cancellation.
 struct NativeClientCancellationPublication {
+  binding : String?
   observe : (NativeClientRunRecord) -> Result[Bool, NativeClientRunJournalIssue]
 }
 
@@ -280,7 +281,24 @@ pub fn install_native_client_cancellation_publication(
   if namespace_id == "" || max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(Encoding)
   }
+  let (authority, device, inode) = match store.custody_location() {
+    Ok(value) => value
+    Err(issue) => return Err(PublicationObservation(issue))
+  }
+  let binding = try {
+    let writer = @encode.writer(4096, 8, 2)
+    @encode.begin_array(writer)
+    for
+      value in [namespace_id, authority, device.to_string(), inode.to_string()] {
+      @encode.string_value(writer, value)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
   Ok({
+    binding: Some(binding),
     observe: run => {
       store
       .inspect_committed_publication(
@@ -362,6 +380,9 @@ pub fn NativeClientRunJournal::cancel_operation(
         }
       Err(@sqlite.NotFound) => None
       Err(issue) => return Err(Physical(issue))
+    }
+    if original is None && run.publication_binding != publication.binding {
+      return Err(ChangedIntent)
     }
     // Only a new operation observes the original publication under the same
     // physical journal fence held by the installed Local publication service.

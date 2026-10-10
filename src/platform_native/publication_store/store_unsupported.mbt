@@ -426,3 +426,10 @@ fn retain_native_imports() -> Unit {
   ignore(@sha.hasher())
   ignore(@utf8.encode(""))
 }
+
+///|
+pub fn Store::custody_location(
+  _self : Store,
+) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}

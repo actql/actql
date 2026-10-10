@@ -15,6 +15,7 @@ pub(all) enum NativeClientSourcePublicationIssue {
 pub fn NativeClientSourceWork::install_publication_service(
   self : NativeClientSourceWork,
   store : @publication_store.Store,
+  namespace_id : String,
   authorize : (@native_publication.NativeRunPublicationAuthorization) -> Bool,
   max_wire_bytes : Int,
   max_nodes : Int,
@@ -27,8 +28,26 @@ pub fn NativeClientSourceWork::install_publication_service(
     Ok(_) => ()
     Err(issue) => return Err(Work(issue))
   }
+  let observation = match
+    install_native_client_cancellation_publication(
+      store, namespace_id, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Work(Journal(issue)))
+  }
+  let binding = observation.binding.unwrap()
+  match
+    self.journal.bind_publication(
+      self.request,
+      binding,
+      self.current_authorization,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Work(Journal(issue)))
+  }
   let authority = @native_publication.install_native_run_publication_authority(fact => {
-    if fact.authority_scope_cid !=
+    if fact.namespace_id != namespace_id ||
+      fact.authority_scope_cid !=
       @host.client_request_authority_scope_cid(self.request) ||
       fact.run_definition_cid !=
       @publication.publication_contract_identity(self.definition) ||
@@ -48,6 +67,7 @@ pub fn NativeClientSourceWork::install_publication_service(
       self.journal.fence_publication(
         self.request,
         self.definition,
+        binding,
         self.current_authorization,
         commit,
       )
@@ -178,6 +198,7 @@ fn NativeClientRunJournal::fence_publication(
   self : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
+  binding : String,
   current : () -> Bool,
   commit : () -> Result[
     @native_publication.NativeRunPublicationResult,
@@ -195,6 +216,7 @@ fn NativeClientRunJournal::fence_publication(
       guard self.retained(request) is Ok(Some(run)) &&
         @publication.publication_contract_identity(run.definition) ==
         @publication.publication_contract_identity(definition) &&
+        run.publication_binding == Some(binding) &&
         run.physical_start_claimed &&
         !run.cancellation_requested else {
         return Err(CustodyLost)
@@ -210,4 +232,37 @@ fn NativeClientRunJournal::fence_publication(
     Ok(outcome) => outcome
     Err(_) => Err(@native_publication.CommitFenceUnavailable)
   }
+}
+
+///|
+/// Retain the original installed publication namespace and physical Store in
+/// the same existing Run journal. Reinstallation cannot replace that binding.
+fn NativeClientRunJournal::bind_publication(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  binding : String,
+  current : () -> Bool,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if !current() {
+    return Err(AuthorizationDenied)
+  }
+  self.transaction(() => {
+    let run = match self.retained(request) {
+      Ok(Some(value)) => value
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    if !current() {
+      return Err(AuthorizationDenied)
+    }
+    if run.cancellation_requested {
+      return Err(ChangedIntent)
+    }
+    match run.publication_binding {
+      Some(original) if original == binding => Ok(())
+      Some(_) => Err(ChangedIntent)
+      None =>
+        self.save({ ..run, publication_binding: Some(binding), }).map(_ => ())
+    }
+  })
 }

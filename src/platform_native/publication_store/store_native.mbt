@@ -4,6 +4,7 @@ struct Store {
   lock : @filesystem.Lock
   database : @sqlite.Database
   authority_cid : String
+  journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
   max_objects : Int64
   max_record_bytes : Int
@@ -515,11 +516,24 @@ pub fn open_store(
       return Err(Database(issue))
     }
   }
+  let journal_identity : @filesystem.NativeFileOwnership = match
+    root.inspect_generation(".actql-publication.sqlite3") {
+    Ok(Some(value)) => { device: value.device, inode: value.inode, }
+    other => {
+      database.close()
+      ignore(lock.close())
+      return match other {
+        Err(issue) => Err(Filesystem(issue))
+        _ => Err(StateCollision)
+      }
+    }
+  }
   Ok({
     root,
     lock,
     database,
     authority_cid,
+    journal_identity,
     capacity_bytes,
     max_objects,
     max_record_bytes: max_record_bytes.to_int(),
@@ -3293,4 +3307,21 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
   }
   self.closed = true
   Ok(true)
+}
+
+///|
+/// The existing physical journal's identity, not a read/write grant. Retain it
+/// with the original Run so a same-authority empty replacement Store cannot
+/// turn lost publication history into proof of non-publication. File length is
+/// excluded; the journal grows without replacing its original ownership.
+pub fn Store::custody_location(
+  self : Store,
+) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue] {
+  Ok(
+    (
+      self.authority_cid,
+      self.journal_identity.device,
+      self.journal_identity.inode,
+    ),
+  )
 }
