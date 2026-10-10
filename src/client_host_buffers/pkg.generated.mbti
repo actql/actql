@@ -20,6 +20,8 @@ pub fn buffer_serial(BufferSlot) -> Int
 
 pub fn buffer_source(BufferPool, BufferSlot) -> @source_value.Node?
 
+pub fn buffer_wire(BufferPool, BufferSlot) -> Bytes?
+
 pub fn close_buffer(BufferPool, BufferSlot) -> Result[Unit, BufferIssue]
 
 pub fn close_pool(BufferPool) -> Result[Unit, BufferIssue]

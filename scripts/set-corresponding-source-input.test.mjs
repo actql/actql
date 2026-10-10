@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalFilterProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 35);
-  assert.equal(setCorrespondingRefusals.length, 19);
+  assert.equal(setCorrespondingSuccesses.length, 57);
+  assert.equal(setCorrespondingRefusals.length, 30);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -115,4 +115,79 @@ test('CORRESPONDING matching participates in both normal and narrow packed accep
   assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}'));
   assert.ok(corpus.includes('scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals)'));
+});
+
+
+test('parenthesized operands preserve independent ordinal values and private scopes', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-parenthesized-'));
+  assert.equal(normals.length, 6);
+  for (const f of normals.filter(x => !x.name.endsWith('anonymous-aggregate'))) assert.deepEqual(f.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(normals.find(x => x.name.endsWith('anonymous-aggregate')).columns,
+    [{name: 'a', contract: {type: 'number', nullable: true}},
+      {name: 'b', contract: {type: 'number', nullable: false}}]);
+  const nested = normals.find(x => x.name.endsWith('nested-set'));
+  assert.deepEqual(nested.expected, [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}, {a: 3, b: 4}]);
+  const scoped = normals.find(x => x.name.endsWith('scoped-windows'));
+  assert.ok(scoped.text.includes('SET x = x + 10'));
+  assert.ok(scoped.text.includes('ORDER BY original.x'));
+  assert.ok(scoped.text.includes('ORDER BY x DESC'));
+  assert.deepEqual(scoped.expected, [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}]);
+  assert.deepEqual(normals.find(x => x.name.endsWith('anonymous-aggregate')).expected, [{a: 0, b: 0}, {a: 3, b: 2}]);
+  assert.deepEqual(normals.find(x => x.name.endsWith('anonymous-scalars')).expected, [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]);
+  const source = normals.find(x => x.name.endsWith('source-windows'));
+  assert.equal(source.sourceReadSessionCount, 1);
+  assert.equal(source.format, 'sql');
+  assert.deepEqual(normals.find(x => x.name.endsWith('typed-empty')).expected, []);
+  assert.equal(setCorrespondingRefusals.filter(x => x.name.includes('refuse-parenthesized-')).length, 3);
+});
+
+test('positional inner ORDER LIMIT has independent values and opposite alias controls', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-limited-') && !x.name.includes('-filtered-'));
+  assert.equal(normals.length, 9);
+  const find = suffix => normals.find(x => x.name.endsWith('-' + suffix));
+  assert.deepEqual(find('source-scalar').expected, [{a: -2}, {a: 0}]);
+  for (const name of ['ordinal-scalar', 'output-alias', 'parameter-offset']) {
+    assert.deepEqual(find(name).expected, [{a: -1}, {a: 0}]);
+  }
+  assert.deepEqual(find('qualified-input').expected, [{a: -2}, {a: 0}]);
+  assert.deepEqual(find('source-window').expected, [{a: 0}, {a: 2}]);
+  assert.deepEqual(find('duplicate-ordinal').expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.deepEqual(find('source-aggregate').columns.map(x => [x.name, x.contract.nullable]),
+    [['a', true], ['b', false]]);
+  assert.deepEqual(find('parameter-offset').parameters, {take: 1, skip: 1});
+  assert.ok(find('parameter-offset').text.includes('LIMIT @take OFFSET @skip) ORDER BY a'));
+  const steps = positionalOrderLimitProgram.stages[0].steps;
+  assert.deepEqual(steps[1].derive, {neg: {negate: {field: 'x'}}});
+  assert.deepEqual(steps[2].sort, [{field: 'x', dir: 'desc', nulls: 'last'}]);
+  assert.deepEqual(steps[3].take, {count: 1, offset: 0});
+  assert.deepEqual(steps[4].select, [{a: 'neg'}]);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-limited-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('postprojection filters retain only current names and stay before append', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.includes('-limited-filtered-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 7);
+  for (const name of ['json-control', 'false', 'null-predicate']) {
+    assert.deepEqual(find(name).expected, [{a: 0}]);
+  }
+  assert.deepEqual(find('true').expected, [{a: -2}, {a: -1}, {a: 0}]);
+  assert.deepEqual(find('kept-alias').expected, [{a: 0, b: 0}, {a: 1, b: -1}]);
+  for (const name of ['window', 'duplicate-ordinal']) {
+    assert.deepEqual(find(name).expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+    assert.ok(find(name).text.includes('WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1)'));
+  }
+  assert.ok(find('kept-alias').text.includes('SELECT id AS kept, -id |> WHERE kept = 1'));
+  assert.ok(find('null-predicate').text.includes('WHERE CAST(NULL AS BOOL)'));
+  assert.deepEqual(positionalFilterProgram.stages[0].steps[2].select, [{a: 'neg'}]);
+  assert.deepEqual(positionalFilterProgram.stages[0].steps[3], {filter: {literal: false}, as: 'right'});
+  assert.deepEqual(positionalFilterProgram.stages[0].steps[5], {from: 'left', append: {with: 'right'}});
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-filtered-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
