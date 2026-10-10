@@ -80,8 +80,10 @@ export const matchDataProducerSuccesses = [
     + 'DATA chosen = FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS value; '
     + 'FROM chosen |> WHERE value > 1 |> SELECT value |> ORDER BY value |> RESULT matched', pathResult),
   jsonCase('reused-json', acquiredControl, acquiredResult),
-  sourceCase('acquired-reused-source', 'DATA n = FROM records |> WHERE id = 2 |> SELECT id AS node_key, amount AS p; '
-    + constructor + binding + 'FROM chosen |> RESULT original |> WHERE key > 0 |> SELECT value, key |> ORDER BY key |> RESULT matched', acquiredResult, 1),
+  // Native acquisition owns validation_scan and native_result in one read
+  // session. Neither Result access nor resubmission may create another.
+  {...sourceCase('acquired-reused-source', 'DATA n = FROM records |> WHERE id = 2 |> SELECT id AS node_key, amount AS p; '
+    + constructor + binding + 'FROM chosen |> RESULT original |> WHERE key > 0 |> SELECT value, key |> ORDER BY key |> RESULT matched', acquiredResult, 2), sourceReadSessionCount: 1},
 ];
 const refusal = (name, text, expectedCode = 'ClientProgramInvalidInput') => ({
   name: 'match-data-invalid-' + name, format: 'aql-text', text: prefix + text, expectedCode,

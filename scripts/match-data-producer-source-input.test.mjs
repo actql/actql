@@ -33,7 +33,8 @@ test('MATCH DATA preserves keyed edge multiplicity and acquired producer reuse',
   assert.equal(control.stages[0].steps[4].traverse.path_mode, 'trail');
   assert.deepEqual(trail.results.matched.rows, [{value: 2}, {value: 2}]);
   const reused = successes.find(item => item.name === 'match-data-acquired-reused-source');
-  assert.equal(reused.sourceReadCount, 1);
+  assert.equal(reused.sourceReadCount, 2);
+  assert.equal(reused.sourceReadSessionCount, 1);
   assert.match(reused.text, /FROM records \|> WHERE id = 2/);
   assert.equal((reused.text.match(/FROM records/g) ?? []).length, 1);
   assert.deepEqual(reused.results.original, reused.results.matched);

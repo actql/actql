@@ -100,3 +100,34 @@ syntax/checker success does not establish Host execution. Full Core, Wasm/native
 full packed campaigns and submitted-SHA CI are not claimed here. This unit does
 not close the entire frontend objective or the separate ordered graphs_equal
 JOIN common-owner gap.
+
+
+## First packed observation and acquisition-measure correction
+
+Clean integration fcabc374909b5f459bb18e41f65820900c764778 passed JS 14/14
+(run-wKyN7b, focused-test-DewrZj) and Node 27/27 (run-Y94gfx,
+focused-test-Djmd4q). Normal five-package packing and independent manifest/digest
+verification completed in run-NCjtuJ. The unchanged public consumers passed nine
+normal cases per Local/HTTPS transport before the last acquired DATA case stopped
+at the fixture's physical scan count assertion. Refusals were not reached.
+
+Receipt: worktrees/.codex-scratch/public-query-evidence-CcRRtm/summary.json;
+original failure: 010.stderr.log; partial successes: 010.stdout.log. Both workers
+terminated, liveChildren=0, complete=false; installation artifacts were removed
+by the evidence owner. This is partial evidence, not a successful campaign.
+
+The newly authored expectation confused one acquisition with one physical
+receipt. The existing runNativeAcquisition in
+adapters/connectors/duckdb/node/native-acquisition.mjs performs validation_scan
+and native_result through one withSourceAcquisition session/read view. Its native
+query tests fix that sequence, and docs/design/duckdb-relation-execution.md
+requires full extent validation before applying a predicate. The observed SQLs
+are the full validation scan and the filtered native result, both session 1.
+Existing acquired-data fixtures likewise count sessions separately from scans.
+
+The corrected fixture therefore requires two native row receipts and exactly
+one acquisition session. Rows, schema, column order, predicate, explicit Results
+and the no-additional-I/O checks on attach/resend/reread are unchanged. No
+product, owner, planning policy, execution ceiling or acquisition implementation
+is changed to satisfy this fixture. The correction follows the existing receipt
+contract rather than treating an arbitrary observed count as correct.
