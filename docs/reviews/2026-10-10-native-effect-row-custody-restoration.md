@@ -1,7 +1,8 @@
 # Original Native Effect row custody restoration
 
 This connection extends the original-holder approved-row implementation in OSS
-#1257. The final merge target is main; the unmerged parent remains a dependency.
+#1257, integrated into main at `179c0e9df04dab7195370d26db87280b05944078`.
+The final merge target is main; no unmerged parent dependency remains.
 It does not complete public Cloud approval, process reconstruction of retained
 inputs, Named Result publication, or formal Run release.
 
