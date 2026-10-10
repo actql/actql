@@ -409,10 +409,13 @@ pub fn ResidentEffectReviewRetention::persist_original_checkpoint(Self, @publica
 pub fn ResidentEffectReviewRetention::report(Self) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::retry_cleanup(Self) -> Result[Bool, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::review_projection(Self, () -> Bool, Int) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), ResidentEffectReviewRetentionIssue]
 
 pub(all) enum ResidentEffectReviewRetentionIssue {
   Unavailable
   InvalidConfiguration
+  EvidenceDenied
+  ProjectionTooLarge
   Capture(ResidentEffectCaptureCustodyIssue)
   Preview(ResidentEffectPreviewCustodyIssue)
   Preparation(ResidentEffectReviewCheckpointIssue)
@@ -424,6 +427,13 @@ pub(all) enum ResidentEffectRunCaptureIssue {
   Context(@run_publication_host.ClientEffectCapturedRunIssue)
   Capture(@actql/actql/run_publication.CapturedRunIssuanceIssue)
 }
+
+pub(all) enum ResidentEffectRunCapturePhase {
+  Preparing
+  Prepared
+  Advancing
+  Completed
+} derive(Eq)
 
 type ResidentEffectSourceCustody
 pub fn ResidentEffectSourceCustody::begin_payload(Self) -> Result[@publication_store.PayloadWriter, ResidentEffectSourceCustodyIssue]
@@ -687,7 +697,7 @@ pub fn ResidentSourceCompute::bind_effect_producer_artifact(Self, @run_publicati
 pub fn ResidentSourceCompute::bind_effect_retained_result_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, @run_publication_host.ClientEffectProducerArtifact) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectTransferredArtifactIssue]
 pub fn ResidentSourceCompute::capture_effect_dependency(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientEffectLocalResultArtifact, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[@run_publication_host.ClientEffectDependencyCapture, ResidentEffectDependencyCaptureIssue]
 pub fn ResidentSourceCompute::capture_effect_result(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientEffectImportedEvidence, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.RunEvidenceValue, Array[String], Array[String], Array[@actql/actql/run_publication.RunEvidenceValue], @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
-pub fn ResidentSourceCompute::capture_effect_run(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @actql/actql/run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[@actql/actql/run_publication.CapturedEffectSourceArtifact], Array[@actql/actql/run_publication.CapturedLocalEffectSourceEvidence], @actql/actql/run_publication.CapturedEffectDependencyInventory, @actql/actql/run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int) -> Result[@actql/actql/run_publication.PublicationContract, ResidentEffectRunCaptureIssue]
+pub fn ResidentSourceCompute::capture_effect_run(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @actql/actql/run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[@actql/actql/run_publication.CapturedEffectSourceArtifact], Array[@actql/actql/run_publication.CapturedLocalEffectSourceEvidence], @actql/actql/run_publication.CapturedEffectDependencyInventory, @actql/actql/run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int, progress? : (ResidentEffectRunCapturePhase, Int64, Int64) -> Unit) -> Result[@actql/actql/run_publication.PublicationContract, ResidentEffectRunCaptureIssue]
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::effect_materials_for_capture(Self) -> @run_publication_host.ClientEffectRunMaterials?
 pub fn ResidentSourceCompute::effect_review_input_binding(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity) -> Result[ResidentEffectReviewInputBinding, ResidentEffectReviewCheckpointIssue]

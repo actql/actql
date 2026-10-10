@@ -16,6 +16,13 @@ fn retained_holder_write_row(
   consumer : @resident.ResidentSourceCompute,
   result : @resident.ResidentEffectResultCapture,
 ) -> Unit raise {
+  let progress = @filesystem.open_root(
+    retained_runtime_required_env("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT"),
+  ).unwrap()
+  let mark = (phase : String) => {
+    progress.create_directory("effect-completion-" + phase).unwrap() |> ignore
+  }
+  mark("start")
   let (wire, authentication, reviewers, keys) = signed
   let at = () => "2026-10-10T00:01:00.000Z"
   let resolution = work
@@ -81,6 +88,12 @@ fn retained_holder_write_row(
   current_resume.val = observed
   let row = prepare().unwrap()
   assert_true(physical_equal(row, prepare().unwrap()))
+  mark("missing-response-start")
+  assert_true(
+    work.complete_saved_effect(() => true, limits)
+    is Err(Row(ReconciliationRequired)),
+  )
+  mark("missing-response-end")
   let request = row.request()
   assert_eq(@catalog.single_write_request_body(request), "{\"Count__c\":3}")
   let origin = retained_runtime_required_env(
@@ -187,8 +200,10 @@ fn retained_holder_write_row(
   )
   assert_true(row.dispatch_entry() is None)
   let before = consumer.usage().reserved_retention_bytes
+  mark("physical-send-start")
   println("native-approved-row: sending original checked request")
   assert_true(row.send(access) is Err(Journal(Physical(_))))
+  mark("physical-send-end")
   assert_true(cleanup_blocked.val && storage_blocked.val)
   assert_true(work.retry_cleanup() is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
@@ -234,6 +249,12 @@ fn retained_holder_write_row(
     "native-approved-row: retaining responsibility after terminal save failure",
   )
   assert_true(work.settle_saved_row(limits) is Err(Journal(Physical(_))))
+  mark("terminal-failure-start")
+  assert_true(
+    work.complete_saved_effect(() => true, limits)
+    is Err(Row(Journal(Physical(_)))),
+  )
+  mark("terminal-failure-end")
   // Custody is unconfirmed and the same peer still holds SQLite's write lock.
   // Cleanup must preserve the concrete Store failure and all reservations.
   assert_true(work.retry_cleanup() is Err(Journal(Physical(_))))
@@ -248,7 +269,9 @@ fn retained_holder_write_row(
   assert_eq(pending_head.body, dispatch_head.body)
   assert_true(row.send(access) is Err(ReconciliationRequired))
   peer.rollback().unwrap()
+  mark("terminal-settlement-start")
   let (receipt, terminal) = work.settle_saved_row(limits).unwrap()
+  mark("terminal-settlement-end")
   assert_eq(row.retry_response_custody().unwrap(), false)
   assert_true(terminal.state is @effect.Applied)
   assert_eq(
@@ -282,6 +305,97 @@ fn retained_holder_write_row(
     original.revision,
   )
   assert_true(row.send(access) is Err(ReconciliationRequired))
+  assert_true(
+    work.complete_saved_effect(() => false, limits) is Err(EvidenceDenied),
+  )
+  let evidence_reads = Ref(0)
+  assert_true(
+    work.complete_saved_effect(
+      () => {
+        evidence_reads.val += 1
+        mark("early-revocation-" + evidence_reads.val.to_string())
+        evidence_reads.val == 1
+      },
+      limits,
+    )
+    is Err(EvidenceDenied),
+  )
+  evidence_reads.val = 0
+  assert_true(
+    work.complete_saved_effect(
+      () => {
+        evidence_reads.val += 1
+        mark("final-revocation-" + evidence_reads.val.to_string())
+        evidence_reads.val < 3
+      },
+      limits,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(evidence_reads.val, 3)
+  mark("receipt-completion-start")
+  evidence_reads.val = 0
+  let completion = work
+    .complete_saved_effect(
+      () => {
+        evidence_reads.val += 1
+        mark("completion-authority-" + evidence_reads.val.to_string())
+        true
+      },
+      limits,
+    )
+    .unwrap()
+  mark("receipt-completion-end")
+  assert_eq(
+    @publication.publication_contract_json(completion.row_receipt),
+    @publication.publication_contract_json(receipt),
+  )
+  assert_eq(
+    @publication.publication_contract_name(completion.final_receipt),
+    "run_receipt",
+  )
+  assert_true(
+    @publication.publication_contract_identity(completion.final_receipt) !=
+    @publication.publication_contract_identity(result.receipt),
+  )
+  assert_eq(
+    @publication.effect_set_receipt_run_disposition(
+      completion.preview,
+      @publication.publication_contract_json(completion.set_receipt),
+      [@publication.publication_contract_json(completion.member_receipt)],
+      limits.ledger.max_wire_bytes,
+      limits.ledger.max_nodes,
+      limits.ledger.max_depth,
+    ).unwrap(),
+    0,
+  )
+  mark("repeated-receipts-start")
+  let repeated_completion = work
+    .complete_saved_effect(() => true, limits)
+    .unwrap()
+  mark("repeated-receipts-end")
+  assert_eq(
+    @publication.publication_contract_json(repeated_completion.final_receipt),
+    @publication.publication_contract_json(completion.final_receipt),
+  )
+  assert_eq(
+    @publication.publication_contract_json(repeated_completion.set_receipt),
+    @publication.publication_contract_json(completion.set_receipt),
+  )
+  assert_eq(
+    @publication.publication_contract_json(repeated_completion.member_receipt),
+    @publication.publication_contract_json(completion.member_receipt),
+  )
+  assert_eq(
+    peer
+    .read(
+      "site_effect_ledger_head",
+      @effect.effect_ledger_entry_locator_cid(terminal),
+    )
+    .unwrap().revision,
+    original.revision,
+  )
+  assert_true(row.send(access) is Err(ReconciliationRequired))
   assert_true(result.output.result_schema_wire() is Ok(_))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   // Failed cleanup probes retained the pending write, rather than starting
@@ -291,8 +405,8 @@ fn retained_holder_write_row(
     work.admit_resolution(wire, authentication, reviewers, keys, () => true, at)
     is Ok(_),
   )
-  // Row terminality discharges only this pending physical write. Overall Run
-  // publication and formal Site release are not implied by these saved facts.
+  // The final receipt binds the original computation, capture and row evidence.
+  // Publication commit and formal Site release remain distinct Owner operations.
   ignore(client.close())
   database.close_checked().unwrap()
   peer.close_checked().unwrap()

@@ -246,7 +246,7 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
       {
         checkpoint_id,
         continuation_state_cid: "sha256:" +
-        @sha.hex(@sha.digest(@utf8.encode(continuation_wire))),
+        @sha.hex(@utf8.encode(continuation_wire)),
         subject: @checkpoint.RunUnit(
           run_id~,
           unit_id=unit,
@@ -255,8 +255,7 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
         phase: @checkpoint.Commit,
         kind: @checkpoint.EffectSet,
         required_artifact_cid: preview_cid,
-        review_projection_cid: "sha256:" +
-        @sha.hex(@sha.digest(@utf8.encode(review_wire))),
+        review_projection_cid: "sha256:" + @sha.hex(@utf8.encode(review_wire)),
         requirements: [@checkpoint.EffectScopeApproved],
         reason_code: "effect_review",
         human_summary: "Approve the complete Effect Set",

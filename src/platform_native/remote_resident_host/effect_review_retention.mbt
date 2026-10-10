@@ -2,6 +2,8 @@
 pub(all) enum ResidentEffectReviewRetentionIssue {
   Unavailable
   InvalidConfiguration
+  EvidenceDenied
+  ProjectionTooLarge
   Capture(ResidentEffectCaptureCustodyIssue)
   Preview(ResidentEffectPreviewCustodyIssue)
   Preparation(ResidentEffectReviewCheckpointIssue)
@@ -355,6 +357,47 @@ pub fn ResidentEffectReviewRetention::confirm_original_checkpoint(
     return Err(Unavailable)
   }
   Ok(persisted)
+}
+
+///|
+/// Return only the exact projection whose Preview and paired Checkpoint were
+/// confirmed by the existing custody Owners. This creates no transport grant,
+/// approval or execution permit. The installed caller separately authorizes
+/// disclosure; Source permission does not supply that evidence authority.
+pub fn ResidentEffectReviewRetention::review_projection(
+  self : ResidentEffectReviewRetention,
+  authorize_evidence_read : () -> Bool,
+  max_bytes : Int,
+) -> Result[
+  (@remote.RemoteEffectCheckpointReport, String),
+  ResidentEffectReviewRetentionIssue,
+] {
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if max_bytes < 1 || max_bytes > self.limits.max_wire_bytes {
+    return Err(InvalidConfiguration)
+  }
+  match self.report() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard self.review is Some(review) else { return Err(Unavailable) }
+  if @utf8.encode(review.review_wire).length() > max_bytes {
+    return Err(ProjectionTooLarge)
+  }
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if self.retiring || !self.consumer.resident_effect_inputs_current(self.inputs) {
+    return Err(Unavailable)
+  }
+  // The installed authorization callback can also observe a closing Store.
+  // Confirm the same original custody after that boundary before disclosure.
+  match self.report() {
+    Ok(report) => Ok((report, review.review_wire))
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|

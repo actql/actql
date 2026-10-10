@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:35b93cd1a5674c50463641041a7e6b9fbb31021a4f38fe3661f675c93723abf2';
+  const currentExpected = 'sha256:afff969892cfa2d723e77131ad2ad8f608c5c4ac23f409dcde68c032a44a7ff7';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -474,7 +474,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_rules_sha256: '4635956e68e7d5862fd0553053bde9fc5a855e661c9cd4fd10339cdd1e61739a'});
   assert.deepEqual(currentBody, {...beforeStrposBody,
     source_grammar_cid: 'sha256:9661df29c89c8b303df3957fac205e4ec9a27e7f35a25e22e3e0680fe1623b3c',
-    expression_contract_cid: 'sha256:99eb8896d61317e04b39b54eaad9cecb64abe7c08fb6e79bbaaa113547d855cf',
+    expression_contract_cid: 'sha256:a6d2c257b61167db55ca87f4985e89c2c098b33ef0123bf6639878972fa081e8',
     expression_text_grammar_sha256: 'bb3f3420458049d2f57ffdc9178fd9f5a09936df3689d051eb75ce38886d4b85',
     expression_text_rules_sha256: '7f40568bd31da89f9ad9fd52451bbb3ae2f0cd1c45f35eb5cb62848f53f90cee',
     query_text_rules_sha256: '68aae9dbb0211a81dadb1a0b570ea8c4619c89fc650f71cd61fbffc23996dcb6'});

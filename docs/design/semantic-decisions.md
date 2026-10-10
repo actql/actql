@@ -304,3 +304,31 @@ publication still determines success; a lost response remains unknown and is
 never resent. This aligns the transition table and journal lifecycle with the
 existing physical observation boundary. It adds no public state, artifact,
 identity domain or permission to release retained evidence before cleanup.
+
+## Unary Unicode TRIM
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+The previous scalar law and language prose selected only ASCII whitespace,
+while the adopted [GoogleSQL TRIM reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#trim)
+removes leading and trailing whitespace when its optional character set is
+omitted. The common syntax and type rule already admitted unary `trim`, but
+that alone did not establish common execution support.
+
+ActQL now selects the 25-code-point `White_Space` property in
+[Unicode 16.0 PropList.txt](https://www.unicode.org/Public/16.0.0/ucd/PropList.txt),
+consistent with its pinned Unicode data version. This explicitly changes the
+former ASCII-only contract; it is not a claim that the GoogleSQL page pins a
+Unicode release. U+0085 is included; U+FEFF and U+200B are excluded. Host trim
+routines and regular-expression whitespace classes are not substitute owners.
+Retained interior strings, combining sequences and line breaks are preserved
+without normalization. Nullability, unary arity, lazy demand and authored-node
+retention keep the existing common expression rules.
+
+The scalar manifest and containing expression law receive new CIDs, together
+with their AoA, registry, environment, compilation and consumer dependencies.
+The existing source and machine schema shapes are unchanged. Frozen predecessor
+bodies keep the old ASCII-only meaning and their original identity preimages;
+they are not regenerated from current bodies with selected laws removed.
+This initial 0.1 alignment adds neither an optional set or BYTES overload nor
+LTRIM/RTRIM. Contract registration does not establish execution conformance on
+an unverified target or consumer.
