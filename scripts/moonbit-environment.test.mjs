@@ -80,7 +80,7 @@ test('live tool rejects backend API drift, tracked changes and untracked interfa
   checkInterfaces(root);
   writeFileSync(
     join(root, 'src/wasm_test/moon.pkg'),
-    'supported_targets = "+js+wasm"\noptions(targets: { "wasm.mbt": [ "wasm" ] })\n',
+    '// supported_targets = "wasm" is not this package\'s declaration\nsupported_targets = "+js+wasm"\noptions(targets: { "wasm.mbt": [ "wasm" ] })\n',
   );
   assert.throws(() => checkInterfaces(root), /Common-core interfaces differ/);
   writeFileSync(join(root, 'src/wasm_test/moon.pkg'), 'supported_targets = "wasm"\n');

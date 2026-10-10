@@ -23,7 +23,7 @@ function withoutTargetOnlyPackages(root, report) {
     const manifest = readFileSync(manifestPath, 'utf8');
     // A package explicitly supporting just Native or Wasm has no canonical
     // JS interface to compare. Keep every multi-target divergence required.
-    const targetOnly = /supported_targets\s*=\s*"(?:native|wasm)"/.test(manifest);
+    const targetOnly = /^[ \t]*supported_targets[ \t]*=[ \t]*"(?:native|wasm)"[ \t]*(?:\/\/[^\r\n]*)?$/m.test(manifest);
     if (targetOnly) return '';
     return block;
   });
