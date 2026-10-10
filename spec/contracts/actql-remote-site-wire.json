@@ -336,6 +336,60 @@
           "const": "actql-remote-effect-checkpoint-reply/0.1"
         }
       }
+    },
+    "effect_resume_delivery": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_cid",
+        "claimant",
+        "dispatch_request_cid",
+        "generation",
+        "report_cid",
+        "resolution_cid",
+        "resolution_wire",
+        "resume_intent_id",
+        "version"
+      ],
+      "properties": {
+        "checkpoint_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "claimant": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "generation": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "report_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resolution_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resolution_wire": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resume_intent_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-remote-effect-resume-delivery/0.1"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -345,6 +399,7 @@
     "poll_dispatch": "sha256:ca7951b1ccab716fdf738573b94f402f92ccbdaeadbf4ab699b00a777003ab56",
     "poll_cancel": "sha256:53e69b8d3b2b27c7e90ef106f6b888b5267cce91a1145048c2ab5b46f32dd8fc",
     "effect_checkpoint_report": "sha256:37ae97f48d65d838aa9ebf2859425a4a952e8e2ea012b58cb319f0f3d6831b86",
-    "effect_checkpoint_reply": "sha256:087b35471447e082dbdb4f39e77bb91b4bfb90de7be348aebb57d395d9617784"
+    "effect_checkpoint_reply": "sha256:087b35471447e082dbdb4f39e77bb91b4bfb90de7be348aebb57d395d9617784",
+    "effect_resume_delivery": "sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5"
   }
 }
