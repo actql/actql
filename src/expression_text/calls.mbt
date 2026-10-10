@@ -69,6 +69,7 @@ fn Parser::call(
     | "nfkc"
     | "case_fold" => (1, 1)
     "contains"
+    | "strpos"
     | "starts_with"
     | "ends_with"
     | "safe_div"

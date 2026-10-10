@@ -1950,6 +1950,7 @@ atomic, not null, except where the named function explicitly specifies it.
 | `lower`, `upper`, `trim` | S → S | Pinned mappings/character set | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
+| `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; safe division by zero returns null | RelA |
 | `abs`, `sign` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
@@ -1992,6 +1993,21 @@ case-sensitive with `%`, `_`, and backslash escape; `replace` is
 non-overlapping left-to-right and an empty search is a no-op. `lower`/`upper`
 use Unicode 16.0 default mappings; a runtime without exactly those tables MUST
 reject those functions rather than use host-dependent mappings.
+
+<!-- requirement-block: scalar-expressions.strpos -->
+`strpos(value, subvalue)` MUST take exactly two strings and return the first exact
+match's 1-based Unicode scalar position, or positive zero when absent. An empty
+subvalue yields 1, including when the value is empty. It counts scalar values,
+not UTF-8 bytes, UTF-16 code units or grapheme clusters. Comparison preserves
+retained strings without normalization, case folding or locale conversion.
+Both children evaluate once, value before subvalue, even after a null value;
+only after both succeed does either null produce null. Result nullability is
+the union of operand nullability, independent of row count. Enclosing lazy
+demand, first-failure precedence, cancellation and logical operand charges
+remain unchanged. The result is an exact integer represented by the common
+finite `number` over the existing bounded string domain. This connects the
+GoogleSQL STRING/default binary rule without adding its INT64 result type,
+BYTES overload or explicit collation.
 
 <!-- requirement-block: scalar-expressions.like-pattern-validation -->
 Before executable compilation, the compiler MUST resolve each LIKE pattern
@@ -2077,7 +2093,7 @@ an optional final argument, not expression syntax.
 | --- | --- |
 | `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)` | corresponding unary scalar function |
 | `to_number(x)`, `to_string(x)`, `to_boolean(x)`, `to_timestamp(x)` | explicit conversion |
-| `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `safe_div(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
+| `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `strpos(value, subvalue)`, `safe_div(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
 | `concat(x, ...)`, `concat_strict(x, ...)`, `coalesce(x, ...)`, `if(condition, then_value, else_value)` | corresponding scalar function or conditional tree |
 | `vector_score(a, b, 'cosine'|'dot'|'l2')` | `{vector_score: {left: a, right: b, metric: decoded-literal}}` |
 | `vector_concat(a, b, ...)` | `{vector_concat: [a,b,...]}`; at least two operands |
@@ -9989,7 +10005,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:898b57fca972f2e832f2f19eba2561bacd30838a5d492dfedf75436e8490ad32
+../../spec/contracts/actql-aoa.json# sha256:691c103b8cbb9f8a388a6b89ba86bd8e7d9568e5b4371600307c92e6f46e5975
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -9998,13 +10014,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:f9a2ed26d8bf19e399fc94c64737ce2f1c76b890e173d51f8584b0fd9253b47a
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:fba6c1e60a9c2f8e951fd888b7665f6255128c77dc6efa79b636b3e51f4d3d15
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:74a3a0f2fd02d0a0c088f79fed5a547d1c8f6f5fc082eb131575faa2e7408066
+../../spec/contracts/actql-expressions.json# sha256:8c6821fcf336dbefcf1c8ae3b848fb3d827e6c79ed078e6104efeea6092d3546
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:a310d77365796137f1ea16179813838727455e7596eebc2c317398442f21f33f
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:064d8d397587b93f503c129bb329ce75b856419f5f90f09042aa759d94784276
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:7126df1017bcb4a83ac993d2a62f9a1afff3ae57b0f72f9d38784cc69599f518
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:289dd514b1eacce1d5eb92ea1ab9b464e4762cf35e68c8fabfbd890d896b259b
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:c4df037effcf37e7657826a7394fae9343a9ef6b2a4541eb7b6effbf9f8931b5
+../../spec/contracts/actql-expressions.json#/laws sha256:ce4adc0256c1be5e840940b9217bd225b5fad62b6f00ede14977bbd8f050c800
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:1e720656fa8691c34ea000e10262898a6b5cc388fff8bdead53840f9700c070d
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:6015fd55330edf1dc6ecec8fc339653558b158cc7d43fc02f90ca2eed4dd32d5
 ```
 
 <!-- stage-contract-pins:start -->

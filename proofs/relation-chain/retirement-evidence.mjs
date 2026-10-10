@@ -25,7 +25,7 @@ export const retirementResidual = Object.freeze([
   'no GC completion, universal implementation refinement or all-provider liveness is derived',
 ]);
 const reviewed = Object.freeze({operation: 'builtin-chain/early-retirement', variant: 'accepted-intermediate-cleanup',
-  profile: 'eight existing lifetime cases; numeric binding/groups/JOIN and authored Values/UNNEST; completed generations retained',
+  profile: 'eight existing lifetime cases; numeric binding/groups/JOIN/Append and authored Values/UNNEST; completed generations retained',
   length: Object.freeze([2, 3, 4, 6]), stopContract: 'cancel-between-completed-children-preserves-cleanup-custody',
   entrypoint: 'bounded_relation_chain_execution_state',
   provider: 'src/connectors/local/selected_relation_provider.mbt', children: Object.freeze([retirementFixture])});

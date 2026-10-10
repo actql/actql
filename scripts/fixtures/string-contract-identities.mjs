@@ -249,7 +249,9 @@ export function valuesUnitIdentity(program, old = false) {
 // Hand-authored capacity and Result preimages for the same two-row Unit.
 // Port names use RFC 6901 escaping; neither the limit nor its binding is read
 // from the runtime under test. Historical fixed CIDs anchor the derivation.
-export function valuesPublicationRowsBinding(unit, resultName, measure = 'rows') {
+// Current limits use canonical witness-CID order. legacy:true reproduces
+// the original retained candidate array without rebinding historical hashes.
+export function valuesPublicationRowsBinding(unit, resultName, measure = 'rows', {legacy=false}={}) {
   assert.ok(['rows', 'bytes'].includes(measure));
   const seal = (body, field) => ({...body, [field]: independentCid(body)});
   const policy = 'sha256:38a92017de0e3e13901d328ab622696708aab0563dd980b04bfc9a2b6c451853';
@@ -268,9 +270,11 @@ export function valuesPublicationRowsBinding(unit, resultName, measure = 'rows')
   const port = resultName.replaceAll('~', '~0').replaceAll('/', '~1');
   const subject = `unit:${unit}#/results/${port}/${measure}`;
   const maximum = measure === 'rows' ? 2 : 1000;
+  const candidates = measure === 'rows' ? [ceiling, upper] : [ceiling];
+  if (!legacy) candidates.sort((a, b) =>
+    a.witness_cid < b.witness_cid ? -1 : a.witness_cid > b.witness_cid ? 1 : 0);
   const limit = seal({version: 'actql-resolved-limit/0.1',
-    author_guard_binding: 'absent', breach: 'fail',
-    candidates: measure === 'rows' ? [ceiling, upper] : [ceiling],
+    author_guard_binding: 'absent', breach: 'fail', candidates,
     effective_max: maximum, enforcement: 'engine_atomic', subject_ref: subject,
     unit: measure}, 'resolved_limit_cid');
   return seal({version: 'actql-execution-limit-binding/0.1', effective_max: maximum,

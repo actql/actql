@@ -642,6 +642,46 @@ test "expression type corpus accepted: 127" {
 }
 
 ///|
+test "expression type corpus accepted: 128" {
+  assert_type("\"strpos(s,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 129" {
+  assert_type("\"strpos(sn,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 130" {
+  assert_type("\"strpos(s,sn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 131" {
+  assert_type("\"strpos(NULL,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 132" {
+  assert_type("\"strpos('', '')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 133" {
+  assert_type("\"strpos(s,$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 134" {
+  assert_type("\"strpos(NULL,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 135" {
+  assert_type("\"strpos(s,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
 test "expression type corpus rejected: 1" {
   assert_rejected("\"missing\"", corpus_fields(), corpus_parameters(), "UnknownField")
 }
@@ -1029,4 +1069,44 @@ test "expression type corpus rejected: 77" {
 ///|
 test "expression type corpus rejected: 78" {
   assert_rejected("\"sign(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 79" {
+  assert_rejected("\"strpos(n,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 80" {
+  assert_rejected("\"strpos(s,n)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 81" {
+  assert_rejected("\"strpos(b,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 82" {
+  assert_rejected("\"strpos(j,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 83" {
+  assert_rejected("\"strpos(r,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 84" {
+  assert_rejected("\"strpos(s,a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 85" {
+  assert_rejected("\"strpos(d,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 86" {
+  assert_rejected("\"strpos(s,v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
 }

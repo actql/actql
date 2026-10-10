@@ -217,6 +217,30 @@ test "structured expression corpus accepted: 27" {
 }
 
 ///|
+test "structured expression corpus accepted: 28" {
+  assert_tree("{\"strpos\":[\"$value\",\"$part\"]}", "{\"strpos\":[{\"$param\":\"value\"},{\"$param\":\"part\"}]}")
+  let expression = admit(source_cursor("{\"strpos\":[\"$value\",\"$part\"]}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), ["value", "part"])
+}
+
+///|
+test "structured expression corpus accepted: 29" {
+  assert_tree("{\"strpos\":[{\"literal\":\"e\u{301}\\r\\n\\u0000\u{1f600}\"},{\"literal\":\"\\u0000\"}]}", "{\"strpos\":[{\"literal\":\"e\u{301}\\r\\n\\u0000\u{1f600}\"},{\"literal\":\"\\u0000\"}]}")
+  let expression = admit(source_cursor("{\"strpos\":[{\"literal\":\"e\u{301}\\r\\n\\u0000\u{1f600}\"},{\"literal\":\"\\u0000\"}]}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), [])
+}
+
+///|
+test "structured expression corpus accepted: 30" {
+  assert_tree("{\"strpos\":[{\"literal\":null},{\"literal\":null}]}", "{\"strpos\":[{\"literal\":null},{\"literal\":null}]}")
+  let expression = admit(source_cursor("{\"strpos\":[{\"literal\":null},{\"literal\":null}]}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), [])
+}
+
+///|
 test "structured expression corpus rejected: 1" {
   assert_true(admit(source_cursor("\"\\\"right.\\\"\""), test_limits()) is Err(_))
 }
@@ -397,6 +421,31 @@ test "structured expression corpus rejected: 36" {
 }
 
 ///|
+test "structured expression corpus rejected: 37" {
+  assert_true(admit(source_cursor("{\"strpos\":[]}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 38" {
+  assert_true(admit(source_cursor("{\"strpos\":[\"x\"]}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 39" {
+  assert_true(admit(source_cursor("{\"strpos\":[\"x\",\"y\",\"z\"]}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 40" {
+  assert_true(admit(source_cursor("{\"strpos\":{\"literal\":\"x\"}}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 41" {
+  assert_true(admit(source_cursor("{\"strpos\":[\"x\",\"y\"],\"extra\":true}"), test_limits()) is Err(_))
+}
+
+///|
 test "common admission of text corpus: 1" {
   assert_tree("\"NULL\"", "{\"literal\":null}")
 }
@@ -549,6 +598,31 @@ test "common admission of text corpus: 30" {
 ///|
 test "common admission of text corpus: 31" {
   assert_tree("\"sign(NULL)\"", "{\"sign\":{\"literal\":null}}")
+}
+
+///|
+test "common admission of text corpus: 32" {
+  assert_tree("\"strpos(value, part)\"", "{\"strpos\":[{\"field\":\"value\"},{\"field\":\"part\"}]}")
+}
+
+///|
+test "common admission of text corpus: 33" {
+  assert_tree("\"strpos($value, $part)\"", "{\"strpos\":[{\"$param\":\"value\"},{\"$param\":\"part\"}]}")
+}
+
+///|
+test "common admission of text corpus: 34" {
+  assert_tree("\"strpos('\u{1f600}e\u{301}x', 'x')\"", "{\"strpos\":[{\"literal\":\"\u{1f600}e\u{301}x\"},{\"literal\":\"x\"}]}")
+}
+
+///|
+test "common admission of text corpus: 35" {
+  assert_tree("\"strpos('', '')\"", "{\"strpos\":[{\"literal\":\"\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "common admission of text corpus: 36" {
+  assert_tree("\"strpos(NULL, NULL)\"", "{\"strpos\":[{\"literal\":null},{\"literal\":null}]}")
 }
 
 ///|
@@ -754,4 +828,24 @@ test "common rejection of text corpus: 40" {
 ///|
 test "common rejection of text corpus: 41" {
   assert_true(admit(text_cursor("sign(x,y)"), test_limits()) is Err(_))
+}
+
+///|
+test "common rejection of text corpus: 42" {
+  assert_true(admit(text_cursor("strpos()"), test_limits()) is Err(_))
+}
+
+///|
+test "common rejection of text corpus: 43" {
+  assert_true(admit(text_cursor("strpos(x)"), test_limits()) is Err(_))
+}
+
+///|
+test "common rejection of text corpus: 44" {
+  assert_true(admit(text_cursor("strpos(x,y,z)"), test_limits()) is Err(_))
+}
+
+///|
+test "common rejection of text corpus: 45" {
+  assert_true(admit(text_cursor("STRPOS(x,y)"), test_limits()) is Err(_))
 }
