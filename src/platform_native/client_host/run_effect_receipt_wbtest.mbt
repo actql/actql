@@ -259,7 +259,7 @@ fn receipt_test_settle(
   (@publication.PublicationContract, @effect.EffectLedgerEntry),
   NativeClientRunJournalIssue,
 ] {
-  journal.record_effect_row_receipt(
+  let result = journal.record_effect_row_receipt(
     dispatch,
     preview,
     0,
@@ -271,6 +271,23 @@ fn receipt_test_settle(
     current,
     4096,
   )
+  match result {
+    Err(CustodyLost) =>
+      println("Native receipt boundary: original custody refused")
+    Err(Checkpoint(InvalidMaterial)) =>
+      println("Native receipt boundary: common material refused")
+    Err(Physical(@sqlite.BodyTooLarge)) =>
+      println("Native receipt boundary: bounded storage refused")
+    Err(Physical(@sqlite.Collision)) =>
+      println("Native receipt boundary: physical revision collision")
+    Err(TransactionUnknown) =>
+      println("Native receipt boundary: commit result unknown")
+    Err(AuthorizationDenied) =>
+      println("Native receipt boundary: current evidence authority denied")
+    Err(_) => println("Native receipt boundary: original operation refused")
+    Ok(_) => ()
+  }
+  result
 }
 
 ///|
@@ -289,6 +306,70 @@ test "Native original receipt persists common terminal and exact replay across r
   journal.record_effect_row_unknown(dispatch).unwrap() |> ignore
   guard journal.lookup(dispatch.request, true) is Ok(Retained(before)) else {
     fail("Run missing")
+  }
+  match
+    @effect.admit_effect_single_row(
+      preview,
+      0,
+      0,
+      "update",
+      @host.client_request_logical_scope(dispatch.request),
+      @publication.effect_preview_ordered_row_identity(preview, 0, 0).unwrap(),
+      locator,
+      key,
+    ) {
+    Ok(_) => ()
+    Err(issue) =>
+      fail("Original fixture common row binding: " + @debug.to_string(issue))
+  }
+  let response = journal
+    .effect_row_response(dispatch, () => true, 4096)
+    .unwrap()
+    .unwrap()
+  let receipt_probe = match
+    @publication.issue_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      dispatch.dispatching.cid,
+      response.credential_use_cid,
+      response.body,
+      response.status_code,
+      "{\"state\":\"applied\",\"result\":{\"id\":\"001\"}}",
+      4096,
+      65536,
+      4096,
+      64,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      fail("Original fixture common outcome: " + @debug.to_string(issue))
+  }
+  let history_probe = before.checkpoint.unwrap().effect_ledger
+  match
+    @effect.issue_effect_row_receipt_terminal_entry(
+      preview,
+      0,
+      0,
+      @host.client_request_logical_scope(dispatch.request),
+      locator,
+      key,
+      basis.canonical_request_cid,
+      history_probe[history_probe.length() - 1],
+      history_probe,
+      dispatch.dispatching.cid,
+      response.credential_use_cid,
+      response.body,
+      response.status_code,
+      @publication.publication_contract_json(receipt_probe),
+      4096,
+      65536,
+      4096,
+      64,
+    ) {
+    Ok(_) => ()
+    Err(issue) =>
+      fail("Original fixture common terminal: " + @debug.to_string(issue))
   }
   let (receipt, terminal) = receipt_test_settle(
     journal, dispatch, preview, locator, key, basis,
