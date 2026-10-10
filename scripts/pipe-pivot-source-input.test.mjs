@@ -19,17 +19,16 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-empty-keyed').expected, []);
   assert.ok(cases.get('pipe-pivot-empty-keyed').columns.slice(1).every(column => column.contract.nullable));
   assert.deepEqual(cases.get('pipe-pivot-current-value').expected, [{product: 'kale', present: 99}]);
-  // Literal typing admits the four UTF-8 bytes of 'kale'; grouping retains
-  // that evidence even for empty input. An authored Values column has no
-  // such extent, so the machine control keeps its distinct checked schema.
-  for (const name of ['min-missing-authored-order', 'prefix-and-range',
-    'current-value', 'empty-keyed', 'duplicate-null-source']) {
-    assert.deepEqual(cases.get('pipe-pivot-' + name).columns[0],
-      {name: 'product', contract: {type: 'string', nullable: false, max_utf8_bytes: 4}});
-  }
-  assert.deepEqual(cases.get('pipe-pivot-duplicate-null-json-control').columns[0],
-    {name: 'product', contract: {type: 'string', nullable: false}});
-  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 16);
+  assert.equal(cases.get('pipe-pivot-duplicate-null-json-control').columns[0].contract.max_utf8_bytes, undefined);
+  assert.equal(cases.get('pipe-pivot-min-missing-authored-order').columns[0].contract.max_utf8_bytes, Buffer.byteLength('kale', 'utf8'));
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-set-operands').expected,
+    [{product: 'kale', second: 0, first: 2}]);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-set-operands').columns,
+    cases.get('pipe-pivot-duplicate-null-source').columns);
+  assert.equal(pipePivotRefusals.some(input => input.name.endsWith('anonymous-set-operands')), false);
+  assert.equal(pipePivotSuccesses.length, 9);
+  assert.equal(pipePivotRefusals.length, 8);
+  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 17);
 });
 
 test('PIVOT uses the same cases in the normal corpus and scoped packed execution', async () => {

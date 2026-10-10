@@ -6,16 +6,13 @@ test "anonymous positional fields reserve authored names and cannot shadow them"
     max_literal_bytes: 10000,
     max_work: 20000,
   }
-  let query = @query.parse_query(
-    "SELECT 1 AS aql_set_anonymous_3, 2",
-    {
-      lexical,
-      expression: { lexical, max_nodes: 1000, max_depth: 100, max_work: 10000, },
-      max_syntax_nodes: 1000,
-      max_cte_count: 20,
-      max_work: 20000,
-    },
-  ).unwrap()
+  let query = @query.parse_query("SELECT 1 AS aql_set_anonymous_3, 2", {
+    lexical,
+    expression: { lexical, max_nodes: 1000, max_depth: 100, max_work: 10000, },
+    max_syntax_nodes: 1000,
+    max_cte_count: 20,
+    max_work: 20000,
+  }).unwrap()
   let projections = selected_projections(query)
   assert_eq(
     anonymous_set_projection_name(projections, ["input"], ["selected"]),

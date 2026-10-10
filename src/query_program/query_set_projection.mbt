@@ -131,9 +131,7 @@ fn rebind_script_set_terminal_output(
   guard @wire.text(name) is Ok(name) && name == producer else { return false }
   guard @wire.lookup(object, "from") is Some(from) else { return false }
   guard @wire.text(from) is Ok(_) else { return false }
-  let allowed = [
-    "append", "intersect", "except", "distinct", "sort", "take", "select",
-  ]
+  let allowed = ["append", "intersect", "except", "distinct", "sort", "take", "select"]
   if !allowed.any(operation => @wire.lookup(object, operation) is Some(_)) {
     return false
   }

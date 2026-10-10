@@ -126,6 +126,24 @@ test "Pipe PIVOT does not fabricate names or ignore unknown references" {
 }
 
 ///|
+test "Pipe PIVOT consumes named UNION ALL output" {
+  let named = "(SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale' AS product, CAST(NULL AS FLOAT64) AS sales, 'Q2' AS quarter) |> PIVOT(COUNT(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first)) AS shaped |> SELECT shaped.product, shaped.second, shaped.first"
+  let actual = compile(
+    @query.parse_query(named, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    _ => fail("closed combined output must check without Source I/O")
+  }
+  assert_true(
+    semantic(actual).contains("\"fields\":[\"product\",\"second\",\"first\"]"),
+  )
+}
+
+///|
 test "Pipe PIVOT accepts duplicate and NULL rows from a parenthesized UNION ALL" {
   let actual = compile(
     @query.parse_query(
@@ -144,10 +162,7 @@ test "Pipe PIVOT accepts duplicate and NULL rows from a parenthesized UNION ALL"
 
 ///|
 test "anonymous positional set fields do not supply public or BY NAME aliases" {
-  for
-    source in [
-      "SELECT 1 AS id UNION ALL BY NAME SELECT 2", "SELECT 2",
-    ] {
+  for source in ["SELECT 1 AS id UNION ALL BY NAME SELECT 2", "SELECT 2"] {
     assert_true(
       compile(
         @query.parse_query(source, syntax_limits()).unwrap(),

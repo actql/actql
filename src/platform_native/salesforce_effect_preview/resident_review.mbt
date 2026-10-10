@@ -78,6 +78,10 @@ struct NativeResidentEffectReview {
   imported : @host.ClientEffectImportedEvidence
   root_index : Int
   result : @resident.ResidentEffectResultCapture
+  // Only the context-taking entry point owns these extra pins and the public
+  // Result export. The older entry point continues to borrow caller custody.
+  mut owned_inputs : @resident.ResidentEffectReviewInputContext?
+  mut owned_result : Bool
   invocation : @publication.PublicationContract
   request : @host.ClientRequestIdentity
   policy : NativeResidentEffectReviewPolicy
@@ -310,6 +314,8 @@ pub fn prepare_native_resident_effect_review(
     imported,
     root_index,
     result,
+    owned_inputs: None,
+    owned_result: false,
     invocation,
     request,
     policy: {
@@ -769,6 +775,16 @@ pub fn NativeResidentEffectReview::retry_cleanup(
     @strategy.captured_effect_local_result_export_preparation(self.exported),
   )
   |> ignore
+  if self.owned_result {
+    self.result.output.cancel()
+    self.owned_result = false
+  }
+  if self.owned_inputs is Some(inputs) {
+    if !inputs.close() {
+      return Err(Unavailable)
+    }
+    self.owned_inputs = None
+  }
   self.closed = true
   Ok(true)
 }
