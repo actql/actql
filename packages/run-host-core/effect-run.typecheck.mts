@@ -3,6 +3,7 @@ import {prepareEffect, compileEffect, issueAllowedEffectRun, issueEffectRunDefin
   prepareEffectRequest, effectSourceInputBinding, issueEffectSourceDispatch,
   prepareEffectRetainedTaskInputEdge, issueEffectRetainedTaskDispatch,
   effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts,
+  inspectEffectTaskProgress, prepareEffectTaskPhysicalStart,
   type PreparedProgram, type TaskCompilation,
   type ValuesSiteSelection, type RetainedTaskInput, type CheckEnvironment, type PreparedEffectProgram, type EffectCompilation,
   type AllowedEffectRun} from '@actql/run-host-core';
@@ -44,10 +45,30 @@ void [copiedPreparation, copiedCompilation, copiedAllowed];
 declare const selection: ValuesSiteSelection;
 declare const retainedInput: RetainedTaskInput;
 const caller = prepareEffectRequest(prepared, compiled, 'authority', 'caller');
+issueEffectRunMaterials(allowed, definition,
+  {format: 'json', document: '{}', environment, environmentWire: '{}'}, caller);
+if (restored.request) {
+  issueEffectRunMaterials(restored.allowed, restored.definition,
+    {format: 'json', document: '{}', environment, environmentWire: '{}'}, restored.request);
+}
+// @ts-expect-error Only the original opaque request Owner can be transported.
+issueEffectRunMaterials(allowed, definition, {format: 'json', document: '{}', environment, environmentWire: '{}'}, {callerRequestId: 'caller'});
 effectSourceInputBinding(compiled);
 prepareEffectRetainedTaskInputEdge(allowed, definition);
 issueEffectSourceDispatch(allowed, definition, caller, selection);
 issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, retainedInput);
+const progress = inspectEffectTaskProgress(allowed, definition, 'authority', []);
+prepareEffectTaskPhysicalStart(allowed, definition, 'authority', [], caller, caller,
+  {taskKey: 'task', dispatchCid: 'dispatch', definitionCid: 'run', reserved: true,
+    unstarted: true, authorized: true, cancelled: false, failed: false});
+// @ts-expect-error Computation completion is not public Run completion.
+progress.executionComplete;
+// @ts-expect-error No effect-free state or publication projection is exposed.
+progress.stateWire;
+// @ts-expect-error A preparation cannot stand in for the original allowed Run.
+inspectEffectTaskProgress(prepared, definition, 'authority', []);
+// @ts-expect-error Claim facts have exact boolean fields.
+prepareEffectTaskPhysicalStart(allowed, definition, 'authority', [], caller, caller, {reserved: true});
 // @ts-expect-error A preparation is not the original allowed Effect Run.
 issueEffectSourceDispatch(prepared, definition, caller, selection);
 // @ts-expect-error Raw binding bytes cannot replace the admitted receiver owner.

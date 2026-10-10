@@ -167,6 +167,7 @@ fn retained_effect_transferred_artifact(
   public_result : @host.PublicationOutputExport,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
   provider? : ResidentProviderFacts? = None,
+  checkpoint_custody? : Bool = false,
 ) -> Unit raise {
   println("retained-effect-evidence: receiver-export")
   let root_export = consumer
@@ -389,9 +390,24 @@ fn retained_effect_transferred_artifact(
   println("retained-effect-evidence: consumer-artifact-issued")
   if provider is Some(facts) {
     retained_effect_provider_capture(
-      consumer, materials, inputs, invocation, run_observation, result, result_index,
-      receiver, root_index, result_export, result_receipt, evidence, source, acquired_bodies,
-      facts, public_result, stop_custodies,
+      consumer,
+      materials,
+      inputs,
+      invocation,
+      run_observation,
+      result,
+      result_index,
+      receiver,
+      root_index,
+      result_export,
+      result_receipt,
+      evidence,
+      source,
+      acquired_bodies,
+      facts,
+      public_result,
+      stop_custodies,
+      checkpoint_custody~,
     )
     @execution.cancel_completed_relation_export_receipt(receipt)
     @execution.cancel_completed_relation_export_receipt(result_receipt)

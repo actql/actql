@@ -107,4 +107,5 @@ export const analyticPropertyRefusals = [
   'SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects',
   'SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS previous FROM objects',
 ].map((tail, index) => ({name: 'analytic-property-invalid-' + index, hostProfile: 'analytic-property',
-  format: 'aql-text', text: data + tail, parameterDeclarations, parameters}));
+  format: 'aql-text', text: data + tail, parameterDeclarations, parameters,
+  ...(index === 5 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));

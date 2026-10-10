@@ -57,6 +57,29 @@ subject are otherwise valid.
 
 ## Projecting an existing source-free Run
 
+### Original Effect request context
+
+Effect materials may carry `client_request_identity`, a bounded string encoding
+the existing seven-component Client request record. The Effect issuer accepts
+only an existing request Owner matching the checked Program, parameters and
+caller input intent. Admission revalidates its logical scope and intent CIDs;
+it does not choose another caller, issue a new Run or refresh authorization.
+The existing Run-materials version and identity domains remain unchanged. A
+body carrying this context has different bytes from one without it.
+
+Before Source I/O or a consumer receiver borrow, the Native connection checks
+that this context matches the dispatch Run and authority scope. The consumer
+also compares it with the producer's original envelope retained in the existing
+Site journal, including when reconciling a completed consumer. A separately
+valid request for another caller cannot replace the producer's request.
+
+Missing request context stays absent and cannot supply an Effect Preview or
+approval dispatch key. Current Provider observe, approval and write authority
+remain separate checks. Ordinary Effect-free issuers omit this field and keep
+their existing encoded bytes.
+
+### Effect-free materials
+
 `@actql/run-host-core.issueSourceFreeRunMaterials(prepared, compilation,
 admission, definition, retained)` projects an existing source-free, effect-free
 JSON Values Run into `actql-remote-run-materials/0.1`. `retained` contains the

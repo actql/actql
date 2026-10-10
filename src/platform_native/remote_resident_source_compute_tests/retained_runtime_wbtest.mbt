@@ -77,6 +77,7 @@ fn retained_compute_through_runtime(
           resident_native_effect_document,
           None,
           retained_compute_effect_limits(),
+          request=effect.request,
         ).unwrap()
       None =>
         @host.issue_client_task_run_materials(

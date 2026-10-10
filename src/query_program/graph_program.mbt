@@ -4,7 +4,9 @@ fn graph_macro_value(
   argument : Array[@query.NamePart],
   bindings : Array[GraphBinding],
 ) -> @expression.MacroValue? {
-  if path.length() != 1 || path[0].quoted || argument.length() != 1 {
+  // Quotation changes spelling, not the closed installed macro namespace.
+  // The syntax owner has already decoded each name part.
+  if path.length() != 1 || argument.length() != 1 {
     return None
   }
   let name = ascii_upper(path[0].value)

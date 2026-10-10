@@ -43,9 +43,9 @@ pub(all) struct ClientValuesRunMaterials {
 
 ///|
 let client_run_materials_fields : Array[String] = [
-  "check_environment", "check_environment_cid", "created_at", "parameters", "prepared_invocation",
-  "program", "program_format", "run_authorization", "run_id", "scope_id", "valid_until",
-  "version",
+  "check_environment", "check_environment_cid", "client_request_identity", "created_at",
+  "parameters", "prepared_invocation", "program", "program_format", "run_authorization",
+  "run_id", "scope_id", "valid_until", "version",
 ]
 
 ///|
@@ -163,6 +163,7 @@ fn encode_client_run_materials_body(
   environment_wire : String,
   program : String,
   parameters_wire : String?,
+  request_wire? : String? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
   // This is a read-only projection of an already admitted definition. It does
   // not reissue it (nor extend its original lifetime).
@@ -229,6 +230,10 @@ fn encode_client_run_materials_body(
   try {
     @encode.begin_object(writer)
     for field in fields {
+      if field.0 == "created_at" && request_wire is Some(wire) {
+        @encode.key(writer, "client_request_identity")
+        @encode.string_value(writer, wire)
+      }
       @encode.key(writer, field.0)
       match field.1 {
         Some(value) => @encode.string_value(writer, value)
@@ -348,7 +353,16 @@ fn read_client_run_materials_body(
     is Some(environment) else {
     return Err(MaterialsEnvironment)
   }
+  let request_wire = match @decode.lookup(object, "client_request_identity") {
+    None => None
+    Some(cursor) =>
+      match @decode.text(cursor) {
+        Ok(wire) => Some(wire)
+        Err(_) => return Err(MaterialsMalformed)
+      }
+  }
   Ok({
+    request_wire,
     program,
     environment,
     parameters,
@@ -363,6 +377,7 @@ fn read_client_run_materials_body(
 
 ///|
 priv struct ClientRunMaterialsBody {
+  request_wire : String?
   program : String
   environment : @checked.CheckEnvironment
   parameters : @decode.Cursor?

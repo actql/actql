@@ -81,18 +81,63 @@ fn retained_holder_effect_transfer_capture(
     producer.invocation_for_capture(producer_journal, 1, 4096, 64)
     is Err(Invocation(_)),
   )
-  let (sender_inputs, sender, sender_manifest, sender_receipt, token) = retained_effect_producer_dependency(
-    source_owner,
-    sender_materials,
-    source,
-    started_at=original.3,
-    completed_at=original.4,
-    original_invocation=Some(original_invocation),
+  // The production adapter joins actual original journal evidence to the
+  // existing captured Result; no test issuer supplies its name or timestamps.
+  assert_true(
+    producer.prepare_dependency_capture(
+      producer_journal,
+      retained_compute_effect_retention(),
+      resident_compute_limits(),
+      4,
+      1,
+      65536,
+      4096,
+      64,
+    )
+    is Err({ issue: WorkLimit, pending: None, }),
+  )
+  assert_eq(source_owner.usage().held_bytes, source_usage.held_bytes)
+  let dependency = producer
+    .prepare_dependency_capture(
+      producer_journal,
+      retained_compute_effect_retention(),
+      resident_compute_limits(),
+      4,
+      10000,
+      65536,
+      4096,
+      64,
+    )
+    .unwrap()
+  let sender = dependency.artifact
+  let sender_manifest = dependency.manifest
+  let token = dependency.token
+  assert_eq(
+    @publication.run_evidence_value_json(dependency.observation),
+    original_observation_set_wire,
+  )
+  assert_eq(
+    @publication.publication_contract_identity(dependency.invocation),
+    @publication.publication_contract_identity(original_run_invocation),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(
+      @host.client_effect_acquired_observation(dependency.acquired),
+    ),
+    original.1,
+  )
+  assert_eq(
+    producer.request_for_capture(producer_journal),
+    sender_materials.request,
   )
   let inputs = @strategy.pin_captured_effect_sources(
     consumer.effect_run().unwrap(),
     4,
   ).unwrap()
+  assert_eq(
+    consumer.request_for_effect_review(inputs),
+    sender_materials.request,
+  )
   let mut root_index = -1
   for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
     let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
@@ -231,9 +276,7 @@ fn retained_holder_effect_transfer_capture(
       () => {
         callbacks.val += 1
         if callbacks.val == 2 {
-          returned.val = @strategy.release_captured_effect_local_unit_inputs(
-            sender_inputs,
-          )
+          returned.val = dependency.pins.close()
         }
         true
       },
@@ -242,9 +285,7 @@ fn retained_holder_effect_transfer_capture(
   )
   assert_eq(callbacks.val, 2)
   assert_true(returned.val)
-  assert_false(
-    @strategy.release_captured_effect_local_unit_inputs(sender_inputs),
-  )
+  assert_true(dependency.pins.close())
   assert_true(
     consumer.bind_effect_retained_result_artifact(
       materials, inputs, captured, exported, receipt, token,
@@ -261,7 +302,6 @@ fn retained_holder_effect_transfer_capture(
     is Ok(_),
   )
   @execution.cancel_completed_relation_export_receipt(receipt)
-  @execution.cancel_completed_relation_export_receipt(sender_receipt)
   @execution.cancel_completed_result_relation_export(
     @strategy.captured_effect_local_result_export_preparation(exported),
   )
@@ -321,6 +361,7 @@ fn retained_holder_effect_transfer_capture(
   |> ignore
   result.output.cancel()
   assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_true(consumer.request_for_effect_review(inputs) is None)
   assert_eq(source_owner.usage().held_bytes, source_usage.held_bytes)
   assert_eq(
     source_owner.usage().reserved_execution_bytes,
