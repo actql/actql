@@ -1092,7 +1092,9 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if (left is Text(text) && text.length() > 64) ||
+            if op == @lower.StartsWith ||
+              op == @lower.EndsWith ||
+              (left is Text(text) && text.length() > 64) ||
               (value is Text(text) && text.length() > 64) {
               match
                 expression_event_consume(

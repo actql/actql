@@ -519,6 +519,8 @@ fn infer(
     | "concat_strict"
     | "replace"
     | "contains"
+    | "starts_with"
+    | "ends_with"
     | "like" => {
       let nullable = arguments(t, nodes, node, "string")
       if tag == "like" {
@@ -528,7 +530,7 @@ fn infer(
         t,
         if tag == "len" {
           NumberType
-        } else if tag == "contains" || tag == "like" {
+        } else if ["contains", "like", "starts_with", "ends_with"].contains(tag) {
           BooleanType
         } else {
           StringType
@@ -537,7 +539,7 @@ fn infer(
         source,
       )
     }
-    "sqrt" | "floor" | "abs" | "safe_div" => {
+    "sqrt" | "floor" | "abs" | "sign" | "safe_div" => {
       let nullable = arguments(t, nodes, node, "number")
       primitive(t, NumberType, nullable || tag == "safe_div", source)
     }

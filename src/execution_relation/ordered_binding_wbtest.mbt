@@ -6,7 +6,7 @@ test "ordered binding closes the node roots contexts shapes and limits without a
   let binding = prepare_ordered_binding(links, registry_limits()).unwrap()
   assert_eq(
     binding.node.graph.cid,
-    "sha256:e542a6d92c0db2484928e1c7f6852c95a77e011625c68b9b8b15ce0f2ea6744d",
+    "sha256:e1f5fbbf43277368d680a6f00ba710e31b0d1efe7d98691be4e287d4e0e4bb82",
   )
   let text = @identity.stringify_value(
     binding.artifact.value,

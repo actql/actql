@@ -1,8 +1,8 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:bad5b4562a4e6cbb056ab2dea31cd9a20366190353b14e0be3125454177519b8",
+  "registry_cid": "sha256:2e626ff5cf238111abb35bb36c49c2ff220458437045991fcfafca412c7bee8a",
   "values_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
-  "fragment_cid": "sha256:01b5deb12652eaff90dbf16c4595b7806a71266a65859fd12ffe3a5941045459",
+  "fragment_cid": "sha256:22808b94321acf2d93cb1f75a5043a2fc4a288bc9d01bbc1d63ce31b035db52c",
   "graph_cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210",
   "registry": {
     "REL.select": {
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:cd7053dd97ed3f80fd5435f2fb20e91a06c99469120f0a2db637c5a1508d4d83"
+          "cid": "sha256:8bf0e2035a755e764c33784ab140d987773c966064837f890bb0d3208ae1124d"
         }
       }
     },
@@ -488,7 +488,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:01b5deb12652eaff90dbf16c4595b7806a71266a65859fd12ffe3a5941045459"
+        "cid": "sha256:22808b94321acf2d93cb1f75a5043a2fc4a288bc9d01bbc1d63ce31b035db52c"
       }
     }
   },
@@ -1504,12 +1504,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d"
+        "cid": "sha256:f9a2ed26d8bf19e399fc94c64737ce2f1c76b890e173d51f8584b0fd9253b47a"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:22d6810c6ef8de4ef16fc9f8e49a3f5b43a15e0637c6817c7ccb930c04afd33c"
+        "cid": "sha256:289dd514b1eacce1d5eb92ea1ab9b464e4762cf35e68c8fabfbd890d896b259b"
       }
     },
     "params_schema": {
