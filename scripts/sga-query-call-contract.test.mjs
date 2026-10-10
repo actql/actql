@@ -428,14 +428,22 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:f57132973b7e2bca2462607971e6ef8ab3529e3bf18b295f723a185120163e44';
+  const currentExpected = 'sha256:b3688a442f39d99e7890d05e267c807914f2253c8a54b6de889885d7852af4b4';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
   assert.equal(beforeInnerBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
   assert.equal(cid(currentBody), currentExpected);
-  assert.deepEqual(currentBody, {...beforeAsBody,
+  // Preserve the complete predecessor before adding a numeric type alias.
+  const {grammar_manifest_cid: beforeDoubleCid, ...beforeDoubleBody} =
+    read('scripts/fixtures/pre-double-type-alias-grammar.json').grammar;
+  assert.equal(cid(beforeDoubleBody), beforeDoubleCid);
+  assert.equal(beforeDoubleCid, 'sha256:f57132973b7e2bca2462607971e6ef8ab3529e3bf18b295f723a185120163e44');
+  assert.deepEqual(beforeDoubleBody, {...beforeAsBody,
     query_text_rules_sha256: '8958d366842376934093b9eb2819fe8f95ffa6ac389f0d841973552a856c36f2'});
+  assert.deepEqual(currentBody, {...beforeDoubleBody,
+    query_text_grammar_sha256: '54b6ff9dac5e92109448c5218906e70b99b90225799e01d75056db13914f0ba3',
+    query_text_rules_sha256: 'a8fe03ffc3a8e6d640c531d0073a99500e85396ae7b6ed5d6899c39ad110590d'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);

@@ -78,6 +78,26 @@ export const bundleRetention: Readonly<{
 
 export type Journal = {readonly [ownerHandle]: 'journal'};
 export type DispatchRequest = {readonly [ownerHandle]: 'dispatch-request'};
+export type EffectCheckpointReport = {readonly [ownerHandle]: 'effect-checkpoint-report'};
+export type EffectCheckpointRefusal = 'authorization_denied' | 'scope_mismatch' | 'report_conflict';
+export type EffectCheckpointReply = Readonly<{kind: 'accepted'} |
+  {kind: 'refused'; reason: EffectCheckpointRefusal}>;
+
+/** Canonical report admission is not remote persistence, approval, execution or
+ * cleanup evidence. Authenticate the current Site and validate the original
+ * Run/unit, consumer and retained custody using the existing trusted Owners. */
+export const effectCheckpointReports: Readonly<{
+  admit(body: string, request: DispatchRequest, limits: Readonly<{
+    maxWireBytes: number; maxNodes: number; maxDepth: number}>): EffectCheckpointReport;
+  facts(report: EffectCheckpointReport): Readonly<{reportCid: string;
+    dispatchCid: string; checkpointCid: string; checkpointWire: string}>;
+  /** Serialize only after the receiving Run Owner durably commits exact waiting.
+   * This does not commit waiting, approve the Effect or retire Site custody. */
+  acceptedJson(report: EffectCheckpointReport): string;
+  /** Only a current, definitive refusal permits this reply. */
+  refusedJson(report: EffectCheckpointReport, reason: EffectCheckpointRefusal): string;
+  admitReplyJson(report: EffectCheckpointReport, body: string): EffectCheckpointReply;
+}>;
 export type IntentAdmission = {readonly [ownerHandle]: 'intent-admission'};
 export type IntentRecord = {readonly [ownerHandle]: 'intent-record'};
 export type DurableRecord = {readonly [ownerHandle]: 'durable-record'};
