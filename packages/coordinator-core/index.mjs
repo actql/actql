@@ -118,6 +118,48 @@ export const outputReportAckJson = (record, originalReport) =>
 export const outputReportRefusalJson = (record, originalReport, reason) =>
   checked(owner.coordinatorOutputReportRefusalJson(record, originalReport, reason));
 
+// These handles carry canonical metadata, not persistence or approval proof.
+// Keep the admitted common value private so a caller cannot forge a report by
+// copying fields or pass an unrelated owner handle to reply construction.
+const effectCheckpointHandles = new WeakMap();
+const effectCheckpointValue = handle => {
+  const value = effectCheckpointHandles.get(handle);
+  if (value === undefined) throw new TypeError('InvalidEffectCheckpointReport');
+  return value;
+};
+export const effectCheckpointReports = Object.freeze({
+  admit: (body, request, limits) => {
+    if (typeof body !== 'string' || limits === null || typeof limits !== 'object' ||
+        ![['maxWireBytes', 262144], ['maxNodes', 4096], ['maxDepth', 32]]
+          .every(([key, maximum]) => Number.isSafeInteger(limits[key]) &&
+            limits[key] > 0 && limits[key] <= maximum)) {
+      throw new TypeError('InvalidEffectCheckpointReportInput');
+    }
+    const value = checked(owner.coordinatorEffectCheckpointReportAdmit(body,
+      request, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    const handle = Object.freeze({});
+    effectCheckpointHandles.set(handle, value);
+    return handle;
+  },
+  facts: handle => {
+    const [reportCid, dispatchCid, checkpointCid, checkpointWire] =
+      owner.coordinatorEffectCheckpointReportProjection(effectCheckpointValue(handle));
+    return Object.freeze({reportCid, dispatchCid, checkpointCid, checkpointWire});
+  },
+  // The receiving Host calls this only after its existing Run Owner confirms
+  // the exact waiting commit. This serializer does not perform that commit.
+  acceptedJson: handle => checked(owner.coordinatorEffectCheckpointAcceptedJson(
+    effectCheckpointValue(handle))),
+  refusedJson: (handle, reason) => checked(owner.coordinatorEffectCheckpointRefusedJson(
+    effectCheckpointValue(handle), reason)),
+  admitReplyJson: (handle, body) => {
+    if (typeof body !== 'string') throw new TypeError('InvalidEffectCheckpointReplyInput');
+    const [kind, reason] = checked(owner.coordinatorEffectCheckpointReplyAdmit(
+      effectCheckpointValue(handle), body));
+    return Object.freeze(kind === 'accepted' ? {kind} : {kind, reason});
+  },
+});
+
 export const prepareDispatch = input => checked(owner.coordinatorPrepareDispatch(
   input.coordinatorAuthority, input.runDefinitionCid, input.taskKey,
   input.taskAttempt, input.dispatchId, input.siteKey, input.siteGeneration,

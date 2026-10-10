@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
-import {dirname, join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readmeQuickstart} from './readme-quickstart.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
@@ -28,7 +28,7 @@ function run(command, args, cwd = root, env = environment,
 }
 console.log(`Packed public-query evidence: ${directory}`);
 console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
-  'scripts/public-query-profiles.test.mjs'],
+  'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs'],
   repository).trimEnd());
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
@@ -108,6 +108,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/aggregate-conditional-order-source-input.mjs', 'aggregate-conditional-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
+  ['scripts/fixtures/scalar-alias-group-source-input.mjs', 'scalar-alias-group-source-input.mjs'],
+  ['scripts/fixtures/group-comparison-source-input.mjs', 'group-comparison-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
@@ -151,11 +153,17 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/source-graph-member-input.mjs', 'source-graph-member-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
+  ['scripts/fixtures/retained-fixture-values.mjs', 'retained-fixture-values.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
   ['scripts/fixtures/model-provider-binding-fixture.mjs', 'model-provider-binding-fixture.mjs'],
   ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
   ['scripts/fixtures/packed-infer-source.mjs', 'packed-infer-source.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
+  ['scripts/fixtures/packed-query-transports.mjs', 'packed-query-transports.mjs'],
+  ['scripts/fixtures/public-query-inventory.json', 'public-query-inventory.json'],
+  ['scripts/fixtures/packed-query-worker.mjs', 'packed-query-worker.mjs'],
+  ['scripts/fixtures/packed-query-restart-transports.mjs', 'packed-query-restart-transports.mjs'],
+  ['scripts/fixtures/packed-query-transport-owner.mjs', 'packed-query-transport-owner.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
   ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
   ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
@@ -216,9 +224,17 @@ auditPackedPackages(root, packages);
 run('npm', ['ls', '--omit=dev', '--all']);
 await writeFile(join(root, 'query.aql'), quickstart.program);
 await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
+let runtimeCaPath = join(root, 'remote.crt');
+if (environment.NODE_EXTRA_CA_CERTS) {
+  runtimeCaPath = join(root, 'remote-ca-bundle.crt');
+  await writeFile(runtimeCaPath, Buffer.concat([
+    await readFile(resolve(environment.NODE_EXTRA_CA_CERTS)), Buffer.from('\n'),
+    await readFile(join(root, 'remote.crt')), Buffer.from('\n'),
+  ]));
+}
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
-  NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+  NODE_EXTRA_CA_CERTS: runtimeCaPath};
 if (process.argv.includes('--countif-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_COUNTIF_DISTINCT_ONLY = '1';
 }
@@ -534,7 +550,7 @@ if (process.argv.includes('--infer-refusal-only')) {
 if (process.argv.includes('--two-source-only')) {
   runtimeEnvironment.ACTQL_TEST_TWO_SOURCE_ONLY = '1';
 }
-for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
+for (const name of ['NODE_PATH', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
 }
@@ -625,10 +641,35 @@ const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-a
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
+async function retainTransportReports(names, succeeded, primary, indexName) {
+  const availability = [];
+  let evidenceFailure;
+  const failed = (name, error) => {
+    if (primary === undefined) evidenceFailure ??= error;
+    else (primary.transportEvidenceErrors ??= []).push({name, code: error.code});
+  };
+  for (const name of names) {
+    try {
+      await writeFile(join(directory, name), await readFile(join(root, name)));
+      availability.push({name, available: true});
+    } catch (error) {
+      if (error.code !== 'ENOENT' || succeeded) failed(name, error);
+      availability.push({name, available: false, error: error.code});
+    }
+  }
+  try {
+    await writeFile(join(directory, indexName), JSON.stringify({succeeded, availability}, null, 2) + '\n');
+  } catch (error) { failed(indexName, error); }
+  if (evidenceFailure !== undefined) throw evidenceFailure;
+}
+let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
-    const output = run(process.execPath, ['acceptance.mjs'], root,
-      runtimeEnvironment, 900_000);
+    acceptanceStarted = true;
+    const output = run(process.execPath, ['packed-query-transports.mjs'], root,
+      {...runtimeEnvironment, ACTQL_TEST_QUERY_DEADLINE: String(Date.now() + 900_000),
+        ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, 900_000);
+    acceptanceSucceeded = true;
     console.log(output.trimEnd());
     // Reuse this exact installation and its producer artifact. Source INFER
     // is a separate authored corpus; narrow non-INFER selections stay narrow.
@@ -644,7 +685,16 @@ try {
     console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
       runtimeEnvironment, 180_000).trimEnd());
   }
+} catch (error) {
+  packedFailure = error;
+  throw error;
 } finally {
+  if (acceptanceStarted) {
+    const reports = ['transport-processes.json',
+      ...(process.argv.includes('--two-source-only') ? [] :
+        ['transport-completion.local.json', 'transport-completion.remote.json'])];
+    await retainTransportReports(reports, acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
+  }
   try {
     await writeFile(join(directory, 'two-source-example.json'),
       await readFile(join(root, 'two-source-example-report.json')));
@@ -707,8 +757,17 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
-  console.log(run(process.execPath, ['string-values-restart.mjs'], root,
-    runtimeEnvironment, 120000).trimEnd());
+  let restartSucceeded = false, restartFailure;
+  try {
+    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
+      {...runtimeEnvironment, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120000).trimEnd());
+    restartSucceeded = true;
+  } catch (error) { restartFailure = error; throw error; }
+  finally {
+    await retainTransportReports(['transport-restart-processes.json',
+      'transport-restart.local.json', 'transport-restart.remote.json'],
+    restartSucceeded, restartFailure, 'transport-restart-evidence-index.json');
+  }
 }
 if (process.argv.includes('--select-all-only') || process.argv.includes('--typed-json-literal-only') || process.argv.includes('--limit-parameter-only') || process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
