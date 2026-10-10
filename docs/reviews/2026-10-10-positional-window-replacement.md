@@ -64,8 +64,16 @@ Run admission and provider I/O. No acceptance-side Program patch is allowed.
 The selected public cohort is 161 cases per transport (104 normal, 57 refusals).
 The data-only full inventory is 3,444 obligations: 2,182 normal, 1,215 refusals,
 47 execution-failure cases; digest
-`a26a6bda96201df94e2b373b800ec766d1863f1fd3740f19e84abd077f240e62`.
+`03aaf7dd49bb04de452f162b6de37524f2713f310aa22c2a3908af51c736d070`.
 This records registration, not full-corpus execution.
+
+Parent #1297's fixture-only correction
+`aed5db24a6ec64ff5cda2fa15d40f5b1300efddf` is integrated normally. Its initial
+public failure and independent literal-byte bound rationale remain recorded
+in the parent review. Regenerate this branch's inventory from the authored
+fixtures; never copy the parent's narrower digest. Node guard `run-wXz0If`
+passes 49/49 after integration, with complete output/caller and released locks.
+No product source changes relative to the checked window-replacement commit.
 
 This is a separate branch stacked on #1297. Exact-SHA normal five-package
 Local/HTTPS acceptance is pending. No old SHA's execution is attributed to this

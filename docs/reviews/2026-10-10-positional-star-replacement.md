@@ -70,12 +70,28 @@ remain distinct from successful verification.
 The selected public cohort has 152 cases per transport: 98 normal and 54
 refusals. The full authored inventory has 3,435 occurrences: 2,176 normal,
 1,212 refusals and 47 execution-failure obligations, digest
-`a2f2d001741c32373233b42faa36a5dea81a814e56f1d050ab21084112c17866`.
+`601134f329a4b427bf1236c33419d4fe607425566c690edf87150fcc927b8897`.
 This is fixture registration evidence, not full-corpus execution.
 
-Clean exact-SHA five-package Local/HTTPS acceptance is pending at document
-creation; record its source SHA, actual tarball digests and terminal receipts
-in the PR. Previous exclusion acceptance is evidence only for its own SHA.
+The initial exact-SHA five-package execution at
+`53d45bbe5d242c02b8dddcc6138a17e11451b66f` ends with failure:
+`run-XWqv03`, receipt `public-query-evidence-vAbEVO`. Eight new replacement
+cases pass on both transports, but value-type stops at schema comparison and
+the remaining inventory is incomplete. Both children terminate; captured
+output is complete, locks are released and disposable installations removed.
+
+The fixture omitted the checked string extent. Existing
+`expression_typing/signatures.mbt` derives a literal's UTF-8 bound, and
+`docs/spec/language.md` defines complete checked contracts and string extents.
+Independently, ASCII anchor has six bytes and changed has seven; the common
+append contract's upper_join retains max_utf8_bytes=7
+(`value_contract/relations.mbt`). Correct that authored contract and assert
+both byte lengths without using a product normalization function. Expected
+rows, types, nullability, order, acquisition limits and product code are
+unchanged. Final Node guard `run-S5mZfG` passes 48/48 after this fixture-only
+correction. A fresh exact-SHA public rerun remains pending; record its SHA,
+actual tarball digests and terminal receipts in the PR. Previous exclusion
+acceptance is evidence only for its own SHA.
 
 No full Core, Wasm/native, proof, performance, full packed or Cloud campaign
 was run. Qualified/mixed stars and anonymous analytic replacement composition
