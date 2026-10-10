@@ -8,6 +8,7 @@ fn expanded_replacement_projections(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
   object_columns? : ((@query.Expression) -> Array[String] raise Abort)? = None,
+  authored_aliases? : Array[(String, String)] = [],
 ) -> Array[@query.Projection] raise Abort {
   let is_object_star = fn(projection : @query.Projection) -> Bool {
     guard projection.star == Some("*") &&
@@ -39,6 +40,11 @@ fn expanded_replacement_projections(
       raise Abort(Expression({ issue: @expression.WorkLimit, origin: None, }))
     }
     remaining -= count
+  }
+  spend(authored_aliases.length())
+  let authored_names : Map[String, String] = Map([])
+  for mapping in authored_aliases {
+    authored_names[mapping.0] = mapping.1
   }
   for projection in projections {
     spend(1)
@@ -77,7 +83,7 @@ fn expanded_replacement_projections(
       })
       .map(field => (field, field))
     } else {
-      expanded_star_columns(projection, visible, ranges~)
+      expanded_star_columns(projection, visible, ranges~, authored_aliases~)
     }
     spend(columns.length())
     for index in 0..<projection.replacements.length() {
@@ -90,7 +96,14 @@ fn expanded_replacement_projections(
       }
       let count = columns
         .filter(column => {
-          same_name(replacement.name, { value: column.0, quoted: false, })
+          same_name(replacement.name, {
+            value: if object_star {
+              column.0
+            } else {
+              authored_names.get(column.0).unwrap_or(column.0)
+            },
+            quoted: false,
+          })
         })
         .length()
       if count == 0 {

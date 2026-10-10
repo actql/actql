@@ -2075,6 +2075,7 @@ fn compile_steps(
         })
       }),
       expression_work,
+      authored_aliases=positional_authored_aliases,
       object_columns=Some(receiver => {
         let prefix = if prefix_steps.is_empty() &&
           input.source is GeneratedValues(seed) {
@@ -2186,10 +2187,17 @@ fn compile_steps(
       sql_group_projection = false
     }
     if positional_projection is Some(projection) && i > projection {
-      // EXCEPT addresses authored names, never the storage name of an
+      // EXCEPT/REPLACE address authored names, never the storage name of an
       // anonymous value. The ordinary star helper retains all other columns.
       if operation is Select(columns, _) {
         for column in columns {
+          for replacement in column.replacements {
+            if positional_private_fields.any(field => {
+                same_name(replacement.name, { value: field, quoted: false, })
+              }) {
+              raise Abort(UnknownColumn)
+            }
+          }
           for excluded in column.except_columns {
             if positional_private_fields.any(field => {
                 same_name(excluded, { value: field, quoted: false, })
@@ -2202,10 +2210,19 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
+        Select(columns, _)
+        | Analytic(columns)
+        | AnalyticExpressions(columns, _)
+        | OrderAnalytic(columns, _) =>
+          positional_projection_expressions(columns)
         _ => []
       }
       let resolve_input = path => {
-        if operation is Where(_) {
+        if operation is Where(_) ||
+          operation is Select(_, _) ||
+          operation is Analytic(_) ||
+          operation is AnalyticExpressions(_, _) ||
+          operation is OrderAnalytic(_, _) {
           pipe_slot(path, pipe_visible, pipe_ranges)
         } else if pipe_selected || pipe_changed || pipe_rebound {
           pipe_slot(
