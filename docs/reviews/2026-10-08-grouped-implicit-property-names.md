@@ -77,7 +77,7 @@ and logs remain intact; the new branch starts directly from the stated main.
   implicit property aliases **3/3** (`focused-test-TEhPA7`).
 - Readonly compilation-manifest freshness passes with unchanged grammar
   `sha256:582ecd6f94df7584160874befda4fa5f2a7d028f347599fc11e9685c10ba36e8`
-  and barrier `sha256:8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818`.
+  and barrier `sha256:37d13c552a2a923fe135961e3fd859ed6439c90d8900b0f52310bdb97e871fda`.
 
 ## Public acceptance and remaining coverage
 

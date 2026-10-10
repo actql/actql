@@ -148,7 +148,9 @@ fn long_graph_start_admission_fixture(relation : Bool) -> Unit raise {
   let comparison_work = 390 + 2 * (518 - 1) + (519 - 1)
   let start_admission = identity_recheck +
     (if relation { identity_recheck } else { 0 }) +
-    1 + comparison_work + 1
+    1 +
+    comparison_work +
+    1
   // Output rechecks have two long identities (40 tree polls each), a number,
   // three reads/terminal polls, and setup. Each identity's value charge has
   // 24 base polls plus nine long-Text fragments; names/values and commit stay

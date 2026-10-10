@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "0b8ea021690b0073390ee23054e5c074e665016326a535625b8455159d8bb6a5",
+  "grammar_sha256": "12dfcd8853b43a66946036e8c9cc7bdf092b8cf2d911062fec57a9614f66285b",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2349,6 +2349,18 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "safe_negate"
+              ],
+              "properties": {
+                "safe_negate": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "rtrim"
               ],
               "properties": {
@@ -2497,6 +2509,74 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_divide"
+              ],
+              "properties": {
+                "safe_divide": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_multiply"
+              ],
+              "properties": {
+                "safe_multiply": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_subtract"
+              ],
+              "properties": {
+                "safe_subtract": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_add"
+              ],
+              "properties": {
+                "safe_add": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -4994,8 +5074,7 @@
                   "additionalProperties": false,
                   "required": [
                     "value",
-                    "start",
-                    "length"
+                    "start"
                   ],
                   "properties": {
                     "value": {
@@ -7834,6 +7913,22 @@
               ],
               "properties": {
                 "op": {
+                  "const": "safe_negate"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "rtrim"
                 },
                 "body": {
@@ -8015,6 +8110,90 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_divide"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_multiply"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_subtract"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_add"
                 },
                 "body": {
                   "type": "array",
@@ -10570,8 +10749,7 @@
                   "additionalProperties": false,
                   "required": [
                     "value",
-                    "start",
-                    "length"
+                    "start"
                   ],
                   "properties": {
                     "value": {
@@ -11928,7 +12106,6 @@
         "operation": {
           "enum": [
             "split_part",
-            "substring",
             "utf8_truncate",
             "try_number",
             "parse_timestamp",
@@ -12853,7 +13030,6 @@
                   "operation": {
                     "enum": [
                       "split_part",
-                      "substring",
                       "utf8_truncate",
                       "try_number",
                       "parse_timestamp",
@@ -19257,6 +19433,18 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "safe_negate"
+              ],
+              "properties": {
+                "safe_negate": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "rtrim"
               ],
               "properties": {
@@ -19405,6 +19593,74 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_divide"
+              ],
+              "properties": {
+                "safe_divide": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_multiply"
+              ],
+              "properties": {
+                "safe_multiply": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_subtract"
+              ],
+              "properties": {
+                "safe_subtract": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_add"
+              ],
+              "properties": {
+                "safe_add": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -21902,8 +22158,7 @@
                   "additionalProperties": false,
                   "required": [
                     "value",
-                    "start",
-                    "length"
+                    "start"
                   ],
                   "properties": {
                     "value": {
@@ -23844,6 +24099,22 @@
               ],
               "properties": {
                 "op": {
+                  "const": "safe_negate"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "rtrim"
                 },
                 "body": {
@@ -24025,6 +24296,90 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_divide"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_multiply"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_subtract"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_add"
                 },
                 "body": {
                   "type": "array",
@@ -26580,8 +26935,7 @@
                   "additionalProperties": false,
                   "required": [
                     "value",
-                    "start",
-                    "length"
+                    "start"
                   ],
                   "properties": {
                     "value": {
@@ -31297,6 +31651,18 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "safe_negate"
+              ],
+              "properties": {
+                "safe_negate": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "rtrim"
               ],
               "properties": {
@@ -31445,6 +31811,74 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_divide"
+              ],
+              "properties": {
+                "safe_divide": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_multiply"
+              ],
+              "properties": {
+                "safe_multiply": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_subtract"
+              ],
+              "properties": {
+                "safe_subtract": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "safe_add"
+              ],
+              "properties": {
+                "safe_add": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -33942,8 +34376,7 @@
                   "additionalProperties": false,
                   "required": [
                     "value",
-                    "start",
-                    "length"
+                    "start"
                   ],
                   "properties": {
                     "value": {
@@ -35884,6 +36317,22 @@
               ],
               "properties": {
                 "op": {
+                  "const": "safe_negate"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "rtrim"
                 },
                 "body": {
@@ -36065,6 +36514,90 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_divide"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_multiply"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_subtract"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "safe_add"
                 },
                 "body": {
                   "type": "array",
@@ -38620,8 +39153,7 @@
                   "additionalProperties": false,
                   "required": [
                     "value",
-                    "start",
-                    "length"
+                    "start"
                   ],
                   "properties": {
                     "value": {
@@ -39560,7 +40092,6 @@
                       "operation": {
                         "enum": [
                           "split_part",
-                          "substring",
                           "utf8_truncate",
                           "try_number",
                           "parse_timestamp",
@@ -39756,10 +40287,16 @@
     "casts": "Closed target table in Language#casts. No implicit conversions. Conversion data is evaluated only on demand. Typed NULL supplies a type; same-type casts preserve their nodes. Decimal conversion from number requires a safe integer; no binary64 fractional approximation.",
     "access": "Static closed-object property names; unknown property is a check error, missing declared property an input-contract violation. Subscript evaluates receiver then index; index must be a non-null nonnegative safe-integer number even for null receiver. Valid out-of-range yields null. Reference/json inspection is forbidden.",
     "concat": "concat skips null strings, all-null yields empty string. concat_strict and template propagate null. No implicit non-string conversion.",
-    "substring": "Unicode scalar positions j: 1<=j<=len(s) and start<=j<start+length, with exact interval arithmetic. start is a safe integer; length a nonnegative safe integer. Null propagates.",
+    "substring": {
+      "signature": "STRING value and safe-integer-valued number start, with an optional safe-integer-valued number length. Result is STRING, nullable exactly when any supplied operand is nullable. Untyped NULL takes the unique positional signature. Retain input max_codepoints and max_utf8_bytes ceilings, but not min_length; do not evaluate length to derive a type. No implicit conversion or BYTES overload is admitted. The number domain is ActQL finite binary64, not the full GoogleSQL INT64 domain.",
+      "value": "Count Unicode scalars. Positive start is one-based. Zero or a start smaller than negative input scalar length selects the first scalar. Other negative starts count backward from the end, with -1 selecting the last scalar. A start beyond the input returns empty. Omitted length retains the remaining suffix; zero length returns empty; positive length retains at most that many scalars. Negative, fractional or unsafe length, or fractional or unsafe start, fails on a demanded non-null call. Clamp before index addition so safe-integer endpoints cannot overflow. Preserve retained scalars exactly, including NUL, astral, combining and line-break sequences, without normalization.",
+      "evaluation": "Evaluate value, start and supplied length exactly once in authored order. Apply strict NULL after all supplied children succeed and before index-domain checks. A NULL child never suppresses a later demanded child failure. Preserve enclosing lazy demand, first-failure order, cancellation, workspace, logical work, live-value and output-byte limits. Cooperative scalar counting, boundary location, exact sizing and construction use the existing scalar expression continuation; no Host substring call, secondary evaluator or result remeasurement substitutes for the owner.",
+      "identity": "The common source is {substring: {value, start, length?}} and the machine node is {op: substring, body: {value, start, length?}}. Preserve omitted length as omitted, distinct from explicit NULL or a supplied length. SQL SUBSTR and SUBSTRING are aliases of this common operation. This current initial-0.1 contract supersedes the inherited fixed-three-argument interval and text-time profile membership for substring. Earlier pinned bodies keep their original meaning and CIDs.",
+      "admission": "Substring is an ordinary scalar operation, requiring no text-time profile, HostEnvelope or text-time policy. Nested profile operations retain their own profile, pattern, envelope and input-preflight obligations, including in unselected branches. Known input String maxima remain conservative output maxima; otherwise surrounding profile operations retain RuntimePreflight under their selected Host limits. No substring-specific profile extent is invented. Previously derived profile extents across a substring may fall back to this conservative preflight; this ownership migration does not claim identical plan admission for every earlier nested profile expression."
+    },
     "split_part": "Preserve empty parts; one-based positive index and negative index from end; zero invalid. Empty delimiter is one whole-string part, including empty input. Out of range is empty string. Null propagates.",
     "lowering": "Each normalized expression lowers recursively to a closed actql-expression-node/0.1: op is its canonical tag, body is its normalized payload with expression children lowered. Structural fields and non-null literals are copied. Bound non-null parameters become literal nodes. Every typed NULL, including a null parameter and missing CASE ELSE, becomes typed_null with its nullable checked contract. Explicit casts remain cast nodes around the typed child. Template expands to ordered literal/cast-to-string children under concat_strict, or an empty-string literal for no segments. Empty array becomes empty_array with canonical checked item type. Profile envelopes are sorted by expression pointer. No unselected-expression hoisting or Host callbacks.",
-    "envelopes": "actql-text-time-bound-laws/0.1 retains pinned Unicode/regex/time bound laws. split_part output ceiling equals input bytes. substring tightens input bytes to min(input bytes,4*length) only for a bound nonnegative safe-integer literal length; utf8_truncate similarly uses min(input bytes,max_bytes) for an admitted literal, otherwise input bytes. Bound arithmetic is exact. Parent expressions consume child checked extents. Envelope self-CID excludes only envelope_cid; arguments_cid binds canonical argument subtrees. Demand predicates are outer-to-inner, with earlier branch not_true, selected branch true and coalesce null tests; aggregate arguments begin with their own filter true. No re-evaluation of demand values; no enforcement on undemanded rows; input admission and whole-unit scopes remain enforced.",
+    "envelopes": "actql-text-time-bound-laws/0.1 retains pinned Unicode/regex/time bound laws for current profile operations. split_part output ceiling equals input bytes. utf8_truncate uses min(input bytes,max_bytes) for a bound nonnegative safe-integer literal limit, otherwise input bytes. Substring is owned by its scalar law, not a text-time envelope. Bound arithmetic is exact. Parent profile expressions consume child checked extents or retained runtime input preflight. Envelope self-CID excludes only envelope_cid; arguments_cid binds canonical argument subtrees. Demand predicates are outer-to-inner, with earlier branch not_true, selected branch true and coalesce null tests; aggregate arguments begin with their own filter true. No re-evaluation of demand values; no enforcement on undemanded rows; input admission and whole-unit scopes remain enforced.",
     "optimization": "Physical optimization preserves canonical identity, demand, first-failure order and logical limits. Failed constant evaluation is not a compilation failure. Physical allocation/CPU usage need not match a reference evaluator.",
     "authority": "Effect selectors keep their restricted operand/tree admission. Pure profile evaluation grants no provider access. New node contracts require explicit capability admission; old Plan/contract CIDs retain their prior meaning.",
     "fragment_capacity": "actql.expression-fragment.capacity is an extension-local contract-ceiling law. Its source is the canonical bound request CID and exact request pointer; dependencies contain only that CID. Resolved limits retain the existing witness/limit wire shape, engine_atomic enforcement and breach fail. This contract registers the law only for fragment revalidation, not in the shared bound-law registry. Limits are sorted by request pointer and regenerated, including all aggregate max_items guards.",
@@ -39844,6 +40381,36 @@
       "value": "Remove the longest trailing sequence only of Unicode code points belonging to the selected set. When the set is omitted, use the pinned Unicode 16.0 White_Space set: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. An explicit set is the code points of the second string, independently of order and duplicates; an empty set leaves the value unchanged. Membership is not substring, grapheme-cluster or normalized matching. Combining marks are independently removable even when part of a different combining sequence. Preserve the exact remaining Unicode scalar sequence without normalization, case folding or line-break conversion. An empty value remains empty; a value consisting entirely of set members becomes empty. U+FEFF, U+200B and U+180E are excluded from the omitted set but can be explicit members. Either NULL operand produces NULL.",
       "evaluation": "Evaluate each demanded operand exactly once in authored order, value before explicit set, including the second child after a NULL value. Apply strict NULL only after all demanded child evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves all logical operand charges; physical set membership, scanning, exact output sizing and construction remain bounded and cancellable.",
       "identity": "The closed source forms are {rtrim: expression} and {rtrim: [value, characters]}; the machine node is {op: rtrim, body: expression_node} or {op: rtrim, body: [value_node, characters_node]} respectively. Preserve existing unary canonical bytes. Retain the authored operation and every ordered child, including empty, duplicate or reordered set expressions, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meanings and do not acquire the explicit-set overload."
+    },
+    "safe_add": {
+      "signature": "Exactly two finite binary64 number operands; the result is nullable number even when both operands are non-nullable. Untyped NULL takes the unique number signature. No implicit conversion, decimal, INT64, NUMERIC or BIGNUMERIC overload, or non-finite value is admitted.",
+      "value": "Apply addition with ordinary binary64 rounding. Return NULL for finite-input overflow. Preserve finite results, including subnormals and underflow to zero, and normalize either zero sign to canonical positive zero. Either NULL operand produces NULL.",
+      "evaluation": "Evaluate the left and then right child exactly once when demanded, including the right child after a NULL left result. Only an arithmetic error from this operation becomes NULL. Preserve child failures, invalid operand domains, enclosing lazy demand, first-failure order, cancellation and existing control, logical-work, live-byte and workspace budgets. Do not reevaluate children or catch surrounding failures.",
+      "identity": "The closed source form is {safe_add: [left, right]}; the closed machine node is {op: safe_add, body: [left_node, right_node]}. Retain the operation and both ordered children in canonical lowering, including constant arguments. Earlier contract CIDs retain their earlier meanings."
+    },
+    "safe_subtract": {
+      "signature": "Exactly two finite binary64 number operands; the result is nullable number even when both operands are non-nullable. Untyped NULL takes the unique number signature. No implicit conversion, decimal, INT64, NUMERIC or BIGNUMERIC overload, or non-finite value is admitted.",
+      "value": "Apply subtraction of the second operand from the first with ordinary binary64 rounding. Return NULL for finite-input overflow. Preserve finite results, including subnormals and underflow to zero, and normalize either zero sign to canonical positive zero. Either NULL operand produces NULL.",
+      "evaluation": "Evaluate the left and then right child exactly once when demanded, including the right child after a NULL left result. Only an arithmetic error from this operation becomes NULL. Preserve child failures, invalid operand domains, enclosing lazy demand, first-failure order, cancellation and existing control, logical-work, live-byte and workspace budgets. Do not reevaluate children or catch surrounding failures.",
+      "identity": "The closed source form is {safe_subtract: [left, right]}; the closed machine node is {op: safe_subtract, body: [left_node, right_node]}. Retain the operation and both ordered children in canonical lowering, including constant arguments. Earlier contract CIDs retain their earlier meanings."
+    },
+    "safe_multiply": {
+      "signature": "Exactly two finite binary64 number operands; the result is nullable number even when both operands are non-nullable. Untyped NULL takes the unique number signature. No implicit conversion, decimal, INT64, NUMERIC or BIGNUMERIC overload, or non-finite value is admitted.",
+      "value": "Apply multiplication with ordinary binary64 rounding. Return NULL for finite-input overflow. Preserve finite results, including subnormals and underflow to zero, and normalize either zero sign to canonical positive zero. Either NULL operand produces NULL.",
+      "evaluation": "Evaluate the left and then right child exactly once when demanded, including the right child after a NULL left result. Only an arithmetic error from this operation becomes NULL. Preserve child failures, invalid operand domains, enclosing lazy demand, first-failure order, cancellation and existing control, logical-work, live-byte and workspace budgets. Do not reevaluate children or catch surrounding failures.",
+      "identity": "The closed source form is {safe_multiply: [left, right]}; the closed machine node is {op: safe_multiply, body: [left_node, right_node]}. Retain the operation and both ordered children in canonical lowering, including constant arguments. Earlier contract CIDs retain their earlier meanings."
+    },
+    "safe_divide": {
+      "signature": "Exactly two finite binary64 number operands; the result is nullable number even when both operands are non-nullable. Untyped NULL takes the unique number signature. No implicit conversion, decimal, INT64, NUMERIC or BIGNUMERIC overload, or non-finite value is admitted.",
+      "value": "Apply division of the first operand by the second with ordinary binary64 rounding. Return NULL for finite-input overflow or a zero divisor. Preserve finite results, including subnormals and underflow to zero, and normalize either zero sign to canonical positive zero. Either NULL operand produces NULL. The distinct legacy safe_div keeps its zero-divisor-only rule; it is not an alias of safe_divide.",
+      "evaluation": "Evaluate the left and then right child exactly once when demanded, including the right child after a NULL left result. Only an arithmetic error from this operation becomes NULL. Preserve child failures, invalid operand domains, enclosing lazy demand, first-failure order, cancellation and existing control, logical-work, live-byte and workspace budgets. Do not reevaluate children or catch surrounding failures.",
+      "identity": "The closed source form is {safe_divide: [left, right]}; the closed machine node is {op: safe_divide, body: [left_node, right_node]}. Retain the operation and both ordered children in canonical lowering, including constant arguments. Earlier contract CIDs retain their earlier meanings."
+    },
+    "safe_negate": {
+      "signature": "Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal, INT64, NUMERIC or BIGNUMERIC overload, or non-finite value is admitted.",
+      "value": "Return the arithmetic negation with canonical positive zero. Every admitted finite binary64 value, including both largest magnitudes and subnormals, has a finite negation, so this supported domain introduces no overflow NULL. A NULL operand produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded. Preserve its failure, invalid operand domains, enclosing lazy demand, first-failure order, cancellation and existing control, logical-work, live-byte and workspace budgets. Do not reevaluate the child or catch surrounding failures.",
+      "identity": "The closed source form is {safe_negate: expression}; the closed machine node is {op: safe_negate, body: expression_node}. Retain the SAFE_NEGATE node and child in canonical lowering, including constant arguments. Earlier contract CIDs retain their earlier meanings."
     }
   },
   "regex_ast_contract": {

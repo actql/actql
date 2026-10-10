@@ -45,9 +45,11 @@ finish this assignment.
 
 ## Current delivery checkpoint
 
-Draft PR #1284 contains Graft, Reach and Shortest integration; Draft PR #1296
-contains the dependent Mean continuation. Both are public and delivery remains
-incomplete. The historical checkpoints below retain their
+PR #1284 and PR #1296 are now adopted. The latest main used by the follow-up is
+`d0674f7341f1c0db855618a93edd27d76b6622aa`; #1296's reviewed head was
+`2f05db07a5eff34c028331fdd2ba06c6652494a8`. Their trees are identical
+(`a8d8843048a376ea4be2ff8804ae265b9815ce94`), but source SHAs and artifact
+receipts are not relabeled. The historical checkpoints below retain their
 original SHAs, commands and receipts. Three private commit messages were
 wrapped before publication with trees and mapped parents unchanged; no test
 receipt is rewritten to the replacement SHA.
@@ -65,6 +67,124 @@ locks released. This is narrow local evidence, not CI or complete Graph
 delivery. Public failure/cleanup retry evidence and literal/Relation identity
 admission/lookup boundedness remain open. Review #1296's long-key P2 remains
 valid and is not closed by these public successes. CI is stopped.
+
+### Adopted selector and public failure follow-up
+
+The preceding paragraph describes the original `aa615176b` checkpoint, not the
+current remaining selector implementation. Main already contains the parent
+`c3c5bc5e9` repair: stepped identity admission and exact retained-identity
+membership through `value_admission.CompleteEquality`, with live-frame
+reservation and cancellation. `4b1b5bfab` preserves receiving-column admission
+and the completion fence; `9697d2166` preserves Shortest Relation snapshot
+custody. The final [integration review](https://github.com/actql/actql/pull/1296#issuecomment-6099419727)
+reports no remaining blocking code finding for the Mean component.
+
+That review records `run-TcEGC1` at the clean reviewed head: selected exact
+Mean/union/source JS 30, provider-construction Node 25, and four freshly packed
+Local/HTTPS Mean cases passed. These are integration evidence, not this
+follow-up's own executions, and do not close fresh-process rereads or public
+failure/cleanup retry for all four operations.
+
+The follow-up uses branch `test/graph-four-public-failures`. The earlier local
+fingerprint-index prototype is preserved at `2946469613621f3d972a640f743d9027d8616cf5`
+and `archive/a-graph-index-prototype-20261011`; it was not pushed after the
+integration branch advanced. It is not adopted here, and will not replace the
+accepted membership implementation merely to optimize this assignment.
+
+The finite remaining acceptance connects both existing snapshot lanes:
+
+| Shared mechanism | Operations reaching it | Representative failure controls |
+| --- | --- | --- |
+| Carrier snapshot, `prepareLocalCarrierSnapshot` | Graft and Mean Graph output | Graft task 3: actual seal, lost acknowledgement, cleanup failure and same-Owner retry |
+| Relation snapshot, `prepareLocalRelationSnapshot` | Reach and Shortest Relation output | Reach task 3: append failure, cleanup failure and same-Owner retry |
+| Original request journal and publication Owner | All four | Same failed intent must not dispatch again; no partial Named Result; final reservation reclamation |
+| Saved publication reader | All four | Rebuild a current-source packed cohort; fresh-process read and original-intent replay without acquisition/Compute |
+
+`authorization.faultInjection.localSnapshotStoreFactory` is private fixture
+wiring selected before physical allocation. Run/Program/transport input cannot
+set it. Production defaults remain the existing real file Store, and the
+driver still owns work, custody, completion and cleanup. The fixture factory
+wraps only its targeted lease; all other leases are unchanged real Stores.
+Its status delegates to actual file-Store accounting, not fabricated counters.
+Cleanup remains the original Host's responsibility, never a new fixture Run
+state machine or ledger.
+
+The real-Store harness passed 3/3 (`run-K6U6Mf`, `focused-test-uOnXob`) on the
+working tree based on this main. An earlier attempt `run-UZ6MV6` expected the
+original 128-byte reservation after seal; the Store legitimately returns unused
+capacity and retains the actual two-byte body. The independent expectation is
+128 for the failed append and 2 for the sealed `[]` body. Neither becomes zero
+while cleanup fails, and retry reclaims it without another lease.
+
+### Current-source public acceptance at 463e8b27e
+
+Clean verified source: `463e8b27eab15f1f1ae2e739f9ce4fe4d867753a`.
+Guarded producer/failure receipt `run-mh7Yfs` passed both steps, with complete
+output and locks released. Its normal five-package producer used prepack once;
+the manifest is `graph-failure-unknown-6UhkWX/packed-client-packages.json`.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `9513ef88b37cbc5f6bf37a2aa88483e7d4089e1b38a390a3dfb3c5cc91cde61d` |
+| local-node | `69716f91571ca687a3093f928666e752f3bae091b65e7c702532d0d601e6a5ff` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The same verified cohort was reused by all three repository-external consumers:
+
+```sh
+node scripts/test-packed-graph.mjs --remaining-failures-only
+node scripts/test-packed-graph.mjs --remaining-operations-only
+node scripts/test-packed-public-query.mjs --graph-remaining-operations-only
+```
+
+The first passed **4/4** (`graph-package-Cjskul/acceptance.json`). Both Local
+and HTTPS reached actual Graft seal acknowledgement loss and Reach append
+failure. Required output was unavailable, the target real Store retained its
+reservation through cleanup failure, and public reconciliation observed the
+same unresolved execution without dispatch. Same-intent replay, failed close
+and successful same-Host cleanup retry left the physical start/advance/Compute
+inventory unchanged. Every lease finally reported zero reserved bytes and no
+cleanup pending; the temporary snapshot directory was empty.
+
+The initial clean `caf9cf161c9caf6f892d2b9baad23e29d76c7c54` attempt
+`run-TEYnSy` packed normally but failed all four public cases on the fixture's
+incorrect terminal `failed` expectation. `execution.md` defines `failed` only
+when no execution outcome is unresolved; the dispatch Owner observes stop
+only after retained cleanup settles. While cleanup is unresolved, the required
+state is therefore `needs_reconciliation`, physical stop `unknown`, with exact
+next action `{kind:"reconcile_run",reason:"execution_unknown"}`. The correction
+requires these facts, nonpublication and no replay; it does not turn an observed
+outcome into success/failure or weaken a cleanup check. Failed evidence remains
+at `graph-package-bNxaDN`, bound to its original source and tarballs.
+
+Guarded reuse receipt `run-8Q7ZV9` then passed both normal/restart steps, output
+complete and locks released:
+
+- **10/10** selected retained Host/operation-cancellation cases passed at
+  `graph-package-GOkkTV/acceptance.json`. All four operations use current typed
+  input owners, independent JSON/AQL rows, schema/order, actual Store export /
+  source revocation / verified reload, repeated submission, two consumers and
+  operation-specific positive-progress cancellation without premature output.
+- Local and HTTPS each completed the exact **44-case** inventory (27 successes,
+  16 pre-Run refusals and one execution failure). Expected and completed
+  inventory digest is `c93fc3d334159fd7bd8bd17f8eaa2cd146bebda48f2a53f67f3c96d981cd7f2b`.
+- Each transport retained four operation restart roots. After the initial
+  producer processes exited, independent reader processes completed all four
+  roots, reading the JSON/AQL boundary Results and replaying the original
+  submission. Both report `physicalDispatches:0`; the live hook also covers
+  Compute advances/completion. No new Run or additional execution is accepted.
+- Public command receipts, transport inventories and both fresh-process
+  records are retained in `public-query-evidence-7joQ8b`. All worker handles
+  are terminal with `liveChildren:0`.
+
+Wasm/Native for the adopted selector/comparison boundary are still unverified
+in this follow-up. `run-iYfPW7` refused the shared heavy lock before starting
+either target, rather than operating another owner's lock. Full Core, Native
+physical Host execution, hosted CI and Preview were not run. CI stays stopped.
+The independent source-free controls establish no acquisition on these Runs;
+they do not claim a new real-Connector or Cloud execution profile.
 
 ### Start-value admission checkpoint at ca6e3afbd
 

@@ -28,11 +28,9 @@ fn lower_script_graph_composition(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> String raise Abort {
-  guard (
-      call.operation == "union_graphs" ||
-      call.operation == "subtract_graphs" ||
-      call.operation == "graft_graph"
-    ) else {
+  guard call.operation == "union_graphs" ||
+    call.operation == "subtract_graphs" ||
+    call.operation == "graft_graph" else {
     raise Abort(UnsupportedGraph)
   }
   guard call.arguments.filter(argument => argument.0 == "with").length() == 1 &&

@@ -183,6 +183,20 @@ pub fn prepare_ordered_references(
                 return Err(ReferenceLimit)
               }
             }
+            Many(Substring, children) => {
+              guard append_path(path, "/body") is Some(body) else {
+                return Err(ReferenceLimit)
+              }
+              // The emitter uses a named body, while semantic child order is
+              // value/start/length rather than canonical object-key order.
+              let fields = [("value", children[0]), ("start", children[1])]
+              if children.length() == 3 {
+                fields.push(("length", children[2]))
+              }
+              if !push(ObjectFields(fields, 0, body)) {
+                return Err(ReferenceLimit)
+              }
+            }
             Many(_, children) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)

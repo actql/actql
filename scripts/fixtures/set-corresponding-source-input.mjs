@@ -1054,3 +1054,159 @@ setCorrespondingRefusals.push(
     + '|> CROSS JOIN UNNEST([r.aql_set_anonymous_4]) AS element ' + positionalUnnestTail),
   refusePositionalUnnest('non-array', positionalUnnestHead + '|> CROSS JOIN UNNEST(kept) AS element ' + positionalUnnestTail),
 );
+
+// Kept anonymous occurrences retain ordinal meaning through ordinary UNPIVOT.
+export const positionalUnpivotProgram = {"version":"actql/0.1","id":"fixture.positional_unpivot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"unpivot":{"columns":["kept"],"keep":["neg"],"value_column":"value","name_column":"label"}},{"select":[{"a":"neg"},{"b":"value"},{"c":"label"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false},"c":{"type":"string","nullable":false}},"rows":[{"a":0,"b":0,"c":"anchor"}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"},{"field":"c","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b","c"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalUnpivotColumns = [{name: 'a', contract: {...number, nullable: true}},
+  {name: 'b', contract: number}, {name: 'c', contract: {type: 'string', nullable: false}}];
+const positionalUnpivot = (name, text, extra = {}) => success('positional-pipe-unpivot-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: positionalUnpivotColumns,
+    expected: [{a: -20, b: 2, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}], ...extra});
+const positionalUnpivotHead = "SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records |> SELECT id AS kept, -amount ";
+const positionalUnpivotTail = '|> SELECT *) ORDER BY a NULLS LAST, b NULLS LAST, c';
+const nullableUnpivotHead = "SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records |> SELECT amount AS target, -id ";
+const nullableUnpivotColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: {type: 'string', nullable: false}}];
+setCorrespondingSuccesses.push(
+  positionalUnpivot('json-control', JSON.stringify(positionalUnpivotProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalUnpivot('anonymous-source', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) ' + positionalUnpivotTail),
+  positionalUnpivot('current-renamed-label', positionalUnpivotHead + '|> SET kept = 7 |> RENAME kept AS renamed '
+    + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(renamed)) AS fresh ' + positionalUnpivotTail,
+    {format: 'aql-text', expected: [{a: -20, b: 7, c: 'renamed'}, {a: -10, b: 7, c: 'renamed'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('private-shaped-destination', positionalUnpivotHead
+    + '|> UNPIVOT INCLUDE NULLS(aql_set_anonymous_4 FOR label IN(kept)) |> WHERE aql_set_anonymous_4 > 0 ' + positionalUnpivotTail),
+  positionalUnpivot('repeated-selected-column', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept,kept)) ' + positionalUnpivotTail,
+    {expected: [{a: -20, b: 2, c: 'kept'}, {a: -20, b: 2, c: 'kept'},
+      {a: -10, b: 1, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('kept-duplicate-aliases', "SELECT 0 AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
+    + '|> SELECT id AS v, -id AS `V`, amount AS target |> UNPIVOT INCLUDE NULLS(value FOR label IN(target)) '
+    + '|> SELECT *) ORDER BY a, b, c NULLS LAST, d',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number},
+      {name: 'c', contract: {...number, nullable: true}}, {name: 'd', contract: {type: 'string', nullable: false}}],
+      expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 1, b: -1, c: 10, d: 'target'}, {a: 2, b: -2, c: 20, d: 'target'}]}),
+  positionalUnpivot('nullable-selected-value', nullableUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(target)) ' + positionalUnpivotTail,
+    {sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}], columns: nullableUnpivotColumns,
+      expected: [{a: -2, b: 20, c: 'target'}, {a: -1, b: null, c: 'target'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('exclude-null-selected-value', nullableUnpivotHead + '|> UNPIVOT(value FOR label IN(target)) ' + positionalUnpivotTail,
+    {sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}], columns: nullableUnpivotColumns,
+      expected: [{a: -2, b: 20, c: 'target'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('typed-empty', "SELECT 0 AS a, 0 AS b, 'anchor' AS c WHERE FALSE UNION ALL (FROM records "
+    + '|> SELECT id AS kept, -amount |> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) ' + positionalUnpivotTail,
+    {sourceRows: [], expected: []}),
+);
+const refusePositionalUnpivot = (name, text) => ({name: 'set-corresponding-refuse-pipe-unpivot-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalUnpivot('private-anonymous', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(aql_set_anonymous_4)) ' + positionalUnpivotTail),
+  refusePositionalUnpivot('ambiguous', "SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records "
+    + '|> SELECT id AS v, -amount AS `V` |> UNPIVOT INCLUDE NULLS(value FOR label IN(v)) ' + positionalUnpivotTail),
+  refusePositionalUnpivot('old-range', positionalUnpivotHead + '|> AS old |> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
+    + '|> WHERE old.kept > 0 ' + positionalUnpivotTail),
+  refusePositionalUnpivot('removed-column', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
+    + '|> WHERE kept > 0 ' + positionalUnpivotTail),
+  refusePositionalUnpivot('qualified-private-anonymous', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
+    + '|> AS fresh |> WHERE fresh.aql_set_anonymous_4 > 0 ' + positionalUnpivotTail),
+);
+
+// Generated UNPIVOT names may collide with kept names; positions retain both values.
+export const positionalUnpivotCollisionProgram = {"version":"actql/0.1","id":"fixture.positional_unpivot_name_collision","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},{"extra":"y"},"neg"]},{"unpivot":{"columns":["kept"],"keep":["extra","neg"],"value_column":"expanded","name_column":"label"}},{"select":[{"a":"extra"},{"b":"neg"},{"c":"expanded"},{"d":"label"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false},"c":{"type":"number","nullable":false},"d":{"type":"string","nullable":false}},"rows":[{"a":0,"b":0,"c":0,"d":"anchor"}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"},{"field":"c","dir":"asc","nulls":"first"},{"field":"d","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b","c","d"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const unpivotCollisionColumns = [{name: 'a', contract: {...number, nullable: true}},
+  {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: number},
+  {name: 'd', contract: {type: 'string', nullable: false}}];
+const unpivotCollision = (name, text, extra = {}) => success('positional-unpivot-name-collision-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: unpivotCollisionColumns,
+    expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'},
+      {a: 20, b: -20, c: 2, d: 'kept'}], ...extra});
+const unpivotCollisionHead = "SELECT 0 AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
+  + '|> SELECT id AS kept, amount AS extra, -amount |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) ';
+const unpivotCollisionTail = '|> SELECT *) ORDER BY a NULLS LAST, b NULLS LAST, c, d';
+setCorrespondingSuccesses.push(
+  unpivotCollision('json-control', JSON.stringify(positionalUnpivotCollisionProgram), {format: 'json', sourceReadSessionCount: 0}),
+  unpivotCollision('value-column', unpivotCollisionHead + unpivotCollisionTail),
+  unpivotCollision('name-column', "SELECT 'anchor' AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
+    + "|> SELECT id AS kept, 'user' AS extra, -amount |> UNPIVOT INCLUDE NULLS(value FOR extra IN(kept)) "
+    + '|> SELECT *) ORDER BY a, b NULLS LAST, c, d',
+    {columns: [{name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}}, ...unpivotCollisionColumns.slice(1)],
+      expected: [{a: 'anchor', b: 0, c: 0, d: 'anchor'}, {a: 'user', b: -20, c: 2, d: 'kept'},
+        {a: 'user', b: -10, c: 1, d: 'kept'}]}),
+  unpivotCollision('qualified-star', unpivotCollisionHead + '|> AS fresh |> SELECT fresh.*) '
+    + 'ORDER BY a NULLS LAST, b NULLS LAST, c, d', {format: 'aql-text'}),
+  unpivotCollision('immutable-star', unpivotCollisionHead + "|> AS fresh |> SET label = 'changed' "
+    + "|> WHERE fresh.label = 'kept' |> SELECT fresh.*) ORDER BY a NULLS LAST, b NULLS LAST, c, d"),
+  unpivotCollision('distinct-complete-row', unpivotCollisionHead + '|> DISTINCT ' + unpivotCollisionTail,
+    {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 10}, {id: 1, amount: 10}],
+      expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'}, {a: 10, b: -10, c: 2, d: 'kept'}]}),
+  unpivotCollision('drop-all-matching-occurrences', "SELECT 0 AS a, 'anchor' AS b UNION ALL (FROM records "
+    + '|> SELECT id AS kept, amount AS extra, -amount |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) '
+    + '|> DROP extra |> SELECT *) ORDER BY a NULLS LAST, b',
+    {columns: [unpivotCollisionColumns[0], {name: 'b', contract: {type: 'string', nullable: false}}],
+      expected: [{a: -20, b: 'kept'}, {a: -10, b: 'kept'}, {a: 0, b: 'anchor'}]}),
+  unpivotCollision('nullable-kept-values', unpivotCollisionHead + unpivotCollisionTail,
+    {sourceRows: [{id: 1, amount: null}], expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: null, b: null, c: 1, d: 'kept'}]}),
+  unpivotCollision('typed-empty', unpivotCollisionHead.replace("'anchor' AS d UNION", "'anchor' AS d WHERE FALSE UNION")
+    + unpivotCollisionTail, {sourceRows: [], expected: []}),
+);
+const refuseUnpivotCollision = (name, tail) => ({name: 'set-corresponding-refuse-unpivot-name-collision-' + name,
+  format: 'sql', text: unpivotCollisionHead + tail + unpivotCollisionTail, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refuseUnpivotCollision('ambiguous-bare', '|> WHERE extra > 0 '),
+  refuseUnpivotCollision('ambiguous-qualified', '|> AS fresh |> WHERE fresh.extra > 0 '),
+  refuseUnpivotCollision('ambiguous-rename', '|> RENAME extra AS renamed '),
+  refuseUnpivotCollision('ambiguous-set', '|> SET extra = 1 '),
+  refuseUnpivotCollision('displaced-range', '|> AS old |> AS fresh |> WHERE old.extra > 0 '),
+  refuseUnpivotCollision('private-duplicate', '|> AS fresh |> WHERE fresh.aql_set_duplicate_8 > 0 '),
+);
+
+// ASSERT validates existing current/range keys without renaming positional values.
+export const positionalAssertProgram = {"version":"actql/0.1","id":"fixture.positional_assert","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"assert_rows":{"unique_by":["kept"]}},{"select":[{"a":"kept"},{"b":"neg"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalAssertColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}];
+const positionalAssert = (name, text, extra = {}) => success('positional-pipe-assert-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: positionalAssertColumns,
+    expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: -20}], ...extra});
+const positionalAssertHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount ';
+const positionalAssertTail = '|> SELECT *) ORDER BY a, b NULLS LAST';
+setCorrespondingSuccesses.push(
+  positionalAssert('json-control', JSON.stringify(positionalAssertProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalAssert('anonymous-source', positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail),
+  positionalAssert('qualified-star', positionalAssertHead + '|> AS r |> ASSERT UNIQUE BY(r.kept) '
+    + '|> SELECT r.*) ORDER BY a, b NULLS LAST', {format: 'aql-text'}),
+  positionalAssert('immutable-key', positionalAssertHead + '|> AS r |> SET kept = 7 '
+    + '|> ASSERT UNIQUE BY(r.kept) ' + positionalAssertTail,
+    {expected: [{a: 0, b: 0}, {a: 7, b: -20}, {a: 7, b: -10}]}),
+  positionalAssert('renamed-current-key', positionalAssertHead + '|> RENAME kept AS current_key '
+    + '|> ASSERT UNIQUE BY(current_key) ' + positionalAssertTail),
+  positionalAssert('duplicate-values-separate-key', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS kept, amount AS v, -amount AS `V` |> ASSERT UNIQUE BY(kept) |> SELECT *) ORDER BY a, b NULLS LAST, c NULLS LAST',
+    {columns: [...positionalAssertColumns, {name: 'c', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 10, c: -10}, {a: 2, b: 20, c: -20}]}),
+  positionalAssert('nullable-nonkey', positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail,
+    {sourceRows: [{id: 1, amount: null}], expected: [{a: 0, b: 0}, {a: 1, b: null}]}),
+  positionalAssert('typed-empty', positionalAssertHead.replace('AS b UNION', 'AS b WHERE FALSE UNION')
+    + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail, {sourceRows: [], expected: []}),
+  positionalAssert('parameter-filter-limit', positionalAssertHead + '|> WHERE kept > @min |> ASSERT UNIQUE BY(kept) '
+    + '|> ORDER BY kept DESC |> LIMIT 1 ' + positionalAssertTail,
+    {parameterDeclarations: {min: number}, parameters: {min: 0}, expected: [{a: 0, b: 0}, {a: 2, b: -20}]}),
+);
+const refusePositionalAssert = (name, projection, key) => ({name: 'set-corresponding-refuse-pipe-assert-' + name,
+  format: 'sql', text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT ' + projection
+    + ' |> ASSERT UNIQUE BY(' + key + ') ' + positionalAssertTail, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalAssert('private-anonymous', 'id AS kept, -amount', 'aql_set_anonymous_4'),
+  refusePositionalAssert('ambiguous-bare', 'id AS v, -amount AS `V`', 'v'),
+  refusePositionalAssert('ambiguous-qualified', 'id AS v, -amount AS `V` |> AS r', 'r.v'),
+  refusePositionalAssert('dropped-input', 'id AS kept, -amount', 'id'),
+  refusePositionalAssert('displaced-range', 'id AS kept, -amount |> AS before |> AS current', 'before.kept'),
+  refusePositionalAssert('qualified-private', 'id AS kept, -amount |> AS r', 'r.aql_set_anonymous_4'),
+);
+// Invalid data is accepted for execution, then rejected by the existing ASSERT
+// Owner. It must not publish either operand or silently deduplicate the input.
+const duplicateAssertProgram = structuredClone(positionalAssertProgram);
+duplicateAssertProgram.stages[0].steps[0].values.rows = [{x: 1, y: 10}, {x: 1, y: 20}];
+export const setCorrespondingExecutionFailures = [
+  {name: 'set-corresponding-positional-assert-duplicate-json', format: 'json',
+    text: JSON.stringify(duplicateAssertProgram), resultNames: ['answer'], sourceReadSessionCount: 0},
+  {name: 'set-corresponding-positional-assert-duplicate-source', format: 'sql',
+    text: positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail,
+    sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}], resultNames: ['answer'], sourceReadSessionCount: 1},
+];

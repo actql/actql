@@ -1988,6 +1988,10 @@ fn compile_steps(
               positional_destination_names.push(name)
             }
           }
+        Some(Unpivot(clause)) => {
+          positional_destination_names.push(clause.value_column)
+          positional_destination_names.push(clause.name_column)
+        }
         Some(UnnestSource(_, element, offset)) => {
           positional_destination_names.push(element)
           if offset is Some(name) {
@@ -2273,6 +2277,7 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is AssertUnique(_) ||
           operation is UnnestSource(_, _, _) ||
           operation is Set(_) ||
           operation is Extend(_) ||
@@ -2321,6 +2326,18 @@ fn compile_steps(
         .length() >
         1
       }
+      if operation is Unpivot(clause) {
+        for name in clause.columns {
+          if positional_private_fields.any(field => {
+              same_name(name, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+          if ambiguous_current_name(name) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
+      }
       if operation is Rename(names) {
         for (target, _) in names {
           if ambiguous_current_name(target) {
@@ -2339,8 +2356,12 @@ fn compile_steps(
           }
         }
       }
-      for expression in expressions {
-        let references = join_reference_paths(expression)
+      // Expressions and assertion key paths share the same authored scope.
+      // This validates references only; the assertion's type/key checks and
+      // execution remain with its existing lowering and common Owner.
+      let check_references = fn(
+        references : Array[Array[@query.NamePart]],
+      ) -> Unit raise Abort {
         reject_duplicate_projection_references(
           remaining_projections, references, resolve_input,
         )
@@ -2374,6 +2395,12 @@ fn compile_steps(
             raise Abort(UnknownColumn)
           }
         }
+      }
+      for expression in expressions {
+        check_references(join_reference_paths(expression))
+      }
+      if operation is AssertUnique(keys) {
+        check_references(keys)
       }
     }
     let entries : Array[(String, @builder.Node)] = []
@@ -2413,6 +2440,34 @@ fn compile_steps(
         pipe_rebound = true
         pipe_changed = true
         deferred = true
+        if positional_projection is Some(projection) && i > projection {
+          let names = pipe_visible.map(column => column.0)
+          let bindings = pipe_visible.copy()
+          let selected = pipe_visible.map(column => {
+            construction.object([(column.0, construction.text(column.1))])
+          })
+          let private_fields = privatize_positional_duplicate_columns(
+            construction,
+            names,
+            bindings,
+            selected,
+            active_fields,
+            authored_aliases=Some(positional_authored_aliases),
+            reserved_names=positional_destination_names,
+          )
+          if !private_fields.is_empty() {
+            // UNPIVOT may name a new value/label like a retained column.
+            // Copy each evaluated occurrence; neither value is overwritten.
+            positional_private_fields.append(private_fields)
+            entries.push(("select", construction.array(selected)))
+            active_fields = names.copy()
+            output = names
+            pipe_visible = names.map(name => (name, name))
+            pipe_columns = pipe_visible.copy()
+            pipe_changed = false
+            deferred = false
+          }
+        }
       }
       UnnestSource(expression, element, offset) => {
         let correlated = i != 0 || !@query.relation(query).is_empty()
