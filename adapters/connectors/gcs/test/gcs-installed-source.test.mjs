@@ -15,6 +15,8 @@ import {connect as connectRemote} from '../../../../packages/sdk/index.mjs';
 import {fixtureCertificates} from '../../../site-node/https-exchange-fixture.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {restoreGcsSourceDeclaration} from '../host/gcs-source-declaration.mjs';
+import {gcsAcceptancePrograms} from '../../../../scripts/gcs-files-content-environment.mjs';
+import {selectInstalledHostEnvironment} from '../../../host-node/installed-host-policy.mjs';
 
 const runtimeUrl = new URL('../../../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -110,6 +112,82 @@ test('standard GCS Site rejects arbitrary origins and unknown profile fields bef
 });
 
 for (const entrance of ['Local', 'HTTPS']) {
+test(`public ${entrance} GCS acceptance keyed Programs check against the installed declaration without credential I/O`, async t => {
+  const value = await fixture(t);
+  const manifest = {version: 'actql-gcs-files-content-acceptance/0.1',
+    project: value.profile.project, bucket: value.profile.bucket, prefix: value.profile.prefix,
+    credential: {kind: 'gcloud-impersonation', account: 'fixture@example.invalid',
+      serviceAccount: 'actql-content-test@fixture-project.iam.gserviceaccount.com',
+      executable: '/fixture/gcloud'}, permissions: ['list', 'read_metadata', 'read_content'],
+    limits: {maxRequests: 200, maxResponseBytes: 10485760, maxDurationMs: 900000, maxObjectBytes: 1048576},
+    costLimitUsd: 1, expectedObjects: [{name: value.profile.prefix + 'fixture.pdf',
+      mediaType: 'application/pdf', contentCid: `sha256:${'1'.repeat(64)}`, sizeBytes: 3}]};
+  // Synthetic expected bytes are never consumed here. This case establishes
+  // real public Check/declaration connectivity, not a successful GCS read.
+  // Lookup policy is an explicit Host decision, not a Source-adapter default
+  // or a caller Program claim. Use the same bounded selection for preparation
+  // and both public entrances.
+  const hostLookupExecutionPolicy = {version: 'actql-lookup-execution-policy/0.1',
+    max_network_attempts_per_request: 3, max_request_bytes_per_attempt: 4096,
+    max_total_request_bytes: 73728, max_total_response_bytes: 49152,
+    // Three admitted listing rows, two pages per keyed request, 8192 bytes
+    // per page. Bound the declared extent, not the one expected object.
+    max_total_decoded_response_bytes: 49152, max_total_duration_ms: 30000};
+  const baseEnvironmentWire = selectInstalledHostEnvironment(moon,
+    value.options.baseEnvironmentWire.trimEnd(), undefined, hostLookupExecutionPolicy);
+  const installed = await loadInstalledSource(value.profilePath, {...value.options, baseEnvironmentWire});
+  value.loaded.push(installed);
+  const environment = moon.clientProgramCheckEnvironment(installed.environmentWire,
+    JSON.parse(installed.environmentWire).evidence_bundle_cid,
+    false, false, true, false, false, false, false);
+  const installation = {directory: join(value.scratch.path, 'host'), sourceProfilePath: value.profilePath,
+    resolveSourceSecret: value.resolveSecret, authorization: value.authorization, hostLookupExecutionPolicy};
+  let client, host, server, previousCertificates;
+  value.closers.push(async () => {
+    await client?.close();
+    if (server?.listening) {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+    await host?.close();
+    if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
+  });
+  if (entrance === 'Local') {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation});
+  } else {
+    const {key, cert, ca} = await fixtureCertificates(value.scratch.path);
+    previousCertificates = getCACertificates('default');
+    setDefaultCACertificates([...previousCertificates, ca.toString('utf8')]);
+    host = await openInstalledRemoteHttpHost({...installation,
+      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined});
+    server = createServer({key, cert}, host.handler);
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    client = await connectRemote({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
+      token: 'gcs-fixture', durability: 'durable'});
+  }
+  for (const program of Object.values(gcsAcceptancePrograms(manifest, value.profile.connectorId))) {
+    const prepared = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
+      'json', environment, undefined);
+    assert.ok(moon.clientProgramPreparationReady(prepared),
+      inspect(moon.clientProgramPreparationIssue(prepared), {depth: 8, maxStringLength: 3000}));
+    const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
+    assert.equal(checked.report?.verdict, 'verified', inspect(checked, {depth: 8, maxStringLength: 3000}));
+    // The original failing input remains a real protected-boundary regression;
+    // adding explicit views must not weaken disclosure for omitted selectors.
+    const omitted = structuredClone(program);
+    delete omitted.stages[0].inputs.files.view;
+    delete omitted.stages[0].inputs.contents.view;
+    const protectedCheck = await client.check(omitted, {kind: 'program', scope: 'bound_input'});
+    assert.equal(protectedCheck.report?.verdict, 'undetermined');
+    assert.deepEqual(protectedCheck.report.coverage.unresolved,
+      [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+    assert.deepEqual(protectedCheck.report.reasons, []);
+  }
+  assert.equal(value.secretCalls(), 0, 'public Check cannot mint a token or contact GCS');
+});
 test(`public ${entrance} LIST_FILES paths=[] uses the standard GCS installation with zero credential calls`, async t => {
   const value = await fixture(t);
   const installation = {directory: join(value.scratch.path, 'host'), sourceProfilePath: value.profilePath,
