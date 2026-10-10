@@ -2187,6 +2187,15 @@ fn compile_steps(
       sql_group_projection = false
     }
     if positional_projection is Some(projection) && i > projection {
+      if operation is Drop(names) {
+        for name in names {
+          if positional_private_fields.any(field => {
+              same_name(name, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
       if operation is Set(assignments) {
         for assignment in assignments {
           if positional_private_fields.any(field => {
@@ -2967,6 +2976,35 @@ fn compile_steps(
         }
       }
       Drop(names) => {
+        // A positional DROP removes all occurrences of an authored name. Use
+        // the star-exclusion correspondence before ordinary physical removal.
+        let names = if positional_projection is Some(projection) &&
+          i > projection {
+          let physical : Array[@query.NamePart] = []
+          for name in names {
+            if names.filter(other => same_name(name, other)).length() != 1 {
+              raise Abort(DuplicateOutput)
+            }
+            let matches = pipe_columns.filter(column => {
+              same_name(name, {
+                value: positional_authored_column_name(
+                  column.0,
+                  positional_authored_aliases,
+                ),
+                quoted: false,
+              })
+            })
+            if matches.is_empty() {
+              raise Abort(UnknownColumn)
+            }
+            physical.append(
+              matches.map(column => { value: column.0, quoted: false, }),
+            )
+          }
+          physical
+        } else {
+          names
+        }
         // A structural DROP does not read values from retained columns. When
         // the current visible names already are the physical row slots, use
         // the existing operation rather than manufacturing a final SELECT
