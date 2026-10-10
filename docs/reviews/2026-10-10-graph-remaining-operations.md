@@ -45,9 +45,11 @@ finish this assignment.
 
 ## Current delivery checkpoint
 
-Draft PR #1284 contains Graft, Reach and Shortest integration; Draft PR #1296
-contains the dependent Mean continuation. Both are public and delivery remains
-incomplete. The historical checkpoints below retain their
+PR #1284 and PR #1296 are now adopted. The latest main used by the follow-up is
+`d0674f7341f1c0db855618a93edd27d76b6622aa`; #1296's reviewed head was
+`2f05db07a5eff34c028331fdd2ba06c6652494a8`. Their trees are identical
+(`a8d8843048a376ea4be2ff8804ae265b9815ce94`), but source SHAs and artifact
+receipts are not relabeled. The historical checkpoints below retain their
 original SHAs, commands and receipts. Three private commit messages were
 wrapped before publication with trees and mapped parents unchanged; no test
 receipt is rewritten to the replacement SHA.
@@ -65,6 +67,63 @@ locks released. This is narrow local evidence, not CI or complete Graph
 delivery. Public failure/cleanup retry evidence and literal/Relation identity
 admission/lookup boundedness remain open. Review #1296's long-key P2 remains
 valid and is not closed by these public successes. CI is stopped.
+
+### Adopted selector and public failure follow-up
+
+The preceding paragraph describes the original `aa615176b` checkpoint, not the
+current remaining selector implementation. Main already contains the parent
+`c3c5bc5e9` repair: stepped identity admission and exact retained-identity
+membership through `value_admission.CompleteEquality`, with live-frame
+reservation and cancellation. `4b1b5bfab` preserves receiving-column admission
+and the completion fence; `9697d2166` preserves Shortest Relation snapshot
+custody. The final [integration review](https://github.com/actql/actql/pull/1296#issuecomment-6099419727)
+reports no remaining blocking code finding for the Mean component.
+
+That review records `run-TcEGC1` at the clean reviewed head: selected exact
+Mean/union/source JS 30, provider-construction Node 25, and four freshly packed
+Local/HTTPS Mean cases passed. These are integration evidence, not this
+follow-up's own executions, and do not close fresh-process rereads or public
+failure/cleanup retry for all four operations.
+
+The follow-up uses branch `test/graph-four-public-failures`. The earlier local
+fingerprint-index prototype is preserved at `2946469613621f3d972a640f743d9027d8616cf5`
+and `archive/a-graph-index-prototype-20261011`; it was not pushed after the
+integration branch advanced. It is not adopted here, and will not replace the
+accepted membership implementation merely to optimize this assignment.
+
+The finite remaining acceptance connects both existing snapshot lanes:
+
+| Shared mechanism | Operations reaching it | Representative failure controls |
+| --- | --- | --- |
+| Carrier snapshot, `prepareLocalCarrierSnapshot` | Graft and Mean Graph output | Graft task 3: actual seal, lost acknowledgement, cleanup failure and same-Owner retry |
+| Relation snapshot, `prepareLocalRelationSnapshot` | Reach and Shortest Relation output | Reach task 3: append failure, cleanup failure and same-Owner retry |
+| Original request journal and publication Owner | All four | Same failed intent must not dispatch again; no partial Named Result; final reservation reclamation |
+| Saved publication reader | All four | Rebuild a current-source packed cohort; fresh-process read and original-intent replay without acquisition/Compute |
+
+`authorization.faultInjection.localSnapshotStoreFactory` is private fixture
+wiring selected before physical allocation. Run/Program/transport input cannot
+set it. Production defaults remain the existing real file Store, and the
+driver still owns work, custody, completion and cleanup. The fixture factory
+wraps only its targeted lease; all other leases are unchanged real Stores.
+Its status delegates to actual file-Store accounting, not fabricated counters.
+Cleanup remains the original Host's responsibility, never a new fixture Run
+state machine or ledger.
+
+The real-Store harness passed 3/3 (`run-K6U6Mf`, `focused-test-uOnXob`) on the
+working tree based on this main. An earlier attempt `run-UZ6MV6` expected the
+original 128-byte reservation after seal; the Store legitimately returns unused
+capacity and retains the actual two-byte body. The independent expectation is
+128 for the failed append and 2 for the sealed `[]` body. Neither becomes zero
+while cleanup fails, and retry reclaims it without another lease.
+
+Four public Local/HTTPS controls are authored in
+`scripts/graph-public-failure.test.mjs`; the external driver selection is
+`node scripts/test-packed-graph.mjs --remaining-failures-only`. They are not yet
+executed or passing evidence. They must reach the targeted physical failure,
+reject Named Result reads, retain pending reservations through failed close,
+then settle cleanup with the same Host and no additional Compute. Fresh packed
+acceptance, later-process rereads and final fixed-SHA receipts remain open.
+Hosted CI is not started.
 
 ### Start-value admission checkpoint at ca6e3afbd
 
