@@ -742,6 +742,33 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(
 }
 
 ///|
+/// Read the original confirmed review projection for authorized transport.
+/// The returned report names the original dispatch and Checkpoint; no JSON,
+/// Preview, approval or Run is regenerated. Input and review custody stay owned.
+pub fn NativeResidentEffectReview::review_projection(
+  self : NativeResidentEffectReview,
+  authorize_evidence_read : () -> Bool,
+  max_bytes : Int,
+) -> Result[
+  (@remote.RemoteEffectCheckpointReport, String),
+  NativeResidentEffectReviewIssue,
+] {
+  if self.closed || self.retiring || !self.current() {
+    return Err(Unavailable)
+  }
+  guard self.retention is Some(retention) else { return Err(Unavailable) }
+  let projection = match
+    retention.review_projection(authorize_evidence_read, max_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Retention(issue))
+  }
+  if self.closed || self.retiring || !self.current() {
+    return Err(Unavailable)
+  }
+  Ok(projection)
+}
+
+///|
 /// Reopen the journal only for this original live holder and its authenticated
 /// completion/borrow. This restores no process, Ledger, approval or generation.
 pub fn NativeResidentEffectReview::restore_journal(
