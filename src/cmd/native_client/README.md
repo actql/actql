@@ -1,10 +1,30 @@
-# Native Client transport CLI
+# Native Client CLI
 
 `actql-native-client` is a Node-free native binary that uses the public
-Client–Host HTTP protocol over mTLS. It uses the existing bounded native
-HTTPS adapter. It does not load a Local kernel or a Cloud SDK, and it does not
-implement Run admission or retry itself. The selected Host must provide the
-corresponding operations.
+Client–Host HTTP protocol over mTLS. Remote operations use the existing bounded
+native HTTPS adapter; the selected Host owns Run admission and retry. The source
+candidate also provides explicit embedded Local preparation through the common
+checker. Local execution and operations remain unfinished; preparation does not
+admit a Run or establish authorization.
+
+## Embedded Local preparation
+
+Select `--mode local`, `--config-root` and `--config-file` explicitly. The
+configuration selects a bounded Check Environment original and its evidence
+bundle CID. `check --program-file <file> --format <format>` prepares the input
+through the existing Native frontend/checker. External parameter declarations
+are allowed only for `aql-text` and `sql`; parameter values remain separate.
+Remote endpoint and authentication flags are refused in this mode.
+
+Human output states that no Run was admitted. `check --json` returns
+`kind: prepared`; it is not a verified public diagnostics report. Unsupported
+inputs or operations are refused. Source alias discovery, trusted configuration
+adoption, Local Run commands, Checkpoint answers and cross-process Local recovery
+are not completed by this preparation entry. The source fixtures are in
+`scripts/fixtures/native-local-cli`; current source changes do not establish
+fresh installed-artifact acceptance by themselves.
+
+## Remote transport
 
 Build with the pinned MoonBit toolchain using `moon build --target native
 --release src/cmd/native_client`. The resulting binary is

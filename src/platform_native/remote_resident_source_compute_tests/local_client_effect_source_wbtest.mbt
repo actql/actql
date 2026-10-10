@@ -500,6 +500,45 @@ test "Native original Effect captures its real acquired producer and local impor
     physical_equal(review_materials.prepared, facts.materials.prepared),
   )
   assert_eq(review_materials.request, Some(request))
+  assert_true(
+    owner.effect_review_input_binding(facts.materials, facts.inputs, request)
+    is Ok(
+      @resident.Acquired(
+        "connector://crm/main/r#v",
+        "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3"
+      )
+    ),
+  )
+  assert_true(
+    owner.effect_review_input_binding(
+      { ..facts.materials, run_definition: foreign, },
+      facts.inputs,
+      request,
+    )
+    is Err(@resident.ForeignCapture),
+  )
+  let other_request = @host.prepare_client_effect_request_identity(
+    facts.materials.prepared,
+    @host.client_request_authority_scope_cid(request),
+    "other-local-review-request",
+    @host.client_request_input_cid(request),
+  ).unwrap()
+  assert_true(
+    owner.effect_review_input_binding(
+      facts.materials,
+      facts.inputs,
+      other_request,
+    )
+    is Err(@resident.ForeignCapture),
+  )
+  assert_true(
+    owner.effect_review_input_binding(
+      { ..facts.materials, request: Some(other_request), },
+      facts.inputs,
+      request,
+    )
+    is Err(@resident.ForeignCapture),
+  )
   assert_eq(
     @publication.publication_contract_identity(facts.materials.run_definition),
     @publication.publication_contract_identity(definition),
@@ -540,6 +579,10 @@ test "Native original Effect captures its real acquired producer and local impor
   assert_true(capture.close())
   assert_true(capture.close())
   assert_true(owner.request_for_effect_review(facts.inputs) is None)
+  assert_true(
+    owner.effect_review_input_binding(facts.materials, facts.inputs, request)
+    is Err(@resident.Unavailable),
+  )
   assert_true(work.close())
   assert_true(owner.effect_materials_for_capture() is None)
   assert_eq(acquisitions, 1)
