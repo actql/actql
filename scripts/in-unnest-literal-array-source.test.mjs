@@ -42,8 +42,8 @@ test('normal packed acceptance and its narrow selector register the same literal
     const registration = `scopeInputs.${kind}.push(...${group})`;
     assert.equal(fixture.split(registration).length - 1, 1);
   }
-  assert.ok(fixture.includes('const scopeOnly = inUnnestLiteralArrayOnly ||'));
-  assert.ok(fixture.includes('const scopeInputs = inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses'));
+  assert.match(fixture, /const scopeOnly = [^;]*\binUnnestLiteralArrayOnly\b/u);
+  assert.ok(fixture.includes('inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses'));
   assert.ok(fixture.includes(': arrayLiteralOnly ? {successes: arrayLiteralSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_IN_UNNEST_LITERAL_ARRAY_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs']"));

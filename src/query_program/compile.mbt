@@ -425,6 +425,17 @@ fn same_expression(
     }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
+    if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
+      literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
+      if a_name != b_name || a_items.length() != b_items.length() {
+        return false
+      }
+      pending.push((a_value, b_value))
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
     if strict_concat_pair(a) is Some((a_left, a_right)) &&
       strict_concat_pair(b) is Some((b_left, b_right)) {
       // These two spellings already lower to the same ordered two-operand
