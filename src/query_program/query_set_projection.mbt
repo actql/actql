@@ -1,6 +1,6 @@
 ///|
 // ORDER/LIMIT, WHERE and a star preserve anonymous positional columns.
-// Named exclusions change the width without naming retained anonymous values.
+// EXCEPT/REPLACE address named columns without naming retained anonymous values.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
   let mut projection : Int? = None
@@ -11,8 +11,7 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
         projection = Some(index)
         if projections.length() == 1 &&
           projections[0].star == Some("*") &&
-          projections[0].expression is None &&
-          projections[0].replacements.is_empty() {
+          projections[0].expression is None {
           index -= 1
         } else {
           return projection
@@ -22,6 +21,57 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
     }
   }
   projection
+}
+
+///|
+// These are authored expression trees, before star expansion creates its
+// internal physical-field references. Reuse the ordinary reference guards.
+fn positional_projection_expressions(
+  projections : Array[@query.Projection],
+) -> Array[@query.Expression] {
+  let expressions : Array[@query.Expression] = []
+  let add_aggregate = fn(call : @query.AggregateCall) {
+    if call.argument is Some(expression) {
+      expressions.push(expression)
+    }
+    if call.filter is Some(expression) {
+      expressions.push(expression)
+    }
+    expressions.append(call.order_by.map(term => term.expression))
+  }
+  let add_analytic = fn(call : @query.AnalyticCall) {
+    if call.expression is Some(expression) {
+      expressions.push(expression)
+    }
+    if call.aggregate is Some(aggregate) {
+      add_aggregate(aggregate)
+    }
+    expressions.append(call.window.partition_by)
+    expressions.append(call.window.order_by.map(term => term.expression))
+  }
+  for projection in projections {
+    if projection.expression is Some(expression) {
+      expressions.push(expression)
+    }
+    if projection.aggregate is Some(call) {
+      add_aggregate(call)
+    }
+    if projection.analytic is Some(call) {
+      add_analytic(call)
+    }
+    for replacement in projection.replacements {
+      if replacement.expression is Some(expression) {
+        expressions.push(expression)
+      }
+      if replacement.aggregate is Some(call) {
+        add_aggregate(call)
+      }
+      if replacement.analytic is Some(call) {
+        add_analytic(call)
+      }
+    }
+  }
+  expressions
 }
 
 ///|
