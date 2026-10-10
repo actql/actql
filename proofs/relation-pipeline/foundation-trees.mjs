@@ -7,6 +7,35 @@ const zero = '0'.repeat(40);
 const modes = new Set(['000000', '100644', '100755']);
 const same = (a, b) => a?.mode === b?.mode && a?.object === b?.object;
 
+export function foundationAncestorQuery(completeParents) {
+  // Snapshot the complete Git-derived graph. Cache reachability only for
+  // queried descendants, without simplifying merges or filtering revisions.
+  const ordinals = new Map([...completeParents.keys()].map((revision, index) => [revision, index]));
+  const parents = [...completeParents].map(([revision, values]) => {
+    assert(sha.test(revision) && Array.isArray(values), 'Invalid complete foundation ancestry');
+    return values.map(parent => {
+      assert(sha.test(parent) && ordinals.has(parent), 'Incomplete foundation parent ancestry');
+      return ordinals.get(parent);
+    });
+  });
+  const reachable = new Map(), words = Math.ceil(parents.length / 32);
+  return (a, b) => {
+    if (!ordinals.has(a) || !ordinals.has(b)) return false;
+    const source = ordinals.get(a), descendant = ordinals.get(b);
+    if (!reachable.has(descendant)) {
+      const bits = new Uint32Array(words), pending = [descendant];
+      while (pending.length) {
+        const current = pending.pop(), word = current >>> 5, mask = 1 << (current & 31);
+        if ((bits[word] & mask) !== 0) continue;
+        bits[word] |= mask;
+        for (const parent of parents[current]) pending.push(parent);
+      }
+      reachable.set(descendant, bits);
+    }
+    return (reachable.get(descendant)[source >>> 5] & (1 << (source & 31))) !== 0;
+  };
+}
+
 export function readFoundationTreeDeltas(output, revisions, paths) {
   assert(Buffer.isBuffer(output) && revisions.length > 0 && revisions.length <= 256,
     'Invalid foundation tree batch');
