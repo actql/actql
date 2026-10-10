@@ -78,18 +78,18 @@ test('normal packed corpus and focused invocation execute the same authored case
 
 test('grouped numeric identity retains admission, NULL keys, multiplicity and alias direction', () => {
   const cases = new Map(groupedUnaryPlusSuccesses.map(item => [item.name, item]));
-  const control = cases.get('unary-plus-group-json-control');
+  const control = cases.get('unary-plus-group-value-json-control');
   const program = JSON.parse(control.text);
   assert.deepEqual(program.stages[0].steps[0].filter, {gt: [{field: 'id'}, {literal: 0}]});
   assert.deepEqual(program.stages[1].steps[0].derive.key, {negate: {negate: {field: 'amount'}}});
   assert.deepEqual(program.stages[1].steps[1].group,
     {by: ['key'], aggregates: {n: {fn: 'count'}}});
   assert.deepEqual(control.expected, [{bucket: -4, n: 1}, {bucket: 0, n: 2}, {bucket: null, n: 1}]);
-  assert.deepEqual(cases.get('unary-plus-group-empty').columns, control.columns);
-  assert.deepEqual(cases.get('unary-plus-group-empty').expected, []);
-  assert.deepEqual(cases.get('unary-plus-group-head-pipe-consumer').expected, [{bucket: 0, n: 2}]);
-  assert.deepEqual(cases.get('unary-plus-group-order-output-alias').expected.map(row => row.amount), [0, 4, null]);
-  assert.deepEqual(cases.get('unary-plus-group-order-qualified-input').expected.map(row => row.amount), [4, 0, null]);
+  assert.deepEqual(cases.get('unary-plus-group-value-empty').columns, control.columns);
+  assert.deepEqual(cases.get('unary-plus-group-value-empty').expected, []);
+  assert.deepEqual(cases.get('unary-plus-group-value-head-pipe-consumer').expected, [{bucket: 0, n: 2}]);
+  assert.deepEqual(cases.get('unary-plus-group-value-order-output-alias').expected.map(row => row.amount), [0, 4, null]);
+  assert.deepEqual(cases.get('unary-plus-group-value-order-qualified-input').expected.map(row => row.amount), [4, 0, null]);
   assert.ok(groupedUnaryPlusRefusals.every(item => item.code === 'ClientProgramInvalidInput'));
   assert.ok(groupedUnaryPlusSuccesses.every(item => item.sourceReadSessionCount === 1));
 });
