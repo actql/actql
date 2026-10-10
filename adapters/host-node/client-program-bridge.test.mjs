@@ -1674,7 +1674,7 @@ test('public submit rejects checker failures before Run admission', async t => {
         maxBatchRetainedValueBytes: 2048},
     }),
     prepareSubmit, lookupRequest, submit: submitProgram,
-    submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
+    submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
   }));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -2108,7 +2108,7 @@ test('public Values submit computes and reads its real Local Result',
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local',
         negotiate, prepareSubmit, lookupRequest, submit,
-        submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
+        submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
         resolve));
@@ -2120,7 +2120,7 @@ test('public Values submit computes and reads its real Local Result',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
           negotiate, prepareSubmit, lookupRequest, submit,
-          submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
+          submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
