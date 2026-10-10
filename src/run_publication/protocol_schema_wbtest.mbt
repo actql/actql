@@ -350,3 +350,49 @@ test "generated EffectOutcome shape keeps the four states closed" {
     assert_true(parse_effect_outcome_shape(wire, 4096, 128, 16) is Err(_))
   }
 }
+
+///|
+test "shared generated protocol metadata retains no values budgets or cursor cancellation" {
+  let good = parse_effect_outcome_shape(
+    "{\"result\":{},\"state\":\"applied\"}", 4096, 128, 16,
+  ).unwrap()
+  let extra = parse_contract_wire(
+    "{\"extra\":1,\"result\":{},\"state\":\"applied\"}", 4096, 128, 16,
+  ).unwrap()
+  for _ in 0..<3 {
+    assert_true(
+      validate_generated_protocol_shape(
+        "effect_outcome", good, true, 4096, 128, 16,
+      ),
+    )
+    assert_false(
+      validate_generated_protocol_shape(
+        "effect_outcome", extra, true, 4096, 128, 16,
+      ),
+    )
+    assert_false(
+      validate_generated_protocol_shape(
+        "effect_outcome", good, true, 4096, 0, 16,
+      ),
+    )
+    assert_false(
+      validate_generated_protocol_shape(
+        "effect_outcome", good, false, 4096, 128, 16,
+      ),
+    )
+    let pending = start_protocol_validation(
+      good,
+      generated_protocol_schema_root("effect_outcome", true).unwrap(),
+      protocol_schema_nodes(),
+      { remaining: 1024, max_wire_bytes: 4096, max_nodes: 128, max_depth: 16, },
+    )
+    pending.advance(1) |> ignore
+    pending.cancel()
+    assert_false(pending.result)
+    assert_true(
+      validate_generated_protocol_shape(
+        "effect_outcome", good, true, 4096, 128, 16,
+      ),
+    )
+  }
+}

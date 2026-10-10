@@ -230,6 +230,17 @@ fn validate_protocol_node(
 }
 
 ///|
+// Private immutable metadata generated from the pinned protocol contract.
+// Construct it at module initialization, before Native calls can run in parallel.
+// Validation state/budget is per call; no caller value or result is retained.
+let retained_protocol_schema_nodes : Array[ProtocolSchemaRule] = generated_protocol_schema_nodes()
+
+///|
+fn protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
+  retained_protocol_schema_nodes
+}
+
+///|
 fn validate_generated_protocol_shape(
   name : String,
   value : @json.CanonicalValue,
@@ -241,7 +252,7 @@ fn validate_generated_protocol_shape(
   guard generated_protocol_schema_root(name, complete) is Some(root) else {
     return false
   }
-  let nodes = generated_protocol_schema_nodes()
+  let nodes = protocol_schema_nodes()
   let validation_work = if max_nodes > 268435455 {
     2147483647
   } else {
