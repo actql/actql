@@ -25,6 +25,9 @@ pub(all) struct ResidentLocalEffectCaptureFacts {
   acquired_bodies : (String, String)
   producer : @host.ClientEffectLocalResultArtifact
   producer_manifest : @host.ClientEffectLocalManifest
+  producer_index : Int
+  consumer : @host.ClientEffectLocalResultArtifact
+  consumer_index : Int
   imported : @host.ClientEffectImportedEvidence
   observation : @publication.RunEvidenceValue
   invocation : @publication.PublicationContract
@@ -314,6 +317,87 @@ pub fn ResidentSourceCompute::prepare_local_effect_capture_context(
   if !current() {
     return context.reject(Unavailable)
   }
+  // Locate the actual Effect member's Result, rather than assuming that the
+  // consumer occupies the next array slot or using the producer's Artifact.
+  let mut consumer_index = -1
+  for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+    if @strategy.captured_effect_local_result_matches_member(
+        inputs,
+        index,
+        @strategy.captured_effect_input_member_index(effect_input),
+      ) {
+      consumer_index = index
+      break
+    }
+  }
+  guard consumer_index >= 0 &&
+    @strategy.captured_effect_local_result_at(inputs, consumer_index)
+    is Some(consumer_result) else {
+    return context.reject(Unavailable)
+  }
+  let exported = match
+    self.prepare_effect_result_export(inputs, consumer_index, limits) {
+    Ok(value) => value
+    Err(issue) => return context.reject(Export(issue))
+  }
+  context.exported = Some(exported)
+  let receipt = match finish_effect_dependency_export(exported, max_work) {
+    Ok(value) => value
+    Err(issue) => return context.reject(Read(issue))
+  }
+  context.receipt = Some(receipt)
+  if !current() {
+    return context.reject(Unavailable)
+  }
+  let consumer_name = @execution.managed_result_occurrence_name(
+    @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(consumer_result),
+    ),
+  )
+  let definition = match
+    @host.issue_client_effect_local_result_definition(
+      materials.prepared,
+      consumer,
+      consumer_name,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return context.reject(Definition(issue))
+  }
+  let consumer_artifact = match
+    @host.issue_imported_client_effect_local_result_artifact(
+      materials.prepared,
+      inputs,
+      exported,
+      imported,
+      definition,
+      receipt,
+      retention,
+      @host.client_effect_allowed_run_admission(materials.allowed),
+      materials.run_definition,
+      invocation,
+      observation,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return context.reject(Artifact(issue))
+  }
+  // The checked input pin retains the issued Artifact's provenance. Retire
+  // this private export before opening the existing public Result capture.
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  context.receipt = None
+  @execution.cancel_completed_result_relation_export(
+    @strategy.captured_effect_local_result_export_preparation(exported),
+  )
+  |> ignore
+  context.exported = None
+  if !current() {
+    return context.reject(Unavailable)
+  }
   let result = match
     self.capture_effect_result(
       materials,
@@ -342,6 +426,9 @@ pub fn ResidentSourceCompute::prepare_local_effect_capture_context(
     acquired_bodies,
     producer: artifact,
     producer_manifest: manifest,
+    producer_index,
+    consumer: consumer_artifact,
+    consumer_index,
     imported,
     observation,
     invocation,

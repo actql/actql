@@ -543,6 +543,88 @@ test "Native original Effect captures its real acquired producer and local impor
     @publication.publication_contract_identity(facts.materials.run_definition),
     @publication.publication_contract_identity(definition),
   )
+  // Producer and Effect input contain different rows. Their checked Artifact
+  // custody must remain distinct even though both Results are named "r".
+  assert_true(facts.producer_index != facts.consumer_index)
+  assert_eq(
+    @execution.completed_relation_export_measurement(
+      @host.client_effect_local_relation_export_receipt(facts.producer),
+    ).row_count,
+    3,
+  )
+  assert_eq(
+    @execution.completed_relation_export_measurement(
+      @host.client_effect_local_relation_export_receipt(facts.consumer),
+    ).row_count,
+    1,
+  )
+  assert_true(
+    @host.client_effect_local_artifact_definition_cid(facts.producer) !=
+    @host.client_effect_local_artifact_definition_cid(facts.consumer),
+  )
+  for
+    (artifact, index, expected) in [
+      (
+        facts.producer,
+        facts.producer_index,
+        "{\"sort\":\"relation\",\"value\":[{\"id\":1},{\"id\":2},{\"id\":3}]}",
+      ),
+      (
+        facts.consumer,
+        facts.consumer_index,
+        "{\"sort\":\"relation\",\"value\":[{\"id\":3}]}",
+      ),
+    ] {
+    let dependency = owner
+      .capture_effect_dependency(
+        facts.materials,
+        facts.inputs,
+        artifact,
+        index,
+        resident_compute_limits(),
+        65536,
+        4096,
+        64,
+      )
+      .unwrap()
+    assert_eq(
+      @host.client_effect_dependency_capture_bodies(dependency)
+      .filter(body => {
+        @publication.captured_effect_dependency_body_kind(body) ==
+        "relation_value"
+      })
+      .map(@publication.captured_effect_dependency_body_json),
+      [expected],
+    )
+  }
+  assert_true(
+    owner.capture_effect_dependency(
+      facts.materials,
+      facts.inputs,
+      facts.producer,
+      facts.consumer_index,
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+    )
+    is Err(@resident.ForeignInput),
+  )
+  assert_true(
+    owner.capture_effect_dependency(
+      facts.materials,
+      facts.inputs,
+      facts.consumer,
+      facts.producer_index,
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+    )
+    is Err(@resident.ForeignInput),
+  )
+  assert_eq(acquisitions, 1)
+  assert_eq(computations, 1)
   assert_eq(facts.result.output.result_fields().unwrap(), ["id"])
   assert_eq(
     facts.result.output.result_schema_wire().unwrap(),

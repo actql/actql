@@ -532,6 +532,9 @@ pub(all) struct ResidentLocalEffectCaptureFacts {
   acquired_bodies : (String, String)
   producer : @run_publication_host.ClientEffectLocalResultArtifact
   producer_manifest : @run_publication_host.ClientEffectLocalManifest
+  producer_index : Int
+  consumer : @run_publication_host.ClientEffectLocalResultArtifact
+  consumer_index : Int
   imported : @run_publication_host.ClientEffectImportedEvidence
   observation : @actql/actql/run_publication.RunEvidenceValue
   invocation : @actql/actql/run_publication.PublicationContract
