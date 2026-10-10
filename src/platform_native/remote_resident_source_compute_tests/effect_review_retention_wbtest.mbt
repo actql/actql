@@ -216,6 +216,9 @@ fn retained_effect_review_retention_store(
     assert_eq(state.run_id, "original-local-effect-source-run")
     assert_eq(state.status, @publication.WaitingCheckpoint)
     assert_true(
+      work.execute_task(1) is Err(@client.NeedsOriginalReconciliation),
+    )
+    assert_true(
       work.wait_review_checkpoint(retention, revision + 1L, binding, [])
       is Err(
         @client.Journal(@client.Checkpoint(@client.NeedsOriginalContinuation))
@@ -224,6 +227,9 @@ fn retained_effect_review_retention_store(
     // Discharge this test's actual review obligation before exercising custody
     // cleanup below. No fixture receipt replaces the signed common rejection.
     native_local_effect_reject_review(journal, request, persisted.artifact)
+    assert_true(
+      work.execute_task(1) is Err(@client.NeedsOriginalReconciliation),
+    )
   }
   let resolution_fixture = if review_work is Some(work) {
     println("native-original-review: retaining journal report")

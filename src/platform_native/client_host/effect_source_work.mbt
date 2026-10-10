@@ -165,8 +165,17 @@ pub fn NativeClientEffectSourceWork::execute_task(
   task : Int,
 ) -> Result[Unit, NativeClientSourceWorkIssue] {
   match self.require_current() {
-    Ok(_) =>
+    Ok(_) => {
+      // Once the original journal owns a Checkpoint, physical continuation
+      // belongs to its existing resume/reconciliation Owner. A live input
+      // borrow remains available for evidence/cleanup, not another task start.
+      match self.journal.lookup(self.request, true) {
+        Ok(Retained(record)) if record.checkpoint is None => ()
+        Ok(_) => return Err(NeedsOriginalReconciliation)
+        Err(issue) => return Err(Journal(issue))
+      }
       self.owner.execute_task(task).map(_ => ()).map_err(issue => Work(issue))
+    }
     Err(issue) => Err(issue)
   }
 }
