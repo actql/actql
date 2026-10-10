@@ -19,6 +19,8 @@ const control = {version: 'actql/0.1', id: 'fixture.pipe_pivot', stages: [
     {select: ['product', {second: 'Q2'}, {first: 'Q1'}], as: 'selected'},
   ], results: {rows: {from: 'selected', fields: ['product', 'second', 'first']}}},
 ], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// Text literal 'kale' has an independently known four-byte UTF-8 bound.
+// The explicit machine schema above deliberately has no such bound.
 const head = "SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter";
 export const pipePivotSuccesses = [
   success('duplicate-null-json-control', JSON.stringify(control),

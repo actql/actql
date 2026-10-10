@@ -147,3 +147,31 @@ formatter; no unrelated source formatting is included. Fresh fixed-SHA public
 execution is still required after this integration and fixture correction.
 The query API generator and read-only compilation manifest, document metadata,
 spec-family and 384 canonical identity checks passed (`run-PHcANn`).
+
+## Earlier published integration evidence
+
+Normal integration includes main's adopted UNPIVOT and its completed-scratch
+lifetime fix. Both syntax forms, fresh scopes and authored registrations are
+preserved. The combined independent inventory contains 3,287 cases (2,077
+normal, 1,163 refusal and 47 execution failure occurrences). Complete parent
+Run preimages are retained and validated by the independent oracle.
+
+Integrated JS selection: 19/19 (`run-jFSfWP`). Node fixture/profile/identity
+selection: 60/60 (`run-XDOPP1`). Read-only grammar manifests, document metadata
+and 384 canonical identities passed (`run-em6B80`). Applied formatter output
+only to changed files; unchanged main formatting findings are not hidden.
+Fresh public packed acceptance is pending at this source revision. CI remains
+stopped; these results do not establish full Core or all-target coverage.
+
+The first integrated packed run at `fab19aa12` exposed an independently
+incorrect fixture schema: text literal `kale` carries its existing four-byte
+UTF-8 bound, unlike the explicitly unbounded machine control schema. The
+fixture now records that literal-derived bound; neither product typing nor
+the independent rows changed. Node fixture/inventory checks pass 38/38
+(`run-vfFKQc`). The failed receipt remains at
+`/private/tmp/.codex-scratch/public-query-evidence-K85XBw/summary.json`.
+
+These earlier records remain tied to their original source revisions. The
+remote commits `fab19aa12ef07d9feee27ca27a63b4fb8aa1ea96` and
+`63084e1223b671fb4fa9a43017049c3faaf908a4` are preserved by a normal
+merge, without rebasing or force-pushing. This merge adds no product semantics.
