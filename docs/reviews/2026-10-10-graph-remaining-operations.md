@@ -627,3 +627,19 @@ packed acceptance. The inventory has 3,461 authored occurrences (2,193
 success, 48 execution-failure and 1,220 refusal controls). Its digest is
 `5889d25a00415bed55e61187c759ca72ba5e2ff487c1bafcf031e72959461365`.
 No operation is promoted to completed delivery by registering these controls.
+
+### Prepared public operation cancellation
+
+The public Host fixture now uses its existing awaited
+`local_compute_advanced` hook, emitted only for positive incomplete advances,
+to hold the selected Graft/Reach/Shortest/Mean task. It requests cancellation
+through the SDK, requires the request without early physical-stop or terminal
+confirmation, then releases the hook and checks confirmed stop, unavailable
+Named Results, emptied snapshot custody and no repeated dispatch/advancement
+on replaying the same submission. No fixed sleep or alternate cancellation
+owner is introduced. The holder is unconditionally released before Host close.
+
+Only `node --check scripts/graph-public-host.test.mjs` and `git diff --check`
+have run for this addition. Executable public Host and packed acceptance remain
+unverified pending the shared heavy slot; this is not cancellation evidence
+until those selected cases execute.
