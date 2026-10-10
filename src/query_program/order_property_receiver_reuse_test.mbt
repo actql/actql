@@ -86,7 +86,7 @@ test "ORDER reuse cannot confuse a range column with an explicit object receiver
         group_receiver_scope_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=text,
     )
   }

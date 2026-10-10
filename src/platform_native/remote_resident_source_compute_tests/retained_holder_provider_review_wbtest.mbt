@@ -111,11 +111,14 @@ fn retained_holder_provider_review(
   receiver : @host.ClientEffectLocalResultArtifact,
   imported : @host.ClientEffectImportedEvidence,
   root_index : Int,
-  public_result : @resident.ResidentEffectResultCapture,
   root_path : String,
   name : String,
   owned_context : @resident.ResidentEffectReviewInputContext,
   normalization : @publication.RunEvidenceValue,
+  prepare_context : () -> Result[
+    @resident.ResidentEffectReviewInputContext,
+    @resident.ResidentEffectReviewInputFailure,
+  ],
 ) -> Unit raise {
   let mark = (phase : String) => {
     @filesystem.open_root(root_path)
@@ -127,10 +130,42 @@ fn retained_holder_provider_review(
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
   let policy = retained_holder_review_policy(holder, inputs, invocation)
+  let work = @effect_provider.prepare_native_resident_effect_review_from_context(
+    holder,
+    journal,
+    owned_context,
+    normalization,
+    [],
+    [],
+    policy,
+  ).unwrap()
+  let owned_result = work.result_capture().unwrap()
+  assert_eq(
+    owned_result.output.result_schema_wire().unwrap(),
+    retained_effect_expected_schema(true),
+  )
+  assert_eq(owned_result.output.row_count().unwrap(), 1)
+  let actual_read = owned_result.output.replay().unwrap()
+  let actual_rows = StringBuilder()
+  while actual_read.next().unwrap() is Some(chunk) {
+    actual_rows.write_string(chunk)
+  }
+  actual_rows.write_string(actual_read.finish().unwrap())
+  assert_eq(actual_rows.to_string(), retained_effect_expected_rows(true))
+  // An independent context cannot bypass the unchanged public export pin
+  // ceiling, and its retirement must leave the adopted Result/input live.
+  let congested = prepare_context().unwrap()
+  assert_true(
+    congested.capture_result(journal, normalization, [], [], 65536, 4096, 64)
+    is Err(Native(Export(Retain(Physical(HoldingLimit))))),
+  )
+  assert_true(congested.close())
+  assert_true(owned_context.facts(journal) is Some(_))
+  assert_true(owned_result.output.result_schema_wire() is Ok(_))
   let prepare = (material, policy) => {
     @effect_provider.prepare_native_resident_effect_review(
       holder, journal, material, inputs, producer, receiver, imported, root_index,
-      public_result, invocation, observation, policy,
+      owned_result, invocation, observation, policy,
     )
   }
   let before = consumer.usage().reserved_retention_bytes
@@ -156,31 +191,6 @@ fn retained_holder_provider_review(
     is Err(InvalidLimits),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, before)
-  // The old raw-adapter refusal cases are complete. Return their separate
-  // Result export before the consuming constructor acquires its own pin.
-  public_result.output.cancel()
-  let work = @effect_provider.prepare_native_resident_effect_review_from_context(
-    holder,
-    journal,
-    owned_context,
-    normalization,
-    [],
-    [],
-    policy,
-  ).unwrap()
-  let owned_result = work.result_capture().unwrap()
-  assert_eq(
-    owned_result.output.result_schema_wire().unwrap(),
-    retained_effect_expected_schema(true),
-  )
-  assert_eq(owned_result.output.row_count().unwrap(), 1)
-  let actual_read = owned_result.output.replay().unwrap()
-  let actual_rows = StringBuilder()
-  while actual_read.next().unwrap() is Some(chunk) {
-    actual_rows.write_string(chunk)
-  }
-  actual_rows.write_string(actual_read.finish().unwrap())
-  assert_eq(actual_rows.to_string(), retained_effect_expected_rows(true))
   assert_true(work.complete() is Err(Unavailable))
   let facts = resident_provider_observe(
     consumer,
@@ -236,7 +246,7 @@ fn retained_holder_provider_review(
     consumer.capture_effect_run(
       materials,
       inputs,
-      public_result,
+      owned_result,
       invocation,
       complete.preview.preview,
       [complete.preview.proof],

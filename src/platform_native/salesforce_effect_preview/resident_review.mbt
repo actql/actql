@@ -98,6 +98,7 @@ struct NativeResidentEffectReview {
     ),
   ]?
   mut target_failure : NativeResidentEffectTargetIssue?
+  mut observing : Bool
   mut completing : Bool
   mut captured : NativeResidentEffectReviewCapture?
   mut retention : @resident.ResidentEffectReviewRetention?
@@ -327,6 +328,7 @@ pub fn prepare_native_resident_effect_review(
     uses: [],
     targets: None,
     target_failure: None,
+    observing: false,
     completing: false,
     captured: None,
     retention: None,
@@ -357,7 +359,7 @@ pub fn NativeResidentEffectReview::observe(
   ],
   NativeResidentEffectTargetIssue,
 ] {
-  if !self.current() {
+  if self.observing || !self.current() {
     return Err(Proposal(Unavailable))
   }
   if self.target_failure is Some(issue) {
@@ -390,7 +392,8 @@ pub fn NativeResidentEffectReview::observe(
       Err(issue) => Err(issue)
     }
   }
-  match
+  self.observing = true
+  let outcome = match
     observe_native_resident_effect_targets(
       self.consumer,
       self.materials,
@@ -425,6 +428,8 @@ pub fn NativeResidentEffectReview::observe(
       Err(issue)
     }
   }
+  self.observing = false
+  outcome
 }
 
 ///|

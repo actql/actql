@@ -28,8 +28,8 @@ fn reject_resident_effect_review_context(
 ///|
 /// Transfer the actual-holder context to this review adapter before preparing
 /// its Result export. Successful preparation owns both until review obligations
-/// are discharged and cleanup is confirmed. No Source/Compute/Provider I/O,
-/// approval or new physical holding occurs here. Trusted Host normalization
+/// are discharged and cleanup is confirmed. No Source acquisition, Compute
+/// execution, Provider access, approval or new physical holding occurs here. Trusted Host normalization
 /// metadata and independently installed Provider policy are still required.
 pub fn prepare_native_resident_effect_review_from_context(
   holder : @resident.ResidentRetainedConsumer,

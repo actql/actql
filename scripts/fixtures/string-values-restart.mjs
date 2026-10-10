@@ -1,7 +1,8 @@
+import {decodeRetainedFixture} from './retained-fixture-values.mjs';
 // Fresh process, installed packages only: restore published Results, without
 // submitting source or invoking a compiler to recreate missing data.
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
@@ -10,10 +11,15 @@ import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 
+import {transportWorker} from './packed-query-transport-owner.mjs';
+const mode = process.env.ACTQL_TEST_QUERY_TRANSPORT;
+assert.ok(mode === undefined || ['local', 'remote'].includes(mode));
+const worker = mode === undefined ? undefined : transportWorker();
+worker?.check();
 const retained = JSON.parse(await readFile('retained-string-results.json', 'utf8'));
 const {hostCapacityPolicy} = retained;
 assert.ok(hostCapacityPolicy !== null && typeof hostCapacityPolicy === 'object');
-const sourceProfilePath = resolve('source-profile.json');
+const sourceProfilePath = mode => resolve(retained.sourceProfilePaths?.[mode] ?? 'source-profile.json');
 function accepted(directory) {
   const db = new DatabaseSync(resolve(directory, 'requests/client-requests.sqlite3'),
     {readOnly: true});
@@ -31,12 +37,13 @@ async function readRetained(mode, options, directory) {
     assert.deepEqual((await execution.result('answer').describe()).columns, item.columns);
     assert.equal(accepted(directory), before, 'restoring Results creates no Run');
     console.log(`Exact strings retained after fresh ${mode} Host process`);
-  } finally { client.close(); }
+  } finally { await client.close(); }
 }
-await readRetained('local', {mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve('local-state'), sourceProfilePath, hostCapacityPolicy}}, 'local-state');
+if (mode === undefined || mode === 'local') await readRetained('local', {mode: 'local', owner: 'local', durability: 'durable',
+  installation: {directory: resolve('local-state'), sourceProfilePath: sourceProfilePath('local'), hostCapacityPolicy}}, 'local-state');
+if (mode === undefined || mode === 'remote') {
 const host = await openInstalledRemoteHttpHost({directory: resolve('remote-state'),
-  sourceProfilePath, hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
+  sourceProfilePath: sourceProfilePath('remote'), hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined});
 const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
@@ -49,3 +56,78 @@ try {
   await new Promise(resolve => server.close(resolve));
   await host.close();
 }
+
+}
+
+// Independent consumer regression for cohort ownership after every installation
+// has closed. Attach, original-submission replay and lookup must all resolve in
+// the recorded Store; reopening cannot create another Run or replace an oracle.
+const cohorts = decodeRetainedFixture(await readFile('retained-cohort-results.json', 'utf8'));
+assert.ok(cohorts.length > 0);
+const canonicalRow = value => Array.isArray(value)
+  ? '[' + value.map(canonicalRow).join(',') + ']'
+  : value !== null && typeof value === 'object'
+    ? '{' + Object.keys(value).sort().map(key =>
+      JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
+    : JSON.stringify(value);
+async function readRetainedCohort(cohort, options) {
+  const before = accepted(cohort.directory);
+  const client = await connect(options);
+  try {
+    assert.ok(cohort.samples.length >= 1 && cohort.samples.length <= 2);
+    for (const {source, ref, submissionRef} of cohort.samples) {
+      const execution = await client.attach(ref);
+      assert.equal((await execution.status()).status, 'succeeded');
+      const results = source.results ?? {answer: {rows: source.expected, columns: source.columns}};
+      for (const [name, oracle] of Object.entries(results)) {
+        const actual = await execution.result(name).all();
+        if (oracle.unordered) {
+          assert.deepEqual(actual.map(canonicalRow).sort(), oracle.rows.map(canonicalRow).sort());
+        } else assert.deepEqual(actual, oracle.rows);
+        if (oracle.columns !== undefined) {
+          assert.deepEqual((await execution.result(name).describe()).columns, oracle.columns);
+        }
+      }
+      const {name, text, expected, columns, results: resultOracles, sourceRows,
+        sourceReadCount, sourceReadSessionCount, ...input} = source;
+      const replayed = await client.startSource(text, {...input, submissionRef});
+      assert.deepEqual(replayed.ref, ref);
+      assert.equal((await replayed.status()).status, 'succeeded');
+      const lookup = await client.lookupSubmission(submissionRef);
+      assert.equal(lookup.kind, 'ready');
+      assert.deepEqual(lookup.admission.ref, ref);
+      assert.equal(accepted(cohort.directory), before,
+        'reopened cohort attach/replay/lookup must preserve the original Run');
+    }
+  } finally { await client.close(); }
+}
+const completedRoots = [];
+for (const cohort of cohorts) {
+  if (mode !== undefined && cohort.mode !== mode) continue;
+  worker?.check();
+  if (cohort.mode === 'local') {
+    await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
+      installation: {directory: cohort.directory, sourceProfilePath: cohort.sourceProfilePath,
+        hostCapacityPolicy: cohort.hostCapacityPolicy}});
+  } else {
+    assert.equal(cohort.mode, 'remote');
+    const host = await openInstalledRemoteHttpHost({directory: cohort.directory,
+      sourceProfilePath: cohort.sourceProfilePath, hostCapacityPolicy: cohort.hostCapacityPolicy,
+      authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
+    const server = createServer({key: await readFile('remote.key'),
+      cert: await readFile('remote.crt')}, host.handler);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await readRetainedCohort(cohort, {mode: 'remote', durability: 'durable',
+        endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-token'});
+    } finally {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+      await host.close();
+    }
+  }
+  completedRoots.push(cohort.directory);
+}
+if (mode !== undefined) await writeFile(`transport-restart.${mode}.json`,
+  JSON.stringify({mode, stringComplete: true, completedRoots}) + '\n', {flag: 'wx'});
+console.log('Retained cohort boundary Results preserve attach/replay ownership after fresh Host processes');

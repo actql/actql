@@ -214,6 +214,6 @@ test "Subgraph source keeps producer references and Carrier transitions scoped" 
       { ..fixture_context(), inputs: [], },
       construction_limits(),
     )
-    is Err(UnsupportedGraph),
+    is Err(InvalidQuery),
   )
 }

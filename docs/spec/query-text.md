@@ -168,6 +168,13 @@ order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
 
+`CAST(value AS DOUBLE)` and `ARRAY<DOUBLE>` use the same existing Number
+contracts as `CAST(value AS FLOAT64)` and `ARRAY<FLOAT64>`. Type names are
+ASCII case-insensitive and unquoted. The selected [GoogleSQL language reference](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/data-types.md#floating_point_types)
+defines FLOAT64 as an alias for DOUBLE; this is not a claim about every deployed
+Google product. The alias introduces no conversion, precision, failure or NULL
+rule. FLOAT/FLOAT32 are separate reference types and remain unsupported here.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still
@@ -784,7 +791,7 @@ infer a second type system. The parser's existing work, node and depth limits
 also cover array children. An empty list needs unique type context.
 
 The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
-`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<DOUBLE>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
 Annotations use the existing typed `empty_array.items` evidence. A nonempty
 annotated array uses an ordinary constant-true lazy `if` with that empty-array
 peer, so the common checker checks the declared item type and evaluates the
@@ -1046,6 +1053,18 @@ placement or physical task boundaries. Bodies resolve before the declared
 name becomes visible. Duplicate, recursive and forward references are
 rejected. A Graph producer is not a Relation alias. RESULT, INFER and EFFECT are
 not permitted in a DATA query body; final queries retain explicit Results.
+
+A DATA body can bind an explicitly projected Graph MATCH Relation, for example:
+
+~~~aql
+DATA selected = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.score AS score;
+~~~
+
+The projection defines its public columns; Graph pattern variables and internal
+identity/path slots are not visible through the DATA name. Normal Relation
+processing can then reuse that producer. The existing keyed MATCH/TRAIL checker
+and execution owner retain identity, label, predicate, path and capacity rules.
+This DATA connection does not expand Graph CTE or derived-table support.
 
 `DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
 [selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#graph-mapping-and-element-identity).

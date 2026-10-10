@@ -131,7 +131,7 @@ test "private GROUP collision handling does not expose an ungrouped authored inp
 }
 
 ///|
-test "existing DISTINCT refusal retains the unsupported ordering cause" {
+test "DISTINCT cannot recover an unselected computed input" {
   assert_true(
     compile(
       @query.parse_query(
@@ -141,6 +141,6 @@ test "existing DISTINCT refusal retains the unsupported ordering cause" {
       group_key_collision_context("aql_group_key_0"),
       construction_limits(),
     )
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
 }

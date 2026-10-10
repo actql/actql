@@ -290,8 +290,8 @@ for (const [name, text] of [
   ['after-drop', `${ordinalHead} |> DROP element |> ORDER BY 2 |> SELECT position`],
 ]) unnestRefusals.push(refusal('ordinal-' + name, text,
   {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: ordinalParameters,
-    // Existing UnsupportedOrdering -> source_unsupported submission contract.
-    expectedCode: 'ClientProgramImplementationLimit'}));
+    // The requested position exceeds the actual columns at this Pipe boundary.
+    expectedCode: 'ClientProgramInvalidInput'}));
 
 // Independent range/field collision obligations. A value-table range denotes
 // its original object even when the object exposes a same-named scalar field.

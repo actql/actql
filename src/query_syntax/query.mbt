@@ -372,7 +372,8 @@ pub fn parse_relation_path(
       }
       match token.value {
         Word(value) => parts.push({ value, quoted: false, })
-        QuotedName(value) => parts.push({ value, quoted: true, })
+        QuotedName(value) =>
+          parts.push({ value: tokens.identifier(value), quoted: true, })
         _ =>
           return Err({
             issue: Syntax("Expected relation name"),
@@ -657,7 +658,7 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
   let token = self.advance()
   match token.value {
     Word(value) => { value, quoted: false, }
-    QuotedName(value) => { value, quoted: true, }
+    QuotedName(value) => { value: self.source.identifier(value), quoted: true, }
     _ => raise QueryAbort("Expected identifier", token.start)
   }
 }
@@ -957,7 +958,14 @@ fn QueryParser::fresh_producer(
     if !self.source.tokens.any(token => {
         match token.value {
           Word(value) | QuotedName(value) =>
-            ascii_upper(value) == ascii_upper(generated_name)
+            ascii_upper(
+              if token.value is QuotedName(_) {
+                self.source.identifier(value)
+              } else {
+                value
+              },
+            ) ==
+            ascii_upper(generated_name)
           _ => false
         }
       }) {
@@ -1476,10 +1484,10 @@ fn QueryParser::frame_boundary(
     ignore(self.advance())
     if self.has("PRECEDING") {
       self.keyword("PRECEDING")
-      return PrecedingParameter(name)
+      return PrecedingParameter(self.source.identifier(name))
     }
     self.keyword("FOLLOWING")
-    return FollowingParameter(name)
+    return FollowingParameter(self.source.identifier(name))
   }
   let distance = self.safe_integer(false)
   if self.has("PRECEDING") {
@@ -1508,7 +1516,15 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
       [
         "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
         "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
-      ].contains(upper_ascii(name)) &&
+      ].contains(
+        upper_ascii(
+          if self.peek().value is QuotedName(_) {
+            self.source.identifier(name)
+          } else {
+            name
+          },
+        ),
+      ) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))
     _ => false
@@ -1523,7 +1539,8 @@ fn QueryParser::aggregate(
 ) -> AggregateCall raise QueryAbort {
   let token = self.advance()
   let function_name = match token.value {
-    Word(name) | QuotedName(name) => upper_ascii(name)
+    Word(name) => upper_ascii(name)
+    QuotedName(name) => upper_ascii(self.source.identifier(name))
     _ => raise QueryAbort("Expected aggregate function", token.start)
   }
   if self.advance().value != Symbol(40) {
@@ -1820,7 +1837,7 @@ fn QueryParser::limit_integer(
 ) -> QueryInteger raise QueryAbort {
   if self.peek().value is Parameter(name) {
     ignore(self.advance())
-    BoundParameter(name)
+    BoundParameter(self.source.identifier(name))
   } else {
     Integer(self.safe_integer(zero_allowed))
   }
@@ -2146,6 +2163,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::query(
   self : QueryParser,
   cte_body? : Bool = false,
+  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.has("CREATE") {
     if cte_body {
@@ -2230,7 +2248,11 @@ fn QueryParser::query(
       ignore(self.advance())
     }
   }
-  let term = if self.has("FROM") { self.pipe(cte_body~) } else { self.sql() }
+  let term = if self.has("FROM") {
+    self.pipe(cte_body~, graph_data_body~)
+  } else {
+    self.sql()
+  }
   let term = if self.peek().value == Pipe {
     self.pipe_tail(term, cte_body~)
   } else {
@@ -2407,12 +2429,13 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::pipe(
   self : QueryParser,
   cte_body? : Bool = false,
+  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
-    if cte_body {
+    if cte_body && !graph_data_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
     }
     self.keyword("GRAPH")

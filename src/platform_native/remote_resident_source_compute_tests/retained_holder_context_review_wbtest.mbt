@@ -113,31 +113,6 @@ fn retained_holder_context_review(
     4096,
     64,
   ).unwrap()
-  let result = context
-    .capture_result(journal, normalization, [], [], 65536, 4096, 64)
-    .unwrap()
-  assert_eq(
-    result.output.result_schema_wire().unwrap(),
-    retained_effect_expected_schema(true),
-  )
-  assert_eq(result.output.row_count().unwrap(), 1)
-  let read = result.output.replay().unwrap()
-  let rows = StringBuilder()
-  while read.next().unwrap() is Some(chunk) {
-    rows.write_string(chunk)
-  }
-  rows.write_string(read.finish().unwrap())
-  assert_eq(rows.to_string(), retained_effect_expected_rows(true))
-  // Independent contexts plus the caller's existing Result pin exhaust the
-  // unchanged export ceiling. Refusal must not revoke the live original view.
-  let congested = prepare(1, 0, 4, 10000).unwrap()
-  assert_true(
-    congested.capture_result(journal, normalization, [], [], 65536, 4096, 64)
-    is Err(Native(Export(Retain(Physical(HoldingLimit))))),
-  )
-  assert_true(congested.close())
-  assert_true(context.facts(journal) is Some(_))
-  assert_true(result.output.result_schema_wire() is Ok(_))
   retained_holder_provider_review(
     holder,
     journal,
@@ -152,13 +127,12 @@ fn retained_holder_context_review(
     facts.receiver,
     facts.imported,
     facts.root_index,
-    result,
     root_path,
     name,
     context,
     normalization,
+    () => prepare(1, 0, 4, 10000),
   )
-  result.output.cancel()
   assert_true(context.close())
   assert_true(context.close())
   assert_true(context.facts(journal) is None)

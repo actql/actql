@@ -36,15 +36,22 @@ try {
   installation);
   assert.deepEqual(await readdir(join(installation, 'node_modules/@actql')),
     ['coordinator-core']);
-  for (const name of ['bundle-retention.test.mjs', 'bundle-retention.typecheck.mts']) {
+  for (const name of ['bundle-retention.test.mjs', 'bundle-retention.typecheck.mts',
+    'effect-checkpoint.test.mjs', 'effect-checkpoint.typecheck.mts']) {
     await copyFile(join(repository, 'packages/coordinator-core', name),
       join(installation, name));
   }
   process.stdout.write(run(process.execPath,
     ['--test', 'bundle-retention.test.mjs'], installation));
+  await copyFile(join(repository, 'spec/fixtures/remote-effect-checkpoint-vectors.json'),
+    join(installation, 'effect-checkpoint-vectors.json'));
+  environment.ACTQL_TEST_EFFECT_CHECKPOINT_VECTORS = join(installation,
+    'effect-checkpoint-vectors.json');
+  process.stdout.write(run(process.execPath, ['--test', 'effect-checkpoint.test.mjs'], installation));
   run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
     '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
-    '--target', 'ES2022', 'bundle-retention.typecheck.mts'], installation);
+    '--target', 'ES2022', 'bundle-retention.typecheck.mts',
+    'effect-checkpoint.typecheck.mts'], installation);
   await writeFile(join(installation, 'smoke.mjs'), `
   import assert from 'node:assert/strict';
   const {admitPollNotSeen, dispatchCid, pollQueryJson, pollReleaseJson,

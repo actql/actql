@@ -46,7 +46,8 @@ fn client_source_preparation_issue_code(
             | UnsupportedGraph => "source_unsupported"
             // These typed facts come from the existing lowerer. The public
             // submission projection must still establish audience disclosure.
-            UnknownColumn
+            InvalidQuery
+            | UnknownColumn
             | AmbiguousColumn
             | AmbiguousRelation
             | DuplicateOutput
