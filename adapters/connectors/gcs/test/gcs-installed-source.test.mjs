@@ -173,6 +173,20 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
       'json', environment, undefined);
     assert.ok(moon.clientProgramPreparationReady(prepared),
       inspect(moon.clientProgramPreparationIssue(prepared), {depth: 8, maxStringLength: 3000}));
+    // A single missing decoded byte must still refuse the admitted extent.
+    // Neither exact path literals nor an empty result can narrow its declared
+    // capacity; the independent 3 * 2 * 8192 obligation remains unchanged.
+    const insufficientWire = selectInstalledHostEnvironment(moon,
+      installed.environmentWire, undefined,
+      {...hostLookupExecutionPolicy, max_total_decoded_response_bytes: 49151});
+    const insufficientEnvironment = moon.clientProgramCheckEnvironment(insufficientWire,
+      JSON.parse(insufficientWire).evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    const insufficient = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
+      'json', insufficientEnvironment, undefined);
+    assert.equal(moon.clientProgramPreparationReady(insufficient), undefined);
+    assert.match(inspect(moon.clientProgramPreparationIssue(insufficient), {depth: 12}),
+      /DecodedResponseLimit/u);
     const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
     assert.equal(checked.report?.verdict, 'verified', inspect(checked, {depth: 8, maxStringLength: 3000}));
     // The original failing input remains a real protected-boundary regression;
