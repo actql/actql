@@ -63,6 +63,7 @@ fn retained_effect_checkpoint_store(
         Preview(_) => "Preview"
         Capacity(issue) => "Capacity:" + @debug.to_string(issue)
         Projection(_) => "Projection"
+        Report(_) => "Report"
         Store(InvalidConfiguration) => "InvalidConfiguration"
         Store(StateCollision) => "StateCollision"
         Store(DigestMismatch) => "DigestMismatch"
@@ -88,6 +89,7 @@ fn retained_effect_checkpoint_store(
     custody.waiting_projection("2026-10-10T00:00:00.000Z", ["r"], limits)
     is Err(Store(Database(@sqlite.NotFound))),
   )
+  assert_true(custody.report(limits) is Err(Store(Database(@sqlite.NotFound))))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline + reservation)
   let partial_bytes = store.capacity_usage().unwrap().reserved_bytes
   assert_true(partial_bytes > physical_baseline)
@@ -152,6 +154,24 @@ fn retained_effect_checkpoint_store(
   let (confirmed, continuation) = custody.confirm().unwrap()
   assert_eq(confirmed.artifact.checkpoint_cid, holding)
   assert_eq(continuation, review.continuation_wire)
+  let report = custody.report(limits).unwrap()
+  let report_wire = @remote.remote_effect_checkpoint_report_json(report)
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_checkpoint(report),
+    review.checkpoint,
+  )
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(custody.report(limits).unwrap()),
+    report_wire,
+  )
+  assert_false(report_wire.contains("Count__c"))
+  assert_false(report_wire.contains(review.continuation_wire))
+  let reply = @remote.remote_effect_checkpoint_reply_json(report, Accepted).unwrap()
+  assert_eq(
+    @remote.admit_remote_effect_checkpoint_reply_json(reply, report),
+    Ok(Accepted),
+  )
+
   assert_eq(
     inspection.read("effect_continuation_custody", holding).unwrap().body,
     original.body,
@@ -198,6 +218,7 @@ fn retained_effect_checkpoint_store(
   assert_true(custody.retry_cleanup().unwrap())
   assert_false(custody.retry_cleanup().unwrap())
   assert_true(custody.confirm() is Err(Unavailable))
+  assert_true(custody.report(limits) is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, physical_baseline)
   assert_true(computation.confirm() is Ok(_))
