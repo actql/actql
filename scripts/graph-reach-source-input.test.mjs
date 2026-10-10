@@ -58,5 +58,6 @@ test('Reach connected expectations distinguish direction, minimum depth and edge
     assert.deepEqual(source.results.reached.rows, machine.results.reached.rows.map(({depth}) => ({depth})));
     assert.ok(source.text.includes('LABEL Node PROPERTIES (seed)'));
     assert.ok(source.text.includes("where: 'seed = 1'"));
+    assert.ok(source.text.includes('FROM UNNEST([3, 2, 1]) node_key'));
   }
 });

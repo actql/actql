@@ -26,8 +26,10 @@ const profiles = {
 };
 
 export const graphPublicHostCases = Object.freeze(['local','remote'].flatMap(mode =>
-  Object.entries(profiles).map(([profile,title]) => Object.freeze({mode,profile,
-    name:`${title} ${mode}`}))));
+  Object.entries(profiles).flatMap(([profile,title]) => profile === 'graph-mean'
+    ? ['basic', 'asymmetric'].map(partition => Object.freeze({mode,profile,partition,
+      name:`${title} ${mode}${partition === 'basic' ? '' : ' (asymmetric)'}`}))
+    : [Object.freeze({mode,profile,name:`${title} ${mode}`})])));
 
 export const graphPublicHostPattern = name => '^' +
   name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&') + '$';

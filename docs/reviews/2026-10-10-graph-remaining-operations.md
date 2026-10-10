@@ -765,3 +765,46 @@ Result reads. The next public check is the existing eight-case Graph
 selection, followed by the two prepared narrow packed consumers sharing one
 verified five-package manifest. Parent #1284 remains unmerged; #1296 retains
 that dependency rather than changing its base prematurely.
+
+### Public source and operation-specific cancellation controls
+
+At clean source `190f17219fa4b795f4e16f1360f03520d6ab506a`, affected runtime
+preparation succeeded and the eight public Host cases executed (`run-eVIgyo`,
+`focused-test-aG9WET`): three passed, four failed and one timed out. Graft
+passed Local and HTTPS. Shortest's seven normal controls passed on each
+transport, but its cancellation control selected the tiny zero-hop task,
+which settled before the positive-progress barrier. Mean passed HTTPS;
+Local timed out before reaching its cancellation intent. Accepted journal
+entries alone are not evidence that every Named Result read completed.
+
+Reach's connected AQL source was refused before Run acceptance. The first
+bounded diagnostic used an environment without the installed construction
+ceilings and reported an unresolved construction obligation. With the actual
+Host's three construction ceilings and a recomputed environment identity,
+`run-jccDQE` instead reports typed `Graph(TaskLimit)`. The source emits more
+than the standard 32 physical tasks. No construction obligation was waived,
+and no Host ceiling was increased. `run-gNlqAo` was a guard configuration
+error before the diagnostic launched, not product evidence.
+
+The connected AQL control now declares the same three nodes using the
+existing finite array/UNNEST syntax. Its four edges, parallel multiplicity,
+self-loop, declared selector property and independent depth expectations
+are unchanged. The authored registration digest is
+`bb1b9404129d2a0149df6e8d6f15307fe026ee66a3e27b44306ebc330def7c9d`;
+all 3,461 occurrences and their counts remain unchanged.
+
+Cancellation now targets task 3 in the existing connected Reach, weighted
+Shortest and repeated-sample Mean controls, rather than a small constructor
+or zero-hop control. Mean's six normal controls are partitioned 4+2 across
+two cases per transport; every control runs once and the per-case 60-second
+budget is unchanged. Cancellation runs with the asymmetric partition, using
+the already authored repeated-sample control. Completed fixture names are
+recorded only after Result contents, schema, no-repeat and retained Store
+assertions pass.
+
+The working tree based on `190f1721` passed the affected common Reach JS
+file, 3/3 (`run-0EOm5D`, `focused-test-kRAmSS`), and selected Node fixture,
+dependency and inventory files, 47/47 (`run-dlJxp5`,
+`focused-test-3AKjRu`). Public execution of these adjusted controls and the
+formal external package cohort remain pending. These selected checks do not
+establish all four operations' public completion or hosted CI coverage.

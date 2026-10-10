@@ -476,7 +476,7 @@ function deltaApplicationScenario(projection, failure) {
 }
 
 // The shared registration retains scientific names and drives packed selection.
-for (const {mode,profile,name} of graphPublicHostCases) {
+for (const {mode,profile,name,partition} of graphPublicHostCases) {
   test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
@@ -607,7 +607,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     }
     if (['graph-reach', 'graph-shortest', 'graph-mean'].includes(profile)) {
       const samples = profile === 'graph-reach' ? graphReachSourceSuccesses
-        : profile === 'graph-shortest' ? graphShortestSourceSuccesses : graphMeanSourceOracles;
+        : profile === 'graph-shortest' ? graphShortestSourceSuccesses
+          : partition === 'basic' ? graphMeanSourceOracles.slice(0, 4)
+            : graphMeanSourceOracles.slice(4);
       for (const sample of samples) {
         const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
         let run;
@@ -651,9 +653,20 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           assert.equal(receipt.temporaryBodyReclaimed, true);
         }
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+        t.diagnostic(`Completed authored Graph fixture: ${sample.name}`);
       }
-      await assertOperationCancellation(samples.find(sample => sample.format === 'json'),
-        profile === 'graph-mean' ? 3 : 2);
+      // Observe the operation itself, not its small constructor or zero-hop
+      // control, which may finish without yielding. These authored controls
+      // retain their independent success expectations above.
+      if (profile !== 'graph-mean' || partition === 'asymmetric') {
+        const cancellationSample = profile === 'graph-reach'
+          ? graphReachSourceSuccesses.find(sample => sample.name === 'graph-reach-json-connected-out')
+          : profile === 'graph-shortest'
+            ? graphShortestSourceSuccesses.find(sample => sample.name === 'graph-shortest-json-weighted-parallel-edges')
+            : graphMeanSourceOracles[0];
+        assert.ok(cancellationSample, 'the operation-specific cancellation control must exist');
+        await assertOperationCancellation(cancellationSample, 3);
+      }
       return;
     }
     if (profile === 'graph-subtraction') {
