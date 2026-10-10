@@ -55,15 +55,19 @@ pub fn transfer(ticket : Int, length : Int) -> Int {
 pub fn cancel_eligible(bits : Int) -> Int {
   // The caller supplies observations; the common Owner alone judges eligibility.
   if @host.confirm_client_run_cancellation({
-    cancellation_requested: (bits land 1) != 0,
-    model_fence_required: (bits land 2) != 0,
-    model_fenced: (bits land 4) != 0,
-    unresolved_model_calls: (bits land 8) != 0,
-    unresolved_effects: (bits land 16) != 0,
-    reconciliation_required: (bits land 32) != 0,
-    publication_committed: (bits land 64) != 0,
-    physical_stop_confirmed: (bits land 128) != 0,
-    cleanup_confirmed: (bits land 256) != 0,
-    revision_unchanged: (bits land 512) != 0,
-  }) { 1 } else { 0 }
+      cancellation_requested: (bits & 1) != 0,
+      model_fence_required: (bits & 2) != 0,
+      model_fenced: (bits & 4) != 0,
+      unresolved_model_calls: (bits & 8) != 0,
+      unresolved_effects: (bits & 16) != 0,
+      reconciliation_required: (bits & 32) != 0,
+      publication_committed: (bits & 64) != 0,
+      physical_stop_confirmed: (bits & 128) != 0,
+      cleanup_confirmed: (bits & 256) != 0,
+      revision_unchanged: (bits & 512) != 0,
+    }) {
+    1
+  } else {
+    0
+  }
 }
