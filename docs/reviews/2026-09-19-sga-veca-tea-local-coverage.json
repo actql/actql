@@ -89,11 +89,11 @@
       "traverse": "partial",
       "shortest_path": "blocked",
       "components": "partial",
-      "reach": "blocked",
+      "reach": "partial",
       "graph_bounds": "partial",
       "degree": "partial",
       "graph_diff": "partial",
-      "graft_graph": "blocked",
+      "graft_graph": "partial",
       "union_graphs": "partial",
       "subtract_graphs": "partial",
       "subgraph": "partial",
@@ -1441,9 +1441,9 @@
         "self loops",
         "bounded depth"
       ],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Reach uses current typed selectors, checked traversal, SGA.reachable lowering and the bounded traversal provider. Raw identities, nullable Relation starts and statically checked node predicates are connected; malformed options remain refused. Independent current tests are distinct from historical tuple evidence. Fixed-SHA matching backends, public retained Local/HTTPS, fresh-process reads and operation-wide failure/custody acceptance remain unverified.",
       "completed_layers": [
         "contract"
       ],
@@ -1875,9 +1875,9 @@
         "equal semantic ids",
         "shared storage"
       ],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Binary graft is connected to the current checked structural alignment and bounded exact-equal union fold with its own SGA.graft operation identity. Lists and merge policies remain rejected. Current typed checking, lowering and fold regressions are distinct from historical tuple-profile evidence. Public retained Local/HTTPS, separate-process reads and full resource/lifetime acceptance remain to be completed.",
       "completed_layers": [
         "contract"
       ],

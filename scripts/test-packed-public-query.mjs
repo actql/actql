@@ -106,6 +106,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/statistical-aggregate-source-input.mjs', 'statistical-aggregate-source-input.mjs'],
   ['scripts/fixtures/graph-subtraction-source-input.mjs', 'graph-subtraction-source-input.mjs'],
   ['scripts/fixtures/graph-union-source-input.mjs', 'graph-union-source-input.mjs'],
+  ['scripts/fixtures/graph-graft-source-input.mjs', 'graph-graft-source-input.mjs'],
+  ['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs'],
+  ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
@@ -211,7 +214,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
 for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
-  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs']) {
+  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs', 'fixtures/graph-reach-source-input.mjs',
+  'fixtures/graph-shortest-source-input.mjs']) {
   await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
 }
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
@@ -367,6 +371,17 @@ if (process.argv.includes('--graph-subtraction-only')) {
 }
 if (process.argv.includes('--graph-union-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_UNION_ONLY = '1';
+}
+if (process.argv.includes('--graph-graft-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_GRAFT_ONLY = '1';
+}
+if (process.argv.includes('--graph-reach-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_REACH_ONLY = '1';
+}
+if (process.argv.includes('--graph-shortest-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_SHORTEST_ONLY = '1';
+  // Reuse the existing narrow Graph transport profile and retained rereads.
+  runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_ONLY = '1';
 }
 if (process.argv.includes('--min-max-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_MIN_MAX_DISTINCT_ONLY = '1';
@@ -658,7 +673,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-graft-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -670,6 +685,8 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--match-data-producer-only', '--graph-match-only',
   '--graph-diagnostics-only',
+  '--graph-reach-only',
+  '--graph-shortest-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
   '--graph-property-predicate-only',
@@ -750,6 +767,27 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
+  let succeeded = false, primary;
+  try {
+    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
+      {...runtimeEnvironment, ...extraEnvironment,
+        ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120_000).trimEnd());
+    succeeded = true;
+  } catch (error) { primary = error; throw error; }
+  finally {
+    await retainTransportReports(['transport-restart-processes.json',
+      'transport-restart.local.json', 'transport-restart.remote.json'],
+    succeeded, primary, 'transport-restart-evidence-index.json');
+  }
+}
+if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only') ||
+    process.argv.includes('--graph-shortest-only')) {
+  // The Local and HTTPS producers have exited. Read the original retained
+  // Graph-derived Results in new processes; no String fixture was selected.
+  await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});
+  return;
+}
 if (process.argv.includes('--source-graph-member-only')) return;
 if (process.argv.includes('--negated-predicate-reuse-only')) return;
 if (process.argv.includes('--membership-expression-reuse-only')) return;
@@ -786,7 +824,7 @@ if (process.argv.includes('--pipe-pivot-only')) return;
 if (process.argv.includes('--between-only')) return;
 if (process.argv.includes('--countif-distinct-only')) return;
 if (process.argv.includes('--select-all-only')) return;
-if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--distinct-aggregate-order-only') || process.argv.includes('--analytic-distinct-frame-only') || process.argv.includes('--set-corresponding-only') || process.argv.includes('--set-inner-by-name-only') || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
+if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--distinct-aggregate-order-only') || process.argv.includes('--analytic-distinct-frame-only') || process.argv.includes('--set-corresponding-only') || process.argv.includes('--set-inner-by-name-only') || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-coalesce-reuse-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
@@ -806,17 +844,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
-  let restartSucceeded = false, restartFailure;
-  try {
-    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
-      {...runtimeEnvironment, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120000).trimEnd());
-    restartSucceeded = true;
-  } catch (error) { restartFailure = error; throw error; }
-  finally {
-    await retainTransportReports(['transport-restart-processes.json',
-      'transport-restart.local.json', 'transport-restart.remote.json'],
-    restartSucceeded, restartFailure, 'transport-restart-evidence-index.json');
-  }
+  await exerciseRetainedQueryRestart();
 }
 if (process.argv.includes('--select-all-only') || process.argv.includes('--typed-json-literal-only') || process.argv.includes('--limit-parameter-only') || process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
