@@ -33,6 +33,8 @@ pub fn admit_remote_effect_checkpoint_reply_json(String, RemoteEffectCheckpointR
 
 pub fn admit_remote_effect_checkpoint_report_json(String, DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn admit_remote_effect_resume_delivery_json(String, RemoteEffectCheckpointReport, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
+
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
 pub fn admit_remote_execution_evidence_json(String, String, DispatchRequest) -> Result[RemoteExecutionEvidence, DispatchIssue]
@@ -377,6 +379,8 @@ pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudg
 
 pub fn prepare_remote_effect_checkpoint_report(DispatchRequest, @checkpoint_runtime.PersistedCheckpoint, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn prepare_remote_effect_resume_delivery(RemoteEffectCheckpointReport, @checkpoint_runtime.VerifiedResolution, @checkpoint_runtime.ResumeClaim, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
+
 pub fn prepare_remote_input_binding(String, Int) -> Result[RemoteInputBinding, DispatchIssue]
 
 pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
@@ -458,6 +462,14 @@ pub fn remote_effect_checkpoint_report_dispatch(RemoteEffectCheckpointReport) ->
 pub fn remote_effect_checkpoint_report_identity(RemoteEffectCheckpointReport) -> String
 
 pub fn remote_effect_checkpoint_report_json(RemoteEffectCheckpointReport) -> String
+
+pub fn remote_effect_resume_delivery_claim(RemoteEffectResumeDelivery) -> @checkpoint_runtime.ResumeClaim
+
+pub fn remote_effect_resume_delivery_dispatch(RemoteEffectResumeDelivery) -> DispatchRequest
+
+pub fn remote_effect_resume_delivery_json(RemoteEffectResumeDelivery) -> String
+
+pub fn remote_effect_resume_delivery_resolution(RemoteEffectResumeDelivery) -> @checkpoint_runtime.VerifiedResolution
 
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
@@ -850,6 +862,8 @@ pub(all) enum RemoteEffectCheckpointReply {
 } derive(Eq, @debug.Debug)
 
 type RemoteEffectCheckpointReport
+
+type RemoteEffectResumeDelivery
 
 type RemoteEvidenceIssuer
 
