@@ -389,8 +389,25 @@ queryCompositionSuccesses.push(
  wholeRowCase('immutable-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({...r,value:r.position+10})),[wholeRowColumn,optionalNumber('value'),optionalNumber('position')],{format:'aql-text'}),
  wholeRowCase('rebound-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> AS fresh |> SELECT fresh AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({row:{element:r.position+10,position:r.position},value:r.position+10,position:r.position})),[{...wholeRowColumn,contract:{...wholeRowColumn.contract,fields:{...wholeRowFields,element:{type:'number',nullable:false}}}},optionalNumber('value'),optionalNumber('position')],{format:'aql-text'}),
  wholeRowCase('drop-rename-rebind','FROM ('+wholeRowHead+') chosen |> DROP element |> RENAME position AS index |> AS fresh |> SELECT fresh AS row,index |> ORDER BY index',[{row:{index:0},index:0},{row:{index:1},index:1},{row:{index:2},index:2}],[{name:'row',contract:{type:'object',nullable:false,fields:{index:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('index')],{format:'aql-text'}),
- wholeRowCase('column-priority','FROM ('+wholeRowHead+') chosen |> AS element |> SELECT element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({value:r.value,position:r.position})),[optionalNumber('value',true),optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('range-priority','FROM ('+wholeRowHead+') chosen |> AS element |> SELECT element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({value:r.row,position:r.position})),[{...wholeRowColumn,name:'value'},optionalNumber('position')],{format:'aql-text'}),
  wholeRowCase('computed-order','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT fresh AS row |> ORDER BY IF(TRUE,fresh,NULL).position DESC',wholeRowRows.toReversed().map(r=>({row:r.row})),[wholeRowColumn],{format:'aql-text'}),
+);
+
+// Fixed NameScope::AddNameTarget: an input range shadows a current column.
+// CopyNameScopeWithOverridingNames gives ORDER aliases a separate nearer scope.
+const shadowHead='FROM ('+wholeRowHead+') chosen |> AS element';
+const shadowCase=(name,text,expected,columns,extra={})=>({...wholeRowCase(name,text,expected,columns),name:'range-shadow-'+name,format:'aql-text',...extra});
+const shadowPayloadDeclaration={payload:{type:'object',nullable:true,fields:{score:{type:'number',nullable:false}}}};
+const shadowPayloadText='FROM (SELECT 90 AS score,@payload AS payload) |> AS payload |> SELECT (payload).score AS value';
+const shadowScoreControl={version:'actql/0.1',id:'fixture.range_shadow_score',stages:[{id:'main',inputs:{},steps:[{values:{schema:{score:{type:'number',nullable:false},payload:{type:'object',nullable:true,fields:{score:{type:'number',nullable:false}}}},rows:[{score:90,payload:{score:10}}]},as:'objects'},{from:'objects',select:[{value:'score'}],as:'out'}],results:{rows:{from:'out',fields:['value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+queryCompositionSuccesses.push(
+ shadowCase('where-row',shadowHead+' |> WHERE COALESCE(element,NULL).position > 0 |> SELECT element AS row,position |> ORDER BY position',[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}],[wholeRowColumn,optionalNumber('position')]),
+ shadowCase('set-removes-range',shadowHead+' |> SET element = position + 10 |> SELECT element AS value,position |> ORDER BY position',[{value:10,position:0},{value:11,position:1},{value:12,position:2}],[optionalNumber('value'),optionalNumber('position')]),
+ shadowCase('order-alias',shadowHead+' |> SELECT position AS element |> ORDER BY element DESC',[{element:2},{element:1},{element:0}],[optionalNumber('element')]),
+ shadowCase('extend-surviving-range','FROM ('+wholeRowHead+') chosen |> AS kept |> EXTEND 99 AS kept |> SELECT kept AS row,position |> ORDER BY position',wholeRowRows.map(r=>({row:r.row,position:r.position})),[wholeRowColumn,optionalNumber('position')]),
+ shadowCase('object-column-json-control',JSON.stringify(shadowScoreControl),[{value:90}],[optionalNumber('value')],{format:'json',parameterDeclarations:undefined,parameters:undefined}),
+ shadowCase('object-column',shadowPayloadText,[{value:90}],[optionalNumber('value')],{parameterDeclarations:shadowPayloadDeclaration,parameters:{payload:{score:10}}}),
+ shadowCase('null-object-column',shadowPayloadText,[{value:90}],[optionalNumber('value')],{parameterDeclarations:shadowPayloadDeclaration,parameters:{payload:null}}),
 );
 
 export const queryCompositionRefusals = [
@@ -457,6 +474,11 @@ queryCompositionRefusals.push(...[
  ['missing-member','sql','SELECT (chosen).missing AS value FROM ('+wholeRowHead+') chosen'],
  ['distinct-hidden','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT DISTINCT element |> ORDER BY IF(TRUE,chosen,NULL).position'],
 ].map(([name,format,text])=>({name:'whole-row-refusal-'+name,format,text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['drop-removes-range',shadowHead+' |> DROP element |> SELECT element AS row'],
+ ['row-is-not-number',shadowHead+' |> SELECT element + 1 AS value'],
+].map(([name,text])=>({name:'range-shadow-refusal-'+name,format:'aql-text',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 export const querySuccesses = [
   {name: 'sql', format: 'sql',

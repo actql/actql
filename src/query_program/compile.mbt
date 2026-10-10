@@ -1830,7 +1830,7 @@ fn positional_set_analytic_slot(
   slots : Array[(@query.AnalyticCall, String)],
   scope : JoinChainScope,
 ) -> String raise Abort {
-  let resolve = path => pipe_slot(path, scope.visible, scope.ranges)
+  let resolve = path => scope_expression_slot(path, scope)
   for (previous, slot) in slots {
     if !same_analytic_window(previous.window, call.window) {
       continue
@@ -1947,7 +1947,7 @@ fn having_column(
 ) -> String? {
   let resolve = fn(source : Array[@query.NamePart]) -> String? {
     match scope {
-      Some(scope) => pipe_slot(source, scope.visible, scope.ranges)
+      Some(scope) => scope_expression_slot(source, scope)
       None => resolve_column(source, query, input, active_fields)
     }
   }
@@ -2150,7 +2150,7 @@ fn compile_steps(
     value_table: pipe_value_table,
     value_columns: pipe_value_columns.copy(),
     star_ranges: pipe_star_ranges.copy(),
-    receivers: [],
+    receivers: initial_scope.map(scope => scope.receivers.copy()).unwrap_or([]),
     scalar_ranges: scalar_value_table_ranges.copy(),
   }
   let mut pipe_changed = initial_scope is Some(_)
@@ -2368,11 +2368,7 @@ fn compile_steps(
           operation is OrderAnalytic(_, _) {
           pipe_slot(path, pipe_visible, pipe_ranges)
         } else if pipe_selected || pipe_changed || pipe_rebound {
-          pipe_slot(
-            path,
-            selected_input_scope.visible,
-            selected_input_scope.ranges,
-          )
+          scope_expression_slot(path, selected_input_scope)
         } else {
           resolve_column(path, query, input, selected_input_fields)
         }
@@ -3556,7 +3552,7 @@ fn compile_steps(
             value_table: pipe_value_table,
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
-            receivers: [],
+            receivers: value_table_receivers.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
           sql_group_input_columns = input_visible.copy()
@@ -3903,7 +3899,7 @@ fn compile_steps(
             value_table: pipe_value_table,
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
-            receivers: [],
+            receivers: value_table_receivers.copy(),
             scalar_ranges: scalar_value_table_ranges.filter(receiver => {
               key_names.contains(receiver.1)
             }),
@@ -4545,13 +4541,7 @@ fn compile_steps(
                   construction,
                   expression,
                   grouped_keys,
-                  path => {
-                    pipe_slot(
-                      path,
-                      original_scope.visible,
-                      original_scope.ranges,
-                    )
-                  },
+                  path => scope_expression_slot(path, original_scope),
                   input_scope.visible,
                   input_scope.ranges,
                   max_work,
@@ -4602,7 +4592,7 @@ fn compile_steps(
         }
         let value = if sql_group_expression_input_scope is Some(original_scope) {
           let resolve_input = fn(path : Array[@query.NamePart]) -> String? {
-            pipe_slot(path, original_scope.visible, original_scope.ranges)
+            scope_expression_slot(path, original_scope)
           }
           // HAVING resolves bare SELECT aliases before inputs. A computed or
           // aggregate alias cannot prove that its value is the original input
@@ -4666,7 +4656,7 @@ fn compile_steps(
             value_table: pipe_value_table,
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
-            receivers: [],
+            receivers: value_table_receivers.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
@@ -4735,8 +4725,7 @@ fn compile_steps(
         }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
           if path.length() > 1 &&
-            pipe_slot(path, input_scope.visible, input_scope.ranges)
-            is Some(slot) {
+            scope_expression_slot(path, input_scope) is Some(slot) {
             return Some(slot)
           }
           if path.length() == 1 {
@@ -4756,7 +4745,7 @@ fn compile_steps(
               }
             }
           }
-          pipe_slot(path, input_scope.visible, input_scope.ranges)
+          scope_expression_slot(path, input_scope)
         }
         let value = match
           @expression.append_with_properties(
@@ -4815,7 +4804,7 @@ fn compile_steps(
             value_table: pipe_value_table,
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
-            receivers: [],
+            receivers: value_table_receivers.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
           analytic_input_fields = Some(snapshot)
@@ -4844,7 +4833,7 @@ fn compile_steps(
             value_table: pipe_value_table,
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
-            receivers: [],
+            receivers: value_table_receivers.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
@@ -4907,9 +4896,7 @@ fn compile_steps(
                   construction,
                   expression,
                   grouped_keys,
-                  path => {
-                    pipe_slot(path, source_scope.visible, source_scope.ranges)
-                  },
+                  path => scope_expression_slot(path, source_scope),
                   order_scope.visible,
                   order_scope.ranges,
                   max_work,
@@ -5025,8 +5012,7 @@ fn compile_steps(
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
           if select_order_window {
             if path.length() > 1 &&
-              pipe_slot(path, order_scope.visible, order_scope.ranges)
-              is Some(slot) {
+              scope_expression_slot(path, order_scope) is Some(slot) {
               return Some(slot)
             }
             if path.length() == 1 {
@@ -5041,7 +5027,7 @@ fn compile_steps(
                 }
               }
             }
-            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+            return scope_expression_slot(path, order_scope)
           }
           if sql_group_projection {
             // GROUP may reuse an authored aggregate slot for a private call.
@@ -5054,7 +5040,7 @@ fn compile_steps(
                 }
               }
             }
-            return pipe_slot(path, order_scope.visible, order_scope.ranges)
+            return scope_expression_slot(path, order_scope)
           }
           if pipe_changed || pipe_rebound {
             pipe_slot(
@@ -5183,7 +5169,7 @@ fn compile_steps(
               construction,
               expression,
               grouped_keys,
-              path => pipe_slot(path, input_scope.visible, input_scope.ranges),
+              path => scope_expression_slot(path, input_scope),
               expression_scope.visible + private_columns,
               expression_scope.ranges,
               analytic_expression_bindings + private_columns,
@@ -5533,7 +5519,7 @@ fn compile_steps(
           value_table: pipe_value_table,
           value_columns: pipe_value_columns.copy(),
           star_ranges: pipe_star_ranges.copy(),
-          receivers: [],
+          receivers: value_table_receivers.copy(),
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
         selected_output_slots = bindings.copy()
@@ -5598,7 +5584,7 @@ fn compile_steps(
           value_table: pipe_value_table,
           value_columns: pipe_value_columns.copy(),
           star_ranges: pipe_star_ranges.copy(),
-          receivers: [],
+          receivers: value_table_receivers.copy(),
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
         let projections = if sql_group_projection {
@@ -5623,9 +5609,7 @@ fn compile_steps(
               construction,
               expression,
               grouped_keys,
-              path => {
-                pipe_slot(path, original_scope.visible, original_scope.ranges)
-              },
+              path => scope_expression_slot(path, original_scope),
               scope.visible,
               scope.ranges,
               analytic_expression_bindings + private_columns,
@@ -5815,7 +5799,7 @@ fn compile_steps(
                     None =>
                       if sql_group_projection {
                         let scope = sql_group_select_scope.unwrap()
-                        pipe_slot(path, scope.visible, scope.ranges)
+                        scope_expression_slot(path, scope)
                       } else {
                         resolve_column(path, query, input, select_fields)
                       }
@@ -6033,12 +6017,7 @@ fn compile_steps(
             // A selected input column remains available through its output
             // slot even when aliased. This does not expose a removed input
             // or confuse an overwritten alias with its original value.
-            if pipe_slot(
-                path,
-                selected_input_scope.visible,
-                selected_input_scope.ranges,
-              )
-              is Some(source) {
+            if scope_expression_slot(path, selected_input_scope) is Some(source) {
               for binding in selected_output_slots {
                 if binding.1 == source {
                   return Some(binding.0)
@@ -6056,13 +6035,7 @@ fn compile_steps(
               expression,
               selected_expressions,
               order_aggregate_slots + selected_output_slots,
-              path => {
-                pipe_slot(
-                  path,
-                  selected_input_scope.visible,
-                  selected_input_scope.ranges,
-                )
-              },
+              path => scope_expression_slot(path, selected_input_scope),
             )
           }
           let ordinal = order_ordinal_column(

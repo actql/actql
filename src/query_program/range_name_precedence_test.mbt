@@ -103,3 +103,25 @@ test "ORDER output alias overrides the same-named input row" {
     _ => fail("closed alias ORDER")
   }
 }
+
+///|
+test "EXTEND cannot override a surviving input range" {
+  let p = compile(
+    @query.parse_query(
+      "FROM pair |> AS r |> EXTEND 99 AS r |> SELECT r AS row",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    semantic(p).contains(
+      "\"object\":{\"x\":{\"field\":\"x\"},\"y\":{\"field\":\"y\"}}",
+    ),
+  )
+  match @check.check_parsed(p, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    _ => fail("closed surviving range")
+  }
+}
