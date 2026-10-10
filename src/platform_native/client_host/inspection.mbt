@@ -10,6 +10,7 @@ pub enum NativeClientStateInspection {
 pub(all) enum NativeClientCustodyIssue {
   Epoch(NativeClientEpochIssue)
   Run(NativeClientRunJournalIssue)
+  Submission(NativeClientRunJournalIssue)
 }
 
 ///|
@@ -23,8 +24,9 @@ pub(all) enum NativeClientStateInspectionIssue {
 ///|
 /// Reuse the existing pinned SQLite/WAL copy and retryable cleanup owner before
 /// any normal writer opens an unclassified Local journal. Every retained row
-/// is checked by the existing epoch and Run custody decoders. This observation
-/// confers no authority and is not a durable initialization decision. A later
+/// is checked by the existing epoch, Run and original-intent custody decoders.
+/// This observation confers no authority and is not a durable initialization
+/// decision. A later
 /// writer must recheck custody and the trusted Host's initialization intent in
 /// its own transaction; missing or changed custody is never repaired here.
 pub fn inspect_native_client_state(
@@ -57,9 +59,21 @@ pub fn inspect_native_client_state(
         }
       }
       match run_journal_custody(database, max_records) {
-        Ok(_) => Ok(Retained)
+        Ok(_) => ()
         Err(issue) => {
           refusal = Some(Run(issue))
+          return Err(@journal.StateCollision)
+        }
+      }
+      let journal : NativeClientRunJournal = {
+        database,
+        max_records,
+        fenced: false,
+      }
+      match journal.submitted_intent_custody() {
+        Ok(_) => Ok(Retained)
+        Err(issue) => {
+          refusal = Some(Submission(issue))
           Err(@journal.StateCollision)
         }
       }

@@ -20,6 +20,9 @@ pub(all) enum NativeClientRunJournalIssue {
   Encoding
   Physical(@sqlite.NativeSqliteIssue)
   Start(@host.ClientRunStartIssue)
+  Epoch(NativeClientEpochIssue)
+  InvalidSubmission
+  SubmissionEpochRejected(@scope.SubmissionEpochValidity)
 }
 
 ///|

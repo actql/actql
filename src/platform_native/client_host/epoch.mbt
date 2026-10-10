@@ -403,7 +403,31 @@ pub fn NativeClientEpochAuthority::verify_epoch(
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  let (key, clock) = match self.clock(now) {
+  match self.clock(now) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.verify_epoch_locked(epoch, authority_scope_cid, current_authorization)
+}
+
+///|
+/// Recheck the original key and monotonic watermark inside the caller's
+/// existing SQLite transaction. The caller must advance clock() first and
+/// share this exact physical handle; this does not begin or commit a nested
+/// transaction and does not confer an admission purpose.
+fn NativeClientEpochAuthority::verify_epoch_locked(
+  self : NativeClientEpochAuthority,
+  epoch : NativeClientSubmissionEpoch,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
+  if !current_authorization {
+    return Err(AuthorizationDenied)
+  }
+  if self.fenced || self.database.transaction_fenced() {
+    return Err(Fenced)
+  }
+  let (key, clock, _) = match read_epoch_custody(self.database) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

@@ -12,8 +12,12 @@ test "Native Client state inspection distinguishes absence from retained custody
   let database = library.open_database(path, 131072L).unwrap()
   initialize_native_client_epoch_authority(database, epoch_test_crypto()).unwrap()
   initialize_native_client_run_journal(database).unwrap()
+  initialize_native_client_submitted_intents(database).unwrap()
   let epoch = database.read("client_submission_epoch", "authority").unwrap()
   let count = database.read("client_run_custody", "issued").unwrap()
+  let submitted_count = database
+    .read("client_submitted_intent_custody", "issued")
+    .unwrap()
   assert_true(
     inspect_native_client_state(library, path, 131072L, 1048576L, 8)
     is Ok(Retained),
@@ -26,6 +30,11 @@ test "Native Client state inspection distinguishes absence from retained custody
   assert_eq(after_epoch.revision, epoch.revision)
   assert_eq(after_count.body, count.body)
   assert_eq(after_count.revision, count.revision)
+  let after_submitted_count = database
+    .read("client_submitted_intent_custody", "issued")
+    .unwrap()
+  assert_eq(after_submitted_count.body, submitted_count.body)
+  assert_eq(after_submitted_count.revision, submitted_count.revision)
   database.close_checked().unwrap()
   assert_true(
     inspect_native_client_state(library, path, 131072L, 1048576L, 8)
@@ -58,6 +67,15 @@ test "Native Client state inspection refuses lost or corrupt custody without rep
     database.read("client_run_custody", "issued") is Err(@sqlite.NotFound),
   )
   initialize_native_client_run_journal(database).unwrap()
+  assert_true(
+    inspect_native_client_state(library, path, 131072L, 1048576L, 8)
+    is Err(Custody(Submission(CustodyLost))),
+  )
+  assert_true(
+    database.read("client_submitted_intent_custody", "issued")
+    is Err(@sqlite.NotFound),
+  )
+  initialize_native_client_submitted_intents(database).unwrap()
   let previous = database.read("client_run_custody", "issued").unwrap()
   database
   .compare_exchange("client_run_custody", "issued", previous.revision, b"1")

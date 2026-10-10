@@ -88,6 +88,7 @@ typedef struct {
   int test_close_failures;
   int test_commit_failures;
   int test_commit_reply_failures;
+  int test_commit_skip;
   int transaction_fenced;
   int test_checked_close_count;
 } actql_native_sqlite_database;
@@ -241,11 +242,21 @@ void actql_native_sqlite_test_fail_close(
 // Whitebox-only injection: the caller owns this database and its transaction.
 void actql_native_sqlite_test_fail_commit(
   actql_native_sqlite_database *database, int32_t failures
-) { database->test_commit_failures = failures; }
+) { database->test_commit_failures = failures; database->test_commit_skip = 0; }
 
 void actql_native_sqlite_test_fail_commit_reply(
   actql_native_sqlite_database *database, int32_t failures
-) { database->test_commit_reply_failures = failures; }
+) { database->test_commit_reply_failures = failures; database->test_commit_skip = 0; }
+
+// Select an owned transaction boundary after preceding successful commits.
+// This is whitebox fault injection, not an environment-controlled retry mode.
+void actql_native_sqlite_test_fail_commit_after(
+  actql_native_sqlite_database *database, int32_t skip, int32_t reply_lost
+) {
+  database->test_commit_skip = skip > 0 ? skip : 0;
+  database->test_commit_failures = reply_lost ? 0 : 1;
+  database->test_commit_reply_failures = reply_lost ? 1 : 0;
+}
 
 int32_t actql_native_sqlite_test_checked_close_count(
   actql_native_sqlite_database *database
@@ -1001,6 +1012,26 @@ int32_t actql_native_sqlite_database_compare_exchange(
   return result;
 }
 
+// Test-only physical custody-loss injection. There is no production MoonBit
+// delete API; callers cannot silently repair the independent issuance record.
+int32_t actql_native_sqlite_test_remove_journal_record(
+    actql_native_sqlite_database *database,
+    moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+    moonbit_bytes_t key, int32_t key_length) {
+  if (database == NULL || !database->opened) return 0;
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(database->database,
+    "DELETE FROM actql_records WHERE namespace = ?1 AND record_key = ?2",
+    -1, &statement, NULL);
+  if (code != SQLITE_OK) return 0;
+  int bound = actql_bind_key(database, statement, 1, namespace_bytes,
+    namespace_length, 2, key, key_length);
+  int removed = bound == 0 && database->library->step(statement) == SQLITE_DONE &&
+    database->library->changes64(database->database) == 1;
+  int finalized = database->library->finalize(statement);
+  return removed && finalized == SQLITE_OK;
+}
+
 int32_t actql_native_sqlite_database_begin_immediate(
   actql_native_sqlite_database *database
 ) {
@@ -1028,6 +1059,11 @@ int32_t actql_native_sqlite_database_commit(
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
+  if (database->test_commit_skip > 0) {
+    database->test_commit_skip--;
+    int code = actql_exec(database, "COMMIT");
+    return code == SQLITE_OK ? 0 : actql_operation_code(code);
+  }
   if (database->test_commit_failures > 0) {
     database->test_commit_failures--;
     actql_replace_error(&database->error, "injected transaction commit failure");

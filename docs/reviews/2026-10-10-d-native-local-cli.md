@@ -307,3 +307,63 @@ DuckDB 1.5.5-r.4 library matching the pinned Node dependency. The test root is
 above preserve the exact environment/arguments. Public CLI `run`, durable
 Submission/bootstrap, Named Result commit/read, separate-process recovery,
 Effect execution and external package installation remain unfinished.
+
+## Original Submission custody connection
+
+The next connection preserves the original unchecked `ClientSubmittedIntent`
+using the existing common owner and `SubmissionEpoch`/nonce identity. The
+Native request journal stores that exact value-preserving canonical intent and
+its independent issuance count in one SQLite transaction. It records only
+`preparing`: no ready receipt, new Run, dispatch, preparation refusal or retry
+permission is manufactured by these methods. Existing Run rows, the original
+epoch key and monotonic expiry watermark are rechecked in the same transaction.
+
+Reference-only lookup authenticates the original epoch even after admission
+expiry and applies current authority. Missing history remains unresolved;
+missing or contradictory custody is refused without repair. Unknown commit or
+rollback outcomes fence the physical handle across both epoch and Run
+adapters. Read-only store inspection now checks the original-intent custody as
+well as the existing epoch and Run custody before any writer may be adopted.
+This is still an unshipped Local profile, not a migration or repair mechanism
+for a released store format.
+
+`prepare_native_client_submitted_program` connects the retained unchecked input
+directly to the existing frontend and ordinary/Effect preparation owner.
+Structured input remains the original Program, and AQL input retains text,
+format, parameter declarations and supplied values. An opaque handle binds
+the resulting preparation to that original intent CID; callers do not provide
+replacement lowered JSON. Unicode and line endings are preserved for data,
+while operation nonces retain the existing typed identity domain: a
+noncanonical nonce is rejected rather than normalized. The finite Native input
+profile is explicit; envelope budget exhaustion is separate from input refusal.
+
+These methods do not yet connect the retained intent to an atomic ready Run
+receipt or CLI `run`. Trusted configuration adoption, installation custody,
+receipt/phase completion, publication/read, Effect operations and separate
+process recovery remain follow-up implementation, not acceptance claims.
+
+Matching-target typechecking, SQLite C syntax checking and actual scoped
+`moon info` succeeded while this change was uncommitted (`run-XxE6IC` and
+`run-L7mZjh`). The scoped Native interface is the real compiler output at
+`_build/native/debug/check/platform_native/client_host/client_host.mbti`;
+this Native-only package has no canonical JS interface.
+
+The bounded runner `/private/tmp/actql-d-native-original-intent-check.mjs`
+executed 28/28 Native Client cases and seven selected shared SQLite
+inspection/cleanup cases successfully in `local-checks/attempts/run-CTGTBX`.
+Focused records are `focused-test-PgdTNt` and `focused-test-mpJRB1`. The owned
+SQLite root is `/private/tmp/actql-d-native-original-intent-gFWBeC`. This is
+dirty-tree evidence based on `ca87f2d4aa82b13c2b461bf0b8ef5f369f96e1ad`,
+not proof for that historical clean SHA or a new release artifact.
+
+The earlier Native attempt `run-vZtSEc` passed 27/28: the negative fixture
+incorrectly expected an AQL text SELECT to be rejected. The existing
+`source_frontend` query-script grammar accepts it. The corrected test
+independently expects SELECT acceptance and refuses a JSON document submitted
+as text, unknown envelope fields and declaration placement on JSON. Neither
+the frontend nor a product expectation was weakened. The runner-only missing
+Node argument separator (`run-FNpuuJ`, before test execution) and shared-lock
+refusals are retained as failed/unexecuted evidence, not product successes.
+
+No public CLI run, release artifact, packed acceptance or Hosted CI result is
+claimed by this limited Native journal/preparation regression.

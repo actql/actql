@@ -18,6 +18,8 @@ import {
   "actql/actql/platform_native/signature" @crypto,
   "actql/actql/encode_core" @encode,
   "actql/actql/source_value" @source,
+  "actql/actql/canonical_json" @canonical,
+  "actql/actql/parameter_binding" @parameters,
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/encoding/utf8",
 }
