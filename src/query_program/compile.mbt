@@ -4897,6 +4897,11 @@ fn compile_steps(
             }
           }
         }
+        if positional_set_output && i == @query.operation_count(query) - 1 {
+          privatize_positional_duplicate_columns(
+            construction, names, bindings, selected, physical,
+          )
+        }
         for a in 0..<names.length() {
           for b in 0..<a {
             if ascii_upper(names[a]) == ascii_upper(names[b]) {
@@ -5219,6 +5224,11 @@ fn compile_steps(
               bindings.push((name, source))
             }
           }
+        }
+        if positional_set_output && i == @query.operation_count(query) - 1 {
+          privatize_positional_duplicate_columns(
+            construction, names, bindings, selected, active_fields,
+          )
         }
         for a in 0..<names.length() {
           for b in 0..<a {

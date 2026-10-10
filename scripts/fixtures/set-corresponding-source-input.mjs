@@ -75,3 +75,45 @@ export const setCorrespondingRefusals = [
   {name: 'dropped-column', text: left + ' UNION ALL CORRESPONDING ' + right + ' ORDER BY left_only'},
   {name: 'undeclared-parameter', text: 'SELECT id FROM records WHERE id >= @missing UNION ALL CORRESPONDING SELECT id, amount FROM records'},
 ].map(item => ({format: 'sql', ...item, name: 'set-corresponding-refuse-' + item.name}));
+
+// Positional operands have no name-matching obligation. The duplicate right
+// aliases describe two distinct values, not one field to keep or overwrite.
+const positionalColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}];
+const positionalRows = [{a: 0, b: 0}, {a: 1, b: null}];
+const positionalProgram = {version: 'actql/0.1', id: 'fixture.positional_duplicates',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {a: number, b: {...number, nullable: true}}, rows: positionalRows}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+      {field: 'b', dir: 'asc', nulls: 'last'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const positional = (name, text, extra = {}) => success('positional-' + name, text,
+  {sourceRows: [], sourceReadSessionCount: 0, columns: positionalColumns,
+    expected: positionalRows, ...extra});
+setCorrespondingSuccesses.push(
+  positional('json-control', JSON.stringify(positionalProgram), {format: 'json'}),
+  positional('duplicate-aliases', 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT 1 AS x, CAST(NULL AS FLOAT64) AS `X` ORDER BY a, b NULLS LAST'),
+  positional('scoped-current-and-original', 'DATA n = SELECT 1 AS x; '
+    + 'FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original '
+    + '|> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 1, b: 2}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: number}]}),
+  positional('typed-empty', 'DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE '
+    + 'UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; '
+    + 'FROM e |> ORDER BY a, b', {expected: []}),
+  positional('shared-source', 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT id AS repeated, amount AS repeated FROM records WHERE id > 0 ORDER BY a, b NULLS LAST',
+    {sourceRows, sourceReadSessionCount: 1,
+      expected: [{a: 0, b: 0}, {a: 1, b: null}, {a: 2, b: 20},
+        {a: 3, b: 30}, {a: 3, b: 30}]}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'positional-public-duplicates', text: 'SELECT 1 AS x, 2 AS x'},
+  {name: 'positional-by-name-duplicates',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL BY NAME SELECT 1 AS a, 2 AS a'},
+  {name: 'positional-private-output',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x ORDER BY aql_set_duplicate_2'},
+].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
+  format: 'sql', expectedCode: 'ClientProgramInvalidInput'})));
