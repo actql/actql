@@ -1,6 +1,9 @@
 # Projected Graph MATCH as a DATA Relation producer
 
 Base: main at 30df1244a6bcb5d32829ac928a72d96a37125e33.
+Integration also includes main ca93fba102c368bc9907e25e02bba9f6cfdbc486.
+The only conflicts are the generated registration inventory and its fixed count
+assertions; both retain the new main fixtures plus this unit’s 10/7 cases.
 Owner: B, frontend syntax, lowering and direct public acceptance. No dependency
 on the unmerged Graph Relation JOIN work or a new execution owner.
 

@@ -6,6 +6,7 @@ pub(all) enum ResidentEffectCheckpointCustodyIssue {
   Store(@publication_store.NativePublicationStoreIssue)
   Capacity(@resources.LedgerIssue)
   Projection(@checkpoint.RunStateWireIssue)
+  Report(@remote.DispatchIssue)
 }
 
 ///|
@@ -198,4 +199,38 @@ pub fn ResidentEffectCheckpointCustody::retry_cleanup(
   }
   self.released = true
   Ok(true)
+}
+
+///|
+/// Report only the original consumer's confirmed paired custody. The dispatch
+/// comes from the retained-input admission, not from caller-supplied metadata.
+/// This authenticates no transport peer and commits no Cloud waiting state.
+pub fn ResidentEffectCheckpointCustody::report(
+  self : ResidentEffectCheckpointCustody,
+  limits : @checkpoint.WireLimits,
+) -> Result[
+  @remote.RemoteEffectCheckpointReport,
+  ResidentEffectCheckpointCustodyIssue,
+] {
+  let source = self.review.source_owner
+  guard !source.stopping &&
+    !source.released &&
+    source.effect_retained is Some(retained) &&
+    @output.validate_native_remote_retained_task_input_borrow(
+      retained.input,
+      retained.material,
+      retained.current,
+    )
+    is Ok(_) else {
+    return Err(Unavailable)
+  }
+  let (persisted, _) = match self.confirm() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @remote.prepare_remote_effect_checkpoint_report(
+    retained.dispatch,
+    persisted,
+    limits,
+  ).map_err(issue => Report(issue))
 }
