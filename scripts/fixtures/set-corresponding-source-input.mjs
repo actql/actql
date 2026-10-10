@@ -1156,3 +1156,57 @@ setCorrespondingRefusals.push(
   refuseUnpivotCollision('displaced-range', '|> AS old |> AS fresh |> WHERE old.extra > 0 '),
   refuseUnpivotCollision('private-duplicate', '|> AS fresh |> WHERE fresh.aql_set_duplicate_8 > 0 '),
 );
+
+// ASSERT validates existing current/range keys without renaming positional values.
+export const positionalAssertProgram = {"version":"actql/0.1","id":"fixture.positional_assert","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"assert_rows":{"unique_by":["kept"]}},{"select":[{"a":"kept"},{"b":"neg"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalAssertColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}];
+const positionalAssert = (name, text, extra = {}) => success('positional-pipe-assert-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: positionalAssertColumns,
+    expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: -20}], ...extra});
+const positionalAssertHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount ';
+const positionalAssertTail = '|> SELECT *) ORDER BY a, b NULLS LAST';
+setCorrespondingSuccesses.push(
+  positionalAssert('json-control', JSON.stringify(positionalAssertProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalAssert('anonymous-source', positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail),
+  positionalAssert('qualified-star', positionalAssertHead + '|> AS r |> ASSERT UNIQUE BY(r.kept) '
+    + '|> SELECT r.*) ORDER BY a, b NULLS LAST', {format: 'aql-text'}),
+  positionalAssert('immutable-key', positionalAssertHead + '|> AS r |> SET kept = 7 '
+    + '|> ASSERT UNIQUE BY(r.kept) ' + positionalAssertTail,
+    {expected: [{a: 0, b: 0}, {a: 7, b: -20}, {a: 7, b: -10}]}),
+  positionalAssert('renamed-current-key', positionalAssertHead + '|> RENAME kept AS current_key '
+    + '|> ASSERT UNIQUE BY(current_key) ' + positionalAssertTail),
+  positionalAssert('duplicate-values-separate-key', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS kept, amount AS v, -amount AS `V` |> ASSERT UNIQUE BY(kept) |> SELECT *) ORDER BY a, b NULLS LAST, c NULLS LAST',
+    {columns: [...positionalAssertColumns, {name: 'c', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 10, c: -10}, {a: 2, b: 20, c: -20}]}),
+  positionalAssert('nullable-nonkey', positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail,
+    {sourceRows: [{id: 1, amount: null}], expected: [{a: 0, b: 0}, {a: 1, b: null}]}),
+  positionalAssert('typed-empty', positionalAssertHead.replace('AS b UNION', 'AS b WHERE FALSE UNION')
+    + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail, {sourceRows: [], expected: []}),
+  positionalAssert('parameter-filter-limit', positionalAssertHead + '|> WHERE kept > @min |> ASSERT UNIQUE BY(kept) '
+    + '|> ORDER BY kept DESC |> LIMIT 1 ' + positionalAssertTail,
+    {parameterDeclarations: {min: number}, parameters: {min: 0}, expected: [{a: 0, b: 0}, {a: 2, b: -20}]}),
+);
+const refusePositionalAssert = (name, projection, key) => ({name: 'set-corresponding-refuse-pipe-assert-' + name,
+  format: 'sql', text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT ' + projection
+    + ' |> ASSERT UNIQUE BY(' + key + ') ' + positionalAssertTail, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalAssert('private-anonymous', 'id AS kept, -amount', 'aql_set_anonymous_4'),
+  refusePositionalAssert('ambiguous-bare', 'id AS v, -amount AS `V`', 'v'),
+  refusePositionalAssert('ambiguous-qualified', 'id AS v, -amount AS `V` |> AS r', 'r.v'),
+  refusePositionalAssert('dropped-input', 'id AS kept, -amount', 'id'),
+  refusePositionalAssert('displaced-range', 'id AS kept, -amount |> AS before |> AS current', 'before.kept'),
+  refusePositionalAssert('qualified-private', 'id AS kept, -amount |> AS r', 'r.aql_set_anonymous_4'),
+);
+// Invalid data is accepted for execution, then rejected by the existing ASSERT
+// Owner. It must not publish either operand or silently deduplicate the input.
+const duplicateAssertProgram = structuredClone(positionalAssertProgram);
+duplicateAssertProgram.stages[0].steps[0].values.rows = [{x: 1, y: 10}, {x: 1, y: 20}];
+export const setCorrespondingExecutionFailures = [
+  {name: 'set-corresponding-positional-assert-duplicate-json', format: 'json',
+    text: JSON.stringify(duplicateAssertProgram), resultNames: ['answer'], sourceReadSessionCount: 0},
+  {name: 'set-corresponding-positional-assert-duplicate-source', format: 'sql',
+    text: positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail,
+    sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}], resultNames: ['answer'], sourceReadSessionCount: 1},
+];
