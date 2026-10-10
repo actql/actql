@@ -69,6 +69,19 @@ pub fn Client::request(
 }
 
 ///|
+pub fn Client::request_bearer_file(
+  _self : Client,
+  _verb : NativeHttpMethod,
+  _url : String,
+  _headers : Array[NativeHttpHeader],
+  _body : Bytes,
+  _secret_path : String,
+  _expires_at_milliseconds : Int64,
+) -> Result[NativeHttpResponse, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::get_bearer_file(
   _self : Client,
   url : String,

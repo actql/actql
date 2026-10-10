@@ -85,15 +85,21 @@ extern "C" fn client_request_ffi(
 ) -> Int = "actql_native_http_client_request"
 
 ///|
-#borrow(client, url, secret_path)
-extern "C" fn client_get_bearer_file_ffi(
+#borrow(client, verb, url, headers, body, secret_path)
+extern "C" fn client_request_bearer_file_ffi(
   client : Client,
+  verb : Bytes,
+  verb_length : Int,
   url : Bytes,
   url_length : Int,
+  headers : Bytes,
+  headers_length : Int,
+  body : Bytes,
+  body_length : Int,
   secret_path : Bytes,
   secret_path_length : Int,
   expires_at_milliseconds : Int64,
-) -> Int = "actql_native_http_client_get_bearer_file"
+) -> Int = "actql_native_http_client_request_bearer_file"
 
 ///|
 #borrow(client)
@@ -273,6 +279,7 @@ fn method_name(verb : NativeHttpMethod) -> String {
     Get => "GET"
     Post => "POST"
     Put => "PUT"
+    Patch => "PATCH"
   }
 }
 
@@ -371,20 +378,54 @@ pub fn Client::get_bearer_file(
   secret_path : String,
   expires_at_milliseconds : Int64,
 ) -> Result[NativeHttpResponse, NativeHttpIssue] {
+  self.request_bearer_file(
+    Get,
+    url,
+    [{ name: "accept", value: "application/json", }],
+    b"",
+    secret_path,
+    expires_at_milliseconds,
+  )
+}
+
+///|
+/// Perform one bounded request with an exact operation credential. Resolve the
+/// secret only inside the physical adapter and recheck its deadline after that
+/// resolution, before any send. Caller-supplied Authorization is forbidden.
+pub fn Client::request_bearer_file(
+  self : Client,
+  verb : NativeHttpMethod,
+  url : String,
+  headers : Array[NativeHttpHeader],
+  body : Bytes,
+  secret_path : String,
+  expires_at_milliseconds : Int64,
+) -> Result[NativeHttpResponse, NativeHttpIssue] {
   if !url.has_prefix("https://") ||
     url.length() > 8192 ||
     url.contains("\u{0}") ||
     !valid_path(secret_path) ||
-    expires_at_milliseconds < 1L {
+    expires_at_milliseconds < 1L ||
+    (verb == Get && body.length() != 0) {
     return Err(InvalidRequest)
   }
+  guard encode_headers(headers) is Some(encoded_headers) else {
+    return Err(InvalidRequest)
+  }
+  let encoded_method = @utf8.encode(method_name(verb))
   let encoded_url = @utf8.encode(url)
   let encoded_secret_path = @utf8.encode(secret_path)
   match
-    client_get_bearer_file_ffi(
+    client_request_bearer_file_ffi(
       self,
+      encoded_method,
+      encoded_method.length(),
       encoded_url,
       encoded_url.length(),
+      encoded_headers,
+      encoded_headers.length(),
+      body,
+      body.length(),
       encoded_secret_path,
       encoded_secret_path.length(),
       expires_at_milliseconds,
@@ -394,6 +435,8 @@ pub fn Client::get_bearer_file(
     2 => Err(Cancelled)
     3 => Err(Closed)
     4 => Err(DeadlineExpired)
+    5 => Err(CredentialUnavailable)
+    6 => Err(InvalidRequest)
     _ => Err(Transport(decode_message(client_error_ffi(self))))
   }
 }
