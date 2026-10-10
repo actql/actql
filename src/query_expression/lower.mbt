@@ -177,7 +177,9 @@ pub fn numeric_literal(text : String) -> Result[Double, Issue] {
 }
 
 ///|
-fn scalar_call(path : Array[@query.NamePart]) -> (String, String, Int, Int) raise Abort {
+fn scalar_call(
+  path : Array[@query.NamePart],
+) -> (String, String, Int, Int) raise Abort {
   // The syntax owner has decoded quoted name parts. Quotation does not change
   // the installed function namespace, overloads or case-insensitive lookup.
   if path.length() == 2 &&
@@ -193,6 +195,9 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, String, Int, Int) rais
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "ABS" => ("ABS", "abs", 1, 1)
+    "SIGN" => ("SIGN", "sign", 1, 1)
+    "STARTS_WITH" => ("STARTS_WITH", "starts_with", 2, 2)
+    "ENDS_WITH" => ("ENDS_WITH", "ends_with", 2, 2)
     "FLOOR" => ("FLOOR", "floor", 1, 1)
     "CEIL" | "CEILING" => ("CEIL", "ceil", 1, 1)
     "LOWER" => ("LOWER", "lower", 1, 1)
@@ -216,9 +221,7 @@ pub fn same_scalar_function(
   left : Array[@query.NamePart],
   right : Array[@query.NamePart],
 ) -> Bool {
-  try {
-    scalar_call(left) == scalar_call(right)
-  } catch {
+  try scalar_call(left) == scalar_call(right) catch {
     Abort(_) => false
   }
 }
@@ -250,9 +253,7 @@ fn binary_call(op : String) -> (String, Bool) raise Abort {
 // Use the same operator and polarity contract as lowering. Different spelling
 // alone must not prevent reuse of != / <>, and LIKE is not NOT LIKE.
 pub fn same_binary_operator(left : String, right : String) -> Bool {
-  try {
-    binary_call(left) == binary_call(right)
-  } catch {
+  try binary_call(left) == binary_call(right) catch {
     Abort(_) => false
   }
 }
@@ -347,7 +348,8 @@ fn append_resolved(
       Parenthesized(child) => references[i] = references[child]
       _ => ()
     }
-    guard node.kind is Call(path, args) && args.length() == 1 &&
+    guard node.kind is Call(path, args) &&
+      args.length() == 1 &&
       references[args[0]] is Some(reference) &&
       @query.expression_node(ast, reference)
       is Some({ kind: Reference(argument), .. }) else {

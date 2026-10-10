@@ -83,6 +83,17 @@ pub fn unary(
         Number(n) => finite(n.floor())
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Sign =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else {
+            Ok(Number(if n < 0.0 { -1.0 } else if n > 0.0 { 1.0 } else { 0.0 }))
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Abs =>
       match value {
         Null => Ok(Null)
@@ -266,6 +277,14 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    // Text predicates run through the retained, bounded comparison cursor.
+    // This scalar fallback handles only its NULL and invalid-domain cases.
+    StartsWith | EndsWith =>
+      if left is Null || right is Null {
+        Ok(Null)
+      } else {
+        Err(InvalidOperand)
+      }
     In | NotIn => {
       let items = match right {
         Null => return Ok(Boolean(op == @lower.NotIn))
@@ -315,7 +334,9 @@ pub fn binary(
         | GreaterEqual
         | NullIf
         | In
-        | NotIn => Err(InvalidOperand)
+        | NotIn
+        | StartsWith
+        | EndsWith => Err(InvalidOperand)
       }
     }
     Equal
@@ -367,8 +388,15 @@ fn binary_comparison_result(
     Greater => Ok(Boolean(compared > 0))
     GreaterEqual => Ok(Boolean(compared >= 0))
     NullIf => Ok(if compared == 0 { Null } else { left })
-    Add | Subtract | Multiply | Divide | Modulo | In | NotIn =>
-      Err(InvalidOperand)
+    Add
+    | Subtract
+    | Multiply
+    | Divide
+    | Modulo
+    | In
+    | NotIn
+    | StartsWith
+    | EndsWith => Err(InvalidOperand)
   }
 }
 
