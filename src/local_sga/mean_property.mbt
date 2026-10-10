@@ -9,7 +9,7 @@ priv enum MeanPropertyPhase {
 } derive(Eq)
 
 ///|
-priv enum MeanPropertyIssue {
+pub(all) enum MeanPropertyIssue {
   InvalidMeanProperty
   MeanPropertyConflict
   MeanPropertyNull

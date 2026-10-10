@@ -50,6 +50,8 @@ import {graphGraftSourceSuccesses, graphGraftSourceRefusals, graphGraftSourceExe
   from './graph-graft-source-input.mjs';
 import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
+import {graphMeanSourceOracles, graphMeanSourceRefusals}
+  from './graph-mean-source-input.mjs';
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -234,8 +236,9 @@ const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
+const graphMeanOnly = process.env.ACTQL_TEST_GRAPH_MEAN_ONLY === '1';
 const graphReachOnly = process.env.ACTQL_TEST_GRAPH_REACH_ONLY === '1';
-const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly;
+const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly || graphMeanOnly;
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
 const negatedPredicateReuseOnly = process.env.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY === '1';
@@ -426,6 +429,7 @@ const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals
   : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
+  : graphMeanOnly ? {successes: graphMeanSourceOracles, refusals: graphMeanSourceRefusals}
   : process.env.ACTQL_TEST_GRAPH_SHORTEST_ONLY === '1'
     ? {successes: graphShortestSourceSuccesses, refusals: graphShortestSourceRefusals}
   : graphTraverseOnly ? (graphReachOnly
@@ -575,6 +579,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphReachSourceRefusals);
   scopeInputs.successes.push(...graphShortestSourceSuccesses);
   scopeInputs.refusals.push(...graphShortestSourceRefusals);
+  scopeInputs.successes.push(...graphMeanSourceOracles);
+  scopeInputs.refusals.push(...graphMeanSourceRefusals);
   scopeInputs.successes.push(...statisticalAggregateSuccesses);
   scopeInputs.refusals.push(...statisticalAggregateRefusals);
   scopeInputs.executionFailures.push(...statisticalAggregateExecutionFailures);

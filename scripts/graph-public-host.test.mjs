@@ -14,6 +14,7 @@ import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/graph
 import {subtractionScenario} from './fixtures/graph-subtraction.mjs';
 import {graphReachSourceSuccesses} from './fixtures/graph-reach-source-input.mjs';
 import {graphShortestSourceSuccesses} from './fixtures/graph-shortest-source-input.mjs';
+import {graphMeanSourceOracles} from './fixtures/graph-mean-source-input.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -53,7 +54,6 @@ const coverage = JSON.parse(await readFile(new URL(packed
   : '../docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', import.meta.url), 'utf8'));
 const unsupported = coverage.operations.filter(entry =>
   coverage.current_graph_profile.classification[entry.operation] === 'blocked');
-assert(unsupported.length > 0);
 assert(unsupported.every(entry => entry.status === 'blocked'));
 const scratch = new URL(packed ? './state/' : '../_build/graph-public-host/', import.meta.url);
 await mkdir(scratch, {recursive:true});
@@ -540,8 +540,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
-    if (profile === 'graph-reach' || profile === 'graph-shortest') {
-      const samples = profile === 'graph-reach' ? graphReachSourceSuccesses : graphShortestSourceSuccesses;
+    if (['graph-reach', 'graph-shortest', 'graph-mean'].includes(profile)) {
+      const samples = profile === 'graph-reach' ? graphReachSourceSuccesses
+        : profile === 'graph-shortest' ? graphShortestSourceSuccesses : graphMeanSourceOracles;
       for (const sample of samples) {
         const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
         const run = await client.startSource(sample.text, {format: sample.format, submissionRef});

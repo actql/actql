@@ -158,6 +158,7 @@ pub enum CheckedOperation {
   GraphNormalize(@graph.CheckedNormalize)
   GraphDelta(right~ : Target, checked~ : @graph.CheckedDelta)
   GraphUnion(inputs~ : Array[Target], checked~ : @graph.CheckedUnion)
+  GraphMean(inputs~ : Array[Target], checked~ : @graph.CheckedMean)
   GraphSubtraction(right~ : Target, checked~ : @graph.CheckedSubtraction)
   GraphComponents(@graph.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)

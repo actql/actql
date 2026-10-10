@@ -38,9 +38,8 @@ const empty = structuredClone(graphMeanProgram);
 empty.id = 'fixture.graph_mean_empty';
 for (const step of empty.stages[0].steps.slice(0, 2)) step.values.rows = [];
 
-// Kept separate from the executable inventory until the common owner and
-// provider discharge Mean's complete obligations. This is an acceptance oracle,
-// not a claim that the current public refusal has been removed.
+// Independently authored public acceptance controls. Registration is not an
+// execution receipt; the delivery record reports which boundaries were run.
 export const graphMeanSourceOracles = [
   {name: 'graph-mean-json-explicit-repeated-samples-two-consumers', format: 'json',
     text: JSON.stringify(graphMeanProgram), results, sourceReadCount: 0},
@@ -60,3 +59,8 @@ export const graphMeanSourceRefusalOracles = [
   prefix + 'DATA combined = ' + call.replace('[1, 2, 0]', '[0, 0, 0]') + '; FROM combined |> node_rows() |> SELECT node_key',
   prefix + 'DATA combined = ' + call.replace('[g, g, g]', '[g, missing, g]') + '; FROM combined |> node_rows() |> SELECT node_key',
 ];
+
+export const graphMeanSourceRefusals = graphMeanSourceRefusalOracles.map((text, index) => ({
+  name: ['graph-mean-refuse-implicit-input', 'graph-mean-refuse-zero-weights',
+    'graph-mean-refuse-unknown-sample'][index], format: 'aql-text', text,
+}));

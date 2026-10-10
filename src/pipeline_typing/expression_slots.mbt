@@ -322,6 +322,7 @@ pub fn collect_expression_slots(
         | GraphNormalize(_)
         | GraphDelta(..)
         | GraphUnion(..)
+        | GraphMean(..)
         | GraphSubtraction(..)
         | GraphComponents(_)
         | GraphConstruction(..)

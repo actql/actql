@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {graphMeanProgram, graphMeanSourceOracles, graphMeanSourceRefusalOracles}
   from './fixtures/graph-mean-source-input.mjs';
@@ -21,6 +22,19 @@ test('Mean independent oracle preserves explicit sample occurrences and nullable
   const empty = JSON.parse(graphMeanSourceOracles[1].text);
   assert.deepEqual(empty.stages[0].steps.slice(0, 2).map(step => step.values.rows), [[], []]);
   assert.deepEqual(Object.values(graphMeanSourceOracles[1].results).map(value => value.rows), [[], []]);
+});
+
+test('Mean public acceptance reuses the existing fresh-process retained cohort reader', async () => {
+  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_MEAN_ONLY = '1'"));
+  assert.ok(corpus.includes('graphMeanOnly ? {successes: graphMeanSourceOracles, refusals: graphMeanSourceRefusals}'));
+  assert.ok(corpus.includes('scopeInputs.successes.push(...graphMeanSourceOracles)'));
+  assert.ok(corpus.includes('scopeInputs.refusals.push(...graphMeanSourceRefusals)'));
+  const start = driver.indexOf("if (process.argv.includes('--graph-graft-only') ||");
+  const end = driver.indexOf('return;', start);
+  assert.ok(driver.slice(start, end).includes("process.argv.includes('--graph-mean-only')"));
+  assert.ok(driver.slice(start, end).includes("exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})"));
 });
 
 test('Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input', () => {

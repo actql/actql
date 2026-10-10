@@ -51,9 +51,10 @@ test('packed Graph Host families have disjoint complete Local and HTTPS selectio
     'graph-traversal-modes','graph-traversal-selectors','presence-filter',
     'presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct',
     'presence-whole-distinct','presence-group','delta-application',
-    'delta-relation-composition','delta-diff','graph-union','graph-graft','graph-reach','graph-subtraction'];
-  assert.equal(graphPublicHostCases.length, 40);
-  assert.equal(new Set(graphPublicHostCases.map(item => item.name)).size, 40);
+    'delta-relation-composition','delta-diff','graph-union','graph-graft','graph-reach',
+    'graph-shortest','graph-mean','graph-subtraction'];
+  assert.equal(graphPublicHostCases.length, 44);
+  assert.equal(new Set(graphPublicHostCases.map(item => item.name)).size, 44);
   for (const mode of ['local','remote']) {
     assert.deepEqual(graphPublicHostCases.filter(item => item.mode === mode)
       .map(item => item.profile).sort(), [...profiles].sort());

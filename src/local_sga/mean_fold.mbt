@@ -45,7 +45,7 @@ priv enum MeanFoldPhase {
 } derive(Eq)
 
 ///|
-priv enum MeanFoldIssue {
+pub(all) enum MeanFoldIssue {
   InvalidMeanFold
   MeanInputUnavailable
   MeanFoldWorkLimit
