@@ -49,13 +49,54 @@ pub fn restore_source_free_local_run_from_materials(
   execution_context_cid : String,
   host_policy_cid : String,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
+  restore_local_run_from_materials(
+    input, restored, expected_definition_cid, retained_request, authority_scope_cid,
+    permit, current, tuple, execution_context_cid, host_policy_cid, source_free_profile,
+  )
+}
+
+///|
+/// Re-admit the original captured-Source compilation. This grants neither
+/// Source read authority nor permission to repeat completed physical work.
+pub fn restore_captured_source_local_run_from_materials(
+  input : @input.LocalPreparedInput,
+  restored : @host.ClientTaskRunMaterials,
+  expected_definition_cid : String,
+  retained_request : @host.ClientRequestIdentity,
+  authority_scope_cid : String,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  execution_context_cid : String,
+  host_policy_cid : String,
+) -> Result[LocalRunPlan, LocalRunIssue] {
+  restore_local_run_from_materials(
+    input, restored, expected_definition_cid, retained_request, authority_scope_cid,
+    permit, current, tuple, execution_context_cid, host_policy_cid, captured_source_profile,
+  )
+}
+
+///|
+fn restore_local_run_from_materials(
+  input : @input.LocalPreparedInput,
+  restored : @host.ClientTaskRunMaterials,
+  expected_definition_cid : String,
+  retained_request : @host.ClientRequestIdentity,
+  authority_scope_cid : String,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  profile : (@host.PreparedClientProgram) -> Bool,
+) -> Result[LocalRunPlan, LocalRunIssue] {
   let original_input = @input.local_prepared_program(input)
   if !authorized_input(
       original_input, permit, current, tuple, execution_context_cid,
     ) {
     return Err(AuthorizationMismatch)
   }
-  if !source_free_profile(original_input) {
+  if !profile(original_input) || !profile(restored.prepared) {
     return Err(UnsupportedCapability)
   }
   if @publication.publication_contract_identity(restored.run_definition) !=

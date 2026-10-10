@@ -2,12 +2,13 @@
 // Independent existing Catalog/row fixtures exercise the Core boundary only.
 // Actual Python/Wasm/DuckDB public execution remains a separate acceptance.
 test "Local captured Run keeps its original pre-Source start and checked producer" {
-  let environment = @program_check.checking_environment(
-    @environment.member_environment(
-      @environment.source_request_member(
-        @environment.source_request_at(query_amount_nullable_catalog(), 0).unwrap(),
-      ),
+  let wire_environment = @environment.member_environment(
+    @environment.source_request_member(
+      @environment.source_request_at(query_amount_nullable_catalog(), 0).unwrap(),
     ),
+  )
+  let environment = @program_check.checking_environment(
+    wire_environment,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
@@ -68,6 +69,82 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   ).unwrap()
   let request = @local_run.local_run_request(plan)
   let definition = @local_run.local_run_definition_cid(plan)
+  let writer = @encode.writer(1000000, 100000, 64)
+  @environment.emit(wire_environment, writer)
+  let saved = @local_run.export_local_run_materials(
+    plan,
+    environment,
+    @encode.finish(writer),
+    Some("{\"minimum\":2}"),
+  ).unwrap()
+  let decoded = @local_run.restore_local_run_materials(saved, definition).unwrap()
+  let restored = @local_run.restore_captured_source_local_run_from_materials(
+    input,
+    decoded,
+    definition,
+    request,
+    "sha256:" + "b".repeat(64),
+    permit,
+    account,
+    tuple,
+    context,
+    "sha256:" + "c".repeat(64),
+  ).unwrap()
+  assert_eq(@local_run.local_run_definition_cid(restored), definition)
+  assert_eq(
+    @publication_host.client_request_identity_relation(
+      @local_run.local_run_request(restored),
+      request,
+    ),
+    @publication_host.SameRequest,
+  )
+  // Fresh authored provenance cannot replace the codec-retained execution
+  // Owner, even when the checked identities are equivalent.
+  assert_true(
+    !physical_equal(@local_run.local_run_prepared(restored), prepared),
+  )
+  assert_true(
+    @publication_host.bind_client_task_run(
+      prepared,
+      @local_run.local_run_compilation(restored),
+      @local_run.local_run_admission(restored),
+      decoded.run_definition,
+    )
+    is Err(@publication_host.ForeignRun),
+  )
+  assert_true(
+    @local_run.restore_source_free_local_run_from_materials(
+      input,
+      decoded,
+      definition,
+      request,
+      "sha256:" + "b".repeat(64),
+      permit,
+      account,
+      tuple,
+      context,
+      "sha256:" + "c".repeat(64),
+    )
+    is Err(UnsupportedCapability),
+  )
+  for
+    (retained_definition, authority, policy) in [
+      (
+        "sha256:" + "f".repeat(64),
+        "sha256:" + "b".repeat(64),
+        "sha256:" + "c".repeat(64),
+      ),
+      (definition, "sha256:" + "e".repeat(64), "sha256:" + "c".repeat(64)),
+      (definition, "sha256:" + "b".repeat(64), "sha256:" + "d".repeat(64)),
+    ] {
+    assert_true(
+      @local_run.restore_captured_source_local_run_from_materials(
+        input, decoded, retained_definition, request, authority, permit, account,
+        tuple, context, policy,
+      )
+      is Err(_),
+    )
+  }
   // These are fixed Owner facts, not a physical durable journal receipt.
   // Obtain the common start decision before the acquisition fixture executes.
   let start = @local_run.confirm_local_run_physical_start(
@@ -224,6 +301,77 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   let projection = @client_local_host.export_client_source_capture(
     source, requirement, definition,
   ).unwrap()
+  let restored_requirement = @client_local_host.prepare_local_query_requirement(
+    @local_run.local_run_prepared(restored),
+    0,
+    0,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  let saved_rows = @client_local_host.client_source_capture_export_rows(
+    projection,
+  )
+  let saved_descriptor = @client_local_host.client_source_capture_export_descriptor(
+    projection,
+  )
+  let saved_binding = @client_local_host.client_source_capture_export_binding(
+    projection,
+  )
+  let saved_requirement = @client_local_host.client_source_capture_export_requirement(
+    projection,
+  )
+  let receiving_custody = Ref(true)
+  let restored_capture = @client_local_host.restore_client_source_capture(
+    restored_requirement,
+    saved_requirement,
+    definition,
+    saved_binding,
+    saved_descriptor,
+    saved_rows,
+    () => receiving_custody.val,
+  ).unwrap()
+  let restored_source = @client_local_host.client_source_capture_source(
+    restored_capture,
+  ).unwrap()
+  assert_true(!physical_equal(restored_source, source))
+  let receiving_host = @local_run.configure_captured_source_local_compute(
+    restored,
+    restored_source,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  assert_true(
+    @client_local_host.restore_client_source_capture(
+      restored_requirement,
+      saved_requirement,
+      @local_run.local_run_definition_cid(other_plan),
+      saved_binding,
+      saved_descriptor,
+      saved_rows,
+      () => true,
+    )
+    is Err(BindingMismatch),
+  )
+  // Closing or revoking the receiving custody does not acquire the original
+  // capture's lifetime, and never initiates a replacement acquisition.
+  receiving_custody.val = false
+  assert_true(
+    @client_local_host.client_source_capture_source(restored_capture) is None,
+  )
+  assert_true(@query.captured_source_available(source))
+  assert_true(@client_local_host.close_client_source_capture(restored_capture))
+  assert_true(!@client_local_host.close_client_source_capture(restored_capture))
+  let receiving_run = @local_run.local_compute_run(receiving_host)
+  @strategy.stop_captured_dag(receiving_run)
+  @strategy.refresh_captured_retention(receiving_run)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(receiving_run)).reserved_execution_bytes,
+    0L,
+  )
   for transfer in operations.inputs {
     for row in @client_local_host.client_source_capture_export_rows(projection) {
       (transfer.append)(row).unwrap()

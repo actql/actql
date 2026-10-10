@@ -357,6 +357,25 @@ no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
 
+The captured-Source profile uses
+`restore_captured_source_local_run_from_materials` against the same readmitted
+task materials Owner. The restored compilation, admission and Run definition
+remain one physically bound set. Fresh authored provenance must have identical
+checked Program/parameter and environment identities; it cannot substitute its
+execution Owner. The exact original request, authority scope, current account,
+execution context and policy remain required. Source-free and captured profiles
+are selected explicitly from the checked acquisition inventory, not retried as
+fallbacks after semantic refusal.
+
+Restoring that plan is distinct from restoring completed Source bytes. The
+existing Source capture codec binds the saved descriptor and rows to its exact
+requirement CID and original Run binding. Receiving custody owns its own
+lifetime: loss or close cannot acquire or revoke the original capture. Neither
+codec readmission nor configuration authorizes Source I/O, proves a completed
+task or starts replacement work. Durable process recovery must subsequently
+re-admit the saved completed Source/Compute and publication facts through their
+existing Owners before deciding the next permitted action.
+
 `restore_source_free_local_run` retains the material codec's original checked
 Owner, task compilation, admission and definition. It does not issue a new Run
 definition or refresh its lifetime. Fresh preparation of the saved authored

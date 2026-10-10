@@ -249,8 +249,16 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
       return 0
     }
   }
+  let restore = if @host.prepared_client_acquisition_count(
+      @preparation.local_prepared_program(input),
+    ) ==
+    0 {
+    @local_run.restore_source_free_local_run_from_materials
+  } else {
+    @local_run.restore_captured_source_local_run_from_materials
+  }
   record.outcome = Some(
-    @local_run.restore_source_free_local_run_from_materials(
+    restore(
       input,
       restored,
       definition_cid,
