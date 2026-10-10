@@ -243,7 +243,7 @@ jobs:
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
             # compiler stack. This does not change product resource budgets.
             if [ "$(uname -s)" = Linux ]; then
-              ulimit -s 65536
+              ulimit -S -s 65536
             fi
             export ACTQL_TEST_NATIVE_SQLITE_LIBRARY="${ACTQL_TEST_NATIVE_SQLITE_LIBRARY:-/usr/lib/x86_64-linux-gnu/libsqlite3.so.0}"
             # Reopen remains within a run; the full run below starts fresh.
