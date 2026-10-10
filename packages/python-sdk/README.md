@@ -56,6 +56,11 @@ SDK observation; a serialized or copied response has no original-input custody.
 UTF-8 spans are interpreted against exact submitted bytes. Editor ranges use
 zero-based lines and UTF-16 columns; no exact editor position exists inside CRLF.
 
-The initial implementation is in development. Checkpoint signing, full recovery
-acceptance, real Host wheel acceptance, and the separate Python Local Wasm probe
-are not yet delivery-complete.
+The initial implementation is in development. Full Checkpoint and recovery
+acceptance and the separate Python Local Wasm probe are not delivery-complete.
+
+For development, install `packages/python-sdk[dev]` in a dedicated venv and run
+`ACTQL_PYTHON=/path/to/venv/bin/python node scripts/check-python-client.mjs` from
+the repository root. This checks generated contracts, focused boundaries and
+typed consumer examples under the repository's bounded runner. It starts no Host
+and does not contact a package registry.

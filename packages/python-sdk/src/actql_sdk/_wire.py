@@ -50,7 +50,7 @@ def valid(value, schema):
             return False
         if len(value) < schema.get('minLength', 0) or length > schema.get('maxLength', math.inf):
             return False
-        if 'pattern' in schema and re.search(schema['pattern'], value) is None:
+        if 'pattern' in schema and re.search(schema['pattern'], value, re.ASCII) is None:
             return False
     kind = schema.get('type')
     if kind == 'string':

@@ -46,11 +46,18 @@ class ValueTests(unittest.TestCase):
             with self.assertRaises(ClientError):
                 decode_json(raw)
 
+    def test_large_binary64_values_are_not_rounded_or_rejected_as_metadata(self):
+        self.assertEqual(decode_json(b'{"value":9007199254740992}'), {'value': 9007199254740992.0})
+        with self.assertRaises(ClientError):
+            decode_json(b'{"value":9007199254740993}')
+        self.assertFalse(wire.valid(9007199254740992.0, {'type': 'integer'}))
+
     def test_canonical_identity_domains_remain_distinct(self):
         self.assertEqual(canonical_bytes({'e\u0301': 'e\u0301\r\n'}), b'{"\xc3\xa9":"e\xcc\x81\\r\\n"}')
         self.assertEqual(canonical_bytes({'e\u0301': 1}, data_keys=True), b'{"e\xcc\x81":1}')
         with self.assertRaises(ClientError):
             canonical_bytes({'é': 1, 'e\u0301': 2})
+        self.assertEqual(canonical_bytes({'\ue000': 2, '😀': 1}, data_keys=True), '{"😀":1,"\ue000":2}'.encode())
 
     def test_wire_matches_ecmascript_integer_key_order_and_numbers(self):
         self.assertEqual(wire_bytes({'10': 1.0, '2': 1e-7, '01': 1e20, '😀': 1e21}),
@@ -63,6 +70,7 @@ class ContractTests(unittest.TestCase):
         self.assertFalse(wire.negotiated(PROFILE | {'unexpected': 1}, 'profile', SELECTED))
         self.assertFalse(wire.valid(EPOCH | {'notBefore': False}, 'submission_epoch'))
         self.assertFalse(wire.valid(1, {'const': True}))
+        self.assertFalse(wire.valid('２０２６', {'type': 'string', 'pattern': r'^\d{4}$'}))
 
     def test_generated_dtos_resolve_all_forward_annotations(self):
         found = 0

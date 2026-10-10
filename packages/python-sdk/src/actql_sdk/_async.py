@@ -96,6 +96,8 @@ class AsyncClient:
     def _body(self, operation, body):
         if self._closed:
             raise _ExchangeFailure('ClientClosed', False)
+        if operation != 'connect' and self._profile is None:
+            raise _ExchangeFailure('ClientNotConnected', False)
         captured = snapshot({'connection': thaw(self._selected)} | body)
         if not wire.valid_body(operation, captured):
             raise _ExchangeFailure('InvalidClientRequest', False)

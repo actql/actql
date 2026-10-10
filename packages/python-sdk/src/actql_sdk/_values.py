@@ -104,11 +104,18 @@ def decode_json(raw):
     def integer(text):
         if text == '-0':
             raise ClientError('InvalidHostResponse')
-        return int(text)
+        number = int(text)
+        if abs(number) <= SAFE_INTEGER:
+            return number
+        # Opaque values use binary64; never silently round an integer lexeme.
+        represented = float(number)
+        if not math.isfinite(represented) or int(represented) != number:
+            raise ClientError('InvalidHostResponse')
+        return represented
     try:
         return snapshot(json.loads(raw.decode('utf-8', 'strict'),
             object_pairs_hook=object_pairs, parse_constant=bad_constant, parse_int=integer))
-    except (UnicodeError, ValueError, RecursionError, ClientError):
+    except (UnicodeError, ValueError, OverflowError, RecursionError, ClientError):
         raise ClientError('InvalidHostResponse') from None
 
 

@@ -3,7 +3,7 @@ import re
 import weakref
 from ._errors import ClientError
 from ._values import Observation, freeze, snapshot, thaw, wire_bytes
-from ._wire import CONTRACT, check_outcome, utf16_length
+from ._wire import CONTRACT, check_outcome, utf16_length, valid
 
 _inputs = weakref.WeakKeyDictionary()
 _submission_checks = weakref.WeakKeyDictionary()
@@ -79,8 +79,9 @@ def resolve_check_location(observation, location, current_input=None):
         return freeze(thaw(location) | {'input': original}) if _node_exists(original_value['value'], location.get('pointer')) else None
     raw = original['text'].encode('utf-8')
     start, end = location.get('start_byte'), location.get('end_byte')
-    if type(start) is not int or type(end) is not int or not 0 <= start <= end <= len(raw):
+    if not all(valid(at, {'type': 'integer', 'minimum': 0, 'maximum': len(raw)}) for at in (start, end)) or start > end:
         return None
+    start, end = int(start), int(end)
     try:
         raw[:start].decode('utf-8', 'strict')
         text = raw[start:end].decode('utf-8', 'strict')
@@ -95,6 +96,7 @@ def resolve_check_text_range(observation, location, current_input=None):
         return None
     raw = resolved['input']['text'].encode('utf-8')
     def position(at):
+        at = int(at)
         # CRLF is one line break; byte offsets and UTF-16 columns remain exact.
         if at > 0 and at < len(raw) and raw[at-1:at+1] == b'\r\n':
             return None
