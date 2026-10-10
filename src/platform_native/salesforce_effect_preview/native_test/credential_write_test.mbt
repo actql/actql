@@ -67,9 +67,20 @@ test "Native credential write uses exact checked bytes and does not resend after
   // Installation is a snapshot; replacing the caller's array does not widen it.
   installed[0] = { ..operation, verb: @http.Post, }
   let grant = write_grant()
+  let mut guard_calls = 0
   let send = fn(grant, verb, path, bytes) {
-    @resource.call_native_credential_resource_request_at_path(
-      service, grant, "write-a", scope, verb, path, bytes,
+    @resource.call_native_credential_resource_guarded_request_at_path(
+      service,
+      grant,
+      "write-a",
+      scope,
+      verb,
+      path,
+      bytes,
+      fn() {
+        guard_calls = guard_calls + 1
+        true
+      },
     )
   }
   assert_true(
@@ -84,6 +95,7 @@ test "Native credential write uses exact checked bytes and does not resend after
     is Err(@resource.AccessDenied),
   )
   assert_eq(stages.length(), 0)
+  assert_eq(guard_calls, 0)
   assert_true(
     send(grant, @http.Patch, operation.path, body)
     is Err(@resource.AccessDenied),
@@ -124,6 +136,7 @@ test "Native credential write uses exact checked bytes and does not resend after
     is Err(@http.DeadlineExpired),
   )
   let response = send(grant, @http.Patch, operation.path, body).unwrap()
+  assert_eq(guard_calls, 2)
   assert_eq(response.status, 200)
   assert_eq(response.body, b"{\"saved\":\"e\\u0301\\r\\n\"}")
   let original = @resource.query_native_credential_use(
@@ -160,6 +173,161 @@ test "Native credential write uses exact checked bytes and does not resend after
   assert_eq(retained.status, Some(200))
   ignore(fresh_client.close())
   reopened.close_checked().unwrap()
+}
+
+///|
+test "Native credential write keeps a refused execution fence outside grant consumption" {
+  let (request, _) = target_request("001000000000001")
+  let operation = write_operation(request)
+  let scope = { ..target_scope(), operation: "salesforce:record:update", }
+  let body = @utf8.encode(@catalog.single_write_request_body(request))
+  let grant = write_grant()
+  let (database, client) = target_physical("write-guard-before-claim")
+  let service = @resource.install_native_credential_resource_service(
+    database,
+    client,
+    [operation],
+    _ => true,
+  ).unwrap()
+  let mut calls = 0
+  for _ in 0..<2 {
+    assert_true(
+      @resource.call_native_credential_resource_guarded_request_at_path(
+        service,
+        grant,
+        "guard-before-claim",
+        scope,
+        @http.Patch,
+        operation.path,
+        body,
+        fn() {
+          calls = calls + 1
+          false
+        },
+      )
+      is Err(@resource.AccessDenied),
+    )
+  }
+  assert_eq(calls, 2)
+  assert_true(
+    @resource.query_native_credential_use(
+      service, grant, "guard-before-claim", scope,
+    )
+    is Err(@resource.Journal(@sqlite.NotFound)),
+  )
+  ignore(client.close())
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native credential write rechecks execution fence after Host send authorization" {
+  let (request, _) = target_request("001000000000001")
+  let operation = write_operation(request)
+  let scope = { ..target_scope(), operation: "salesforce:record:update", }
+  let body = @utf8.encode(@catalog.single_write_request_body(request))
+  let grant = write_grant()
+  let (database, client) = target_physical("write-guard-after-host")
+  let mut current = true
+  let service = @resource.install_native_credential_resource_service(
+    database,
+    client,
+    [operation],
+    fn(value) {
+      if value.stage == "send" {
+        current = false
+      }
+      true
+    },
+  ).unwrap()
+  let mut calls = 0
+  assert_true(
+    @resource.call_native_credential_resource_guarded_request_at_path(
+      service,
+      grant,
+      "guard-after-host",
+      scope,
+      @http.Patch,
+      operation.path,
+      body,
+      fn() {
+        calls = calls + 1
+        current
+      },
+    )
+    is Err(@resource.AccessDenied),
+  )
+  assert_eq(calls, 2)
+  let retained = @resource.query_native_credential_use(
+    service, grant, "guard-after-host", scope,
+  ).unwrap()
+  assert_eq(retained.outcome, "failed")
+  assert_eq(retained.status, None)
+  current = true
+  // Recovered authority does not make the same already claimed use sendable.
+  assert_true(
+    @resource.call_native_credential_resource_guarded_request_at_path(
+      service,
+      grant,
+      "guard-after-host",
+      scope,
+      @http.Patch,
+      operation.path,
+      body,
+      () => current,
+    )
+    is Err(@resource.UseAlreadyClaimed),
+  )
+  let confirmed = @resource.query_native_credential_use(
+    service, grant, "guard-after-host", scope,
+  ).unwrap()
+  assert_eq(confirmed.use_cid, retained.use_cid)
+  assert_eq(confirmed.outcome, retained.outcome)
+  ignore(client.close())
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native credential write rechecks credential revocation after final execution fence" {
+  let (request, _) = target_request("001000000000001")
+  let operation = write_operation(request)
+  let scope = { ..target_scope(), operation: "salesforce:record:update", }
+  let body = @utf8.encode(@catalog.single_write_request_body(request))
+  let grant = write_grant()
+  let (database, client) = target_physical("write-guard-revokes-grant")
+  let service = @resource.install_native_credential_resource_service(
+    database,
+    client,
+    [operation],
+    _ => true,
+  ).unwrap()
+  let mut calls = 0
+  assert_true(
+    @resource.call_native_credential_resource_guarded_request_at_path(
+      service,
+      grant,
+      "guard-revokes-grant",
+      scope,
+      @http.Patch,
+      operation.path,
+      body,
+      fn() {
+        calls = calls + 1
+        if calls == 2 {
+          @resource.revoke_native_credential_grant(service, grant).unwrap()
+        }
+        true
+      },
+    )
+    is Err(@resource.Credential(@credential.CredentialGrantInactive)),
+  )
+  assert_eq(calls, 2)
+  let retained = @resource.query_native_credential_use(
+    service, grant, "guard-revokes-grant", scope,
+  ).unwrap()
+  assert_eq(retained.outcome, "failed")
+  assert_eq(retained.status, None)
+  ignore(client.close())
+  database.close_checked().unwrap()
 }
 
 ///|
