@@ -40,7 +40,7 @@ test('normal packed corpus and narrow selection both include coalesce reuse', as
     ['executionFailures', 'ifnullCoalesceReuseExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));
   }
-  assert.match(fixture, /^const scopeOnly = .* \|\| ifnullCoalesceReuseOnly;$/mu);
+  assert.match(fixture, /^const scopeOnly = [^;]*\bifnullCoalesceReuseOnly\b[^;]*;$/mu);
   assert.ok(fixture.includes('ifnullCoalesceReuseOnly ? {successes: ifnullCoalesceReuseSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_IFNULL_COALESCE_REUSE_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/ifnull-coalesce-reuse-source-input.mjs', 'ifnull-coalesce-reuse-source-input.mjs']"));

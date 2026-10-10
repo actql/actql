@@ -223,8 +223,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
   ]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [22, 37]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [23, 38]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [23, 38]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [24, 39]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();
