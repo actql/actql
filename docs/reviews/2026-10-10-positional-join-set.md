@@ -121,3 +121,87 @@ The wrapper adds the exclusive gate, pinned tools, 1,200-second aggregate
 deadline and independent verification of the source revision and all five
 tarball digests. A later documentation-only evidence commit must preserve the
 actual tested source SHA rather than relabel older success as new-HEAD success.
+
+## Actual packed failure and capacity handoff
+
+The scheduling deferral above is historical. Normal five-package production
+and the scoped public consumer subsequently ran at the combined diagnostic
+revision `81250607ee8621659276653afa6c9bbc1fc680e3` (`run-jIjmTT`).
+The retained [package manifest](fixtures/positional-join-set-capacity/packed-client-packages.json)
+records that revision and all five SHA-256 digests. This revision also contained
+the independently delivered Graph-row set changes; they are now separated in
+[Draft #1248](https://github.com/actql/actql/pull/1248). No old Graph conversion
+or fallback is involved.
+
+The pristine public receipt is
+`../.codex-scratch/public-query-evidence-NkA5An/{summary.json,010.stdout.log,010.stderr.log}`.
+Earlier existing cases and the authored anonymous JSON control passed both
+transports. The first new named text control,
+`set-join-anonymous-named-control`, failed on Local with
+`ACTQL_E_UNPUBLISHED_RUN`. Its HTTPS sibling was cancelled; later cases and
+complete cohort inventories were not verified. The receipt is failed/incomplete,
+not successful acceptance. Both children terminated and the harness reclaimed
+its owned installations.
+
+The saved named and anonymous [generated Programs](fixtures/positional-join-set-capacity/)
+are actual frontend output, not independent expected vectors. The accompanying
+source and expectation record is copied from the unchanged authored fixture.
+The independent JSON control remains in
+`scripts/fixtures/set-join-source-input.mjs`; it is never generated from these
+Programs. Both generated forms retain one Source capture, predicates,
+JOIN equality, explicit ceiling ten, computed expressions, append and ordering.
+
+A subsequent minimal diagnostic used the verified revision's tarballs in a
+private installation, with cause-only logging in `client-dispatch-owner.mjs`
+and `strategy-bundle.mjs`. It changed no dispatch or capacity decision. This
+logging overlay is diagnostic evidence, not pristine packed acceptance. The
+final run is `run-P6J0xP`, using
+`/private/tmp/actql-b-join-set-diagnostic-check.mjs` and
+`/private/tmp/actql-b-join-set-public-diagnostic.mjs`. Retained observations,
+DB and Store are at `/private/tmp/actql-b-join-set-diagnostic-zIsas8`.
+The private installed packages are at
+`/private/tmp/actql-b-join-set-diagnostic-UfFh8g`. Do not commit their
+authorization material or delete their custody records.
+
+Named text and its exact generated JSON both acquired the Source successfully
+and then failed at `adapters/local-node/strategy-bundle.mjs::runPrepared`,
+when calling `strategyModule_local_ManagedStart`. The underlying source variant
+is `LocalManagedStart(Execution(Physical(ExecutionLimit)))`. Public unpublished
+Run / `CapturedRunPublicationFailed` observations are terminal symptoms.
+For task one the logged retained requirement is 14,240,000 bytes and the
+execution requirement is 546,446,080 bytes. The unchanged Host budget is
+536,870,912 bytes (512 MiB); execution exceeds it by 9,575,168 bytes.
+The diagnostic command exits zero after recording these failures; it does
+not establish successful execution. A prior logging-instrumentation TypeError
+(`run-bgwPdk`) is excluded from product evidence.
+
+**Handoff to A:** determine whether the checked upper bound is excessive or
+this particular generated Program legitimately exceeds the budget. Trace
+input retention, output holding, scratch, transfer and concurrency lifetimes,
+including duplicate accounting and avoidable sequential summation. The
+Frontend must not move WHERE across the JOIN ceiling without semantic proof,
+reduce the declared ceiling, increase the Host budget, replace an upper bound
+with observations, or change the independent rows to obtain acceptance. No
+common capacity defect is asserted solely from this rejection. The normal
+JSON control's different filter/projection structure is a comparison, not
+permission to substitute its Program after frontend lowering.
+
+## Subsequent main integration
+
+Published JOIN parent `e5a13747ba2a448f2f97b81d22c2777b916b2e1e` was normally
+merged with main `2953cd7834cc7243cff116940722c056dd355bec` as
+`ca9112a7e305b517ab2dafbd63dc0a1e86a7f8f1`, without conflicts. No workflow,
+history declaration or limit was changed. This integration does not relabel
+the earlier distribution or diagnostic evidence as new-HEAD acceptance.
+The Draft remains incomplete pending capacity resolution and completion of
+all unchanged Local/HTTPS cases. Graph-row acceptance is tracked independently.
+
+At the integration revision `ca9112a7e305b517ab2dafbd63dc0a1e86a7f8f1`,
+the selected JS JOIN/set/DATA/chain callers passed 22/22
+(`run-EUweV9`, `focused-test-D9M6sI`) and selected Node fixture/profile
+checks passed 41/41 (`run-SgRr9s`, `focused-test-Tvce0v`). These checks
+ran with pinned tools and the bounded/nonzero-test wrappers. Documentation
+and copied reproduction records were the only uncommitted changes.
+`git diff --check` passed. No new runtime build or repeat packed campaign was
+performed for this evidence update; latest-HEAD public acceptance, hosted
+required CI, full Core and other targets remain unverified.

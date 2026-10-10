@@ -1,0 +1,219 @@
+{
+  "id": "adhoc.query",
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "source_0": {
+          "connector": "crm/main",
+          "resource": "r",
+          "view": "v"
+        }
+      },
+      "results": {
+        "source": {
+          "fields": [
+            "amount",
+            "id"
+          ],
+          "from": "aql_capture_0"
+        }
+      },
+      "steps": [
+        {
+          "filter": {
+            "literal": true
+          },
+          "from": "source_0"
+        },
+        {
+          "as": "aql_capture_0",
+          "select": [
+            "amount",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "source_0": {
+          "result": {
+            "result": "source",
+            "stage": "capture"
+          }
+        }
+      },
+      "results": {
+        "rows": {
+          "fields": [
+            "id",
+            "amount"
+          ],
+          "from": "aql_script_result"
+        }
+      },
+      "steps": [
+        {
+          "as": "aql_join_raw_4",
+          "from": "source_0",
+          "join": {
+            "kind": "inner",
+            "max_output_rows": 10,
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "select": {
+              "aql_join_input_6": "left.id",
+              "aql_join_input_7": "right.amount"
+            },
+            "with": "source_0"
+          }
+        },
+        {
+          "as": "aql_join_filtered_5",
+          "filter": {
+            "eq": [
+              {
+                "field": "aql_join_input_6"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          },
+          "from": "aql_join_raw_4"
+        },
+        {
+          "as": "aql_join_output_3",
+          "from": "aql_join_filtered_5",
+          "select": [
+            {
+              "id": "aql_join_input_6"
+            },
+            {
+              "amount": "aql_join_input_7"
+            }
+          ]
+        },
+        {
+          "as": "aql_chain_join_15",
+          "from": "source_0",
+          "join": {
+            "kind": "inner",
+            "max_output_rows": 10,
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "select": {
+              "aql_chain_column_2": "left.amount",
+              "aql_chain_column_3": "left.id",
+              "aql_chain_column_4": "right.amount",
+              "aql_chain_column_5": "right.id"
+            },
+            "with": "source_0"
+          }
+        },
+        {
+          "filter": {
+            "gte": [
+              {
+                "field": "aql_chain_column_3"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          },
+          "from": "aql_chain_join_15"
+        },
+        {
+          "derive": {
+            "aql_pipe_expr_4": {
+              "add": [
+                {
+                  "field": "aql_chain_column_3"
+                },
+                {
+                  "field": "aql_chain_column_5"
+                }
+              ]
+            },
+            "aql_pipe_expr_5": {
+              "add": [
+                {
+                  "field": "aql_chain_column_4"
+                },
+                {
+                  "literal": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "as": "aql_chain_result_16",
+          "select": [
+            {
+              "aql_set_anonymous_5": "aql_pipe_expr_4"
+            },
+            {
+              "aql_set_anonymous_7": "aql_pipe_expr_5"
+            }
+          ]
+        },
+        {
+          "as": "aql_data_set_aligned_17",
+          "from": "aql_chain_result_16",
+          "select": [
+            {
+              "id": "aql_set_anonymous_5"
+            },
+            {
+              "amount": "aql_set_anonymous_7"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_aligned_17"
+          },
+          "as": "aql_data_set_combined_18",
+          "from": "aql_join_output_3"
+        },
+        {
+          "as": "aql_script_result",
+          "from": "aql_data_set_combined_18",
+          "sort": [
+            {
+              "dir": "asc",
+              "field": "amount",
+              "nulls": "last"
+            },
+            {
+              "dir": "asc",
+              "field": "id",
+              "nulls": "first"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}
