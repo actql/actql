@@ -8,6 +8,8 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/client_local_preparation" @preparation,
   "actql/actql/client_local_run" @local_run,
+  "actql/actql/connectors/local/driver" @managed,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/run_publication_host" @host,
   "actql/actql/program_check" @checked,

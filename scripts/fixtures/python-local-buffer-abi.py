@@ -25,6 +25,10 @@ try:
     assert left.exports['actql_compute_reserve'](left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_compute_configure'](left.store, left.nonce, handle) == -2
     assert left.exports['actql_compute_close'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_task_reserve'](left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_task_start'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_task_complete'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_task_close'](left.store, left.nonce, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4
@@ -69,4 +73,4 @@ finally:
 
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
     'cases': ['exact_values', 'instance_identity', 'aggregate_capacity',
-              'borrow_retirement', 'uncompleted_source_compute_refusal', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))
+              'borrow_retirement', 'uncompleted_source_compute_refusal', 'unconfigured_task_refusal', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))

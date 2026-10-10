@@ -178,6 +178,9 @@ pub fn close_native_compute(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
+  if value.tasks.values().any(task => task.compute == handle) {
+    return -9
+  }
   if record.host is Some(host) {
     let run = @local_run.local_compute_run(host)
     @strategy.stop_captured_dag(run)

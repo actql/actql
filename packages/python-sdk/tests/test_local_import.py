@@ -82,6 +82,7 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
         core._native_observers = {}
         core._native_loans = {}
         core._compute_loans = {}
+        core._task_loans = {}
         self.assertEqual(core._cleanup(1), 0)
         self.assertEqual(core._cleanup(1), 0)
         self.assertEqual(calls, ['physical close'])
@@ -114,6 +115,7 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
         core._native_observers = {}
         core._native_loans = {}
         core._compute_loans = {}
+        core._task_loans = {}
         linker = core._linker
         with self.assertRaises(OSError):
             core.close()

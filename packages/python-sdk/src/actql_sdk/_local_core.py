@@ -64,6 +64,20 @@ class _Input:
 
 
 @dataclass(frozen=True, slots=True, eq=False)
+class _Task:
+    owner: object
+    handle: int
+
+
+@dataclass(frozen=True, slots=True)
+class LocalTaskProgress:
+    complete: bool
+    waiting: bool
+    progress: int
+    work: int
+
+
+@dataclass(frozen=True, slots=True, eq=False)
 class _Compute:
     owner: object
     handle: int
@@ -155,6 +169,19 @@ _SOURCE_SIGNATURES = {
     'command_length': ('i64 i32', 'i32'),
     'close_command': ('i64 i32', 'i32'),
 }
+_TASK_SIGNATURES = {
+    'reserve': ('i64 i32 i32', 'i32'),
+    'start': ('i64 i32', 'i32'),
+    'started': ('i64 i32', 'i32'),
+    'feed': ('i64 i32 i32', 'i32'),
+    'inputs_ready': ('i64 i32', 'i32'),
+    'advance': ('i64 i32 i32', 'i32'),
+    'progress': ('i64 i32 i32', 'i64'),
+    'prepare_finalization': ('i64 i32', 'i32'),
+    'advance_finalization': ('i64 i32 i32', 'i32'),
+    'complete': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _COMPUTE_SIGNATURES = {
     'reserve': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
@@ -209,6 +236,7 @@ class LocalCore:
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
         self._inputs: dict[int, _PhysicalInput] = {}
+        self._task_loans: dict[int, _Task] = {}
         self._compute_loans: dict[int, _Compute] = {}
         self._native_loans: dict[int, _NativeAttempt] = {}
         self._native_observers: dict[int, tuple[Callable[[], bool], Callable[[], bool], Callable[[], bool]]] = {}
@@ -253,6 +281,8 @@ class LocalCore:
                              for name, value in _WORKSPACE_SIGNATURES.items()})
             expected.update({'actql_compute_' + name: value
                              for name, value in _COMPUTE_SIGNATURES.items()})
+            expected.update({'actql_task_' + name: value
+                             for name, value in _TASK_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -280,7 +310,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 8:
+            if self._exports['actql_host_abi_version'](self._store) != 9:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -590,6 +620,73 @@ class LocalCore:
             del self._compute_loans[value.handle]
             return True
 
+    def _owned_task(self, value: _Task) -> None:
+        if (type(value) is not _Task or value.owner is not self._identity
+                or self._task_loans.get(value.handle) is not value):
+            raise ValueError('Foreign or released Local task')
+
+    def reserve_task(self, compute: _Compute, current_configuration: int) -> _Task:
+        with self._lock:
+            self._owned_compute(compute)
+            if (self._closing or type(current_configuration) is not int
+                    or current_configuration <= 0):
+                raise ValueError('Invalid current Local task configuration')
+            handle = self._call('task', 'reserve', compute.handle, current_configuration)
+            if handle <= 0:
+                raise LocalCoreError('reserve_task', handle)
+            value = _Task(self._identity, handle)
+            self._task_loans[handle] = value
+            return value
+
+    def start_task(self, value: _Task) -> None:
+        self._task_operation(value, 'start')
+        self._task_operation(value, 'started')
+
+    def _task_operation(self, value: _Task, operation: str, *arguments: int) -> None:
+        with self._lock:
+            self._owned_task(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check(operation, self._call('task', operation, value.handle, *arguments))
+
+    def feed_task(self, value: _Task, quantum: int) -> bool:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local task quantum')
+        with self._lock:
+            self._task_operation(value, 'feed', quantum)
+            code = self._call('task', 'inputs_ready', value.handle)
+            if code == -7:
+                return False
+            self._check('task_inputs_ready', code)
+            return True
+
+    def advance_task(self, value: _Task, quantum: int, *, finalization: bool = False) -> LocalTaskProgress:
+        if (type(quantum) is not int or not 0 < quantum <= 2**31 - 1
+                or type(finalization) is not bool):
+            raise ValueError('Invalid Local task quantum')
+        with self._lock:
+            self._task_operation(value, 'advance_finalization' if finalization else 'advance', quantum)
+            fields = [self._call('task', 'progress', value.handle, index) for index in range(4)]
+            if fields[0] not in (0, 1) or fields[1] not in (0, 1) or min(fields[2:]) < 0:
+                raise LocalCoreError('task_progress', -33)
+            return LocalTaskProgress(fields[0] == 1, fields[1] == 1, fields[2], fields[3])
+
+    def prepare_task_finalization(self, value: _Task) -> None:
+        self._task_operation(value, 'prepare_finalization')
+
+    def complete_task(self, value: _Task) -> None:
+        self._task_operation(value, 'complete')
+
+    def close_task(self, value: _Task) -> bool:
+        with self._lock:
+            self._owned_task(value)
+            code = self._call('task', 'close', value.handle)
+            if code == -9:
+                return False
+            self._check('close_task', code)
+            del self._task_loans[value.handle]
+            return True
+
     def reserve_native_command(self, attempt: _NativeAttempt, kind: int, account: _Input, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Borrow current authority and reserve one Core-issued command copy.
@@ -732,3 +829,4 @@ class LocalCore:
         self._native_observers.clear()
         self._native_loans.clear()
         self._compute_loans.clear()
+        self._task_loans.clear()

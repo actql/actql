@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 8; this private ABI
+before opening the instance. `actql_host_abi_version` returns 9; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 8 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 9 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -618,3 +618,26 @@ and pins, independent of other root workspace reservations. It excludes
 caller-owned Source captures and resident-environment responsibilities, which
 remain with their existing Owners. The sealed Local profile preserves those
 boundaries. Configuration/readiness is not dispatch, publication or success.
+
+## Managed task custody
+
+Private ABI 9 adds opaque task reservation, activation, bounded input feeding,
+execution, finalization and retirement. Reservation selects the next task from
+the existing captured strategy; Python cannot supply a task identity, rows or a
+completion assertion. Activation rechecks the current Account and binds the
+original accepted Compute start through `start_local_compute_task`.
+
+Input feeding copies only the original Native capture or an exact completed
+producer from the same Compute Host. Each call advances within its explicit
+positive quantum. Completion requires the existing driver's distinct execution
+and finalization progress, settlement and completed-output decision. Progress is
+cleared between execution and finalization, so execution completion cannot be
+reused as finalization evidence. These facts do not establish public Run success
+or Named Result publication.
+
+A task retains its Compute and current-configuration parents until existing
+physical-stop and cleanup observations allow retirement. A producer cannot
+retire while another retained task refers to its output. Failure or an
+interrupted invocation keeps the original handle; the bridge neither replaces
+the invocation nor manufactures completion. Result publication, durable
+recovery and the ordinary Client facade remain separate connections.

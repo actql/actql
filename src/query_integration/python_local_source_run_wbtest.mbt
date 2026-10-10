@@ -13,7 +13,7 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
   let document =
-    #|{"version":"actql/0.1","id":"python-local-captured-run","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"out":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"out"}}},"steps":[{"derive":{"value":"id + 1"},"as":"derived"},{"select":["value"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}}}],"results":{"answer":{"from":{"stage":"compute","result":"out"}}}}
+    #|{"version":"actql/0.1","id":"python-local-captured-run","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"out":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"out"}}},"steps":[{"derive":{"value":"id + 1"},"as":"derived"},{"select":["value"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}}},{"id":"final","inputs":{"r":{"result":{"stage":"compute","result":"out"}}},"steps":[{"derive":{"next":"value + 1"},"as":"derived"},{"select":["next"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["next"]}}}],"results":{"answer":{"from":{"stage":"final","result":"out"}}}}
   let input = @local_input.prepare_local_input_material(
     Program(document),
     environment,
@@ -422,8 +422,7 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   }
   assert_true(finalized)
   (operations.settle)().unwrap()
-  (operations.complete)(1, operations.storage_bytes, () => available.val).unwrap()
-  |> ignore
+  let first_output = (operations.complete)(1, operations.storage_bytes, () => available.val).unwrap()
   assert_eq((operations.output_rows)(), 1)
   assert_eq((operations.output_row)(0).unwrap(), "{\"value\":4}")
   assert_eq(
@@ -432,6 +431,33 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     ),
     ["answer"],
   )
+  let second = @local_run.start_local_compute_task(
+    host, compute_start, [first_output], permit, account, tuple, context,
+  ).unwrap().unwrap()
+  for transfer in second.inputs {
+    (transfer.append)((operations.output_row)(0).unwrap()).unwrap()
+    (transfer.finish)().unwrap()
+  }
+  let mut second_executed = false
+  for _ in 0..<1000 {
+    if (second.advance)(1).unwrap().complete { second_executed = true; break }
+  }
+  assert_true(second_executed)
+  let second_available = Ref(true)
+  (second.prepare_finalization)(2, second.storage_bytes, () => second_available.val).unwrap()
+  let mut second_finalized = false
+  for _ in 0..<1000 {
+    if (second.advance_finalization)(1).unwrap().complete { second_finalized = true; break }
+  }
+  assert_true(second_finalized)
+  (second.settle)().unwrap()
+  (second.complete)(2, second.storage_bytes, () => second_available.val).unwrap() |> ignore
+  assert_eq((second.output_rows)(), 1)
+  assert_eq((second.output_row)(0).unwrap(), "{\"next\":5}")
+  second_available.val = false
+  (second.close)()
+  @strategy.close_captured_task_output(run, 2)
+  assert_true((second.cleanup_refresh)())
   available.val = false
   (operations.close)()
   @strategy.close_captured_task_output(run, 1)
