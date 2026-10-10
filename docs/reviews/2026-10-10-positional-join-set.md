@@ -205,3 +205,42 @@ and copied reproduction records were the only uncommitted changes.
 `git diff --check` passed. No new runtime build or repeat packed campaign was
 performed for this evidence update; latest-HEAD public acceptance, hosted
 required CI, full Core and other targets remain unverified.
+
+## Integration correction: Append scratch lifetime
+
+The integration review reproduced the named and anonymous Source-backed
+programs under the unchanged 512 MiB Host capacity policy. Both reached the
+existing `ExecutionLimit` refusal. The anonymous chain's execution requirement
+was 593,217,536 bytes; the named chain's earlier requirement above remains
+historical evidence. Neither independent result nor declared JOIN ceiling was
+changed.
+
+`AppendStep` was excluded from the reviewed serial early-retirement predicate.
+That exclusion selected both conservative scratch summation and retention of
+completed child executions for the whole chain. The existing bounded Append
+cleanup separately preserves accepted output rows and releases execution
+scratch. Include that audited built-in in the existing predicate: the parent
+now confirms each intermediate cleanup and drops its execution before starting
+the next child, while retaining all output generations for their exact edges.
+The capacity path uses the same predicate, sums every retained child envelope,
+and reserves the largest sequential scratch envelope and existing handles.
+This does not change operation bounds, Host limits, row values, work budgets,
+or the lifecycle of unaudited providers.
+
+Independent lifetime fixtures exercise repeated Append input occurrences,
+reuse of an accepted intermediate on two later edges, all twelve ordered
+number values, cleanup callback counts, and output availability after final
+cleanup. Both ordinary rows and Append now exercise pending cleanup, errors,
+same-child retry, and cancellation without successor creation. The conservative
+fallback fixture uses an unaudited intersect kernel and still requires summed
+scratch and retained child custody. The existing mutation assertion remains
+mandatory; only its indentation anchor follows the expanded test loop. The
+conditional retirement scope lists Append without claiming physical GC/RSS or
+universal provider refinement.
+
+The initial selected JS check passed 19/19 (`run-kqz2sl`). A larger Node
+selection reached its 180-second limit (`run-9Pspjk`); that run is not a pass.
+The changed retirement/capacity validation and mutation-witness selection then
+passed 30/30 (`run-ap1IKC`, `focused-test-ajKfKo`). Clean submitted-source caller
+checks and pristine packed Local/HTTPS acceptance are recorded separately after
+execution. No hosted CI was started.
