@@ -157,6 +157,24 @@ transfer facade provides no task dispatch or durable recovery start.
 
 ## Checked task Host
 
+The single-Source relation profile defines its Run before acquisition using the
+same request, compilation and publication Owners as the source-free profile.
+Neither profile grants physical Source access. Unsupported Graph/Model/Effect
+paths remain outside this installed profile.
+
+The existing physical-start Owner's accepted decision is retained against the
+exact plan before Source I/O. The verified capture is then borrowed by the
+existing captured Local Host. Compute binds that retained decision rather than
+claiming the Run is still physically unstarted after acquisition. A decision
+from another plan cannot authorize this Host. Current authorization is still
+checked at each task activation.
+
+Captured root inputs and completed Compute producers use the existing managed
+driver's distinct input variants. The common compute Host refreshes its normal
+estimates/selection before dispatch; no Python task counter or replacement
+selector is introduced. Source capture custody outlives its consumers, and
+closing Compute does not revoke the caller's acquisition Owner.
+
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
 without physical dispatch. Registry, Values, ordered derive and expression

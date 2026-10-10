@@ -14,6 +14,13 @@ pub struct LocalRunPlan {
 }
 
 ///|
+/// Retained result of the existing physical-start Owner for this exact plan.
+/// A Source may start before its captured Compute Host can be configured.
+pub struct LocalRunPhysicalStart {
+  plan : LocalRunPlan
+}
+
+///|
 pub(all) enum LocalRunIssue {
   AuthorizationMismatch
   UnsupportedCapability
@@ -23,6 +30,7 @@ pub(all) enum LocalRunIssue {
   Admission(@host.ClientCompiledRunIssue)
   Materials(@host.ClientTaskRunMaterialsIssue)
   Start(@host.ClientRunStartIssue)
+  StartNotPermitted
 }
 
 ///|
@@ -56,8 +64,16 @@ fn local_run_manifests() -> Result[
 fn source_free_profile(prepared : @host.PreparedClientProgram) -> Bool {
   let graph = @host.prepared_client_graph(prepared)
   if !@strategy.graph_source_free_inputs_complete(graph) ||
-    @strategy.graph_program_has_effects(graph) ||
-    @host.prepared_client_acquisition_count(prepared) != 0 ||
+    @host.prepared_client_acquisition_count(prepared) != 0 {
+    return false
+  }
+  relation_profile(prepared)
+}
+
+///|
+fn relation_profile(prepared : @host.PreparedClientProgram) -> Bool {
+  let graph = @host.prepared_client_graph(prepared)
+  if @strategy.graph_program_has_effects(graph) ||
     @host.prepared_client_uses_graph_carrier(prepared) {
     return false
   }
@@ -68,6 +84,13 @@ fn source_free_profile(prepared : @host.PreparedClientProgram) -> Bool {
     }
   }
   true
+}
+
+///|
+fn captured_source_profile(prepared : @host.PreparedClientProgram) -> Bool {
+  @host.prepared_client_acquisition_count(prepared) == 1 &&
+  @strategy.graph_task_count(@host.prepared_client_graph(prepared)) > 1 &&
+  relation_profile(prepared)
 }
 
 ///|
@@ -106,11 +129,56 @@ pub fn prepare_source_free_local_run(
   created_at : String,
   valid_until : String,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
+  prepare_local_run_profile(
+    input, authority_scope_cid, caller_request_id, permit, current, tuple, execution_context_cid,
+    host_policy_cid, run_namespace, run_id, created_at, valid_until, source_free_profile,
+  )
+}
+
+///|
+/// Define the original checked single-Source Run before any acquisition I/O.
+/// This issues neither read authority nor evidence that a Source completed.
+pub fn prepare_captured_source_local_run(
+  input : @input.LocalPreparedInput,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  run_namespace : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[LocalRunPlan, LocalRunIssue] {
+  prepare_local_run_profile(
+    input, authority_scope_cid, caller_request_id, permit, current, tuple, execution_context_cid,
+    host_policy_cid, run_namespace, run_id, created_at, valid_until, captured_source_profile,
+  )
+}
+
+///|
+fn prepare_local_run_profile(
+  input : @input.LocalPreparedInput,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  run_namespace : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+  profile : (@host.PreparedClientProgram) -> Bool,
+) -> Result[LocalRunPlan, LocalRunIssue] {
   let prepared = @input.local_prepared_program(input)
   if !authorized_input(prepared, permit, current, tuple, execution_context_cid) {
     return Err(AuthorizationMismatch)
   }
-  if !source_free_profile(prepared) {
+  if !profile(prepared) {
     return Err(UnsupportedCapability)
   }
   let request = match
@@ -299,4 +367,31 @@ pub fn prepare_local_run_physical_start(
     cancellation_requested~,
     pre_start_failure_confirmed~,
   ).map_err(fn(issue) { Start(issue) })
+}
+
+///|
+/// Obtain the original Run's start decision before Source or Compute I/O.
+/// This is not a durable journal record or a decision to restart a prior Run.
+pub fn confirm_local_run_physical_start(
+  plan : LocalRunPlan,
+  retained : @host.ClientRequestIdentity,
+  retained_definition_cid : String,
+  reserved : Bool,
+  physically_unstarted : Bool,
+  cancellation_requested : Bool,
+  pre_start_failure_confirmed : Bool,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  context_cid : String,
+) -> Result[LocalRunPhysicalStart, LocalRunIssue] {
+  match
+    prepare_local_run_physical_start(
+      plan, retained, retained_definition_cid, reserved, physically_unstarted, cancellation_requested,
+      pre_start_failure_confirmed, permit, current, tuple, context_cid,
+    ) {
+    Ok(true) => Ok({ plan, })
+    Ok(false) => Err(StartNotPermitted)
+    Err(issue) => Err(issue)
+  }
 }
