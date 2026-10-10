@@ -227,6 +227,8 @@ fn execute_checked(matches : @argparse.Matches) -> String raise CommandStop {
           resource_origin: origin,
           operation,
           path: checked(option(matches, "resource-path")),
+          verb: @http.Get,
+          max_request_bytes: 0,
           secret_path: checked(option(matches, "secret-file")),
         },
       ],

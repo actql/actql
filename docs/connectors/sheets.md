@@ -214,8 +214,14 @@ frozen runtime bytes and tarball digests, and copies only test support to an
 external installation. It exercises the same authored cases through public exports,
 including separate-process saved-success and unknown reconstruction.
 
-Real Google service acceptance remains pending until an explicitly authorized
-spreadsheet/tab, secret reference and operation scope are supplied. Synthetic
-HTTPS success is not Google service success. No CI, deploy or npm publication
-is implied by a local receipt. See the
+Real Google read over Local/HTTPS and approved append over HTTPS passed on
+2026-10-10, using official RC packages installed outside the checkout. Saved
+Result replay in a fresh process added no credential uses. Controlled-service
+fault evidence remains separate from Google success evidence. No CI, deploy
+or npm publication is implied by a local receipt. See the
 [owner and acceptance map](../reviews/2026-10-09-sheets-public-connector.md).
+The [real-service checklist](sheets-real-service-acceptance.md) and
+[external installation example](../../examples/sheets/README.md) provide
+nonsecret configuration, independent read cells and the two-row permission
+boundary. The [fixed-artifact report](../reviews/2026-10-10-sheets-real-service-acceptance.md)
+identifies executed coverage and remaining limits.

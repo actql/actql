@@ -734,6 +734,7 @@ static curl_slist *actql_http_headers_from_block(
   actql_native_http_client *client,
   moonbit_bytes_t block,
   int32_t length,
+  bool has_bearer,
   bool *valid
 ) {
   *valid = false;
@@ -755,7 +756,7 @@ static curl_slist *actql_http_headers_from_block(
       if (!actql_http_header_name_byte(block[index])) goto invalid;
     }
     // A configured bearer credential is the only Authorization header.
-    if (client->bearer_path != NULL && colon - offset == 13 &&
+    if (has_bearer && colon - offset == 13 &&
         memcmp(block + offset, "authorization", 13) == 0) goto invalid;
     for (int32_t index = colon + 2; index < end; index += 1) {
       if (block[index] < 32 || block[index] > 126) goto invalid;
@@ -788,7 +789,7 @@ invalid:
   return NULL;
 }
 
-int32_t actql_native_http_client_request(
+static int32_t actql_native_http_client_request_owned(
   actql_native_http_client *client,
   moonbit_bytes_t method,
   int32_t method_length,
@@ -797,7 +798,10 @@ int32_t actql_native_http_client_request(
   moonbit_bytes_t headers_block,
   int32_t headers_length,
   moonbit_bytes_t body,
-  int32_t body_length
+  int32_t body_length,
+  const char *bearer_path,
+  bool require_deadline,
+  int64_t expires_at_milliseconds
 ) {
   if (client == NULL || client->closed) return 3;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
@@ -807,7 +811,8 @@ int32_t actql_native_http_client_request(
   bool is_get = method_text != NULL && strcmp(method_text, "GET") == 0;
   bool is_post = method_text != NULL && strcmp(method_text, "POST") == 0;
   bool is_put = method_text != NULL && strcmp(method_text, "PUT") == 0;
-  if (url_text == NULL || (!is_get && !is_post && !is_put) ||
+  bool is_patch = method_text != NULL && strcmp(method_text, "PATCH") == 0;
+  if (url_text == NULL || (!is_get && !is_post && !is_put && !is_patch) ||
       body_length < 0 || (is_get && body_length != 0)) {
     free(method_text);
     free(url_text);
@@ -819,6 +824,7 @@ int32_t actql_native_http_client_request(
     client,
     headers_block,
     headers_length,
+    bearer_path != NULL,
     &headers_valid
   );
   if (!headers_valid) {
@@ -826,13 +832,13 @@ int32_t actql_native_http_client_request(
     free(url_text);
     return 6;
   }
-  if (client->bearer_path != NULL) {
+  if (bearer_path != NULL) {
     char *authorization = NULL;
     size_t authorization_length = 0;
     if (!actql_read_bearer_authorization(
-          client->bearer_path,
-          ACTQL_BEARER_FILE_MAX_BYTES,
-          true,
+          bearer_path,
+          require_deadline ? 8192 : ACTQL_BEARER_FILE_MAX_BYTES,
+          !require_deadline,
           &authorization,
           &authorization_length
         )) {
@@ -855,6 +861,22 @@ int32_t actql_native_http_client_request(
       return -1;
     }
     headers = next_headers;
+  }
+  if (require_deadline) {
+    struct timespec observed_time;
+    bool deadline_valid = expires_at_milliseconds > 0 &&
+      clock_gettime(CLOCK_REALTIME, &observed_time) == 0 &&
+      observed_time.tv_sec >= 0 &&
+      observed_time.tv_sec <= INT64_MAX / 1000 &&
+      observed_time.tv_sec * 1000 + observed_time.tv_nsec / 1000000 <
+        expires_at_milliseconds;
+    if (!deadline_valid) {
+      client->library->slist_free_all(headers);
+      free(method_text);
+      free(url_text);
+      actql_replace_error(&client->error, "credential deadline expired");
+      return 4;
+    }
   }
   CURL *curl = client->library->easy_init();
   if (curl == NULL) {
@@ -880,7 +902,7 @@ int32_t actql_native_http_client_request(
     ACTQL_SET(ACTQL_CURLOPT_HTTPGET, 1L);
   } else {
     if (is_post) ACTQL_SET(ACTQL_CURLOPT_POST, 1L);
-    if (is_put) ACTQL_SET(ACTQL_CURLOPT_CUSTOMREQUEST, method_text);
+    if (is_put || is_patch) ACTQL_SET(ACTQL_CURLOPT_CUSTOMREQUEST, method_text);
     ACTQL_SET(ACTQL_CURLOPT_POSTFIELDS, body);
     ACTQL_SET(ACTQL_CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)body_length);
   }
@@ -931,136 +953,38 @@ int32_t actql_native_http_client_request(
   return code == ACTQL_CURLE_OK ? 0 : -1;
 }
 
-int32_t actql_native_http_client_get_bearer_file(
+int32_t actql_native_http_client_request(
   actql_native_http_client *client,
-  moonbit_bytes_t url,
-  int32_t url_length,
-  moonbit_bytes_t secret_path,
-  int32_t secret_path_length,
+  moonbit_bytes_t method, int32_t method_length,
+  moonbit_bytes_t url, int32_t url_length,
+  moonbit_bytes_t headers_block, int32_t headers_length,
+  moonbit_bytes_t body, int32_t body_length
+) {
+  return actql_native_http_client_request_owned(
+    client, method, method_length, url, url_length,
+    headers_block, headers_length, body, body_length,
+    client == NULL ? NULL : client->bearer_path, false, 0
+  );
+}
+
+int32_t actql_native_http_client_request_bearer_file(
+  actql_native_http_client *client,
+  moonbit_bytes_t method, int32_t method_length,
+  moonbit_bytes_t url, int32_t url_length,
+  moonbit_bytes_t headers_block, int32_t headers_length,
+  moonbit_bytes_t body, int32_t body_length,
+  moonbit_bytes_t secret_path, int32_t secret_path_length,
   int64_t expires_at_milliseconds
 ) {
-  if (client == NULL || client->closed) return 3;
-  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
-  actql_clear_response(client);
-  char *url_text = actql_copy_text(url, url_length);
-  char *secret_path_text = actql_copy_text(secret_path, secret_path_length);
-  if (url_text == NULL || secret_path_text == NULL) {
-    free(url_text);
-    free(secret_path_text);
-    actql_replace_error(&client->error, "invalid HTTPS credential request");
-    return -1;
-  }
-  char *authorization = NULL;
-  size_t authorization_length = 0;
-  bool secret_valid = actql_read_bearer_authorization(
-    secret_path_text,
-    8192,
-    false,
-    &authorization,
-    &authorization_length
+  char *path = actql_copy_text(secret_path, secret_path_length);
+  if (path == NULL) return 6;
+  int32_t result = actql_native_http_client_request_owned(
+    client, method, method_length, url, url_length,
+    headers_block, headers_length, body, body_length,
+    path, true, expires_at_milliseconds
   );
-  free(secret_path_text);
-  if (!secret_valid) {
-    free(url_text);
-    actql_replace_error(&client->error, "read bearer credential failed");
-    return -1;
-  }
-  struct timespec observed_time;
-  bool deadline_valid = expires_at_milliseconds > 0 &&
-    clock_gettime(CLOCK_REALTIME, &observed_time) == 0 &&
-    observed_time.tv_sec >= 0 &&
-    observed_time.tv_sec <= INT64_MAX / 1000 &&
-    observed_time.tv_sec * 1000 + observed_time.tv_nsec / 1000000 <
-      expires_at_milliseconds;
-  if (!deadline_valid) {
-    memset(authorization, 0, authorization_length);
-    free(authorization);
-    free(url_text);
-    actql_replace_error(&client->error, "credential deadline expired");
-    return 4;
-  }
-  CURL *curl = client->library->easy_init();
-  if (curl == NULL) {
-    memset(authorization, 0, authorization_length);
-    free(authorization);
-    free(url_text);
-    actql_replace_error(&client->error, "initialize HTTP request failed");
-    return -1;
-  }
-  char error_buffer[ACTQL_CURL_ERROR_SIZE];
-  memset(error_buffer, 0, sizeof(error_buffer));
-  curl_slist *headers = client->library->slist_append(
-    NULL,
-    "Accept: application/json"
-  );
-  bool configured = headers != NULL;
-  if (configured) {
-    curl_slist *next_headers = client->library->slist_append(
-      headers,
-      authorization
-    );
-    if (next_headers == NULL) {
-      configured = false;
-      actql_replace_error(&client->error, "HTTP header allocation failed");
-    } else {
-      headers = next_headers;
-    }
-  }
-  memset(authorization, 0, authorization_length);
-  free(authorization);
-#define ACTQL_SET(option, value) \
-  do { \
-    if (configured && !actql_option( \
-          client, curl, client->library->easy_setopt(curl, (option), (value)), \
-          "configure HTTP request failed" \
-        )) configured = false; \
-  } while (0)
-  ACTQL_SET(ACTQL_CURLOPT_URL, url_text);
-  ACTQL_SET(ACTQL_CURLOPT_ERRORBUFFER, error_buffer);
-  ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
-  ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
-  if (client->certificate_path != NULL) {
-    ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
-    ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
-  }
-  ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYPEER, 1L);
-  ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYHOST, 2L);
-  ACTQL_SET(ACTQL_CURLOPT_FOLLOWLOCATION, 0L);
-  ACTQL_SET(ACTQL_CURLOPT_PROTOCOLS, 2L);
-  ACTQL_SET(ACTQL_CURLOPT_NOSIGNAL, 1L);
-  ACTQL_SET(ACTQL_CURLOPT_CONNECTTIMEOUT_MS, client->connect_timeout_ms);
-  ACTQL_SET(ACTQL_CURLOPT_TIMEOUT_MS, client->operation_timeout_ms);
-  ACTQL_SET(ACTQL_CURLOPT_WRITEFUNCTION, actql_receive_response);
-  ACTQL_SET(ACTQL_CURLOPT_WRITEDATA, client);
-  ACTQL_SET(ACTQL_CURLOPT_NOPROGRESS, 0L);
-  ACTQL_SET(ACTQL_CURLOPT_XFERINFOFUNCTION, actql_transfer_progress);
-  ACTQL_SET(ACTQL_CURLOPT_XFERINFODATA, client);
-#undef ACTQL_SET
-  CURLcode code = configured
-    ? client->library->easy_perform(curl)
-    : ACTQL_CURLE_WRITE_ERROR;
-  if (configured && code == ACTQL_CURLE_OK) {
-    code = client->library->easy_getinfo(
-      curl,
-      ACTQL_CURLINFO_RESPONSE_CODE,
-      &client->status
-    );
-  }
-  if (code != ACTQL_CURLE_OK && client->error == NULL &&
-      !client->capacity_exceeded &&
-      !atomic_load_explicit(&client->cancelled, memory_order_relaxed)) {
-    const char *message = error_buffer[0] == '\0'
-      ? client->library->easy_strerror(code)
-      : error_buffer;
-    actql_replace_error(&client->error, message);
-  }
-  client->library->slist_free_all(headers);
-  client->library->easy_cleanup(curl);
-  free(url_text);
-  if (client->capacity_exceeded) return 1;
-  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed) ||
-      code == ACTQL_CURLE_ABORTED_BY_CALLBACK) return 2;
-  return code == ACTQL_CURLE_OK ? 0 : -1;
+  free(path);
+  return result;
 }
 
 int32_t actql_native_http_client_status(actql_native_http_client *client) {

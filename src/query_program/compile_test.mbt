@@ -2386,10 +2386,20 @@ test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
   for
     text in [
       "SELECT COUNT(DISTINCT *) AS n FROM orders", "SELECT MIN(DISTINCT) AS n FROM orders",
-      "SELECT COUNT(*) FROM orders",
     ] {
     assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)
   }
+  // An omitted alias is valid query syntax. Standalone anonymous aggregate
+  // publication remains a lowering gap; positional set operands have their
+  // separate admitted slot contract.
+  let unnamed = @query.parse_query(
+    "SELECT COUNT(*) FROM orders",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(unnamed, fixture_context(), construction_limits())
+    is Err(UnsupportedProjection),
+  )
   // Position 1 is the grouped input value; position 2 is an aggregate and
   // must still be rejected by ordinary grouping admission.
   let ordinal = @query.parse_query(
