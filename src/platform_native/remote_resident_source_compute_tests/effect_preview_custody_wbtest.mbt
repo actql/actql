@@ -221,8 +221,7 @@ fn retained_effect_preview_store(
   assert_eq(checkpoint.checkpoint.required_artifact_cid, cid)
   assert_eq(
     checkpoint.checkpoint.continuation_state_cid,
-    "sha256:" +
-    @sha.hex(@utf8.encode(prepared_checkpoint.continuation_wire)),
+    "sha256:" + @sha.hex(@utf8.encode(prepared_checkpoint.continuation_wire)),
   )
   assert_true(
     checkpoint.checkpoint.continuation_state_cid !=

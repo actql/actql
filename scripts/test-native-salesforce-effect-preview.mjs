@@ -43,10 +43,31 @@ const paths = [];
 let resolutionRequests = 0;
 let writes = 0;
 let rejectedWrites = 0;
+let reviewUploads = 0;
+const reviewUploadBodies = [];
 const writeBodies = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review') {
+    if (request.headers.authorization !== 'Bearer native-target-test' ||
+        request.headers['content-type'] !== 'application/json' ||
+        !/^sha256:[a-f0-9]{64}$/.test(request.headers['actql-dispatch-cid'] ?? '')) {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks=[]; let bytes=0;
+    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>65536)request.destroy();else chunks.push(chunk);});
+    request.on('end',()=>{
+      const body=Buffer.concat(chunks).toString('utf8');
+      reviewUploadBodies.push({dispatchCid:request.headers['actql-dispatch-cid'],
+        byteLength:bytes,bodySha256:createHash('sha256').update(Buffer.concat(chunks)).digest('hex')});
+      reviewUploads++;
+      // First response is uncertain from the Site's perspective. The caller
+      // retries its same owned bytes; no approval/report ACK is synthesized.
+      response.writeHead(reviewUploads===1?503:204); response.end();
+    });
+    return;
+  }
   if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
     if (request.headers.authorization !== 'Bearer native-target-test') {
       response.writeHead(403); response.end(); return;
@@ -141,6 +162,7 @@ try {
     keys.privateKey).toString('base64url');
   const testEnv = {...process.env, ...nativeResolutionFixture(),
     ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL:origin+'/fixture/effect-resolution',
+    ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL:origin+'/fixture/effect-review',
     ACTQL_TEST_NATIVE_HTTP_URL: origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
@@ -233,7 +255,7 @@ try {
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests,
+    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, reviewUploads, reviewUploadBodies,
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
     scope: residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
@@ -250,6 +272,8 @@ try {
   assert.equal(rejectedWrites, residentProposals ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
+  assert.equal(reviewUploads,residentOriginalHolder?3:0);
+  if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
   if (residentProposals) {
     assert.deepEqual(paths, []);
     assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});

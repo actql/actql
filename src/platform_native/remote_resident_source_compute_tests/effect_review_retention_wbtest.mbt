@@ -195,6 +195,7 @@ fn retained_effect_review_retention_store(
       @remote.remote_effect_checkpoint_report_json(queued),
       @remote.remote_effect_checkpoint_report_json(report),
     )
+    retained_holder_upload_original_review(work)
     Some(retained_holder_admit_resolution(work, report))
   } else {
     None

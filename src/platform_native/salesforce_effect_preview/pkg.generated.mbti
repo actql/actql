@@ -8,6 +8,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/physical_strategy",
   "actql/actql/platform_native/credential_resource",
+  "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_resident_host",
@@ -116,6 +117,7 @@ pub fn NativeResidentEffectReview::retry_cleanup(Self) -> Result[Bool, NativeRes
 pub fn NativeResidentEffectReview::review_projection(Self, () -> Bool, Int) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::settle_saved_row(Self, NativeResidentEffectWriteLimits) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::target_uses(Self) -> Array[NativeSalesforceTargetAccess]
+pub fn NativeResidentEffectReview::upload_review_projection(Self, @http_client.Client, String, () -> Bool) -> Result[Unit, NativeResidentEffectReviewUploadIssue]
 
 pub(all) struct NativeResidentEffectReviewCapture {
   artifact : @run_publication_host.ClientEffectLocalResultArtifact
@@ -183,6 +185,13 @@ pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Unavailable
   Result(@remote_resident_host.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
+}
+
+pub(all) enum NativeResidentEffectReviewUploadIssue {
+  Review(NativeResidentEffectReviewIssue)
+  Http(@http_client.NativeHttpIssue)
+  HttpStatus(Int)
+  InvalidResponse
 }
 
 pub(all) enum NativeResidentEffectTargetIssue {
