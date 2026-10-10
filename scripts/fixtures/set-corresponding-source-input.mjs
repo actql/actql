@@ -250,3 +250,52 @@ setCorrespondingRefusals.push(...[
 ].map(item => ({name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
   text: 'DATA r = SELECT 1 AS x; ' + anonymousAnalyticHead + ' QUALIFY ' + item.field + ' > 0',
   expectedCode: 'ClientProgramInvalidInput'})));
+
+// Parentheses preserve operand ownership and ordinal values. These results
+// are authored from the same two input rows as the independent JSON control.
+const parenthesized = (name, text, extra = {}) => positional('parenthesized-' + name,
+  text, {format: 'aql-text', columns: aggregateColumns, expected: windowRows, ...extra});
+const parenthesizedInput = 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; ';
+setCorrespondingSuccesses.push(
+  parenthesized('scoped-windows', parenthesizedInput + 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + '(FROM r |> AS original |> SET x = x + 10 |> SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x DESC)) '
+    + 'ORDER BY a, b'),
+  parenthesized('nested-set', parenthesizedInput + 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + '(SELECT ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r '
+    + 'UNION ALL SELECT 3 AS a, 4 AS b) ORDER BY a, b',
+    {expected: [...windowRows, {a: 3, b: 4}]}),
+  parenthesized('anonymous-aggregate', parenthesizedInput + 'SELECT 0 AS a, 0 AS b '
+    + 'UNION ALL ((SELECT SUM(x), COUNT(x) FROM r)) ORDER BY a, b',
+    // SUM has a nullable result even for a nonnullable argument: an empty
+    // global group returns NULL. COUNT remains nonnullable; UNION joins both.
+    {expected: [{a: 0, b: 0}, {a: 3, b: 2}],
+      columns: [{name: 'a', contract: {...number, nullable: true}},
+        {name: 'b', contract: number}]}),
+  parenthesized('anonymous-scalars', parenthesizedInput + 'SELECT 0 AS a, 0 AS b '
+    + 'UNION ALL (SELECT x + 10, -x FROM r) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]}),
+  parenthesized('source-windows', 'SELECT 0 AS a, 0 AS b UNION ALL '
+    + '((SELECT ROW_NUMBER() OVER (ORDER BY id), ROW_NUMBER() OVER (ORDER BY id DESC) '
+    + 'FROM records)) ORDER BY a, b',
+    {format: 'sql', sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
+  parenthesized('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+    + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r) '
+    + 'ORDER BY a, b', {expected: []}),
+);
+setCorrespondingRefusals.push(
+  {name: 'set-corresponding-refuse-parenthesized-by-name', format: 'aql-text',
+    text: 'DATA r = SELECT 1 AS x; SELECT 0 AS a UNION ALL BY NAME '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)',
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'set-corresponding-refuse-parenthesized-authored-cte', format: 'aql-text',
+    text: 'DATA r = SELECT 1 AS x; WITH hidden AS '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) '
+      + 'SELECT 0 AS a UNION ALL (SELECT * FROM hidden)',
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'set-corresponding-refuse-parenthesized-private-qualify', format: 'aql-text',
+    text: 'DATA r = SELECT 1 AS x; SELECT 0 AS a UNION ALL '
+      + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r QUALIFY aql_analytic_output_1 > 0)',
+    expectedCode: 'ClientProgramInvalidInput'},
+);
