@@ -765,18 +765,20 @@
         "|> RENAME",
         "|> AS",
         "|> ASSERT UNIQUE BY (fields)",
-        "|> DISTINCT"
+        "|> DISTINCT",
+        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value FOR name IN (columns)) [AS alias]"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
         "snapshot field slots",
         "range-alias preservation",
-        "DISTINCT compares visible value slots and preserves only surviving range columns"
+        "DISTINCT compares visible value slots and preserves only surviving range columns",
+        "single-value UNPIVOT replaces the input range scope and uses the common exact type/nullability contract; default excludes SQL NULL"
       ],
       "spec_section": "7.2-7.4",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-4",
       "acceptance_case_ids": [
         "SQL-01",

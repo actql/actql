@@ -372,14 +372,19 @@ fn comparison_numeric_atoms(
   let atoms : Array[Result[Double?, @expression.Issue]] = []
   for index in 0..<@query.expression_node_count(expression) {
     let atom = match @query.expression_node(expression, index).unwrap().kind {
-      Number(text) => @expression.numeric_literal(text).map(value => Some(value))
+      Number(text) =>
+        @expression.numeric_literal(text).map(value => Some(value))
       Parenthesized(child) | Unary("+", child) => atoms[child]
       Unary("-", child) =>
         // Keep the existing source-literal rejection of negative zero,
         // including a nested negation whose final mathematical value is zero.
         match atoms[child] {
           Ok(Some(value)) =>
-            if value == 0.0 { Err(@expression.InvalidNumber) } else { Ok(Some(-value)) }
+            if value == 0.0 {
+              Err(@expression.InvalidNumber)
+            } else {
+              Ok(Some(-value))
+            }
           other => other
         }
       _ => Ok(None)
@@ -442,8 +447,10 @@ fn same_expression(
       }
       continue
     }
-    if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
-      literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
+    if literal_membership_shape(left, a_index)
+      is Some((a_name, a_value, a_items)) &&
+      literal_membership_shape(right, b_index)
+      is Some((b_name, b_value, b_items)) {
       if a_name != b_name || a_items.length() != b_items.length() {
         return false
       }
@@ -2137,6 +2144,36 @@ fn compile_steps(
       first = false
     }
     match operation {
+      Unpivot(clause) => {
+        if pipe_value_table {
+          raise Abort(UnsupportedProjection)
+        }
+        let (lowered, visible, physical) = lower_pipe_unpivot(
+          construction, clause, pipe_columns,
+        )
+        for index in 0..<lowered.length() {
+          if index == 0 {
+            entries.append(lowered[index])
+            step_entries.push(entries.copy())
+            entries.clear()
+          } else {
+            step_entries.push(lowered[index])
+          }
+        }
+        pipe_visible = visible
+        pipe_columns = visible.copy()
+        active_fields = physical
+        output = visible.map(column => column.0)
+        pipe_ranges = []
+        pipe_star_ranges = []
+        value_table_receivers = []
+        pipe_value_columns = []
+        scalar_value_table_ranges = []
+        pipe_value_table = false
+        pipe_rebound = true
+        pipe_changed = true
+        deferred = true
+      }
       UnnestSource(expression, element, offset) => {
         let correlated = i != 0 || !@query.relation(query).is_empty()
         if correlated && pipe_ranges.any(range => same_name(range.0, element)) {

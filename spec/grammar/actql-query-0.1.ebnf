@@ -163,12 +163,16 @@ pipe_set_clause = "SET", assignment, { ",", assignment } ;
 relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
               | "EXTEND", select_list, [ window_clause ]
               | pipe_set_clause
+              | unpivot_operator
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
               | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
+unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
+                   "(", identifier, "FOR", identifier, "IN", "(",
+                   identifier, { ",", identifier }, ")", ")", [ source_alias ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",

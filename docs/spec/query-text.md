@@ -428,6 +428,35 @@ invented. This connects the selected
 [GoogleSQL Pipe SET](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#set)
 without a new executor, wire format or range-binding rule.
 
+Pipe `UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value_column FOR name_column
+IN (column, ...)) [AS alias]` connects the selected single-value
+[GoogleSQL UNPIVOT](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#unpivot_operator)
+to the common `unpivot` operation. The input columns are unqualified current
+column names, not expressions or references through a former range. Unmentioned
+columns remain in their original order, followed by the value column and then
+the name column. Generated labels use the resolved input column names, including
+current RENAME outputs; private slot names are never labels or public fields.
+The operator establishes a fresh output scope. An optional alias binds that
+scope; removed columns and prior ranges do not remain accessible through it.
+
+Default and explicit EXCLUDE NULLS omit rows whose unpivoted value is SQL NULL;
+INCLUDE NULLS retains them. This uses the common expansion and an ordinary
+`IS NOT NULL` filter without changing common `unpivot` semantics. Duplicate
+input rows and repeated selected columns retain multiplicity. Only an authored
+ORDER BY establishes public order; no sort, Result or persistence boundary is
+added. The common checker owns exact value contracts, expansion/key evidence,
+capacity and incompatible input rejection. In particular, its current exact
+type/nullability requirement is a recorded common-profile gap for inputs whose
+selected columns differ only in nullability; the Frontend does not cast or infer
+types from rows to bypass it. Empty input retains the declared output contracts.
+
+This connection does not yet cover the standard FROM-suffix form, multiple
+value columns or row-value aliases. Those forms remain unimplemented coverage,
+not permanent language prohibitions. They are not reinterpreted as this form.
+Value/name columns must differ from each other and from selected input names,
+under the existing identifier rules. Kept-name collisions remain ambiguous;
+a public Result still requires distinct field names.
+
 Pipe WHERE accepts supported window calls inside its Boolean predicate. Each
 call observes the current input rows, including preceding filtering, grouping
 and projection, and uses the existing common analytic operation. Only rows
