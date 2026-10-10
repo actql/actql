@@ -1,0 +1,4 @@
+package/src/actql_local_probe/core.wasm
+package/src/actql_local_probe/artifact.json
+package/build/
+package/src/*.egg-info/
