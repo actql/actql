@@ -2,8 +2,13 @@
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 script        = { data_declaration }, query ;
 data_declaration = "DATA", identifier, "=",
-                   ( relational_body | graph_constructor
+                   ( relational_body | data_graph_match | graph_constructor
                    | named_sga_call ), ";" ;
+(* Projected MATCH can bind a pure Relation producer without widening CTE
+   or statement-level INFER/RESULT/EFFECT placement. *)
+data_graph_match = "FROM", "GRAPH", path, [ graph_labels ],
+                   { "|>", named_sga_call }, "|>", graph_match,
+                   { "|>", cte_pipe_item } ;
 query         = ( table_create_statement
               | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
 table_create_statement = table_create, "AS", table_input_query ;
@@ -163,12 +168,24 @@ pipe_set_clause = "SET", assignment, { ",", assignment } ;
 relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
               | "EXTEND", select_list, [ window_clause ]
               | pipe_set_clause
+              | unpivot_operator
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
+              | pivot_operator
               | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
+(* Initial Pipe PIVOT: one column aggregate and static String bucket values. *)
+pivot_operator = "PIVOT", "(", pivot_aggregate, "(", path, ")",
+                 [ [ "AS" ], identifier ], "FOR", path, "IN", "(",
+                 pivot_value, { ",", pivot_value }, ")", ")",
+                 [ [ "AS" ], identifier ] ;
+pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
+pivot_value = query_string, [ [ "AS" ], identifier ] ;
+unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
+                   "(", identifier, "FOR", identifier, "IN", "(",
+                   identifier, { ",", identifier }, ")", ")", [ source_alias ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",
@@ -189,7 +206,7 @@ path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
 array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
                     "[", [ expression, { ",", expression } ], "]" ;
-array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64"
+array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64" | "DOUBLE"
                 | "TIMESTAMP" | "JSON" ;
 (* ARRAY annotations and compatible item types use the common checker.
    JSON constructors/default INT64 remain common-contract coverage gaps. *)

@@ -29,11 +29,30 @@ export const relationDataSuccesses = [
     text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
     results: {original: {rows: [{id: 2}], columns: [relationNumber('id')]},
       active: {rows: [{id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+  {name: 'data-anonymous-set-duplicate-order-limit', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 + 0 UNION ALL SELECT 1; FROM n |> ORDER BY id |> LIMIT 2 |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}, {id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+  {name: 'data-anonymous-set-null-json-control', format: 'json',
+    text: JSON.stringify({version: 'actql/0.1', id: 'fixture.data_anonymous_null',
+      stages: [{id: 'main', inputs: {}, steps: [
+        {values: {schema: {id: {type: 'number', nullable: true}}, rows: [{id: 2}, {id: null}]}, as: 'rows'},
+        {from: 'rows', sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'sorted'},
+      ], results: {nodes: {from: 'sorted', fields: ['id']}}}],
+      results: {nodes: {from: {stage: 'main', result: 'nodes'}}}}),
+    results: {nodes: {rows: [{id: null}, {id: 2}], columns: [relationNumber('id', true)]}}, sourceReadCount: 0},
+  {name: 'data-anonymous-set-null-source', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64); FROM n |> ORDER BY id NULLS FIRST |> RESULT nodes',
+    results: {nodes: {rows: [{id: null}, {id: 2}], columns: [relationNumber('id', true)]}}, sourceReadCount: 0},
+  {name: 'data-anonymous-set-cte-source', format: 'aql-text',
+    text: 'DATA n = WITH seed AS (SELECT 2 AS id) SELECT id FROM seed UNION ALL SELECT id - 1 FROM seed; FROM n |> ORDER BY id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
 ];
 export const relationDataRefusals = [
   {name: 'data-forward-reference', format: 'aql-text', text: 'DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id'},
   {name: 'data-duplicate', format: 'aql-text', text: 'DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id'},
   {name: 'data-sql-format', format: 'sql', text: 'DATA n = SELECT 1 AS id; FROM n |> SELECT id'},
+  {name: 'data-anonymous-set-by-name', format: 'aql-text', expectedCode: 'ClientProgramImplementationLimit', text: 'DATA n = SELECT 1 AS id UNION ALL BY NAME SELECT 2; FROM n |> SELECT id'},
+  {name: 'data-anonymous-set-private-field', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text: 'DATA n = SELECT 1 AS id UNION ALL SELECT 2; FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id'},
 ];
 export const pipeResultSuccesses = [
   {name: 'result-exact-string-prefix', format: 'sql',
@@ -545,13 +564,30 @@ export async function exercisePublicQueryInput(connect, options,
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
+        const attemptId = requestId + '-changed-intent';
+        const expectedAttemptRef = {operation: 'submit', attemptId};
         await assert.rejects(client.startSource(text, {...input, submissionRef,
-          parameters: {minimum: 21}}), error => {
-          assert.equal(error.code, 'SubmissionUnknown');
-          assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
+          parameters: {minimum: 21}, attemptId}), error => {
+          assert.equal(error.code, 'SubmissionConflict');
+          assert.equal(error.cause, undefined);
+          assert.deepEqual(error.submissionRef, submissionRef);
+          assert.deepEqual(error.attemptRef, expectedAttemptRef);
+          // The SDK exposes this validated invocation attempt on the error.
+          // Its identity is authored above, independently of the returned reply.
+          const attempt = error.outcome;
+          assert.equal(attempt.kind, 'conflict');
+          assert.equal(attempt.reason, 'intent');
+          assert.deepEqual(attempt.attemptRef, expectedAttemptRef);
+          assert.deepEqual(attempt.submissionRef, submissionRef);
+          assert.equal(attempt.outcome, undefined);
+          assert.ok(Object.isFrozen(attempt));
           return true;
         });
         assert.equal((await execution.status()).status, 'succeeded');
+        assert.deepEqual(await client.lookupSubmission(submissionRef), lookup,
+          'a conflicting invocation must preserve the original submission');
+        assert.deepEqual(await counters(), beforeRead,
+          'a conflicting invocation must not accept another Run or acquire source');
       }
     }
     for (const {name, text, resultNames, sourceRows, sourceReadSessionCount, ...input} of executionFailures) {

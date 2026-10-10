@@ -135,12 +135,13 @@ test "JOIN set routing preserves the existing nearest placement refusal" {
 test "JOIN set output binding does not allocate an identity projection" {
   let left = "SELECT l.x AS id, r.y AS amount FROM t AS l JOIN t AS r ON l.x = r.x WHERE l.x = 1"
   let right = "SELECT l.x AS id, r.y AS amount FROM t AS l JOIN t AS r ON l.x = r.x WHERE l.x >= 2"
-  for (text, final_operation) in [
-    (left + " UNION ALL " + right, "append"),
-    (left + " UNION ALL " + right + " ORDER BY id", "sort"),
-    (left + " UNION ALL " + right + " ORDER BY id LIMIT 2 OFFSET 1", "take"),
-    (left + " UNION DISTINCT " + right + " ORDER BY id", "sort"),
-  ] {
+  for
+    (text, final_operation) in [
+      (left + " UNION ALL " + right, "append"),
+      (left + " UNION ALL " + right + " ORDER BY id", "sort"),
+      (left + " UNION ALL " + right + " ORDER BY id LIMIT 2 OFFSET 1", "take"),
+      (left + " UNION DISTINCT " + right + " ORDER BY id", "sort"),
+    ] {
     let program = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
       join_order_context(),
@@ -158,8 +159,12 @@ test "JOIN set output binding does not allocate an identity projection" {
     ).unwrap()
     assert_true(@wire.lookup(last, "select") is None, msg=text)
     assert_true(@wire.lookup(last, final_operation) is Some(_), msg=text)
-    assert_eq(@wire.text(@wire.lookup(last, "as").unwrap()), Ok("aql_script_result"))
-    match @check.check_parsed(program, check_environment(), None, check_limits()) {
+    assert_eq(
+      @wire.text(@wire.lookup(last, "as").unwrap()),
+      Ok("aql_script_result"),
+    )
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
       Checked(_) => ()
       Rejected(error) => raise @check.diagnostic_cause(error)
       _ => fail("rebinding must retain the common checked output")

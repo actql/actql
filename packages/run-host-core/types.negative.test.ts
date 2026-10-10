@@ -1,4 +1,5 @@
 import './effect-run.typecheck.mjs';
+import './program-preparation.typecheck.mjs';
 import type {DeliveryContractView, PublicationContract,
   PublicationRequestContract, PublicationAttemptContract,
   PublicationRecordContract, PublicIndexEntryContract,
@@ -186,3 +187,16 @@ retainedInputCurrentEnvelope(inputResult);
 validateRetainedTaskInput(receiverReply);
 // @ts-expect-error Copied current facts cannot forge a reply handle.
 retainedInputCurrentReplyFacts(retainedInputCurrentReplyFacts(receiverReply));
+
+import {effectReviewCheckpointBinding} from '@actql/run-host-core';
+import type {AllowedEffectRun} from '@actql/run-host-core';
+declare const checkpointEffectRun: AllowedEffectRun;
+declare const checkpointDefinition: RunDefinition;
+const checkpointBound = effectReviewCheckpointBinding(checkpointEffectRun, checkpointDefinition, '{}');
+const checkpointUnit: string = checkpointBound.unitId;
+// @ts-expect-error A copied object is not the original allowed Effect Run.
+effectReviewCheckpointBinding({}, checkpointDefinition, '{}');
+// @ts-expect-error Checkpoint metadata is admitted as exact wire, not an object.
+effectReviewCheckpointBinding(checkpointEffectRun, checkpointDefinition, {});
+// @ts-expect-error The common projection remains immutable.
+checkpointBound.unitId = checkpointUnit;

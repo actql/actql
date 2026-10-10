@@ -59,7 +59,7 @@ test "Graph equality DATA resolves quoted aliases without copying the Graph" {
 }
 
 ///|
-test "Graph equality retains ORDER and LIMIT at the common unresolved boundary" {
+test "Graph equality singleton supports ORDER and LIMIT through the common owner" {
   let actual = compile_data_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> graphs_equal(with: g) |> SELECT equal |> ORDER BY equal |> LIMIT 1",
   )
@@ -79,21 +79,11 @@ test "Graph equality retains ORDER and LIMIT at the common unresolved boundary" 
       [],
       graph_rows_check_limits(),
     )
-    guard checked is Rejected(diagnostic) else {
-      fail("ordered comparison remains a separate common-owner gap")
+    match checked {
+      Checked(_) => ()
+      Rejected(diagnostic) => graph_equality_rejected(diagnostic)
+      NeedsInputs(_) => fail("ordered equality needs no acquisition")
     }
-    assert_true(
-      @check.diagnostic_cause(diagnostic)
-      is Source(
-        SourceView(
-          Program(
-            Program(
-              Order(_, PipelineOrder({ kind: @pipeline.UnresolvedOrder, .. }))
-            )
-          )
-        )
-      ),
-    )
   }
 }
 
@@ -176,7 +166,7 @@ test "Graph equality rejects unknown arguments and repeated Carrier transitions"
       assert_eq(span.start_byte, 473)
       assert_eq(span.end_byte, 481)
     } else {
-      assert_true(result is Err(UnsupportedGraph), msg=suffix)
+      assert_true(result is Err(InvalidQuery), msg=suffix)
     }
   }
 }

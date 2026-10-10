@@ -146,6 +146,16 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
     run_materials_document,
     None,
   ).unwrap()
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      projected,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      limits.preparation,
+    )
+    is Ok(EffectFreeComputation),
+  )
+
   // Independently assembled fields, not a snapshot copied from the issuer.
   assert_eq(projected, run_materials_json(fields))
   assert_eq(
@@ -198,7 +208,7 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
   // rebuilds the Run, moves it. The Program definition CID has the same
   // shape and is not it.
   assert_eq(
-    issued_cid, "sha256:71a90eff92faeb07d1efe6c8bbe56bdcaac3d87a04b6a6c2f3e314a52503e069",
+    issued_cid, "sha256:0e78ef6f3c7f4932c00b61d4945432738a8dc32350ca3244405c4927c71ad0aa",
   )
   assert_eq(
     prepared_client_identity(issuer_prepared).program_definition_cid,
@@ -289,5 +299,18 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
       issued_cid,
     )
     is Err(MaterialsEnvironment),
+  )
+}
+
+///|
+test "run materials family selection rejects malformed input" {
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      "{}",
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      client_standard_program_preparation_limits(),
+    )
+    is Err(MaterialsMalformed),
   )
 }

@@ -94,6 +94,7 @@ pub(all) enum QueryInteger {
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
   UnnestSource(Expression, NamePart, NamePart?)
+  Unpivot(UnpivotClause)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -104,6 +105,7 @@ pub(all) enum QueryOperation {
   Drop(Array[NamePart])
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
+  Pivot(PivotClause)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
   Qualify(Expression, Array[(NamePart, AggregateCall)])
@@ -119,10 +121,27 @@ pub(all) enum QueryOperation {
 }
 
 ///|
+pub(all) struct UnpivotClause {
+  columns : Array[NamePart]
+  value_column : NamePart
+  name_column : NamePart
+  include_nulls : Bool
+}
+
+///|
 pub(all) struct KeepItem {
   path : Array[NamePart]
   wildcard : Bool
   name : NamePart?
+}
+
+///|
+pub(all) struct PivotClause {
+  function_name : String
+  argument : Array[NamePart]
+  column : Array[NamePart]
+  prefix : NamePart?
+  values : Array[(String, NamePart?)]
 }
 
 ///|
@@ -372,7 +391,8 @@ pub fn parse_relation_path(
       }
       match token.value {
         Word(value) => parts.push({ value, quoted: false, })
-        QuotedName(value) => parts.push({ value, quoted: true, })
+        QuotedName(value) =>
+          parts.push({ value: tokens.identifier(value), quoted: true, })
         _ =>
           return Err({
             issue: Syntax("Expected relation name"),
@@ -410,6 +430,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
   match query.operations[index] {
     UnnestSource(expression, element, offset) =>
       Some(UnnestSource(expression, element, offset))
+    Unpivot(clause) =>
+      Some(Unpivot({ ..clause, columns: clause.columns.copy(), }))
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -437,6 +459,15 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Drop(xs) => Some(Drop(xs.copy()))
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
+    Pivot(clause) =>
+      Some(
+        Pivot({
+          ..clause,
+          argument: clause.argument.copy(),
+          column: clause.column.copy(),
+          values: clause.values.copy(),
+        }),
+      )
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
       Some(
@@ -657,7 +688,7 @@ fn QueryParser::name(self : QueryParser) -> NamePart raise QueryAbort {
   let token = self.advance()
   match token.value {
     Word(value) => { value, quoted: false, }
-    QuotedName(value) => { value, quoted: true, }
+    QuotedName(value) => { value: self.source.identifier(value), quoted: true, }
     _ => raise QueryAbort("Expected identifier", token.start)
   }
 }
@@ -957,7 +988,14 @@ fn QueryParser::fresh_producer(
     if !self.source.tokens.any(token => {
         match token.value {
           Word(value) | QuotedName(value) =>
-            ascii_upper(value) == ascii_upper(generated_name)
+            ascii_upper(
+              if token.value is QuotedName(_) {
+                self.source.identifier(value)
+              } else {
+                value
+              },
+            ) ==
+            ascii_upper(generated_name)
           _ => false
         }
       }) {
@@ -1385,7 +1423,7 @@ fn QueryParser::value_projection(
   } else {
     self.optional_output_alias()
   }
-  if (aggregate is Some(_) || analytic is Some(_)) && name is None {
+  if analytic is Some(_) && name is None {
     raise QueryAbort("Function output requires a name", self.peek().start)
   }
   {
@@ -1476,10 +1514,10 @@ fn QueryParser::frame_boundary(
     ignore(self.advance())
     if self.has("PRECEDING") {
       self.keyword("PRECEDING")
-      return PrecedingParameter(name)
+      return PrecedingParameter(self.source.identifier(name))
     }
     self.keyword("FOLLOWING")
-    return FollowingParameter(name)
+    return FollowingParameter(self.source.identifier(name))
   }
   let distance = self.safe_integer(false)
   if self.has("PRECEDING") {
@@ -1508,7 +1546,15 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
       [
         "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
         "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
-      ].contains(upper_ascii(name)) &&
+      ].contains(
+        upper_ascii(
+          if self.peek().value is QuotedName(_) {
+            self.source.identifier(name)
+          } else {
+            name
+          },
+        ),
+      ) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))
     _ => false
@@ -1523,7 +1569,8 @@ fn QueryParser::aggregate(
 ) -> AggregateCall raise QueryAbort {
   let token = self.advance()
   let function_name = match token.value {
-    Word(name) | QuotedName(name) => upper_ascii(name)
+    Word(name) => upper_ascii(name)
+    QuotedName(name) => upper_ascii(self.source.identifier(name))
     _ => raise QueryAbort("Expected aggregate function", token.start)
   }
   if self.advance().value != Symbol(40) {
@@ -1820,7 +1867,7 @@ fn QueryParser::limit_integer(
 ) -> QueryInteger raise QueryAbort {
   if self.peek().value is Parameter(name) {
     ignore(self.advance())
-    BoundParameter(name)
+    BoundParameter(self.source.identifier(name))
   } else {
     Integer(self.safe_integer(zero_allowed))
   }
@@ -2146,6 +2193,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::query(
   self : QueryParser,
   cte_body? : Bool = false,
+  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.has("CREATE") {
     if cte_body {
@@ -2230,7 +2278,11 @@ fn QueryParser::query(
       ignore(self.advance())
     }
   }
-  let term = if self.has("FROM") { self.pipe(cte_body~) } else { self.sql() }
+  let term = if self.has("FROM") {
+    self.pipe(cte_body~, graph_data_body~)
+  } else {
+    self.sql()
+  }
   let term = if self.peek().value == Pipe {
     self.pipe_tail(term, cte_body~)
   } else {
@@ -2407,12 +2459,13 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::pipe(
   self : QueryParser,
   cte_body? : Bool = false,
+  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
-    if cte_body {
+    if cte_body && !graph_data_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
     }
     self.keyword("GRAPH")
@@ -2746,6 +2799,15 @@ fn QueryParser::pipe_tail(
       operations.append(
         self.resolve_window_operations(window_operations, definitions),
       )
+    } else if self.has("UNPIVOT") {
+      operations.push(Unpivot(self.unpivot_clause()))
+      if self.has("AS") {
+        self.keyword("AS")
+        operations.push(Alias(self.name()))
+      } else if self.peek().value is Word(_) ||
+        self.peek().value is QuotedName(_) {
+        operations.push(Alias(self.name()))
+      }
     } else if self.has("SET") {
       self.keyword("SET")
       let values : Array[(NamePart, Expression)] = []
@@ -2807,6 +2869,11 @@ fn QueryParser::pipe_tail(
         ignore(self.advance())
       }
       operations.push(Rename(values))
+    } else if self.has("PIVOT") {
+      operations.push(Pivot(self.pivot_clause()))
+      if self.optional_output_alias() is Some(result_range) {
+        operations.push(Alias(result_range))
+      }
     } else if self.has("AS") {
       self.keyword("AS")
       operations.push(Alias(self.name()))

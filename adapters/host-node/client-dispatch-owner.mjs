@@ -627,8 +627,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         { ...computeConfigurations,
           ...(sourceAccess === undefined ? {} :
             {authorization: sourceAccess.authorization}) },
-        entry.abort.signal, undefined, execution => {
-          entry.cleanupOwner = execution;
+        entry.abort.signal, undefined, owner => {
+          // One synchronous transfer consumes this exact pending setup before
+          // either the preflight or completed-execution owner may close it.
+          if (entry.cleanupOwner !== undefined ||
+              entry.pendingSetup !== undefined && entry.pendingSetup !== setup) {
+            throw new Error('ClientDispatchCleanupOwnerAlreadyRetained');
+          }
+          entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
           observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})));
@@ -656,7 +662,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (typeof cause.cleanupHandle?.status === 'function' &&
             typeof cause.cleanupHandle?.retry === 'function') {
           entry.cleanupHandle = cause.cleanupHandle;
-        } else if (failedExecution === undefined) {
+        } else if (failedExecution === undefined && entry.cleanupOwner === undefined) {
           entry.unresolvedCleanup = true;
         }
       }

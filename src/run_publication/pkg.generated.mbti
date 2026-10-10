@@ -214,6 +214,12 @@ pub fn effect_apply_receipt_row_field(PublicationContract, String, String) -> St
 
 pub fn effect_apply_receipt_row_state(PublicationContract, String) -> String?
 
+pub fn effect_capture_holding_authority(EffectCaptureHoldingBinding) -> String
+
+pub fn effect_capture_holding_contract(EffectCaptureHoldingBinding) -> PublicationContract
+
+pub fn effect_capture_holding_identity(EffectCaptureHoldingBinding) -> String
+
 pub fn effect_computation_capture_holding_cid(PublicationContract, String) -> String?
 
 pub fn effect_computation_record_holding_cid(PublicationContract, String) -> String?
@@ -468,6 +474,8 @@ pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenc
 
 pub fn model_source_observation_originals(ModelSourceObservation) -> (RunEvidenceValue, RunEvidenceValue, String, String)
 
+pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEffectSourceArtifact, String, String, String, Int64, Bool, Int) -> Result[String, PublicationContractIssue]
+
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
@@ -489,6 +497,8 @@ pub fn prepare_delivery_sink_progress(Int64) -> Result[DeliverySinkProgress, Del
 pub fn prepare_durable_payload_failure_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> DurablePayloadFailureAction
 
 pub fn prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> Result[DurableResultRowFrames, DurableResultRowFrameIssue]
+
+pub fn prepare_effect_capture_holding_binding(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Int, Int, Int) -> Result[EffectCaptureHoldingBinding, RunEvidenceChainIssue]
 
 pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
 
@@ -1020,6 +1030,8 @@ pub(all) enum EffectApplyReceiptBindingIssue {
   ForeignMember
   RowPartitionMismatch
 } derive(@debug.Debug)
+
+type EffectCaptureHoldingBinding
 
 pub struct EffectPreviewFootprintIdentity {
   kind : String

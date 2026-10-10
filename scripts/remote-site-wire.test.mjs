@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
 
+import {checkEffectCheckpointContract} from './remote-effect-checkpoint-contract.mjs';
+
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const registry = read('spec/contracts/actql-remote-site-wire.json');
 const vectors = read('spec/fixtures/remote-site-wire-vectors.json').vectors;
@@ -112,4 +114,40 @@ test('Retained handoff preserves the saved plan and exact committed receipt', ()
   assert.equal(reply.requestCid, result.transfer_request_cid);
   // DirectStream has no Store object use; that release bit is true at admission.
   assert.deepEqual(reply.state, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
+});
+
+
+test('Effect Checkpoint report and ACK use pinned closed identity fields', () => {
+  checkEffectCheckpointContract(registry);
+  for (const name of ['effect_checkpoint_report', 'effect_checkpoint_reply']) {
+    const schema = registry.schemas[name];
+    assert.equal(hash(canonical(schema)), registry.schema_cids[name]);
+    const body = name === 'effect_checkpoint_report'
+      ? {checkpoint_wire: '{"original":"checkpoint"}', dispatch_request_cid: hash('original-dispatch'), version: 'actql-remote-effect-checkpoint-report/0.1'}
+      : {checkpoint_cid: hash('checkpoint'), dispatch_request_cid: hash('original-dispatch'), outcome: 'accepted', reason: '', report_cid: hash('original-report'), version: 'actql-remote-effect-checkpoint-reply/0.1'};
+    const shape = project(schema);
+    assert(validate(body, shape));
+    assert(!validate({...body, credential: 'must-not-be-sent'}, shape));
+    for (const key of Object.keys(body)) {
+      const missing = {...body}; delete missing[key];
+      assert(!validate(missing, shape), `${name}: missing ${key}`);
+    }
+  }
+});
+
+test('Effect review fixed preimages bind original dispatch, Checkpoint and ACK', () => {
+  const fixed = read('spec/fixtures/remote-effect-checkpoint-vectors.json');
+  const byName = Object.fromEntries(fixed.vectors.map(vector => {
+    assert.equal(canonical(vector.body), vector.canonical);
+    assert.equal(hash(vector.canonical), vector.cid);
+    return [vector.name, vector];
+  }));
+  assert.equal(hash(canonical(fixed.checkpoint_preimage)), byName.checkpoint.body.checkpoint_cid);
+  assert.equal(byName.report.body.checkpoint_wire, byName.checkpoint.canonical);
+  assert.equal(byName.report.body.dispatch_request_cid, byName.dispatch.cid);
+  assert.equal(byName.reply.body.report_cid, byName.report.cid);
+  assert.equal(byName.reply.body.checkpoint_cid, byName.checkpoint.body.checkpoint_cid);
+  assert.equal(byName.reply.body.dispatch_request_cid, byName.dispatch.cid);
+  assert(validate(byName.report.body, project(registry.schemas.effect_checkpoint_report)));
+  assert(validate(byName.reply.body, project(registry.schemas.effect_checkpoint_reply)));
 });

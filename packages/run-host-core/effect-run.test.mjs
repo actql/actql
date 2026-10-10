@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {buildSync} from 'esbuild';
@@ -6,6 +7,7 @@ import {admitEnvironment, prepare, compileValues, prepareEffect, compileEffect,
   prepareRequest, requestFields, prepareEffectRequest, effectSourceInputBinding,
   issueEffectSourceDispatch, prepareEffectRetainedTaskInputEdge, retainedTaskInputEdgeFacts,
   effectExecutionShape, privateEffectCompilationWires, issueAllowedEffectRun,
+  effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts,
   privateEffectRunEvidence, issueEffectRunDefinition, privateRunDefinition,
   issueEffectRunMaterials, admitEffectRunMaterials, effectRunStartCurrent} from '@actql/run-host-core';
 
@@ -21,15 +23,16 @@ const fixed = character => 'sha256:' + character.repeat(64);
 const originalPolicy = {executionContextCid: fixed('a'), hostPolicyCid: fixed('b'),
   expiresAt: '2099-01-01T00:00:00.000Z'};
 
-function issued(program = document) {
+function issued(program = document, withRequest = false) {
   const prepared = prepareEffect(program, 'json', environment);
   const compilation = compileEffect(prepared);
   const allowed = issueAllowedEffectRun(prepared, compilation, originalPolicy);
   const definition = issueEffectRunDefinition(allowed, 'resident-effect', 'original-run',
     '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
   const retained = {document: program, format: 'json', environment, environmentWire};
-  const wire = issueEffectRunMaterials(allowed, definition, retained);
-  return {prepared, compilation, allowed, definition, retained, wire};
+  const request = withRequest ? prepareEffectRequest(prepared, compilation, fixed('c'), 'original-effect-caller') : undefined;
+  const wire = issueEffectRunMaterials(allowed, definition, retained, request);
+  return {prepared, compilation, allowed, definition, retained, wire, request};
 }
 
 test('formal Effect preparation retains the two-task owner and pure refusal', () => {
@@ -123,7 +126,7 @@ test('Effect input parsing preserves the bounded Parameter Values rejection', ()
 
 test('formal Effect exports bundle for a Worker without a physical runtime', () => {
   const result = buildSync({stdin: {contents:
-    "export {prepareEffect, compileEffect, admitEffectRunMaterials, issueEffectSourceDispatch, issueEffectRetainedTaskDispatch} from '@actql/run-host-core';",
+    "export {prepareEffect, compileEffect, admitEffectRunMaterials, issueEffectSourceDispatch, issueEffectRetainedTaskDispatch, effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts, inspectEffectTaskProgress, prepareEffectTaskPhysicalStart} from '@actql/run-host-core';",
   resolveDir: import.meta.dirname}, bundle: true, write: false,
   platform: 'browser', format: 'esm', target: 'es2022', metafile: true});
   const inputs = Object.keys(result.metafile.inputs);
@@ -137,6 +140,79 @@ const effectSelection = {taskAttempt: 1, dispatchId: 'original-producer',
   connectorRegistration: 'local', connectorRevision: 'local/1',
   strategyRevision: 'strategy/1', obligationsCid: fixed('1'), budgetCid: fixed('2'),
   evidenceIssuerCapabilityCid: fixed('3'), grantCid: fixed('4')};
+
+test('Effect execution inventory selects the original dispatch graph and Result contract', () => {
+  const original = issued();
+  const keys = effectTaskKeys(original.prepared, original.compilation);
+  assert.equal(keys.length, 2);
+  assert(Object.isFrozen(keys));
+  const edge = retainedTaskInputEdgeFacts(prepareEffectRetainedTaskInputEdge(
+    original.allowed, original.definition));
+  assert.deepEqual(keys, [edge.producerTaskKey, edge.consumerTaskKey]);
+  const caller = prepareEffectRequest(original.prepared, original.compilation,
+    fixed('c'), 'inventory-caller');
+  const dispatch = JSON.parse(issueEffectSourceDispatch(original.allowed,
+    original.definition, caller, effectSelection).wire);
+  assert.equal(dispatch.task_key, keys[0]);
+  const definitions = effectResultDefinitions(original.prepared, original.compilation);
+  assert(Object.isFrozen(definitions));
+  assert.equal(definitions.length, 1);
+  assert(Object.isFrozen(definitions[0]));
+  const programCid = requestFields(caller).programDefinitionCid;
+  const preimage = JSON.stringify({program_definition_cid: programCid,
+    result_name: 'answer', version: 'actql-result-definition/0.1'});
+  const resultCid = 'sha256:' + createHash('sha256').update(preimage).digest('hex');
+  assert.deepEqual(definitions[0], {name: 'answer', cid: resultCid,
+    wire: JSON.stringify({program_definition_cid: programCid,
+      result_definition_cid: resultCid, result_name: 'answer',
+      version: 'actql-result-definition/0.1'})});
+  const schema = effectResultSchema(original.prepared, original.compilation, 'answer');
+  assert.equal(schema.wire, '{"id":{"nullable":false,"type":"number"}}');
+  assert.deepEqual(schema.fields, ['id']);
+  assert.equal(schema.cid, 'sha256:' + createHash('sha256').update(schema.wire).digest('hex'));
+  assert(Object.isFrozen(schema));
+  const source = effectSourceEvidenceFacts(original.prepared, original.compilation, 0, 0);
+  const catalog = JSON.parse(environmentWire).connector_catalogs[0];
+  const view = catalog.source_views[0];
+  assert.deepEqual(source, {sourceRef: 'connector://crm/main/r#v',
+    sourceContractCid: view.contract_cid, sourceViewContractCid: view.contract_cid,
+    carrierSchemaContractCid: view.output.schema.cid,
+    sourceDataPolicyCid: view.output.data_policy.cid, dataClassification: 'unknown'});
+  assert(Object.isFrozen(source));
+  assert.equal(effectSourceEvidenceFacts(original.prepared, original.compilation, 1, 0), undefined);
+});
+
+test('Effect inventory survives exact original materials reconstruction', () => {
+  const original = issued();
+  const restored = admitEffectRunMaterials(original.wire,
+    privateRunDefinition(original.definition).cid, profiles);
+  for (const method of [effectTaskKeys, effectResultDefinitions]) {
+    assert.deepEqual(method(restored.prepared, restored.compilation),
+      method(original.prepared, original.compilation));
+  }
+  assert.deepEqual(effectResultSchema(restored.prepared, restored.compilation, 'answer'),
+    effectResultSchema(original.prepared, original.compilation, 'answer'));
+  assert.deepEqual(effectSourceEvidenceFacts(restored.prepared, restored.compilation, 0, 0),
+    effectSourceEvidenceFacts(original.prepared, original.compilation, 0, 0));
+});
+
+test('Effect inventory rejects another preparation, copied handles and foreign selections', () => {
+  const original = issued();
+  const other = issued(document.replace('id > 2', 'id > 1'));
+  for (const [method, args] of [[effectTaskKeys, []], [effectResultDefinitions, []],
+    [effectResultSchema, ['answer']], [effectSourceEvidenceFacts, [0, 0]]]) {
+    assert.throws(() => method(other.prepared, original.compilation, ...args),
+      /ForeignRunHostCompilation/u);
+    assert.throws(() => method(original.prepared, {...original.compilation}, ...args),
+      /ForeignRunHostHandle/u);
+  }
+  assert.throws(() => effectResultSchema(original.prepared, original.compilation, 'r'),
+    /UnknownRunHostResult/u);
+  for (const coordinate of [-1, 1.5, 2147483648]) {
+    assert.throws(() => effectSourceEvidenceFacts(original.prepared, original.compilation,
+      coordinate, 0), /InvalidRunHostSourceSelection/u);
+  }
+});
 
 test('formal Effect Source dispatch preserves original caller Run and checked edge on reconstruction', () => {
   const original = issued();
@@ -205,4 +281,38 @@ test('Effect Site selection validates the same snapshot that reaches dispatch', 
     request, effectSelection);
   assert.deepEqual(actual, expected);
   assert.equal(reads, 1);
+});
+
+
+test('Effect schema keeps canonical numeric field order across the JS boundary', () => {
+  const program = JSON.parse(document);
+  program.stages[1].steps[1].select = ['id', {'10': 'id'}, {'2': 'id'}];
+  program.stages[1].results.r.fields = ['id', '10', '2'];
+  const original = issued(JSON.stringify(program));
+  const schema = effectResultSchema(original.prepared, original.compilation, 'answer');
+  assert.deepEqual(schema.fields, ['10', '2', 'id']);
+  assert.equal(schema.wire, '{"10":{"nullable":false,"type":"number"},"2":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"}}');
+  assert.equal(schema.cid, 'sha256:' + createHash('sha256').update(schema.wire).digest('hex'));
+});
+test('Effect review materials retain the original request through actual package restoration', () => {
+  const original = issued(document, true);
+  const definition = privateRunDefinition(original.definition);
+  const restored = admitEffectRunMaterials(original.wire, definition.cid, profiles);
+  assert.deepEqual(requestFields(restored.request), requestFields(original.request));
+  assert.equal(issueEffectRunMaterials(restored.allowed, restored.definition,
+    original.retained, restored.request), original.wire);
+  assert.deepEqual(privateEffectRunEvidence(restored.allowed), privateEffectRunEvidence(original.allowed));
+  const body = JSON.parse(original.wire);
+  const record = JSON.parse(body.client_request_identity);
+  assert.equal(record.caller_request_id, 'original-effect-caller');
+  assert.equal(record.authority_scope_cid, fixed('c'));
+  for (const mutate of [record => { record.caller_request_id = 'another-caller'; },
+    record => { record.intent_fingerprint_cid = fixed('d'); },
+    record => { record.extra = true; }]) {
+    const changed = {...record}; mutate(changed);
+    assert.throws(() => admitEffectRunMaterials(JSON.stringify({...body,
+      client_request_identity: JSON.stringify(changed)}), definition.cid, profiles),
+    {code: 'RunHostEffectRestorationRejected'});
+  }
+  assert.equal(admitEffectRunMaterials(issued().wire, definition.cid, profiles).request, undefined);
 });

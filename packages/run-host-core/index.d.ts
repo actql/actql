@@ -65,11 +65,37 @@ export interface EffectCompilation {
 export interface AllowedEffectRun {
   readonly [effectAllowedBrand]: true;
 }
+/** Static preparation selection; never permission to acquire or apply. */
+export function prepareProgram(document: string, format: 'json' | 'yaml',
+  environment: CheckEnvironment, parametersWire?: string):
+  Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |
+  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
 export function compileEffect(prepared: PreparedEffectProgram): EffectCompilation;
 export function effectExecutionShape(prepared: PreparedEffectProgram,
   compilation: EffectCompilation): Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>;
+/** Checked coordinates only; these grant no acquisition, start or approval. */
+export function effectTaskKeys(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation): readonly string[];
+export function effectResultDefinitions(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation): readonly Readonly<{name: string; cid: string; wire: string}>[];
+export function effectResultSchema(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, resultName: string): Readonly<{
+    cid: string; wire: string; fields: readonly string[]}>;
+/** Metadata binding to the original checked Effect Run/unit/window only.
+ * Does not confirm Native custody, current authority, waiting or approval. */
+export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
+  definition: RunDefinition, checkpointWire: string): Readonly<{
+    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
+    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
+    continuationCid: string}>;
+/** Original Catalog evidence; current read authority remains a separate check. */
+export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
+  compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
+    sourceRef: string; sourceContractCid: string; carrierSchemaContractCid: string;
+    sourceDataPolicyCid: string; dataClassification: string; sourceViewContractCid: string;
+  }> | undefined;
 export function privateEffectCompilationWires(compilation: EffectCompilation):
   Readonly<{boundTemplate: string; compiledPlan: string}>;
 /** Current Host authorization precedes issuance; Effect approval is separate. */
@@ -83,12 +109,12 @@ export function issueEffectRunDefinition(allowed: AllowedEffectRun,
 export function issueEffectRunMaterials(allowed: AllowedEffectRun,
   definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
     environment: CheckEnvironment; environmentWire: string;
-    parametersWire?: string}>): string;
+    parametersWire?: string}>, request?: RequestIdentity): string;
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
     sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>):
   Readonly<{prepared: PreparedEffectProgram; compilation: EffectCompilation;
-    allowed: AllowedEffectRun; definition: RunDefinition}>;
+    allowed: AllowedEffectRun; definition: RunDefinition; request?: RequestIdentity}>;
 /** Original saved policy lifetime, not current Host authority or approval. */
 export function effectRunStartCurrent(allowed: AllowedEffectRun,
   definition: RunDefinition, at: string): boolean;
@@ -940,6 +966,22 @@ export function inspectTaskProgress(prepared: PreparedProgram,
       revision: number; dispatchCid: string | undefined;
       executionScope: readonly string[]}>[];
   }>;
+
+/** Computation/output facts only; no Effect outcome or public Run state. */
+export function inspectEffectTaskProgress(allowed: AllowedEffectRun,
+  definition: RunDefinition, authority: string,
+  durableWires: readonly string[]): Readonly<{
+    nextTask: number | undefined; computationComplete: boolean;
+    taskCleanupComplete: boolean; resultTasks: readonly number[];
+    tasks: ReturnType<typeof inspectTaskProgress>['tasks'];
+  }>;
+/** Prepare a saved task claim; current input/Source custody remains separate. */
+export function prepareEffectTaskPhysicalStart(allowed: AllowedEffectRun,
+  definition: RunDefinition, authority: string, durableWires: readonly string[],
+  requested: RequestIdentity, retained: RequestIdentity,
+  claim: Readonly<{taskKey: string; dispatchCid: string; definitionCid: string;
+    reserved: boolean; unstarted: boolean; authorized: boolean;
+    cancelled: boolean; failed: boolean}>): boolean;
 
 /** An unpublished snapshot. Start claims must come from trusted saved Host state.
  * This does not commit a Run, publish a Result, stop execution or release custody. */

@@ -143,6 +143,28 @@ export function prepare(document, format, environment, parametersWire) {
   return handle(preparations, value, 'prepared-program');
 }
 
+/** Select the existing preparation Owner from one ordinary parsed Program. */
+export function prepareProgram(document, format, environment, parametersWire) {
+  if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
+      parametersWire !== undefined && typeof parametersWire !== 'string') {
+    throw new TypeError('InvalidRunHostPreparation');
+  }
+  const selected = checked(owner.clientValuesHostPrepareProgram(document, format,
+    requireHandle(environments, environment), parametersWire), 'RunHostProgramPreparationRejected');
+  const kind = owner.clientValuesHostProgramPreparationKind(selected);
+  if (kind === 'effect_free') {
+    const value = owner.clientValuesHostProgramPreparationEffectFree(selected);
+    if (value === undefined) throw new Error('InvalidRunHostOwnerResult');
+    return Object.freeze({kind, prepared: handle(preparations, value, 'prepared-program')});
+  }
+  if (kind === 'effect') {
+    const value = owner.clientValuesHostProgramPreparationEffect(selected);
+    if (value === undefined) throw new Error('InvalidRunHostOwnerResult');
+    return Object.freeze({kind, prepared: handle(effectPreparations, value, 'prepared-effect-program')});
+  }
+  throw new Error('InvalidRunHostOwnerResult');
+}
+
 export function compileValues(prepared) {
   const value = checked(owner.clientValuesHostCompile(
     requireHandle(preparations, prepared)), 'RunHostCompilationRejected');
@@ -189,6 +211,73 @@ export function effectExecutionShape(prepared, compilation) {
     effectCount: counts[2]});
 }
 
+/** Original checked dispatch coordinates, not execution or approval permits. */
+export function effectTaskKeys(prepared, compilation) {
+  const keys = checked(owner.clientValuesHostEffectTaskKeys(
+    effectCompilationFor(prepared, compilation)), 'RunHostTaskKeysRejected');
+  if (!Array.isArray(keys) || keys.some(key => typeof key !== 'string') ||
+      new Set(keys).size !== keys.length) throw new Error('InvalidRunHostTaskKeyProjection');
+  return Object.freeze([...keys]);
+}
+
+/** Result inventory owned by the original Effect computation. */
+export function effectResultDefinitions(prepared, compilation) {
+  const value = effectCompilationFor(prepared, compilation);
+  const fields = checked(owner.clientValuesHostEffectResultDefinitions(value),
+    'RunHostResultInventoryRejected');
+  const names = owner.clientValuesHostEffectResultNames(value);
+  if (!Array.isArray(fields) || fields.length !== names.length * 3 ||
+      !fields.every(field => typeof field === 'string')) {
+    throw new Error('InvalidRunHostResultInventory');
+  }
+  return Object.freeze(names.map((name, index) => {
+    if (fields[index * 3] !== name) throw new Error('InvalidRunHostResultInventory');
+    return Object.freeze({name, cid: fields[index * 3 + 1], wire: fields[index * 3 + 2]});
+  }));
+}
+
+export function effectResultSchema(prepared, compilation, resultName) {
+  const value = effectCompilationFor(prepared, compilation);
+  if (typeof resultName !== 'string') throw new TypeError('InvalidRunHostResultSelection');
+  const result = owner.clientValuesHostEffectResultNames(value).indexOf(resultName);
+  if (result < 0) throw new RangeError('UnknownRunHostResult');
+  const facts = checked(owner.clientValuesHostEffectResultSchema(value, result),
+    'RunHostResultSchemaRejected');
+  if (!Array.isArray(facts) || facts.length < 2 ||
+      !facts.every(field => typeof field === 'string') ||
+      !/^sha256:[0-9a-f]{64}$/u.test(facts[0])) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  const fields = Object.freeze(facts.slice(2));
+  // JavaScript enumerates integer-like keys numerically; the Owner uses UTF-16.
+  const schemaFields = Object.keys(JSON.parse(facts[1])).sort();
+  if (schemaFields.length !== fields.length ||
+      schemaFields.some((field, index) => field !== fields[index])) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  return Object.freeze({cid: facts[0], wire: facts[1], fields});
+}
+
+/** Exact original Catalog evidence, never a read grant or Effect approval. */
+export function effectSourceEvidenceFacts(prepared, compilation, stage, sourceIndex) {
+  const value = effectCompilationFor(prepared, compilation);
+  if (![stage, sourceIndex].every(index => Number.isSafeInteger(index) &&
+      index >= 0 && index <= 2147483647)) {
+    throw new TypeError('InvalidRunHostSourceSelection');
+  }
+  const option = owner.clientValuesHostEffectSourceEvidenceFacts(value, stage, sourceIndex);
+  if (option?.$tag === 0) return undefined;
+  if (option?.$tag !== 1) throw new Error('InvalidRunHostSourceEvidenceProjection');
+  const facts = option._0;
+  if (!Array.isArray(facts) || facts.length !== 6 ||
+      facts.some(field => typeof field !== 'string')) {
+    throw new Error('InvalidRunHostSourceEvidenceProjection');
+  }
+  return Object.freeze({sourceRef: facts[0], sourceContractCid: facts[1],
+    carrierSchemaContractCid: facts[2], sourceDataPolicyCid: facts[3],
+    dataClassification: facts[4], sourceViewContractCid: facts[5]});
+}
+
 export function privateEffectCompilationWires(compilation) {
   const {value} = requireHandle(effectCompilations, compilation);
   return Object.freeze({boundTemplate: owner.clientValuesHostEffectTemplateWire(value),
@@ -223,12 +312,13 @@ export function issueEffectRunDefinition(allowed, scopeId, runId, createdAt, val
 }
 
 /** Project the original Effect materials using the existing bounded codec. */
-export function issueEffectRunMaterials(allowed, definition, retained) {
+export function issueEffectRunMaterials(allowed, definition, retained, request) {
   validateRunMaterialsInput(retained);
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return checked(owner.clientValuesHostIssueEffectRunMaterials(value,
     requireHandle(definitions, definition), requireHandle(environments, retained.environment),
-    retained.environmentWire, retained.document, retained.parametersWire), 'RunHostEffectRunMaterialsRejected');
+    retained.environmentWire, retained.document, retained.parametersWire,
+    request === undefined ? undefined : requireHandle(requests, request)), 'RunHostEffectRunMaterialsRejected');
 }
 
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
@@ -241,7 +331,10 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles) {
     definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
     selected.tea, selected.calendar, selected.textRank), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
-  return Object.freeze({prepared,
+  const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
+  if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
+  const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
+  return Object.freeze({prepared, ...(request === undefined ? {} : {request}),
     compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
     allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
     definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
@@ -252,6 +345,23 @@ export function effectRunStartCurrent(allowed, definition, at) {
   if (typeof at !== 'string') throw new TypeError('InvalidRunHostCurrentTime');
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return owner.clientValuesHostEffectStartCurrent(value, requireHandle(definitions, definition), at);
+}
+
+/** Original Run/unit/window binding only. Native custody, current authority,
+ * waiting commit and Effect approval must be confirmed independently. */
+export function effectReviewCheckpointBinding(allowed, definition, wire) {
+  if (typeof wire !== 'string') throw new TypeError('InvalidRunHostCheckpointWire');
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const fields = checked(owner.clientValuesHostEffectCheckpointBinding(value,
+    requireHandle(definitions, definition), wire), 'RunHostEffectCheckpointBindingRejected');
+  if (!Array.isArray(fields) || fields.length !== 8 ||
+      fields.some(field => typeof field !== 'string') ||
+      [0, 4, 5, 6, 7].some(index => !/^sha256:[0-9a-f]{64}$/u.test(fields[index]))) {
+    throw new Error('InvalidRunHostCheckpointBinding');
+  }
+  return Object.freeze({checkpointCid: fields[0], checkpointWire: fields[1],
+    runId: fields[2], unitId: fields[3], runDefinitionCid: fields[4],
+    previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]});
 }
 
 /** Original Effect caller; capture is not a newly submitted input Artifact. */
@@ -442,8 +552,10 @@ export function resultSchema(prepared, compilation) {
     throw new Error('InvalidRunHostResultSchema');
   }
   const fields = Object.freeze(facts.slice(2));
-  if (Object.keys(JSON.parse(facts[1])).join('\0') !==
-      fields.join('\0')) {
+  // JavaScript enumerates integer-like keys numerically; the Owner uses UTF-16.
+  const schemaFields = Object.keys(JSON.parse(facts[1])).sort();
+  if (schemaFields.length !== fields.length ||
+      schemaFields.some((field, index) => field !== fields[index])) {
     throw new Error('InvalidRunHostResultSchema');
   }
   return Object.freeze({cid: facts[0], wire: facts[1], fields});
@@ -466,8 +578,10 @@ export function taskResultSchema(prepared, compilation, resultName) {
     throw new Error('InvalidRunHostResultSchema');
   }
   const fields = Object.freeze(facts.slice(2));
-  if (Object.keys(JSON.parse(facts[1])).join('\0') !==
-      fields.join('\0')) {
+  // JavaScript enumerates integer-like keys numerically; the Owner uses UTF-16.
+  const schemaFields = Object.keys(JSON.parse(facts[1])).sort();
+  if (schemaFields.length !== fields.length ||
+      schemaFields.some((field, index) => field !== fields[index])) {
     throw new Error('InvalidRunHostResultSchema');
   }
   return Object.freeze({cid: facts[0], wire: facts[1], fields});
@@ -2318,9 +2432,7 @@ export function inspectTaskProgress(prepared, compilation, admission, definition
     admission, definition, authority, durableWires));
 }
 
-/** Prepare a checked task claim. The Host must commit it before any send. */
-export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
-  authority, durableWires, requested, retained, claim) {
+function validateTaskPhysicalStartClaim(claim) {
   const keys = ['taskKey', 'dispatchCid', 'definitionCid', 'reserved',
     'unstarted', 'authorized', 'cancelled', 'failed'];
   if (claim === null || typeof claim !== 'object' || Array.isArray(claim) ||
@@ -2330,6 +2442,12 @@ export function prepareTaskPhysicalStart(prepared, compilation, admission, defin
         .some(value => typeof value !== 'boolean')) {
     throw new TypeError('InvalidRunHostTaskStart');
   }
+}
+
+/** Prepare a checked task claim. The Host must commit it before any send. */
+export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
+  authority, durableWires, requested, retained, claim) {
+  validateTaskPhysicalStartClaim(claim);
   const progress = admittedTaskProgress(prepared, compilation, admission, definition,
     authority, durableWires);
   return checked(owner.clientValuesHostPrepareRemoteTaskPhysicalStart(
@@ -2337,6 +2455,46 @@ export function prepareTaskPhysicalStart(prepared, compilation, admission, defin
     requireHandle(requests, retained), claim.definitionCid, claim.reserved,
     claim.unstarted, claim.authorized, claim.cancelled, claim.failed),
   'RunHostTaskStartRejected');
+}
+
+function admittedEffectTaskProgress(allowed, definition, authority, durableWires) {
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
+      durableWires.some(wire => typeof wire !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskProgress');
+  }
+  return checked(owner.clientValuesHostInspectEffectTaskProgress(value,
+    requireHandle(definitions, definition), authority, durableWires),
+  'RunHostEffectTaskProgressRejected');
+}
+
+/** Computation/output facts only: this is not Effect or Run completion. */
+export function inspectEffectTaskProgress(allowed, definition, authority, durableWires) {
+  const value = admittedEffectTaskProgress(allowed, definition, authority, durableWires);
+  const scopes = owner.clientValuesHostEffectTaskProgressScopes(value);
+  const next = owner.clientValuesHostEffectTaskProgressNext(value);
+  return Object.freeze({
+    nextTask: next < 0 ? undefined : next,
+    computationComplete: owner.clientValuesHostEffectTaskProgressComputationComplete(value),
+    taskCleanupComplete: owner.clientValuesHostEffectTaskProgressTaskCleanupComplete(value),
+    resultTasks: Object.freeze(owner.clientValuesHostEffectTaskProgressResultTasks(value)),
+    tasks: Object.freeze(owner.clientValuesHostEffectTaskProgressFields(value).map((row, index) =>
+      Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
+        cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
+        executionScope: Object.freeze(scopes[index])}))),
+  });
+}
+
+/** Prepare the existing saved task claim; no Effect approval or physical apply. */
+export function prepareEffectTaskPhysicalStart(allowed, definition, authority, durableWires,
+  requested, retained, claim) {
+  validateTaskPhysicalStartClaim(claim);
+  const value = admittedEffectTaskProgress(allowed, definition, authority, durableWires);
+  return checked(owner.clientValuesHostPrepareEffectTaskPhysicalStart(value,
+    claim.taskKey, claim.dispatchCid, requireHandle(requests, requested),
+    requireHandle(requests, retained), claim.definitionCid, claim.reserved,
+    claim.unstarted, claim.authorized, claim.cancelled, claim.failed),
+  'RunHostEffectTaskStartRejected');
 }
 
 /** Project the unpublished whole Run without committing, starting or releasing it. */

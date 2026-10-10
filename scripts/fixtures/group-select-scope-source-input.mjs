@@ -93,7 +93,7 @@ groupSelectScopeSuccesses.push(
 );
 groupSelectScopeRefusals.push(
   {name: 'group-select-scope-numeric-distinct-unselected', format: 'sql',
-    expectedCode: 'ClientProgramImplementationLimit',
+    expectedCode: 'ClientProgramInvalidInput',
     text: 'SELECT DISTINCT id + 1.0 AS next FROM records ORDER BY id + 2e0'},
   {name: 'group-select-scope-numeric-unsafe-integer', format: 'sql',
     text: 'SELECT id + 9007199254740992.0 AS next, COUNT(*) AS n FROM records GROUP BY id + 9007199254740992'},

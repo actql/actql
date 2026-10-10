@@ -1,4 +1,39 @@
 ///|
+// A terminal positional right operand needs physical fields, not authored
+// aliases. These fields only cross the existing ordinal alignment; no later
+// operation in this operand can resolve them as source-language names.
+fn anonymous_set_projection_name(
+  projections : Array[@query.Projection],
+  physical : Array[String],
+  selected : Array[String],
+) -> String {
+  let reserved = physical + selected
+  for projection in projections {
+    if projection_alias(projection) is Some(name) {
+      reserved.push(name.value)
+    }
+  }
+  pipe_physical_name(reserved, "aql_set_anonymous_")
+}
+
+///|
+// Anonymous aggregate outputs retain the evaluated aggregate's input meaning.
+// They are physical set-operand fields, never authored SELECT aliases.
+fn anonymous_set_aggregate_slot(
+  call : @query.AggregateCall,
+  outputs : Array[(@query.AggregateCall, String)],
+  scope : JoinChainScope,
+) -> String raise Abort {
+  let resolve = path => pipe_slot(path, scope.visible, scope.ranges)
+  for (previous, slot) in outputs {
+    if same_aggregate_call(previous, call, resolve, resolve) {
+      return slot
+    }
+  }
+  raise Abort(UnsupportedAggregate)
+}
+
+///|
 // A set operand's last pure column projection and its immediate alignment
 // are one projection. Preserve the evaluated sources, output spelling/order
 // and producer name; never move it across another operation or retained tap.
@@ -113,7 +148,9 @@ fn rebind_script_set_terminal_output(
   guard @wire.text(name) is Ok(name) && name == producer else { return false }
   guard @wire.lookup(object, "from") is Some(from) else { return false }
   guard @wire.text(from) is Ok(_) else { return false }
-  let allowed = ["append", "intersect", "except", "distinct", "sort", "take", "select"]
+  let allowed = [
+    "append", "intersect", "except", "distinct", "sort", "take", "select",
+  ]
   if !allowed.any(operation => @wire.lookup(object, operation) is Some(_)) {
     return false
   }

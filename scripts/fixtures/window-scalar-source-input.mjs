@@ -145,12 +145,194 @@ export const windowScalarRefusals = [
     text: 'FROM records |> SELECT LAG(COUNT(*)) OVER (ORDER BY id) AS n'},
   {name: 'aggregate-operand-missing-frame', expectedCode: 'ClientProgramImplementationLimit',
     text: 'SELECT SUM(SUM(id)) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
-  {name: 'aggregate-operand-row-offset', expectedCode: 'ClientProgramImplementationLimit',
+  {name: 'aggregate-operand-row-offset', expectedCode: 'ClientProgramInvalidInput',
     text: 'SELECT amount, LAG(COUNT(*), amount) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
 ].map(item => ({format: 'sql', ...item, name: 'window-scalar-refuse-' + item.name}));
 export const windowScalarExecutionFailures = [{name: 'window-scalar-demanded-error', format: 'sql',
   text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + 1 / (id - 1) AS n FROM records WHERE id > 0 ORDER BY n',
   resultNames: ['answer'], sourceReadSessionCount: 1}];
+
+// Star names supplied by the checked parameter schema need not be source
+// tokens. The public column value is deliberately unrelated to the rank.
+const selectPrivateField = 'aql_select_window_0';
+const selectPrivateUpper = 'AQL_SELECT_WINDOW_0';
+const selectPrivateDeclarations = field => ({items: {type: 'array', nullable: false,
+  max_items: 3, items: {type: 'object', nullable: false,
+    fields: {id: number, [field]: nullable}}}});
+const selectPrivateRows = field => [{id: 2, [field]: 10}, {id: 1, [field]: 90}];
+export const selectPrivateWindowProgram = field => ({version: 'actql/0.1',
+  id: 'fixture.select_private_window', params: selectPrivateDeclarations(field),
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'},
+    {from: 'seed', derive: {items: {$param: 'items'}}},
+    {unnest: {column: 'items', as: 'element'}},
+    {derive: {id: {property: {name: 'id', value: {field: 'element'}}},
+      [field]: {property: {name: field, value: {field: 'element'}}}}},
+    {select: [field, 'id'], as: 'original'},
+    {from: 'original', analytic: {partition_by: [], order_by: [
+      {field: 'id', dir: 'asc', nulls: 'first'}], functions: {private_rank: {fn: 'row_number'}}}},
+    {derive: {pos: {add: [{field: 'private_rank'}, {literal: 1}]}}},
+    {select: [field, 'id', 'pos']},
+    {sort: [{field: 'id', dir: 'desc', nulls: 'last'}], as: 'out'}],
+    results: {rows: {from: 'out', fields: [field, 'id', 'pos']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}});
+const selectPrivateSql = 'SELECT *, ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos FROM UNNEST(@items) e';
+const selectPrivatePipe = 'FROM UNNEST(@items) e |> AS r |> SELECT *, ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos';
+const selectPrivateExpected = field => [{[field]: 10, id: 2, pos: 3}, {[field]: 90, id: 1, pos: 2}];
+const selectPrivateSuccess = (name, field, text, extra = {}) => success('schema-private-' + name, text, {
+  parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
+  expected: selectPrivateExpected(field), columns: [{name: field, contract: nullable},
+    {name: 'id', contract: number}, {name: 'pos', contract: number}],
+  sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
+windowScalarSuccesses.push(
+  selectPrivateSuccess('json', selectPrivateField, JSON.stringify(selectPrivateWindowProgram(selectPrivateField)),
+    {format: 'json', parameterDeclarations: undefined}),
+  selectPrivateSuccess('upper-json', selectPrivateUpper, JSON.stringify(selectPrivateWindowProgram(selectPrivateUpper)),
+    {format: 'json', parameterDeclarations: undefined}),
+  selectPrivateSuccess('sql', selectPrivateField, selectPrivateSql + ' ORDER BY id DESC'),
+  selectPrivateSuccess('pipe', selectPrivateField, selectPrivatePipe + ' |> ORDER BY id DESC', {format: 'aql-text'}),
+  selectPrivateSuccess('upper-pipe', selectPrivateUpper, selectPrivatePipe + ' |> ORDER BY id DESC', {format: 'aql-text'}),
+  selectPrivateSuccess('group-all', selectPrivateField, selectPrivateSql + ' GROUP BY ALL ORDER BY id DESC'),
+  selectPrivateSuccess('named', selectPrivateField,
+    selectPrivatePipe.replace('OVER (ORDER BY id)', 'OVER w') + ' WINDOW w AS (ORDER BY id) |> ORDER BY id DESC',
+    {format: 'aql-text'}),
+  selectPrivateSuccess('nullable', selectPrivateField, selectPrivatePipe + ' |> ORDER BY id DESC', {
+    format: 'aql-text', parameters: {items: [{id: 2, [selectPrivateField]: null}, {id: 1, [selectPrivateField]: 90}]},
+    expected: [{[selectPrivateField]: null, id: 2, pos: 3}, {[selectPrivateField]: 90, id: 1, pos: 2}]}),
+  selectPrivateSuccess('empty', selectPrivateField, selectPrivatePipe + ' |> ORDER BY id DESC',
+    {format: 'aql-text', parameters: {items: []}, expected: []}),
+  selectPrivateSuccess('duplicates', selectPrivateField, selectPrivatePipe + ' |> ORDER BY id DESC, pos DESC', {
+    format: 'aql-text', parameters: {items: [...selectPrivateRows(selectPrivateField), {id: 2, [selectPrivateField]: 10}]},
+    expected: [{[selectPrivateField]: 10, id: 2, pos: 4}, {[selectPrivateField]: 10, id: 2, pos: 3},
+      {[selectPrivateField]: 90, id: 1, pos: 2}]}),
+  selectPrivateSuccess('authored-over-key', selectPrivateField,
+    selectPrivatePipe.replace('ORDER BY id)', 'ORDER BY aql_select_window_0)') + ' |> ORDER BY id DESC',
+    {format: 'aql-text', expected: [{[selectPrivateField]: 10, id: 2, pos: 2}, {[selectPrivateField]: 90, id: 1, pos: 3}]}),
+  selectPrivateSuccess('qualified-user-value', selectPrivateField,
+    selectPrivatePipe.replace('+ 1 AS pos', '+ r.aql_select_window_0 AS pos') + ' |> ORDER BY id DESC',
+    {format: 'aql-text', columns: [{name: selectPrivateField, contract: nullable},
+      {name: 'id', contract: number}, {name: 'pos', contract: nullable}],
+      expected: [{[selectPrivateField]: 10, id: 2, pos: 12}, {[selectPrivateField]: 90, id: 1, pos: 91}]}),
+);
+windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-slot', format: 'aql-text',
+  text: selectPrivatePipe + ' |> SELECT id, aql_analytic_output_3 AS leaked',
+  parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
+  expectedCode: 'ClientProgramInvalidInput'});
+
+// QUALIFY demands the same evaluated SELECT value that final projection uses.
+// The ordinary Program control computes that value once, then filters it.
+export const qualifyPrivateWindowProgram = field => {
+  const program = selectPrivateWindowProgram(field);
+  program.id = 'fixture.qualify_private_window';
+  program.stages[0].steps.splice(7, 0, {filter: {gt: [{field: 'pos'}, {literal: 2}]}});
+  return program;
+};
+const qualifyPrivateSql = selectPrivateSql + ' QUALIFY pos > 2 ORDER BY id DESC';
+const qualifyPrivateSuccess = (name, field = selectPrivateField, extra = {}) =>
+  selectPrivateSuccess('qualify-' + name, field, qualifyPrivateSql, {
+    expected: [{[field]: 10, id: 2, pos: 3}], ...extra});
+windowScalarSuccesses.push(
+  qualifyPrivateSuccess('json', selectPrivateField, {
+    text: JSON.stringify(qualifyPrivateWindowProgram(selectPrivateField)), format: 'json', parameterDeclarations: undefined}),
+  qualifyPrivateSuccess('upper-json', selectPrivateUpper, {
+    text: JSON.stringify(qualifyPrivateWindowProgram(selectPrivateUpper)), format: 'json', parameterDeclarations: undefined}),
+  qualifyPrivateSuccess('sql'),
+  qualifyPrivateSuccess('upper-sql', selectPrivateUpper),
+  qualifyPrivateSuccess('group-all', selectPrivateField, {
+    text: selectPrivateSql + ' GROUP BY ALL QUALIFY pos > 2 ORDER BY id DESC'}),
+  qualifyPrivateSuccess('upper-group-all', selectPrivateUpper, {
+    text: selectPrivateSql + ' GROUP BY ALL QUALIFY pos > 2 ORDER BY id DESC'}),
+  qualifyPrivateSuccess('named-quoted', selectPrivateField, {
+    text: selectPrivateSql.replace('OVER (ORDER BY id)', 'OVER w').replace('AS pos', 'AS `pos`')
+      + ' QUALIFY `pos` > 2 WINDOW w AS (ORDER BY id) ORDER BY id DESC'}),
+  qualifyPrivateSuccess('nullable', selectPrivateField, {
+    parameters: {items: [{id: 2, [selectPrivateField]: null}, {id: 1, [selectPrivateField]: 90}]},
+    expected: [{[selectPrivateField]: null, id: 2, pos: 3}]}),
+  qualifyPrivateSuccess('empty', selectPrivateField, {parameters: {items: []}, expected: []}),
+  qualifyPrivateSuccess('duplicates', selectPrivateField, {
+    text: selectPrivateSql + ' QUALIFY pos > 2 ORDER BY id DESC, pos DESC',
+    parameters: {items: [...selectPrivateRows(selectPrivateField), {id: 2, [selectPrivateField]: 10}]},
+    expected: [{[selectPrivateField]: 10, id: 2, pos: 4}, {[selectPrivateField]: 10, id: 2, pos: 3}]}),
+  qualifyPrivateSuccess('qualified-user', selectPrivateField, {
+    text: 'SELECT *, ROW_NUMBER() OVER (ORDER BY e.id) + e.aql_select_window_0 AS pos FROM UNNEST(@items) e '
+      + 'QUALIFY pos > 50 ORDER BY id DESC',
+    columns: [{name: selectPrivateField, contract: nullable}, {name: 'id', contract: number}, {name: 'pos', contract: nullable}],
+    expected: [{[selectPrivateField]: 90, id: 1, pos: 91}]}),
+);
+for (const [name, text, expectedCode] of [
+  ['private-slot', selectPrivateSql + ' QUALIFY pos > 2 ORDER BY aql_qualify_expr_4', 'ClientProgramInvalidInput'],
+  ['window-alias-input', selectPrivateSql + ' ORDER BY ROW_NUMBER() OVER (ORDER BY pos)', 'ClientProgramImplementationLimit'],
+]) windowScalarRefusals.push({name: 'window-scalar-refuse-schema-private-qualify-' + name, text, format: 'sql',
+  parameterDeclarations: selectPrivateDeclarations(selectPrivateField), parameters: {items: selectPrivateRows(selectPrivateField)},
+  expectedCode});
+
+// Independent controls for the three Pipe consumers. The input user value
+// must survive; only the separate evaluated rank drives filtering/updates.
+const pipePrivateFields = {where: 'aql_pipe_where_window_0', extend: 'aql_select_window_0',
+  set: 'aql_pipe_set_window_0'};
+export function pipePrivateWindowProgram(kind, field = pipePrivateFields[kind]) {
+  const base = selectPrivateWindowProgram(field);
+  const inputs = structuredClone(base.stages[0].steps.slice(0, 5));
+  const steps = [...inputs, {from: 'original', analytic: {partition_by: [], order_by: [
+    {field: 'id', dir: 'asc', nulls: 'first'}], functions: {private_rank: {fn: 'row_number'}}}}];
+  let fields = [field, 'id'];
+  if (kind === 'where') steps.push({filter: {eq: [{field: 'private_rank'}, {literal: 1}]}});
+  else if (kind === 'extend') {
+    steps.push({derive: {pos: {add: [{field: 'private_rank'}, {literal: 1}]}}});
+    fields = [...fields, 'pos'];
+  } else if (kind === 'set') steps.push({derive: {assigned_id: {add: [{field: 'private_rank'}, {literal: 10}]}}});
+  else throw new Error('unknown independent Pipe window control');
+  steps.push({select: kind === 'set' ? [field, {id: 'assigned_id'}] : fields},
+    {sort: [{field: 'id', dir: 'desc', nulls: 'last'}], as: 'out'});
+  return {version: 'actql/0.1', id: 'fixture.pipe_private_window', params: selectPrivateDeclarations(field),
+    stages: [{id: 'main', inputs: {}, steps, results: {rows: {from: 'out', fields}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+}
+const pipePrivateOperations = {
+  where: 'WHERE ROW_NUMBER() OVER (ORDER BY id) = 1',
+  extend: 'EXTEND ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos',
+  set: 'SET id = ROW_NUMBER() OVER (ORDER BY id) + 10',
+};
+const pipePrivateHead = 'FROM UNNEST(@items) e |> AS r |> ';
+// SET edits ordinary columns, not implicit members of a value table.
+const pipePrivateSetHead = 'FROM UNNEST(@items) e |> SELECT * |> AS r |> ';
+const pipePrivateInput = kind => kind === 'set' ? pipePrivateSetHead : pipePrivateHead;
+const pipePrivateExpected = (kind, field) => kind === 'where' ? [{[field]: 90, id: 1}]
+  : kind === 'extend' ? [{[field]: 10, id: 2, pos: 3}, {[field]: 90, id: 1, pos: 2}]
+    : [{[field]: 10, id: 12}, {[field]: 90, id: 11}];
+const pipePrivateSuccess = (name, kind, field = pipePrivateFields[kind], extra = {}) =>
+  success('pipe-schema-private-' + name, pipePrivateInput(kind) + pipePrivateOperations[kind] + ' |> ORDER BY id DESC', {
+    format: 'aql-text', parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
+    expected: pipePrivateExpected(kind, field), columns: [{name: field, contract: nullable}, {name: 'id', contract: number},
+      ...(kind === 'extend' ? [{name: 'pos', contract: number}] : [])],
+    sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
+for (const kind of ['where', 'extend', 'set']) {
+  const field = pipePrivateFields[kind];
+  windowScalarSuccesses.push(
+    pipePrivateSuccess(kind + '-json', kind, field, {format: 'json', parameterDeclarations: undefined,
+      text: JSON.stringify(pipePrivateWindowProgram(kind))}),
+    pipePrivateSuccess(kind, kind),
+    pipePrivateSuccess(kind + '-uppercase', kind, field.toUpperCase()),
+  );
+  const slot = kind === 'extend' ? 'aql_analytic_output_3' : 'aql_analytic_output_2';
+  windowScalarRefusals.push({name: 'window-scalar-refuse-pipe-schema-private-' + kind, format: 'aql-text',
+    text: pipePrivateInput(kind) + pipePrivateOperations[kind] + ' |> SELECT ' + slot,
+    parameterDeclarations: selectPrivateDeclarations(field), parameters: {items: selectPrivateRows(field)},
+    expectedCode: 'ClientProgramInvalidInput'});
+}
+windowScalarSuccesses.push(
+  pipePrivateSuccess('where-nullable', 'where', undefined, {
+    parameters: {items: [{id: 2, aql_pipe_where_window_0: 10}, {id: 1, aql_pipe_where_window_0: null}]},
+    expected: [{aql_pipe_where_window_0: null, id: 1}]}),
+  pipePrivateSuccess('set-empty', 'set', undefined, {parameters: {items: []}, expected: []}),
+  pipePrivateSuccess('set-immutable', 'set', undefined, {
+    text: pipePrivateSetHead + pipePrivateOperations.set + ' |> SELECT r.id AS original, * |> ORDER BY id DESC',
+    columns: [{name: 'original', contract: number}, {name: 'aql_pipe_set_window_0', contract: nullable}, {name: 'id', contract: number}],
+    expected: [{original: 2, aql_pipe_set_window_0: 10, id: 12}, {original: 1, aql_pipe_set_window_0: 90, id: 11}]}),
+  pipePrivateSuccess('extend-authored-key', 'extend', undefined, {
+    text: pipePrivateHead + 'EXTEND ROW_NUMBER() OVER (ORDER BY aql_select_window_0) + 1 AS pos |> ORDER BY id DESC',
+    expected: [{aql_select_window_0: 10, id: 2, pos: 2}, {aql_select_window_0: 90, id: 1, pos: 3}]}),
+);
 
 // Pipe EXTEND preserves the current input columns and adds evaluated values.
 export const pipeExtendWindowProgram = {version: 'actql/0.1', id: 'fixture.pipe_extend_window',
@@ -355,3 +537,9 @@ windowScalarRefusals.push(...[
   format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'})),
 {name: 'window-scalar-refuse-set-window-missing-frame', format: 'aql-text',
   text: 'FROM records |> SET amount = SUM(amount) OVER (ORDER BY id)', expectedCode: 'ClientProgramImplementationLimit'});
+
+windowScalarRefusals.push({name: 'window-scalar-refuse-implicit-member-set', format: 'aql-text',
+  text: pipePrivateHead + pipePrivateOperations.set + ' |> ORDER BY id DESC',
+  parameterDeclarations: selectPrivateDeclarations(pipePrivateFields.set),
+  parameters: {items: selectPrivateRows(pipePrivateFields.set)},
+  expectedCode: 'ClientProgramInvalidInput'});

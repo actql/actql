@@ -109,7 +109,7 @@ test "ORDER aggregate expression after DISTINCT must use selected values" {
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedOrdering),
+    is Err(InvalidQuery),
   )
 }
 

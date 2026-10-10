@@ -7,6 +7,7 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
     return None
   }
   let mut safe = query.joins.is_empty()
+  let mut relation = true
   let mut current_range : NamePart? = if safe {
     match query.source_alias {
       Some(name) => Some(name)
@@ -17,7 +18,7 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
   }
   for operation in query.operations {
     match operation {
-      Select(_, _) | Group(_, _, _) => {
+      Select(_, _) | Group(_, _, _) | Pivot(_) | Unpivot(_) => {
         safe = true
         current_range = None
       }
@@ -41,11 +42,18 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
       | Distinct => ()
       // These operations have their own placement/carrier contracts. Do not
       // move them into a synthetic CTE as a side effect of JOIN composition.
-      Infer(_) | Nearest(_) | RetainResult(_) | GraphCall(_) => return None
+      GraphCall(call) => {
+        // A row Bridge ends the Graph prefix and starts a fresh Relation scope.
+        // Earlier Graph-returning calls cannot themselves be JOIN inputs.
+        relation = has_sga_relation_lowering(call.operation)
+        safe = relation
+        current_range = None
+      }
+      Infer(_) | Nearest(_) | RetainResult(_) => return None
       UnnestSource(_, _, _) => safe = false
     }
   }
-  if safe {
+  if safe && relation {
     Some(current_range)
   } else {
     None

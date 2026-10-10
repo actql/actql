@@ -43,12 +43,15 @@ fn lower_script_relation(
   output : String,
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
+  graphs? : Array[ScriptGraph] = [],
+  positional_set_output? : Bool = false,
 ) -> Input raise Abort {
-  let known = if @query.cte_count(query) == 0 {
-    known
+  let (known, graphs) = if @query.cte_count(query) == 0 {
+    (known, graphs)
   } else {
-    validate_cte_scope(query, known)
+    validate_cte_scope(query, known, graphs~)
     let mut scoped = known.copy()
+    let mut scoped_graphs = graphs.copy()
     for index in 0..<@query.cte_count(query) {
       let cte = @query.cte_at(query, index).unwrap()
       let name = pipe_physical_name(reserved, "aql_script_cte_")
@@ -64,15 +67,28 @@ fn lower_script_relation(
         reserved,
         name,
         carry_ranges=cte.carry_ranges,
+        graphs=scoped_graphs,
       )
       scoped = scoped.filter(input => !input_relation_matches([cte.name], input))
       scoped.push({ ..bound, relation: [cte.name], })
+      scoped_graphs = scoped_graphs.filter(graph => {
+        !same_name(graph.name, cte.name)
+      })
     }
-    scoped
+    (scoped, scoped_graphs)
   }
   if @query.set_part_count(query) > 0 {
     return lower_script_set_relation(
-      construction, query, known, context, sources, limits, steps, reserved, output,
+      construction,
+      query,
+      known,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
+      graphs~,
     )
   }
   lower_script_relation_term(
@@ -87,6 +103,8 @@ fn lower_script_relation(
     output,
     retained~,
     carry_ranges~,
+    graphs~,
+    positional_set_output~,
   )
 }
 
@@ -103,7 +121,26 @@ fn lower_script_relation_term(
   output : String,
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
+  graphs? : Array[ScriptGraph] = [],
+  positional_set_output? : Bool = false,
 ) -> Input raise Abort {
+  if script_has_graph_rows(query) {
+    guard script_graph_input(query, graphs) is Some(graph) else {
+      raise Abort(UnsupportedGraph)
+    }
+    return lower_script_graph_rows(
+      construction,
+      query,
+      graph,
+      limits,
+      steps,
+      reserved,
+      output,
+      known~,
+      graphs~,
+      retained~,
+    )
+  }
   if @query.graph_query(query) is Some(_) {
     raise Abort(UnsupportedGraph)
   }
@@ -186,6 +223,7 @@ fn lower_script_relation_term(
     preserved_scope=preserved,
     prefix_steps=steps.copy(),
     prefix_context=Some(context),
+    positional_set_output~,
   )
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
@@ -287,18 +325,43 @@ pub fn compile_query_script(
         RelationQuery(query) => {
           let graph = script_graph_input(query, graphs)
           if graph is Some(graph) {
-            if script_has_graph_rows(query) {
-              let bound = lower_script_graph_rows(
-                construction,
-                query,
-                graph,
-                limits,
-                steps,
-                reserved,
-                output,
-                known~,
-                graphs~,
-              )
+            let matched = @query.graph_query(query)
+              .map(query => query.pattern is Some(_))
+              .unwrap_or(false)
+            if script_has_graph_rows(query) || matched {
+              let bound = if matched {
+                // A DATA producer has no public Result declarations. Retain
+                // the ordinary declaration refusal before calling the keyed
+                // lowerer, whose terminal entry accepts retained Results.
+                if has_retained_result(query) {
+                  raise Abort(UnsupportedResult)
+                }
+                // MATCH's explicit projection is a Relation producer. Keep
+                // pattern scope/identity with the existing keyed lowerer.
+                lower_script_keyed_graph_query(
+                  construction,
+                  query,
+                  graphs,
+                  limits,
+                  steps,
+                  reserved,
+                  output,
+                  [],
+                  known~,
+                )
+              } else {
+                lower_script_graph_rows(
+                  construction,
+                  query,
+                  graph,
+                  limits,
+                  steps,
+                  reserved,
+                  output,
+                  known~,
+                  graphs~,
+                )
+              }
               known = known.filter(input => {
                 !(input.relation.length() == 1 &&
                 same_name(input.relation[0], declaration.name))
@@ -332,9 +395,23 @@ pub fn compile_query_script(
             })
             continue
           }
+          if script_has_graph_rows(query) &&
+            known.any(input => {
+              input_relation_matches(@query.relation(query), input)
+            }) {
+            raise Abort(InvalidQuery)
+          }
           let bound = lower_script_relation(
-            construction, query, known, context, sources, limits, steps, reserved,
+            construction,
+            query,
+            known,
+            context,
+            sources,
+            limits,
+            steps,
+            reserved,
             output,
+            graphs~,
           )
           // Body resolution precedes binding. Existing published names may be
           // shadowed only afterward; no forward/recursive DATA reference exists.
@@ -386,10 +463,22 @@ pub fn compile_query_script(
             same_name(input.relation[0], declaration.name))
           })
         }
-        NamedGraphCall(_) =>
+        NamedGraphCall(call) => {
+          // The common mean body requires all four members. A missing member
+          // is invalid independently of the still-unconnected consumer below.
+          if call.operation == "mean_graphs" {
+            let required = ["with", "weights", "support", "properties"]
+            if call.arguments.any(argument => !required.contains(argument.0)) ||
+              required.any(name => {
+                !call.arguments.any(argument => argument.0 == name)
+              }) {
+              raise Abort(InvalidQuery)
+            }
+          }
           // Explicit Graph-list construction has no adapted output contract
           // yet. Never add the current Graph or reinterpret it as a Relation.
           raise Abort(UnsupportedGraph)
+        }
       }
     }
     let mut query = @query.script_query(script)
@@ -411,6 +500,11 @@ pub fn compile_query_script(
       let retained : Array[RetainedResult] = []
       let result = if script_has_graph_rows(current) {
         guard script_graph_input(current, graphs) is Some(graph) else {
+          if stage_known.any(input => {
+              input_relation_matches(@query.relation(current), input)
+            }) {
+            raise Abort(InvalidQuery)
+          }
           raise Abort(UnsupportedGraph)
         }
         lower_script_graph_rows(
@@ -449,6 +543,7 @@ pub fn compile_query_script(
           reserved,
           "aql_script_result",
           retained=Some(retained),
+          graphs~,
         )
       }
       // The current Model component owns a complete Unit. Crossing a public

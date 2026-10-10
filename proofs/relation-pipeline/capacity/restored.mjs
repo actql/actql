@@ -5,7 +5,8 @@ import { createExecutor, executions, root } from '../execute.mjs';
 import { workspaceIdentity } from '../workspaces.mjs';
 import { snapshot } from '../inventory.mjs';
 import { compareSemantics } from '../evidence.mjs';
-import { registry } from '../registry.mjs';
+// The restricted capacity proof retains the complete six-descriptor cohort.
+import { corpusBaseline as registry } from '../registry.mjs';
 import { recordCapacityOwner } from './parts.mjs';
 export function replayRestoredMinima({ report, targets, source, predecessor, probe }) {
   assert(predecessor.closed, 'Instrumented owner has not closed');

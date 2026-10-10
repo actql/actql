@@ -168,6 +168,13 @@ order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
 
+`CAST(value AS DOUBLE)` and `ARRAY<DOUBLE>` use the same existing Number
+contracts as `CAST(value AS FLOAT64)` and `ARRAY<FLOAT64>`. Type names are
+ASCII case-insensitive and unquoted. The selected [GoogleSQL language reference](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/data-types.md#floating_point_types)
+defines FLOAT64 as an alias for DOUBLE; this is not a claim about every deployed
+Google product. The alias introduces no conversion, precision, failure or NULL
+rule. FLOAT/FLOAT32 are separate reference types and remain unsupported here.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still
@@ -331,6 +338,42 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
+Pipe `PIVOT(aggregate(column) [AS prefix] FOR axis IN ('value' [AS name], ...))
+[AS range]` connects the selected
+[GoogleSQL PIVOT profile](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#pivot_pipe_operator)
+to the ordinary common `pivot` operation. This initial surface supports one
+SUM, AVG, COUNT, MIN or MAX of a current or range-qualified input column, a
+String axis and a nonempty list of static String bucket values. The current
+columns not consumed by the aggregate argument or axis become implicit group
+keys in their current order. Existing evaluated slots are reused, including
+SET/RENAME slots. The common checker owns key, aggregate, numeric, type and
+NULL evidence; no fill, cast, default ceiling or uniqueness is invented.
+
+PIVOT exposes the implicit group columns followed by pivot columns in authored
+IN order, even though the common operation stores generated columns in canonical
+order. An explicit bucket alias changes only the output name, not the compared
+String value. An aggregate prefix produces `prefix_bucket`. Name collisions
+are checked under existing case-insensitive column lookup. The result is a
+fresh ordinary Relation scope: previous ranges, the consumed aggregate column
+and axis are unavailable unless also produced as new output columns. The
+optional range binds only this result. The ordinary final projection retains
+the declared public column order and removes private fields.
+
+SUM/AVG/MIN/MAX ignore NULL input values and return typed NULL for an empty
+non-NULL bucket; COUNT(column) returns its non-NULL count, including zero for
+an empty bucket. Undeclared or NULL axis values create no declared bucket but
+retain their implicit index group. Empty input with no implicit keys has one
+global group; empty keyed input has no groups. These are existing common pivot
+rules, not frontend implementations of aggregation.
+
+FROM-suffix PIVOT, multiple aggregates, aggregate expressions/modifiers,
+COUNT(*), non-String axes and NULL bucket constants remain unimplemented
+surface coverage. The common requirement that bucket values also be admitted
+output field names, with unique values and no collision with physical index
+fields, is a recorded restriction of the existing contract. This does not
+claim that such forms are invalid GoogleSQL or completed standards alignment;
+unsupported forms are rejected rather than coerced, renamed as data or dropped.
+
 SQL `QUALIFY boolean_expression` filters the evaluated inline-window outputs
 after WHERE, grouping/HAVING and analytic computation, before final DISTINCT,
 ORDER and LIMIT/OFFSET. At least one window function must occur in SELECT or
@@ -420,6 +463,35 @@ requires an explicit ORDER BY after window evaluation; no previous order is
 invented. This connects the selected
 [GoogleSQL Pipe SET](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#set)
 without a new executor, wire format or range-binding rule.
+
+Pipe `UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value_column FOR name_column
+IN (column, ...)) [AS alias]` connects the selected single-value
+[GoogleSQL UNPIVOT](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#unpivot_operator)
+to the common `unpivot` operation. The input columns are unqualified current
+column names, not expressions or references through a former range. Unmentioned
+columns remain in their original order, followed by the value column and then
+the name column. Generated labels use the resolved input column names, including
+current RENAME outputs; private slot names are never labels or public fields.
+The operator establishes a fresh output scope. An optional alias binds that
+scope; removed columns and prior ranges do not remain accessible through it.
+
+Default and explicit EXCLUDE NULLS omit rows whose unpivoted value is SQL NULL;
+INCLUDE NULLS retains them. This uses the common expansion and an ordinary
+`IS NOT NULL` filter without changing common `unpivot` semantics. Duplicate
+input rows and repeated selected columns retain multiplicity. Only an authored
+ORDER BY establishes public order; no sort, Result or persistence boundary is
+added. The common checker owns exact value contracts, expansion/key evidence,
+capacity and incompatible input rejection. In particular, its current exact
+type/nullability requirement is a recorded common-profile gap for inputs whose
+selected columns differ only in nullability; the Frontend does not cast or infer
+types from rows to bypass it. Empty input retains the declared output contracts.
+
+This connection does not yet cover the standard FROM-suffix form, multiple
+value columns or row-value aliases. Those forms remain unimplemented coverage,
+not permanent language prohibitions. They are not reinterpreted as this form.
+Value/name columns must differ from each other and from selected input names,
+under the existing identifier rules. Kept-name collisions remain ambiguous;
+a public Result still requires distinct field names.
 
 Pipe WHERE accepts supported window calls inside its Boolean predicate. Each
 call observes the current input rows, including preceding filtering, grouping
@@ -784,7 +856,7 @@ infer a second type system. The parser's existing work, node and depth limits
 also cover array children. An empty list needs unique type context.
 
 The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
-`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<DOUBLE>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
 Annotations use the existing typed `empty_array.items` evidence. A nonempty
 annotated array uses an ordinary constant-true lazy `if` with that empty-array
 peer, so the common checker checks the declared item type and evaluates the
@@ -827,6 +899,20 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+Scalar UNNEST also introduces a range name, although it has no member columns.
+Pipe RENAME cannot rename that original value-table range. AS preserves a
+single value table and replaces its range name; it does not project or compute
+values. On a table with additional columns, AS replaces old ranges with one
+row range and admits former value-table aliases as current whole columns.
+Those columns retain their field-expanding star layout, distinct from whole-value
+expression lookup. SELECT creates an ordinary output column scope; SET of a
+whole value column removes its original range and permits a later RENAME.
+DROP removes the matching range. Current column edits do not rewrite values or
+star layouts captured by a surviving row range.
+The range kind is retained across JOIN continuations and checked for duplicate
+UNNEST aliases. A scalar `element.*` remains invalid; scalar DISTINCT continues
+to compare the visible scalar values, rather than object-field expansions.
+
 The same expansion accepts declared parameter property paths, for example
 `FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
 names retain their ordinary expression meaning. The Frontend follows the
@@ -845,9 +931,15 @@ error, rather than a guessed or truncated output schema.
 
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
-rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
-current columns while a surviving original range retains its value slots, with
-the same-name target exceptions defined above. SELECT or AS
+rows; a declared OFFSET can be used for ordering. Implicitly exposed object
+fields are expression/star names, not Pipe SET/DROP/RENAME column targets.
+Project them with SELECT first to create ordinary editable columns. SET can
+replace the whole value-table column named by its range; the replacement is an
+ordinary column and its old implicit fields are no longer current columns.
+DROP of that value-table column removes its implicit fields and range. RENAME
+cannot rename the value-table range. Other current columns remain editable and
+surviving ranges retain original value slots, with the same-name target
+exceptions defined above. SELECT or AS
 establishes the ordinary new Relation scope and removes that original range,
 except for the existing directly following SELECT-owned ORDER boundary.
 No witness, array, element or property implementation slot is publicly exported.
@@ -1026,6 +1118,18 @@ placement or physical task boundaries. Bodies resolve before the declared
 name becomes visible. Duplicate, recursive and forward references are
 rejected. A Graph producer is not a Relation alias. RESULT, INFER and EFFECT are
 not permitted in a DATA query body; final queries retain explicit Results.
+
+A DATA body can bind an explicitly projected Graph MATCH Relation, for example:
+
+~~~aql
+DATA selected = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.score AS score;
+~~~
+
+The projection defines its public columns; Graph pattern variables and internal
+identity/path slots are not visible through the DATA name. Normal Relation
+processing can then reuse that producer. The existing keyed MATCH/TRAIL checker
+and execution owner retain identity, label, predicate, path and capacity rules.
+This DATA connection does not expand Graph CTE or derived-table support.
 
 `DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
 [selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#graph-mapping-and-element-identity).

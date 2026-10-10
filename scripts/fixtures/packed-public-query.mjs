@@ -1,3 +1,11 @@
+import {pipePivotSuccesses, pipePivotRefusals} from './pipe-pivot-source-input.mjs';
+import {graphRelationJoinSuccesses, graphRelationJoinRefusals, graphRelationJoinExecutionFailures} from './graph-relation-join-source-input.mjs';
+import {traversalJoinSuccesses, traversalJoinRefusals, traversalJoinExecutionFailures} from './traversal-join-source-input.mjs';
+import {graphRowsJoinSuccesses, graphRowsJoinRefusals, graphRowsJoinExecutionFailures} from './graph-rows-join-source-input.mjs';
+import {betweenSuccesses, betweenRefusals, betweenExecutionFailures} from './between-source-input.mjs';
+import {ifnullCoalesceReuseSuccesses, ifnullCoalesceReuseRefusals, ifnullCoalesceReuseExecutionFailures} from './ifnull-coalesce-reuse-source-input.mjs';
+import {concatReuseSuccesses, concatReuseRefusals} from './concat-expression-reuse-source-input.mjs';
+import {encodeRetainedFixture} from './retained-fixture-values.mjs';
 import {groupPropertyReceiverSuccesses, groupPropertyReceiverRefusals} from './group-property-receiver-source-input.mjs';
 import {distinctSignedOrderSuccesses, distinctSignedOrderRefusals} from './distinct-signed-order-source-input.mjs';
 import {distinctAggregateOrderSuccesses, distinctAggregateOrderRefusals} from './distinct-aggregate-order-source-input.mjs';
@@ -8,9 +16,12 @@ import {pipeDistinctSuccesses, pipeDistinctRefusals} from './pipe-distinct-sourc
 import {groupByAllSuccesses, groupByAllRefusals} from './group-by-all-source-input.mjs';
 import {correlatedUnnestSuccesses, correlatedUnnestRefusals} from './correlated-unnest-source-input.mjs';
 import {unnestCheckedArraySuccesses, unnestCheckedArrayRefusals} from './unnest-checked-array-source-input.mjs';
+import {negatedPredicateReuseSuccesses, negatedPredicateReuseRefusals} from './negated-predicate-reuse-source-input.mjs';
+import {membershipReuseSuccesses, membershipReuseRefusals} from './membership-expression-reuse-source-input.mjs';
 import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals} from './in-unnest-literal-array-source-input.mjs';
 import {arrayLiteralSuccesses, arrayLiteralRefusals} from './array-literal-source-input.mjs';
 import {unnestSuccesses, unnestRefusals} from './unnest-source-input.mjs';
+import {pipeUnpivotSuccesses, pipeUnpivotRefusals} from './pipe-unpivot-source-input.mjs';
 import {unnestParameterPathSuccesses, unnestParameterPathRefusals} from './unnest-parameter-path-source-input.mjs';
 import {fullJoinScopeSuccesses, fullJoinScopeRefusals} from './full-join-scope-source-input.mjs';
 import {characterLengthSuccesses, characterLengthRefusals} from './character-length-source-input.mjs';
@@ -136,6 +147,8 @@ import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
   from './quoted-identifier-source-input.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
+import {matchDataProducerSuccesses, matchDataProducerRefusals}
+  from './match-data-producer-source-input.mjs';
 import {graphMatchSourceSuccesses, graphMatchSourceRefusals}
   from './graph-match-source-input.mjs';
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
@@ -166,6 +179,10 @@ import {sourceGraphMemberSuccesses, sourceGraphMemberRefusals}
 import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiagnosticSourceExecutionFailures}
   from './graph-diagnostics-source-input.mjs';
 
+import {transportWorker, requireCompleteInventory, sourceFixturePaths} from './packed-query-transport-owner.mjs';
+const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
+assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
+const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
 } else {
@@ -180,7 +197,10 @@ const orderAggregateExpressionOnly = process.env.ACTQL_TEST_ORDER_AGGREGATE_EXPR
 const selectAggregateExpressionOnly = process.env.ACTQL_TEST_SELECT_AGGREGATE_EXPRESSION_ONLY === '1';
 const havingAggregateOnly = process.env.ACTQL_TEST_HAVING_AGGREGATE_ONLY === '1';
 const limitParameterOnly = process.env.ACTQL_TEST_LIMIT_PARAMETER_ONLY === '1';
+const pipePivotOnly = process.env.ACTQL_TEST_PIPE_PIVOT_ONLY === '1';
+const betweenOnly = process.env.ACTQL_TEST_BETWEEN_ONLY === '1';
 const ifnullOnly = process.env.ACTQL_TEST_IFNULL_ONLY === '1';
+const ifnullCoalesceReuseOnly = process.env.ACTQL_TEST_IFNULL_COALESCE_REUSE_ONLY === '1';
 const setCorrespondingOnly = process.env.ACTQL_TEST_SET_CORRESPONDING_ONLY === '1';
 const setInnerByNameOnly = process.env.ACTQL_TEST_SET_INNER_BY_NAME_ONLY === '1';
 const setByNameListOnly = process.env.ACTQL_TEST_SET_BY_NAME_LIST_ONLY === '1';
@@ -193,7 +213,11 @@ const groupedInOnly = process.env.ACTQL_TEST_GROUPED_IN_ONLY === '1';
 const subgraphOnly = process.env.ACTQL_TEST_SUBGRAPH_ONLY === '1';
 const analyticOffsetOnly = process.env.ACTQL_TEST_ANALYTIC_OFFSET_ONLY === '1';
 const graphDiagnosticsOnly = process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1';
+const matchDataProducerOnly = process.env.ACTQL_TEST_MATCH_DATA_PRODUCER_ONLY === '1';
 const graphMatchOnly = process.env.ACTQL_TEST_GRAPH_MATCH_ONLY === '1';
+const graphRelationJoinOnly = process.env.ACTQL_TEST_GRAPH_RELATION_JOIN_ONLY === '1';
+const traversalJoinOnly = process.env.ACTQL_TEST_TRAVERSAL_JOIN_ONLY === '1';
+const graphRowsJoinOnly = process.env.ACTQL_TEST_GRAPH_ROWS_JOIN_ONLY === '1';
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
 const graphDifferenceOnly = process.env.ACTQL_TEST_GRAPH_DIFFERENCE_ONLY === '1';
 const graphEqualityOnly = process.env.ACTQL_TEST_GRAPH_EQUALITY_ONLY === '1';
@@ -201,16 +225,20 @@ const quotedIdentifiersOnly = process.env.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY ===
 const graphProjectionPropertyOnly = process.env.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY === '1';
 const sourceGraphMemberOnly = process.env.ACTQL_TEST_SOURCE_GRAPH_MEMBER_ONLY === '1';
 const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
+const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
 const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1';
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
+const negatedPredicateReuseOnly = process.env.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY === '1';
+const membershipReuseOnly = process.env.ACTQL_TEST_MEMBERSHIP_REUSE_ONLY === '1';
 const inUnnestLiteralArrayOnly = process.env.ACTQL_TEST_IN_UNNEST_LITERAL_ARRAY_ONLY === '1';
 const arrayLiteralOnly = process.env.ACTQL_TEST_ARRAY_LITERAL_ONLY === '1';
 const correlatedUnnestOnly = process.env.ACTQL_TEST_CORRELATED_UNNEST_ONLY === '1';
 const unnestCheckedArrayOnly = process.env.ACTQL_TEST_UNNEST_CHECKED_ARRAY_ONLY === '1';
 const unnestParameterPathOnly = process.env.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY === '1';
+const pipeUnpivotOnly = process.env.ACTQL_TEST_PIPE_UNPIVOT_ONLY === '1';
 const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
@@ -272,7 +300,7 @@ const namedWindowOnly = process.env.ACTQL_TEST_NAMED_WINDOW_ONLY === '1';
 const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1';
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
-const scopeOnly = absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly;
+const scopeOnly = pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -293,9 +321,18 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
+const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
+  : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
   : countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}
   : minMaxDistinctOnly ? {successes: minMaxDistinctSuccesses, refusals: minMaxDistinctRefusals}
+  : graphRelationJoinOnly ? {successes: graphRelationJoinSuccesses, refusals: graphRelationJoinRefusals, executionFailures: graphRelationJoinExecutionFailures}
+  : traversalJoinOnly ? {successes: traversalJoinSuccesses, refusals: traversalJoinRefusals, executionFailures: traversalJoinExecutionFailures}
+  : graphRowsJoinOnly ? {successes: graphRowsJoinSuccesses, refusals: graphRowsJoinRefusals, executionFailures: graphRowsJoinExecutionFailures}
+  : pipePivotOnly ? {successes: pipePivotSuccesses, refusals: pipePivotRefusals, executionFailures: []}
+  : betweenOnly ? {successes: betweenSuccesses, refusals: betweenRefusals, executionFailures: betweenExecutionFailures}
+  : ifnullCoalesceReuseOnly ? {successes: ifnullCoalesceReuseSuccesses, refusals: ifnullCoalesceReuseRefusals, executionFailures: ifnullCoalesceReuseExecutionFailures}
+  : negatedPredicateReuseOnly ? {successes: negatedPredicateReuseSuccesses, refusals: negatedPredicateReuseRefusals}
+  : membershipReuseOnly ? {successes: membershipReuseSuccesses, refusals: membershipReuseRefusals}
   : inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses, refusals: inUnnestLiteralArrayRefusals}
   : arrayLiteralOnly ? {successes: arrayLiteralSuccesses, refusals: arrayLiteralRefusals}
   : graphQuantifierFormsOnly ? {successes: graphQuantifierFormsSuccesses, refusals: graphQuantifierFormsRefusals}
@@ -307,6 +344,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : correlatedUnnestOnly ? {successes: correlatedUnnestSuccesses, refusals: correlatedUnnestRefusals}
   : unnestCheckedArrayOnly ? {successes: unnestCheckedArraySuccesses, refusals: unnestCheckedArrayRefusals}
   : unnestParameterPathOnly ? {successes: unnestParameterPathSuccesses, refusals: unnestParameterPathRefusals}
+  : pipeUnpivotOnly ? {successes: pipeUnpivotSuccesses, refusals: pipeUnpivotRefusals}
   : unnestOnly ? {successes: unnestSuccesses, refusals: unnestRefusals}
   : fullJoinScopeOnly ? {successes: fullJoinScopeSuccesses, refusals: fullJoinScopeRefusals}
   : namedWindowOnly ? {successes: namedWindowSuccesses, refusals: namedWindowRefusals}
@@ -381,6 +419,7 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
   : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
+  : matchDataProducerOnly ? {successes: matchDataProducerSuccesses, refusals: matchDataProducerRefusals}
   : graphMatchOnly ? {successes: graphMatchSourceSuccesses, refusals: graphMatchSourceRefusals}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
   : graphDifferenceOnly ? {successes: graphDifferenceSourceSuccesses, refusals: graphDifferenceSourceRefusals}
@@ -405,6 +444,23 @@ const scopeInputs = analyticDistinctFrameOnly ? {successes: analyticDistinctFram
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...pipePivotSuccesses);
+  scopeInputs.refusals.push(...pipePivotRefusals);
+  scopeInputs.successes.push(...graphRelationJoinSuccesses);
+  scopeInputs.refusals.push(...graphRelationJoinRefusals);
+  scopeInputs.executionFailures.push(...graphRelationJoinExecutionFailures);
+  scopeInputs.successes.push(...traversalJoinSuccesses);
+  scopeInputs.refusals.push(...traversalJoinRefusals);
+  scopeInputs.executionFailures.push(...traversalJoinExecutionFailures);
+  scopeInputs.successes.push(...graphRowsJoinSuccesses);
+  scopeInputs.refusals.push(...graphRowsJoinRefusals);
+  scopeInputs.executionFailures.push(...graphRowsJoinExecutionFailures);
+  scopeInputs.successes.push(...betweenSuccesses);
+  scopeInputs.refusals.push(...betweenRefusals);
+  scopeInputs.executionFailures.push(...betweenExecutionFailures);
+  scopeInputs.successes.push(...ifnullCoalesceReuseSuccesses);
+  scopeInputs.refusals.push(...ifnullCoalesceReuseRefusals);
+  scopeInputs.executionFailures.push(...ifnullCoalesceReuseExecutionFailures);
   scopeInputs.refusals.push(...aggregateSignedOrderRefusals);
   scopeInputs.refusals.push(...aggregateConditionalOrderRefusals);
   scopeInputs.successes.push(...aggregateConditionalOrderSuccesses);
@@ -421,10 +477,16 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...groupByAllRefusals);
   scopeInputs.successes.push(...correlatedUnnestSuccesses);
   scopeInputs.refusals.push(...correlatedUnnestRefusals);
+  scopeInputs.successes.push(...negatedPredicateReuseSuccesses);
+  scopeInputs.refusals.push(...negatedPredicateReuseRefusals);
+  scopeInputs.successes.push(...membershipReuseSuccesses);
+  scopeInputs.refusals.push(...membershipReuseRefusals);
   scopeInputs.successes.push(...inUnnestLiteralArraySuccesses);
   scopeInputs.refusals.push(...inUnnestLiteralArrayRefusals);
   scopeInputs.successes.push(...arrayLiteralSuccesses);
   scopeInputs.refusals.push(...arrayLiteralRefusals);
+  scopeInputs.successes.push(...pipeUnpivotSuccesses);
+  scopeInputs.refusals.push(...pipeUnpivotRefusals);
   scopeInputs.successes.push(...unnestSuccesses);
   scopeInputs.refusals.push(...unnestRefusals);
   scopeInputs.successes.push(...fullJoinScopeSuccesses);
@@ -583,12 +645,16 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...quotedIdentifierRefusals);
   scopeInputs.successes.push(...orderOrdinalSuccesses);
   scopeInputs.refusals.push(...orderOrdinalRefusals);
+  scopeInputs.successes.push(...concatReuseSuccesses);
+  scopeInputs.refusals.push(...concatReuseRefusals);
   scopeInputs.successes.push(...distinctOrderSuccesses);
   scopeInputs.refusals.push(...distinctOrderRefusals);
   scopeInputs.successes.push(...distinctOrderMemberSuccesses);
   scopeInputs.refusals.push(...distinctOrderMemberRefusals);
   scopeInputs.successes.push(...graphRowSourceSuccesses);
   scopeInputs.refusals.push(...graphRowSourceRefusals);
+  scopeInputs.successes.push(...matchDataProducerSuccesses);
+  scopeInputs.refusals.push(...matchDataProducerRefusals);
   scopeInputs.successes.push(...graphMatchSourceSuccesses);
   scopeInputs.refusals.push(...graphMatchSourceRefusals);
   scopeInputs.successes.push(...graphDiagnosticSourceSuccesses);
@@ -617,11 +683,93 @@ if (scopedOrderOnly) {
   assert.equal(scopeInputs.successes.length, 4);
   assert.equal(scopeInputs.refusals.length, 1);
 }
+// A completed public case retains its Run, Results and read evidence. Client
+// close releases live owners but deliberately preserves those durable objects.
+// Bound independent fixture cohorts; a whole case, including attach/resend,
+// always stays in one installation. This does not change a Host capacity.
+function publicQueryCohorts(inputs) {
+  const cohorts = [];
+  let current = {successes: [], executionFailures: [], refusals: []};
+  // Count distinct references before any content-address deduplication. The
+  // Store owner allows 8R + 11 for publication; each read retains a grant,
+  // attempt, two records and receipt, and describe retains one manifest grant.
+  // Also reserve one fresh-process read/describe per Result for every case
+  // (only the first/last are exercised), plus the existing String restart.
+  const maxObjects = 10000;
+  const publicationObjects = results => 8 * results + 11;
+  // Each fresh delivery performs two complete prior-attempt scans. Keeping
+  // N(N-1) <= 4096 bounds those admission scans across a cohort; this is a
+  // harness work bound, not a product limit or an allowance for parallel work.
+  const maxDeliveryContractVisits = 4096;
+  const maxDeliveryAttempts = Math.floor((1 + Math.sqrt(1 +
+    4 * maxDeliveryContractVisits)) / 2);
+  const deliveryObjects = 5;
+  const descriptionObjects = 1;
+  let retainedObjectAllowance = 0;
+  let deliveryAttemptAllowance = 0;
+  for (const kind of ['successes', 'executionFailures', 'refusals']) {
+    for (const item of inputs[kind] ?? []) {
+      const results = kind === 'successes'
+        ? Math.max(1, Object.keys(item.results ?? {answer: null}).length)
+        : kind === 'executionFailures' ? Math.max(1, item.resultNames.length) : 0;
+      const allowance = kind === 'refusals' ? 0 : publicationObjects(results) +
+        results * (3 * deliveryObjects + 2 * descriptionObjects) +
+        (item.name === 'sql' ? deliveryObjects : 0) +
+        (item.name === 'exact-string-values' ? deliveryObjects + descriptionObjects : 0);
+      const deliveries = 3 * results +
+        (item.name === 'sql' ? 1 : 0) + (item.name === 'exact-string-values' ? 1 : 0);
+      assert.ok(allowance <= maxObjects && deliveries <= maxDeliveryAttempts,
+        `Public query case ${item.name} exceeds an indivisible cohort budget: ` +
+        `${allowance}/${maxObjects} objects, ${deliveries}/${maxDeliveryAttempts} deliveries`);
+      if (retainedObjectAllowance !== 0 &&
+          (retainedObjectAllowance + allowance > maxObjects ||
+            deliveryAttemptAllowance + deliveries > maxDeliveryAttempts)) {
+        cohorts.push(current);
+        current = {successes: [], executionFailures: [], refusals: []};
+        retainedObjectAllowance = 0;
+        deliveryAttemptAllowance = 0;
+      }
+      // Never split an authored multi-Result case or lower its own limits.
+      current[kind].push(item);
+      retainedObjectAllowance += allowance;
+      deliveryAttemptAllowance += deliveries;
+    }
+  }
+  if (Object.values(current).some(items => items.length > 0) || cohorts.length === 0) cohorts.push(current);
+  for (const kind of ['successes', 'executionFailures', 'refusals']) {
+    assert.deepEqual(cohorts.flatMap(cohort => cohort[kind]), inputs[kind] ?? [],
+      'cohorts preserve every authored case in original order');
+  }
+  for (const cohort of cohorts) for (const kind of ['successes', 'executionFailures']) {
+    assert.equal(new Set(cohort[kind].map(item => item.name)).size, cohort[kind].length,
+      'independent accepted cases cannot reuse a submission nonce within one cohort');
+  }
+  return cohorts;
+}
+const retainedCohorts = [];
+let expectedRetainedCohorts = 0;
+const expectedInventory = [], completedInventory = [];
+const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
+  .flatMap(kind => {
+    const offset = offsets[kind] ?? 0, values = inputs[kind] ?? [];
+    offsets[kind] = offset + values.length;
+    return values.map((item, index) => JSON.stringify([profile, kind, offset + index, item.name,
+      createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')]));
+  });
 // Host profiles are immutable within an installation. Keep each fixture's
 // declared analytic envelope, including when the full corpus combines profiles.
 for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
   of publicQueryProfiles(scopeInputs)) {
+if (transport === 'tail' && profileName !== 'standard') continue;
+if (transport !== 'tail') expectedInventory.push(...inventoryKeys(profileName, profileInputs));
+const completedOffsets = {};
 const scopeInputs = profileInputs;
+const cohorts = publicQueryCohorts(scopeInputs);
+if (transport !== 'tail') expectedRetainedCohorts += cohorts.filter(cohort => cohort.successes.length > 0).length;
+// The independent fresh-process String regression uses these original roots.
+if (scopeInputs.successes.some(item => item.name === 'exact-string-values')) {
+  assert.ok(cohorts[0].successes.some(item => item.name === 'exact-string-values'));
+}
 if (analyticFrameParameterOnly) assert.deepEqual(analyticCapacity, analyticFrameParameterCapacity);
 const suffix = profileName === 'standard' ? '' : `-${profileName}`;
 const localDirectory = resolve(`local-state${suffix}`);
@@ -647,7 +795,7 @@ environment.connector_capabilities[0].capability_contract_cids.sort();
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
   .update(canonical(environment)).digest('hex');
-const database = resolve(`records${suffix}.duckdb`);
+const {database, sourceProfilePath} = sourceFixturePaths(transport, profileName);
 const {DuckDBInstance, DuckDBPreparedStatement, DuckDBConnection,
   DuckDBExtractedStatements} = createRequire(
   new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
@@ -671,7 +819,8 @@ try {
   for (const row of sourceRows) {
     await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
   }
-  for (const {targets} of scopeOnly || profileName !== 'standard' ? [] : exactTargetPairs) {
+  for (const {targets} of scopeOnly || profileName !== 'standard' ||
+      (transport !== undefined && transport !== 'tail') ? [] : exactTargetPairs) {
     for (const target of targets) {
       if (target.schema !== 'main') await connection.run(`CREATE SCHEMA "${target.schema}"`);
       await connection.run(`CREATE TABLE ${physicalSqlName(target)}(id DOUBLE, amount DOUBLE)`);
@@ -691,6 +840,7 @@ try {
 // current contents. No rows are injected into the Client or frontend.
 let installedRows = sourceRows;
 async function prepareCase(rows = sourceRows) {
+  worker?.check();
   if (JSON.stringify(rows) === JSON.stringify(installedRows)) return;
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
@@ -706,7 +856,6 @@ async function prepareCase(rows = sourceRows) {
   }
 }
 const view = environment.source_views[0];
-const sourceProfilePath = resolve(`source-profile${suffix}.json`);
 await writeFile(sourceProfilePath, canonical({
   acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1', database,
@@ -774,6 +923,7 @@ const observe = directory => () => {
 // Public check must also work from installed tarballs, without repository imports.
 async function exercisePublicCheck(options) {
   const client = await connect(options);
+  try {
   const first = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(first.report.verdict, 'verified');
   assert.deepEqual(await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'}), first);
@@ -804,8 +954,9 @@ async function exercisePublicCheck(options) {
     limits: [{code: 'analysis_budget_exhausted'}],
     unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
   console.log(`packed public check ${options.mode} passed`);
+  } finally { await client.close(); }
 }
-await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
+if (transport === undefined || transport === 'local') await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
   installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}});
 // Extend the same public harness; no second lifecycle/fault matrix. Each
 // physical spelling has independently authored rows and its own explicit Host.
@@ -869,48 +1020,106 @@ const retainedStrings = {};
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
 };
-await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
-  durability: 'durable', installation: {directory: localDirectory,
-    sourceProfilePath, hostCapacityPolicy}}, {requestPrefix: 'packed-local',
-  observe: observe(localDirectory), prepareCase, completedCase: recordString('local'), ...scopeInputs});
-assert.equal(observe(localDirectory)().acceptedRuns, expectedQueryRuns);
+const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
+const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
+const recordCohort = (mode, directory, cohort) => {
+  // Save independently authored boundary oracles for the existing fresh-process
+  // public Client regression; it never imports or reruns the partition helper.
+  const boundaryNames = new Set([cohort.successes[0]?.name,
+    cohort.successes.at(-1)?.name]);
+  const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
+  if (cohort.successes.length > 0) retainedCohorts.push(saved);
+  return item => {
+    recordString(mode)(item);
+    if (boundaryNames.has(item.name)) {
+      saved.samples.push({source: cohort.successes.find(source => source.name === item.name),
+        ref: item.ref, submissionRef: item.submissionRef});
+    }
+  };
+};
+try {
+if (transport === undefined || transport === 'local') {
+let localAcceptedRuns = 0;
+for (const [index, cohort] of cohorts.entries()) {
+  const directory = cohortDirectory(localDirectory, index);
+  await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
+    durability: 'durable', installation: {directory,
+      sourceProfilePath, hostCapacityPolicy}}, {requestPrefix: 'packed-local',
+    observe: observe(directory), prepareCase,
+    completedCase: recordCohort('local', directory, cohort), ...cohort});
+  const acceptedRuns = observe(directory)().acceptedRuns;
+  assert.equal(acceptedRuns, cohortRunCount(cohort));
+  localAcceptedRuns += acceptedRuns;
+  completedInventory.push(...inventoryKeys(profileName, cohort, completedOffsets));
+}
+assert.equal(localAcceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
+}
+if (transport === undefined || transport === 'remote') {
 const beforeRemote = sourceIo;
-const host = await openInstalledRemoteHttpHost({
-  directory: remoteDirectory, sourceProfilePath, hostCapacityPolicy,
-  authenticate: header => header === 'Bearer fixture-token'
-    ? userInfo().username : undefined,
-});
-const server = createServer({key: await readFile('remote.key'),
-  cert: await readFile('remote.crt')}, host.handler);
-await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-try {
-  await exercisePublicCheck({mode: 'remote',
-    endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-token'});
-  await exercisePublicQueryInput(connect, {mode: 'remote',
-    endpoint: `https://127.0.0.1:${server.address().port}/`,
-    token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe(remoteDirectory), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
-  assert.equal(observe(remoteDirectory)().acceptedRuns, expectedQueryRuns);
+let remoteAcceptedRuns = 0;
+  for (const [index, cohort] of cohorts.entries()) {
+    const directory = cohortDirectory(remoteDirectory, index);
+    const host = await openInstalledRemoteHttpHost({
+      directory, sourceProfilePath, hostCapacityPolicy,
+      authenticate: header => header === 'Bearer fixture-token'
+        ? userInfo().username : undefined,
+    });
+    const server = createServer({key: await readFile('remote.key'),
+      cert: await readFile('remote.crt')}, host.handler);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const options = {mode: 'remote',
+        endpoint: `https://127.0.0.1:${server.address().port}/`,
+        token: 'fixture-token', durability: 'durable'};
+      if (index === 0) await exercisePublicCheck(options);
+      await exercisePublicQueryInput(connect, options,
+        {requestPrefix: 'packed-http', observe: observe(directory), prepareCase,
+          completedCase: recordCohort('remote', directory, cohort), ...cohort});
+      const acceptedRuns = observe(directory)().acceptedRuns;
+      assert.equal(acceptedRuns, cohortRunCount(cohort));
+      remoteAcceptedRuns += acceptedRuns;
+      if (transport === 'remote') completedInventory.push(...inventoryKeys(profileName, cohort, completedOffsets));
+    } finally {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+      await host.close();
+    }
+  }
+  assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
-  if (!scopeOnly && profileName === 'standard') await exerciseExactPhysicalTargets();
+}
+  if (!scopeOnly && profileName === 'standard' &&
+      (transport === undefined || transport === 'tail')) await exerciseExactPhysicalTargets();
 } finally {
-  server.closeAllConnections();
-  await new Promise(resolve => server.close(resolve));
-  await host.close();
   DuckDBPreparedStatement.prototype.stream = stream;
   DuckDBConnection.prototype.extractStatements = extract;
   DuckDBExtractedStatements.prototype.prepare = prepare;
 }
-if (retainedStrings.local && retainedStrings.remote) {
+if ((transport === undefined && retainedStrings.local && retainedStrings.remote) ||
+    (transport !== undefined && retainedStrings[transport])) {
   // Reopening this installation must preserve its explicitly selected policy.
-  await writeFile('retained-string-results.json', JSON.stringify({
-    ...retainedStrings, hostCapacityPolicy,
+  await writeFile(transport === undefined ? 'retained-string-results.json' :
+    `retained-string-results.${transport}.json`, JSON.stringify({
+    ...retainedStrings, hostCapacityPolicy, sourceProfilePaths: {
+      ...(retainedStrings.local ? {local: sourceProfilePath} : {}),
+      ...(retainedStrings.remote ? {remote: sourceProfilePath} : {}),
+    },
   }));
 
 }
 }
-if (!scopeOnly) await import('./packed-two-source-public-query.mjs');
+if (transport !== 'tail') {
+  requireCompleteInventory(expectedInventory, completedInventory);
+  assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
+  await writeFile(transport === undefined ? 'retained-cohort-results.json' :
+    `retained-cohort-results.${transport}.json`, encodeRetainedFixture(retainedCohorts));
+  if (transport !== undefined) await writeFile(`transport-completion.${transport}.json`,
+    JSON.stringify({mode: transport, expectedInventory, completedInventory, expectedRetainedCohorts,
+      needsTail: !scopeOnly, complete: true}) + '\n', {flag: 'wx'});
+}
+if (!scopeOnly && (transport === undefined || transport === 'tail'))
+  await import('./packed-two-source-public-query.mjs');
 }

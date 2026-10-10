@@ -1,6 +1,10 @@
 ///|
 pub(all) enum NativePublicationStoreIssue {
   UnsupportedTarget
+  CheckpointEvidence(@checkpoint.CheckpointIssue)
+  PreviewAdmission(@publication.EffectPreviewIdentityIssue)
+  PrivateEvidence(@signature.NativePrivateEvidenceIssue)
+  PrivateCaptureRollback(NativePublicationStoreIssue, @sqlite.NativeSqliteIssue)
   Closed
   InvalidConfiguration
   LegacyStoreFormat(String)

@@ -30,6 +30,14 @@ fn retained_compute_through_runtime(
   retained_site_usage? : Array[Int64] = Array::make(9, 0L),
   through_resident? : Bool = false,
   expire_at_start? : Bool = false,
+  effect_materials? : @host.ClientEffectRunMaterials? = None,
+  restore_effect_input? : (
+    @host.ClientEffectRunMaterials,
+    @remote.RemoteInputBinding,
+  ) -> Result[
+    @output.NativeRemoteRetainedTaskInput,
+    @output.NativeRemoteRetainedTaskInputIssue,
+  ],
   restore_input? : (@host.ClientRunMaterials, @remote.RemoteInputBinding) -> Result[
     @output.NativeRemoteRetainedTaskInput,
     @output.NativeRemoteRetainedTaskInputIssue,
@@ -53,28 +61,39 @@ fn retained_compute_through_runtime(
   let entries = Ref(0)
   let binding = @output.native_remote_retained_task_input_binding(input)
   let (runtime, completion) = if through_resident {
-    guard restore_input is Some(restore) else {
-      abort("resident consumer requires live Owner restoration")
-    }
     let environment = @host.admit_client_check_environment(
       resident_effect_source_environment,
       "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
       { text_time: false, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     ).unwrap()
-    let wire = @host.issue_client_task_run_materials(
-      materials.prepared,
-      match materials.compilation {
-        @host.Tasks(value) => value
-        _ => abort("expected Tasks")
-      },
-      materials.admission,
-      materials.run_definition,
-      environment,
-      resident_effect_source_environment,
-      resident_compute_document,
-      None,
-    ).unwrap()
+    let wire = match effect_materials {
+      Some(effect) =>
+        @host.issue_client_effect_run_materials(
+          effect.allowed,
+          effect.run_definition,
+          environment,
+          resident_effect_source_environment,
+          resident_native_effect_document,
+          None,
+          retained_compute_effect_limits(),
+          request=effect.request,
+        ).unwrap()
+      None =>
+        @host.issue_client_task_run_materials(
+          materials.prepared,
+          match materials.compilation {
+            @host.Tasks(value) => value
+            _ => abort("expected Tasks")
+          },
+          materials.admission,
+          materials.run_definition,
+          environment,
+          resident_effect_source_environment,
+          resident_compute_document,
+          None,
+        ).unwrap()
+    }
     for request in [dispatch, another_attempt] {
       journal
       .retain_dispatch_envelope(
@@ -149,20 +168,97 @@ fn retained_compute_through_runtime(
       entries.val += 1
       true
     })
-    let foreign = @resident.execute_resident_retained_attempt(
-      journal,
-      execution,
-      admission,
-      configuration,
-      restore,
-      material,
-      codec,
-      retained_compute_input_limits(),
+    let execute = (selected_current, at, attempt) => {
+      match effect_materials {
+        Some(_) => {
+          guard restore_effect_input is Some(restore) else {
+            abort("Effect consumer requires live Owner restoration")
+          }
+          @resident.execute_resident_effect_retained_attempt(
+            journal,
+            execution,
+            admission,
+            retained_compute_effect_limits(),
+            configuration,
+            restore,
+            material,
+            codec,
+            retained_compute_input_limits(),
+            selected_current,
+            attempt,
+            "retained-consumer-holder",
+            at,
+            observe,
+          )
+        }
+        None => {
+          guard restore_input is Some(restore) else {
+            abort("resident consumer requires live Owner restoration")
+          }
+          @resident.execute_resident_retained_attempt(
+            journal,
+            execution,
+            admission,
+            configuration,
+            restore,
+            material,
+            codec,
+            retained_compute_input_limits(),
+            selected_current,
+            attempt,
+            "retained-consumer-holder",
+            at,
+            observe,
+          )
+        }
+      }
+    }
+    if effect_materials is Some(_) {
+      let restores = Ref(0)
+      let unavailable = @resident.execute_resident_effect_retained_attempt(
+        journal,
+        execution,
+        admission,
+        retained_compute_effect_limits(),
+        configuration,
+        (_, _) => {
+          restores.val += 1
+          Err(@output.ProducerUnavailable)
+        },
+        material,
+        codec,
+        retained_compute_input_limits(),
+        current,
+        @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+        "retained-consumer-holder",
+        () => "2026-10-09T01:00:00.000Z",
+        observe,
+      )
+      assert_true(
+        match unavailable {
+          Err(failure) =>
+            failure.issue is @resident.Input(@output.ProducerUnavailable) &&
+            failure.pending_runtime is None
+          Ok(_) => false
+        },
+      )
+      assert_eq(restores.val, 1)
+      assert_eq(entries.val, 0)
+      assert_true(
+        @remote.remote_runtime_record_startable(
+          journal.require(dispatch).unwrap(),
+        ),
+      )
+      assert_true(@transfer_client.destination_material_use_available(material))
+      assert_eq(
+        destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+        destination_bytes,
+      )
+    }
+    let foreign = execute(
       current,
+      () => "2026-10-09T01:00:00.000Z",
       @remote.dispatch_request_attempt_identity(another_attempt).unwrap(),
-      "retained-consumer-holder",
-      () => "2026-10-05T00:00:00.000Z",
-      observe,
     )
     assert_true(
       match foreign {
@@ -185,20 +281,10 @@ fn retained_compute_through_runtime(
       () => 1791158400000L,
       (_, _) => false,
     )
-    let refusal = @resident.execute_resident_retained_attempt(
-      journal,
-      execution,
-      admission,
-      configuration,
-      restore,
-      material,
-      codec,
-      retained_compute_input_limits(),
+    let refusal = execute(
       denied,
+      () => "2026-10-09T01:00:00.000Z",
       @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
-      "retained-consumer-holder",
-      () => "2026-10-05T00:00:00.000Z",
-      observe,
     )
     assert_true(
       match refusal {
@@ -217,27 +303,17 @@ fn retained_compute_through_runtime(
     assert_true(@transfer_client.destination_material_use_available(material))
     if expire_at_start {
       let checks = Ref(0)
-      let expired = @resident.execute_resident_retained_attempt(
-        journal,
-        execution,
-        admission,
-        configuration,
-        restore,
-        material,
-        codec,
-        retained_compute_input_limits(),
+      let expired = execute(
         current,
-        @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
-        "retained-consumer-holder",
         () => {
           checks.val += 1
           if checks.val == 1 {
-            "2026-10-05T00:00:00.000Z"
+            "2026-10-09T01:00:00.000Z"
           } else {
             "2100-01-01T00:00:00.000Z"
           }
         },
-        observe,
+        @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
       )
       assert_true(
         match expired {
@@ -281,20 +357,10 @@ fn retained_compute_through_runtime(
       return
     }
     let executed = match
-      @resident.execute_resident_retained_attempt(
-        journal,
-        execution,
-        admission,
-        configuration,
-        restore,
-        material,
-        codec,
-        retained_compute_input_limits(),
+      execute(
         current,
+        () => "2026-10-09T01:00:00.000Z",
         @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
-        "retained-consumer-holder",
-        () => "2026-10-05T00:00:00.000Z",
-        observe,
       ) {
       Ok(value) => value
       Err(failure) =>
@@ -318,20 +384,39 @@ fn retained_compute_through_runtime(
           _ => abort("resident consumer failed before completion")
         }
     }
-    assert_true(executed.result_definition_cid is Some(_))
+    if effect_materials is Some(_) {
+      assert_true(executed.result_definition_cid is None)
+    } else {
+      assert_true(executed.result_definition_cid is Some(_))
+    }
     (executed.runtime, executed.completion)
   } else {
-    let executor = @resident.install_resident_retained_compute_executor(
-      materials,
-      configuration,
-      input,
-      material,
-      dispatch,
-      codec,
-      retained_compute_input_limits(),
-      current,
-      limits,
-    ).unwrap()
+    let executor = match effect_materials {
+      Some(effect) =>
+        @resident.install_resident_effect_retained_compute_executor(
+          effect,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          current,
+          limits,
+        ).unwrap()
+      None =>
+        @resident.install_resident_retained_compute_executor(
+          materials,
+          configuration,
+          input,
+          material,
+          dispatch,
+          codec,
+          retained_compute_input_limits(),
+          current,
+          limits,
+        ).unwrap()
+    }
     assert_true(@transfer_client.destination_material_use_available(material))
     assert_eq(
       destination_journal.destination_capacity_usage().unwrap().reserved_bytes,

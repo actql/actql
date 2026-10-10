@@ -3,6 +3,12 @@ fn retained_effect_producer_dependency(
   owner : @resident.ResidentSourceCompute,
   materials : @host.ClientEffectRunMaterials,
   source : @host.ClientEffectAcquiredEvidence,
+  started_at? : String = "2026-10-09T01:00:00.000Z",
+  completed_at? : String = "2026-10-09T01:00:01.000Z",
+  original_invocation? : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  )? = None,
 ) -> (
   @strategy.CapturedEffectLocalUnitInputs,
   @host.ClientEffectLocalResultArtifact,
@@ -35,9 +41,16 @@ fn retained_effect_producer_dependency(
   ).unwrap()
   let receipt = transferred_effect_result_receipt(exported)
   println("retained-effect-evidence: producer-export-complete")
-  let (observation, invocation) = producer_dependency_observation(
-    materials, source,
-  )
+  let (observation, invocation) = match original_invocation {
+    Some(value) => value
+    None =>
+      producer_dependency_observation(
+        materials,
+        source,
+        started_at~,
+        completed_at~,
+      )
+  }
   let definition = @host.issue_client_effect_local_result_definition(
     materials.prepared,
     0,
@@ -143,6 +156,7 @@ fn retained_effect_transferred_artifact(
   root_index : Int,
   result_index : Int,
   source : @host.ClientEffectAcquiredEvidence,
+  acquired_bodies : (String, String),
   foreign_invocation : @host.ClientEffectLocalInvocation,
   sender_inputs : @strategy.CapturedEffectLocalUnitInputs,
   sender : @host.ClientEffectLocalResultArtifact,
@@ -150,7 +164,10 @@ fn retained_effect_transferred_artifact(
   producer_token : @host.ClientEffectProducerArtifact,
   common_input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
+  public_result : @host.PublicationOutputExport,
   stop_custodies : Array[(@resident.ResidentEffectSourceCustody, @store.Store)],
+  provider? : ResidentProviderFacts? = None,
+  checkpoint_custody? : Bool = false,
 ) -> Unit raise {
   println("retained-effect-evidence: receiver-export")
   let root_export = consumer
@@ -350,23 +367,68 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
-  let result = @host.issue_imported_client_effect_local_result_artifact(
-    materials.prepared,
-    inputs,
-    result_export,
-    evidence,
-    definition,
+  let result = match
+    @host.issue_imported_client_effect_local_result_artifact(
+      materials.prepared,
+      inputs,
+      result_export,
+      evidence,
+      definition,
+      result_receipt,
+      retained_compute_effect_retention(),
+      @host.client_effect_allowed_run_admission(materials.allowed),
+      materials.run_definition,
+      invocation,
+      run_observation,
+      65536,
+      4096,
+      64,
+    ) {
+    Ok(value) => value
+    Err(issue) => fail("imported consumer Artifact: " + @debug.to_string(issue))
+  }
+  println("retained-effect-evidence: consumer-artifact-issued")
+  if provider is Some(facts) {
+    retained_effect_provider_capture(
+      consumer,
+      materials,
+      inputs,
+      invocation,
+      run_observation,
+      result,
+      result_index,
+      receiver,
+      root_index,
+      result_export,
+      result_receipt,
+      evidence,
+      source,
+      acquired_bodies,
+      facts,
+      public_result,
+      stop_custodies,
+      checkpoint_custody~,
+    )
+    @execution.cancel_completed_relation_export_receipt(receipt)
+    @execution.cancel_completed_relation_export_receipt(result_receipt)
+    @execution.cancel_completed_result_relation_export(
+      @strategy.captured_effect_local_result_export_preparation(root_export),
+    )
+    |> ignore
+    @execution.cancel_completed_result_relation_export(
+      @strategy.captured_effect_local_result_export_preparation(result_export),
+    )
+    |> ignore
+    return
+  }
+  let public_capture = retained_effect_result_capture(
+    consumer, materials, inputs, evidence, invocation, run_observation, source, public_result,
+  )
+  let dependencies = retained_effect_dependency_capture(
+    consumer, materials, inputs, receiver, result, root_index, result_index, result_export,
     result_receipt,
-    retained_compute_effect_retention(),
-    @host.client_effect_allowed_run_admission(materials.allowed),
-    materials.run_definition,
-    invocation,
-    run_observation,
-    65536,
-    4096,
-    64,
-  ).unwrap()
-  @host.issue_client_effect_local_manifest(
+  )
+  let local_manifest = @host.issue_client_effect_local_manifest(
     materials.prepared,
     @host.client_effect_imported_invocation(evidence),
     [result],
@@ -374,9 +436,9 @@ fn retained_effect_transferred_artifact(
     4096,
     64,
   ).unwrap()
-  |> ignore
   retained_effect_preview_inputs(
     consumer, materials, inputs, invocation, result, result_index, stop_custodies,
+    local_manifest, evidence, source, acquired_bodies, dependencies, public_capture,
   )
   // The observation identifies the Artifact; the derived input Relation
   // preserves its exact provenance and the consumer derivation names that

@@ -128,6 +128,7 @@ pub fn open_resident_effect_retained_compute(
     input_limits,
     current,
     observe,
+    effect_materials=Some((materials, bound)),
   )
 }
 
@@ -143,6 +144,10 @@ fn open_resident_retained_compute_owned(
   input_limits : @output.NativeRemoteStandardTransferSourceLimits,
   current : @output.NativeRemoteRetainedInputCurrent,
   observe : ((ResidentSourceComputeEvent) -> Bool)?,
+  effect_materials? : (
+    @host.ClientEffectRunMaterials,
+    @host.PreparedClientEffectRun,
+  )? = None,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -262,9 +267,10 @@ fn open_resident_retained_compute_owned(
     close_borrow,
     observe,
     effect_retained=match prepared {
-      Effect(_) => Some({ input, material, current, })
+      Effect(_) => Some({ dispatch, input, material, current, })
       Pure(_) => None
     },
+    effect_materials~,
     retained_input=Some(
       (
         projection,

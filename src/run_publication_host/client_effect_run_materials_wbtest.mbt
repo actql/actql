@@ -37,6 +37,17 @@ test "Effect run materials preserve original evidence and reject replaced identi
     environment_writer,
   )
   let environment_wire = @encode.finish(environment_writer)
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "original-effect-caller",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let request_wire = client_request_identity_record_wire(request).unwrap()
+  assert_eq(
+    admit_client_request_identity_record_wire(request_wire).unwrap(),
+    request,
+  )
   let wire = issue_client_effect_run_materials(
     allowed,
     definition,
@@ -45,7 +56,18 @@ test "Effect run materials preserve original evidence and reject replaced identi
     document,
     None,
     effect_limits,
+    request=Some(request),
   ).unwrap()
+  // Selection is syntactic, before semantic admission by the chosen Owner.
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      wire,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      limits.preparation,
+    )
+    is Ok(EffectComputation),
+  )
   let definition_cid = @publication.publication_contract_identity(definition)
   let restored = admit_client_effect_run_materials(
     wire,
@@ -56,6 +78,33 @@ test "Effect run materials preserve original evidence and reject replaced identi
     limits,
     effect_limits,
   ).unwrap()
+  assert_eq(restored.request, Some(request))
+  assert_eq(
+    issue_client_effect_run_materials(
+      restored.allowed,
+      restored.run_definition,
+      environment,
+      environment_wire,
+      document,
+      None,
+      effect_limits,
+      request=restored.request,
+    ).unwrap(),
+    wire,
+  )
+  for
+    altered in [
+      request_wire.replace(old="original-effect-caller", new="different-caller"),
+      request_wire.replace(
+        old="sha256:" + "c".repeat(64),
+        new="sha256:" + "d".repeat(64),
+      ),
+      "{}",
+      request_wire.unsafe_substring(start=0, end=request_wire.length() - 1) +
+      ",\"extra\":true}",
+    ] {
+    assert_true(admit_client_request_identity_record_wire(altered) is Err(_))
+  }
   assert_eq(
     @publication.publication_contract_json(restored.run_definition),
     @publication.publication_contract_json(definition),
@@ -91,6 +140,17 @@ test "Effect run materials preserve original evidence and reject replaced identi
   // The receiving Owner is reconstructed, not the process-local sender handle.
   assert_false(physical_equal(restored.prepared, prepared))
   let changed = wire.replace(old="original-effect-run", new="other-effect-run")
+  // Family selection does not turn a changed Run into an admitted Run.
+  assert_true(
+    inspect_client_run_materials_execution_family(
+      changed,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      limits.preparation,
+    )
+    is Ok(EffectComputation),
+  )
+
   assert_true(
     admit_client_effect_run_materials(
       changed,
@@ -193,6 +253,7 @@ test "acquired Effect run materials retain the original two-task graph" {
     limits,
     effect_limits,
   ).unwrap()
+  assert_true(restored.request is None)
   let graph = @strategy.checked_effect_computation_graph(
     prepared_client_effect_computation_graph(restored.prepared),
   )

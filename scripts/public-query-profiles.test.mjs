@@ -1,3 +1,5 @@
+import './unnest-source-input.test.mjs';
+import {encodeRetainedFixture, decodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
@@ -12,6 +14,12 @@ import {aggregatePropertySuccesses, aggregatePropertyRefusals}
   from './fixtures/aggregate-property-source-input.mjs';
 import {joinPropertySuccesses, joinPropertyRefusals}
   from './fixtures/join-property-source-input.mjs';
+
+import {unnestRefusals} from './fixtures/unnest-source-input.mjs';
+import {windowScalarRefusals} from './fixtures/window-scalar-source-input.mjs';
+import {groupSelectScopeRefusals} from './fixtures/group-select-scope-source-input.mjs';
+import {distinctOrderRefusals} from './fixtures/distinct-order-source-input.mjs';
+import {distinctOrderMemberRefusals} from './fixtures/distinct-order-member-source-input.mjs';
 
 const inputs = {successes: [...analyticOrderSuccesses, ...analyticPropertySuccesses],
   refusals: [...analyticOrderRefusals, ...analyticPropertyRefusals],
@@ -28,8 +36,9 @@ test('Source Graph member selection is narrow while the normal corpus retains it
   assert.ok(driver.slice(start, end).includes("'--source-graph-member-only'"),
     'the explicit selection must not start the independent Planner/Effect campaigns');
   const sourceEnd = driver.indexOf("if (process.argv.includes('--source-graph-member-only')) return;", end);
-  const restart = driver.indexOf("['string-values-restart.mjs']", end);
-  assert.ok(sourceEnd > driver.indexOf("['acceptance.mjs']", end) && restart > sourceEnd,
+  const restart = driver.indexOf("['packed-query-restart-transports.mjs']", end);
+  const acceptance = driver.indexOf("['packed-query-transports.mjs']", end);
+  assert.ok(acceptance >= 0 && sourceEnd > acceptance && restart > sourceEnd,
     'finish Source acceptance before any unrelated retained String restart');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(corpus.includes('scopeInputs.successes.push(...sourceGraphMemberSuccesses)'));
@@ -152,11 +161,11 @@ test('combined packed selection registers every analytic corpus and isolates mut
   for (const name of ['analyticOrderInputs', 'analyticPropertySuccesses', 'analyticOffsetSuccesses',
     'analyticOrderRefusals', 'analyticPropertyRefusals', 'analyticOffsetRefusals',
     'analyticOrderExecutionFailures']) assert.ok(selected.includes(name), name);
-  for (const path of ['local-state${suffix}', 'remote-state${suffix}',
-    'records${suffix}.duckdb', 'source-profile${suffix}.json']) {
+  for (const path of ['local-state${suffix}', 'remote-state${suffix}']) {
     assert.ok(fixture.includes('resolve(`' + path + '`)'), path);
   }
   assert.ok(fixture.includes("profileName === 'standard' ? '' : `-${profileName}`"));
+  assert.ok(fixture.includes('const {database, sourceProfilePath} = sourceFixturePaths(transport, profileName);'));
   assert.ok(fixture.includes('...base.host_policy_profile.capacity, ...analyticCapacity'));
   for (const suite of ['analytic-offset-profiles', 'public-query-profiles']) {
     assert.ok(driver.includes(`'scripts/${suite}.test.mjs'`), suite);
@@ -169,5 +178,120 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};'));
   assert.ok(fixture.includes('environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};'));
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
-  assert.ok(fixture.includes('directory: remoteDirectory, sourceProfilePath, hostCapacityPolicy,'));
+  assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
+  assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
+  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy}'));
+  assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
+
+// This independent Carrier refusal policy runs in ordinary packed preflight.
+import './graph-invalid-carrier-source-input.test.mjs';
+
+
+test('semantic refusal fixtures retain 21 exact invalid-input policies', () => {
+  const refusals = [...unnestRefusals, ...windowScalarRefusals, ...joinPropertyRefusals,
+    ...groupSelectScopeRefusals, ...distinctOrderRefusals, ...distinctOrderMemberRefusals];
+  // These names are independently authored from the scope and offset contracts.
+  // The normal packed preflight checks them without running the product lowerer.
+  const invalid = [
+    'unnest-refusal-ordinal-outside-actual-columns',
+    'unnest-refusal-ordinal-without-offset',
+    'unnest-refusal-ordinal-after-drop',
+    'window-scalar-refuse-aggregate-operand-row-offset',
+    'join-property-invalid-4',
+    'group-select-scope-numeric-distinct-unselected',
+    'distinct-order-unselected-0',
+    'distinct-order-unselected-1',
+    'distinct-order-unselected-2',
+    'distinct-order-join-unselected-0',
+    'distinct-order-join-unselected-1',
+    'distinct-order-join-unselected-2',
+    'order-receiver-unselected-0',
+    'order-receiver-unselected-1',
+    'order-receiver-unselected-2',
+    'order-receiver-unselected-3',
+    'distinct-order-member-unselected-0',
+    'distinct-order-member-unselected-1',
+    'distinct-order-member-unselected-2',
+    'distinct-order-member-unselected-3',
+    'distinct-order-member-unselected-4',
+  ];
+  assert.equal(invalid.length, 21);
+  assert.equal(new Set(invalid).size, 21);
+  for (const name of invalid) {
+    const matches = refusals.filter(value => value.name === name);
+    assert.equal(matches.length, 1, name);
+    assert.equal(matches[0].expectedCode, 'ClientProgramInvalidInput', name);
+  }
+  assert.equal(windowScalarRefusals.find(value => value.name ===
+    'window-scalar-refuse-aggregate-operand-missing-frame').expectedCode,
+  'ClientProgramImplementationLimit', 'the valid missing-frame connection remains unsupported');
+  const unsafe = groupSelectScopeRefusals.find(value => value.name ===
+    'group-select-scope-numeric-unsafe-integer');
+  assert.equal(Object.hasOwn(unsafe, 'expectedCode'), false,
+    'the unrelated unsafe-integer refusal policy remains unchanged');
+});
+
+// Independent fixed vectors for persisted authored inputs/oracles. These do not
+// use observed product rows, the cohort partition helper or generated expected wire.
+test('retained fixture transport preserves explicit undefined and literal tag-shaped values', () => {
+  const source = {parameterDeclarations: undefined, parameters: {x: undefined},
+    expected: [{tag: ['undefined'], value: {type: 'undefined'}}]};
+  const wire = '[["parameterDeclarations",["undefined"]],["parameters",["object",[["x",["undefined"]]]]],["expected",["array",[["object",[["tag",["array",[["string","undefined"]]]],["value",["object",[["type",["string","undefined"]]]]]]]]]]]';
+  const expectedWire = '["retained-fixture-values/0.1",["object",' + wire + ']]';
+  assert.equal(encodeRetainedFixture(source), expectedWire);
+  assert.deepEqual(decodeRetainedFixture(expectedWire), source);
+  assert.equal(Object.hasOwn(decodeRetainedFixture(expectedWire), 'parameterDeclarations'), true);
+});
+
+test('retained fixture transport preserves numeric values, array undefined and own prototype-shaped keys', () => {
+  const source = [undefined, null, -0, NaN, Infinity, -Infinity, 4n,
+    Object.fromEntries([['__proto__', {x: undefined}]])];
+  const restored = decodeRetainedFixture(encodeRetainedFixture(source));
+  assert.deepEqual(restored, source);
+  assert.equal(Object.is(restored[2], -0), true);
+  assert.equal(Object.hasOwn(restored[7], '__proto__'), true);
+  assert.equal(Object.getPrototypeOf(restored[7]), Object.prototype);
+});
+
+test('retained fixture transport rejects hooks without invoking them', () => {
+  let reads = 0;
+  const getter = {get field() { reads++; return 1; }};
+  const hook = {toJSON() { reads++; return {}; }};
+  assert.throws(() => encodeRetainedFixture(getter), {message: 'InvalidRetainedFixtureValue'});
+  assert.throws(() => encodeRetainedFixture(hook), {message: 'InvalidRetainedFixtureValue'});
+  assert.equal(reads, 0);
+  assert.throws(() => decodeRetainedFixture('["retained-fixture-values/0.1",["object",[["x",["null"]],["x",["null"]]]]]'),
+    {message: 'InvalidRetainedFixtureValue'});
+});
+
+
+test('full corpus pins every authored occurrence independently of worker selection', async () => {
+  const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
+  assert.equal(pin.sourceBaseline, 'f49911df6de00967eb4cff0d49769d9c026f0c22');
+  assert.equal(pin.totalCases, 3303);
+  assert.deepEqual(pin.counts, {successes: 2088, refusals: 1168, executionFailures: 47});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
+    ['standard', {successes: 2035, executionFailures: 45, refusals: 1133}],
+    ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
+    ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
+    ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
+  ]);
+  assert.deepEqual(pin.repeatedFailures, [
+    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 43]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 44]},
+  ]);
+  const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
+  const actual = await registeredPublicQueryInventory();
+  for (const key of ['totalCases', 'inventorySha256', 'counts', 'profiles', 'repeatedFailures']) {
+    assert.deepEqual(actual[key], pin[key], key);
+  }
+  const coordinator = await readFile(new URL('./fixtures/packed-query-transports.mjs', import.meta.url), 'utf8');
+  assert.ok(coordinator.includes("registered.inventorySha256, 'full worker inventory must match the independent authored pin'"));
+});
+import './public-query-refusal-classifications.test.mjs';
+
+// These independent fixture policies run in the ordinary packed preflight.
+import './graph-refusal-classification-source-input.test.mjs';
+import './full-join-scope-source-input.test.mjs';
+import './pipe-join-input.test.mjs';

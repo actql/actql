@@ -170,8 +170,12 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
   for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup','submission_restart','submission_attempt',
     'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
-    'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt',
-    'owner_ref','owner_cursor','owner_observations']) emit(schemas[name], `wire_${name}_shape`);
+    'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt']) emit(schemas[name], `wire_${name}_shape`);
+  const observationStart = functions.length;
+  for (const name of ['owner_ref', 'owner_cursor', 'owner_observations']) {
+    emit(schemas[name], `wire_${name}_shape`);
+  }
+  const observationFunctions = functions.slice(observationStart);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');
   for (const [name, rule] of Object.entries(rules)) {
     const lines = [`if !wire_connection_shape(selected) || !wire_${name}_shape(value) { return Some(InvalidShape) }`,
@@ -195,11 +199,33 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       '  guard value is Object(fields) else { return false }\n' +
       `  ${alternatives.join(' ||\n  ')}\n}\n`);
   }
-  const source = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n' +
-    functions.join('\n') + '\n' + nativeCheckReportRules(reportRules);
+  // Owner observations are tested against the Native wire contract, but are
+  // not a CLI operation yet. Keep their exclusive helpers in white-box test
+  // output. Any helper also reached by a production validator stays there.
+  const observationSet = new Set(observationFunctions);
+  const candidates = new Map(observationFunctions.map(source =>
+    [/\bfn (wire_[a-z0-9_]+)\(/u.exec(source)[1], source]));
+  const production = functions.filter(source => !observationSet.has(source));
+  const report = nativeCheckReportRules(reportRules);
+  const reached = new Set();
+  const pending = [production.join('\n') + report];
+  while (pending.length) {
+    for (const [, name] of pending.pop().matchAll(/\b(wire_[a-z0-9_]+)\(/gu)) {
+      if (candidates.has(name) && !reached.has(name)) {
+        reached.add(name);
+        pending.push(candidates.get(name));
+      }
+    }
+  }
+  const testOnly = new Set([...candidates].filter(([name]) => !reached.has(name))
+    .map(([, source]) => source));
+  const header = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n';
+  const source = header + functions.filter(source => !testOnly.has(source)).join('\n') + '\n' + report;
   // Use the repository's pinned formatter, also required by the CI formatting gate.
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
-  return execFileSync(formatter, ['-'], {input: source, encoding: 'utf8', timeout: 10000});
+  const format = input => execFileSync(formatter, ['-'], {input, encoding: 'utf8', timeout: 10000});
+  return {native: format(source), nativeTests: format(header + observationFunctions
+    .filter(source => testOnly.has(source)).join('\n') + '\n')};
 }
 
 export function responseRules(registry) {

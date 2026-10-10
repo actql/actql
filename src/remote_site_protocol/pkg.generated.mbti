@@ -2,6 +2,7 @@
 package "actql/actql/remote_site_protocol"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "actql/actql/execution_site",
   "actql/actql/publication_payload",
   "actql/actql/remote_transfer",
@@ -27,6 +28,10 @@ pub fn admit_durable_dispatch_record(Bytes) -> Result[DurableDispatchRecord, Dis
 pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
 
 pub fn admit_remote_dispatch_response_json(String, DispatchRequest, RemoteDispatchResponseKind) -> Result[RemoteDispatchResponse, DispatchIssue]
+
+pub fn admit_remote_effect_checkpoint_reply_json(String, RemoteEffectCheckpointReport) -> Result[RemoteEffectCheckpointReply, DispatchIssue]
+
+pub fn admit_remote_effect_checkpoint_report_json(String, DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
@@ -370,6 +375,8 @@ pub fn prepare_reject_execution_evidence(DispatchRecord) -> Result[DispatchTrans
 
 pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudget, DispatchIssue]
 
+pub fn prepare_remote_effect_checkpoint_report(DispatchRequest, @checkpoint_runtime.PersistedCheckpoint, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
+
 pub fn prepare_remote_input_binding(String, Int) -> Result[RemoteInputBinding, DispatchIssue]
 
 pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
@@ -441,6 +448,16 @@ pub fn remote_dispatch_response_source_observation(RemoteDispatchResponse) -> Re
 pub fn remote_dispatch_response_subject(RemoteDispatchResponse) -> RemoteManagedOutputSubject?
 
 pub fn remote_dispatch_status_json(DispatchRecord, RemoteExecutionEvidence?, RemoteManagedOutputSubject?, RemoteManagedOutputMeasurement?, source_observation? : RemoteSourceObservation?) -> Result[String, DispatchIssue]
+
+pub fn remote_effect_checkpoint_reply_json(RemoteEffectCheckpointReport, RemoteEffectCheckpointReply) -> Result[String, DispatchIssue]
+
+pub fn remote_effect_checkpoint_report_checkpoint(RemoteEffectCheckpointReport) -> @checkpoint_runtime.SealedCheckpoint
+
+pub fn remote_effect_checkpoint_report_dispatch(RemoteEffectCheckpointReport) -> DispatchRequest
+
+pub fn remote_effect_checkpoint_report_identity(RemoteEffectCheckpointReport) -> String
+
+pub fn remote_effect_checkpoint_report_json(RemoteEffectCheckpointReport) -> String
 
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
@@ -826,6 +843,13 @@ pub(all) enum RemoteDispatchResponseKind {
   DispatchReply
   StatusReply
 } derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteEffectCheckpointReply {
+  Accepted
+  Refused(String)
+} derive(Eq, @debug.Debug)
+
+type RemoteEffectCheckpointReport
 
 type RemoteEvidenceIssuer
 

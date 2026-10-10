@@ -1,6 +1,11 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/checkpoint_runtime" @checkpoint,
+  "actql/actql/canonical_json" @canonical,
+  "actql/actql/effect_application" @effect,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
   "actql/actql/platform_native/retained_task_file" @retained_file,
   "actql/actql/physical_manifest" @cleanup_manifest,
   "actql/actql/execution_site" @site,
@@ -33,6 +38,7 @@ import {
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/publication_payload" @payload,
   "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/signature",
   "actql/actql/platform_native/filesystem",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",

@@ -211,6 +211,7 @@ fn client_code(issue : @client.NativeRemoteClientIssue) -> String {
     Journal(_) => "journal"
     InvalidUtf8 => "invalid-utf8"
     OutputReportRefused(reason) => "output-report-" + reason
+    EffectCheckpointRefused(reason) => "effect-checkpoint-" + reason
     OutcomeUnknownPersistence(_, _) => "outcome-unknown"
     Closed => "closed"
     UnsupportedTarget => "unsupported-target"
@@ -1579,6 +1580,25 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let dispatch_budget = budget(matches)
   let site_delegation = delegation(matches, dispatch_budget)
   let admission = run_admission(matches)
+  // Only operator configuration is read here; physical acquisition belongs
+  // to the exclusive holder after durable acceptance and a protected claim.
+  let effect_configuration = if admission.source is Some(_) &&
+    retained_input_delegation(matches) is Some(_) {
+    let root = required(matches, "engine-root")
+    let maximum = required_int64(matches, "max-file-bytes")
+    match source_configuration(matches, root, maximum) {
+      Some(source) =>
+        retained_consumer_configuration(
+          source,
+          load_text(root, "registry.json", maximum),
+          load_text(root, "values.json", maximum),
+          required_int64(matches, "retained-consumer-engine-bytes"),
+        )
+      None => None
+    }
+  } else {
+    None
+  }
   let generation = required_int(matches, "site-generation")
   let queue = match
     @resident.ResidentAcceptedQueue::new(
@@ -1627,6 +1647,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let mut holders = 0
   let next_output_report : Map[String, UInt64] = Map([])
   let report_cursor : Ref[String] = { val: "", }
+  let next_checkpoint_report : Map[String, UInt64] = Map([])
+  let checkpoint_report_cursor : Ref[String] = { val: "", }
   let report_kill_at = required(matches, "control-report-kill-at")
   let report_checkpoint = fn(point : String) {
     if point == report_kill_at {
@@ -1638,6 +1660,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     replay_output_reports(
       environment, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
       site_delegation, report_checkpoint,
+    )
+    replay_effect_checkpoint_reports(
+      environment, client, observation_url, next_checkpoint_report, max_backoff_ms,
+      checkpoint_report_cursor, site_delegation, report_checkpoint,
     )
     // A finished holder's durable record is reported before new work.
     match holder {
@@ -1889,7 +1915,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           continue
         }
         match
-          @resident_host.accept_resident_dispatch(
+          accept_site_dispatch(
             journal,
             client,
             observation_url,
@@ -1897,6 +1923,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             generation,
             queue,
             admission,
+            effect_configuration,
             dispatch,
             start_timestamp(matches),
           ) {
@@ -1909,7 +1936,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("refused", [("reason", refusal_code(refusal))])
           Ok(AlreadyStarted(attempt)) =>
             report("already-started", [("attempt", attempt)])
-          Err(issue) => report("accept-failed", [("reason", host_code(issue))])
+          Err(issue) =>
+            report("accept-failed", [("reason", holder_issue_code(issue))])
         }
       }
       Ok(Some(@remote.Cancel(request))) => {
@@ -2538,6 +2566,7 @@ fn serve_holder_output(
   claimant : String,
   executor_entry : ((String) -> Bool)?,
   exclusive_current : () -> Bool,
+  effect_producer? : @resident_host.ResidentEffectProducerExecuted? = None,
 ) -> Unit {
   let request = executed.request
   let control = resources.control
@@ -2553,8 +2582,17 @@ fn serve_holder_output(
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
   let order : Array[String] = [identity]
-  let original = new_holder_task_custody(request, Some(executed), None, None)
+  let original = new_holder_task_custody(
+    request,
+    Some(executed),
+    None,
+    None,
+    effect_producer~,
+  )
   tasks.set(identity, original)
+  if holder_effect_computation(original, environment.journal) is Some(_) {
+    report("effect-computation-custody-retained", [("request_cid", identity)])
+  }
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -2615,12 +2653,35 @@ fn serve_holder_output(
           match
             (@remote.admit_remote_poll_dispatch_json(envelope), configuration) {
             (Ok(dispatch), Some(configuration)) => {
-              let producer_identity = match
-                @resident_host.resident_retained_consumer_producer_identity(
-                  admission,
-                  dispatch,
-                  current_time(),
+              let family = match
+                @resident_host.resident_dispatch_execution_family(
+                  admission, dispatch,
                 ) {
+                Ok(value) => value
+                Err(_) => {
+                  report("consumer-refused", [("reason", "materials")])
+                  continue
+                }
+              }
+              let producer_identity = match
+                (match family {
+                  EffectFreeComputation =>
+                    @resident_host.resident_retained_consumer_producer_identity(
+                      admission,
+                      dispatch,
+                      current_time(),
+                    ).map_err(issue => {
+                      @resident_host.ResidentRetainedExecutionIssue::Host(issue)
+                    })
+                  EffectComputation =>
+                    @resident_host.resident_effect_retained_consumer_producer_identity(
+                      admission,
+                      resident_effect_limits(admission),
+                      configuration,
+                      dispatch,
+                      current_time(),
+                    )
+                }) {
                 Ok(value) => value
                 Err(_) => {
                   report("consumer-refused", [("reason", "retained-input")])
@@ -2633,20 +2694,35 @@ fn serve_holder_output(
                 report("consumer-unavailable", [("reason", "holder-custody")])
                 continue
               }
+              let binding_limits : @output.NativeRemoteStandardTransferBindingLimits = {
+                max_binding_bytes: 1048576,
+                max_chunks: 65536,
+                max_manifest_bytes: 1048576,
+                max_referenced_bytes: resources.retained_max_bytes,
+              }
               let owner = match
-                @resident_host.prepare_resident_retained_consumer(
-                  handoff,
-                  environment.journal,
-                  admission,
-                  dispatch,
-                  current_time(),
-                  {
-                    max_binding_bytes: 1048576,
-                    max_chunks: 65536,
-                    max_manifest_bytes: 1048576,
-                    max_referenced_bytes: resources.retained_max_bytes,
-                  },
-                ) {
+                (match family {
+                  EffectFreeComputation =>
+                    @resident_host.prepare_resident_retained_consumer(
+                      handoff,
+                      environment.journal,
+                      admission,
+                      dispatch,
+                      current_time(),
+                      binding_limits,
+                    )
+                  EffectComputation =>
+                    @resident_host.prepare_resident_effect_retained_consumer(
+                      handoff,
+                      environment.journal,
+                      admission,
+                      resident_effect_limits(admission),
+                      configuration,
+                      dispatch,
+                      current_time(),
+                      binding_limits,
+                    )
+                }) {
                 Ok(value) => value
                 Err(_) => {
                   report("consumer-refused", [("reason", "retained-input")])
@@ -2716,6 +2792,15 @@ fn serve_holder_output(
                     Ok(completed) => {
                       task.process_hold.val = None
                       task.executed = Some(completed)
+                      if holder_effect_computation(task, environment.journal)
+                        is Some(_) {
+                        report("effect-computation-custody-retained", [
+                          (
+                            "request_cid",
+                            completed.completion.dispatch_request_cid,
+                          ),
+                        ])
+                      }
                       report("consumer-executed", [
                         (
                           "request_cid",
@@ -2788,15 +2873,20 @@ fn serve_holder_output(
                 continue
               }
               let context = match
-                @resident_host.prepare_resident_retained_producer_context(
+                prepare_holder_producer_context(
                   environment.journal,
                   admission,
+                  configuration,
+                  delegation,
+                  @site.site_generation(environment.site),
                   intent,
                   current_time(),
                 ) {
                 Ok(value) => value
                 Err(issue) => {
-                  report("retained-plan-failed", [("reason", host_code(issue))])
+                  report("retained-plan-failed", [
+                    ("reason", holder_issue_code(issue)),
+                  ])
                   continue
                 }
               }
@@ -2951,16 +3041,19 @@ fn serve_holder_output(
                 }
                 None => {
                   let context = match
-                    @resident_host.prepare_resident_retained_producer_context(
+                    prepare_holder_producer_context(
                       environment.journal,
                       admission,
+                      configuration,
+                      delegation,
+                      @site.site_generation(environment.site),
                       intent,
                       current_time(),
                     ) {
                     Ok(value) => value
                     Err(issue) => {
                       report("retained-transfer-failed", [
-                        ("reason", host_code(issue)),
+                        ("reason", holder_issue_code(issue)),
                       ])
                       continue
                     }
@@ -3697,15 +3790,21 @@ fn run_holder(
       }
     _ => false
   }
+  let holder_delegation = delegation(matches, budget(matches))
+  let effect_producer : Ref[@resident_host.ResidentEffectProducerExecuted?] = Ref(
+    None,
+  )
   let result = if saved_completion {
     restore_holder_attempt(
       matches, environment, execution, resources, slot, attempt,
-    )
+    ).map_err(issue => HolderExecutionFailure::Ordinary(issue))
   } else {
-    @resident_host.execute_resident_attempt(
+    execute_holder_source(
       environment.journal,
       execution,
       run_admission(matches),
+      consumer_configuration,
+      () => holder_delegation,
       attempt,
       claimant,
       // Read the holder clock at each authority check, not before rebuilding
@@ -3721,7 +3820,7 @@ fn run_holder(
         start_timestamp(matches)
       },
       observer,
-      source_observe=event => {
+      event => {
         if event is @resident_host.AcquisitionEntered {
           // A physical acquisition boundary, separate from executor entry
           // and the later durable successful Source observation.
@@ -3729,6 +3828,7 @@ fn run_holder(
         }
         true
       },
+      retain_effect_producer=owner => effect_producer.val = Some(owner),
     )
   }
   let code = match result {
@@ -3768,15 +3868,22 @@ fn run_holder(
         claimant,
         observer,
         () => slot.verify_current_hold() == Ok(()),
+        effect_producer=effect_producer.val,
       )
       0
     }
     Err(failure) => {
-      let issue = failure.issue
-      report("execute-failed", [("reason", host_code(issue))])
+      let issue = failure.issue()
+      report("execute-failed", [("reason", holder_issue_code(issue))])
       // A runtime whose cleanup is not confirmed is kept: only its close is
       // retried, with the slot still held, and nothing is started again.
-      match failure.pending_runtime {
+      if failure is Effect({ cleanup_issue: Some(cleanup), .. }) {
+        report("cleanup-pending", [
+          ("step", "effect-source-after-failure"),
+          ("reason", runtime_code(cleanup)),
+        ])
+      }
+      match failure.runtime() {
         Some(runtime) => {
           let mut wait_ms = 50
           let mut attempts = 0
@@ -3796,7 +3903,7 @@ fn run_holder(
             }
           }
           report("runtime-cleaned", [
-            ("reason", host_code(issue)),
+            ("reason", holder_issue_code(issue)),
             ("attempts", attempts.to_string()),
           ])
         }
@@ -3804,8 +3911,10 @@ fn run_holder(
       }
       close_holder_output_resources(resources)
       match issue {
-        Runtime(@runtime.StartClaimLost(_))
-        | Runtime(@runtime.StartCancelled) => 2
+        Ordinary(Runtime(@runtime.StartClaimLost(_)))
+        | Ordinary(Runtime(@runtime.StartCancelled))
+        | Effect(Host(Runtime(@runtime.StartClaimLost(_))))
+        | Effect(Host(Runtime(@runtime.StartCancelled))) => 2
         _ => 1
       }
     }

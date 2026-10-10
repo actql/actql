@@ -1,0 +1,163 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.graph_relation_join",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "node_key": {
+                "type": "number",
+                "nullable": false
+              },
+              "p": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "node_key": 1,
+                "p": 7
+              }
+            ]
+          },
+          "as": "n"
+        },
+        {
+          "values": {
+            "schema": {
+              "tag": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "tag": 20
+              },
+              {
+                "tag": 10
+              }
+            ]
+          },
+          "as": "r"
+        },
+        {
+          "graph": {
+            "version": "actql-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "n",
+                "key": [
+                  "node_key"
+                ],
+                "labels": [
+                  {
+                    "name": "Node",
+                    "properties": {
+                      "mode": "columns",
+                      "columns": [
+                        {
+                          "from": "p",
+                          "to": "p"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "name": "E",
+                "from": "n",
+                "key": [
+                  "node_key"
+                ],
+                "source": {
+                  "definition": "N",
+                  "key": [
+                    "node_key"
+                  ]
+                },
+                "target": {
+                  "definition": "N",
+                  "key": [
+                    "node_key"
+                  ]
+                },
+                "labels": [
+                  {
+                    "name": "R",
+                    "properties": {
+                      "mode": "columns",
+                      "columns": [
+                        {
+                          "from": "p",
+                          "to": "p"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "as": "g"
+        },
+        {
+          "from": "g",
+          "graphs_equal": {
+            "with": "g"
+          },
+          "as": "stats"
+        },
+        {
+          "from": "stats",
+          "cross_join": {
+            "with": "r",
+            "max_output_rows": 10,
+            "select": {
+              "value": "left.equal",
+              "tag": "right.tag"
+            }
+          },
+          "as": "joined"
+        },
+        {
+          "from": "joined",
+          "sort": [
+            {
+              "field": "tag",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
+          "as": "sorted"
+        }
+      ],
+      "results": {
+        "out": {
+          "from": "sorted",
+          "fields": [
+            "value",
+            "tag"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "out"
+      }
+    }
+  }
+}

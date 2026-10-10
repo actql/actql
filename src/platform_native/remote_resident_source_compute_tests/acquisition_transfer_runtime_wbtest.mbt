@@ -19,6 +19,9 @@ fn acquisition_runtime_transfer_consumer(
   sqlite : @sqlite.Library,
   root_path : String,
   name : String,
+  effect_pair? : (@host.ClientEffectRunMaterials, @host.ClientRequestIdentity)? = None,
+  effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
+  provider? : Bool = false,
   through_consumer_holder? : Bool = false,
   consumer_task? : Int = 1,
   chain_context? : RetainedNativeChainContext? = None,
@@ -57,9 +60,6 @@ fn acquisition_runtime_transfer_consumer(
   assert_false(@remote.remote_poll_operation_is_output_plan(operation))
   assert_false(@remote.remote_poll_operation_is_output(operation))
   let intent = @remote.remote_poll_retained_input_intent(poll)
-  let context = @resident.prepare_resident_retained_producer_context(
-    producer_journal, admission, intent, "2026-10-05T00:00:00.000Z",
-  ).unwrap()
   let local_delegation : @resident_protocol.ResidentRetainedInputDelegation = {
     dispatch: {
       coordinator_authority: retained_compute_cid("c"),
@@ -76,17 +76,98 @@ fn acquisition_runtime_transfer_consumer(
     destination_grant_cid: retained_compute_cid("8"),
     route_capability_cid: retained_compute_cid("6"),
   }
+  let at = if effect_pair is Some(_) {
+    "2026-10-09T00:00:00.000Z"
+  } else {
+    "2026-10-05T00:00:00.000Z"
+  }
+  let now_milliseconds = if effect_pair is Some(_) {
+    1791504000000L
+  } else {
+    1791158400000L
+  }
+  let context = match effect_pair {
+    Some(_) =>
+      @resident.prepare_resident_effect_retained_producer_context(
+        producer_journal,
+        admission,
+        retained_compute_effect_limits(),
+        local_delegation.dispatch,
+        @site.site_generation(site),
+        intent,
+        at,
+        configuration.registry_body,
+        configuration.values_body,
+        configuration.source.fragment_contract_body,
+      ).unwrap()
+    None =>
+      @resident.prepare_resident_retained_producer_context(
+        producer_journal, admission, intent, at,
+      ).unwrap()
+  }
+  if effect_pair is Some(_) {
+    let unchanged = @site.site_status(site)
+    assert_true(
+      @resident.prepare_resident_effect_retained_producer_context(
+        producer_journal,
+        admission,
+        retained_compute_effect_limits(),
+        local_delegation.dispatch,
+        @site.site_generation(site) + 1,
+        intent,
+        at,
+        configuration.registry_body,
+        configuration.values_body,
+        configuration.source.fragment_contract_body,
+      )
+      is Err(_),
+    )
+    assert_true(
+      @resident.prepare_resident_effect_retained_producer_context(
+        producer_journal,
+        admission,
+        retained_compute_effect_limits(),
+        {
+          ..local_delegation.dispatch,
+          coordinator_authority: retained_compute_cid("0"),
+        },
+        @site.site_generation(site),
+        intent,
+        at,
+        configuration.registry_body,
+        configuration.values_body,
+        configuration.source.fragment_contract_body,
+      )
+      is Err(_),
+    )
+    assert_true(
+      @resident.prepare_resident_effect_retained_producer_context(
+        producer_journal,
+        admission,
+        retained_compute_effect_limits(),
+        local_delegation.dispatch,
+        @site.site_generation(site),
+        intent,
+        "2100-01-01T00:00:00.000Z",
+        configuration.registry_body,
+        configuration.values_body,
+        configuration.source.fragment_contract_body,
+      )
+      is Err(_),
+    )
+    assert_eq(@site.site_status(site), unchanged)
+  }
   let planner_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, request) => {
       @resident.resident_retained_producer_authorized(
         context,
         local_delegation,
         request,
         @site.site_generation(site),
-        "2026-10-05T00:00:00.000Z",
+        at,
       )
     },
   )
@@ -108,7 +189,7 @@ fn acquisition_runtime_transfer_consumer(
   let denied = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => false,
   )
   assert_true(
@@ -120,7 +201,7 @@ fn acquisition_runtime_transfer_consumer(
   let stale = @host.install_client_retained_input_owner_current(
     (_, _, _) => false,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => true,
   )
   assert_true(
@@ -208,7 +289,7 @@ fn acquisition_runtime_transfer_consumer(
       { ..local_delegation, source_grant_cid: retained_compute_cid("0"), },
       request,
       @site.site_generation(site),
-      "2026-10-05T00:00:00.000Z",
+      at,
     ),
   )
   assert_false(
@@ -233,7 +314,7 @@ fn acquisition_runtime_transfer_consumer(
   let common_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => {
       // Observe delegation first, then inject an actual concurrent producer
       // release before returning that earlier authorization observation.
@@ -242,7 +323,7 @@ fn acquisition_runtime_transfer_consumer(
         local_delegation,
         request,
         @site.site_generation(site),
-        "2026-10-05T00:00:00.000Z",
+        at,
       )
       if cleanup_now.val {
         cleanup_now.val = false
@@ -526,7 +607,7 @@ fn acquisition_runtime_transfer_consumer(
   let current = @output.install_native_remote_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
-    () => 1791158400000L,
+    () => now_milliseconds,
     (_, _) => true,
   )
   let input = @output.prepare_native_remote_retained_task_input(
@@ -535,19 +616,36 @@ fn acquisition_runtime_transfer_consumer(
   let common_input = @host.prepare_client_retained_task_input(
     producer, committed, receipt, "direct-destination", common_current, 262144,
   ).unwrap()
-  let dispatch = @host.prepare_client_retained_task_dispatch(
-    materials.prepared,
-    compilation,
-    materials.admission,
-    materials.run_definition,
-    caller,
-    consumer_task,
-    1,
-    "actual-consumer",
-    selected,
-    common_input,
-    common_current,
-  ).unwrap()
+  let issue_dispatch = fn(attempt : Int, label : String) {
+    match effect_pair {
+      Some((materials, caller)) =>
+        @host.prepare_client_effect_retained_task_dispatch(
+          materials.allowed,
+          materials.run_definition,
+          caller,
+          attempt,
+          label,
+          selected,
+          common_input,
+          common_current,
+        ).unwrap()
+      None =>
+        @host.prepare_client_retained_task_dispatch(
+          materials.prepared,
+          compilation,
+          materials.admission,
+          materials.run_definition,
+          caller,
+          consumer_task,
+          attempt,
+          label,
+          selected,
+          common_input,
+          common_current,
+        ).unwrap()
+    }
+  }
+  let dispatch = issue_dispatch(1, "actual-consumer")
   if through_consumer_holder {
     retained_consumer_holder_case(
       transfer,
@@ -557,19 +655,7 @@ fn acquisition_runtime_transfer_consumer(
       configuration,
       common_input,
       dispatch,
-      @host.prepare_client_retained_task_dispatch(
-        materials.prepared,
-        compilation,
-        materials.admission,
-        materials.run_definition,
-        caller,
-        consumer_task,
-        2,
-        "foreign-holder-consumer",
-        selected,
-        common_input,
-        common_current,
-      ).unwrap(),
+      issue_dispatch(2, "foreign-holder-consumer"),
       site,
       sqlite,
       root_path,
@@ -591,6 +677,9 @@ fn acquisition_runtime_transfer_consumer(
       },
       chain_context~,
       output_unavailable=consumer_output_unavailable,
+      effect_materials=effect_pair.map(pair => pair.0),
+      effect_producer~,
+      provider~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     if chain_context is Some(_) ||
@@ -671,19 +760,7 @@ fn acquisition_runtime_transfer_consumer(
     input,
     material,
     dispatch,
-    @host.prepare_client_retained_task_dispatch(
-      materials.prepared,
-      compilation,
-      materials.admission,
-      materials.run_definition,
-      caller,
-      consumer_task,
-      2,
-      "foreign-actual-consumer",
-      selected,
-      common_input,
-      common_current,
-    ).unwrap(),
+    issue_dispatch(2, "foreign-actual-consumer"),
     codec,
     current,
     site,
@@ -696,6 +773,50 @@ fn acquisition_runtime_transfer_consumer(
     retained_site_usage=producer_usage,
     through_resident=true,
     expire_at_start=consumer_start_expiry,
+    effect_materials=effect_pair.map(pair => pair.0),
+    restore_effect_input=(rebuilt, saved) => {
+      let edge = match
+        @host.prepare_client_effect_retained_input_edge(
+          rebuilt.allowed,
+          rebuilt.run_definition,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(@output.InvalidBinding)
+      }
+      let observation = match producer_journal.observation(producer_dispatch) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ProducerUnavailable)
+      }
+      guard @dispatch_journal.recovered_site_dispatch_evidence(observation)
+        is Some(evidence) &&
+        @dispatch_journal.recovered_site_dispatch_subject(observation)
+        is Some(subject) else {
+        return Err(@output.ProducerUnavailable)
+      }
+      let record = match producer_journal.require(producer_dispatch) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ProducerUnavailable)
+      }
+      let producer = match
+        @host.prepare_client_retained_input_producer(
+          edge, record, evidence, subject,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ProducerUnavailable)
+      }
+      let committed = match destination_journal.require(request) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ForeignTransfer)
+      }
+      let receipt = match
+        destination_journal.inspect_destination_receipt(request) {
+        Ok(Some(value)) => value
+        _ => return Err(@output.ForeignTransfer)
+      }
+      @output.admit_native_remote_retained_task_input(
+        saved, producer, committed, receipt, "direct-destination", current, 262144,
+      )
+    },
     restore_input=(rebuilt, saved) => {
       guard rebuilt.compilation is @host.Tasks(compilation) else {
         return Err(@output.InvalidBinding)

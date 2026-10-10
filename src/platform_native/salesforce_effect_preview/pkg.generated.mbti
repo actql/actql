@@ -1,0 +1,178 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/salesforce_effect_preview"
+
+import {
+  "actql/actql/checkpoint_runtime",
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/effect_application",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+  "actql/actql/platform_native/credential_resource",
+  "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_resident_host",
+  "actql/actql/platform_native/signature",
+  "actql/actql/remote_credential",
+  "actql/actql/remote_site_protocol",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
+
+pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
+
+pub fn prepare_native_resident_effect_preview(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, Int, String, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, @catalog.ExecutionMapping, String, @catalog.CatalogObservation, Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], @run_publication_host.ClientCapturedEffectPreviewLimits, @run_publication_host.PublicationOutputExportLimits, NativeEffectDispatchKeyLimits) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue]
+
+pub fn prepare_native_resident_effect_review(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @remote_resident_host.ResidentEffectProducerCapture, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectImportedEvidence, Int, @remote_resident_host.ResidentEffectResultCapture, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewIssue]
+
+pub fn prepare_native_resident_effect_review_from_context(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, @run_publication.RunEvidenceValue, Array[String], Array[String], NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
+
+// Errors
+
+// Types and methods
+pub(all) struct NativeEffectDispatchKeyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) struct NativeResidentEffectPreview {
+  wire : String
+  authoring : @run_publication.RunEvidenceValue
+  source : @run_publication.PublicationContract
+  preview : @physical_strategy.CapturedEffectPreviewInputs
+  proof : @physical_strategy.CapturedEffectPlanProof
+  identity : @run_publication_host.ClientEffectLocalIdentity
+  keys : Array[@effect_application.EffectDispatchKey]
+  capability : @catalog.WriteCapabilityEvidence
+}
+
+pub(all) enum NativeResidentEffectPreviewIssue {
+  InvalidLimits
+  ForeignEvidence
+  Encoding
+  Request(@run_publication_host.ClientRequestIdentityIssue)
+  Source(@run_publication_host.ClientEffectSourceArtifactIssue)
+  Identity(@run_publication_host.ClientEffectLocalIdentityIssue)
+  Capability(@catalog.WriteCapabilityIssue)
+  Mapping(@catalog.DeclarationUseIssue)
+  Target(@catalog.TargetObservationIssue)
+  Footprint(@catalog.WriteCollectionRequestIssue)
+  Draft(@run_publication.PublicationContractIssue)
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+  Dispatch(@effect_application.EffectIdentityIssue)
+  Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+  Binding(@run_publication_host.ClientCapturedEffectPreviewIssue)
+  Plan(@remote_resident_host.ResidentEffectPreviewPlanIssue)
+}
+
+type NativeResidentEffectReview
+pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::dispatch_identity(Self) -> String
+pub fn NativeResidentEffectReview::observe(Self, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
+pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_store.Store, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::prepare_retention(Self, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_resident_host.ResidentEffectReviewRetention, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal) -> Result[Unit, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::result_capture(Self) -> @remote_resident_host.ResidentEffectResultCapture?
+pub fn NativeResidentEffectReview::retry_cleanup(Self) -> Result[Bool, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::target_uses(Self) -> Array[NativeSalesforceTargetAccess]
+
+pub(all) struct NativeResidentEffectReviewCapture {
+  artifact : @run_publication_host.ClientEffectLocalResultArtifact
+  manifest : @run_publication_host.ClientEffectLocalManifest
+  preview : NativeResidentEffectPreview
+  source : @run_publication.CapturedEffectSourceArtifact
+  local_source : @run_publication.CapturedLocalEffectSourceEvidence
+  inventory : @run_publication.CapturedEffectDependencyInventory
+  dependencies : Array[@run_publication_host.ClientEffectDependencyCapture]
+  captured : @run_publication.PublicationContract
+}
+
+pub(all) enum NativeResidentEffectReviewIssue {
+  Unavailable
+  InvalidLimits
+  Native(@remote_resident_host.ResidentSourceComputeIssue)
+  Export(@execution_relation.CompletedExportIssue)
+  Definition(@run_publication_host.ClientEffectLocalResultDefinitionIssue)
+  Artifact(@run_publication_host.ClientEffectLocalResultArtifactIssue)
+  Targets(NativeResidentEffectTargetIssue)
+  Preview(NativeResidentEffectPreviewIssue)
+  Contract(@run_publication.PublicationContractIssue)
+  Source(@run_publication.CapturedRunIssuanceIssue)
+  Dependency(@remote_resident_host.ResidentEffectDependencyCaptureIssue)
+  Manifest(@run_publication_host.ClientEffectLocalManifestIssue)
+  Inventory(@run_publication_host.ClientEffectCaptureInventoryIssue)
+  Capture(@remote_resident_host.ResidentEffectRunCaptureIssue)
+  Retention(@remote_resident_host.ResidentEffectReviewRetentionIssue)
+  Journal(@remote_journal.NativeRemoteJournalIssue)
+}
+
+pub(all) struct NativeResidentEffectReviewPolicy {
+  stage : Int
+  effect_id : String
+  result_index : Int
+  mapping : @catalog.ExecutionMapping
+  projection : @catalog.WriteProjection
+  catalog : @catalog.CatalogObservation
+  api_version : String
+  runtime_bundle_cid : String
+  source_binding_cid : String
+  store_authority_cid : String
+  retention : @run_publication.PublicationContract
+  retention_dependencies : Array[@run_publication.CapturedEffectDependencyBody]
+  dependency_limits : @run_publication.CapturedEffectDependencyLimits
+  preview_limits : @run_publication_host.ClientCapturedEffectPreviewLimits
+  export_limits : @run_publication_host.PublicationOutputExportLimits
+  dispatch_limits : NativeEffectDispatchKeyLimits
+  body_limits : @catalog.WriteBodyLimits
+  request_limits : @catalog.WriteRequestLimits
+  observation_limits : @catalog.TargetObservationLimits
+  max_rows : Int
+  max_fields : Int
+  max_capture_workspace_entries : Int
+  max_work : Int
+  max_utf16_units : Int
+}
+
+pub(all) struct NativeResidentEffectReviewPreparationFailure {
+  issue : NativeResidentEffectReviewPreparationIssue
+  pending : @remote_resident_host.ResidentEffectReviewInputContext?
+}
+
+pub(all) enum NativeResidentEffectReviewPreparationIssue {
+  Unavailable
+  Result(@remote_resident_host.ResidentEffectResultCaptureIssue)
+  Review(NativeResidentEffectReviewIssue)
+}
+
+pub(all) enum NativeResidentEffectTargetIssue {
+  InvalidLimits
+  ForeignMapping
+  InvalidChanges
+  Request(@catalog.RecoveredWriteRequestIssue)
+  Mapping(@catalog.DeclarationUseIssue)
+  Provider(NativeSalesforcePreviewIssue)
+  Proposal(@remote_resident_host.ResidentEffectProposalIssue)
+}
+
+pub(all) enum NativeSalesforcePreviewIssue {
+  InvalidLimits
+  ForeignScope
+  Catalog(@catalog.WriteProjectionIssue)
+  Credential(@credential_resource.NativeCredentialResourceIssue)
+  Observation(@catalog.TargetObservationIssue)
+}
+
+pub(all) struct NativeSalesforceTargetAccess {
+  service : @credential_resource.NativeCredentialResourceService
+  grant : @remote_credential.RemoteCredentialGrant
+  use_id : String
+  scope : @credential_resource.NativeCredentialScope
+  credential_org_id : String
+}
+
+// Type aliases
+
+// Traits

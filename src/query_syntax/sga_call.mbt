@@ -49,6 +49,26 @@ fn sga_operation(name : String) -> Bool {
 }
 
 ///|
+// Currently connected source lowerings with Relation output. False does not
+// assert a Graph output: other logical operations can remain unsupported.
+// The common checker owns Carrier validity and the operation's output schema.
+pub fn has_sga_relation_lowering(operation : String) -> Bool {
+  match operation {
+    "node_rows"
+    | "edge_rows"
+    | "degree"
+    | "graph_bounds"
+    | "components"
+    | "graphs_equal"
+    | "graph_diff"
+    | "match_nodes"
+    | "match_edges"
+    | "traverse" => true
+    _ => false
+  }
+}
+
+///|
 fn sga_call_head(token : Token) -> Bool {
   match token.value {
     Word(name) => sga_operation(ascii_upper(name).to_lower())
@@ -108,9 +128,12 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
-    "reach" | "traverse" => path == ["start"]
+    "reach" => path == ["start"]
+    "traverse" => path == ["start"] || path == ["hops"]
     "shortest_path" => path == ["source"] || path == ["target"]
     "subgraph" => path == ["nodes"]
+    "union_graphs" | "subtract_graphs" => path == ["merge"]
+    "match_nodes" | "match_edges" => path == ["bindings"]
     _ => false
   }
 }
@@ -169,7 +192,7 @@ fn QueryParser::sga_argument(
       TextValue(output.to_string())
     }
     Numeric(value) => NumberValue(value)
-    Parameter(name) => ParameterValue(name)
+    Parameter(name) => ParameterValue(self.source.identifier(name))
     Word(name) if ascii_upper(name) == "TRUE" => BooleanValue(true)
     Word(name) if ascii_upper(name) == "FALSE" => BooleanValue(false)
     Word(name) if ascii_upper(name) == "NULL" => NullValue
@@ -198,7 +221,7 @@ fn QueryParser::sga_arguments(
     self.node()
     let at = self.peek().start
     let name = self.name()
-    // Fold operation/selector vocabulary only. Object-valued data (for
+    // Fold typed argument vocabulary only. Object-valued data (for
     // example a predicate's literal object) retains its authored field names.
     // Folding every nested String key would change a value before admission.
     let key = if path.is_empty() || sga_selector_object(operation, path) {

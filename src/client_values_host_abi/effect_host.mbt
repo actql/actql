@@ -198,6 +198,7 @@ pub fn client_values_host_issue_effect_run_materials(
   environment_wire : String,
   document : String,
   parameters : String?,
+  request : @host.ClientRequestIdentity?,
 ) -> Result[String, @host.ClientEffectRunMaterialsIssue] {
   @host.issue_client_effect_run_materials(
     allowed,
@@ -207,6 +208,7 @@ pub fn client_values_host_issue_effect_run_materials(
     document,
     parameters,
     client_values_host_effect_limits(),
+    request~,
   )
 }
 
@@ -286,6 +288,19 @@ pub fn client_values_host_restored_effect_definition(
   restored : @host.ClientEffectRunMaterials,
 ) -> @publication.PublicationContract {
   restored.run_definition
+}
+
+///|
+#export_name("clientValuesHostRestoredEffectRequest")
+pub fn client_values_host_restored_effect_request(
+  restored : @host.ClientEffectRunMaterials,
+) -> Array[@host.ClientRequestIdentity] {
+  // Explicit cardinality avoids depending on optimized optional-struct
+  // representations at the generated JavaScript boundary.
+  match restored.request {
+    None => []
+    Some(request) => [request]
+  }
 }
 
 ///|

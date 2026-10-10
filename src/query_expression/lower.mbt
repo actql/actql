@@ -177,33 +177,81 @@ pub fn numeric_literal(text : String) -> Result[Double, Issue] {
 }
 
 ///|
-fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort {
+fn scalar_call(
+  path : Array[@query.NamePart],
+) -> (String, String, Int, Int) raise Abort {
   // The syntax owner has decoded quoted name parts. Quotation does not change
   // the installed function namespace, overloads or case-insensitive lookup.
   if path.length() == 2 &&
     upper(path[0].value) == "ACTQL" &&
     upper(path[1].value) == "CONCAT" {
-    return ("concat", 1, 2147483647)
+    return ("ACTQL.CONCAT", "concat", 1, 2147483647)
   }
   if path.length() != 1 {
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
-    "LENGTH" | "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("len", 1, 1)
-    "SQRT" => ("sqrt", 1, 1)
-    "ABS" => ("abs", 1, 1)
-    "FLOOR" => ("floor", 1, 1)
-    "CEIL" | "CEILING" => ("ceil", 1, 1)
-    "LOWER" => ("lower", 1, 1)
-    "UPPER" => ("upper", 1, 1)
-    "TRIM" => ("trim", 1, 1)
-    "REPLACE" => ("replace", 3, 3)
-    "COALESCE" => ("coalesce", 1, 2147483647)
-    "IFNULL" => ("coalesce", 2, 2)
-    "IF" => ("if", 3, 3)
-    "NULLIF" => ("nullif", 2, 2)
-    "CONCAT" => ("concat_strict", 1, 2147483647)
+    "LENGTH" => ("LENGTH", "len", 1, 1)
+    "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
+    "SQRT" => ("SQRT", "sqrt", 1, 1)
+    "ABS" => ("ABS", "abs", 1, 1)
+    "FLOOR" => ("FLOOR", "floor", 1, 1)
+    "CEIL" | "CEILING" => ("CEIL", "ceil", 1, 1)
+    "LOWER" => ("LOWER", "lower", 1, 1)
+    "UPPER" => ("UPPER", "upper", 1, 1)
+    "TRIM" => ("TRIM", "trim", 1, 1)
+    "REPLACE" => ("REPLACE", "replace", 3, 3)
+    "COALESCE" => ("COALESCE", "coalesce", 1, 2147483647)
+    "IFNULL" => ("IFNULL", "coalesce", 2, 2)
+    "IF" => ("IF", "if", 3, 3)
+    "NULLIF" => ("NULLIF", "nullif", 2, 2)
+    "CONCAT" => ("CONCAT", "concat_strict", 1, 2147483647)
     _ => raise Abort(UnsupportedFunction)
+  }
+}
+
+///|
+// Compare the installed public function, operation and accepted arity using
+// the lowering registry. Equal wire operators alone do not establish public
+// function identity: LENGTH/CHAR_LENGTH and IFNULL/COALESCE remain distinct.
+pub fn same_scalar_function(
+  left : Array[@query.NamePart],
+  right : Array[@query.NamePart],
+) -> Bool {
+  try scalar_call(left) == scalar_call(right) catch {
+    Abort(_) => false
+  }
+}
+
+///|
+fn binary_call(op : String) -> (String, Bool) raise Abort {
+  let name = match op {
+    "+" => "add"
+    "-" => "subtract"
+    "*" => "multiply"
+    "/" => "divide"
+    "%" => "modulo"
+    "=" => "eq"
+    "!=" | "<>" => "neq"
+    "<" => "lt"
+    "<=" => "lte"
+    ">" => "gt"
+    ">=" => "gte"
+    "AND" => "and"
+    "OR" => "or"
+    "||" => "concat_strict"
+    "LIKE" | "NOT LIKE" => "like"
+    _ => raise Abort(InvalidArguments)
+  }
+  (name, op == "NOT LIKE")
+}
+
+///|
+// Use the same operator and polarity contract as lowering. Different spelling
+// alone must not prevent reuse of != / <>, and LIKE is not NOT LIKE.
+pub fn same_binary_operator(left : String, right : String) -> Bool {
+  try binary_call(left) == binary_call(right) catch {
+    Abort(_) => false
   }
 }
 
@@ -286,17 +334,28 @@ fn append_resolved(
   }
   let macro_children : Array[MacroValue?] = Array::make(count, None)
   let macro_calls : Array[Int?] = Array::make(count, None)
+  // Classify grouped references once in postorder. Grouping preserves a
+  // binding's role; other expressions never become macro arguments. This
+  // avoids rescanning a nested argument for every enclosing call.
+  let references : Array[Int?] = Array::make(count, None)
   for i in 0..<count {
-    guard @query.expression_node(ast, i) is Some({ kind: Call(path, args), .. }) &&
+    let node = @query.expression_node(ast, i).unwrap()
+    match node.kind {
+      Reference(_) => references[i] = Some(i)
+      Parenthesized(child) => references[i] = references[child]
+      _ => ()
+    }
+    guard node.kind is Call(path, args) &&
       args.length() == 1 &&
-      @query.expression_node(ast, args[0])
+      references[args[0]] is Some(reference) &&
+      @query.expression_node(ast, reference)
       is Some({ kind: Reference(argument), .. }) else {
       continue
     }
     match resolve_macro(path, argument) {
       Some(value) => {
-        macro_children[args[0]] = Some(value)
-        macro_calls[i] = Some(args[0])
+        macro_children[reference] = Some(value)
+        macro_calls[i] = Some(reference)
       }
       None => ()
     }
@@ -484,26 +543,9 @@ fn append_resolved(
             _ => raise Abort(InvalidArguments)
           }
         Binary(op, left, right) => {
-          let name = match op {
-            "+" => "add"
-            "-" => "subtract"
-            "*" => "multiply"
-            "/" => "divide"
-            "%" => "modulo"
-            "=" => "eq"
-            "!=" | "<>" => "neq"
-            "<" => "lt"
-            "<=" => "lte"
-            ">" => "gt"
-            ">=" => "gte"
-            "AND" => "and"
-            "OR" => "or"
-            "||" => "concat_strict"
-            "LIKE" | "NOT LIKE" => "like"
-            _ => raise Abort(InvalidArguments)
-          }
+          let (name, inverted) = binary_call(op)
           let value = lowering.arguments(name, [nodes[left], nodes[right]])
-          if op == "NOT LIKE" {
+          if inverted {
             lowering.form("not", value)
           } else {
             value
@@ -513,7 +555,7 @@ fn append_resolved(
           match macro_calls[i] {
             Some(child) => nodes[child]
             None => {
-              let (name, minimum, maximum) = scalar_call(path)
+              let (_, name, minimum, maximum) = scalar_call(path)
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
