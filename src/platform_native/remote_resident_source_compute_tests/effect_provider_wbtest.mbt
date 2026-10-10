@@ -196,8 +196,12 @@ fn resident_provider_observe(
   root_path : String,
   name : String,
   deny_provider? : Bool = false,
+  original_invocation? : @publication.PublicationContract? = None,
 ) -> ResidentProviderFacts? raise {
-  let (_, invocation) = producer_dependency_observation(materials, acquired)
+  let invocation = match original_invocation {
+    Some(value) => value
+    None => producer_dependency_observation(materials, acquired).1
+  }
   let initial = provider_binding()
   let binding = {
     ..initial,
