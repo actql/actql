@@ -24,8 +24,11 @@ test('Graph row positional sets preserve authored NULL duplicates keys selectors
   assert.deepEqual(cases.get('graph-row-node-set-empty').results.values.rows, []);
   assert.equal(graphRowSourceRefusals.find(input => input.name.endsWith('set-anonymous-by-name')).expectedCode,
     'ClientProgramImplementationLimit');
-  assert.equal(graphRowSourceRefusals.find(input => input.name.endsWith('set-anonymous-private-field')).expectedCode,
-    'ClientProgramInvalidInput');
+  const privateField = graphRowSourceRefusals.find(input => input.name.endsWith('set-anonymous-private-field'));
+  assert.equal(privateField.expectedCode, 'ClientProgramInvalidInput');
+  assert.ok(privateField.text.includes(') |> ORDER BY aql_set_anonymous_4'));
+  assert.ok(!privateField.text.includes('DATA combined'),
+    'inspect the set output scope, not a later ordinary Relation ORDER path');
 });
 
 test('Graph row set cases remain registered in ordinary and focused packed consumers', () => {

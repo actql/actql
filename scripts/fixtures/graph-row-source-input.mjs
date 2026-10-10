@@ -176,6 +176,6 @@ graphRowSourceRefusals.push(
     text: nodeSource + nodeSetHead.replace('UNION ALL', 'UNION ALL BY NAME') + nodeSetOperand + setTail,
     expectedCode: 'ClientProgramImplementationLimit'},
   {name: 'graph-row-set-anonymous-private-field', format: 'aql-text',
-    text: nodeSource + nodeSetHead + nodeSetOperand + '; FROM combined |> ORDER BY aql_set_anonymous_4 |> RESULT values',
+    text: nodeSource + 'FROM n |> SELECT p AS value |> UNION ALL ' + nodeSetOperand + ' |> ORDER BY aql_set_anonymous_4',
     expectedCode: 'ClientProgramInvalidInput'},
 );
