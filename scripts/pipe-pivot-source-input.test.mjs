@@ -26,9 +26,17 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-anonymous-set-operands').columns,
     cases.get('pipe-pivot-duplicate-null-source').columns);
   assert.equal(pipePivotRefusals.some(input => input.name.endsWith('anonymous-set-operands')), false);
-  assert.equal(pipePivotSuccesses.length, 9);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-empty-source').expected,
+    [{second: 0, first: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-identity-source').expected,
+    [{other: 0, second: 1, first: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').expected,
+    cases.get('pipe-pivot-anonymous-count-identity-source').expected);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').columns,
+    cases.get('pipe-pivot-anonymous-count-identity-source').columns);
+  assert.equal(pipePivotSuccesses.length, 12);
   assert.equal(pipePivotRefusals.length, 8);
-  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 17);
+  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 20);
 });
 
 test('PIVOT uses the same cases in the normal corpus and scoped packed execution', async () => {
