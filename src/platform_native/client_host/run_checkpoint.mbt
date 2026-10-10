@@ -11,6 +11,8 @@ priv struct NativeClientCheckpointRecord {
   resolution_cid : String?
   verified_wire : String?
   resume_intent_id : String?
+  resume_intent : @checkpoint.ResumeIntentView?
+  settlement_only : Bool
   binding : @checkpoint.ResumeBinding
 }
 
@@ -23,6 +25,7 @@ pub(all) enum NativeClientCheckpointIssue {
   NeedsOriginalContinuation
   State(@checkpoint.RunStateWireIssue)
   Signature(@effect_resolution.NativeResidentEffectResolutionIssue)
+  Resume(@checkpoint.ResumeIssue)
 }
 
 ///|
@@ -155,6 +158,14 @@ fn checkpoint_record_body(
     }
     @encode.key(writer, "state")
     @encode.string_value(writer, record.state.wire)
+    @encode.key(writer, "resume_intent")
+    match record.resume_intent {
+      Some(intent) =>
+        @encode.string_value(writer, checkpoint_resume_body(intent))
+      None => @encode.null_value(writer)
+    }
+    @encode.key(writer, "settlement_only")
+    @encode.bool_value(writer, record.settlement_only)
     @encode.key(writer, "unknown_effects")
     @encode.begin_array(writer)
     for effect in record.unknown_effects {
@@ -181,7 +192,7 @@ fn read_checkpoint_record(
     @decode.closed_object(cursor, [
       "version", "checkpoint", "declared_results", "unknown_effects", "state", "updated_at",
       "authorization_context_cid", "environment_binding_cid", "resolution_cid", "verified_wire",
-      "resume_intent_id",
+      "resume_intent_id", "resume_intent", "settlement_only",
     ])
     is Ok(object) &&
     epoch_text(object, "version") ==
@@ -227,6 +238,34 @@ fn read_checkpoint_record(
     checkpoint_optional_text(object, "resume_intent_id") {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let resume_intent = match checkpoint_optional_text(object, "resume_intent") {
+    Ok(Some(wire)) =>
+      match
+        read_checkpoint_resume(wire, {
+          authorization_context_cid,
+          environment_binding_cid,
+        }) {
+        Some(intent) => Some(intent)
+        None => return Err(InvalidMaterial)
+      }
+    Ok(None) => None
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.lookup(object, "settlement_only") is Some(settlement) &&
+    @decode.boolean(settlement) is Ok(settlement_only) else {
+    return Err(InvalidMaterial)
+  }
+  if (resume_intent_id is Some(_)) != (resume_intent is Some(_)) ||
+    (
+      settlement_only &&
+      (
+        resume_intent is None ||
+        resume_intent.map(value => value.state) ==
+        Some(@checkpoint.ResumePending)
+      )
+    ) {
+    return Err(InvalidMaterial)
   }
   let expected = match (resolution_cid, verified_wire) {
     (None, None) if resume_intent_id is None => {
@@ -282,6 +321,8 @@ fn read_checkpoint_record(
     resolution_cid,
     verified_wire,
     resume_intent_id,
+    resume_intent,
+    settlement_only,
     binding: { authorization_context_cid, environment_binding_cid, },
   }
   guard checkpoint_cursor(@publication.publication_contract_json(definition))
@@ -399,6 +440,8 @@ pub fn NativeClientRunJournal::wait_checkpoint(
       resolution_cid: None,
       verified_wire: None,
       resume_intent_id: None,
+      resume_intent: None,
+      settlement_only: false,
     }
     // Reject a projection which could not be safely restored before commit.
     let body = match checkpoint_record_body(checkpoint) {
@@ -538,6 +581,13 @@ pub fn NativeClientRunJournal::resolve_effect_checkpoint(
         resolution_cid: Some(verified.resolution_cid),
         verified_wire: Some(verified.wire),
         resume_intent_id: verified.resume_intent_id,
+        resume_intent: verified.resume_intent_id.map(_ => {
+          state: @checkpoint.ResumePending,
+          generation: 0L,
+          claimant: "",
+          lease_expires_ms: 0L,
+        }),
+        settlement_only: false,
       }),
     })
   })

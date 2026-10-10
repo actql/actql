@@ -533,3 +533,45 @@ an actual retained consumer, Site and DispatchRequest. Those identities must
 not be fabricated to open a Direct Local executor. Provider writes, CLI ingress,
 separate-process Run recovery, packed installation and Hosted CI remain
 unverified for this component. This does not complete the Local CLI goal.
+
+## Original Native resume claim and fence connection
+
+Main `35d30ac93ed89ba44254bc9d4dadd48c00687a89` was merged normally in
+`5a3c39771993ca0971401ba3802f94bbe381f828`; existing declarations and
+generated contracts were retained.
+
+Approval now creates the common pending `ResumeIntentView` in the same original
+Run transaction as the Resolution and Run projection. Native stores its exact
+generation, claimant and lease expiry without floating-point conversion.
+Restore refuses missing, inconsistent or noncanonical custody; it neither
+repairs old private rows nor grants a replacement continuation.
+
+`claim_effect_resume` readmits the retained original signed Resolution against
+current installed Host keys and reviewer authorization. After verification and
+clock callbacks, it checks the original Run revision before committing the
+common `decide_effect_resume_claim` result. Busy claims do not mutate the Run.
+Expiry permits a higher-generation claim, not repeat dispatch of an Effect row.
+Changed bindings retain a sticky observation-only settlement claim. Accepted
+cancellation also fences sending while preserving observation responsibility;
+this connection does not declare the Run Cancelled or cleanup complete.
+
+The opaque process-local claim is bound to the exact original journal, request,
+Checkpoint, Resolution and common intent. `effect_resume_fence` uses the common
+fence predicate, current authorization and the retained cancellation fact.
+It is a diagnostic observation, not permission cached across an await. The
+physical Effect adapter must use the locked predicate together with the existing
+Effect Ledger Owner's row claim in one transaction before sending.
+
+Eight added Native cases cover expiry/reopen/takeover, original approval/current
+authority, common invalid-material refusals, sticky settlement, cancellation,
+intervening revisions, precommit versus commit-reply loss and malformed custody.
+Actual Native typechecking, scoped interface generation and the existing CLI
+consumer passed in `run-f6He3l` and `run-OYW4F3`; an earlier test compilation
+failure is retained in `run-0DhzFp`. Fixed-SHA runtime results and actual debug
+executable digests are recorded separately, not inferred from typechecking.
+
+Provider dispatch/response custody, actual Effect preview/write/reconcile,
+public CLI original-operation routing and separate-process acceptance remain
+unfinished. The prior actual Source fixture is a regression caller, not a new
+claim of public packed CLI completion. No Hosted CI or package publication was
+started.
