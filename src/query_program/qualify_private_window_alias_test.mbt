@@ -1,5 +1,8 @@
 ///|
-fn checked_private_window_qualify(text : String, field : String) -> String raise {
+fn checked_private_window_qualify(
+  text : String,
+  field : String,
+) -> String raise {
   let program = match
     compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
@@ -11,7 +14,8 @@ fn checked_private_window_qualify(text : String, field : String) -> String raise
       fail(text + ": " + @debug.to_string(diagnostic.issue))
     Err(_) => fail(text + ": unexpected lowering refusal")
   }
-  match @check.check_parsed(program, check_environment(), None, check_limits()) {
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("the checked input schema is closed")
@@ -29,7 +33,9 @@ test "QUALIFY materializes a SELECT window expression separately from a schema n
     assert_true(body.contains("\"fields\":[\"id\",\"" + field + "\",\"pos\"]"))
     assert_eq(body.split("\"add\":").length() - 1, 1)
     assert_true(
-      body.contains("\"add\":[{\"field\":\"aql_analytic_output_3\"},{\"literal\":1}]"),
+      body.contains(
+        "\"add\":[{\"field\":\"aql_analytic_output_3\"},{\"literal\":1}]",
+      ),
       msg=body,
     )
   }
@@ -43,20 +49,25 @@ test "QUALIFY demanded SELECT window expression also retains GROUP BY ALL keys" 
   )
   assert_eq(body.split("\"add\":").length() - 1, 1)
   assert_true(
-    body.contains("\"add\":[{\"field\":\"aql_analytic_output_3\"},{\"literal\":1}]"),
+    body.contains(
+      "\"add\":[{\"field\":\"aql_analytic_output_3\"},{\"literal\":1}]",
+    ),
     msg=body,
   )
 }
 
 ///|
 test "QUALIFY private scope retains authored inputs and evaluated alias reuse" {
-  for text in [
-    "SELECT *, ROW_NUMBER() OVER w + 1 AS `pos` FROM records QUALIFY `pos` > 2 WINDOW w AS (ORDER BY id) ORDER BY id DESC",
-    "SELECT *, ROW_NUMBER() OVER (ORDER BY records.id) + records.aql_select_window_0 AS pos FROM records QUALIFY pos > 50 ORDER BY id DESC",
-  ] {
+  for
+    text in [
+      "SELECT *, ROW_NUMBER() OVER w + 1 AS `pos` FROM records QUALIFY `pos` > 2 WINDOW w AS (ORDER BY id) ORDER BY id DESC",
+      "SELECT *, ROW_NUMBER() OVER (ORDER BY records.id) + records.aql_select_window_0 AS pos FROM records QUALIFY pos > 50 ORDER BY id DESC",
+    ] {
     let body = checked_private_window_qualify(text, "aql_select_window_0")
     assert_eq(body.split("\"add\":").length() - 1, 1)
-    assert_true(body.contains("\"fields\":[\"id\",\"aql_select_window_0\",\"pos\"]"))
+    assert_true(
+      body.contains("\"fields\":[\"id\",\"aql_select_window_0\",\"pos\"]"),
+    )
   }
 }
 
@@ -69,7 +80,8 @@ test "QUALIFY private-window output has an independent ordinary Program" {
     construction_limits().program,
     format=Json,
   ).unwrap()
-  match @check.check_parsed(expected, check_environment(), None, check_limits()) {
+  match
+    @check.check_parsed(expected, check_environment(), None, check_limits()) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("the independently authored ordinary Program is closed")

@@ -297,6 +297,7 @@ process.on('message', async message => {
       summary.steps.push(record);
       persist();
       diagnostic(`== ${step.name}`);
+      let exitEvidenceFailure = false;
       const result = await new Promise(resolve => {
         childClosed = false;
         child = spawn(step.command, step.args, {cwd: config.root,
@@ -326,7 +327,17 @@ process.on('message', async message => {
             else if (signal) primaryStatus ||= 1;
             if (primaryStatus) summary.status = 'failed';
           }
-          try { persist(); } catch { cancel('guard failed', primaryStatus || 1); }
+          try { persist(); } catch {
+            exitEvidenceFailure = true;
+            primaryStatus ||= 1;
+            // A direct exit can precede its queued pipe-close events. When no
+            // owned process remains, keep draining under the invocation bound
+            // instead of killing the supervisor for an evidence write fault.
+            // Live/unknown descendants still require the normal stop path.
+            try {
+              if (groupMembers().length > 0) cancel('guard failed', primaryStatus || 1);
+            } catch { cancel('guard failed', primaryStatus || 1); }
+          }
         });
         child.on('close', (code, signal) => {
           childClosed = true;
@@ -338,7 +349,8 @@ process.on('message', async message => {
       });
       record.endedAt = new Date().toISOString();
       Object.assign(record, result);
-      record.status = result.code === 0 && !result.error && record.streamsComplete ? 'passed' : 'failed';
+      record.status = result.code === 0 && !result.error && record.streamsComplete && !exitEvidenceFailure
+        ? 'passed' : 'failed';
       if (record.status === 'failed' && !cancelling) {
         primaryStatus ||= result.code || 1;
         summary.status = 'failed';
@@ -357,7 +369,11 @@ process.on('message', async message => {
   } catch (error) {
     diagnostic(error.message);
     if (!primaryStatus) summary.status = 'guard failed';
-    if (child && groupOwned) cancel(primaryStatus ? 'failed' : 'guard failed', primaryStatus || 1);
-    else finish(primaryStatus || 1, true);
+    if (child && groupOwned) {
+      try {
+        if (childClosed && groupMembers().length === 0) finish(primaryStatus || 1, true);
+        else cancel(primaryStatus ? 'failed' : 'guard failed', primaryStatus || 1);
+      } catch { cancel(primaryStatus ? 'failed' : 'guard failed', primaryStatus || 1); }
+    } else finish(primaryStatus || 1, true);
   }
 });

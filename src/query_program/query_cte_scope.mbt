@@ -33,7 +33,10 @@ fn validate_cte_scope(
       let body_relation = @query.relation(term)
       let known_outer = body_relation.is_empty() ||
         inputs.any(input => input_relation_matches(body_relation, input)) ||
-        (script_has_graph_rows(term) && script_graph_input(term, graphs) is Some(_))
+        (
+          script_has_graph_rows(term) &&
+          script_graph_input(term, graphs) is Some(_)
+        )
       for future in index..<@query.cte_count(query) {
         if same_relation_path(body_relation, [
             @query.cte_at(query, future).unwrap().name,

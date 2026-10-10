@@ -98,7 +98,7 @@ const locateEvidence = `const fs = require('fs'), path = require('path');
 // both supervisor streams actual pipes, checked by each receiver with fstat.
 function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
   stderr = 'drain', cancellation, outputBytes = 200000, failFinalEvidence = false,
-  cancelBeforeReady = false} = {}) {
+  cancelBeforeReady = false, delayGroupInspection = false, failExitEvidence = false} = {}) {
   const caller = join(f.directory, 'caller.mjs'), receiver = join(f.directory, 'receiver.cjs');
   const ready = join(f.directory, 'output-ready'), done = join(f.directory, 'caller-done');
   const release = join(f.directory, 'release-handler'), handlerReady = join(f.directory, 'handler-ready');
@@ -154,6 +154,8 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
       timeoutSeconds: cancellation === 'timeout' ? cancellationTimeoutSeconds : 10,
       graceSeconds: cancellation ? cancellationGraceSeconds : 0.2,
       steps: steps(source)})};
+    ${failExitEvidence ? `config.steps.push({name: 'must-not-start', command: process.execPath,
+      args: ['-e', 'require("fs").writeFileSync(${JSON.stringify(join(f.directory, 'later-started'))}, "started")']});` : ''}
     config.steps[0].name = 'd'.repeat(200000);
     process.exitCode = await runLocalCheck(config, {signal: abort.signal});
     writeFileSync(${JSON.stringify(done)}, String(process.exitCode));
@@ -191,6 +193,40 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
     }, 20);`);
   const out = join(f.directory, 'caller.stdout'), err = join(f.directory, 'caller.stderr');
   const env = {...f.env};
+  if (failExitEvidence) {
+    const preload = join(f.directory, 'fail-exit-save-once.mjs');
+    writeFileSync(preload, `import fs from 'node:fs';
+      import {syncBuiltinESMExports} from 'node:module';
+      if (process.argv[1]?.endsWith('/local-checks-supervisor.mjs')) {
+        const original = fs.writeFileSync; let failed = false;
+        fs.writeFileSync = (file, value, ...args) => {
+          if (!failed && typeof value === 'string' && value.startsWith('{') &&
+              JSON.parse(value).steps?.[0]?.exitedAt) {
+            failed = true; throw Object.assign(new Error('exit evidence save failed once'), {code: 'EIO'});
+          }
+          return original(file, value, ...args);
+        };
+        syncBuiltinESMExports();
+      }`);
+    env.NODE_OPTIONS = [env.NODE_OPTIONS, `--import=${preload}`].filter(Boolean).join(' ');
+  }
+  if (delayGroupInspection) {
+    const preload = join(f.directory, 'slow-group-inspection.mjs');
+    writeFileSync(preload, `import childProcess from 'node:child_process';
+      import fs from 'node:fs';
+      import {syncBuiltinESMExports} from 'node:module';
+      if (process.argv[1]?.endsWith('/local-checks-supervisor.mjs')) {
+        const original = childProcess.spawnSync;
+        childProcess.spawnSync = (command, ...args) => {
+          if (command === 'ps' && fs.existsSync(${JSON.stringify(ready)})) {
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+          }
+          return original(command, ...args);
+        };
+        syncBuiltinESMExports();
+      }`);
+    env.NODE_OPTIONS = [env.NODE_OPTIONS, `--import=${preload}`].filter(Boolean).join(' ');
+  }
   if (failFinalEvidence) {
     const preload = join(f.directory, 'fail-final-save.mjs');
     writeFileSync(preload, `import fs from 'node:fs';
@@ -284,6 +320,40 @@ for (const [exitCode, failEvidence] of [[0, false], [7, false], [7, true]]) {
     assert.deepEqual(locks(f), []);
   });
 }
+
+test('evidence failure after direct exit drains caller pipes even when process inspection exceeds stop grace', t => {
+  const f = fixture(t), result = pipedRun(f, {exitCode: 7, failEvidence: true, delayGroupInspection: true});
+  assert.equal(result.status, 7, result.stderr.slice(-2000));
+  assertFullCallerOutput(result.stdout);
+  const [evidence] = attempts(f), record = summary(evidence);
+  assert.equal(record.steps[0].code, 7);
+  assert.equal(record.steps[0].streamsComplete, true);
+  assert.equal(record.complete, false);
+  assert.equal(record.exitCode, 7);
+  assert.equal(record.callerOutputComplete, true);
+  assert.equal(record.locksReleased, true);
+  assert.equal(readFileSync(join(evidence, 'output.log'), 'utf8'), 'replacement bytes');
+  assert(result.stderr.includes('EvidenceFileOwnershipChanged'));
+  assert.deepEqual(locks(f), []);
+});
+
+test('transient exit evidence failure stops later commands while retaining actual exit and complete output', t => {
+  const f = fixture(t), result = pipedRun(f, {failExitEvidence: true});
+  assert.equal(result.status, 1, result.stderr.slice(-2000));
+  assertFullCallerOutput(result.stdout);
+  const [evidence] = attempts(f), record = summary(evidence);
+  assert.equal(record.steps.length, 1);
+  assert.equal(record.steps[0].code, 0);
+  assert.equal(record.steps[0].status, 'failed');
+  assert.equal(record.steps[0].streamsComplete, true);
+  assert.equal(record.complete, false);
+  assert.equal(record.exitCode, 1);
+  assert.equal(record.callerOutputComplete, true);
+  assert.equal(record.locksReleased, true);
+  assert(record.errors.some(error => error.stage === 'summary' && error.code === 'EIO'));
+  assert.equal(existsSync(join(f.directory, 'later-started')), false);
+  assert.deepEqual(locks(f), []);
+});
 
 test('real caller stderr drains pending diagnostics even with empty command output', t => {
   const f = fixture(t), result = pipedRun(f, {outputBytes: 0});
@@ -718,6 +788,24 @@ for (const [exitCode, resistant] of [[0, false], [7, false], [7, true]]) {
 
 test('TERM-resistant descendants trigger owned-group KILL and retain locks', async t => {
   const f = fixture(t), pidFile = join(f.root, 'pid');
+  const captured = join(f.root, 'output-captured'), preload = join(f.directory, 'capture-ready.mjs');
+  writeFileSync(preload, `import childProcess from 'node:child_process';
+    import fs from 'node:fs';
+    import {syncBuiltinESMExports} from 'node:module';
+    if (process.argv[1]?.endsWith('/local-checks-supervisor.mjs')) {
+      const original = childProcess.spawn;
+      childProcess.spawn = (...args) => {
+        const child = original(...args);
+        // Register after the supervisor's capture listener. A PID file proves
+        // handler installation, not that the supervisor observed stdout yet.
+        setImmediate(() => child.stdout?.on('data', bytes => {
+          if (bytes.toString().includes('resistant')) fs.writeFileSync(${JSON.stringify(captured)}, 'observed');
+        }));
+        return child;
+      };
+      syncBuiltinESMExports();
+    }`);
+  f.env.NODE_OPTIONS = [f.env.NODE_OPTIONS, `--import=${preload}`].filter(Boolean).join(' ');
   // Cancellation must follow handler installation, rather than race Node startup
   // against a 0.2s timeout. Delay readiness past the former timeout explicitly;
   // timeout cancellation itself is covered by the inherited-pipe cases below.
@@ -729,7 +817,7 @@ test('TERM-resistant descendants trigger owned-group KILL and retain locks', asy
   const run = start(f, {graceSeconds: 0.1, steps: steps(source)});
   let result;
   try {
-    await until(() => existsSync(pidFile));
+    await until(() => existsSync(pidFile) && existsSync(captured));
     run.child.kill('SIGINT');
   } finally { result = await run.done; }
   assert.equal(result.code, 130, result.stderr);

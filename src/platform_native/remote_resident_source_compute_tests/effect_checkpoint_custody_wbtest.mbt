@@ -161,7 +161,9 @@ fn retained_effect_checkpoint_store(
     review.checkpoint,
   )
   assert_eq(
-    @remote.remote_effect_checkpoint_report_json(custody.report(limits).unwrap()),
+    @remote.remote_effect_checkpoint_report_json(
+      custody.report(limits).unwrap(),
+    ),
     report_wire,
   )
   assert_false(report_wire.contains("Count__c"))

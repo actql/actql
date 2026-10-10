@@ -64,14 +64,17 @@ fn inferred_group_keys(
         spend(internal.length())
       }
       let root = @query.expression_node(
-        expression, @query.expression_root(expression),
+        expression,
+        @query.expression_root(expression),
       ).unwrap()
       // Star expansion creates a checked input-column reference with an empty
       // source span. It is not an embedded window/aggregate atom even when
       // its schema name equals a parser-generated private reference.
       let schema_column = root.kind is Reference(_) &&
-        root.start == 0 && root.end == 0
-      if !schema_column && authored_paths.any(path => {
+        root.start == 0 &&
+        root.end == 0
+      if !schema_column &&
+        authored_paths.any(path => {
           path.length() == 1 && internal.any(name => same_name(path[0], name))
         }) {
         continue
