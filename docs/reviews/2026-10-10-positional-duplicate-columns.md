@@ -144,3 +144,24 @@ GROUP/analytic alias tables or specialized JOIN/Graph entries. Their existing
 refusals are not declared permanent language restrictions. #1243's actual
 JOIN capacity reproduction and #1248's Graph-row set connection remain
 independent. The wider frontend goal remains active.
+
+### Integration review: explicit script format
+
+The second pristine packed campaign at `d6828990` passed the independent
+JSON control and duplicate-alias scalar case on Local and HTTPS, but then
+rejected `positional-scoped-current-and-original` before Run admission.
+Its DATA script inherited the helper's SQL format. The Source frontend's
+SQL branch intentionally parses one SQL query; its text branch parses DATA
+declarations. The typed-empty DATA control had the same registration error.
+
+Both authored DATA cases now explicitly select `aql-text`. Their source,
+independent rows, contracts, ordering and refusal controls remain unchanged.
+Node guards check both format declarations. The independent authored
+inventory still has 3,323 occurrences, with digest
+`e5ccf066018866f3171cf8670670536ad5dca5fdaed7609ced82d874b0b9e64d`.
+Selected Node checks passed 39/39 at the corrected patch on `abd422529`
+(`run-EoGnw5`, `focused-test-f1PBq0`). That is patch evidence, not a claim
+that the previous commit or the pristine public campaign passed.
+
+The rejected campaign and retained receipt `run-Pnss1a` remain failures.
+Exact-source packed Local/HTTPS acceptance is still required before merge.
