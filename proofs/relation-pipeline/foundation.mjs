@@ -5,7 +5,7 @@ import { lstatSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { hash } from './inventory.mjs';
-import { populateFoundationTrees } from './foundation-trees.mjs';
+import { foundationAncestorQuery, populateFoundationTrees } from './foundation-trees.mjs';
 const sha = /^[0-9a-f]{40}$/;
 const digest = /^[0-9a-f]{64}$/;
 const id = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -116,24 +116,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   for (const actualParents of completeParents.values()) {
     assert(actualParents.every(parent => completeParents.has(parent)), 'Incomplete foundation parent ancestry');
   }
-  const ancestorCache = new Map();
-  function ancestor(a, b) {
-    const key = `${a}:${b}`;
-    if (!ancestorCache.has(key)) {
-      // Every query target is inside the complete head graph. An outside source
-      // cannot be its ancestor. Keep the traversal iterative and cycle-safe.
-      const pending = completeParents.has(a) && completeParents.has(b) ? [b] : [];
-      const seen = new Set(); let found = false;
-      while (pending.length) {
-        const current = pending.pop();
-        if (current === a) { found = true; break; }
-        if (seen.has(current)) continue;
-        seen.add(current); pending.push(...completeParents.get(current));
-      }
-      ancestorCache.set(key, found);
-    }
-    return ancestorCache.get(key);
-  }
+  const ancestor = foundationAncestorQuery(completeParents);
   assert(ancestor(checkpoint, head), 'Foundation checkpoint is not an ancestor of HEAD');
   const revisions = git(['rev-list', '--reverse', '--topo-order', `${checkpoint}..${head}`]).stdout.toString().trim().split('\n').filter(Boolean);
   const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Set();

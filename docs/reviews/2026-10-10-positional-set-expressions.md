@@ -2,7 +2,7 @@
 
 ## Adopted baseline and counterexample
 
-Normally integrated main `12f6a10d5169a0810131f273709df2eaa5d16ef3`, which
+Initially integrated main `12f6a10d5169a0810131f273709df2eaa5d16ef3`, which
 already contains PIVOT PR #1231 and UNPIVOT PR #1230. Their integration and
 prior public receipts remain separate evidence; this follow-up does not reopen
 their delivery units or claim complete anonymous-output support.
@@ -130,10 +130,13 @@ ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-positional-set-a3b2f77cb-pack 
 ```
 
 The distribution and public results belong to the exact source revision above.
-The subsequent evidence-record commit changes only this informative document;
-it does not relabel those receipts as execution of a later Git revision.
-`git diff a3b2f77cb174ce9e8ccdf740264b41c3da9907e1 HEAD -- packages src adapters spec scripts release`
-checks that all package build inputs remain unchanged.
+The first subsequent commit only records this evidence. Later normal integration
+adopts main `0ba0e834970ce1c05bb30e66cd55c6145b56c0c9` (#1233), including
+CI/local-output custody repairs and existing frontend formatting. These changes
+are preserved, including the prior unchanged formatter finding. Receipts are
+not relabeled as execution of a later Git revision. Final integration checks
+and current-SHA hosted status are recorded separately in the PR; the public
+results above establish only the tested distribution and revision.
 
 Hosted CI, whole Core and Native/Wasm execution are not claimed. Current-SHA
 hosted results will be recorded separately on the independent Draft PR. The
