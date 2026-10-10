@@ -134,6 +134,10 @@ pub fn resident_retained_producer(ResidentRetainedProducerContext) -> @run_publi
 
 pub fn resident_retained_producer_authorized(ResidentRetainedProducerContext, @remote_resident_site.ResidentRetainedInputDelegation, @remote_transfer.RemoteTransferRequest, Int, String) -> Bool
 
+pub fn resident_source_compute_shape_supported(@run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn resident_source_publication_observation_values(ResidentSourcePublicationObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String)
+
 pub fn retry_resident_output_cleanup(ResidentOutputIssue) -> Bool
 
 // Errors
@@ -651,6 +655,7 @@ pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.
 pub fn ResidentSourceCompute::read_effect_proposals(Self, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int, Int, (Int, String, String) -> Result[Unit, Unit]) -> Result[Int, ResidentEffectProposalIssue]
 pub fn ResidentSourceCompute::request_for_effect_review(Self, @physical_strategy.CapturedEffectInputs) -> @run_publication_host.ClientRequestIdentity?
 pub fn ResidentSourceCompute::retain_effect_source_custody(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[ResidentEffectSourceCustody, ResidentEffectSourceCustodyFailure]
+pub fn ResidentSourceCompute::source_publication_observation(Self, String, String, @run_publication_host.PublicationOutputExportLimits) -> Result[ResidentSourcePublicationObservation, ResidentSourcePublicationObservationIssue]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
 pub fn ResidentSourceCompute::verify_effect_preview_plan(Self, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectPreviewInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectPlanProof, ResidentEffectPreviewPlanIssue]
 
@@ -720,6 +725,15 @@ pub(all) enum ResidentSourceIssue {
   Fragment(@run_publication_host.ClientTaskFragmentIssue)
   Inventory(@run_publication.PublicationInventoryIssue)
   Standard(@remote_standard_host.NativeRemoteStandardHostIssue)
+}
+
+type ResidentSourcePublicationObservation
+
+pub(all) enum ResidentSourcePublicationObservationIssue {
+  Unavailable
+  Identity(@execution_query.CapturedSourceIssue)
+  Logical(@run_publication_host.ClientCapturedSourceLogicalIssue)
+  Evidence(@host.NativeSourceEvidenceIssue)
 }
 
 pub(all) enum ResidentStoppedRetainedCleanupIssue {

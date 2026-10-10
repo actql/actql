@@ -1,0 +1,272 @@
+///|
+/// A Local connection to the existing Native acquisition/Compute owner. It
+/// carries the original request guard; it is not a scheduler, Run lifecycle,
+/// approval owner, or execution continuation. Configurations are Host-owned.
+struct NativeClientSourceWork {
+  journal : NativeClientRunJournal
+  request : @host.ClientRequestIdentity
+  owner : @resident.ResidentSourceCompute
+  compiled : @host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  capture_started_at : String
+  capture_completed_at : String
+  current_authorization : () -> Bool
+}
+
+///|
+pub(all) enum NativeClientSourceWorkIssue {
+  AuthorizationDenied
+  NeedsOriginalReconciliation
+  Journal(NativeClientRunJournalIssue)
+  Work(@resident.ResidentSourceComputeIssue)
+  Observation(@resident.ResidentSourcePublicationObservationIssue)
+  Invocation(@publication.RunEvidenceValueIssue)
+  Open(
+    @resident.ResidentSourceComputeIssue,
+    @remote_output.NativeRemoteStandardInputFailure
+  )
+}
+
+///|
+fn claim_native_client_work_start(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  current_authorization : () -> Bool,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  // bind_run checks exact intent, compiled owner and Run identity; replay may
+  // retrieve the same binding but cannot select a replacement Run definition.
+  match journal.bind_run(request, prepared, compiled, definition, true) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  // Recheck after callbacks and each durable boundary. A reservation alone
+  // cannot authorize acquisition, and a false claim never opens another owner.
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  match journal.reserve_dispatch(request, true) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  match journal.claim_physical_start(request, true) {
+    Ok(true) => ()
+    Ok(false) => return Err(NeedsOriginalReconciliation)
+    Err(issue) => return Err(Journal(issue))
+  }
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  // A callback may observe or admit cancellation itself. Confirm the original
+  // retained start/fence facts after that callback, before opening acquisition.
+  match journal.lookup(request, true) {
+    Ok(Retained(record)) if record.physical_start_claimed &&
+      !record.cancellation_requested => Ok(())
+    Ok(_) => Err(NeedsOriginalReconciliation)
+    Err(issue) => Err(Journal(issue))
+  }
+}
+
+///|
+/// Start the original checked single-Source linear Program in this process.
+/// This acquires/executes through existing Native owners, without a Coordinator
+/// or transport dispatch. The caller must have adopted trusted configuration,
+/// authenticated the original Submission and supplied current Run/Source
+/// authority. Configuration must be the original selected mapping retained
+/// with that Run, not a replacement from current Host settings; this physical
+/// connection does not itself persist installation context. No path or grant
+/// is extracted from the Program. Once a physical
+/// claim exists, reopening this constructor is forbidden, including after an
+/// acquisition failure or lost reply; the original work must be reconciled.
+pub fn open_native_client_source_work(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  configuration : @resident.ResidentSourceComputeConfiguration,
+  occurrence : String,
+  current_time : () -> String,
+  current_authorization : () -> Bool,
+  observe? : (@resident.ResidentSourceComputeEvent) -> Bool,
+) -> Result[NativeClientSourceWork, NativeClientSourceWorkIssue] {
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  if !@resident.resident_source_compute_shape_supported(prepared) {
+    return Err(Work(@resident.UnsupportedGraph))
+  }
+  // Sample before the final authority/claim guard: this callback cannot move
+  // cancellation between that guard and physical acquisition.
+  let capture_started_at = current_time()
+  match
+    claim_native_client_work_start(
+      journal, request, prepared, compiled, definition, current_authorization,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let guarded_observe = event => {
+    if observe is Some(record) && !record(event) {
+      false
+    } else {
+      match event {
+        @resident.CleanupPending | @resident.CleanupCompleted => true
+        _ =>
+          current_authorization() &&
+          journal.lookup(request, true) is Ok(Retained(record)) &&
+          record.physical_start_claimed &&
+          !record.cancellation_requested
+      }
+    }
+  }
+  match
+    @resident.open_resident_source_compute(
+      prepared,
+      configuration,
+      occurrence,
+      observe=guarded_observe,
+    ) {
+    Ok(owner) =>
+      Ok({
+        journal,
+        request,
+        owner,
+        compiled,
+        definition,
+        capture_started_at,
+        capture_completed_at: current_time(),
+        current_authorization,
+      })
+    Err((issue, cleanup)) => Err(Open(issue, cleanup))
+  }
+}
+
+///|
+/// Bind the actual Source observation to the original compiled Run. Repeated
+/// calls retain the acquisition interval; they do not refresh its lifetime or
+/// reopen the Source. Every call rechecks current authority and cancellation.
+pub fn NativeClientSourceWork::publication_invocation(
+  self : NativeClientSourceWork,
+  limits : @host.PublicationOutputExportLimits,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @publication.RunEvidenceValue,
+    @publication.RunEvidenceValue,
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  ),
+  NativeClientSourceWorkIssue,
+] {
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let authority = @host.client_request_authority_scope_cid(self.request)
+  let observation = match
+    self.owner.source_publication_observation(
+      authority,
+      self.capture_completed_at,
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Observation(issue))
+  }
+  let (evidence, logical, source_ref, source_contract, policy) = @resident.resident_source_publication_observation_values(
+    observation,
+  )
+  let (observations, invocation) = match
+    @host.issue_client_compiled_task_invocation(
+      self.compiled,
+      self.definition,
+      @publication.run_evidence_value_json(evidence),
+      @publication.run_evidence_value_json(logical),
+      source_ref,
+      source_contract,
+      authority,
+      policy,
+      self.capture_started_at,
+      self.capture_completed_at,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Invocation(issue))
+  }
+  match self.require_current() {
+    Ok(_) => Ok((evidence, logical, observations, invocation))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn NativeClientSourceWork::require_current(
+  self : NativeClientSourceWork,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  if !(self.current_authorization)() {
+    return Err(AuthorizationDenied)
+  }
+  match self.journal.lookup(self.request, true) {
+    Ok(Retained(record)) if record.physical_start_claimed &&
+      !record.cancellation_requested => Ok(())
+    Ok(_) => Err(NeedsOriginalReconciliation)
+    Err(issue) => Err(Journal(issue))
+  }
+}
+
+///|
+/// Task readiness, input correspondence, capacity and completion remain with
+/// the existing strategy owner. This guard does not infer a lifecycle state.
+pub fn NativeClientSourceWork::execute_task(
+  self : NativeClientSourceWork,
+  task : Int,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.owner.execute_task(task).map(_ => ()).map_err(issue => Work(issue))
+}
+
+///|
+/// Obtain the checked Named Result export, not a publication receipt or a read
+/// grant. The CLI still commits through the existing Native publication Store
+/// and authorizes each delivery through the existing Result access service.
+pub fn NativeClientSourceWork::prepare_result_export(
+  self : NativeClientSourceWork,
+  limits : @host.PublicationOutputExportLimits,
+) -> Result[@host.PublicationOutputExport, NativeClientSourceWorkIssue] {
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.owner.prepare_result_export(limits).map_err(issue => Work(issue))
+}
+
+///|
+pub fn NativeClientSourceWork::usage(
+  self : NativeClientSourceWork,
+) -> @resources.LedgerUsage {
+  self.owner.usage()
+}
+
+///|
+/// Cleanup may proceed after authorization loss. The same acquisition/
+/// Compute owner retains failed-close responsibility and reservations. Closing
+/// this physical work is neither accepting a cancellation nor proving a Run
+/// terminal; a false result requires retry on this exact owner.
+pub fn NativeClientSourceWork::close(self : NativeClientSourceWork) -> Bool {
+  self.owner.close()
+}

@@ -54,6 +54,7 @@ pub(all) enum ResidentSourceComputeEvent {
 struct ResidentSourceCompute {
   close_source : () -> Bool
   capture : @query.CapturedInputSource?
+  acquired_source : ResidentAcquiredSourceCapture?
   effect_source : ResidentEffectSourceCapture?
   effect_retained : ResidentEffectRetainedCapture?
   effect_materials : (
@@ -71,6 +72,12 @@ struct ResidentSourceCompute {
   effect_previews : Map[String, ResidentEffectPreviewCustody]
   effect_payloads : Map[String, ResidentEffectSourceCustody]
   observe : ((ResidentSourceComputeEvent) -> Bool)?
+}
+
+///|
+priv struct ResidentAcquiredSourceCapture {
+  requirement : @planning.QueryRequirement
+  capture : @duckdb_host.NativeHostSourceCapture
 }
 
 ///|
@@ -112,6 +119,17 @@ fn resident_source_owner_supported(owner : ResidentSourceOwner) -> Bool {
       ) ==
       1
   }
+}
+
+///|
+/// The same structural support check used by the installed physical owner,
+/// exposed so Local admission can refuse an unsupported legal graph before
+/// claiming a physical start. This is not Source authority, configuration
+/// validation, execution admission or a permission to open a database.
+pub fn resident_source_compute_shape_supported(
+  prepared : @host.PreparedClientProgram,
+) -> Bool {
+  resident_source_owner_supported(Pure(prepared))
 }
 
 ///|
@@ -352,6 +370,7 @@ fn open_resident_source_compute_owned(
       generated,
       close_source,
       observe,
+      acquired_source=Some({ requirement, capture, }),
       effect_source=match prepared {
         Pure(_) => None
         Effect(bound) =>
@@ -581,6 +600,7 @@ fn open_resident_captured_compute(
     Int,
   )? = None,
   effect_source? : ResidentEffectSourceCapture? = None,
+  acquired_source? : ResidentAcquiredSourceCapture? = None,
   effect_retained? : ResidentEffectRetainedCapture? = None,
   effect_materials? : (
     @host.ClientEffectRunMaterials,
@@ -753,6 +773,7 @@ fn open_resident_captured_compute(
     effect_materials,
     close_source,
     capture: captured,
+    acquired_source,
     run,
     compute,
     stopping: false,
