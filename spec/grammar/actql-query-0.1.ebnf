@@ -168,6 +168,7 @@ pipe_set_clause = "SET", assignment, { ",", assignment } ;
 relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
               | "EXTEND", select_list, [ window_clause ]
               | pipe_set_clause
+              | unpivot_operator
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
@@ -182,6 +183,9 @@ pivot_operator = "PIVOT", "(", pivot_aggregate, "(", path, ")",
                  [ [ "AS" ], identifier ] ;
 pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
 pivot_value = query_string, [ [ "AS" ], identifier ] ;
+unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
+                   "(", identifier, "FOR", identifier, "IN", "(",
+                   identifier, { ",", identifier }, ")", ")", [ source_alias ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",

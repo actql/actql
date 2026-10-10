@@ -103,3 +103,18 @@ No packed success, submitted-HEAD CI, full Core or Wasm/Native execution is
 claimed by this record. UNPIVOT PR #1230's separate common capacity handoff is
 not an unmerged code dependency or a reason to stop this independent connection.
 The wider frontend goal remains incomplete; no merge is performed.
+
+## Integration review
+
+Normal integration includes main's adopted UNPIVOT and its completed-scratch
+lifetime fix. Both syntax forms, fresh scopes and authored registrations are
+preserved. The combined independent inventory contains 3,287 cases (2,077
+normal, 1,163 refusal and 47 execution failure occurrences). Complete parent
+Run preimages are retained and validated by the independent oracle.
+
+Integrated JS selection: 19/19 (`run-jFSfWP`). Node fixture/profile/identity
+selection: 60/60 (`run-XDOPP1`). Read-only grammar manifests, document metadata
+and 384 canonical identities passed (`run-em6B80`). Applied formatter output
+only to changed files; unchanged main formatting findings are not hidden.
+Fresh public packed acceptance is pending at this source revision. CI remains
+stopped; these results do not establish full Core or all-target coverage.

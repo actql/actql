@@ -1,5 +1,7 @@
 ///|
-fn QueryParser::pivot_clause(self : QueryParser) -> PivotClause raise QueryAbort {
+fn QueryParser::pivot_clause(
+  self : QueryParser,
+) -> PivotClause raise QueryAbort {
   self.keyword("PIVOT")
   self.symbol(40)
   let function_name = self.name().value.to_upper()
@@ -20,7 +22,10 @@ fn QueryParser::pivot_clause(self : QueryParser) -> PivotClause raise QueryAbort
     let expression = self.expression()
     guard expression_node(expression, expression_root(expression)).unwrap().kind
       is StringLiteral(value) else {
-      raise QueryAbort("PIVOT currently requires constant String values", self.peek().start)
+      raise QueryAbort(
+        "PIVOT currently requires constant String values",
+        self.peek().start,
+      )
     }
     values.push((value, self.optional_output_alias()))
     if self.peek().value != Symbol(44) {

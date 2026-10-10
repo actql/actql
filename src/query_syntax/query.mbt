@@ -94,6 +94,7 @@ pub(all) enum QueryInteger {
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
   UnnestSource(Expression, NamePart, NamePart?)
+  Unpivot(UnpivotClause)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -117,6 +118,14 @@ pub(all) enum QueryOperation {
   Distinct
   Order(Array[SortTerm])
   Limit(QueryInteger, QueryInteger)
+}
+
+///|
+pub(all) struct UnpivotClause {
+  columns : Array[NamePart]
+  value_column : NamePart
+  name_column : NamePart
+  include_nulls : Bool
 }
 
 ///|
@@ -421,6 +430,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
   match query.operations[index] {
     UnnestSource(expression, element, offset) =>
       Some(UnnestSource(expression, element, offset))
+    Unpivot(clause) =>
+      Some(Unpivot({ ..clause, columns: clause.columns.copy(), }))
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -448,12 +459,15 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Drop(xs) => Some(Drop(xs.copy()))
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
-    Pivot(clause) => Some(Pivot({
-      ..clause,
-      argument: clause.argument.copy(),
-      column: clause.column.copy(),
-      values: clause.values.copy(),
-    }))
+    Pivot(clause) =>
+      Some(
+        Pivot({
+          ..clause,
+          argument: clause.argument.copy(),
+          column: clause.column.copy(),
+          values: clause.values.copy(),
+        }),
+      )
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
       Some(
@@ -2785,6 +2799,15 @@ fn QueryParser::pipe_tail(
       operations.append(
         self.resolve_window_operations(window_operations, definitions),
       )
+    } else if self.has("UNPIVOT") {
+      operations.push(Unpivot(self.unpivot_clause()))
+      if self.has("AS") {
+        self.keyword("AS")
+        operations.push(Alias(self.name()))
+      } else if self.peek().value is Word(_) ||
+        self.peek().value is QuotedName(_) {
+        operations.push(Alias(self.name()))
+      }
     } else if self.has("SET") {
       self.keyword("SET")
       let values : Array[(NamePart, Expression)] = []

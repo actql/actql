@@ -18,7 +18,7 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
   }
   for operation in query.operations {
     match operation {
-      Select(_, _) | Group(_, _, _) | Pivot(_) => {
+      Select(_, _) | Group(_, _, _) | Pivot(_) | Unpivot(_) => {
         safe = true
         current_range = None
       }
