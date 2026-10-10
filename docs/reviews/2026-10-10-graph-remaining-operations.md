@@ -52,19 +52,60 @@ original SHAs, commands and receipts. Three private commit messages were
 wrapped before publication with trees and mapped parents unchanged; no test
 receipt is rewritten to the replacement SHA.
 
-At `b50ecbd9502751c49eeb141323cc06d5982f163b`, the focused checkout
-Reach/Shortest/Mean public Host controls passed 8/8 on Local and HTTPS
-(`run-XNlHUx`, `focused-test-3fB0U5`). The formal five-package cohort was then
-built at that clean source. Its external public-query consumer passed all 27
-normal authored cases on each transport, but failed at `graph-graft-refuse-0`:
-the malformed binary peer list was classified as an implementation limit.
-The failed producer run did not reach the fresh-process reader or the separate
-packed Host control. This is not a passed packed campaign.
+At clean `aa615176b06b717a6a310e7daede74fa85b0de63`, one formal five-package
+cohort passed external Local/HTTPS execution, refusal, retained Named Result
+reading and fresh-process original-submission replay. Each transport completed
+the exact 44-case inventory and four independent operation restart roots, with
+zero additional physical starts, Compute advances or completions. The same
+artifact passed 10/10 selected retained Host/cancellation cases. The changed
+Graft/Mean source controls passed 7/7 on Wasm and 7/7 on Native.
 
-The next batch corrects that existing lowerer classification and explicitly
-assigns fresh-process JSON/AQL boundary samples to each of the four operations.
-Final packed refusal/restart execution, public failure/cleanup retry evidence,
-and literal/Relation identity-prefix boundedness remain open. CI is stopped.
+Receipt `run-a0FPgH` is terminal, passed, with all five sequential steps and
+locks released. This is narrow local evidence, not CI or complete Graph
+delivery. Public failure/cleanup retry evidence and literal/Relation identity
+admission/lookup boundedness remain open. Review #1296's long-key P2 remains
+valid and is not closed by these public successes. CI is stopped.
+
+### Verified external cohort at aa615176
+
+Manifest: `graph-four-aa6151-BoNG03/packed-client-packages.json`.
+Both consumers verified the same tarballs against that clean source:
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `549f6dd36d0d074d5957e906900a0d5c26307e5d44e296f02bd49d779556d403` |
+| local-node | `2043177752946c3b64d197b45037efd58921e9dbf751a67e6a75f5e8f23ca2f6` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The guarded sequence used a single 900-second budget, MoonBit
+0.1.20260904 (94521db) and local Node 24.21.0. No test/capacity ceiling was
+increased:
+
+```sh
+node scripts/packed-client-packages.mjs <cohort-directory>
+ACTQL_PACKED_CLIENT_PACKAGES=<cohort-directory> node scripts/test-packed-public-query.mjs --graph-remaining-operations-only
+ACTQL_PACKED_CLIENT_PACKAGES=<cohort-directory> node scripts/test-packed-graph.mjs --remaining-operations-only
+node scripts/local-checks.mjs test moon -- --target wasm src/query_program/graph_graft_source_test.mbt src/query_program/graph_mean_source_test.mbt
+node scripts/local-checks.mjs test moon -- --target native src/query_program/graph_graft_source_test.mbt src/query_program/graph_mean_source_test.mbt
+```
+
+The final two literal Moon commands were run through `runFocusedTests` inside
+the same sequential `runLocalCheck`, not competing wrapper invocations. Their
+focused receipts are `focused-test-QEqI6q` and `focused-test-3SDdvM`.
+External receipts are in `public-query-evidence-dYDQcg`: commands 010/011,
+exact completion inventories, terminal transport records and both
+`transport-restart.*.json` reports. Each restart root reads its original JSON
+and AQL boundary sample; neither expected values nor source inputs are rebuilt
+from product output. The initial physical hook was observed before requiring
+zero replay. `graph-package-mq7lFF/acceptance.json` and `2.log` retain the same
+digests and 10-case Host result, including operation-specific positive-progress
+cancellation and stop-before-release assertions.
+
+The following documentation-only commit records these results; it does not
+retag artifacts or their receipts to a later SHA. Full Core, all-target suites,
+hosted CI and Preview remain unexecuted.
 
 ### Graft input diagnostics and per-operation restart coverage
 
