@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 139);
-  assert.equal(setCorrespondingRefusals.length, 96);
+  assert.equal(setCorrespondingSuccesses.length, 148);
+  assert.equal(setCorrespondingRefusals.length, 102);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -424,6 +424,35 @@ test('positional ORDER windows retain named snapshots without publishing hidden 
   assert.deepEqual(steps[6].select, [{a: 'kept'}, {b: 'neg'}]);
   assert.deepEqual(positionalOrderWindowProgram.stages[0].results.rows.fields, ['a', 'b']);
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-order-window-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional DISTINCT compares anonymous values and preserves later DROP multiplicity', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-distinct-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.sourceRows, [{id: 1, amount: 10}, {id: 1, amount: 20}, {id: 1, amount: 10}]);
+  assert.deepEqual(source.expected, [{a: 0, b: 0}, {a: 1, b: -20}, {a: 1, b: -10}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-displaced-value-not-an-equality-key')).expected,
+    [{a: 0, b: 0}, {a: 1, b: -10}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-drop-keeps-result-multiplicity')).expected,
+    [{a: 0}, {a: 11}, {a: 11}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-nullable')).expected,
+    [{a: 0, b: 0}, {a: 1, b: -10}, {a: 1, b: null}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  const limited = cases.find(x => x.name.endsWith('-parameter-order-limit'));
+  assert.deepEqual(limited.parameters, {min: 0, skip: 1});
+  assert.ok(limited.text.includes('ORDER BY -kept, 2 ASC NULLS LAST'));
+  assert.ok(limited.text.includes('LIMIT 1 OFFSET @skip'));
+  assert.deepEqual(positionalDistinctProgram.stages[0].steps[3].distinct, ['kept', 'neg']);
+  assert.deepEqual(positionalDistinctProgram.stages[0].steps[4].select, [{a: 'kept'}, {b: 'neg'}]);
+  assert.deepEqual(positionalDistinctProgram.stages[0].steps[0].values.schema.y,
+    {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-distinct-'));
   assert.equal(refusals.length, 6);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });

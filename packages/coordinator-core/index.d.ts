@@ -93,6 +93,13 @@ export const effectResumeDeliveries: Readonly<{
     reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[],
     claim: Readonly<{claimant: string; generation: bigint}>,
     limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): string;
+  preparePollJson(report: EffectCheckpointReport, resolutionWire: string,
+    authentication: Readonly<{key_id: string; reviewer_id: string;
+      expected_authority_scope_cid: string; authority_context_cid: string;
+      policy_cid: string; proof_preimage: string}>,
+    reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[],
+    claim: Readonly<{claimant: string; generation: bigint}>,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): string;
 }>;
 
 /** Canonical report admission is not remote persistence, approval, execution or

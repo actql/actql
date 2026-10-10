@@ -14864,6 +14864,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-routing",
+      "statement_sha256": "24b93cbcf8f588074a8655b0febac8a9a3ba3d09d7feb546ddde566553007bf2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-preservation",
+      "statement_sha256": "39156b5c94cb362ac19b2c8b60ad15635e17ab37e394c33af40e61de3554939f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-admission",
+      "statement_sha256": "a54136724934a5ce6aedbe7b7a4f40db851b10a9a1b93dda51cddc5e561a502a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-pending",
+      "statement_sha256": "700d27ba051a1b6bba5b7bbc4a4271eaf4d3298c5f0cf49f70308006f0f0bb67",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.discovery/exact-artifact-surface",
       "statement_sha256": "2808e9bed429a9e716df89549b1cd1c9add615cfb9f56c0451c0fdf851111ad0",
       "status": "pending",

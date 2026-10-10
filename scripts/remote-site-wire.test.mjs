@@ -177,3 +177,23 @@ test('Effect resume delivery pins original custody and canonical claim fields', 
   assert(!validate({...body, credential: 'must-not-be-sent'}, shape));
   assert(!validate({...body, version: body.version.replace('/0.1', '/0.2')}, shape));
 });
+
+test('Effect resume poll preserves exact original delivery and dispatch bytes', () => {
+  const fixed = read('spec/fixtures/remote-effect-resume-vectors.json');
+  const {body, canonical: text, cid} = fixed.poll;
+  assert.equal(canonical(body), text);
+  assert.equal(hash(text), cid);
+  assert.equal(body.delivery_json, fixed.delivery.canonical);
+  assert.equal(body.request_json, canonical(fixed.dispatch));
+  assert.equal(hash(body.request_json), body.dispatch_request_cid);
+  assert.equal(JSON.parse(body.delivery_json).dispatch_request_cid, body.dispatch_request_cid);
+  const schema = registry.schemas.poll_effect_resume;
+  assert.equal(hash(canonical(schema)), registry.schema_cids.poll_effect_resume);
+  const shape = project(schema);
+  assert(validate(body, shape));
+  assert(!validate({...body, credential: 'must-not-be-sent'}, shape));
+  for (const key of Object.keys(body)) {
+    const missing = {...body}; delete missing[key];
+    assert(!validate(missing, shape), `missing ${key}`);
+  }
+});
