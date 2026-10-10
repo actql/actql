@@ -65,6 +65,25 @@ test('live tool rejects backend API drift, tracked changes and untracked interfa
   );
   run('git', ['add', 'src/native_test/pkg.generated.mbti']);
   checkInterfaces(root);
+  mkdirSync(join(root, 'src/wasm_test'));
+  writeFileSync(
+    join(root, 'src/wasm_test/moon.pkg'),
+    'supported_targets = "wasm"\n',
+  );
+  writeFileSync(
+    join(root, 'src/wasm_test/wasm.mbt'),
+    'pub fn wasm_value() -> Int { 2 }\n',
+  );
+  // The real pinned tool reports this package against its absent canonical
+  // JS interface; it must still compile the selected Wasm implementation.
+  run('moon', ['check', '--target', 'wasm', 'src/wasm_test', '--deny-warn']);
+  checkInterfaces(root);
+  writeFileSync(
+    join(root, 'src/wasm_test/moon.pkg'),
+    'supported_targets = "+js+wasm"\noptions(targets: { "wasm.mbt": [ "wasm" ] })\n',
+  );
+  assert.throws(() => checkInterfaces(root), /Common-core interfaces differ/);
+  writeFileSync(join(root, 'src/wasm_test/moon.pkg'), 'supported_targets = "wasm"\n');
   writeFileSync(source, '#cfg(not(target="native"))\npub fn f(x : Int) -> Int { x }\n#cfg(target="native")\npub fn f(x : Int) -> String { x.to_string() }\n');
   for (const target of ['js', 'wasm', 'native']) run('moon', ['check', '--target', target]);
   assert.throws(() => checkInterfaces(root), /Common-core interfaces differ/);
