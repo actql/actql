@@ -15,6 +15,10 @@ pub fn call_native_credential_resource(NativeCredentialResourceService, @remote_
 
 pub fn call_native_credential_resource_at_path(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope, String) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
 
+pub fn call_native_credential_resource_guarded_request_at_path(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope, @http_client.NativeHttpMethod, String, Bytes, () -> Bool) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
+
+pub fn call_native_credential_resource_request_at_path(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope, @http_client.NativeHttpMethod, String, Bytes) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
+
 pub fn install_native_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
@@ -36,6 +40,7 @@ pub(all) struct NativeCredentialAuthorization {
   grant_cid : String
   use_cid : String?
   scope : NativeCredentialScope
+  request : NativeCredentialRequest?
 }
 
 pub(all) struct NativeCredentialOperation {
@@ -43,6 +48,14 @@ pub(all) struct NativeCredentialOperation {
   operation : String
   path : String
   secret_path : String
+  verb : @http_client.NativeHttpMethod
+  max_request_bytes : Int
+}
+
+pub(all) struct NativeCredentialRequest {
+  verb : @http_client.NativeHttpMethod
+  path : String
+  body : Bytes
 }
 
 pub(all) enum NativeCredentialResourceIssue {

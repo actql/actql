@@ -42,6 +42,30 @@ test "Graph row module emits the existing Bridge without fabricated type facts" 
   assert_eq(bound.visible_fields, ["p", "node_key"])
   assert_eq(bound.name, "out")
   assert_true(bound.source is StepReference)
+  // Only the set owner may request its first operand. A direct Graph-row
+  // call must retain refusal rather than silently discard an unconsumed set.
+  let unsplit = @query.parse_query(
+    text + " |> UNION ALL (FROM n |> SELECT p, node_key)",
+    mapping_syntax_limits(),
+  ).unwrap()
+  let refused = try {
+    ignore(
+      lower_script_graph_rows(
+        construction,
+        unsplit,
+        graph,
+        mapping_limits(),
+        [],
+        [],
+        "unused",
+      ),
+    )
+    false
+  } catch {
+    Abort(UnsupportedGraph) => true
+    _ => false
+  }
+  assert_true(refused)
   let root = construction.array(steps)
   let source = @builder.finish(builder, root).unwrap()
   let cursor = @builder.cursor(source)

@@ -3,7 +3,9 @@ package "actql/actql/platform_native/remote_journal"
 
 import {
   "actql/actql/checkpoint_runtime",
+  "actql/actql/effect_application",
   "actql/actql/execution_site",
+  "actql/actql/logical_request_scope",
   "actql/actql/physical_manifest",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
@@ -73,6 +75,7 @@ pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) 
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
 pub fn Journal::cancellation_requested(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteJournalIssue]
+pub fn Journal::claim_effect_ledger_dispatch(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[(Bool, @effect_application.EffectLedgerEntry), NativeRemoteJournalIssue]
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?, file_custody? : NativeOutputFileCustody?) -> Result[Unit, NativeRemoteJournalIssue]
@@ -80,6 +83,7 @@ pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]
 pub fn Journal::effect_checkpoint_report(Self, @remote_site_protocol.DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, @remote_site_protocol.RemoteEffectCheckpointReply?), NativeRemoteJournalIssue]
+pub fn Journal::effect_ledger_response(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry) -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue]
 pub fn Journal::ensure_output_report_capacity(Self, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::force_loss(Self, @remote_site_protocol.DispatchRecord, Bool) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::observation(Self, @remote_site_protocol.DispatchRequest) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue]
@@ -87,6 +91,7 @@ pub fn Journal::output_report(Self, String) -> Result[(@remote_site_protocol.Rem
 pub fn Journal::output_report_after(Self, String) -> Result[(String, @remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?)?, NativeRemoteJournalIssue]
 pub fn Journal::pending_output_intents(Self) -> Result[Array[(String, String)], NativeRemoteJournalIssue]
 pub fn Journal::record_effect_checkpoint_reply(Self, @remote_site_protocol.DispatchRequest, String, @checkpoint_runtime.WireLimits) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::record_effect_ledger_response(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, NativeEffectSavedResponse) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::record_output_report_reply(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::recover_after(Self, String) -> Result[(String, @remote_site_protocol.DispatchRecord)?, NativeRemoteJournalIssue]
 pub fn Journal::request_cancellation(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
@@ -101,6 +106,12 @@ pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, Nativ
 pub fn Journal::retain_output_report(Self, @remote_site_protocol.RemoteOutputReportCustody) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retry_output_report(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::start_claimant(Self, @remote_site_protocol.DispatchRequest) -> Result[String?, NativeRemoteJournalIssue]
+
+pub(all) struct NativeEffectSavedResponse {
+  credential_use_cid : String
+  status_code : Int
+  body : Bytes
+}
 
 type NativeOutputFileCustody
 

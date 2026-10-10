@@ -137,12 +137,47 @@ test "expression corpus accepted: 27" {
 
 ///|
 test "expression corpus accepted: 28" {
-  assert_tree("sign(-1)", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+  assert_tree("sign(-1)", "{\"sign\":{\"literal\":-1}}")
 }
 
 ///|
 test "expression corpus accepted: 29" {
+  assert_tree("sign(-x)", "{\"sign\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 30" {
+  assert_tree("sign(negate(1))", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 31" {
   assert_tree("sign(NULL)", "{\"sign\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 32" {
+  assert_tree("strpos(value, part)", "{\"strpos\":[{\"field\":\"value\"},{\"field\":\"part\"}]}")
+}
+
+///|
+test "expression corpus accepted: 33" {
+  assert_tree("strpos($value, $part)", "{\"strpos\":[{\"$param\":\"value\"},{\"$param\":\"part\"}]}")
+}
+
+///|
+test "expression corpus accepted: 34" {
+  assert_tree("strpos('\u{1f600}e\u{301}x', 'x')", "{\"strpos\":[{\"literal\":\"\u{1f600}e\u{301}x\"},{\"literal\":\"x\"}]}")
+}
+
+///|
+test "expression corpus accepted: 35" {
+  assert_tree("strpos('', '')", "{\"strpos\":[{\"literal\":\"\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 36" {
+  assert_tree("strpos(NULL, NULL)", "{\"strpos\":[{\"literal\":null},{\"literal\":null}]}")
 }
 
 ///|
@@ -348,4 +383,24 @@ test "expression corpus rejected: 40" {
 ///|
 test "expression corpus rejected: 41" {
   assert_true(parse("sign(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 42" {
+  assert_true(parse("strpos()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 43" {
+  assert_true(parse("strpos(x)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 44" {
+  assert_true(parse("strpos(x,y,z)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 45" {
+  assert_true(parse("STRPOS(x,y)", test_limits()) is Err(_))
 }

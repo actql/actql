@@ -177,3 +177,80 @@ test('changed shared-core guidance stays advisory without executing gates', t =>
   }
   assert.deepEqual(readdirSync(join(f.root, 'home')), []);
 });
+
+const inferAdmissionPaths = [
+  'scripts/infer-host-fixtures.mjs',
+  'scripts/check-canonical-json.mjs',
+  'spec/contracts/actql-aoa.json',
+  'spec/dependencies/aoa-pipeline-registry.json',
+  'spec/local-check-environment.json',
+  'src/stage_results/infer_program_test.mbt',
+  'src/run_publication_host/client_infer_prefix_wbtest.mbt',
+  'src/client_infer_host/fixture.generated_wbtest.mbt',
+];
+const inferFreshness = '  node scripts/infer-host-fixtures.mjs';
+const inferCallers = '  node scripts/local-checks.mjs test moon -- --target js -p client_infer_host';
+
+function changedPaths(f, paths) {
+  const git = join(f.root, 'bin/git');
+  writeFileSync(git, `#!${process.execPath}\nconsole.log(${JSON.stringify(paths.join('\n'))});\n`);
+  chmodSync(git, 0o755);
+  return f.run(['changed']);
+}
+
+function unchangedFixture(f) {
+  for (const path of ['calls', 'moon-args', '_build', '.artifacts']) {
+    assert.equal(existsSync(join(f.root, path)), false, path);
+  }
+  assert.deepEqual(readdirSync(join(f.root, 'home')), []);
+}
+
+test('known INFER hint paths retain the current generator and registry owners', () => {
+  const source = readFileSync(new URL('infer-host-fixtures.mjs', import.meta.url), 'utf8');
+  const aoa = JSON.parse(readFileSync(new URL('../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+  assert.equal(aoa.pipeline_registry_file, 'spec/dependencies/aoa-pipeline-registry.json');
+  assert.match(source, /read\(\s*aoa\.pipeline_registry_file\)/u);
+  assert.ok(source.includes("from './check-canonical-json.mjs'"));
+  for (const path of inferAdmissionPaths.slice(2).filter(path => path !== aoa.pipeline_registry_file)) {
+    assert.ok(source.includes(`'${path}'`), path);
+  }
+});
+
+for (const path of inferAdmissionPaths) {
+  test(`changed ${path} suggests the existing INFER checks without executing them`, t => {
+    const f = fixture(t);
+    const result = changedPaths(f, [path]);
+    assert.equal(result.status, 0, result.stderr);
+    const lines = result.stdout.split('\n');
+    assert.equal(lines.filter(line => line === inferFreshness).length, 1);
+    assert.equal(lines.filter(line => line === inferCallers).length, 1);
+    assert.match(result.stdout, /Known INFER admission dependency \(advisory, incomplete\)/u);
+    assert.match(result.stdout, /read-only freshness check requires the pinned MOON_HOME/u);
+    assert.match(result.stdout, /no checks were executed/u);
+    assert.match(result.stdout, /not complete reverse-dependent coverage/u);
+    assert.doesNotMatch(result.stdout, /--write/u);
+    unchangedFixture(f);
+  });
+}
+
+test('multiple repeated INFER owner changes keep one deterministic pair of hints', t => {
+  const f = fixture(t);
+  const selected = output => output.split('\n')
+    .filter(line => line === inferFreshness || line === inferCallers);
+  const forward = changedPaths(f, [...inferAdmissionPaths, ...inferAdmissionPaths]);
+  const reverse = changedPaths(f, [...inferAdmissionPaths].reverse());
+  assert.equal(forward.status, 0, forward.stderr);
+  assert.equal(reverse.status, 0, reverse.stderr);
+  assert.deepEqual(selected(forward.stdout), [inferFreshness, inferCallers]);
+  assert.deepEqual(selected(reverse.stdout), [inferFreshness, inferCallers]);
+  unchangedFixture(f);
+});
+
+test('unrelated and similarly named changes do not claim an INFER dependency', t => {
+  const f = fixture(t);
+  const result = changedPaths(f, ['README.md', 'spec/contracts/actql-aoa.json.backup',
+    'spec/dependencies/other-registry.json', 'src/source_span/span.mbt']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /INFER admission dependency|infer-host-fixtures|client_infer_host/u);
+  unchangedFixture(f);
+});

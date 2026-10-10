@@ -519,6 +519,7 @@ fn infer(
     | "concat_strict"
     | "replace"
     | "contains"
+    | "strpos"
     | "starts_with"
     | "ends_with"
     | "like" => {
@@ -528,7 +529,7 @@ fn infer(
       }
       primitive(
         t,
-        if tag == "len" {
+        if tag == "len" || tag == "strpos" {
           NumberType
         } else if ["contains", "like", "starts_with", "ends_with"].contains(tag) {
           BooleanType
