@@ -41,6 +41,7 @@ await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
 const paths = [];
 let resolutionRequests = 0;
 let writes = 0;
+let rejectedWrites = 0;
 const writeBodies = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
@@ -62,7 +63,8 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     return;
   }
   if (request.method === 'PATCH' &&
-      [expected + '001000000000001', expected + '001000000000002'].includes(request.url)) {
+      [expected + '001000000000001', expected + '001000000000002',
+        expected + '001000000000003'].includes(request.url)) {
     if (request.headers.authorization !== 'Bearer native-target-test' ||
         request.headers['content-type'] !== 'application/json') {
       response.writeHead(403); response.end(); return;
@@ -75,9 +77,15 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     request.on('end', () => {
       const body = Buffer.concat(chunks).toString('utf8');
       assert.equal(body, '{"Optional_Value__c":"new"}');
+      paths.push({method: request.method, path: request.url});
+      if (request.url === expected + '001000000000003') {
+        rejectedWrites++;
+        response.writeHead(409, {'content-type': 'application/json'});
+        response.end('{"refused":"e\\u0301\\r\\n"}');
+        return;
+      }
       writes++;
       writeBodies.push(body);
-      paths.push({method: request.method, path: request.url});
       if (request.url === expected + '001000000000002') {
         // The Provider accepted the write; the caller loses the response.
         request.socket.destroy();
@@ -222,7 +230,7 @@ try {
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes, writeBodies, resolutionRequests,
+    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests,
     provider: bearer?.effectTargets(),
     scope: residentOriginalHolder
       ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
@@ -234,6 +242,7 @@ try {
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   const expectedWrites = residentProposals ? 0 : 2;
   assert.equal(writes, expectedWrites);
+  assert.equal(rejectedWrites, residentProposals ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   if (residentProposals) {
@@ -248,6 +257,7 @@ try {
     assert.deepEqual(paths.filter(value => value.method === 'PATCH'), [
       {method: 'PATCH', path: expected + '001000000000001'},
       {method: 'PATCH', path: expected + '001000000000002'},
+      {method: 'PATCH', path: expected + '001000000000003'},
     ]);
   }
   console.log(`Native Salesforce target observation receipt: ${join(root, 'physical-receipt.json')}`);

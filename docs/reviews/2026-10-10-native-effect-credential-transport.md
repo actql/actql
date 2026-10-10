@@ -53,7 +53,7 @@ PATCH body; a separately signed write grant cannot be replaced by the observe
 grant. Fixture current authorization is explicit and is not a production
 reviewer-role assignment.
 
-The three added physical cases verify:
+The four added physical cases verify:
 
 - Wrong verb, path, oversized body, missing authorization, observe grant,
   read-entry misuse, Authorization substitution and expired deadline send
@@ -66,12 +66,17 @@ The three added physical cases verify:
 - Revocation during the send authorization callback is observed again after
   durable claim. No write occurs, and the same failed use remains inspectable.
 
-The fixture requires exactly two accepted PATCH requests overall, three existing
+- A Provider refusal returns its original status and raw bytes to the write
+  caller, allowing the existing Effect Ledger to retain them before interpreting
+  an outcome. The read entry points keep their existing `ResourceRejected`
+  behavior. Reopening does not repeat the rejected write.
+
+The fixture requires exactly two accepted PATCH writes and one refusal, three existing
 GET observations, exact independent request bodies and all registered tests.
 It records the physical requests and status in a private receipt. The signed
 Resolution admission case remains part of the same default test invocation.
 
-Before the final fixed-source run, the Native fixture passed 10/10; Native
+Before the refusal-response case, the Native fixture passed 10/10; Native
 consuming-package compilation and interface generation passed. An earlier 9/9
 diagnostic passed with new-field reserved-keyword warnings; those fields were
 renamed to `verb`, and the later compile has no such warnings. Final source,

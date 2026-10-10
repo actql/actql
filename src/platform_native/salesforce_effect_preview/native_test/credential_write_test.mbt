@@ -278,3 +278,63 @@ test "Native credential write rechecks authorization after its durable claim" {
   ignore(client.close())
   database.close_checked().unwrap()
 }
+
+///|
+test "Native credential write preserves the raw Provider refusal without resending it" {
+  let (request, _) = target_request("001000000000003")
+  let operation = write_operation(request)
+  let scope = { ..target_scope(), operation: "salesforce:record:update", }
+  let body = @utf8.encode(@catalog.single_write_request_body(request))
+  let grant = write_grant()
+  let (database, client) = target_physical("write-refused")
+  let service = @resource.install_native_credential_resource_service(
+    database,
+    client,
+    [operation],
+    _ => true,
+  ).unwrap()
+  let response = @resource.call_native_credential_resource_request_at_path(
+    service,
+    grant,
+    "refused-a",
+    scope,
+    @http.Patch,
+    operation.path,
+    body,
+  ).unwrap()
+  assert_eq(response.status, 409)
+  assert_eq(response.body, b"{\"refused\":\"e\\u0301\\r\\n\"}")
+  let original = @resource.query_native_credential_use(
+    service, grant, "refused-a", scope,
+  ).unwrap()
+  assert_eq(original.outcome, "failed")
+  assert_eq(original.status, Some(409))
+  ignore(client.close())
+  database.close_checked().unwrap()
+  let (reopened, fresh_client) = target_physical("write-refused")
+  let fresh = @resource.install_native_credential_resource_service(
+    reopened,
+    fresh_client,
+    [operation],
+    _ => true,
+  ).unwrap()
+  assert_true(
+    @resource.call_native_credential_resource_request_at_path(
+      fresh,
+      grant,
+      "refused-a",
+      scope,
+      @http.Patch,
+      operation.path,
+      body,
+    )
+    is Err(_),
+  )
+  let retained = @resource.query_native_credential_use(
+    fresh, grant, "refused-a", scope,
+  ).unwrap()
+  assert_eq(retained.use_cid, original.use_cid)
+  assert_eq(retained.status, Some(409))
+  ignore(fresh_client.close())
+  reopened.close_checked().unwrap()
+}

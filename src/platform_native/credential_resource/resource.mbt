@@ -670,7 +670,14 @@ fn call_native_credential_resource_owned(
         "failed",
         Some(response.status),
       ) {
-      Ok(_) => return Err(ResourceRejected(response.status))
+      Ok(_) =>
+        return if verb == @http.Get {
+          Err(ResourceRejected(response.status))
+        } else {
+          // Preserve the exact rejection response for the Effect Ledger.
+          // HTTP rejection is not itself a semantic Effect outcome.
+          Ok({ use_cid, status: response.status, body: response.body, })
+        }
       Err(Journal(issue)) => return Err(TerminalRecordFailed("failed", issue))
       Err(other) => return Err(other)
     }
