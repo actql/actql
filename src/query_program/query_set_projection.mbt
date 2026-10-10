@@ -1,16 +1,28 @@
 ///|
-// ORDER and LIMIT preserve the terminal SELECT's columns and ordinal values.
-// A later projection/filter/edit has a distinct language scope, not this role.
+// ORDER/LIMIT and an unchanged star preserve positional column values.
+// Walk through those projections without making physical names public aliases.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
+  let mut projection : Int? = None
   while index >= 0 {
     match @query.operation_at(query, index).unwrap() {
       Order(_) | Limit(_, _) => index -= 1
-      Select(_, _) => return Some(index)
-      _ => return None
+      Select(projections, _) => {
+        projection = Some(index)
+        if projections.length() == 1 &&
+          projections[0].star == Some("*") &&
+          projections[0].expression is None &&
+          projections[0].except_columns.is_empty() &&
+          projections[0].replacements.is_empty() {
+          index -= 1
+        } else {
+          return projection
+        }
+      }
+      _ => return projection
     }
   }
-  None
+  projection
 }
 
 ///|
