@@ -93,7 +93,7 @@ export const graphSubtractionSourceRefusals = [
   ['unknown-peer', 'subtract_graphs(with: missing)', 'ClientProgramRejected'],
   ['relation-peer', 'subtract_graphs(with: n)', 'ClientProgramRejected'],
   ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramImplementationLimit'],
-  ['lost-graph-scope', 'node_rows() |> subtract_graphs(with: g)', 'ClientProgramImplementationLimit'],
+  ['lost-graph-scope', 'node_rows() |> subtract_graphs(with: g)', 'ClientProgramInvalidInput'],
 ].map(([name, call, expectedCode]) => ({name: 'graph-subtraction-' + name, format: 'aql-text',
   text: prefix + 'FROM g |> ' + call + output('nodes'), expectedCode})).concat([
   {name: 'graph-subtraction-forward-peer', format: 'aql-text', expectedCode: 'ClientProgramRejected',

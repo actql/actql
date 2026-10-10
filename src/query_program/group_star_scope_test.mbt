@@ -36,7 +36,7 @@ test "GROUP star cannot silently drop an ungrouped input column" {
         join_order_context(),
         construction_limits(),
       )
-      is Err(UnsupportedGrouping),
+      is Err(InvalidQuery),
       msg=source,
     )
   }
@@ -79,7 +79,7 @@ test "GROUP star resolves scoped JOIN columns without exposing private slots" {
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedGrouping),
+    is Err(InvalidQuery),
   )
 }
 

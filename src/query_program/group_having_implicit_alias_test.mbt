@@ -192,7 +192,7 @@ test "GROUP HAVING implicit aliases reject ambiguity and ungrouped receivers" {
         group_property_context(),
         construction_limits(),
       )
-      is Err(UnsupportedGrouping),
+      is Err(InvalidQuery),
       msg=source,
     )
   }

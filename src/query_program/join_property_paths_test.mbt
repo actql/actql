@@ -214,7 +214,7 @@ test "JOIN property preserves ambiguity and removed DISTINCT input diagnostics" 
     match actual {
       Err(AmbiguousColumn) => assert_eq(issue, "ambiguous")
       Err(UnknownColumn) => assert_eq(issue, "unknown")
-      Err(UnsupportedOrdering) => assert_eq(issue, "ordering")
+      Err(InvalidQuery) => assert_eq(issue, "ordering")
       _ => fail("the intended scope diagnostic is required")
     }
   }
