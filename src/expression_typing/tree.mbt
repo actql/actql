@@ -159,6 +159,7 @@ fn flatten(
       | "len"
       | "sqrt"
       | "abs"
+      | "sign"
       | "floor"
       | "lower"
       | "upper"
