@@ -90,6 +90,55 @@ input. The operand is evaluated once on demand under the common lazy-demand,
 first-failure, cancellation and logical-budget rules. The adopted subset has
 no implicit conversions, decimal overloads or non-finite numeric values.
 
+`STARTS_WITH(value, prefix)` and `ENDS_WITH(value, suffix)` each take exactly
+two STRING operands and lower to the common `starts_with` and `ends_with`
+nodes. The selected [GoogleSQL prefix](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#starts_with)
+and [suffix](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#ends_with)
+rules use default binary comparison of retained strings. Empty prefixes and
+suffixes match every non-null string, including the empty string. Matching
+applies no normalization, case folding, trimming or locale conversion. Either
+NULL input yields NULL; both children are evaluated once in authored order
+under the common failure, cancellation and budget rules. Result nullability
+is the union of operand nullability, including on empty input. BYTES overloads
+and explicit collations remain GoogleSQL coverage gaps.
+
+`STRPOS(value, subvalue)` takes exactly two STRING operands and lowers to the
+common `strpos` node. The selected [GoogleSQL STRPOS rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#strpos)
+returns the first match's 1-based character position, or 0 when absent. ActQL
+counts Unicode scalars; an empty subvalue yields 1 even for an empty value.
+Comparison is default binary and preserves exact retained strings. Both
+children evaluate once in authored order before strict NULL propagation;
+nullable operands imply a nullable result, including on empty input. The
+common failure, lazy-demand, cancellation and budget rules apply. ActQL uses
+an exact integer-valued finite `number` within its bounded string domain;
+GoogleSQL's INT64 result type, BYTES overload and explicit collation remain
+coverage gaps.
+
+`SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
+the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
+it returns the number -1, positive zero or 1 for a negative, zero or positive
+operand. Both zero signs yield canonical positive zero. Subnormals and the
+largest finite values are admitted. NULL propagates and preserves operand
+nullability, including on empty input. Evaluation demands the child once and
+retains the common lazy-demand, failure, cancellation and budget rules.
+This implements the finite FLOAT64 subset. INT64, NUMERIC, BIGNUMERIC and
+non-finite overload domains remain unsupported; no implicit conversion is
+introduced by the frontend.
+
+`ROUND(expr)` and `TRUNC(expr)` each take exactly one finite binary64 `number`
+operand and lower to their common `round` or `trunc` node. The selected
+[GoogleSQL ROUND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#round)
+and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc)
+unary rules round to the nearest integer with halfway cases away from zero,
+and to the nearest integer toward zero, respectively. Already-integral values
+remain unchanged, including the largest finite magnitudes. Zero results use
+the existing ActQL positive-zero rule. NULL propagates and operand nullability
+is preserved, including on empty input. The child is demanded exactly once
+under the common failure, lazy-demand, cancellation and budget rules.
+Optional decimal-position `N`, explicit `rounding_mode`, INT64/NUMERIC/BIGNUMERIC
+and non-finite overload domains remain coverage gaps. Extra arguments and
+wrong types MUST be refused rather than ignored or coerced.
+
 `SELECT * EXCEPT (name, ...)` uses the adopted
 [GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).
 It expands the current visible star columns, removes all matching named

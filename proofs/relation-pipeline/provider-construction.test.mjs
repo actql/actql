@@ -91,11 +91,15 @@ for (const [name, from, to] of [
   ['cleanup error hidden', 'Err(issue) => Err(selected_binding_rows_issue(issue, step))', 'Err(_) => Ok(true)'],
   ['Values completion excluded', '      Some(@lower.ValuesStep(_)) => ()\n', ''],
   ['UNNEST completion excluded', ' &&\n          !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _))', ''],
+  ['Append completion excluded', '      Some(@lower.AppendStep(_)) => ()\n', ''],
+  ['analytic completion excluded', '          !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&\n', ''],
+  ['UNPIVOT completion excluded', '          !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&\n', ''],
   ['unreviewed family admitted', '      _ => return false\n', '      _ => ()\n'],
 ]) test(`lifecycle source review refuses ${name}`, () => {
   const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
   const functionName = name.includes('completion') || name.startsWith('pending') || name.startsWith('cleanup')
-    ? (name.startsWith('Values') || name.startsWith('UNNEST')
+    ? (name.startsWith('Values') || name.startsWith('UNNEST') || name.startsWith('Append') ||
+        name.startsWith('analytic') || name.startsWith('UNPIVOT')
       ? 'relation_chain_reclaims_completed_scratch' : 'selected_binding_rows_execution')
     : 'relation_chain_reclaims_completed_scratch';
   const body = reviewedFunction(source, functionName);
@@ -103,6 +107,32 @@ for (const [name, from, to] of [
   const mutated = source.replace(body, body.replace(from, to));
   assert.throws(() => selectedBeforeReviewedLifecycle(mutated),
     /reviewed representation delta|scratch eligibility|Lifecycle changes/u);
+});
+test('Append, analytic and UNPIVOT scratch eligibility leaves every construction and capture byte unchanged', () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const previous = historical(path, 'eb3a7a78a7426a9be397b62545e76984a25aba43').toString();
+  assert.equal(hash(previous), '40dbff3cc79f6d83d2dffd2f2d41bf514738bcaa5c1a728b810fcf6d343b892f');
+  const current = read(path).toString();
+  let remaining = current;
+  for (const addition of [
+    '      Some(@lower.AppendStep(_)) => ()\n',
+    '          !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&\n',
+    '          !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&\n',
+  ]) {
+    assert.equal(remaining.split(addition).length, 2, 'Missing unique scratch-eligibility extension');
+    remaining = remaining.replace(addition, '');
+  }
+  assert.equal(remaining, previous, 'Unreviewed change outside the three pure eligibility branches');
+  for (const name of ['selected_relation_provider', 'bounded_relation_chain_execution_state',
+    'bounded_relation_chain_capacity', 'selected_binding_rows_execution']) {
+    assert.equal(reviewedFunction(current, name), reviewedFunction(previous, name),
+      `Construction, captures, capacity or cleanup changed: ${name}`);
+  }
+  const bound = providerConstructionBound(read);
+  assert.equal(bound.bytes, 2344);
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+  assert.equal(bound.completeParentUpper, false);
+  assert.equal(bound.completePipelineUpper, false);
 });
 test('reviewed composition adds only typed Graph row-kernel exclusions to the integrated source premise', () => {
   const path = 'src/execution_relation/generated_sequence.mbt';

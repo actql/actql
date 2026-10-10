@@ -1,7 +1,84 @@
 ///|
+// ORDER/LIMIT, WHERE and a star preserve anonymous positional columns.
+// EXCEPT/REPLACE address named columns without naming retained anonymous values.
+fn positional_set_terminal_projection(query : @query.Query) -> Int? {
+  let mut index = @query.operation_count(query) - 1
+  let mut projection : Int? = None
+  while index >= 0 {
+    match @query.operation_at(query, index).unwrap() {
+      Order(_) | Limit(_, _) | Where(_) => index -= 1
+      Select(projections, _) => {
+        projection = Some(index)
+        if projections.length() == 1 &&
+          projections[0].star == Some("*") &&
+          projections[0].expression is None {
+          index -= 1
+        } else {
+          return projection
+        }
+      }
+      _ => return projection
+    }
+  }
+  projection
+}
+
+///|
+// These are authored expression trees, before star expansion creates its
+// internal physical-field references. Reuse the ordinary reference guards.
+fn positional_projection_expressions(
+  projections : Array[@query.Projection],
+) -> Array[@query.Expression] {
+  let expressions : Array[@query.Expression] = []
+  let add_aggregate = fn(call : @query.AggregateCall) {
+    if call.argument is Some(expression) {
+      expressions.push(expression)
+    }
+    if call.filter is Some(expression) {
+      expressions.push(expression)
+    }
+    expressions.append(call.order_by.map(term => term.expression))
+  }
+  let add_analytic = fn(call : @query.AnalyticCall) {
+    if call.expression is Some(expression) {
+      expressions.push(expression)
+    }
+    if call.aggregate is Some(aggregate) {
+      add_aggregate(aggregate)
+    }
+    expressions.append(call.window.partition_by)
+    expressions.append(call.window.order_by.map(term => term.expression))
+  }
+  for projection in projections {
+    if projection.expression is Some(expression) {
+      expressions.push(expression)
+    }
+    if projection.aggregate is Some(call) {
+      add_aggregate(call)
+    }
+    if projection.analytic is Some(call) {
+      add_analytic(call)
+    }
+    for replacement in projection.replacements {
+      if replacement.expression is Some(expression) {
+        expressions.push(expression)
+      }
+      if replacement.aggregate is Some(call) {
+        add_aggregate(call)
+      }
+      if replacement.analytic is Some(call) {
+        add_analytic(call)
+      }
+    }
+  }
+  expressions
+}
+
+///|
 // A terminal positional right operand needs physical fields, not authored
-// aliases. These fields only cross the existing ordinal alignment; no later
-// operation in this operand can resolve them as source-language names.
+// aliases. ORDER may use their positions or evaluated expressions, never
+// their private names. Filters see only authored output aliases. Existing
+// ordinal alignment supplies the public names.
 fn anonymous_set_projection_name(
   projections : Array[@query.Projection],
   physical : Array[String],
@@ -17,9 +94,86 @@ fn anonymous_set_projection_name(
 }
 
 ///|
-// Anonymous aggregate outputs retain the evaluated aggregate's input meaning.
-// They are physical set-operand fields, never authored SELECT aliases.
-fn anonymous_set_aggregate_slot(
+// A terminal positional operand exports values by ordinal, not its authored
+// names. Keep each duplicate occurrence in a distinct physical column until
+// the existing set alignment replaces those names with the left output names.
+// This is not a public duplicate-name policy or an alias lookup rule.
+fn privatize_positional_duplicate_columns(
+  construction : Construction,
+  names : Array[String],
+  bindings : Array[(String, String)],
+  selected : Array[@builder.Node],
+  physical : Array[String],
+  authored_aliases? : Array[(String, String)]? = None,
+) -> Array[String] raise Abort {
+  let private_fields : Array[String] = []
+  let counts : Map[String, Int] = Map([])
+  for name in names {
+    let key = ascii_upper(name)
+    counts[key] = counts.get(key).unwrap_or(0) + 1
+  }
+  let reserved = physical + names
+  for index in 0..<names.length() {
+    if counts[ascii_upper(names[index])] > 1 {
+      let name = pipe_physical_name(reserved, "aql_set_duplicate_")
+      reserved.push(name)
+      let source = bindings[index].1
+      if authored_aliases is Some(aliases) {
+        aliases.push((name, names[index]))
+      }
+      names[index] = name
+      private_fields.push(name)
+      bindings[index] = (name, source)
+      selected[index] = construction.object([(name, construction.text(source))])
+    }
+  }
+  private_fields
+}
+
+///|
+fn duplicate_projection_alias(
+  projections : Array[@query.Projection],
+  name : String,
+) -> Bool {
+  let mut found = false
+  for projection in projections {
+    if projection_alias(projection)
+      .map(output => ascii_upper(output.value) == ascii_upper(name))
+      .unwrap_or(false) {
+      if found {
+        return true
+      }
+      found = true
+    }
+  }
+  false
+}
+
+///|
+// Duplicate SELECT aliases cannot supply a HAVING/QUALIFY receiver. A longer
+// qualified input prefix keeps its existing meaning; do not flatten it to an
+// unqualified output alias merely because its first token has the same name.
+fn reject_duplicate_projection_references(
+  projections : Array[@query.Projection],
+  references : Array[Array[@query.NamePart]],
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> Unit raise Abort {
+  for path in references {
+    if duplicate_projection_alias(projections, path[0].value) {
+      let qualified = order_reference_identity(path, resolve)
+        .map(identity => identity.1 > 1)
+        .unwrap_or(false)
+      if !qualified {
+        raise Abort(AmbiguousColumn)
+      }
+    }
+  }
+}
+
+///|
+// Physical set aggregate outputs retain each evaluated call's input meaning.
+// Neither anonymous nor repeated output aliases identify the call by themselves.
+fn positional_set_aggregate_slot(
   call : @query.AggregateCall,
   outputs : Array[(@query.AggregateCall, String)],
   scope : JoinChainScope,

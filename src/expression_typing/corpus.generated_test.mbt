@@ -557,6 +557,181 @@ test "expression type corpus accepted: 110" {
 }
 
 ///|
+test "expression type corpus accepted: 111" {
+  assert_type("\"starts_with(s,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 112" {
+  assert_type("\"starts_with(sn,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 113" {
+  assert_type("\"starts_with(s,sn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 114" {
+  assert_type("\"starts_with(NULL,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 115" {
+  assert_type("\"starts_with(s,$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 116" {
+  assert_type("\"starts_with('', '')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 117" {
+  assert_type("\"ends_with(s,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 118" {
+  assert_type("\"ends_with(sn,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 119" {
+  assert_type("\"ends_with(s,sn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 120" {
+  assert_type("\"ends_with(NULL,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 121" {
+  assert_type("\"ends_with(s,$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 122" {
+  assert_type("\"ends_with('', '')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 123" {
+  assert_type("\"sign(n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 124" {
+  assert_type("\"sign(nn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 125" {
+  assert_type("\"sign(NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 126" {
+  assert_type("\"sign($q)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 127" {
+  assert_type("\"sign(-1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 128" {
+  assert_type("\"strpos(s,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 129" {
+  assert_type("\"strpos(sn,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 130" {
+  assert_type("\"strpos(s,sn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 131" {
+  assert_type("\"strpos(NULL,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 132" {
+  assert_type("\"strpos('', '')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 133" {
+  assert_type("\"strpos(s,$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 134" {
+  assert_type("\"strpos(NULL,s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 135" {
+  assert_type("\"strpos(s,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 136" {
+  assert_type("\"round(n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 137" {
+  assert_type("\"trunc(n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 138" {
+  assert_type("\"round(nn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 139" {
+  assert_type("\"trunc(nn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 140" {
+  assert_type("\"round(NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 141" {
+  assert_type("\"trunc(NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 142" {
+  assert_type("\"round($q)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 143" {
+  assert_type("\"trunc($q)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 144" {
+  assert_type("\"round(-1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 145" {
+  assert_type("\"trunc(-1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
 test "expression type corpus rejected: 1" {
   assert_rejected("\"missing\"", corpus_fields(), corpus_parameters(), "UnknownField")
 }
@@ -859,4 +1034,199 @@ test "expression type corpus rejected: 60" {
 ///|
 test "expression type corpus rejected: 61" {
   assert_rejected("{\"in\":[{\"literal\":null},{\"literal\":[]}]}", corpus_fields(), corpus_parameters(), "NullTypeUnresolved")
+}
+
+///|
+test "expression type corpus rejected: 62" {
+  assert_rejected("\"starts_with(n,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 63" {
+  assert_rejected("\"starts_with(s,n)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 64" {
+  assert_rejected("\"starts_with(j,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 65" {
+  assert_rejected("\"starts_with(s,b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 66" {
+  assert_rejected("\"starts_with(r,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 67" {
+  assert_rejected("\"ends_with(n,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 68" {
+  assert_rejected("\"ends_with(s,n)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 69" {
+  assert_rejected("\"ends_with(j,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 70" {
+  assert_rejected("\"ends_with(s,b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 71" {
+  assert_rejected("\"ends_with(r,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 72" {
+  assert_rejected("\"sign(s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 73" {
+  assert_rejected("\"sign(b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 74" {
+  assert_rejected("\"sign(d)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 75" {
+  assert_rejected("\"sign(j)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 76" {
+  assert_rejected("\"sign(r)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 77" {
+  assert_rejected("\"sign(a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 78" {
+  assert_rejected("\"sign(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 79" {
+  assert_rejected("\"strpos(n,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 80" {
+  assert_rejected("\"strpos(s,n)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 81" {
+  assert_rejected("\"strpos(b,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 82" {
+  assert_rejected("\"strpos(j,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 83" {
+  assert_rejected("\"strpos(r,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 84" {
+  assert_rejected("\"strpos(s,a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 85" {
+  assert_rejected("\"strpos(d,s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 86" {
+  assert_rejected("\"strpos(s,v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 87" {
+  assert_rejected("\"round(s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 88" {
+  assert_rejected("\"trunc(s)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 89" {
+  assert_rejected("\"round(b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 90" {
+  assert_rejected("\"trunc(b)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 91" {
+  assert_rejected("\"round(d)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 92" {
+  assert_rejected("\"trunc(d)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 93" {
+  assert_rejected("\"round(j)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 94" {
+  assert_rejected("\"trunc(j)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 95" {
+  assert_rejected("\"round(r)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 96" {
+  assert_rejected("\"trunc(r)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 97" {
+  assert_rejected("\"round(a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 98" {
+  assert_rejected("\"trunc(a)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 99" {
+  assert_rejected("\"round(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 100" {
+  assert_rejected("\"trunc(v)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
 }

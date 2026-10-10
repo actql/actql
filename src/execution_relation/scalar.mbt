@@ -83,6 +83,39 @@ pub fn unary(
         Number(n) => finite(n.floor())
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Round | Trunc =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else {
+            let magnitude = if n < 0.0 { -n } else { n }
+            let integral = magnitude.floor()
+            // Compare the fractional part before adding: magnitude + 0.5
+            // would round the predecessor of 0.5 up and change large odd
+            // integers. Fractional binary64 inputs are below 2^52, so this
+            // conditional integer increment is exact and cannot overflow.
+            let rounded = if op == @lower.Round && magnitude - integral >= 0.5 {
+              integral + 1.0
+            } else {
+              integral
+            }
+            finite(if n < 0.0 { -rounded } else { rounded })
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+    Sign =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else {
+            Ok(Number(if n < 0.0 { -1.0 } else if n > 0.0 { 1.0 } else { 0.0 }))
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Abs =>
       match value {
         Null => Ok(Null)
@@ -266,6 +299,14 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    // Text operations run through their retained, bounded cursor.
+    // This scalar fallback handles only its NULL and invalid-domain cases.
+    Strpos | StartsWith | EndsWith =>
+      if left is Null || right is Null {
+        Ok(Null)
+      } else {
+        Err(InvalidOperand)
+      }
     In | NotIn => {
       let items = match right {
         Null => return Ok(Boolean(op == @lower.NotIn))
@@ -315,7 +356,10 @@ pub fn binary(
         | GreaterEqual
         | NullIf
         | In
-        | NotIn => Err(InvalidOperand)
+        | NotIn
+        | Strpos
+        | StartsWith
+        | EndsWith => Err(InvalidOperand)
       }
     }
     Equal
@@ -367,8 +411,16 @@ fn binary_comparison_result(
     Greater => Ok(Boolean(compared > 0))
     GreaterEqual => Ok(Boolean(compared >= 0))
     NullIf => Ok(if compared == 0 { Null } else { left })
-    Add | Subtract | Multiply | Divide | Modulo | In | NotIn =>
-      Err(InvalidOperand)
+    Add
+    | Subtract
+    | Multiply
+    | Divide
+    | Modulo
+    | In
+    | NotIn
+    | Strpos
+    | StartsWith
+    | EndsWith => Err(InvalidOperand)
   }
 }
 

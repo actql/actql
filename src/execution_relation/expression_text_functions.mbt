@@ -12,6 +12,7 @@ priv struct TextArgumentsState {
 ///|
 priv enum TextFunctionKind {
   TextLength
+  TextStrpos
   TextReplace
   TextUpper
   TextLower
@@ -65,6 +66,7 @@ fn start_text_function(
     return Err({ kind: WorkspaceLimit, expression, })
   }
   let output_root = if kind != TextLength &&
+    kind != TextStrpos &&
     !null_result &&
     scope is Some(scope) {
     let budget = scope.budget
@@ -109,7 +111,7 @@ fn start_text_function(
     kind,
     null_result,
     input: text(values[0]),
-    search: if kind == TextReplace {
+    search: if kind == TextReplace || kind == TextStrpos {
       text(values[1])
     } else {
       ""
@@ -237,6 +239,32 @@ fn advance_text_function(
     if state.position == state.input.length() {
       return Ok(Some(Number(state.count.to_double())))
     }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    state.position = next
+    state.count += 1
+    return Ok(None)
+  }
+  if state.kind == TextStrpos {
+    if state.search.length() == 0 {
+      return Ok(Some(Number(1.0)))
+    }
+    if state.search.length() > state.input.length() - state.position {
+      return Ok(Some(Number(0.0)))
+    }
+    // TextFunction pays one control unit before every poll. Repeated-prefix
+    // candidates therefore cannot hide quadratic work in an uncharged scan.
+    if state.input[state.position + state.matched] ==
+      state.search[state.matched] {
+      state.matched += 1
+      if state.matched == state.search.length() {
+        return Ok(Some(Number((state.count + 1).to_double())))
+      }
+      return Ok(None)
+    }
+    state.matched = 0
     guard text_function_scalar(state.input, state.position)
       is Some((_, next, _, _)) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })

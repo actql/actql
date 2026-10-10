@@ -28,6 +28,7 @@ pub(all) enum NativeHttpMethod {
   Get
   Post
   Put
+  Patch
 } derive(Eq, Debug)
 
 ///|

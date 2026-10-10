@@ -106,6 +106,131 @@ test "expression corpus accepted: 21" {
 }
 
 ///|
+test "expression corpus accepted: 22" {
+  assert_tree("starts_with(value, prefix)", "{\"starts_with\":[{\"field\":\"value\"},{\"field\":\"prefix\"}]}")
+}
+
+///|
+test "expression corpus accepted: 23" {
+  assert_tree("ends_with($value, $suffix)", "{\"ends_with\":[{\"$param\":\"value\"},{\"$param\":\"suffix\"}]}")
+}
+
+///|
+test "expression corpus accepted: 24" {
+  assert_tree("starts_with('\u{1f600}e\u{301}', '\u{1f600}')", "{\"starts_with\":[{\"literal\":\"\u{1f600}e\u{301}\"},{\"literal\":\"\u{1f600}\"}]}")
+}
+
+///|
+test "expression corpus accepted: 25" {
+  assert_tree("ends_with('', '')", "{\"ends_with\":[{\"literal\":\"\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 26" {
+  assert_tree("starts_with(NULL, NULL)", "{\"starts_with\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 27" {
+  assert_tree("sign(x)", "{\"sign\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 28" {
+  assert_tree("sign(-1)", "{\"sign\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 29" {
+  assert_tree("sign(-x)", "{\"sign\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 30" {
+  assert_tree("sign(negate(1))", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 31" {
+  assert_tree("sign(NULL)", "{\"sign\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 32" {
+  assert_tree("strpos(value, part)", "{\"strpos\":[{\"field\":\"value\"},{\"field\":\"part\"}]}")
+}
+
+///|
+test "expression corpus accepted: 33" {
+  assert_tree("strpos($value, $part)", "{\"strpos\":[{\"$param\":\"value\"},{\"$param\":\"part\"}]}")
+}
+
+///|
+test "expression corpus accepted: 34" {
+  assert_tree("strpos('\u{1f600}e\u{301}x', 'x')", "{\"strpos\":[{\"literal\":\"\u{1f600}e\u{301}x\"},{\"literal\":\"x\"}]}")
+}
+
+///|
+test "expression corpus accepted: 35" {
+  assert_tree("strpos('', '')", "{\"strpos\":[{\"literal\":\"\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 36" {
+  assert_tree("strpos(NULL, NULL)", "{\"strpos\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 37" {
+  assert_tree("round(x)", "{\"round\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 38" {
+  assert_tree("trunc(x)", "{\"trunc\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 39" {
+  assert_tree("round(-1)", "{\"round\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 40" {
+  assert_tree("trunc(-1)", "{\"trunc\":{\"literal\":-1}}")
+}
+
+///|
+test "expression corpus accepted: 41" {
+  assert_tree("round(-x)", "{\"round\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 42" {
+  assert_tree("trunc(-x)", "{\"trunc\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 43" {
+  assert_tree("round(negate(1))", "{\"round\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 44" {
+  assert_tree("trunc(negate(1))", "{\"trunc\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 45" {
+  assert_tree("round(NULL)", "{\"round\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 46" {
+  assert_tree("trunc(NULL)", "{\"trunc\":{\"literal\":null}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -268,4 +393,84 @@ test "expression corpus rejected: 32" {
 ///|
 test "expression corpus rejected: 33" {
   assert_true(parse("quantize(x, 18, 2, rounding)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 34" {
+  assert_true(parse("starts_with()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 35" {
+  assert_true(parse("starts_with(x)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 36" {
+  assert_true(parse("starts_with(x,y,z)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 37" {
+  assert_true(parse("ends_with()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 38" {
+  assert_true(parse("ends_with(x)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 39" {
+  assert_true(parse("ends_with(x,y,z)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 40" {
+  assert_true(parse("sign()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 41" {
+  assert_true(parse("sign(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 42" {
+  assert_true(parse("strpos()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 43" {
+  assert_true(parse("strpos(x)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 44" {
+  assert_true(parse("strpos(x,y,z)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 45" {
+  assert_true(parse("STRPOS(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 46" {
+  assert_true(parse("round()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 47" {
+  assert_true(parse("trunc()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 48" {
+  assert_true(parse("round(x,y)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 49" {
+  assert_true(parse("trunc(x,y)", test_limits()) is Err(_))
 }

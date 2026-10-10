@@ -23,7 +23,18 @@
     {"source":{"like":["x","$pattern"]},"tree":{"like":[{"field":"x"},{"$param":"pattern"}]},"parameters":["pattern"]},
     {"source":{"vector_score":{"left":"$a","right":"$b","metric":"cosine"}},"tree":{"vector_score":{"left":{"$param":"a"},"right":{"$param":"b"},"metric":"cosine"}},"parameters":["a","b"]},
     {"source":{"object":{"line\nname":{"literal":"literal $x"},"$param":{"literal":"not a reference"}}},"tree":{"object":{"line\nname":{"literal":"literal $x"},"$param":{"literal":"not a reference"}}},"parameters":[]},
-    {"source":{"regex_replace":{"value":"$x","pattern":"$p","replacement":"$r","flags":"im"}},"tree":{"regex_replace":{"value":{"$param":"x"},"pattern":{"$param":"p"},"replacement":{"$param":"r"},"flags":"im"}},"parameters":["x","p","r"]}
+    {"source":{"regex_replace":{"value":"$x","pattern":"$p","replacement":"$r","flags":"im"}},"tree":{"regex_replace":{"value":{"$param":"x"},"pattern":{"$param":"p"},"replacement":{"$param":"r"},"flags":"im"}},"parameters":["x","p","r"]},
+    {"source":{"starts_with":["$value","$prefix"]},"tree":{"starts_with":[{"$param":"value"},{"$param":"prefix"}]},"parameters":["value","prefix"]},
+    {"source":{"ends_with":[{"field":"value"},{"literal":""}]},"tree":{"ends_with":[{"field":"value"},{"literal":""}]},"parameters":[]},
+    {"source":{"sign":"$value"},"tree":{"sign":{"$param":"value"}},"parameters":["value"]},
+    {"source":{"sign":{"literal":null}},"tree":{"sign":{"literal":null}},"parameters":[]},
+    {"source":{"strpos":["$value","$part"]},"tree":{"strpos":[{"$param":"value"},{"$param":"part"}]},"parameters":["value","part"]},
+    {"source":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"tree":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"parameters":[]},
+    {"source":{"strpos":[{"literal":null},{"literal":null}]},"tree":{"strpos":[{"literal":null},{"literal":null}]},"parameters":[]},
+    {"source":{"round":"$value"},"tree":{"round":{"$param":"value"}},"parameters":["value"]},
+    {"source":{"trunc":"$value"},"tree":{"trunc":{"$param":"value"}},"parameters":["value"]},
+    {"source":{"round":{"literal":null}},"tree":{"round":{"literal":null}},"parameters":[]},
+    {"source":{"trunc":{"literal":null}},"tree":{"trunc":{"literal":null}},"parameters":[]}
   ],
   "negative": [
     "\"right.\"",
@@ -52,6 +63,26 @@
     {"quantize":{"value":"x","precision":5,"scale":2,"rounding":"nearest"}},
     {"regex_match":{"value":"x","pattern":"$p","flags":{"literal":"i"}}},
     {"template":"unmatched }"},
-    {"template":"empty {}"}
+    {"template":"empty {}"},
+    {"starts_with":[]},
+    {"starts_with":[{"literal":"a"}]},
+    {"starts_with":[{"literal":"a"},{"literal":"b"},{"literal":"c"}]},
+    {"ends_with":{"literal":"a"}},
+    {"ends_with":[{"literal":"a"}]},
+    {"ends_with":[{"literal":"a"},{"literal":"b"},{"literal":"c"}]},
+    {"sign":[]},
+    {"sign":[{"literal":1}]},
+    {"sign":{"literal":1},"extra":true},
+    {"strpos":[]},
+    {"strpos":["x"]},
+    {"strpos":["x","y","z"]},
+    {"strpos":{"literal":"x"}},
+    {"strpos":["x","y"],"extra":true},
+    {"round":[]},
+    {"trunc":[]},
+    {"round":[{"literal":1}]},
+    {"trunc":[{"literal":1}]},
+    {"round":{"literal":1},"extra":true},
+    {"trunc":{"literal":1},"extra":true}
   ]
 }

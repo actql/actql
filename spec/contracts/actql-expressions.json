@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "636e7fc36702063f1320e108624c7b90ac93b1be61967fb25cf6f70651bbe0f9",
+  "grammar_sha256": "bb3f3420458049d2f57ffdc9178fd9f5a09936df3689d051eb75ce38886d4b85",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2349,6 +2349,42 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "trunc"
+              ],
+              "properties": {
+                "trunc": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round"
+              ],
+              "properties": {
+                "round": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sign"
+              ],
+              "properties": {
+                "sign": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "floor"
               ],
               "properties": {
@@ -2401,6 +2437,57 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "strpos"
+              ],
+              "properties": {
+                "strpos": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ends_with"
+              ],
+              "properties": {
+                "ends_with": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "starts_with"
+              ],
+              "properties": {
+                "starts_with": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -7687,6 +7774,54 @@
               ],
               "properties": {
                 "op": {
+                  "const": "trunc"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "round"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "sign"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "floor"
                 },
                 "body": {
@@ -7752,6 +7887,69 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "strpos"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "ends_with"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "starts_with"
                 },
                 "body": {
                   "type": "array",
@@ -18931,6 +19129,42 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "trunc"
+              ],
+              "properties": {
+                "trunc": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round"
+              ],
+              "properties": {
+                "round": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sign"
+              ],
+              "properties": {
+                "sign": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "floor"
               ],
               "properties": {
@@ -18983,6 +19217,57 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "strpos"
+              ],
+              "properties": {
+                "strpos": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ends_with"
+              ],
+              "properties": {
+                "ends_with": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "starts_with"
+              ],
+              "properties": {
+                "starts_with": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -23371,6 +23656,54 @@
               ],
               "properties": {
                 "op": {
+                  "const": "trunc"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "round"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "sign"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "floor"
                 },
                 "body": {
@@ -23436,6 +23769,69 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "strpos"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "ends_with"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "starts_with"
                 },
                 "body": {
                   "type": "array",
@@ -30645,6 +31041,42 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "trunc"
+              ],
+              "properties": {
+                "trunc": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round"
+              ],
+              "properties": {
+                "round": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sign"
+              ],
+              "properties": {
+                "sign": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "floor"
               ],
               "properties": {
@@ -30697,6 +31129,57 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "strpos"
+              ],
+              "properties": {
+                "strpos": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ends_with"
+              ],
+              "properties": {
+                "ends_with": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "starts_with"
+              ],
+              "properties": {
+                "starts_with": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -35085,6 +35568,54 @@
               ],
               "properties": {
                 "op": {
+                  "const": "trunc"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "round"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "sign"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "floor"
                 },
                 "body": {
@@ -35150,6 +35681,69 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "strpos"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "ends_with"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "starts_with"
                 },
                 "body": {
                   "type": "array",
@@ -38812,6 +39406,42 @@
       "value": "Return the exact binary64 magnitude, including subnormals and the largest finite value. Both zero signs produce canonical positive zero. NULL produces NULL.",
       "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. ABS introduces no secondary evaluation or value-domain failure for an admitted finite number.",
       "identity": "The closed source form is {abs: expression}; the closed machine node is {op: abs, body: expression_node}. Retain the ABS node and its child in canonical lowering. The changed expression contract has its own CID; earlier contract CIDs retain their earlier meaning."
+    },
+    "starts_with": {
+      "signature": "Exactly two string operands; the result is boolean and is nullable exactly when either operand is nullable. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload or explicit collation is admitted.",
+      "value": "Return whether the second string is an exact prefix of the first, using their retained Unicode scalar sequences with default binary comparison. The empty prefix matches every non-null string, including the empty string. A longer prefix does not match. No normalization, case folding, trimming or locale rule is applied. Either NULL operand produces NULL.",
+      "evaluation": "Evaluate the value and then the prefix or suffix once each when demanded, including both children when the first produces NULL. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Exact matching does not skip logical operand charges.",
+      "identity": "The closed source form is {starts_with: [value, prefix]}; the machine node is {op: starts_with, body: [value_node, prefix_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "ends_with": {
+      "signature": "Exactly two string operands; the result is boolean and is nullable exactly when either operand is nullable. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload or explicit collation is admitted.",
+      "value": "Return whether the second string is an exact suffix of the first, using their retained Unicode scalar sequences with default binary comparison. The empty suffix matches every non-null string, including the empty string. A longer suffix does not match. No normalization, case folding, trimming or locale rule is applied. Either NULL operand produces NULL.",
+      "evaluation": "Evaluate the value and then the prefix or suffix once each when demanded, including both children when the first produces NULL. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Exact matching does not skip logical operand charges.",
+      "identity": "The closed source form is {ends_with: [value, suffix]}; the machine node is {op: ends_with, body: [value_node, suffix_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "sign": {
+      "signature": "Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload or non-finite value is admitted.",
+      "value": "Return exactly -1 for a negative finite number, canonical positive zero for either zero sign, and exactly 1 for a positive finite number. This includes subnormal and largest finite magnitudes. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. SIGN introduces no secondary evaluation or value-domain failure for an admitted finite number.",
+      "identity": "The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "strpos": {
+      "signature": "Exactly two string operands; the result is a finite number and is nullable exactly when either operand is nullable. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload or explicit collation is admitted.",
+      "value": "Return the 1-based Unicode scalar position of the first exact occurrence of the second string in the first, or canonical positive zero when absent. An empty second string returns 1 for every non-null first string, including the empty string. Count Unicode scalars, not UTF-8 bytes, UTF-16 code units or grapheme clusters. Default binary comparison preserves retained values without normalization, case folding, trimming or locale rules. Either NULL operand produces NULL. Positions are exact integer values in the existing bounded string domain, represented by ActQL finite binary64 number rather than the GoogleSQL INT64 type.",
+      "evaluation": "Evaluate the value and then the subvalue once each when demanded, including both children when the first produces NULL. Apply strict NULL only after both evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Matching preserves logical operand charges; physical search work remains bounded and cancellable.",
+      "identity": "The closed source form is {strpos: [value, subvalue]}; the machine node is {op: strpos, body: [value_node, subvalue_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "round": {
+      "signature": "Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload, non-finite value, precision argument or rounding-mode argument is admitted.",
+      "value": "Return the nearest integer, rounding exact halfway cases away from zero. Preserve already integral numbers, including the largest finite magnitudes. Use the existing ActQL arithmetic canonical positive zero rule. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. ROUND introduces no secondary evaluation or value-domain failure for an admitted finite number.",
+      "identity": "The closed source form is {round: expression}; the closed machine node is {op: round, body: expression_node}. Retain the ROUND node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "trunc": {
+      "signature": "Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload, non-finite value, precision argument or rounding-mode argument is admitted.",
+      "value": "Return the integer obtained by discarding the fractional part toward zero. Preserve already integral numbers, including the largest finite magnitudes. Use the existing ActQL arithmetic canonical positive zero rule. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. TRUNC introduces no secondary evaluation or value-domain failure for an admitted finite number.",
+      "identity": "The closed source form is {trunc: expression}; the closed machine node is {op: trunc, body: expression_node}. Retain the TRUNC node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
     }
   },
   "regex_ast_contract": {

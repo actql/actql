@@ -188,7 +188,32 @@
           }
         ]
       }
-    }
+    },
+    {"source":"starts_with(value, prefix)","tree":{"starts_with":[{"field":"value"},{"field":"prefix"}]}},
+    {"source":"ends_with($value, $suffix)","tree":{"ends_with":[{"$param":"value"},{"$param":"suffix"}]}},
+    {"source":"starts_with('😀é', '😀')","tree":{"starts_with":[{"literal":"😀é"},{"literal":"😀"}]}},
+    {"source":"ends_with('', '')","tree":{"ends_with":[{"literal":""},{"literal":""}]}},
+    {"source":"starts_with(NULL, NULL)","tree":{"starts_with":[{"literal":null},{"literal":null}]}},
+    {"source":"sign(x)","tree":{"sign":{"field":"x"}}},
+    {"source":"sign(-1)","tree":{"sign":{"literal":-1}}},
+    {"source":"sign(-x)","tree":{"sign":{"negate":{"field":"x"}}}},
+    {"source":"sign(negate(1))","tree":{"sign":{"negate":{"literal":1}}}},
+    {"source":"sign(NULL)","tree":{"sign":{"literal":null}}},
+    {"source":"strpos(value, part)","tree":{"strpos":[{"field":"value"},{"field":"part"}]}},
+    {"source":"strpos($value, $part)","tree":{"strpos":[{"$param":"value"},{"$param":"part"}]}},
+    {"source":"strpos('😀éx', 'x')","tree":{"strpos":[{"literal":"😀éx"},{"literal":"x"}]}},
+    {"source":"strpos('', '')","tree":{"strpos":[{"literal":""},{"literal":""}]}},
+    {"source":"strpos(NULL, NULL)","tree":{"strpos":[{"literal":null},{"literal":null}]}},
+    {"source":"round(x)","tree":{"round":{"field":"x"}}},
+    {"source":"trunc(x)","tree":{"trunc":{"field":"x"}}},
+    {"source":"round(-1)","tree":{"round":{"literal":-1}}},
+    {"source":"trunc(-1)","tree":{"trunc":{"literal":-1}}},
+    {"source":"round(-x)","tree":{"round":{"negate":{"field":"x"}}}},
+    {"source":"trunc(-x)","tree":{"trunc":{"negate":{"field":"x"}}}},
+    {"source":"round(negate(1))","tree":{"round":{"negate":{"literal":1}}}},
+    {"source":"trunc(negate(1))","tree":{"trunc":{"negate":{"literal":1}}}},
+    {"source":"round(NULL)","tree":{"round":{"literal":null}}},
+    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -223,6 +248,22 @@
     "len()",
     "len(x, y)",
     "to_decimal(x, $p, 2)",
-    "quantize(x, 18, 2, rounding)"
+    "quantize(x, 18, 2, rounding)",
+    "starts_with()",
+    "starts_with(x)",
+    "starts_with(x,y,z)",
+    "ends_with()",
+    "ends_with(x)",
+    "ends_with(x,y,z)",
+    "sign()",
+    "sign(x,y)",
+    "strpos()",
+    "strpos(x)",
+    "strpos(x,y,z)",
+    "STRPOS(x,y)",
+    "round()",
+    "trunc()",
+    "round(x,y)",
+    "trunc(x,y)"
   ]
 }

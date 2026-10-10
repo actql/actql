@@ -1,0 +1,94 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_host_buffers"
+
+import {
+  "actql/actql/physical_resources",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn borrow_buffer(BufferPool, BufferSlot, () -> Bool) -> Result[BufferBorrow, BufferIssue]
+
+pub fn buffer_byte(BufferPool, BufferSlot, Int) -> Byte?
+
+pub fn buffer_pool_ledger_usage(BufferPool) -> @physical_resources.LedgerUsage
+
+pub fn buffer_pool_usage(BufferPool) -> @physical_resources.SharedCapacityUsage
+
+pub fn buffer_serial(BufferSlot) -> Int
+
+pub fn buffer_source(BufferPool, BufferSlot) -> @source_value.Node?
+
+pub fn buffer_wire(BufferPool, BufferSlot) -> Bytes?
+
+pub fn close_buffer(BufferPool, BufferSlot) -> Result[Unit, BufferIssue]
+
+pub fn close_pool(BufferPool) -> Result[Unit, BufferIssue]
+
+pub fn fill_buffer(BufferPool, BufferSlot, Int, Int, (Int) -> Byte?) -> Result[Unit, BufferIssue]
+
+pub fn lookup_buffer(BufferPool, Int) -> BufferSlot?
+
+pub fn open_pool(Int64, Int, Int) -> Result[BufferPool, BufferIssue]
+
+pub fn reserve_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[BufferSlot, BufferIssue]
+
+pub fn return_buffer_borrow(BufferPool, BufferBorrow) -> Result[Unit, BufferIssue]
+
+pub fn seal_buffer(BufferPool, BufferSlot, Int, Int) -> Result[Unit, BufferIssue]
+
+// Errors
+
+// Types and methods
+pub struct BufferBorrow {
+  owner : BufferPool
+  slot : BufferSlot
+  borrow : @physical_resources.SharedBorrow
+  physical_stop : () -> Bool
+  mut returned : Bool
+}
+
+pub(all) enum BufferIssue {
+  InvalidLimits
+  Closed
+  ForeignOwner
+  Capacity
+  InvalidPosition
+  InvalidByte
+  Incomplete
+  Input(@source_value.ParseError)
+  CleanupPending
+  Resource(@physical_resources.LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct BufferPool {
+  ledger : @physical_resources.Ledger
+  capacity : @physical_resources.SharedCapacity
+  max_slots : Int
+  max_wire_bytes : Int
+  mut next_serial : Int
+  mut live_borrows : Int
+  mut slots : Array[BufferSlot]
+  mut closing : Bool
+  mut settled : Bool
+}
+
+pub struct BufferSlot {
+  owner : BufferPool
+  serial : Int
+  allocation : @physical_resources.SharedAllocation
+  wire_length : Int
+  cleanup : () -> Bool
+  mut bytes : Array[Byte]
+  mut wire : Bytes?
+  mut written : Int
+  mut source : @source_value.Node?
+  mut input_complete : Bool
+  mut retired : Bool
+  mut cleaned : Bool
+}
+
+// Type aliases
+
+// Traits

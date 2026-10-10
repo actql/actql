@@ -43,6 +43,8 @@ pub(all) struct NativeCredentialOperation {
   operation : String
   path : String
   secret_path : String
+  verb : @http.NativeHttpMethod
+  max_request_bytes : Int
 }
 
 ///|
@@ -51,6 +53,17 @@ pub(all) struct NativeCredentialAuthorization {
   grant_cid : String
   use_cid : String?
   scope : NativeCredentialScope
+  request : NativeCredentialRequest?
+}
+
+///|
+/// Exact bytes presented to the current authorization callback. The caller
+/// must obtain these from its checked request Owner, not from an untrusted
+/// Program or an approval for a different target.
+pub(all) struct NativeCredentialRequest {
+  verb : @http.NativeHttpMethod
+  path : String
+  body : Bytes
 }
 
 ///|
@@ -93,6 +106,9 @@ fn valid_origin(value : String) -> Bool {
 
 ///|
 fn valid_operation(value : NativeCredentialOperation) -> Bool {
+  value.max_request_bytes >= 0 &&
+  value.max_request_bytes <= 65536 &&
+  (value.verb != @http.Get || value.max_request_bytes == 0) &&
   valid_origin(value.resource_origin) &&
   !value.operation.is_empty() &&
   value.operation.length() <= 512 &&
@@ -338,7 +354,13 @@ fn install_native_credential_resource_service_with_clock(
       }
     }
   }
-  Ok({ database, client, operations, authorize, clock, })
+  Ok({
+    database,
+    client,
+    operations: operations.map(value => value),
+    authorize,
+    clock,
+  })
 }
 
 ///|
@@ -384,7 +406,16 @@ pub fn call_native_credential_resource(
   use_id : String,
   scope : NativeCredentialScope,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
-  call_native_credential_resource_owned(service, grant, use_id, scope, None)
+  call_native_credential_resource_owned(
+    service,
+    grant,
+    use_id,
+    scope,
+    None,
+    @http.Get,
+    b"",
+    None,
+  )
 }
 
 ///|
@@ -404,6 +435,62 @@ pub fn call_native_credential_resource_at_path(
     use_id,
     scope,
     Some(expected_path),
+    @http.Get,
+    b"",
+    None,
+  )
+}
+
+///|
+/// Send one exact installed operation through the existing durable credential
+/// use Owner. A claim is never permission to resend after a failed or uncertain
+/// response. Effect callers must additionally claim their common Effect Ledger.
+pub fn call_native_credential_resource_request_at_path(
+  service : NativeCredentialResourceService,
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  scope : NativeCredentialScope,
+  verb : @http.NativeHttpMethod,
+  expected_path : String,
+  body : Bytes,
+) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  call_native_credential_resource_owned(
+    service,
+    grant,
+    use_id,
+    scope,
+    Some(expected_path),
+    verb,
+    body,
+    None,
+  )
+}
+
+///|
+/// Keep an installed caller's current execution fence separate from credential
+/// authorization. Check it after Host callbacks, before consuming a use and
+/// again after the final clock observation immediately before physical I/O.
+/// This guard cannot replace the credential grant, exact request allowlist or
+/// the caller's durable Effect claim. A false final guard does not permit replay.
+pub fn call_native_credential_resource_guarded_request_at_path(
+  service : NativeCredentialResourceService,
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  scope : NativeCredentialScope,
+  verb : @http.NativeHttpMethod,
+  expected_path : String,
+  body : Bytes,
+  current : () -> Bool,
+) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  call_native_credential_resource_owned(
+    service,
+    grant,
+    use_id,
+    scope,
+    Some(expected_path),
+    verb,
+    body,
+    Some(current),
   )
 }
 
@@ -414,7 +501,22 @@ fn call_native_credential_resource_owned(
   use_id : String,
   scope : NativeCredentialScope,
   expected_path : String?,
+  verb : @http.NativeHttpMethod,
+  body : Bytes,
+  current : (() -> Bool)?,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  guard operation_for(service, scope) is Some(operation) &&
+    operation.verb == verb &&
+    body.length() <= operation.max_request_bytes else {
+    return Err(AccessDenied)
+  }
+  // Isolate the bytes from caller mutation during authorization callbacks.
+  let saved_body = Bytes::from_array(body.to_array())
+  let request : NativeCredentialRequest = {
+    verb,
+    path: operation.path,
+    body: saved_body,
+  }
   if expected_path is Some(path) {
     guard operation_for(service, scope) is Some(operation) &&
       path == operation.path else {
@@ -439,7 +541,19 @@ fn call_native_credential_resource_owned(
     trusted_now_ms < expires_at else {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
-  if !(service.authorize)({ stage: "claim", grant_cid, use_cid: None, scope, }) {
+  if !(service.authorize)({
+      stage: "claim",
+      grant_cid,
+      use_cid: None,
+      scope,
+      request: Some({
+        ..request,
+        body: Bytes::from_array(saved_body.to_array()),
+      }),
+    }) {
+    return Err(AccessDenied)
+  }
+  if current is Some(check) && !check() {
     return Err(AccessDenied)
   }
   let ordinal = match
@@ -511,14 +625,23 @@ fn call_native_credential_resource_owned(
     grant_cid,
     use_cid: Some(use_cid),
     scope,
+    request: Some({ ..request, body: Bytes::from_array(saved_body.to_array()), }),
   })
   // The authorization callback may revoke a grant or take time. Re-read the
   // durable revocation and trusted lifetime after it, immediately before I/O.
-  let send_revoked = match native_credential_grant_revoked(service, grant_cid) {
+  let current_send_time = match observe_trusted_clock(service) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let current_send_time = match observe_trusted_clock(service) {
+  // The caller's guard may observe a Run cancellation or reviewer revocation
+  // caused by an installed Host callback. No callback follows this final guard.
+  let current_by_caller = match current {
+    Some(check) => check()
+    None => true
+  }
+  // The guard itself may revoke the credential. Read durable revocation after
+  // all callbacks rather than trusting the earlier pre-claim observation.
+  let send_revoked = match native_credential_grant_revoked(service, grant_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -530,6 +653,7 @@ fn call_native_credential_resource_owned(
     }
   }
   let authorized = authorized_by_host &&
+    current_by_caller &&
     @credential.authorize_credential_use(
       credential_use,
       current_send_time,
@@ -557,8 +681,18 @@ fn call_native_credential_resource_owned(
     }
   }
   let response = match
-    service.client.get_bearer_file(
+    service.client.request_bearer_file(
+      verb,
       operation.resource_origin + operation.path,
+      if verb == @http.Get {
+        [{ name: "accept", value: "application/json", }]
+      } else {
+        [
+          { name: "accept", value: "application/json", },
+          { name: "content-type", value: "application/json", },
+        ]
+      },
+      saved_body,
       operation.secret_path,
       expires_at,
     ) {
@@ -580,7 +714,14 @@ fn call_native_credential_resource_owned(
         "failed",
         Some(response.status),
       ) {
-      Ok(_) => return Err(ResourceRejected(response.status))
+      Ok(_) =>
+        return if verb == @http.Get {
+          Err(ResourceRejected(response.status))
+        } else {
+          // Preserve the exact rejection response for the Effect Ledger.
+          // HTTP rejection is not itself a semantic Effect outcome.
+          Ok({ use_cid, status: response.status, body: response.body, })
+        }
       Err(Journal(issue)) => return Err(TerminalRecordFailed("failed", issue))
       Err(other) => return Err(other)
     }
@@ -614,7 +755,13 @@ pub fn query_native_credential_use(
     return Err(Credential(@credential.CredentialGrantInactive))
   }
   let grant_cid = @credential.credential_grant_cid(grant)
-  if !(service.authorize)({ stage: "query", grant_cid, use_cid: None, scope, }) {
+  if !(service.authorize)({
+      stage: "query",
+      grant_cid,
+      use_cid: None,
+      scope,
+      request: None,
+    }) {
     return Err(AccessDenied)
   }
   let use_record = match service.database.read(use_scope(grant_cid), use_id) {
@@ -645,6 +792,7 @@ pub fn query_native_credential_use(
       grant_cid,
       use_cid: Some(use_cid),
       scope,
+      request: None,
     }) {
     return Err(AccessDenied)
   }

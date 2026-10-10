@@ -18,12 +18,24 @@ console.log(`Native core SQLite namespace: ${scratch.path}`);
 // These unconditional fixtures share the existing restoration owner, not the
 // optional publication Store root. Enabling that global root would let unrelated
 // packages contend on one Store lock and contaminate its format admission.
-for (const name of ['standard', 'bundles', 'executor-slot']) {
+for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file']) {
   mkdirSync(join(scratch.path, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+// The WAL inspection fixture must use exec, not SQLite in a forked child.
+// macOS system SQLite calls platform services that are unsafe before exec.
+let walFixture;
+if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
+  walFixture = join(scratch.path, 'unclosed-sqlite-fixture');
+  const compiled = spawnSync('cc', ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    join(root, 'scripts/fixtures/native-unclosed-sqlite.c'), '-o', walFixture,
+    ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
+  if (compiled.error || compiled.signal || compiled.status !== 0) {
+    throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
+  }
+}
 // The full suite includes real target-observation tests. Provision their
 // private HTTPS/credential fixture instead of treating missing inputs as passes.
 const result = spawnSync(full ? process.execPath : 'moon', full
@@ -31,9 +43,12 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   : ['test', '--target', 'native', ...args], {cwd: root, stdio: 'inherit', env: {
   ...process.env,
   ...bundle,
+  ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(scratch.path, 'standard'),
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(scratch.path, 'bundles'),
   ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(scratch.path, 'executor-slot'),
+  ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: join(scratch.path, 'retained-task-file'),
+  ACTQL_REQUIRE_NATIVE_RETAINED_TEST: '1',
   ACTQL_TEST_NATIVE_CRYPTO_LIBRARY:
     process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
     (process.platform === 'darwin' ?

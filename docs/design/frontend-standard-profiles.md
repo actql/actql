@@ -168,3 +168,63 @@ For every adopted feature, keep provenance, scope, checked lowering, runtime
 support, packed execution and proof coverage distinct. The
 [initial alignment review](../reviews/2026-10-01-frontend-standard-alignment.md)
 records concrete implementation gaps and evidence boundaries.
+
+## Selected simple scalar functions
+
+The query profile admits GoogleSQL STARTS_WITH and ENDS_WITH over STRING with
+its default binary comparison, and SIGN over the common finite binary64
+number domain corresponding to the finite FLOAT64 subset. Their common
+expression owners define the same result for SQL/Pipe and JSON/YAML input.
+Empty prefixes/suffixes match every non-null string, and both zero signs
+produce canonical positive zero for SIGN. NULL results and inferred
+nullability follow the common strict signatures, independently of row count.
+
+This is new supported coverage. BYTES, explicit collation, non-finite numbers
+and the INT64/NUMERIC/BIGNUMERIC SIGN overloads remain implementation gaps;
+their omission is not a restriction of GoogleSQL. No frontend approximation,
+implicit coercion, Unicode normalization or extra evaluation is introduced.
+The reference clauses are Google's [STARTS_WITH](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#starts_with),
+[ENDS_WITH](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#ends_with)
+and [SIGN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
+consulted 2026-10-10. Source grammar, embedded schema alternatives, common laws,
+execution registrations and dependent identities change together on the
+initial 0.1 baseline. Earlier pinned bodies keep their earlier meanings.
+
+### STRING position
+
+STRPOS adds first-occurrence position to the same common expression owner for
+SQL, Pipe and JSON/YAML. The adopted value rule is 1-based Unicode scalar
+position, absent 0 and empty needle 1. Ordinary eager strict-NULL evaluation
+and left-to-right failure precedence apply; surrounding lazy demand remains
+unchanged. The [GoogleSQL STRPOS reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#strpos)
+and [pinned compliance cases](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/compliance/functions_testlib_string_2.cc#L398-L413)
+anchor the selected STRING/default binary subset, including empty, NULL,
+multibyte and embedded-NUL cases. ActQL retains exact strings and introduces
+no normalization or implicit coercion.
+
+The common finite binary64 `number` represents these bounded string positions
+exactly. This is a result-representation difference from Google's INT64 type,
+not a claim of full INT64 support. BYTES and explicit collation are still
+unsupported. Existing string/resource admission determines the supported
+extent; the search does not add an unrelated language-length restriction.
+Canonical schemas, registries and their current dependent identities include
+the added common node; complete predecessor preimages retain their old CIDs.
+
+### Unary finite-number ROUND and TRUNC
+
+`ROUND(X)` and `TRUNC(X)` select the common unary expression Owner for finite
+binary64 numbers. ROUND chooses the nearest integer and breaks exact ties away
+from zero; TRUNC chooses the nearest integer toward zero. Neither changes an
+already-integral value or overflows on an admitted finite input. ActQL's existing
+arithmetic canonicalizes zero results to positive zero. The operand remains a
+single retained subtree with the ordinary nullable type, demand, failure,
+cancellation and bounded-execution rules.
+
+The finite unary value rules follow Google's
+[ROUND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#round)
+and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc)
+references. Optional decimal-position N, explicit rounding modes, distinct
+INT64/NUMERIC/BIGNUMERIC overloads and non-finite values are unimplemented
+coverage, not restrictions claimed for GoogleSQL. Existing CIDs retain their
+predecessor meaning; new expression/schema/registry identities are propagated
+through the ordinary contract Owners. No adapter-specific evaluator is added.

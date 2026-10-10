@@ -5,8 +5,10 @@ import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
+import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentOriginalHolder = process.argv.includes('--resident-original-holder-review');
+const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
+const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
 const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-runtime-capture');
@@ -38,10 +40,63 @@ openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.crt', '-CAkey',
 await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
   {mode: 0o600});
 const paths = [];
+let resolutionRequests = 0;
 let writes = 0;
+let rejectedWrites = 0;
+const writeBodies = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
+    if (request.headers.authorization !== 'Bearer native-target-test') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks=[];let bytes=0;
+    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>262144)request.destroy();else chunks.push(chunk);});
+    request.on('end',()=>{
+      try {
+        const fixture=nativeResolutionFixture(Buffer.concat(chunks).toString('utf8'));
+        resolutionRequests++;
+        response.writeHead(200,{'content-type':'application/json'});
+        response.end(JSON.stringify(fixture));
+      } catch {response.writeHead(422);response.end();}
+    });
+    return;
+  }
+  if (request.method === 'PATCH' &&
+      [expected + '001000000000001', expected + '001000000000002',
+        expected + '001000000000003'].includes(request.url)) {
+    if (request.headers.authorization !== 'Bearer native-target-test' ||
+        request.headers['content-type'] !== 'application/json') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks = []; let bytes = 0;
+    request.on('data', chunk => {
+      bytes += chunk.length;
+      if (bytes > 1024) request.destroy(); else chunks.push(chunk);
+    });
+    request.on('end', () => {
+      const body = Buffer.concat(chunks).toString('utf8');
+      assert.equal(body, '{"Optional_Value__c":"new"}');
+      paths.push({method: request.method, path: request.url});
+      if (request.url === expected + '001000000000003') {
+        rejectedWrites++;
+        response.writeHead(409, {'content-type': 'application/json'});
+        response.end('{"refused":"e\\u0301\\r\\n"}');
+        return;
+      }
+      writes++;
+      writeBodies.push(body);
+      if (request.url === expected + '001000000000002') {
+        // The Provider accepted the write; the caller loses the response.
+        request.socket.destroy();
+      } else {
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end('{"saved":"e\\u0301\\r\\n"}');
+      }
+    });
+    return;
+  }
   if (request.method !== 'GET') writes++;
   paths.push({method: request.method, path: request.url});
   if (request.headers.authorization !== 'Bearer native-target-test' ||
@@ -79,7 +134,13 @@ try {
   const signature = sign(null,
     Buffer.from('actql-remote-credential-grant-signature/0.1\0' + cid + '\0' + body),
     keys.privateKey).toString('base64url');
-  const testEnv = {...process.env,
+  const writeBody = JSON.stringify({...JSON.parse(body), operation: 'salesforce:record:update'});
+  const writeCid = hash(writeBody);
+  const writeSignature = sign(null,
+    Buffer.from('actql-remote-credential-grant-signature/0.1\0' + writeCid + '\0' + writeBody),
+    keys.privateKey).toString('base64url');
+  const testEnv = {...process.env, ...nativeResolutionFixture(),
+    ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL:origin+'/fixture/effect-resolution',
     ACTQL_TEST_NATIVE_HTTP_URL: origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
@@ -90,6 +151,9 @@ try {
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
       (process.platform === 'darwin' ? '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib' : 'libcrypto.so.3'),
     ACTQL_TEST_NATIVE_TARGET_ROOT: root,
+    ACTQL_TEST_NATIVE_SALESFORCE_WRITE_GRANT_BODY: writeBody,
+    ACTQL_TEST_NATIVE_SALESFORCE_WRITE_GRANT_CID: writeCid,
+    ACTQL_TEST_NATIVE_SALESFORCE_WRITE_SIGNATURE: writeSignature,
     ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_BODY: body,
     ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_CID: cid,
     ACTQL_TEST_NATIVE_CREDENTIAL_SIGNATURE: signature,
@@ -116,9 +180,10 @@ try {
     const runtimeKeys = generateKeyPairSync('ed25519');
     bearer = await startNativeBearerServers({host: '127.0.0.1',
       key: await readFile(join(root, 'server.key')),
-      cert: await readFile(join(root, 'server.crt')), root});
+      cert: await readFile(join(root, 'server.crt')), root, allowEffectWrite: residentApprovedRow});
     await mkdir(join(root, 'retained'), {recursive: true});
     Object.assign(testEnv, {
+      ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW: residentApprovedRow ? '1' : '0',
       ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearer.origin,
       ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearer.directory,
       ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: join(root, 'retained'),
@@ -151,6 +216,9 @@ try {
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
     : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
   const moonArgs = coreArgs === undefined ? ['--target', 'native', '--strip', selection,
+    ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
+      'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt',
+      'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'] : []),
     ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
       : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
       : residentPreview ? ['--filter', 'Native retained consumer*']
@@ -160,29 +228,44 @@ try {
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
     "{timeout: " + (coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes,
-    provider: bearer?.effectTargets(),
-    scope: residentOriginalHolder
-      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint; live Ledger retained; no Cloud waiting commit, approval or write'
+    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests,
+    provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
+    scope: residentApprovedRow
+      ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
+      : residentOriginalHolder
+      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
       : residentEffectRuntimeCapture
       ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
       : residentProposals
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
-      : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
+      : 'Native HTTPS target observation, signed credential admission and exact bounded Provider write transport; no signed Effect approval, Effect Ledger, Source capture, whole Preview or Cloud apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
-  assert.equal(writes, 0);
+  const expectedWrites = residentProposals ? 0 : 2;
+  assert.equal(writes, expectedWrites);
+  assert.equal(rejectedWrites, residentProposals ? 0 : 1);
+  assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
+  assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: 0});
-  } else assert.deepEqual(paths, [
-    {method: 'GET', path: expected + '001000000000001'},
-    {method: 'GET', path: expected + '001000000000001'},
-    {method: 'GET', path: expected + '001000000000002'},
-  ]);
+    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.equal(bearer.effectTargetValue(), residentApprovedRow ? 3 : 7);
+  } else {
+    assert.deepEqual(paths.filter(value => value.method === 'GET'), [
+      {method: 'GET', path: expected + '001000000000001'},
+      {method: 'GET', path: expected + '001000000000001'},
+      {method: 'GET', path: expected + '001000000000002'},
+    ]);
+    assert.deepEqual(paths.filter(value => value.method === 'PATCH'), [
+      {method: 'PATCH', path: expected + '001000000000001'},
+      {method: 'PATCH', path: expected + '001000000000002'},
+      {method: 'PATCH', path: expected + '001000000000003'},
+    ]);
+  }
   console.log(`Native Salesforce target observation receipt: ${join(root, 'physical-receipt.json')}`);
 } finally {
   if (child !== undefined) {

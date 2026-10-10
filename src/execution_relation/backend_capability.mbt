@@ -140,7 +140,14 @@ fn check_backend_capabilities(
                 })
               }
             }
-            Add | Subtract | Multiply | Divide | Modulo => ()
+            Add
+            | Subtract
+            | Multiply
+            | Divide
+            | Modulo
+            | Strpos
+            | StartsWith
+            | EndsWith => ()
           }
           pending.push(right)
           pending.push(left)

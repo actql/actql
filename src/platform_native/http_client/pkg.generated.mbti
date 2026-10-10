@@ -17,6 +17,7 @@ pub fn Client::close(Self) -> Bool
 pub fn Client::get_bearer_file(Self, String, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
+pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 
 type Library
 pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
@@ -52,6 +53,7 @@ pub(all) enum NativeHttpMethod {
   Get
   Post
   Put
+  Patch
 } derive(Eq, @debug.Debug)
 
 pub(all) struct NativeHttpResponse {

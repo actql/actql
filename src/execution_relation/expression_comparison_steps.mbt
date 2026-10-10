@@ -36,8 +36,42 @@ fn advance_binary_comparison(
     reset_bounded_text_charge(state.charge)
     return Ok(None)
   }
+  // Affix predicates retain the original strings. A poll compares at most
+  // one UTF-16 unit, without slicing, normalization or a host string search.
+  // Valid admitted scalar strings make exact unit matching equivalent to
+  // exact codepoint prefix/suffix matching. Operand byte charges above cover
+  // this scan, and the existing frame retains both roots until completion.
+  if (state.op == @lower.StartsWith || state.op == @lower.EndsWith) &&
+    state.left is Text(left) &&
+    state.right is Text(right) {
+    if right.length() > left.length() {
+      return Ok(Some(Boolean(false)))
+    }
+    if state.offset == right.length() {
+      return Ok(Some(Boolean(true)))
+    }
+    let start = if state.op == @lower.EndsWith {
+      left.length() - right.length()
+    } else {
+      0
+    }
+    if left[start + state.offset] != right[state.offset] {
+      return Ok(Some(Boolean(false)))
+    }
+    state.offset += 1
+    return Ok(None)
+  }
   let comparison_operator = match state.op {
-    Add | Subtract | Multiply | Divide | Modulo | In | NotIn => false
+    Add
+    | Subtract
+    | Multiply
+    | Divide
+    | Modulo
+    | In
+    | NotIn
+    | Strpos
+    | StartsWith
+    | EndsWith => false
     _ => true
   }
   let result = if comparison_operator &&

@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/base64",
   "actql/actql/platform_native/remote_resident_host" @resident,
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
@@ -10,6 +11,8 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
   "actql/actql/program_check" @checked,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/platform_native/http_client" @http,
   "actql/actql/stage_results" @results,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/effect_application" @effect,
