@@ -124,3 +124,38 @@ test "Pipe PIVOT does not fabricate names or ignore unknown references" {
     )
   }
 }
+
+///|
+test "Pipe PIVOT accepts duplicate and NULL rows from a parenthesized UNION ALL" {
+  let actual = compile(
+    @query.parse_query(
+      "(SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale', 51, 'Q1' UNION ALL SELECT 'kale', CAST(NULL AS FLOAT64), 'Q2') |> PIVOT(COUNT(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
+      syntax_limits(),
+    ).unwrap(),
+    values_context(),
+    construction_limits(),
+  ).unwrap()
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("the duplicate/NULL source PIVOT is closed")
+  }
+}
+
+///|
+test "anonymous positional set fields do not supply public or BY NAME aliases" {
+  for
+    source in [
+      "SELECT 1 AS id UNION ALL BY NAME SELECT 2", "SELECT 2",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        values_context(),
+        construction_limits(),
+      )
+      is Err(UnsupportedProjection),
+      msg=source,
+    )
+  }
+}
