@@ -8,10 +8,8 @@ pub(all) struct NativeEffectSavedResponse {
 }
 
 ///|
-/// Digest of the exact saved Provider response bytes, without interpretation
-/// or normalization. This does not establish Effect success or read authority.
-pub fn NativeEffectSavedResponse::body_digest(
-  self : NativeEffectSavedResponse,
-) -> String {
-  @sha.hex(self.body)
+/// The stored response metadata hashes exact bytes on every target. Physical
+/// journal access remains target-specific.
+pub fn effect_response_body_digest(body : Bytes) -> String {
+  @sha.hex(body)
 }

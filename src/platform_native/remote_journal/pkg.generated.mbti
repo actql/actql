@@ -17,6 +17,8 @@ import {
 }
 
 // Values
+pub fn effect_response_body_digest(Bytes) -> String
+
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
 
 pub fn native_output_file_custody_generation(NativeOutputFileCustody) -> @filesystem.NativeFileGeneration
@@ -112,7 +114,6 @@ pub(all) struct NativeEffectSavedResponse {
   status_code : Int
   body : Bytes
 }
-pub fn NativeEffectSavedResponse::body_digest(Self) -> String
 
 type NativeOutputFileCustody
 
