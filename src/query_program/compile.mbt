@@ -402,7 +402,8 @@ fn same_expression(
         }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
-        if !same_path(x, y) || ax.length() != ay.length() {
+        if (!same_path(x, y) && !@expression.same_scalar_function(x, y)) ||
+          ax.length() != ay.length() {
           return false
         }
         for i in 0..<ax.length() {
