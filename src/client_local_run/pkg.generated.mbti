@@ -12,6 +12,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/physical_host",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/program_check",
   "actql/actql/query_planning",
@@ -25,6 +26,8 @@ pub fn authorize_local_native_source(LocalNativeSourceConfiguration, @execution_
 pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]
 
 pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
+pub fn configure_captured_source_local_compute_on_ledger(LocalRunPlan, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
 pub fn configure_local_native_source(LocalRunPlan, Int, Int, String, String, String?, String?, String, String, String, String, String, @execution_authorization.AccessTuple, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalNativeSourceConfiguration, LocalNativeSourceIssue]
 

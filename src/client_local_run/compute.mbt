@@ -68,6 +68,38 @@ pub fn configure_captured_source_local_compute(
 }
 
 ///|
+/// Keep Source, transfer and Compute reservations on the installed existing
+/// root Ledger. Current Run/task authorization remains unchanged.
+pub fn configure_captured_source_local_compute_on_ledger(
+  plan : LocalRunPlan,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[LocalComputeHost, LocalComputeIssue] {
+  if !captured_source_profile(plan.prepared) {
+    return Err(UnsupportedCapability)
+  }
+  guard @local.open_captured_local_retained_host_on_ledger(
+      plan.prepared,
+      source,
+      ledger,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(setup) else {
+    return Err(Configuration)
+  }
+  let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
+  @strategy.require_captured_task_activation(run)
+  Ok({ plan, setup, })
+}
+
+///|
 fn configure_local_compute(
   plan : LocalRunPlan,
   source : @query.CapturedInputSource?,

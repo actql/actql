@@ -246,6 +246,15 @@ estimates/selection before dispatch; no Python task counter or replacement
 selector is introduced. Source capture custody outlives its consumers, and
 closing Compute does not revoke the caller's acquisition Owner.
 
+`configure_captured_source_local_compute_on_ledger` routes the single verified
+capture through the same existing captured DAG and retained Compute driver
+using the installed Host root Ledger. The Local Host does not create another
+Ledger for this path. Transfer pools and independent Host workspace can remain
+reserved on that root while tasks run. Task/output cleanup settles its own
+reservations; it neither returns the workspace lease nor fabricates cleanup
+for another component. Run and per-task authorization checks remain required.
+The existing two-Source path retains its exact prefix and binding checks.
+
 `configure_local_native_source` binds one existing checked query requirement to
 the installed physical database/schema/table and its read account, access tuple
 and context. The configured Native candidate requires the existing registered
