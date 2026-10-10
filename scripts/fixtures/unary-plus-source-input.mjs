@@ -99,3 +99,51 @@ export const unaryPlusExecutionFailures = [{
   name: 'unary-plus-demanded-operand', format: 'sql',
   text: 'SELECT +(1 / 0) AS value', resultNames: ['answer'], sourceReadSessionCount: 0,
 }];
+
+// GROUP validates the original unary-plus key, then reuses its numeric value.
+// The independently authored Program retains both negations and never restores
+// an ungrouped input. ID 0 must be excluded; duplicate zero and NULL keys remain.
+const groupedRows = [...sourceRows, {id: 0, amount: 100}];
+const groupedColumns = [column('bucket', true), column('n')];
+const groupedExpected = [{bucket: -4, n: 1}, {bucket: 0, n: 2}, {bucket: null, n: 1}];
+const groupedControl = {version: 'actql/0.1', id: 'fixture.group_unary_plus', stages: [
+  {id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}}, steps: [
+    {from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+    {select: ['amount', 'id'], as: 'captured'},
+  ], results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}}, steps: [
+    {from: 'records', derive: {key: {negate: {negate: {field: 'amount'}}}}},
+    {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+    {select: [{bucket: 'key'}, 'n']},
+    {sort: [{field: 'bucket', dir: 'asc', nulls: 'last'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const groupedValue = (name, text, extra = {}) => success('group-value-' + name, text,
+  groupedExpected, groupedColumns, {sourceRows: groupedRows,
+    sourceReadCount: undefined, sourceReadSessionCount: 1, ...extra});
+export const groupedUnaryPlusSuccesses = [
+  groupedValue('json-control', JSON.stringify(groupedControl), {format: 'json'}),
+  groupedValue('sql-key-operand', 'SELECT amount AS bucket, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY +amount ORDER BY bucket NULLS LAST'),
+  groupedValue('nested-repeated-key', 'SELECT records.amount AS bucket, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY +(+records.amount), amount ORDER BY bucket NULLS LAST'),
+  groupedValue('head-pipe-consumer', 'SELECT amount AS bucket, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY +(records.amount) |> WHERE n > 1 |> ORDER BY bucket NULLS LAST |> LIMIT 1',
+    {expected: [{bucket: 0, n: 2}], format: 'aql-text'}),
+  groupedValue('empty', 'SELECT amount AS bucket, COUNT(*) AS n FROM records GROUP BY +amount ORDER BY bucket NULLS LAST',
+    {sourceRows: [], expected: []}),
+  groupedValue('order-output-alias', 'SELECT -amount AS amount, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY +records.amount ORDER BY amount NULLS LAST',
+    {expected: [{amount: 0, n: 2}, {amount: 4, n: 1}, {amount: null, n: 1}],
+      columns: [column('amount', true), column('n')]}),
+  groupedValue('order-qualified-input', 'SELECT -amount AS amount, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY +records.amount ORDER BY records.amount NULLS LAST',
+    {expected: [{amount: 4, n: 1}, {amount: 0, n: 2}, {amount: null, n: 1}],
+      columns: [column('amount', true), column('n')]}),
+];
+export const groupedUnaryPlusRefusals = [
+  {name: 'nonnumeric-key', text: "SELECT CAST('value' AS STRING) AS label, COUNT(*) AS n FROM records GROUP BY +CAST('value' AS STRING)"},
+  {name: 'ungrouped-input', text: 'SELECT id, COUNT(*) AS n FROM records GROUP BY +amount'},
+  {name: 'expired-range', text: 'SELECT amount AS kept, COUNT(*) AS n FROM records GROUP BY +amount |> SELECT records.amount', format: 'aql-text'},
+].map(item => ({format: 'sql', ...item, name: 'unary-plus-group-' + item.name,
+  code: 'ClientProgramInvalidInput'}));
+unaryPlusSuccesses.push(...groupedUnaryPlusSuccesses);
+unaryPlusRefusals.push(...groupedUnaryPlusRefusals);
+unaryPlusExecutionFailures.push({name: 'unary-plus-group-demanded-key', format: 'sql',
+  text: 'SELECT 1 / 0 AS value, COUNT(*) AS n GROUP BY +(1 / 0)',
+  resultNames: ['answer'], sourceReadSessionCount: 0});
