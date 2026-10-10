@@ -1,0 +1,16 @@
+supported_targets = "wasm"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/client_host_buffers" @buffers,
+}
+
+options(
+  link: {
+    "wasm": {
+      "export-memory-name": "memory",
+      "memory-limits": { "min": 1, "max": 256 },
+    },
+  },
+)
