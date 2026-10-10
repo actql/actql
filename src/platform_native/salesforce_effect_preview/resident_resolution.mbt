@@ -51,8 +51,8 @@ pub fn NativeResidentEffectReview::admit_resolution(
   }
   // Reentrant authorization and physical verification cannot retire or
   // replace this holder's original retained input behind the admission.
-  let current_authority = current()
   let current_time = now()
+  let current_authority = current()
   if !current_authority ||
     !self.current() ||
     !@host.client_effect_run_start_current(

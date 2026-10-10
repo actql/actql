@@ -9,6 +9,7 @@ import {
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/signature",
+  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",

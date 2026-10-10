@@ -115,6 +115,23 @@ fn retained_holder_admit_resolution(
     )
     is Err(Unavailable),
   )
+  // A clock callback can revoke independently supplied reviewer authority.
+  // A cached authorization result from before that callback is insufficient.
+  let reviewer_current = Ref(true)
+  assert_true(
+    work.admit_resolution(
+      wire,
+      authentication,
+      reviewers,
+      keys,
+      () => reviewer_current.val,
+      () => {
+        reviewer_current.val = false
+        at()
+      },
+    )
+    is Err(AuthorityDenied),
+  )
   assert_true(work.result_capture() is Some(_))
   (wire, authentication, reviewers, keys)
 }

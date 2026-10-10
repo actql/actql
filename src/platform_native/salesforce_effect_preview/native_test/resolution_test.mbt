@@ -133,6 +133,6 @@ test "Native attested Effect resolution verifies installed Host and current revi
       () => true,
       limits,
     )
-    is Err(Resolution(_)),
+    is Err(@preview.Resolution(_)),
   )
 }

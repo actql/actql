@@ -1073,6 +1073,8 @@ pub(all) enum BinaryOperator {
   Multiply
   Divide
   Modulo
+  StartsWith
+  EndsWith
   Equal
   NotEqual
   IsDistinctFrom
@@ -1854,6 +1856,7 @@ pub(all) enum UnaryOperator {
   Floor
   Sqrt
   Abs
+  Sign
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

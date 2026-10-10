@@ -42,7 +42,8 @@ Scoped diagnostics on the implementation tree based on
 The selected actual-holder command is
 `node scripts/test-native-salesforce-effect-preview.mjs --resident-original-holder-review`.
 The common selection is `moon test --target js src/checkpoint_runtime -f 'attested Effect reconstruction*'`.
-The signature selection is `moon test --target native src/platform_native/salesforce_effect_preview -f 'Native attested Effect resolution*'`.
+The signature selection is
+`moon test --target native --strip src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt`.
 Local diagnostics use the existing cooperative lock and bounded, nonzero execution
 helpers. Fixed-commit receipts and exact source SHA are reported with the PR.
 
@@ -65,3 +66,35 @@ signed test fixture, not a deployed Cloud Owner or a real approval grant.
 No formal npm cohort, production Native binary, Preview deployment or hosted CI result
 is produced by this change. Hosted CI remains stopped by instruction. Native test
 executables are diagnostic artifacts and cannot replace formal Cloud adoption.
+
+## Integration review and authority correction
+
+The main integration retains #1238's target-only test package. Portable code
+does not import Native FFI test dependencies. Actual HTTPS and signature tests
+are selected from `salesforce_effect_preview/native_test`.
+
+Review found a cached reviewer-authority result before the final clock callback.
+That callback could revoke reviewer authority without retiring the holder. The
+final clock is now read before the current authority check. The original-holder
+regression covers this independent revocation as well as holder retirement.
+
+On the corrected integration tree, bounded `run-Sr05lg` passed the affected
+JS/Wasm/Native denied-warning checks, 2/2 common reconstruction tests and 7/7
+actual Native/OpenSSL/HTTPS target and signature tests. These are selected
+checks, not a full Core or final distribution campaign.
+
+The author's clean source `acb3019fcda715672f93bcc2cfca4bcd749f3ae1`
+has a separately inspected actual original-holder receipt: 1/1, 139.46 seconds,
+one resolution request, one Provider read and zero Provider writes. Its tested
+binary digest is
+`77347faf03274b1356bb0112b59e6f44964f4f317fabf439d542fc9d08175fbb`.
+It does not cover the subsequent integration correction.
+
+The integration operator's original-holder attempts `run-dDDUS6` and
+`run-EQJu6m` exceeded the unchanged 180-second consumer bound before requesting
+a signed Resolution. They provide no completed holder-regression counts. The
+release-mode preparation `run-Me8OgP` also reached its 300-second build bound.
+The new holder regression is compiled but has not completed in these attempts;
+it is not reported as passing. No timeout, resource limit or admission rule was
+relaxed. The clock-order correction is additionally reviewed directly at its
+synchronous consuming boundary.

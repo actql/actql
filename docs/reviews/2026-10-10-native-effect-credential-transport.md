@@ -36,11 +36,13 @@ read callers are updated explicitly; no default-verb compatibility fallback is
 added. Credential grant/use wire, canonical request identities and contract
 versions are unchanged. Non-Native transport remains explicitly unsupported.
 
-The branch depends on OSS #1239 and includes a normal merge of main
-`ce027a937cf780f617d5ed98bb4d56ecbb010877`. The integration keeps main's separate
-Native physical test package, moves the parent's signed Resolution regression
-into that package, and preserves the existing default and Core test entry points.
-Final merge target is OSS main, after #1239. No formal package cohort, Native
+OSS #1239 is merged. The branch includes a normal merge of main
+`0c6538b53f63a3c8a42770092e16035103749e9e`, including the reviewed admission fix
+`fe9174d9c2112f752f8b4b1552a8722dcaf78e84`. The final current-authority check
+remains after the clock callback. The integration retains main's separate Native
+physical test package and its signed Resolution regression while preserving the
+existing default and Core entry points and adding the write cases. Final merge
+target is OSS main, with no unmerged parent dependency. No formal package cohort, Native
 deployment binary, Cloud deployment or public approval role is changed here.
 
 ## Validation
