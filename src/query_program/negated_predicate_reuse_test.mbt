@@ -136,6 +136,8 @@ test "DISTINCT ORDER IS NOT and explicit NOT reuse the evaluated output" {
 }
 
 ///|
+// DISTINCT cannot restore an unselected input expression. The adopted
+// semantic refusal is InvalidQuery, rather than an unimplemented ORDER path.
 test "negated predicate reuse retains mode operands and output scope" {
   for
     (selected, ordered) in [
@@ -156,7 +158,7 @@ test "negated predicate reuse retains mode operands and output scope" {
         join_order_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=ordered,
     )
   }

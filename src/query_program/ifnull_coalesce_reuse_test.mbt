@@ -51,6 +51,8 @@ fn coalesce_reuse_program(
 }
 
 ///|
+// DISTINCT cannot restore an unselected input expression. The adopted
+// semantic refusal is InvalidQuery, rather than an unimplemented ORDER path.
 test "coalesce reuse preserves operands arity namespace and clause scope" {
   for
     ordered in [
@@ -66,7 +68,7 @@ test "coalesce reuse preserves operands arity namespace and clause scope" {
         join_order_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=ordered,
     )
   }
