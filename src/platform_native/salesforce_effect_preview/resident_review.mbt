@@ -779,7 +779,14 @@ pub fn NativeResidentEffectReview::retry_cleanup(
     self.targets is Some(targets) &&
     targets.length() == 1 &&
     capture.preview.keys.length() == 1 {
-    match self.restore_row_custody(limits) {
+    // Checkpoint budgets may exceed the common Ledger contract's ceilings.
+    // Narrow this read's budget; never relax the Ledger Owner's admission.
+    let ledger_limits : @checkpoint.WireLimits = {
+      max_wire_bytes: Int::min(limits.max_wire_bytes, 1000000),
+      max_nodes: Int::min(limits.max_nodes, 1000),
+      max_depth: Int::min(limits.max_depth, 32),
+    }
+    match self.restore_row_custody(ledger_limits) {
       Ok(_) => ()
       Err(Journal(issue)) => return Err(Journal(issue))
       Err(_) => return Err(Unavailable)

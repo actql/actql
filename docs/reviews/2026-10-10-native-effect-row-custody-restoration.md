@@ -43,6 +43,9 @@ known pending Effect responsibility blocks cleanup until common settlement.
 An uncertain custody read does not start holder retirement. The read is
 synchronous and invokes no caller callback; retirement starts only after the
 pending-responsibility check, before the existing retention cleanup operation.
+Cleanup narrows its configured Checkpoint budget to the existing common Ledger
+ceilings (1,000,000 bytes, 1,000 nodes and depth 32). It does not pass the larger
+Checkpoint budget into Ledger admission or increase either Owner's limits.
 This guard protects this connection's temporary pins only; it does not mark the
 consumer, producer or entire Run as Released.
 
@@ -72,11 +75,14 @@ idempotent settlement, but failed the existing later retention/admission
 regression. A failed custody probe had prematurely marked the holder retiring.
 Source `d2d3b9d78ad58e329b80f6a2f78f6014c7ae3ea8` removes that early state
 change and adds an original-approval admission assertion after settlement.
-Native/JS compilation, generated interfaces, formatting, syntax and whitespace
-checks passed on the corresponding code. Its actual Provider/no-write rerun did
-not start: bounded waiting ended with the shared heavy lock still owned by
-another verification. The original failure is not reported as resolved by those
-compile checks. The separate no-write case has not executed for this change.
+At `c38b6bc1435953194427e4d0ab70894cdda8dbf2`, the corrected physical write
+case passed 1/1, with physical Provider reads 1, writes 1 and final value 3.
+The separate no-write case still failed: cleanup had reused a Checkpoint budget
+with 10,000 nodes and depth 64, outside the existing Ledger admission contract.
+The fixed-code cleanup diagnostic distinguished that pre-retirement refusal
+from the expected physical retention failure. This correction narrows the
+cleanup budget and retains the existing retirement fault expectations. Neither
+the successful write case nor compilation substitutes for the no-write rerun.
 Exact commands, source correspondence and receipts are recorded in the PR body.
 Hosted CI, public SDK approval, Preview and formal distribution adoption remain
 unverified for this unit.
