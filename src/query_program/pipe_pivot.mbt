@@ -9,10 +9,19 @@ fn compile_pipe_pivot(
   columns : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   argument_value? : String? = None,
+  row_witness? : String? = None,
   consumed_fields? : Array[String] = [],
   authored_aliases? : Array[(String, String)] = [],
 ) -> (@builder.Node, Array[(String, String)]) raise Abort {
-  let value = if argument_value is Some(slot) {
+  let value = if clause.count_star {
+    guard clause.function_name == "COUNT" &&
+      clause.argument.is_empty() &&
+      clause.argument_expression is None else {
+      raise Abort(UnsupportedAggregate)
+    }
+    guard row_witness is Some(name) else { raise Abort(InvalidContext) }
+    name
+  } else if argument_value is Some(slot) {
     slot
   } else {
     guard pipe_slot(clause.argument, visible, ranges) is Some(slot) else {

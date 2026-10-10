@@ -222,3 +222,37 @@ pipePivotSuccesses.push(
     "SELECT 1 AS product,1 AS amount,'A' AS axis WHERE FALSE |> PIVOT(SUM(amount + 1) FOR axis IN('A'))",
     [], expressionColumns),
 );
+
+// COUNT(*) consumes no user column. Its independent control counts a private
+// nonnullable witness, preserving n as an implicit key even when n is NULL.
+export const pivotCountStarProgram = {"version":"actql/0.1","id":"fixture.pivot_count_star","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":true},"axis":{"type":"string","nullable":false}},"rows":[{"n":null,"axis":"A"},{"n":null,"axis":"A"},{"n":1,"axis":"A"}]},"as":"rows"},{"from":"rows","derive":{"row_witness":{"literal":1}}},{"pivot":{"index":["n"],"column":"axis","value":"row_witness","values":["A"],"aggregate":"count"}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}]},{"select":["n","A"],"as":"out"}],"results":{"rows":{"from":"out","fields":["n","A"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const countStarRows = [{n: 1, A: 1}, {n: null, A: 2}];
+const countStarColumns = [number('n', true), number('A', false)];
+const countStarSource = "(SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis UNION ALL SELECT CAST(NULL AS FLOAT64),'A' UNION ALL SELECT 1,'A') |> PIVOT(COUNT(*) FOR axis IN('A')) |> ORDER BY n NULLS LAST";
+const countStarInput = "(SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis UNION ALL SELECT CAST(NULL AS FLOAT64),'A' UNION ALL SELECT 1,'A')";
+pipePivotSuccesses.push(
+  success('count-star-json-control', JSON.stringify(pivotCountStarProgram), countStarRows, countStarColumns, {format: 'json'}),
+  success('count-star-null-rows', countStarSource, countStarRows, countStarColumns),
+  // COUNT(n) consumes n and excludes its NULLs; it is not the row count above.
+  success('column-count-contrast', countStarInput + " |> PIVOT(COUNT(n) FOR axis IN('A'))", [{A: 1}], [number('A', false)]),
+  success('count-star-empty-global', "SELECT 'A' AS axis WHERE FALSE |> PIVOT(COUNT(*) AS n FOR axis IN('B' AS later,'A' AS first))",
+    [{n_later: 0, n_first: 0}], [number('n_later', false), number('n_first', false)]),
+  success('count-star-empty-keyed', countStarInput + " |> WHERE FALSE |> PIVOT(COUNT(*) FOR axis IN('A')) |> ORDER BY n NULLS LAST",
+    [], countStarColumns),
+  success('count-star-private-shaped-key', "SELECT 9 AS aql_pivot_row_4,'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A'))",
+    [{aql_pivot_row_4: 9, A: 1}], [number('aql_pivot_row_4', false), number('A', false)]),
+  success('count-star-private-shaped-bucket', "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A' AS aql_pivot_row_4))",
+    [{aql_pivot_row_4: 1}], [number('aql_pivot_row_4', false)]),
+  success('count-star-prefix-range-axis', countStarInput + " |> AS r |> PIVOT(COUNT(*) AS total FOR r.axis IN('B' AS later,'A' AS first)) AS current "
+    + '|> SELECT current.* |> ORDER BY n NULLS LAST', [{n: 1, total_later: 0, total_first: 1}, {n: null, total_later: 0, total_first: 2}],
+    [number('n', true), number('total_later', false), number('total_first', false)]),
+  success('count-star-data', 'DATA counts = ' + countStarSource + '; FROM counts |> SELECT n, A |> ORDER BY n NULLS LAST',
+    countStarRows, countStarColumns),
+);
+pipePivotRefusals.push(...[
+  ['non-count-star', "SELECT 'A' AS axis |> PIVOT(SUM(*) FOR axis IN('A'))"],
+  ['count-star-missing-axis', "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR missing IN('A'))"],
+  ['count-star-private-witness', "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A')) |> SELECT aql_pivot_row_4"],
+  ['count-star-old-range', "SELECT 'A' AS axis |> AS old |> PIVOT(COUNT(*) FOR axis IN('A')) |> SELECT old.axis"],
+  ['count-star-parameter-bucket', "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR axis IN(@bucket))"],
+].map(([name, text]) => ({name: 'pipe-pivot-refuse-' + name, format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput'})));
