@@ -1,4 +1,50 @@
 ///|
+test "the ordinary positional JSON public control admits its Values source" {
+  // The independent public control publishes the same typed NULL rows as the
+  // source fixture. A Values generator requires an explicit logical producer.
+  let control = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.positional_duplicates","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":true}},"rows":[{"a":0,"b":0},{"a":1,"b":null}]},"as":"seed"},{"from":"seed","sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"last"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  match
+    @check.check_parsed(control, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("the independent Values control has no acquisition")
+  }
+}
+
+///|
+test "public Text routing retains scoped and empty positional DATA controls" {
+  let context = { ..fixture_context(), inputs: [], }
+  for
+    source in [
+      "DATA n = SELECT 1 AS x; FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original |> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b",
+      "DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; FROM e |> ORDER BY a, b",
+    ] {
+    let lowered = @frontend.lower(source, Text, Some(context)).unwrap()
+    let program = @program.parse(
+      lowered.document,
+      construction_limits().program,
+      format=Json,
+    ).unwrap()
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      NeedsInputs(_) =>
+        fail("public positional DATA controls need no acquisition")
+    }
+    assert_true(
+      @frontend.lower(source, Sql, Some(context)) is Err(WrongQueryForm),
+    )
+  }
+}
+
+///|
 test "terminal positional operands keep duplicate authored aliases by position" {
   // The right operand's names are not the Result names. Both positions must
   // survive: the independently expected rows are (0,0) and (1,2).

@@ -83,8 +83,8 @@ const positionalColumns = [{name: 'a', contract: number},
 const positionalRows = [{a: 0, b: 0}, {a: 1, b: null}];
 const positionalProgram = {version: 'actql/0.1', id: 'fixture.positional_duplicates',
   stages: [{id: 'main', inputs: {}, steps: [
-    {values: {schema: {a: number, b: {...number, nullable: true}}, rows: positionalRows}},
-    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+    {values: {schema: {a: number, b: {...number, nullable: true}}, rows: positionalRows}, as: 'seed'},
+    {from: 'seed', sort: [{field: 'a', dir: 'asc', nulls: 'first'},
       {field: 'b', dir: 'asc', nulls: 'last'}], as: 'ordered'},
   ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
@@ -98,11 +98,11 @@ setCorrespondingSuccesses.push(
   positional('scoped-current-and-original', 'DATA n = SELECT 1 AS x; '
     + 'FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original '
     + '|> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b',
-    {expected: [{a: 0, b: 0}, {a: 1, b: 2}],
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 2}],
       columns: [{name: 'a', contract: number}, {name: 'b', contract: number}]}),
   positional('typed-empty', 'DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE '
     + 'UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; '
-    + 'FROM e |> ORDER BY a, b', {expected: []}),
+    + 'FROM e |> ORDER BY a, b', {format: 'aql-text', expected: []}),
   positional('shared-source', 'SELECT 0 AS a, 0 AS b UNION ALL '
     + 'SELECT id AS repeated, amount AS repeated FROM records WHERE id > 0 ORDER BY a, b NULLS LAST',
     {sourceRows, sourceReadSessionCount: 1,
