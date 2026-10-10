@@ -299,3 +299,100 @@ setCorrespondingRefusals.push(
       + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r QUALIFY aql_analytic_output_1 > 0)',
     expectedCode: 'ClientProgramInvalidInput'},
 );
+
+// Independent input x=1,2: ORDER x DESC LIMIT 1 chooses x=2, whereas ORDER
+// on the evaluated -x DESC chooses x=1. LIMIT/OFFSET stay inside the operand.
+export const positionalOrderLimitProgram = {version: 'actql/0.1', id: 'fixture.positional_order_limit',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {sort: [{field: 'x', dir: 'desc', nulls: 'last'}]},
+    {take: {count: 1, offset: 0}},
+    {select: [{a: 'neg'}], as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const limited = (name, text, extra = {}) => success('positional-limited-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: 0}], ...extra});
+const limitedScalar = 'SELECT 0 AS a UNION ALL (SELECT -id FROM records ORDER BY ';
+setCorrespondingSuccesses.push(
+  limited('json-control', JSON.stringify(positionalOrderLimitProgram),
+    {format: 'json', sourceReadSessionCount: 0}),
+  limited('source-scalar', limitedScalar + 'id DESC LIMIT 1) ORDER BY a'),
+  limited('ordinal-scalar', limitedScalar + '1 DESC LIMIT 1) ORDER BY a',
+    {expected: [{a: -1}, {a: 0}]}),
+  limited('parameter-offset', limitedScalar + 'id DESC LIMIT @take OFFSET @skip) ORDER BY a',
+    {parameterDeclarations: {take: number, skip: number}, parameters: {take: 1, skip: 1},
+      expected: [{a: -1}, {a: 0}]}),
+  limited('source-window', 'SELECT 0 AS a UNION ALL (SELECT ROW_NUMBER() OVER (ORDER BY id) '
+    + 'FROM records ORDER BY id DESC LIMIT 1) ORDER BY a', {expected: [{a: 0}, {a: 2}]}),
+  limited('source-aggregate', 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT SUM(id), COUNT(id) '
+    + 'FROM records ORDER BY 1 DESC LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 3, b: 2}]}),
+  limited('duplicate-ordinal', 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT id AS v, -id AS `V` '
+    + 'FROM records ORDER BY 1 DESC LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  limited('output-alias', 'SELECT 0 AS a UNION ALL (SELECT -id AS id FROM records '
+    + 'ORDER BY id DESC LIMIT 1) ORDER BY a', {expected: [{a: -1}, {a: 0}]}),
+  limited('qualified-input', 'SELECT 0 AS a UNION ALL (SELECT -id AS id FROM records '
+    + 'ORDER BY records.id DESC LIMIT 1) ORDER BY a'),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_2', '`AQL_SET_ANONYMOUS_2`', 'aql_set_anonymous_2.member'].map((field, index) => ({
+    name: 'set-corresponding-refuse-limited-private-' + index, format: 'sql',
+    text: limitedScalar + field + ' LIMIT 1) ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-limited-duplicate-alias', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (SELECT id AS v, -id AS `V` FROM records '
+      + 'ORDER BY v LIMIT 1) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// The right-hand filter cannot remove the left zero or regain discarded
+// input columns. NULL is an unknown Boolean predicate, so it selects no rows.
+export const positionalFilterProgram = {version: 'actql/0.1', id: 'fixture.positional_filter',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{a: 'neg'}]},
+    {filter: {literal: false}, as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const filtered = (name, text, extra = {}) => limited('filtered-' + name, text,
+  {format: 'aql-text', expected: [{a: 0}], ...extra});
+const filteredHead = 'SELECT 0 AS a UNION ALL (FROM records |> SELECT -id |> WHERE ';
+setCorrespondingSuccesses.push(
+  filtered('json-control', JSON.stringify(positionalFilterProgram), {format: 'json', sourceReadSessionCount: 0}),
+  filtered('false', filteredHead + 'FALSE) ORDER BY a'),
+  filtered('true', filteredHead + 'TRUE) ORDER BY a', {expected: [{a: -2}, {a: -1}, {a: 0}]}),
+  filtered('null-predicate', filteredHead + 'CAST(NULL AS BOOL)) ORDER BY a'),
+  filtered('kept-alias', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS original '
+    + '|> SELECT id AS kept, -id |> WHERE kept = 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -1}]}),
+  filtered('window', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY id), -id |> WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  filtered('duplicate-ordinal', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V` |> WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+      expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+);
+setCorrespondingRefusals.push(
+  ...['id', 'original.id', 'aql_set_anonymous_3'].map((receiver, index) => ({
+    name: 'set-corresponding-refuse-filtered-receiver-' + index, format: 'aql-text',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> AS original |> SELECT -id '
+      + '|> WHERE ' + receiver + ' > 0) ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-filtered-duplicate-alias', format: 'aql-text',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+      + '|> WHERE v > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);

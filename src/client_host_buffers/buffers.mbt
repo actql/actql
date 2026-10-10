@@ -238,6 +238,21 @@ pub fn buffer_source(pool : BufferPool, slot : BufferSlot) -> @source.Node? {
 }
 
 ///|
+/// Immutable original bytes for a trusted Core consumer. A consumer retaining
+/// this view must hold its exact borrow until it has finished using the bytes.
+pub fn buffer_wire(pool : BufferPool, slot : BufferSlot) -> Bytes? {
+  if !physical_equal(pool, slot.owner) ||
+    pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    !slot.input_complete {
+    None
+  } else {
+    slot.wire
+  }
+}
+
+///|
 pub fn buffer_byte(pool : BufferPool, slot : BufferSlot, index : Int) -> Byte? {
   if !physical_equal(pool, slot.owner) ||
     slot.retired ||
