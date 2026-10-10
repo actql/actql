@@ -1518,6 +1518,12 @@
           "pointer": "/schemas/effect_resume_delivery",
           "cid": "sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5",
           "version": "actql-remote-site-wire/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-remote-site-wire.json",
+          "pointer": "/schemas/poll_effect_resume",
+          "cid": "sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265",
+          "version": "actql-remote-site-wire/0.1"
         }
       ],
       "normative_imports": [
@@ -1935,7 +1941,7 @@
         {
           "owner": "actql.protocol.run",
           "version": "actql/0.1",
-          "document_cid": "sha256:883e607a3bf5af84f7dc2d81471fb339943144e2ee47079d092a171d7d3dbb20"
+          "document_cid": "sha256:53a9d2af6e4e2a85d90505aa5f950df94f594b3651172e5e9b06f08d3e95ab74"
         },
         {
           "owner": "actql.protocol.discovery",
