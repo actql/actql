@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {pipePivotSuccesses, pipePivotRefusals} from './fixtures/pipe-pivot-source-input.mjs';
+import {pipePivotSuccesses, pipePivotRefusals, pivotCountStarProgram} from './fixtures/pipe-pivot-source-input.mjs';
 
 test('PIVOT independent controls preserve duplicates NULLs grouping and declared column order', () => {
   const cases = new Map(pipePivotSuccesses.map(input => [input.name, input]));
@@ -34,9 +34,9 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
     cases.get('pipe-pivot-anonymous-count-identity-source').expected);
   assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').columns,
     cases.get('pipe-pivot-anonymous-count-identity-source').columns);
-  assert.equal(pipePivotSuccesses.length, 15);
-  assert.equal(pipePivotRefusals.length, 11);
-  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 26);
+  assert.equal(pipePivotSuccesses.length, 37);
+  assert.equal(pipePivotRefusals.length, 22);
+  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 59);
 });
 
 test('PIVOT uses the same cases in the normal corpus and scoped packed execution', async () => {
@@ -63,4 +63,23 @@ test('HAVING scope oracles preserve named aliases and reject actual anonymous sl
   const refusals = pipePivotRefusals.filter(input => input.name.includes('anonymous-aggregate-having'));
   assert.equal(refusals.length, 3);
   for (const input of refusals) assert.equal(input.expectedCode, 'ClientProgramInvalidInput');
+});
+
+
+test('COUNT star includes NULL rows while retaining every unconsumed current key', () => {
+  const cases = new Map(pipePivotSuccesses.map(input => [input.name, input]));
+  assert.deepEqual(cases.get('pipe-pivot-count-star-null-rows').expected, [{n: 1, A: 1}, {n: null, A: 2}]);
+  assert.deepEqual(cases.get('pipe-pivot-count-star-json-control').expected, cases.get('pipe-pivot-count-star-null-rows').expected);
+  assert.deepEqual(cases.get('pipe-pivot-count-star-json-control').columns, cases.get('pipe-pivot-count-star-null-rows').columns);
+  assert.deepEqual(cases.get('pipe-pivot-column-count-contrast').expected, [{A: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-count-star-empty-global').expected, [{n_later: 0, n_first: 0}]);
+  assert.deepEqual(cases.get('pipe-pivot-count-star-empty-keyed').expected, []);
+  assert.deepEqual(cases.get('pipe-pivot-count-star-prefix-range-axis').columns.map(column => column.name), ['n', 'total_later', 'total_first']);
+  assert.deepEqual(pivotCountStarProgram.stages[0].steps[1].derive, {row_witness: {literal: 1}});
+  assert.deepEqual(pivotCountStarProgram.stages[0].steps[2].pivot,
+    {index: ['n'], column: 'axis', value: 'row_witness', values: ['A'], aggregate: 'count'});
+  assert.deepEqual(pivotCountStarProgram.stages[0].steps[4].select, ['n', 'A']);
+  const newRefusals = pipePivotRefusals.filter(item => item.name.startsWith('pipe-pivot-refuse-'));
+  assert.equal(newRefusals.length, 5);
+  assert.ok(newRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });

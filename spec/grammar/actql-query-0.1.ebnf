@@ -176,11 +176,12 @@ relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELE
               | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
-(* Initial Pipe PIVOT: one scalar-argument aggregate and static String bucket values. *)
-pivot_operator = "PIVOT", "(", pivot_aggregate, "(", expression, ")",
+(* Pipe PIVOT: one scalar-argument aggregate or COUNT star and static String buckets. *)
+pivot_operator = "PIVOT", "(", pivot_call,
                  [ [ "AS" ], identifier ], "FOR", path, "IN", "(",
                  pivot_value, { ",", pivot_value }, ")", ")",
                  [ [ "AS" ], identifier ] ;
+pivot_call = pivot_aggregate, "(", expression, ")" | "COUNT", "(", "*", ")" ;
 pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
 pivot_value = query_string, [ [ "AS" ], identifier ] ;
 unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
