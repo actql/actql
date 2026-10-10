@@ -63,3 +63,29 @@ pipePivotSuccesses.push(success('anonymous-set-operands',
   "(SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale', 51, 'Q1' UNION ALL SELECT 'kale', CAST(NULL AS FLOAT64), 'Q2') |> PIVOT(COUNT(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
   [{product: 'kale', second: 0, first: 2}],
   [string('product', 4), number('second', false), number('first', false)]));
+
+// Independent COUNT expectations: each source-free SELECT starts from one row.
+// COUNT(*) is one, COUNT(NULL) is zero; filtering that row before global COUNT
+// retains one aggregate output containing zero, not NULL or an absent bucket.
+const countIdentityControl = {version: 'actql/0.1', id: 'fixture.pipe_pivot_count', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {sales: {type: 'number', nullable: false},
+      other: {type: 'number', nullable: false}, quarter: {type: 'string', nullable: false}},
+      rows: [{sales: 1, other: 0, quarter: 'Q1'}, {sales: 1, other: 0, quarter: 'Q2'}]}, as: 'counts'},
+    {from: 'counts', pivot: {index: ['other'], column: 'quarter', value: 'sales',
+      values: ['Q2', 'Q1'], aggregate: 'max'}},
+    {select: ['other', {second: 'Q2'}, {first: 'Q1'}], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['other', 'second', 'first']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+pipePivotSuccesses.push(
+  success('anonymous-count-json-control', JSON.stringify(countIdentityControl),
+    [{other: 0, second: 1, first: 1}],
+    [number('other', false), number('second', true), number('first', true)], {format: 'json'}),
+  success('anonymous-count-empty-source',
+    "(SELECT COUNT(*) AS sales, 'Q1' AS quarter UNION ALL SELECT COUNT(*), 'Q2' WHERE FALSE) |> PIVOT(MAX(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
+    [{second: 0, first: 1}], [number('second', true), number('first', true)]),
+  success('anonymous-count-identity-source',
+    "(SELECT COUNT(*) AS sales, COUNT(CAST(NULL AS FLOAT64)) AS other, 'Q1' AS quarter UNION ALL SELECT COUNT(*), COUNT(CAST(NULL AS FLOAT64)), 'Q2') |> PIVOT(MAX(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
+    [{other: 0, second: 1, first: 1}],
+    [number('other', false), number('second', true), number('first', true)]),
+);
