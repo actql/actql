@@ -1,4 +1,4 @@
-import {queryCompositionSuccesses, queryCompositionRefusals} from './fixtures/public-query-input.mjs';
+import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl} from './fixtures/public-query-input.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
