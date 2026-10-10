@@ -66,6 +66,84 @@ delivery. Public failure/cleanup retry evidence and literal/Relation identity
 admission/lookup boundedness remain open. Review #1296's long-key P2 remains
 valid and is not closed by these public successes. CI is stopped.
 
+### Start-value admission checkpoint at ca6e3afbd
+
+Source: `ca6e3afbd9bbdfea62b57e95ce45e34e8006cbee`.
+This is a partial response to the reviewed identity-prefix P2, not its closure.
+
+Literal starts now borrow the selector value into the existing
+`value_admission.RecheckCursor`. Relation starts use the new common
+`execution_relation.start_producer_read_cell_recheck`, preserving exact
+receiving-column validation, and then use the same Graph identity recheck.
+The traversal retains both input owners, reserves roots and continuation growth
+before allocation/advance, and clears only its own cursor on cleanup. NULL,
+missing membership and invalid input keep their existing typed failures.
+Shortest source/target selectors use the same state transitions.
+
+The new literal and Relation regressions failed before the implementation:
+after two quantum-one advances the synchronous path retained only its selector
+entry (`1 != 4`), rather than its input root, cursor and initial continuation.
+That executable failure is retained as `run-Z0URnf` /
+`focused-test-On44tz` at the preceding source with the added fixture. Earlier
+fixture compile/selection/setup failures remain separate unsuccessful attempts;
+they are not evidence of the product defect.
+
+At clean `ca6e3afbd`, the guarded JS selection passed **21/21**:
+`run-ImyfE2` / `focused-test-TuGxgQ`. The selected command was:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 240 -- --target js \
+  src/execution_relation/producer_read_wbtest.mbt \
+  src/query_integration/graph_start_admission_wbtest.mbt \
+  src/query_integration/graph_reach_wbtest.mbt \
+  src/query_integration/graph_shortest_wbtest.mbt \
+  src/query_integration/graph_trail_resource_wbtest.mbt \
+  src/query_integration/graph_traverse_nodes_wbtest.mbt \
+  src/query_integration/graph_predicate_custody_wbtest.mbt \
+  src/query_integration/graph_selector_custody_wbtest.mbt \
+  src/query_integration/graph_membership_custody_wbtest.mbt
+```
+
+The invocation used Node 24.21.0 and the pinned workspace MoonBit toolchain.
+The receipt is terminal, output complete, and its own locks were released.
+Canonical interfaces were regenerated with `moon info src/execution_relation
+src/local_sga`; formatting and `git diff --check` were checked separately.
+
+Independent boundaries, not successful-run measurements, supply the oracles:
+
+- A 519-UTF-16-unit / 522-UTF-8-byte key contains a decomposed accent, CRLF and
+  an astral scalar. Literal and Relation results preserve its original data.
+- The base identity has 32 tree polls plus a terminal poll; the long key adds
+  eight recheck fragments. Relation input admission repeats that receiving
+  schema validation before the nonnullable Graph identity recheck.
+- Literal/Relation long-key total work is respectively **1541 / 1582**, with
+  **10** output workspace slots, across quantums **1 / 7 / 256**. Work and
+  workspace one-short failures require the corresponding typed cause.
+- Admission separately peaks at **8** slots: selector entry, root/cursor,
+  four frames and pre-reserved growth. A seven-slot ceiling refuses before
+  membership lookup. Cancellation at cumulative work **16** stops inside the
+  long key; cleanup leaves zero private entries/workspace without disposing
+  either borrowed input. Repeated cleanup does not release twice.
+- Existing literal Reach and zero-hop Shortest oracles add their independently
+  derived admission/lookup-transition costs (34 per literal), including every
+  existing pending-prefix cancellation. Generic path variants retain exact
+  work and now reserve the same eight-slot admission peak.
+- The common read regression also covers raw runtime Text, invalid coordinates,
+  expired input authority and cancellation without mutation or lost binding.
+
+Wasm/Native admission selections are **not yet executed**. Their guarded
+attempt `run-fWlTuR` refused the busy shared heavy lock before starting either
+test command. No foreign lock was reclaimed. Full Core, a new packed cohort,
+hosted CI and Preview were not run for this source. The preceding `aa615176b`
+packed acceptance stays bound to its original artifacts, not this new source.
+
+Remaining P2: `LookupStart` still calls the existing synchronous storage
+scope validation, identity serialization and String-key construction index.
+The completed value admission must not be cited as bounded membership lookup.
+That owner connection, its live-frame/private-byte reservations and independent
+long-key/cancellation boundaries remain required. Public failure/cleanup retry
+evidence also remains a separate open completion obligation.
+
 ### Verified external cohort at aa615176
 
 Manifest: `graph-four-aa6151-BoNG03/packed-client-packages.json`.
