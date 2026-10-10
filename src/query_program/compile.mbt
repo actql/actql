@@ -1754,6 +1754,37 @@ fn same_analytic_window(
 }
 
 ///|
+// This table belongs to one SELECT input snapshot, not a clause alias scope.
+// A repeated positional alias cannot identify an evaluated window call.
+fn positional_set_analytic_slot(
+  call : @query.AnalyticCall,
+  slots : Array[(@query.AnalyticCall, String)],
+  scope : JoinChainScope,
+) -> String raise Abort {
+  let resolve = path => pipe_slot(path, scope.visible, scope.ranges)
+  for (previous, slot) in slots {
+    if !same_analytic_window(previous.window, call.window) {
+      continue
+    }
+    match (previous.expression, call.expression) {
+      (None, None) => ()
+      (Some(a), Some(b)) => if !same_expression(a, b) { continue }
+      _ => continue
+    }
+    match (previous.aggregate, call.aggregate) {
+      (None, None) => ()
+      (Some(a), Some(b)) =>
+        if !same_aggregate_call(a, b, resolve, resolve) {
+          continue
+        }
+      _ => continue
+    }
+    return slot
+  }
+  raise Abort(UnsupportedAnalytic)
+}
+
+///|
 fn lower_analytic(
   construction : Construction,
   projections : Array[@query.Projection],
@@ -1949,6 +1980,7 @@ fn compile_steps(
   let mut sql_group_selected_projections : Array[@query.Projection] = []
   let having_values : Array[(@query.Expression, String)] = []
   let analytic_outputs : Array[(String, String)] = []
+  let positional_set_analytic_slots : Array[(@query.AnalyticCall, String)] = []
   let analytic_expression_bindings : Array[(String, String)] = []
   let mut analytic_input_fields : Array[String]? = None
   let mut analytic_input_scope : JoinChainScope? = None
@@ -4358,6 +4390,7 @@ fn compile_steps(
         }
         if !order_window {
           analytic_outputs.clear()
+          positional_set_analytic_slots.clear()
         }
         let outputs = if order_window {
           order_analytic_slots
@@ -4486,20 +4519,30 @@ fn compile_steps(
             continue
           }
           let name = projection.name.unwrap().value
-          if outputs.any(output => ascii_upper(output.0) == ascii_upper(name)) {
+          let positional_duplicate = !order_window &&
+            positional_set_output &&
+            @query.operation_at(query, @query.operation_count(query) - 1)
+            is Some(Select(_, _)) &&
+            duplicate_projection_alias(projections, name)
+          if !positional_duplicate &&
+            outputs.any(output => ascii_upper(output.0) == ascii_upper(name)) {
             raise Abort(DuplicateOutput)
           }
           // Analytic results are evaluated slots, not new SELECT input names.
           // A colliding authored alias is restored only by final projection.
-          let slot = if active_fields.any(field => {
-              ascii_upper(field) == ascii_upper(name)
-            }) {
+          let slot = if positional_duplicate ||
+            active_fields.any(field => ascii_upper(field) == ascii_upper(name)) {
             pipe_physical_name(physical, "aql_analytic_output_")
           } else {
             name
           }
           physical.push(slot)
           outputs.push((name, slot))
+          if positional_duplicate {
+            positional_set_analytic_slots.push(
+              (projection.analytic.unwrap(), slot),
+            )
+          }
           let projection = {
             ..projection,
             name: Some({ value: slot, quoted: false, }),
@@ -4826,11 +4869,21 @@ fn compile_steps(
                 )
                 continue
               }
-              if projection.analytic is Some(_) {
+              if projection.analytic is Some(call) {
                 let name = projection.name.unwrap().value
-                guard analytic_output_slot(name, analytic_outputs)
-                  is Some(source) else {
-                  raise Abort(UnknownColumn)
+                let source = if positional_set_output &&
+                  i == @query.operation_count(query) - 1 &&
+                  duplicate_projection_alias(projections, name) {
+                  positional_set_analytic_slot(
+                    call,
+                    positional_set_analytic_slots,
+                    analytic_input_scope.unwrap(),
+                  )
+                } else {
+                  match analytic_output_slot(name, analytic_outputs) {
+                    Some(slot) => slot
+                    None => raise Abort(UnknownColumn)
+                  }
                 }
                 names.push(name)
                 bindings.push((name, source))
@@ -5151,10 +5204,20 @@ fn compile_steps(
               names.push(name)
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
-                let source = if projection.analytic is Some(_) {
-                  match analytic_output_slot(name, analytic_outputs) {
-                    Some(slot) => slot
-                    None => raise Abort(UnsupportedAnalytic)
+                let source = if projection.analytic is Some(call) {
+                  if positional_set_output &&
+                    i == @query.operation_count(query) - 1 &&
+                    duplicate_projection_alias(projections, name) {
+                    positional_set_analytic_slot(
+                      call,
+                      positional_set_analytic_slots,
+                      analytic_input_scope.unwrap(),
+                    )
+                  } else {
+                    match analytic_output_slot(name, analytic_outputs) {
+                      Some(slot) => slot
+                      None => raise Abort(UnsupportedAnalytic)
+                    }
                   }
                 } else if projection.name is None &&
                   projection.aggregate is Some(call) {
@@ -5758,6 +5821,7 @@ fn compile_steps(
       analytic_input_scope = None
       qualify_values.clear()
       analytic_outputs.clear()
+      positional_set_analytic_slots.clear()
       analytic_expression_bindings.clear()
       if pending_select is None {
         value_table_receivers = []

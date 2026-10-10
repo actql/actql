@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 24);
-  assert.equal(setCorrespondingRefusals.length, 15);
+  assert.equal(setCorrespondingSuccesses.length, 30);
+  assert.equal(setCorrespondingRefusals.length, 17);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -14,6 +14,31 @@ test('CORRESPONDING matching has independent row, type, scope and multiplicity c
   assert.deepEqual(setCorrespondingProgram.stages[1].steps[0].filter, {gt: [{field: 'id'}, {literal: 1}]});
   assert.deepEqual(setCorrespondingProgram.stages[1].steps[2].filter, {lte: [{field: 'id'}, {literal: 2}]});
   assert.deepEqual(setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-global-common-type').expected, [{x: 1}, {x: 3}, {x: 4}]);
+});
+
+test('positional windows retain opposing order keys and different functions', () => {
+  const windows = setCorrespondingSuccesses.filter(x => x.name.includes('-window-'));
+  assert.equal(windows.length, 6);
+  const source = windows.find(x => x.name.endsWith('-source-orders'));
+  assert.equal(source.sourceReadSessionCount, 1);
+  assert.deepEqual(source.expected, [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}]);
+  assert.deepEqual(windows.find(x => x.name.endsWith('-different-functions')).expected,
+    [{a: 0, b: 0}, {a: 1, b: 1}, {a: 2, b: 1}]);
+  assert.deepEqual(windows.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  const aggregates = windows.find(x => x.name.endsWith('-aggregate-functions'));
+  assert.deepEqual(aggregates.expected, [{a: 0, b: 0}, {a: 1, b: 1}, {a: 3, b: 2}]);
+  for (const item of windows) {
+    assert.deepEqual(item.columns.map(x => [x.name, x.contract.type, x.contract.nullable]),
+      [['a', 'number', item === aggregates], ['b', 'number', false]]);
+  }
+  const steps = positionalWindowProgram.stages[0].steps;
+  assert.deepEqual(steps[1].analytic.order_by, [{field: 'x', dir: 'asc', nulls: 'first'}]);
+  assert.deepEqual(steps[2].analytic.order_by, [{field: 'x', dir: 'desc', nulls: 'last'}]);
+  assert.deepEqual(steps[3].select, [{a: 'up'}, {b: 'down'}]);
+  for (const item of setCorrespondingRefusals.filter(x => x.name.includes('-window-'))) {
+    assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
+    assert.equal(item.format, 'aql-text');
+  }
 });
 
 test('duplicate aggregate aliases retain different COUNT arguments and empty global rows', () => {
