@@ -119,7 +119,7 @@ test "Graph difference rejects hidden Graph columns and repeated transitions" {
       assert_eq(span.start_byte, 471)
       assert_eq(span.end_byte, 479)
     } else {
-      assert_true(result is Err(UnsupportedGraph), msg=suffix)
+      assert_true(result is Err(InvalidQuery), msg=suffix)
     }
   }
 }

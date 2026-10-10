@@ -1033,7 +1033,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       moon.clientProgramQueryRequirementSourceRef(requirement));
     try {
       const prepared = await adapter.prepare({preparedProgram, registry, values, fragment, ordered,
-        sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence});
+        sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence,
+        requireImmediateReadAuthorization: checkpoints === undefined});
       if (prepared.selection !== undefined) diagnostic('acquisition_selection',
         {task: occurrence.task, selection: prepared.selection});
       return prepared;

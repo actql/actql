@@ -152,7 +152,7 @@ test "Graph Delta source rejects foreign names and a second Carrier transition" 
       { ..fixture_context(), inputs: [], },
       construction_limits(),
     )
-    is Err(UnsupportedGraph),
+    is Err(InvalidQuery),
   )
   assert_true(
     @query.parse_query_script(

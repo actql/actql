@@ -54,9 +54,12 @@ test('normal public corpus retains binding counterexamples and precise input ref
     assert.equal(graphMatchSourceRefusals.find(c => c.name === 'graph-match-' + suffix).expectedCode,
       'ClientProgramInvalidInput');
   }
-  for (const suffix of ['empty-fields', 'relation-is-not-graph']) {
-    assert.equal(graphMatchSourceRefusals.find(c => c.name === 'graph-match-invalid-' + suffix).expectedCode,
-      'ClientProgramImplementationLimit');
+  for (const [name, expectedCode] of [
+    ['graph-match-invalid-empty-fields', 'ClientProgramImplementationLimit'],
+    ['graph-match-invalid-relation-is-not-graph', 'ClientProgramInvalidInput'],
+  ]) {
+    assert.equal(graphMatchSourceRefusals.find(c => c.name === name).expectedCode,
+      expectedCode, name);
   }
 });
 

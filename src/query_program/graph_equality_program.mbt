@@ -17,7 +17,7 @@ fn lower_script_graph_pair_rows(
     _ => raise Abort(UnsupportedGraph)
   }
   guard call.arguments is [("with", Producer(name))] else {
-    raise Abort(UnsupportedGraph)
+    raise Abort(InvalidQuery)
   }
   guard script_graph_named_input(name, graphs) is Some(right) else {
     raise Abort(UnknownRelation)

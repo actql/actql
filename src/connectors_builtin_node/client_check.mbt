@@ -356,8 +356,12 @@ fn check_source_findings(
         // authored origin. Explain that failure without manufacturing a span.
         QueryLowering(UnknownColumn) =>
           findings.push(ExpressionViolation("unknown_reference", None))
-        QueryLowering(AmbiguousRelation | AmbiguousColumn | DuplicateOutput) =>
-          findings.push(Violation("query_invalid"))
+        QueryLowering(
+          InvalidQuery
+          | AmbiguousRelation
+          | AmbiguousColumn
+          | DuplicateOutput
+        ) => findings.push(Violation("query_invalid"))
         // A Frontend scope probe retains the same typed cause as ordinary
         // Program checking. No generated cursor becomes an authored location.
         QueryLowering(ExpressionTyping(issue)) =>
