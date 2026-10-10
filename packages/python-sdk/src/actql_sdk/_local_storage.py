@@ -111,6 +111,8 @@ class LocalByteStore:
     def _open(self) -> None:
         if self._closed or not self._ready:
             raise LocalStorageError('Local physical storage is closed')
+        if self._connection.in_transaction:
+            raise LocalStorageError('Local physical storage transaction cleanup is pending')
 
     @staticmethod
     def _key(key: str) -> None:

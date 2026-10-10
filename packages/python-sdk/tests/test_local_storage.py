@@ -107,6 +107,32 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
                     self.assertEqual(store.read('original'), StoredBytes(0, b'original-wire'))
                     self.assertEqual(store._connection.inserts, 1)
 
+    def test_failed_commit_and_rollback_cannot_expose_uncommitted_bytes(self) -> None:
+        class PendingTransaction(sqlite3.Connection):
+            refuse = False
+
+            def execute(self, sql: str, *args: object, **kwargs: object) -> sqlite3.Cursor:
+                if self.refuse and sql in ('COMMIT', 'ROLLBACK'):
+                    raise OSError('physical transaction cleanup refused')
+                return super().execute(sql, *args, **kwargs)
+
+        connect = sqlite3.connect
+        with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
+            path = Path(directory) / 'core.sqlite'
+            with patch('actql_sdk._local_storage.sqlite3.connect',
+                       side_effect=lambda *a, **k: connect(*a, **k, factory=PendingTransaction)):
+                store = self.store(path)
+            store._connection.refuse = True
+            with self.assertRaises(OSError):
+                store.compare_exchange('original', None, b'not-committed')
+            with self.assertRaises(LocalStorageError):
+                store.read('original')
+            with self.assertRaises(LocalStorageError):
+                store.compare_exchange('original', None, b'resend')
+            store.close()
+            with self.store(path) as reopened:
+                self.assertIsNone(reopened.read('original'))
+
     def test_row_count_and_aggregate_bytes_reject_without_changing_original(self) -> None:
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
             path = Path(directory) / 'core.sqlite'

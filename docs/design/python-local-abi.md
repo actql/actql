@@ -171,8 +171,10 @@ Transactions use SQLite's existing exclusive write serialization and FULL
 synchronization. Competing generations cannot replace one another. A failed
 commit acknowledgement remains an exception; the adapter neither reports success
 nor repeats the write. The Host must read the same original bytes and let Core
-decide the next operation. Close releases the connection, preserves persisted
-records and performs no Run cancellation or recovery. Failed close retains its
+decide the next operation. If both commit and rollback fail, the retained connection cannot return its
+uncommitted bytes or accept another write. Only its pending cleanup may proceed.
+Close releases the connection, preserves persisted records and performs no Run
+cancellation or recovery. Failed close retains its
 exact cleanup handle, including initialization failures.
 
 Record count, individual byte length and aggregate payload length have explicit
