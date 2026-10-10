@@ -414,6 +414,7 @@ pub fn call_native_credential_resource(
     None,
     @http.Get,
     b"",
+    None,
   )
 }
 
@@ -436,6 +437,7 @@ pub fn call_native_credential_resource_at_path(
     Some(expected_path),
     @http.Get,
     b"",
+    None,
   )
 }
 
@@ -460,6 +462,35 @@ pub fn call_native_credential_resource_request_at_path(
     Some(expected_path),
     verb,
     body,
+    None,
+  )
+}
+
+///|
+/// Keep an installed caller's current execution fence separate from credential
+/// authorization. Check it after Host callbacks, before consuming a use and
+/// again after the final clock observation immediately before physical I/O.
+/// This guard cannot replace the credential grant, exact request allowlist or
+/// the caller's durable Effect claim. A false final guard does not permit replay.
+pub fn call_native_credential_resource_guarded_request_at_path(
+  service : NativeCredentialResourceService,
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  scope : NativeCredentialScope,
+  verb : @http.NativeHttpMethod,
+  expected_path : String,
+  body : Bytes,
+  current : () -> Bool,
+) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  call_native_credential_resource_owned(
+    service,
+    grant,
+    use_id,
+    scope,
+    Some(expected_path),
+    verb,
+    body,
+    Some(current),
   )
 }
 
@@ -472,6 +503,7 @@ fn call_native_credential_resource_owned(
   expected_path : String?,
   verb : @http.NativeHttpMethod,
   body : Bytes,
+  current : (() -> Bool)?,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
   guard operation_for(service, scope) is Some(operation) &&
     operation.verb == verb &&
@@ -519,6 +551,9 @@ fn call_native_credential_resource_owned(
         body: Bytes::from_array(saved_body.to_array()),
       }),
     }) {
+    return Err(AccessDenied)
+  }
+  if current is Some(check) && !check() {
     return Err(AccessDenied)
   }
   let ordinal = match
@@ -594,11 +629,19 @@ fn call_native_credential_resource_owned(
   })
   // The authorization callback may revoke a grant or take time. Re-read the
   // durable revocation and trusted lifetime after it, immediately before I/O.
-  let send_revoked = match native_credential_grant_revoked(service, grant_cid) {
+  let current_send_time = match observe_trusted_clock(service) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let current_send_time = match observe_trusted_clock(service) {
+  // The caller's guard may observe a Run cancellation or reviewer revocation
+  // caused by an installed Host callback. No callback follows this final guard.
+  let current_by_caller = match current {
+    Some(check) => check()
+    None => true
+  }
+  // The guard itself may revoke the credential. Read durable revocation after
+  // all callbacks rather than trusting the earlier pre-claim observation.
+  let send_revoked = match native_credential_grant_revoked(service, grant_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -610,6 +653,7 @@ fn call_native_credential_resource_owned(
     }
   }
   let authorized = authorized_by_host &&
+    current_by_caller &&
     @credential.authorize_credential_use(
       credential_use,
       current_send_time,
