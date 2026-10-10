@@ -415,7 +415,6 @@ fn check_impl(
         metadata(b, s)
       }
       let at = @decode.lookup(object, key).unwrap()
-      // Validate authored options, but never issue an executable old Graph mean.
       match
         @graph.check_mean_options(at, {
           max_work: b.work,
@@ -423,7 +422,7 @@ fn check_impl(
           max_text_bytes: b.text,
           max_depth: limits.max_depth,
         }) {
-        Ok(_) => fail(at, Graph(@graph.UnsupportedGraphOperation))
+        Ok(_) => ()
         Err(e) =>
           raise Stop({
             kind: Graph(e.kind),
@@ -433,6 +432,58 @@ fn check_impl(
             range: None,
           })
       }
+      let operands = []
+      let carriers = []
+      let authored = @decode.elements(
+        @decode.lookup(@decode.open_object(at).unwrap(), "with").unwrap(),
+      ).unwrap()
+      for peer in authored {
+        let target = resolve_target(b, peer, names)
+        operands.push(target)
+        carriers.push(carrier(target, inputs, steps))
+      }
+      // Typed mean owns alignment and all obligations. The ordered sample
+      // list never acquires an implicit current input or pairwise union.
+      let checked = match
+        @graph.check_mean(at, carriers, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(checked) => checked
+        Err(e) =>
+          raise Stop({
+            kind: Graph(e.kind),
+            source: at,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @graph.mean_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: None,
+        binding_name: Some(binding),
+        metadata: @decode.lookup(object, "meta"),
+        operation: GraphMean(inputs=operands, checked~),
+        output: @graph.mean_output(checked),
+        connections: {
+          entries: operands.mapi((index, target) => {
+            role: Sample(index),
+            target,
+          }),
+        },
+        window: None,
+      })
+      names[binding] = target
+      current = Some(target)
+      continue
     }
     if key == "time_series" {
       if @decode.lookup(object, "from") is Some(s) {
@@ -2275,7 +2326,9 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
-        GraphConstruction(inputs~, ..) | GraphUnion(inputs~, ..) =>
+        GraphConstruction(inputs~, ..)
+        | GraphUnion(inputs~, ..)
+        | GraphMean(inputs~, ..) =>
           inputs.mapi((index, target) => { role: Sample(index), target, })
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>

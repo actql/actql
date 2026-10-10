@@ -828,7 +828,7 @@ fn traverse_paths_step(
             state.phase = PreparePredicate
             continue
           }
-          if !reserve_traverse_start_identity(state, 2) {
+          if !reserve_traverse_start_identity(state, 3) {
             return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
           }
           guard traverse_path_start_recheck(state, state.start_scan)
@@ -864,7 +864,7 @@ fn traverse_paths_step(
         // Cursor plus live frames and the maximum one-frame poll growth.
         if !reserve_traverse_start_identity(
             state,
-            2 + @value.recheck_pending_frames(cursor),
+            3 + @value.recheck_pending_frames(cursor),
           ) {
           return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
@@ -872,7 +872,7 @@ fn traverse_paths_step(
           @value.RecheckContinue =>
             reserve_traverse_start_identity(
               state,
-              1 + @value.recheck_pending_frames(cursor),
+              2 + @value.recheck_pending_frames(cursor),
             )
             |> ignore
           @value.RecheckFailed =>
@@ -885,7 +885,7 @@ fn traverse_paths_step(
             if state.start_input_rechecking {
               // Preserve receiving-column admission before the Graph's
               // nonnullable identity contract. Neither scan is synchronous.
-              if !reserve_traverse_start_identity(state, 2) {
+              if !reserve_traverse_start_identity(state, 3) {
                 return @bounded.Failed(
                   TraversePathsWorkspaceLimit,
                   progress,

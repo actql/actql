@@ -16,9 +16,12 @@ const deltaRelationOnly = process.argv.includes('--delta-relation-only');
 const deltaDiffOnly = process.argv.includes('--delta-diff-only');
 const unionOnly = process.argv.includes('--union-only');
 const subtractionOnly = process.argv.includes('--subtraction-only');
+const remainingOperationsOnly = process.argv.includes('--remaining-operations-only');
+const remainingFailuresOnly = process.argv.includes('--remaining-failures-only');
 if (process.argv.slice(2).some(argument=>!['--selector-derive-only',
-  '--delta-application-only','--delta-relation-only','--delta-diff-only','--union-only','--subtraction-only'].includes(argument)) ||
-  Number(selectorDeriveOnly) + Number(deltaApplicationOnly) + Number(deltaRelationOnly) + Number(deltaDiffOnly) + Number(unionOnly) + Number(subtractionOnly) > 1) {
+  '--delta-application-only','--delta-relation-only','--delta-diff-only','--union-only','--subtraction-only',
+  '--remaining-operations-only','--remaining-failures-only'].includes(argument)) ||
+  Number(selectorDeriveOnly) + Number(deltaApplicationOnly) + Number(deltaRelationOnly) + Number(deltaDiffOnly) + Number(unionOnly) + Number(subtractionOnly) + Number(remainingOperationsOnly) + Number(remainingFailuresOnly) > 1) {
   throw new Error('Unknown packed Graph selection');
 }
 const source = checkoutState(repository);
@@ -46,9 +49,15 @@ await run('npm',['install','--ignore-scripts','--no-save',...CLIENT_PACKAGES.map
   join(root,`actql-${name}-0.0.0-development.tgz`))]);
 await mkdir(join(root,'fixtures'));
 for (const name of ['graph-public-host.test.mjs','check-canonical-json.mjs',
+  'graph-public-failure.test.mjs',
+  'fixtures/graph-snapshot-failure-store.mjs',
+  'fixtures/retained-graph-observer.mjs',
   'fixtures/graph-host-cases.mjs',
   'fixtures/graph-reach-source-input.mjs',
   'fixtures/graph-shortest-source-input.mjs',
+  'fixtures/graph-mean-source-input.mjs',
+  'fixtures/graph-graft-source-input.mjs',
+  'fixtures/graph-union-source-input.mjs',
   'fixtures/graph-parallel.program.json',
   'fixtures/graph-presence.program.json',
   'fixtures/graph-delta-application.mjs',
@@ -69,7 +78,8 @@ const output = await run(process.execPath,nodeTestArguments([
   ...(deltaDiffOnly ? ['--test-name-pattern','Graph diff Delta survives'] : []),
   ...(unionOnly ? ['--test-name-pattern','Graph union preserves occurrences'] : []),
   ...(subtractionOnly ? ['--test-name-pattern','Graph subtraction preserves typed records'] : []),
-  'graph-public-host.test.mjs']),root,
+  ...(remainingOperationsOnly ? ['--test-name-pattern','Graph (graft preserves complete records|Reach preserves typed selectors|Shortest preserves selected paths|Mean preserves explicit samples)'] : []),
+  remainingFailuresOnly ? 'graph-public-failure.test.mjs' : 'graph-public-host.test.mjs']),root,
   {...environment,ACTQL_GRAPH_PACKED:'1',
     PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')},true);
 const digests = {};
@@ -82,14 +92,27 @@ const acceptance = {
   source,
   packages:digests,paths:['embedded-local','remote-https'],
   selection:selectorDeriveOnly ? 'selector-derive' : deltaApplicationOnly ? 'delta-application'
-    : deltaRelationOnly ? 'delta-relation' : deltaDiffOnly ? 'delta-diff' : unionOnly ? 'union' : subtractionOnly ? 'subtraction' : 'all',
+    : deltaRelationOnly ? 'delta-relation' : deltaDiffOnly ? 'delta-diff' : unionOnly ? 'union' : subtractionOnly ? 'subtraction'
+    : remainingOperationsOnly ? 'remaining-operations' : remainingFailuresOnly ? 'remaining-failures' : 'all',
   independentFixture:'fixtures/graph-parallel.program.json',
   presenceFixture:'fixtures/graph-presence.program.json',
   definitionFixture:'fixtures/graph-definition-rows.program.json',
   labelFixture:'fixtures/graph-label-rows.program.json',
   selectorDeriveFixture:'fixtures/graph-selector-derive.program.json',
   traversalFixture:'fixtures/graph-traverse-nodes.expected.json',
-  assertions:subtractionOnly ? [
+  assertions:remainingFailuresOnly ? [
+    'actual Carrier and Relation snapshot Store failures pass through public Local and HTTPS',
+    'sealed acknowledgement loss preserves the real body and pending cleanup custody',
+    'failed task output and downstream Named Results remain unavailable',
+    'same failed submission close failure and cleanup retry do not repeat Compute',
+    'original installed Host reclaims every retained reservation after retry',
+  ] : remainingOperationsOnly ? [
+    'Graft Reach Shortest and Mean use current typed Graph owners through public Local and HTTPS',
+    'independent authored JSON and AQL rows and declared schemas on initial read and reattach',
+    'retained Relation Store source release verified reload and temporary body cleanup',
+    'same submission and Result rereads do not repeat Compute',
+    'Mean explicit repeated samples and zero weight remain ordered generator occurrences',
+  ] : subtractionOnly ? [
     'ordered binary borrowed occurrences preserve exact typed identities and source domain',
     'shared removal differs from explicit equality retention and number_sum remains addition',
     'induced endpoint closure and independent parallel-edge removal never rekey records',

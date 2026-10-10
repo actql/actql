@@ -1,4 +1,42 @@
 ///|
+// A whole-row AS range can export positional occurrences through its star.
+// Field/object stars and ranges reset by another projection do not establish
+// this role. Actual star expansion and visibility remain with the lowerer.
+fn positional_whole_range_star(
+  query : @query.Query,
+  projection_index : Int,
+  projection : @query.Projection,
+) -> Bool {
+  guard projection.expression is Some(receiver) else { return false }
+  guard @query.expression_node(receiver, @query.expression_root(receiver))
+    is Some({ kind: Reference(path), .. }) &&
+    path.length() == 1 else {
+    return false
+  }
+  let mut index = projection_index - 1
+  while index >= 0 {
+    match @query.operation_at(query, index).unwrap() {
+      Alias(name) => return same_name(path[0], name)
+      Order(_)
+      | Limit(_, _)
+      | Where(_)
+      | Distinct
+      | AssertUnique(_)
+      | Set(_)
+      | Drop(_)
+      | Rename(_)
+      | Extend(_)
+      | UnnestSource(_, _, _)
+      | Analytic(_)
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => index -= 1
+      _ => return false
+    }
+  }
+  false
+}
+
+///|
 // Pure column edits, filters, ordering and analytic steps retain positional inputs.
 // EXCEPT/REPLACE address named columns without naming retained anonymous values.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
@@ -10,11 +48,14 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Limit(_, _)
       | Where(_)
       | Distinct
+      | AssertUnique(_)
       | Set(_)
       | Drop(_)
       | Rename(_)
       | Extend(_)
       | Alias(_)
+      | Unpivot(_)
+      | UnnestSource(_, _, _)
       | Analytic(_)
       | AnalyticExpressions(_, _)
       | OrderAnalytic(_, _) => index -= 1
@@ -22,7 +63,10 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
         projection = Some(index)
         if projections.length() == 1 &&
           projections[0].star == Some("*") &&
-          projections[0].expression is None {
+          (
+            projections[0].expression is None ||
+            positional_whole_range_star(query, index, projections[0])
+          ) {
           index -= 1
         } else {
           return projection

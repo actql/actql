@@ -50,6 +50,12 @@ import {graphGraftSourceSuccesses, graphGraftSourceRefusals, graphGraftSourceExe
   from './graph-graft-source-input.mjs';
 import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
+import {graphMeanSourceOracles, graphMeanSourceRefusals}
+  from './graph-mean-source-input.mjs';
+import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
+  from './graph-remaining-operation-inputs.mjs';
+import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
+  from './retained-graph-observer.mjs';
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -77,7 +83,7 @@ import {selectAggregateExpressionSuccesses, selectAggregateExpressionRefusals, s
 import {havingAggregateSuccesses, havingAggregateRefusals, havingAggregateExecutionFailures}
   from './having-aggregate-source-input.mjs';
 import {setByNameListSuccesses, setByNameListRefusals} from './set-by-name-list-source-input.mjs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals} from './set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingExecutionFailures} from './set-corresponding-source-input.mjs';
 import {setJoinSuccesses, setJoinRefusals} from './set-join-source-input.mjs';
 import {setInnerByNameSuccesses, setInnerByNameRefusals} from './set-inner-by-name-source-input.mjs';
 import {shortRowsSuccesses, shortRowsRefusals} from './short-rows-source-input.mjs';
@@ -234,8 +240,10 @@ const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
+const graphRemainingOperationsOnly = process.env.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY === '1';
+const graphMeanOnly = process.env.ACTQL_TEST_GRAPH_MEAN_ONLY === '1';
 const graphReachOnly = process.env.ACTQL_TEST_GRAPH_REACH_ONLY === '1';
-const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly;
+const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly || graphMeanOnly || graphRemainingOperationsOnly;
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
 const negatedPredicateReuseOnly = process.env.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY === '1';
@@ -329,7 +337,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
+const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
+  : concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
   : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
   : countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}
   : minMaxDistinctOnly ? {successes: minMaxDistinctSuccesses, refusals: minMaxDistinctRefusals}
@@ -375,7 +384,7 @@ const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals
   : characterLengthOnly ? {successes: characterLengthSuccesses, refusals: characterLengthRefusals}
   : selectAllOnly ? {successes: selectAllSuccesses, refusals: selectAllRefusals} : starExclusionOnly ? {successes: starExclusionSuccesses, refusals: starExclusionRefusals} : typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals} : analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses, refusals: analyticPartitionExpressionRefusals, executionFailures: analyticPartitionExpressionExecutionFailures} : graphSubtractionOnly ? {successes: graphSubtractionSourceSuccesses, refusals: graphSubtractionSourceRefusals, executionFailures: graphSubtractionSourceExecutionFailures} : graphGraftOnly ? {successes: graphGraftSourceSuccesses, refusals: graphGraftSourceRefusals, executionFailures: graphGraftSourceExecutionFailures} : graphUnionOnly ? {successes: graphUnionSourceSuccesses, refusals: graphUnionSourceRefusals, executionFailures: graphUnionSourceExecutionFailures} : statisticalAggregateOnly ? {successes: statisticalAggregateSuccesses, refusals: statisticalAggregateRefusals, executionFailures: statisticalAggregateExecutionFailures} : limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals} : havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses, refusals: havingObjectPropertyRefusals, executionFailures: havingObjectPropertyExecutionFailures}
   : analyticPartitionPropertyOnly ? {successes: analyticPartitionPropertySuccesses, refusals: analyticPartitionPropertyRefusals}
-  : setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}
+  : setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals], executionFailures: setCorrespondingExecutionFailures}
   : setInnerByNameOnly ? {successes: setInnerByNameSuccesses, refusals: setInnerByNameRefusals}
   : setByNameListOnly ? {successes: setByNameListSuccesses, refusals: setByNameListRefusals}
   : shortRowsOnly ? {successes: shortRowsSuccesses, refusals: shortRowsRefusals}
@@ -426,6 +435,7 @@ const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals
   : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
+  : graphMeanOnly ? {successes: graphMeanSourceOracles, refusals: graphMeanSourceRefusals}
   : process.env.ACTQL_TEST_GRAPH_SHORTEST_ONLY === '1'
     ? {successes: graphShortestSourceSuccesses, refusals: graphShortestSourceRefusals}
   : graphTraverseOnly ? (graphReachOnly
@@ -575,6 +585,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphReachSourceRefusals);
   scopeInputs.successes.push(...graphShortestSourceSuccesses);
   scopeInputs.refusals.push(...graphShortestSourceRefusals);
+  scopeInputs.successes.push(...graphMeanSourceOracles);
+  scopeInputs.refusals.push(...graphMeanSourceRefusals);
   scopeInputs.successes.push(...statisticalAggregateSuccesses);
   scopeInputs.refusals.push(...statisticalAggregateRefusals);
   scopeInputs.executionFailures.push(...statisticalAggregateExecutionFailures);
@@ -598,6 +610,7 @@ if (!scopeOnly) {
   scopeInputs.executionFailures.push(...aggregatePropertyOrderExecutionFailures);
   scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses);
   scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals);
+  scopeInputs.executionFailures.push(...setCorrespondingExecutionFailures);
   scopeInputs.successes.push(...setInnerByNameSuccesses);
   scopeInputs.refusals.push(...setInnerByNameRefusals);
   scopeInputs.successes.push(...setByNameListSuccesses);
@@ -780,10 +793,17 @@ const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executio
 for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
   of publicQueryProfiles(scopeInputs)) {
 if (transport === 'tail' && profileName !== 'standard') continue;
-if (transport !== 'tail') expectedInventory.push(...inventoryKeys(profileName, profileInputs));
 const completedOffsets = {};
 const scopeInputs = profileInputs;
-const cohorts = publicQueryCohorts(scopeInputs);
+const cohorts = graphRemainingOperationsOnly
+  ? graphRemainingOperationCohortInputs(scopeInputs).flatMap(publicQueryCohorts)
+  : publicQueryCohorts(scopeInputs);
+if (transport !== 'tail') {
+  const expectedOffsets = {};
+  expectedInventory.push(...(graphRemainingOperationsOnly
+    ? cohorts.flatMap(cohort => inventoryKeys(profileName, cohort, expectedOffsets))
+    : inventoryKeys(profileName, profileInputs)));
+}
 if (transport !== 'tail') expectedRetainedCohorts += cohorts.filter(cohort => cohort.successes.length > 0).length;
 // The independent fresh-process String regression uses these original roots.
 if (scopeInputs.successes.some(item => item.name === 'exact-string-values')) {
@@ -1041,12 +1061,16 @@ const recordString = mode => item => {
 };
 const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
 const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
-const recordCohort = (mode, directory, cohort) => {
+const recordCohort = (mode, directory, cohort, authorization) => {
   // Save independently authored boundary oracles for the existing fresh-process
   // public Client regression; it never imports or reruns the partition helper.
   const boundaryNames = new Set([cohort.successes[0]?.name,
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
+  if (graphRemainingOperationsOnly) {
+    saved.expectedSampleNames = [...boundaryNames];
+    saved.authorization = authorization;
+  }
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return item => {
     recordString(mode)(item);
@@ -1061,11 +1085,17 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
+  const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+  const physicalDispatches = [];
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
-      sourceProfilePath, hostCapacityPolicy}}, {requestPrefix: 'packed-local',
+      sourceProfilePath, hostCapacityPolicy,
+      ...(authorization === undefined ? {} : {
+        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)})}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
-    completedCase: recordCohort('local', directory, cohort), ...cohort});
+    completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
+  if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
+    'Initial Graph execution proves the actual dispatch hook is live');
   const acceptedRuns = observe(directory)().acceptedRuns;
   assert.equal(acceptedRuns, cohortRunCount(cohort));
   localAcceptedRuns += acceptedRuns;
@@ -1080,8 +1110,12 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
+    const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+    const physicalDispatches = [];
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
+      ...(authorization === undefined ? {} : {
+        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)}),
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1095,7 +1129,9 @@ let remoteAcceptedRuns = 0;
       if (index === 0) await exercisePublicCheck(options);
       await exercisePublicQueryInput(connect, options,
         {requestPrefix: 'packed-http', observe: observe(directory), prepareCase,
-          completedCase: recordCohort('remote', directory, cohort), ...cohort});
+          completedCase: recordCohort('remote', directory, cohort, authorization), ...cohort});
+      if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
+        'Initial Graph execution proves the actual dispatch hook is live');
       const acceptedRuns = observe(directory)().acceptedRuns;
       assert.equal(acceptedRuns, cohortRunCount(cohort));
       remoteAcceptedRuns += acceptedRuns;
@@ -1133,6 +1169,10 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
   assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
+  if (graphRemainingOperationsOnly) for (const cohort of retainedCohorts) {
+    assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,
+      'Every authored Graph restart boundary must be retained before producer exit');
+  }
   await writeFile(transport === undefined ? 'retained-cohort-results.json' :
     `retained-cohort-results.${transport}.json`, encodeRetainedFixture(retainedCohorts));
   if (transport !== undefined) await writeFile(`transport-completion.${transport}.json`,

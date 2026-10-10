@@ -367,7 +367,7 @@ fn derive_row_counts(
           nodes: reduce_count(value.nodes),
           edges: reduce_count(value.edges),
         })
-      GraphUnion(inputs~, ..) => {
+      GraphUnion(inputs~, ..) | GraphMean(inputs~, ..) => {
         let mut nodes = Some(count(0L, true))
         let mut edges = Some(count(0L, true))
         for target in inputs {

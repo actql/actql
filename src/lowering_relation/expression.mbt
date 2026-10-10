@@ -57,6 +57,7 @@ pub(all) enum UnaryOperator {
   Sign
   Round
   Trunc
+  SafeNegate
 } derive(Eq, Debug)
 
 ///|
@@ -65,6 +66,10 @@ pub(all) enum BinaryOperator {
   Subtract
   Multiply
   Divide
+  SafeDivide
+  SafeAdd
+  SafeSubtract
+  SafeMultiply
   Modulo
   Strpos
   TrimSet
@@ -92,6 +97,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Substring
   Between
 } derive(Eq, Debug)
 
@@ -214,6 +220,7 @@ fn expression_tag(
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -224,6 +231,10 @@ fn expression_tag(
     | "subtract"
     | "multiply"
     | "divide"
+    | "safe_divide"
+    | "safe_add"
+    | "safe_subtract"
+    | "safe_multiply"
     | "modulo"
     | "strpos"
     | "starts_with"
@@ -246,6 +257,7 @@ fn expression_tag(
     | "concat_strict"
     | "len"
     | "replace"
+    | "substring"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -263,6 +275,17 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "substring" => {
+      let obj = @decode.open_object(body).unwrap()
+      let children = [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "start").unwrap(),
+      ]
+      if @decode.lookup(obj, "length") is Some(length) {
+        children.push(length)
+      }
+      children
+    }
     "property" =>
       [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
     "object" => {
@@ -296,6 +319,7 @@ fn expression_children(
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "not"
     | "is_null"
     | "not_null"
@@ -637,6 +661,7 @@ fn lower_expression_measured(
       | GraphNormalizeValue(_)
       | GraphDeltaValue(_)
       | GraphUnionValue(_)
+      | GraphMeanValue(_)
       | GraphSubtractionValue(_)
       | GraphComponentsRows(_)
       | GraphConstructionValue(_)
@@ -895,6 +920,7 @@ fn lower_typed_expression_measured(
         "sign" => Unary(Sign, args[0])
         "round" => Unary(Round, args[0])
         "trunc" => Unary(Trunc, args[0])
+        "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
@@ -907,6 +933,10 @@ fn lower_typed_expression_measured(
         "subtract" => Binary(Subtract, args[0], args[1])
         "multiply" => Binary(Multiply, args[0], args[1])
         "divide" => Binary(Divide, args[0], args[1])
+        "safe_divide" => Binary(SafeDivide, args[0], args[1])
+        "safe_add" => Binary(SafeAdd, args[0], args[1])
+        "safe_subtract" => Binary(SafeSubtract, args[0], args[1])
+        "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
@@ -940,6 +970,7 @@ fn lower_typed_expression_measured(
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "substring" => Many(Substring, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

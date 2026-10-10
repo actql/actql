@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram, positionalUnpivotCollisionProgram, positionalAssertProgram, setCorrespondingExecutionFailures} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 148);
-  assert.equal(setCorrespondingRefusals.length, 102);
+  assert.equal(setCorrespondingSuccesses.length, 187);
+  assert.equal(setCorrespondingRefusals.length, 126);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -114,7 +114,7 @@ test('CORRESPONDING matching participates in both normal and narrow packed accep
   const corpus = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/set-corresponding-source-input.mjs', 'set-corresponding-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_SET_CORRESPONDING_ONLY = '1'"));
-  assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}'));
+  assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals], executionFailures: setCorrespondingExecutionFailures}'));
   assert.ok(corpus.includes('scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals)'));
 });
@@ -455,4 +455,105 @@ test('positional DISTINCT compares anonymous values and preserves later DROP mul
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-distinct-'));
   assert.equal(refusals.length, 6);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional UNNEST preserves anonymous occurrences, child multiplicity and immutable range values', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-unnest-'));
+  assert.equal(cases.length, 12);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.sourceRows, [{id: 1, amount: 10}, {id: 2, amount: 20}]);
+  assert.deepEqual(source.expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 10},
+    {a: 1, b: -10, c: 20}, {a: 2, b: -20, c: 10}, {a: 2, b: -20, c: 20}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: true}}, {name: 'c', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-range')).expected,
+    [{a: 0, b: 0, c: 0}, {a: 7, b: -20, c: 2}, {a: 7, b: -10, c: 1}]);
+  const duplicate = cases.find(x => x.name.endsWith('-duplicate-elements'));
+  assert.deepEqual(duplicate.expected.slice(1, 3), [{a: 1, b: -10, c: 10}, {a: 1, b: -10, c: 10}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-element')).text.includes('AS aql_set_anonymous_4'));
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-offset')).text.includes('WITH OFFSET aql_set_duplicate_2'));
+  assert.deepEqual(positionalUnnestProgram.stages[0].steps[4].unnest, {column: 'items', as: 'element'});
+  assert.deepEqual(positionalUnnestProgram.stages[0].steps[5].select, [{a: 'kept'}, {b: 'neg'}, {c: 'element'}]);
+  assert.deepEqual(positionalUnnestProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unnest-'));
+  assert.equal(refusals.length, 7);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('positional UNPIVOT retains anonymous values, generated current labels and repeated-row multiplicity', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-unpivot-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.expected, [{a: -20, b: 2, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: true}},
+    {name: 'b', contract: {type: 'number', nullable: false}}, {name: 'c', contract: {type: 'string', nullable: false}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-current-renamed-label')).expected,
+    [{a: -20, b: 7, c: 'renamed'}, {a: -10, b: 7, c: 'renamed'}, {a: 0, b: 0, c: 'anchor'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-repeated-selected-column')).expected.slice(0,2),
+    [{a: -20, b: 2, c: 'kept'}, {a: -20, b: 2, c: 'kept'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-destination')).text.includes('INCLUDE NULLS(aql_set_anonymous_4'));
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[3].unpivot,
+    {columns: ['kept'], keep: ['neg'], value_column: 'value', name_column: 'label'});
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[4].select, [{a: 'neg'}, {b: 'value'}, {c: 'label'}]);
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unpivot-'));
+  assert.equal(refusals.length, 5);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('UNPIVOT generated-name collisions keep old and new values as separate positional occurrences', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-unpivot-name-collision-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-value-column'));
+  assert.deepEqual(source.expected, [{a: 0, b: 0, c: 0, d: 'anchor'},
+    {a: 10, b: -10, c: 1, d: 'kept'}, {a: 20, b: -20, c: 2, d: 'kept'}]);
+  assert.notEqual(source.expected[1].a, source.expected[1].c);
+  const labelCollision = cases.find(x => x.name.endsWith('-name-column'));
+  assert.deepEqual(labelCollision.columns[0], {name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}});
+  assert.equal(Buffer.byteLength('anchor', 'utf8'), 6);
+  assert.equal(Buffer.byteLength('user', 'utf8'), 4);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-star')).expected, source.expected);
+  assert.ok(cases.find(x => x.name.endsWith('-immutable-star')).text.includes("SET label = 'changed'"));
+  assert.deepEqual(cases.find(x => x.name.endsWith('-distinct-complete-row')).expected,
+    [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'}, {a: 10, b: -10, c: 2, d: 'kept'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-drop-all-matching-occurrences')).expected,
+    [{a: -20, b: 'kept'}, {a: -10, b: 'kept'}, {a: 0, b: 'anchor'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.deepEqual(positionalUnpivotCollisionProgram.stages[0].steps[3].unpivot,
+    {columns: ['kept'], keep: ['extra', 'neg'], value_column: 'expanded', name_column: 'label'});
+  assert.deepEqual(positionalUnpivotCollisionProgram.stages[0].steps[4].select,
+    [{a: 'extra'}, {b: 'neg'}, {c: 'expanded'}, {d: 'label'}]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-unpivot-name-collision-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional ASSERT retains values and validates explicit current/range keys through the common Owner', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-assert-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.sourceRows, [{id: 1, amount: 10}, {id: 2, amount: 20}]);
+  assert.deepEqual(source.expected, [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: -20}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-key')).expected,
+    [{a: 0, b: 0}, {a: 7, b: -20}, {a: 7, b: -10}]);
+  assert.ok(cases.find(x => x.name.endsWith('-immutable-key')).text.includes('ASSERT UNIQUE BY(r.kept)'));
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-parameter-filter-limit')).parameters, {min: 0});
+  assert.deepEqual(positionalAssertProgram.stages[0].steps[3].assert_rows, {unique_by: ['kept']});
+  assert.deepEqual(positionalAssertProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  assert.deepEqual(positionalAssertProgram.stages[0].steps[4].select, [{a: 'kept'}, {b: 'neg'}]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-assert-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+  assert.equal(setCorrespondingExecutionFailures.length, 2);
+  assert.deepEqual(setCorrespondingExecutionFailures[1].sourceRows, [{id: 1, amount: 10}, {id: 1, amount: 20}]);
+  assert.deepEqual(setCorrespondingExecutionFailures.map(x => x.resultNames), [['answer'], ['answer']]);
+  const packed = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  assert.ok(packed.includes('executionFailures: setCorrespondingExecutionFailures'));
+  assert.ok(packed.includes('scopeInputs.executionFailures.push(...setCorrespondingExecutionFailures)'));
 });

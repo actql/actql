@@ -79,6 +79,31 @@ test "Effect run materials preserve original evidence and reject replaced identi
     effect_limits,
   ).unwrap()
   assert_eq(restored.request, Some(request))
+  let receipt_bindings = client_effect_run_receipt_bindings(
+    restored, 65536, 4096, 64,
+  ).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_identity(receipt_bindings),
+    "sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f",
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(receipt_bindings),
+    "{\"bindings\":{},\"invocation_bindings_cid\":\"sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f\",\"version\":\"actql-invocation-bindings/0.1\"}",
+  )
+  // Equal serialized Program bytes do not replace the original checked Owner.
+  assert_true(
+    client_effect_run_receipt_bindings(
+      { ..restored, prepared, },
+      65536,
+      4096,
+      64,
+    )
+    is Err(ForeignMaterials),
+  )
+  assert_true(
+    client_effect_run_receipt_bindings(restored, 0, 4096, 64)
+    is Err(Bindings(Evidence(_))),
+  )
   assert_eq(
     issue_client_effect_run_materials(
       restored.allowed,

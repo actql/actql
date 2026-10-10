@@ -45,13 +45,391 @@ finish this assignment.
 
 ## Current delivery checkpoint
 
-Draft PR #1284 contains Graft, Reach and Shortest integration; Mean is a
-separate private continuation. The historical checkpoints below retain their
+PR #1284 and PR #1296 are now adopted. The latest main used by the follow-up is
+`d0674f7341f1c0db855618a93edd27d76b6622aa`; #1296's reviewed head was
+`2f05db07a5eff34c028331fdd2ba06c6652494a8`. Their trees are identical
+(`a8d8843048a376ea4be2ff8804ae265b9815ce94`), but source SHAs and artifact
+receipts are not relabeled. The historical checkpoints below retain their
 original SHAs, commands and receipts. Three private commit messages were
 wrapped before publication with trees and mapped parents unchanged; no test
 receipt is rewritten to the replacement SHA.
 
-Latest adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
+At clean `aa615176b06b717a6a310e7daede74fa85b0de63`, one formal five-package
+cohort passed external Local/HTTPS execution, refusal, retained Named Result
+reading and fresh-process original-submission replay. Each transport completed
+the exact 44-case inventory and four independent operation restart roots, with
+zero additional physical starts, Compute advances or completions. The same
+artifact passed 10/10 selected retained Host/cancellation cases. The changed
+Graft/Mean source controls passed 7/7 on Wasm and 7/7 on Native.
+
+Receipt `run-a0FPgH` is terminal, passed, with all five sequential steps and
+locks released. This is narrow local evidence, not CI or complete Graph
+delivery. Public failure/cleanup retry evidence and literal/Relation identity
+admission/lookup boundedness remain open. Review #1296's long-key P2 remains
+valid and is not closed by these public successes. CI is stopped.
+
+### Adopted selector and public failure follow-up
+
+The preceding paragraph describes the original `aa615176b` checkpoint, not the
+current remaining selector implementation. Main already contains the parent
+`c3c5bc5e9` repair: stepped identity admission and exact retained-identity
+membership through `value_admission.CompleteEquality`, with live-frame
+reservation and cancellation. `4b1b5bfab` preserves receiving-column admission
+and the completion fence; `9697d2166` preserves Shortest Relation snapshot
+custody. The final [integration review](https://github.com/actql/actql/pull/1296#issuecomment-6099419727)
+reports no remaining blocking code finding for the Mean component.
+
+That review records `run-TcEGC1` at the clean reviewed head: selected exact
+Mean/union/source JS 30, provider-construction Node 25, and four freshly packed
+Local/HTTPS Mean cases passed. These are integration evidence, not this
+follow-up's own executions, and do not close fresh-process rereads or public
+failure/cleanup retry for all four operations.
+
+The follow-up uses branch `test/graph-four-public-failures`. The earlier local
+fingerprint-index prototype is preserved at `2946469613621f3d972a640f743d9027d8616cf5`
+and `archive/a-graph-index-prototype-20261011`; it was not pushed after the
+integration branch advanced. It is not adopted here, and will not replace the
+accepted membership implementation merely to optimize this assignment.
+
+The finite remaining acceptance connects both existing snapshot lanes:
+
+| Shared mechanism | Operations reaching it | Representative failure controls |
+| --- | --- | --- |
+| Carrier snapshot, `prepareLocalCarrierSnapshot` | Graft and Mean Graph output | Graft task 3: actual seal, lost acknowledgement, cleanup failure and same-Owner retry |
+| Relation snapshot, `prepareLocalRelationSnapshot` | Reach and Shortest Relation output | Reach task 3: append failure, cleanup failure and same-Owner retry |
+| Original request journal and publication Owner | All four | Same failed intent must not dispatch again; no partial Named Result; final reservation reclamation |
+| Saved publication reader | All four | Rebuild a current-source packed cohort; fresh-process read and original-intent replay without acquisition/Compute |
+
+`authorization.faultInjection.localSnapshotStoreFactory` is private fixture
+wiring selected before physical allocation. Run/Program/transport input cannot
+set it. Production defaults remain the existing real file Store, and the
+driver still owns work, custody, completion and cleanup. The fixture factory
+wraps only its targeted lease; all other leases are unchanged real Stores.
+Its status delegates to actual file-Store accounting, not fabricated counters.
+Cleanup remains the original Host's responsibility, never a new fixture Run
+state machine or ledger.
+
+The real-Store harness passed 3/3 (`run-K6U6Mf`, `focused-test-uOnXob`) on the
+working tree based on this main. An earlier attempt `run-UZ6MV6` expected the
+original 128-byte reservation after seal; the Store legitimately returns unused
+capacity and retains the actual two-byte body. The independent expectation is
+128 for the failed append and 2 for the sealed `[]` body. Neither becomes zero
+while cleanup fails, and retry reclaims it without another lease.
+
+### Current-source public acceptance at 463e8b27e
+
+Clean verified source: `463e8b27eab15f1f1ae2e739f9ce4fe4d867753a`.
+Guarded producer/failure receipt `run-mh7Yfs` passed both steps, with complete
+output and locks released. Its normal five-package producer used prepack once;
+the manifest is `graph-failure-unknown-6UhkWX/packed-client-packages.json`.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `9513ef88b37cbc5f6bf37a2aa88483e7d4089e1b38a390a3dfb3c5cc91cde61d` |
+| local-node | `69716f91571ca687a3093f928666e752f3bae091b65e7c702532d0d601e6a5ff` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The same verified cohort was reused by all three repository-external consumers:
+
+```sh
+node scripts/test-packed-graph.mjs --remaining-failures-only
+node scripts/test-packed-graph.mjs --remaining-operations-only
+node scripts/test-packed-public-query.mjs --graph-remaining-operations-only
+```
+
+The first passed **4/4** (`graph-package-Cjskul/acceptance.json`). Both Local
+and HTTPS reached actual Graft seal acknowledgement loss and Reach append
+failure. Required output was unavailable, the target real Store retained its
+reservation through cleanup failure, and public reconciliation observed the
+same unresolved execution without dispatch. Same-intent replay, failed close
+and successful same-Host cleanup retry left the physical start/advance/Compute
+inventory unchanged. Every lease finally reported zero reserved bytes and no
+cleanup pending; the temporary snapshot directory was empty.
+
+The initial clean `caf9cf161c9caf6f892d2b9baad23e29d76c7c54` attempt
+`run-TEYnSy` packed normally but failed all four public cases on the fixture's
+incorrect terminal `failed` expectation. `execution.md` defines `failed` only
+when no execution outcome is unresolved; the dispatch Owner observes stop
+only after retained cleanup settles. While cleanup is unresolved, the required
+state is therefore `needs_reconciliation`, physical stop `unknown`, with exact
+next action `{kind:"reconcile_run",reason:"execution_unknown"}`. The correction
+requires these facts, nonpublication and no replay; it does not turn an observed
+outcome into success/failure or weaken a cleanup check. Failed evidence remains
+at `graph-package-bNxaDN`, bound to its original source and tarballs.
+
+Guarded reuse receipt `run-8Q7ZV9` then passed both normal/restart steps, output
+complete and locks released:
+
+- **10/10** selected retained Host/operation-cancellation cases passed at
+  `graph-package-GOkkTV/acceptance.json`. All four operations use current typed
+  input owners, independent JSON/AQL rows, schema/order, actual Store export /
+  source revocation / verified reload, repeated submission, two consumers and
+  operation-specific positive-progress cancellation without premature output.
+- Local and HTTPS each completed the exact **44-case** inventory (27 successes,
+  16 pre-Run refusals and one execution failure). Expected and completed
+  inventory digest is `c93fc3d334159fd7bd8bd17f8eaa2cd146bebda48f2a53f67f3c96d981cd7f2b`.
+- Each transport retained four operation restart roots. After the initial
+  producer processes exited, independent reader processes completed all four
+  roots, reading the JSON/AQL boundary Results and replaying the original
+  submission. Both report `physicalDispatches:0`; the live hook also covers
+  Compute advances/completion. No new Run or additional execution is accepted.
+- Public command receipts, transport inventories and both fresh-process
+  records are retained in `public-query-evidence-7joQ8b`. All worker handles
+  are terminal with `liveChildren:0`.
+
+Wasm/Native for the adopted selector/comparison boundary are still unverified
+in this follow-up. `run-iYfPW7` refused the shared heavy lock before starting
+either target, rather than operating another owner's lock. Full Core, Native
+physical Host execution, hosted CI and Preview were not run. CI stays stopped.
+The independent source-free controls establish no acquisition on these Runs;
+they do not claim a new real-Connector or Cloud execution profile.
+
+### Start-value admission checkpoint at ca6e3afbd
+
+Source: `ca6e3afbd9bbdfea62b57e95ce45e34e8006cbee`.
+This is a partial response to the reviewed identity-prefix P2, not its closure.
+
+Literal starts now borrow the selector value into the existing
+`value_admission.RecheckCursor`. Relation starts use the new common
+`execution_relation.start_producer_read_cell_recheck`, preserving exact
+receiving-column validation, and then use the same Graph identity recheck.
+The traversal retains both input owners, reserves roots and continuation growth
+before allocation/advance, and clears only its own cursor on cleanup. NULL,
+missing membership and invalid input keep their existing typed failures.
+Shortest source/target selectors use the same state transitions.
+
+The new literal and Relation regressions failed before the implementation:
+after two quantum-one advances the synchronous path retained only its selector
+entry (`1 != 4`), rather than its input root, cursor and initial continuation.
+That executable failure is retained as `run-Z0URnf` /
+`focused-test-On44tz` at the preceding source with the added fixture. Earlier
+fixture compile/selection/setup failures remain separate unsuccessful attempts;
+they are not evidence of the product defect.
+
+At clean `ca6e3afbd`, the guarded JS selection passed **21/21**:
+`run-ImyfE2` / `focused-test-TuGxgQ`. The selected command was:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 240 -- --target js \
+  src/execution_relation/producer_read_wbtest.mbt \
+  src/query_integration/graph_start_admission_wbtest.mbt \
+  src/query_integration/graph_reach_wbtest.mbt \
+  src/query_integration/graph_shortest_wbtest.mbt \
+  src/query_integration/graph_trail_resource_wbtest.mbt \
+  src/query_integration/graph_traverse_nodes_wbtest.mbt \
+  src/query_integration/graph_predicate_custody_wbtest.mbt \
+  src/query_integration/graph_selector_custody_wbtest.mbt \
+  src/query_integration/graph_membership_custody_wbtest.mbt
+```
+
+The invocation used Node 24.21.0 and the pinned workspace MoonBit toolchain.
+The receipt is terminal, output complete, and its own locks were released.
+Canonical interfaces were regenerated with `moon info src/execution_relation
+src/local_sga`; formatting and `git diff --check` were checked separately.
+
+Independent boundaries, not successful-run measurements, supply the oracles:
+
+- A 519-UTF-16-unit / 522-UTF-8-byte key contains a decomposed accent, CRLF and
+  an astral scalar. Literal and Relation results preserve its original data.
+- The base identity has 32 tree polls plus a terminal poll; the long key adds
+  eight recheck fragments. Relation input admission repeats that receiving
+  schema validation before the nonnullable Graph identity recheck.
+- Literal/Relation long-key total work is respectively **1541 / 1582**, with
+  **10** output workspace slots, across quantums **1 / 7 / 256**. Work and
+  workspace one-short failures require the corresponding typed cause.
+- Admission separately peaks at **8** slots: selector entry, root/cursor,
+  four frames and pre-reserved growth. A seven-slot ceiling refuses before
+  membership lookup. Cancellation at cumulative work **16** stops inside the
+  long key; cleanup leaves zero private entries/workspace without disposing
+  either borrowed input. Repeated cleanup does not release twice.
+- Existing literal Reach and zero-hop Shortest oracles add their independently
+  derived admission/lookup-transition costs (34 per literal), including every
+  existing pending-prefix cancellation. Generic path variants retain exact
+  work and now reserve the same eight-slot admission peak.
+- The common read regression also covers raw runtime Text, invalid coordinates,
+  expired input authority and cancellation without mutation or lost binding.
+
+After the shared slot became available, the same two selected files passed
+**Wasm 7/7** and **Native 7/7** at clean
+`f190db02ec5f1562b28da2b4b858c3fe261e9d04`. Its implementation tree is the
+verified `ca6e3afbd` source plus the evidence document only. Guarded sequential
+receipt `run-H8S78h` is terminal, passed, output complete, with locks released;
+focused receipts are `focused-test-yw7ovI` and `focused-test-oXFhXG`.
+
+Each step used the existing focused nonzero-test guard with:
+
+```sh
+moon test --target wasm src/execution_relation/producer_read_wbtest.mbt \
+  src/query_integration/graph_start_admission_wbtest.mbt
+moon test --target native src/execution_relation/producer_read_wbtest.mbt \
+  src/query_integration/graph_start_admission_wbtest.mbt
+```
+
+The enclosing `runLocalCheck` owned the shared heavy lock and ran the steps
+sequentially with a 600-second total budget. Earlier attempt `run-fWlTuR`
+refused the busy shared lock before test execution; `run-fo5h0o` failed on a
+Node argument separator before running MoonBit. Neither is a test success.
+No foreign lock was reclaimed. Full Core, a new packed cohort, hosted CI and
+Preview were not run for this source. The preceding `aa615176b` packed
+acceptance stays bound to its original artifacts, not this new source.
+
+The evidence-document commit's message was amended with explicit approval:
+`3d53eef748dc4defb9661cb6590060787b38e668` became
+`f190db02ec5f1562b28da2b4b858c3fe261e9d04`. Tree
+`32a1561143ee09e6ee3a81decd07cc73b5ff02e2` and parent `ca6e3afbd` stayed
+identical; all final message lines are at most 68 characters. Push used the
+full old remote SHA as an explicit lease. No execution receipt was relabeled.
+
+Remaining P2: `LookupStart` still calls the existing synchronous storage
+scope validation, identity serialization and String-key construction index.
+The completed value admission must not be cited as bounded membership lookup.
+That owner connection, its live-frame/private-byte reservations and independent
+long-key/cancellation boundaries remain required. Public failure/cleanup retry
+evidence also remains a separate open completion obligation.
+
+### Verified external cohort at aa615176
+
+Manifest: `graph-four-aa6151-BoNG03/packed-client-packages.json`.
+Both consumers verified the same tarballs against that clean source:
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `549f6dd36d0d074d5957e906900a0d5c26307e5d44e296f02bd49d779556d403` |
+| local-node | `2043177752946c3b64d197b45037efd58921e9dbf751a67e6a75f5e8f23ca2f6` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The guarded sequence used a single 900-second budget, MoonBit
+0.1.20260904 (94521db) and local Node 24.21.0. No test/capacity ceiling was
+increased:
+
+```sh
+node scripts/packed-client-packages.mjs <cohort-directory>
+ACTQL_PACKED_CLIENT_PACKAGES=<cohort-directory> node scripts/test-packed-public-query.mjs --graph-remaining-operations-only
+ACTQL_PACKED_CLIENT_PACKAGES=<cohort-directory> node scripts/test-packed-graph.mjs --remaining-operations-only
+node scripts/local-checks.mjs test moon -- --target wasm src/query_program/graph_graft_source_test.mbt src/query_program/graph_mean_source_test.mbt
+node scripts/local-checks.mjs test moon -- --target native src/query_program/graph_graft_source_test.mbt src/query_program/graph_mean_source_test.mbt
+```
+
+The final two literal Moon commands were run through `runFocusedTests` inside
+the same sequential `runLocalCheck`, not competing wrapper invocations. Their
+focused receipts are `focused-test-QEqI6q` and `focused-test-3SDdvM`.
+External receipts are in `public-query-evidence-dYDQcg`: commands 010/011,
+exact completion inventories, terminal transport records and both
+`transport-restart.*.json` reports. Each restart root reads its original JSON
+and AQL boundary sample; neither expected values nor source inputs are rebuilt
+from product output. The initial physical hook was observed before requiring
+zero replay. `graph-package-mq7lFF/acceptance.json` and `2.log` retain the same
+digests and 10-case Host result, including operation-specific positive-progress
+cancellation and stop-before-release assertions.
+
+The following documentation-only commit records these results; it does not
+retag artifacts or their receipts to a later SHA. Full Core, all-target suites,
+hosted CI and Preview remain unexecuted.
+
+### Graft input diagnostics and per-operation restart coverage
+
+The clean `b50ecbd9502751c49eeb141323cc06d5982f163b` five-package pack is
+retained as `graph-four-b50-UZJlpe/packed-client-packages.json`. Its raw SHA-256
+digests are:
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `549f6dd36d0d074d5957e906900a0d5c26307e5d44e296f02bd49d779556d403` |
+| local-node | `18c4d8fba9f488bb487474167d59abb9c558b725a58ccc6b1be7a0ab2fca9d4f` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The sequential guarded command `run-gUDCtl` ran the normal pack producer,
+then `test-packed-public-query.mjs --graph-remaining-operations-only` using
+that manifest. Packing passed; the public consumer failed. The planned third
+step, `test-packed-graph.mjs --remaining-operations-only`, was not started.
+External evidence is retained in `public-query-evidence-rEZ81n`, including
+`010.stdout.log`, `010.stderr.log`, `010.result.json` and terminal transport
+records. Both owned transport children were stopped; no restart ran. The Local
+Graft conflict fixture passed before the refusal failure; its remote sibling
+is not claimed as verified.
+
+Before changing the lowerer, the new typed regression failed at the same
+malformed list (`run-84NJBO`, `focused-test-M8hwJo`, 0/1). The existing
+`InvalidQuery` classification now covers invalid composition argument shapes,
+including forbidden graft merge policy, empty union list and binary subtraction
+lists. Unknown Graph producers retain `UnknownRelation`; unknown operations
+retain `UnsupportedGraph`. No public error category or support contract was
+added. Union/subtraction callers now assert the same input-violation distinction.
+
+Focused JS verification on the working tree based on b50 passed Graft 3/3,
+Union 6/6, Subtraction 5/5, Graph refusal classification 5/5 and Source
+preparation 4/4 (`run-Bldvja`). The prior multi-pattern selection discovered
+zero tests and failed its nonzero guard (`run-hLq0EL`); it is not evidence of
+successful execution. No full Core suite was run.
+
+The four-operation-only packed selection now uses four authored family cohorts
+within the existing shared cohort planner. The generic reader still admits at
+most two samples per root and keeps its existing aggregate deadline, Store
+budget and delivery-work bound. Each family retains its original first JSON
+and last AQL oracle, including the multi-Result consumer fixture. Producer and
+reader both require every expected boundary name; missing samples cannot pass
+as a smaller selection. Per-kind authored identities and order are unchanged;
+transport inventory follows the explicit family execution order.
+
+Cohort identity, missing-family/unknown-fixture refusal, complete transport
+inventory and owned-worker/restart regressions passed 13/13 in `run-Bldvja`.
+After adding the explicit producer/reader boundary-name guard, the same narrow
+Node selection passed 13/13 (`run-NKLoPW`, `focused-test-N50Ul2`). These are
+selection/harness proofs, not fresh-process product execution. A new clean
+source pack is required for the changed lowerer; the b50 manifest is not reused
+as new-SHA acceptance.
+
+The subsequent reader-only change also counts real installed dispatch events
+(`physical_start_reserved`, `computed`, `local_compute_advanced`) on restored
+Graph cohorts. It installs the same private observation hook through both
+Local and HTTPS Host options, without changing account configuration, and
+requires that no event occurs through attach, original-submission lookup/replay
+and Host close. This supplements the original zero-new-Run assertion; that
+assertion alone cannot exclude Compute replay inside an existing Run. The
+transport restart report includes the observed physical-dispatch count.
+Focused Node cohort/transport checks passed 13/13 (`run-dcvSD8`,
+`focused-test-nAHxeR`). Actual external zero-dispatch observation remains
+unverified until the new clean pack executes; fixture wiring is not runtime
+evidence.
+
+### Mean implicit-input public diagnostic
+
+At clean `617194762afc7fddcde90a4c903cde6caa70d01f`, normal packing passed
+and all 27 authored normal cases again passed on each external Local/HTTPS
+transport. The previous Graft refusal no longer stopped the selection. The
+next primary failure was `graph-mean-refuse-implicit-input`, classified as
+`ClientProgramImplementationLimit` instead of an invalid input. Both producer
+workers are terminal with zero live children; neither the fresh-process reader
+nor the subsequent packed Host step ran. Receipt: `run-RzycSP`; external
+evidence: `public-query-evidence-jQvqs2/010.{stdout,stderr,result}.log/json`.
+The exact files are `010.stdout.log`, `010.stderr.log` and `010.result.json`.
+
+The formal pack manifest is retained at
+`graph-four-617-fgtMBi/packed-client-packages.json`. Its revision is the full
+source above. The `local-node` SHA-256 changed to
+`2fdac015adff333a4d339ace65f5eabf5ba950c66803d1d78cc6b80d84956165`;
+the other four package digests equal the earlier b50 cohort because their
+payload inputs did not change. No manifest or tarball was patched in place.
+
+The existing Mean source test previously accepted any error for an implicit
+Graph input. Requiring `InvalidQuery` first reproduces the public distinction
+(`run-hYSrQp`, `focused-test-q6ABJj`, 0/1). DATA Graph calls and terminal
+Graph-row calls now explicitly reject implicit-input Mean as that existing
+input violation. The proper explicit generator and unknown-operation support
+refusals are unchanged. Both invalid call shapes are covered independently.
+Selected Mean source, Graph classification and SGA caller tests pass 13/13
+on the working tree based on 617 (`run-K5V3MK`, `focused-test-f50TvR`). This
+does not relabel the failed clean-source packed attempt as successful.
+
+### Earlier integration checkpoint
+
+Earlier adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
 Integration commit: `33118a87b303011999d81b8d33a6efc9c2fd42ab`.
 JS source callers pass 8/8, authored Node fixtures pass 38/38, and Node Host
 and Workers generation checks pass on the merged tree before the merge commit
@@ -275,6 +653,84 @@ refused before execution by the shared heavy lock; other owners' locks are
 not removed or bypassed. CI is not started. Lightweight authored-harness
 checks above are not substituted for those public delivery conditions.
 
+## Typed Mean profile checkpoint
+
+The mean branch depends on the still-unpublished Graph integration above.
+`check_mean` validates every explicitly ordered sample through the existing
+Graph domain/definition/property alignment, including a singleton, repeated
+names and zero-weight occurrences. No current Graph is inserted into the
+sample list. Numeric mean properties have nullable output contracts even for
+one sample; exact-equal preserves the joined data contract. Only key-role
+aliases common to all samples survive. Ordinary union/graft typing keeps its
+existing stricter alias contract.
+
+The type-level alignment helper does not execute union or numerical averaging.
+The checked Mean retains independent support/property/resource obligations
+and all sample/definition/property bindings. Missing property policies,
+non-number mean policies, incompatible domains and invalid zero-weight inputs
+are refused. Input arrays and runtime policies are not conflated with output
+or execution proof.
+
+Focused JS Mean-profile and shared Union tests pass 11/11 on working source
+(`run-2iUskQ`, `focused-test-qncfFi`) using
+`node scripts/local-checks.mjs test moon -- --target js src/graph_typing/mean_profile_test.mbt src/graph_typing/union_test.mbt`.
+The Graph typing interface is regenerated with pinned
+`moon info --target js src/graph_typing` under guard receipt `run-yc9ZD9`.
+The existing exact_binary64 owner remains the numeric implementation selected
+for further connection; the retired tuple Mean algorithm is not reinstated.
+
+This checkpoint is **not executable Mean support**. The generator pipeline,
+exact support/property cursor, resolved cumulative meters, provider, AQL and
+public retained acceptance remain to connect. The existing public refusal is
+kept until an execution owner can discharge those duties. No success evidence
+or complete-four-operation claim is registered for this preparatory change.
+
+### Mean field reduction preparation
+
+The private `mean_property` cursor now consumes each ordered sample explicitly.
+It uses the existing exact binary64 owner for products, accumulation and final
+rounding, and the complete value-equality/recheck cursors for exact-equal and
+output admission. Absence denotes the entire entity, while an observed NULL
+follows its independently selected policy. Zero weights do not contribute;
+repeated occurrences are not deduplicated. No input array is copied or scanned
+inside cursor preparation. Borrowed inputs remain valid after cleanup.
+
+Independent field fixtures cover the four normative 6/NULL/absent examples,
+repeated and zero-weight samples, zero denominator, null failure, overflowing
+binary64 products with finite exact output, and the non-pairwise three-sample
+mean. A long exact-equal Text remains in its shared cursor over 128 quantum-1
+advances; cleanup releases its private roots without changing input values.
+Composed and decomposed Unicode are not treated as the same raw value.
+
+Field control work is cumulative across supplied samples: three folds, final
+conversion, one recheck node and terminal transition require exactly six.
+Five fails with `MeanPropertyWorkLimit` at quantum 1, 7 and 64. This is explicitly
+**not** an exact-arithmetic-work or whole-Graph capacity proof. The exact owner
+has a finite coefficient bit ceiling, but its synchronous BigInt primitives
+still need the operation's resolved work/storage envelope and cancellation
+integration. No provider or public acceptance is claimed by this field cursor.
+
+On working source based on
+`d5d3656842b3b04b7eaa5a0f857f805a467e901f`, the focused JS selection passes
+16/16 (`run-WdUPn5`, `focused-test-RRRLGS`):
+`node scripts/local-checks.mjs test moon -- --target js src/local_sga/mean_property_wbtest.mbt src/graph_typing/mean_profile_test.mbt src/exact_binary64`.
+The two changed test files pass 9/9 each on Wasm and Native under
+`run-6cWqt9` (Native `focused-test-gYCVXo`) with the same command and explicit
+matching target. These receipts retain the actual dirty-source identity;
+they are not CI or clean-HEAD public execution evidence.
+
+The separately authored Mean source oracle now fixes four JSON/AQL scenarios:
+explicit repeated sample occurrences with zero weight, empty inputs, and
+generator DATA followed by node/edge Relation processing. Numeric output
+contracts are explicitly nullable. Three refusal oracles cover an invalid
+Pipe left operand, zero total weight and a missing producer. These remain
+outside the executable production inventory until the complete Mean owner is
+connected. Their registration-only Node check passes 2/2 (`run-c49Z0y`,
+`focused-test-5MBLDX`) using
+`node scripts/local-checks.mjs test node -- scripts/graph-mean-source-input.test.mjs`.
+Neither that check nor these identity-free row oracles establish Graph
+snapshot correctness, exact support, runtime dispatch or retained acceptance.
+
 ## Shortest execution and public-source checkpoint
 
 Implementation commit: `0d44b99bf07ddc2ac625972265bfdc859dfb8549`.
@@ -383,20 +839,405 @@ Mean still lacks its checked finite-list execution connection; its exact
 weighted semantics must not be replaced by pairwise union means. All four
 operations remain delivery-incomplete, and CI remains disabled.
 
-### Current main source-caller integration
+### Mean complete-record reduction checkpoint
 
-Normal merge `9b2a7179fac22258afa00bb4654ae0749af0bc6b` adopts main
-`9a6b103d28364b2d1a7aab6e6eadcba79ee2495d`. The only conflicts are
-the authored public fixture inventory metadata and its count assertions.
-Main's positional/parenthesized query oracles and the 31 new Graft/Reach/
-Shortest occurrences are all retained. The combined 3409 registrations are
-3378 current-main cases plus 10 Graft, 9 Reach and 12 Shortest cases. Only
-registration metadata is recalculated; independent expected results are not
-generated from product output.
+`local_sga/mean_fold.mbt` now reduces the complete ordered sample list into
+the existing typed Graph Store builder. It does not use a pairwise Graph
+mean. Candidate selection, occurrence matching, endpoint checks, retained
+endpoint closure, field policy lookup and record append are cursor phases.
+Complete typed identity tokens are compared with the existing bounded
+comparison cursor. Parallel edge identities remain independent.
 
-At that clean SHA, explicit JS selections for the three public Graph source
-test files pass 6/6. The two affected Node fixture-registration files pass
-44/44. Guard receipt `run-7MyqMh` and focused receipts
-`focused-test-452IAp` / `focused-test-DrU51b` retain the source SHA and exact
-commands. No runtime preparation, packed/public Host acceptance, Wasm/Native
-rerun or CI is included in this integration check.
+Support uses the existing exact binary64 rational owner. Each retained field
+uses the existing Mean property cursor; whole-entity absence, present NULL
+and zero weight remain distinct. A shared allowance counts calls to exact
+weight addition, support comparison, weighted contribution and final rounding
+across every sample, identity and field. The coefficient ceiling is at most
+8192 bits per exact primitive; this is neither a bit-operation counter nor
+a total physical-memory proof. The enclosing provider's simultaneous input,
+accumulator, temporary and output reservation still needs connection before
+Mean may be accepted as executable.
+
+Independent fixtures cover repeated samples, canonical original keys, parallel
+edges, the four normative missing/NULL weighted results (6, 2, 1.5 and 1), a
+zero denominator, reordered case-insensitive field declarations, the exact
+support threshold 1/4 and its next binary64 value, and endpoint conflicts.
+The empty three-sample fixture independently counts 17 control actions and
+three exact weight additions; exact and one-short use typed failures. A
+separate nine-action exact allowance exhausts at the second identity rather
+than resetting the meter.
+
+Private lifecycle tests run this cursor under the existing bounded session.
+Cancellation at field supply, staged append and completed-record handoff does
+not discard borrowed inputs or private output before stop acknowledgement.
+A deliberately pending first cleanup keeps that custody; retry releases the
+private builder without another compute call. Repeated cleanup reports no new
+transition. This is not public Host or provider dispatch evidence.
+
+On working sources based on `0ae29e1b12a85daab66bab5b410b0d78f4696870`,
+the explicit files `src/local_sga/mean_fold_wbtest.mbt` and
+`src/local_sga/mean_property_wbtest.mbt` pass 13/13 each on JS, Wasm and Native.
+The guarded calls use `runFocusedTests("moon", ["--target", target, ...files])`;
+JS receipt is `run-tkYxMF` / `focused-test-bnmUlE`, and the sequential portable
+receipt is `run-9U1ZOB` / `focused-test-4u7vto` / `focused-test-7VxJGO`.
+Receipts retain working-source identity; they are not clean-HEAD acceptance.
+Earlier fixture compilation failures and the incorrect repeated-cleanup
+transition assertion remain in their original failure receipts.
+
+Remaining Mean delivery work is finite: bind the selected peak-resource
+profile, connect checked generator/lowering/provider/AQL, then execute the
+authored public Local/HTTPS and retained fresh-process fixtures. No Mean
+executable inventory entry, compatibility fallback or CI execution is claimed.
+
+### Mean checked execution and current integration
+
+This checkpoint supersedes the connection gaps in the preceding private-fold
+checkpoint, not its historical receipts. Adopted main is
+`152a7e0df1c2eb031803e1de075c037b3dccf143`; integrated source is
+`67b721f73bd37e0cd33ba5d9b02c4b9731d60a72`. PR #1284 remains an
+unmerged dependency. No CI has been started.
+
+| Boundary | Current connection | Outstanding delivery evidence |
+| --- | --- | --- |
+| Typed Mean admission | Existing checked options and complete Graph alignment, seven occurrence-bound obligations | Public refusal and execution through packed packages |
+| Lowering and provider | `SGA.mean_structural`, exact ordered Sample ports, explicitly configured bounded Graph provider | Actual standard Host selection and retained publication |
+| AQL | Explicit-list DATA generator, shared structured Program admission | Local/HTTPS DATA and terminal query execution |
+| Retention and reread | Existing Carrier completion and authored packed cohort/restart harness | Real Store save, fresh-process read and zero repeated Source/Compute |
+
+There is no implicit Pipe input, pairwise mean, tuple conversion or synchronous
+row fallback. Repeated samples and zero weights retain distinct ordered input
+occurrences. Borrowed inputs outlive private stopped cleanup; successful output
+ownership transfers through the existing Graph completion owner.
+
+The selected profile caps samples at 64, exact arithmetic operations at
+100,000 and coefficient width at 8,192 bits. Its 36,400-byte arithmetic scratch
+quota is separate from the existing retained-value byte quota. Scratch slots
+are reserved before output construction and included in provider capacity;
+this is not a complete physical heap upper-bound claim.
+
+The empty two-sample regression independently decomposes work as 23 and
+workspace as 7,846 slots. Quantum 1, 7 and 64 preserve the total. One-short
+work, workspace and exact-arithmetic operation budgets retain their distinct
+typed causes. Cancellation enumerates the positive-work yield prefixes,
+including the private-finished/output-handoff boundary, and preserves input
+custody until stopped cleanup.
+
+On the integrated source SHA above:
+
+- JS: 9/9 with `node scripts/local-checks.mjs test moon -- --target js`
+  and `src/query_integration/graph_mean_wbtest.mbt`,
+  `src/query_program/graph_mean_source_test.mbt`,
+  `src/lowering_relation/graph_mean_test.mbt`,
+  `src/local_sga/mean_resources_wbtest.mbt`.
+- Node: 65/65 with `node scripts/local-checks.mjs test node --`
+  and `scripts/public-query-profiles.test.mjs`,
+  `proofs/relation-pipeline/provider-construction.test.mjs`,
+  `scripts/pure-operation-inventory.test.mjs`.
+- Both selections ran under one bounded `runLocalCheck` invocation,
+  `run-SkBSlZ`, with separate focused receipts `focused-test-RT9VQd` and
+  `focused-test-r3OrPV`. This is local execution, not CI.
+
+Earlier working-source portable selections pass 9/9 each on Wasm and Native
+(`run-IgrK4D`, `focused-test-p9Vk7f`, `focused-test-0ZKy3h`). They precede
+the positional-star main integration and are not relabelled as final-SHA
+portable evidence. The earlier caller selection passes JS 34/34
+(`run-Kjs5Tg`); authored registration and transitive copies pass Node 47/47
+(`run-XehmpA`, `focused-test-x0qfel`). The same invocation checks Workers and
+Node Host generated fixtures read-only; no generated oracle was rewritten.
+
+The only `generated_sequence.mbt` change is one alternative in its existing
+row-kernel false branch. Removing that exact line yields the full integrated
+parent blob, including all construction, record, callback, capture and array
+bytes. The source-review variant pins actual commit
+`4fd03c918b8e125fd712904c58dbef9fbc1dbe82`; historical recipe pins and
+the construction-only 2,344-byte component remain unchanged. Executed source
+correspondence is not a Mean execution-capacity theorem.
+
+The latest main merge conflicted only in authored fixture inventory metadata
+and its count test. Both main's positional-star controls and the four Graph
+families remain present; hashes describe authored registration, not results.
+Coverage now calls Shortest and Mean partial rather than falsely refusing
+already admitted operations. No operation is promoted to completed delivery.
+
+Actual Host execution has not started: `run-N2VUu9` was refused by another
+owner's shared heavy lock. No lock or process belonging to another worktree
+was changed. Prepared acceptance includes all four operation families and
+`--graph-mean-only` reuses the existing retained-cohort fresh-process reader.
+Neither fixture registration nor same-process attach proves that acceptance.
+
+Remaining work is the public Local/HTTPS and packed Store/restart acceptance,
+public failure/cleanup retry evidence, and the Reach/Shortest selector-prefix
+boundedness audit. Existing selector admission still contains whole-value
+rechecking; the stepped output cursor alone does not close that separate
+boundary. Final portable caller coverage follows any necessary cursor change.
+
+### Independent sample and connectivity controls
+
+The next fixture checkpoint adds distinguishable Mean inputs in the same
+definition domain: a declared `number_sum` union doubles properties and the
+explicit sample order is `[doubled, g, doubled]`, with weights `[1, 2, 0]`.
+Independent arithmetic fixes node `p` at `28/3` and edge `w` at `8/3` and
+`20/3`. Swapping the two positive sample positions changes these results.
+JSON and AQL use the same semantic expectation, not a captured union output.
+
+Reach controls now include descending node inputs, two parallel edges, a
+self-loop and a two-hop path. The independent out-direction expectation is
+nodes 1, 2, 3 at depths 0, 1, 2; in-direction from node 1 retains only depth 0.
+The JSON case checks complete typed identities; AQL checks the corresponding
+ordered depth projection. The original two-consumer and empty-schema controls
+remain present.
+
+Focused local checks on this working fixture checkpoint:
+
+- `node scripts/local-checks.mjs test moon -- --target js src/query_program
+  --filter 'Mean*'`: 4/4, `run-sBhmIL`, `focused-test-HUSIiO`.
+- `node scripts/local-checks.mjs test node --` with the four
+  `scripts/graph-{graft,reach,shortest,mean}-source-input.test.mjs` files and
+  `scripts/public-query-profiles.test.mjs`: 47/47, `run-Gt0K6w`,
+  `focused-test-2d6h9n`.
+- Before the caller correction, `run-WdVJdX`/`focused-test-gsCWhq` fixed a
+  stale Reach test assertion: it listed three Graph restart selections and
+  omitted Mean. The corrected assertion retains the same post-producer
+  fresh-process reader requirement and names all four selections.
+
+These are source admission and authored fixture checks, not executed Host or
+packed acceptance. The inventory has 3,461 authored occurrences (2,193
+success, 48 execution-failure and 1,220 refusal controls). Its digest is
+`5889d25a00415bed55e61187c759ca72ba5e2ff487c1bafcf031e72959461365`.
+No operation is promoted to completed delivery by registering these controls.
+
+### Prepared public operation cancellation
+
+The public Host fixture now uses its existing awaited
+`local_compute_advanced` hook, emitted only for positive incomplete advances,
+to hold the selected Graft/Reach/Shortest/Mean task. It requests cancellation
+through the SDK, requires the request without early physical-stop or terminal
+confirmation, then releases the hook and checks confirmed stop, unavailable
+Named Results, emptied snapshot custody and no repeated dispatch/advancement
+on replaying the same submission. No fixed sleep or alternate cancellation
+owner is introduced. The holder is unconditionally released before Host close.
+
+Only `node --check scripts/graph-public-host.test.mjs` and `git diff --check`
+have run for this addition. Executable public Host and packed acceptance remain
+unverified pending the shared heavy slot; this is not cancellation evidence
+until those selected cases execute.
+
+### Combined four-operation packed selection
+
+`node scripts/test-packed-public-query.mjs --graph-remaining-operations-only`
+selects the original 27 success, 16 refusal and one Graft conflict oracles. It
+uses one external installation for the Local and HTTPS producers, then the
+existing fresh-process retained Result reader. The ordinary corpus continues
+to register each family once. No expected row, schema or identity is changed.
+The same clean-HEAD package manifest can also serve
+`node scripts/test-packed-graph.mjs --remaining-operations-only` for the
+operation-advance cancellation boundaries. These are prepared selections,
+not completed public acceptance receipts.
+
+The focused Node selection for
+`scripts/graph-remaining-operation-inputs.test.mjs`,
+`scripts/graph-reach-source-input.test.mjs` and
+`scripts/graph-mean-source-input.test.mjs` passed 9/9 using
+`node scripts/local-checks.mjs test node --` on the working tree based on
+`144fb8a51d3c03c93b49a2528ed98b64c94943cc`.
+Evidence: `run-OE6GE1`, `focused-test-SxuaCN`. This verifies selection/oracle
+preservation only, not Host execution or pristine tarball delivery.
+
+### Public Host execution and targeted repairs
+
+The clean source `19eb8fd3b655b5f6600e94f30e645deac1b947fb` prepared
+`local-node` and `run-host-core`, then executed the eight remaining-operation
+Local/HTTPS Host cases. Four passed and four failed (`run-q4IwUS`,
+`focused-test-chzTM9`). Graft and Mean passed both transports, including
+positive-progress cancellation and retained Store checks. This is checkout
+Host evidence, not formal external-package or fresh-process acceptance.
+
+Reach rejected the connected AQL control because its selector referred to
+`node_key`, a key alias not declared as a node property. The control now
+declares `seed` and predicates on it; its independently authored connectivity
+and depth expectations are unchanged. Weighted Shortest controls use the same
+declared-property rule. The raw-identity JSON Reach control is unchanged.
+Common checker regressions retain rejection of undeclared key aliases.
+
+Shortest's zero-hop rows and schema passed, but the Host test detected that
+its completed path Relation skipped the retained snapshot hook. The local
+dispatch now includes checked Shortest path output in the existing Relation
+snapshot owner; it does not broadly enable other path traversals or add a
+serializer. A follow-up Host execution must prove this connection.
+
+An additional dirty-tree Reach diagnostic (`run-8ZqE3Z`,
+`focused-test-NtFv2H`) timed out before reaching the rejected control. It is
+retained as an unsuccessful diagnostic, not acceptance or a proven cause.
+
+The authored inventory digest after these input corrections is
+`800aa95243f7cc1c1f6c572218647f8b666d7503c6cd89008e04e52fc342a4cf`;
+all 3,461 occurrences, counts and independent expected results are unchanged.
+Targeted working-tree checks based on `19eb8fd3` passed: Node fixtures and
+inventory 43/43 (`run-FIZaaN`, `focused-test-m5hfZg`), common Reach JS 2/2
+(`run-LU95MD`, `focused-test-TQeiTp`) and Shortest JS 3/3 (`run-gE576Z`,
+`focused-test-6rt0B1`). These checks do not establish repaired Host acceptance.
+
+### Stepped predicate-property admission
+
+The shared traversal owner now prepares predicate bindings with the existing
+`value_admission.RecheckCursor`, instead of synchronously checking a complete
+Graph property. Each poll consumes one control-work unit, and stop/input
+liveness checks precede every poll. The binding is unavailable to the
+expression owner until rechecking finishes. This applies to Reach start,
+Shortest source/target and existing hop predicates; it does not change their
+property scopes, NULL rules, values or identities.
+
+Workspace reserves the binding root, cursor and live continuation frames.
+One additional growth slot is admitted before each poll (which pops one frame
+and can push at most two), then unused reservation is released. A new read-only
+`recheck_pending_frames` projection exposes those existing frames; it is not
+a value measure or a new retention owner. Cleanup cancels the cursor, clears
+the private binding and releases its reservation once, retaining borrowed
+Graph inputs. The generated interface comes from `moon info`.
+
+The independent 132-unit Text control includes decomposed Unicode and CRLF.
+With an always-false `display IS NULL` selector, each selection costs
+initialize + resolve + binding + recheck (node, three fragments, terminal)
++ four expression transitions: 12. Collection and finish add two, giving
+Reach work 14 and Shortest work 26. Workspace is respectively 5 and 6 slots,
+including selection bitmaps and the growth reservation. Quantum 1/7/64,
+typed work/workspace one-short refusals, cancellation at work 6 before the
+expression starts, final zero private holdings and unchanged input Text are
+tested without deriving limits from a successful run's measurements.
+
+Targeted JS checks on the working tree based on `1dc0caef` passed 13/13
+(`run-o2nozf`, `focused-test-RnCsPq`): cursor frame projection, the new selector
+control, existing Reach/Shortest and hop-predicate custody. The initial
+fixture's raising-helper compilation error is retained in `run-fYwLiw`;
+it is not a passed test. The added unchanged-input assertion passed 1/1
+(`run-wfFOzS`, `focused-test-9D0Pkd`). Public Host, external packed and
+portable checks of this new source are still pending. Literal/Relation
+identity lookup admission remains a separate synchronous-prefix obligation.
+
+### Fixed-source selector verification
+
+At clean source `bdfc8e3f553489f654d94867c3da8029ed0281bf`, the five
+selected JS files passed 13/13 (`run-VdX6In`, `focused-test-VXMqAZ`):
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 240 -- --target js src/value_admission/recheck_object_names_wbtest.mbt src/query_integration/graph_selector_recheck_wbtest.mbt src/query_integration/graph_reach_wbtest.mbt src/query_integration/graph_shortest_wbtest.mbt src/query_integration/graph_predicate_custody_wbtest.mbt
+```
+
+The cursor and selector files also passed 5/5 each on Wasm and Native in one
+guarded, sequential selection (`run-xaECPB`, `focused-test-VCEFwh`,
+`focused-test-9nA96O`). These targets use the same independent 14/26-work and
+5/6-workspace expectations, cancellation point and original-Text assertion.
+The preceding wrapper invocation `run-ngrmSn` failed before Moon started
+because Node received `--target` as its own option; that receipt remains a
+failed command and is not product or target coverage.
+
+All three targets used MoonBit `0.10.12+1634b282e` and Node `24.21.0`.
+The Node version is a supported local runtime, not the CI runtime pin.
+No SQLite fixtures, full Core suite, hosted CI or Preview ran.
+
+Public runtime preparation and the eight Host cases did not start:
+`run-dpwzQd` and `run-PEBDFd` refused occupied shared heavy slots. No foreign
+lock or process was changed. This source therefore still lacks repaired
+public Host execution, clean-SHA five-package acceptance and fresh-process
+Result reads. The next public check is the existing eight-case Graph
+selection, followed by the two prepared narrow packed consumers sharing one
+verified five-package manifest. Parent #1284 remains unmerged; #1296 retains
+that dependency rather than changing its base prematurely.
+
+### Public source and operation-specific cancellation controls
+
+At clean source `190f17219fa4b795f4e16f1360f03520d6ab506a`, affected runtime
+preparation succeeded and the eight public Host cases executed (`run-eVIgyo`,
+`focused-test-aG9WET`): three passed, four failed and one timed out. Graft
+passed Local and HTTPS. Shortest's seven normal controls passed on each
+transport, but its cancellation control selected the tiny zero-hop task,
+which settled before the positive-progress barrier. Mean passed HTTPS;
+Local timed out before reaching its cancellation intent. Accepted journal
+entries alone are not evidence that every Named Result read completed.
+
+Reach's connected AQL source was refused before Run acceptance. The first
+bounded diagnostic used an environment without the installed construction
+ceilings and reported an unresolved construction obligation. With the actual
+Host's three construction ceilings and a recomputed environment identity,
+`run-jccDQE` instead reports typed `Graph(TaskLimit)`. The source emits more
+than the standard 32 physical tasks. No construction obligation was waived,
+and no Host ceiling was increased. `run-gNlqAo` was a guard configuration
+error before the diagnostic launched, not product evidence.
+
+The connected AQL control now declares the same three nodes using the
+existing finite array/UNNEST syntax. Its four edges, parallel multiplicity,
+self-loop, declared selector property and independent depth expectations
+are unchanged. The authored registration digest is
+`bb1b9404129d2a0149df6e8d6f15307fe026ee66a3e27b44306ebc330def7c9d`;
+all 3,461 occurrences and their counts remain unchanged.
+
+Cancellation now targets task 3 in the existing connected Reach, weighted
+Shortest and repeated-sample Mean controls, rather than a small constructor
+or zero-hop control. Mean's six normal controls are partitioned 4+2 across
+two cases per transport; every control runs once and the per-case 60-second
+budget is unchanged. Cancellation runs with the asymmetric partition, using
+the already authored repeated-sample control. Completed fixture names are
+recorded only after Result contents, schema, no-repeat and retained Store
+assertions pass.
+
+The working tree based on `190f1721` passed the affected common Reach JS
+file, 3/3 (`run-0EOm5D`, `focused-test-kRAmSS`), and selected Node fixture,
+dependency and inventory files, 47/47 (`run-dlJxp5`,
+`focused-test-3AKjRu`). Public execution of these adjusted controls and the
+formal external package cohort remain pending. These selected checks do not
+establish all four operations' public completion or hosted CI coverage.
+
+### Complete restart observer configuration
+
+At clean `ee031e54088a4bcbf978b8f75636eda064664f04`, the formal five-package
+producer passed. External Local and HTTPS each completed the exact 44-case
+inventory (27 successes, 16 refusals and one execution failure), with four
+retained operation cohorts per transport. The original independent rows and
+schemas passed. Receipt `run-X9Tqz2` nevertheless failed in fresh-process
+reading: `InstalledHostInitializationFailed` with typed
+`InvalidCheckpointReviewers`. The reader had supplied only a fault hook as an
+authorization installation. The separate packed Host and portable selections
+did not start. This is not a successful complete packed campaign.
+
+The narrow four-operation fixture now generates complete private Host/reviewer
+credentials before initial execution and retains that exact configuration for
+the fresh reader. Its explicitly installed synthetic-Site account authorizes
+only the local principal and that Site's write boundary; Source authorization
+is separate, with no Model/Effect permission or bypass added.
+The existing checkpoint owner still validates the configuration. Both initial
+transports require an observed physical start, proving the hook is live;
+fresh attach, original-submission replay/lookup and close must add no physical
+start, Compute completion or advance. Non-Graph cohort behavior is unchanged.
+
+The changed observer and transport selections passed 14/14 on the working tree
+based on `ee031e54` (`run-5zP15P`, `focused-test-CBev7q`), including serialized
+credential preservation and rejection of a missing
+observer configuration. The external consumer and portable checks remain
+pending until their own terminal receipts. Full Core and hosted CI did not run.
+
+The first clean observer build at `12ea85a2805fb74a7acb778a70578a8e809a539b`
+packed successfully, but preflight stopped at an old exact-source-shape
+assertion in `public-query-profiles.test.mjs` (`run-qMSMz4`). No installed
+execution started. The assertion now retains both capacity arguments and
+checks that observer credentials are exclusive to the explicit Graph cohort
+on both entrances. That file plus the observer selection passed 41/41
+(`run-k4NAts`, `focused-test-bbLJZR`). The failed receipt and artifact remain
+bound to their original source; neither is relabeled as the amended source.
+
+Clean `ea05ceb1fb11837a9e513ff28f829735076a22d7` passed preflight 50/50 but
+then refused the first Graph input with `ACTQL_E_ACCOUNT_CONFIG_INVALID`
+(`run-q16A4l`): a configured checkpoint installation also requires the existing
+ordinary Site account. The fixture now retains that scoped synthetic account
+alongside its keys for both initial execution and restart. This explicitly
+changes the acceptance setup; it does not exempt Run acceptance or alter
+product authorization. Its first failure remains preserved, not counted as
+Graph execution coverage.
+
+### Adopted parent integration
+
+Parent #1284 is adopted as main `ab8257c21`. Root integration retains its
+bounded selector membership, receiving-column contract, private cleanup and
+Shortest Relation snapshot fixes. Existing exact work/workspace boundaries
+remain; no synchronous membership lookup is restored. Original author
+receipts above retain their source identities. The new combined-source
+acceptance is recorded separately after it executes.

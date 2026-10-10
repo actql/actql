@@ -32,6 +32,11 @@ test('Shortest oracles preserve zero-hop, independent identities and all selecti
   const weightedProgram = JSON.parse(weighted[0].text);
   assert.deepEqual(weightedProgram.stages[0].steps[1].values.rows.map(x => x.edge_key), [11, 12, 10]);
   assert.equal(weightedProgram.stages[0].steps[3].shortest_path.weight, 'w');
+  assert.deepEqual(weightedProgram.stages[0].steps[2].graph.nodes[0].labels[0].properties,
+    {mode: 'columns', columns: [{from: 'seed', to: 'seed'}]});
+  assert.deepEqual(weightedProgram.stages[0].steps[3].shortest_path.source, {where: 'seed = 1'});
+  assert.deepEqual(weightedProgram.stages[0].steps[3].shortest_path.target, {where: 'seed = 2'});
+  assert.ok(weighted[1].text.includes('LABEL Node PROPERTIES (seed)'));
   assert.ok(weighted[1].text.includes('WHERE hop_count > 0'));
 });
 

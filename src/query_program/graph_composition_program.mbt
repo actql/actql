@@ -6,7 +6,7 @@ fn script_graph_composition_peer(
   argument : @query.SgaArgument,
   graphs : Array[ScriptGraph],
 ) -> @builder.Node raise Abort {
-  guard argument is Producer(name) else { raise Abort(UnsupportedGraph) }
+  guard argument is Producer(name) else { raise Abort(InvalidQuery) }
   guard script_graph_named_input(name, graphs) is Some(graph) else {
     raise Abort(UnknownRelation)
   }
@@ -28,17 +28,17 @@ fn lower_script_graph_composition(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> String raise Abort {
-  guard (
-      call.operation == "union_graphs" ||
-      call.operation == "subtract_graphs" ||
-      call.operation == "graft_graph"
-    ) &&
-    call.arguments.filter(argument => argument.0 == "with").length() == 1 &&
+  guard call.operation == "union_graphs" ||
+    call.operation == "subtract_graphs" ||
+    call.operation == "graft_graph" else {
+    raise Abort(UnsupportedGraph)
+  }
+  guard call.arguments.filter(argument => argument.0 == "with").length() == 1 &&
     call.arguments.all(argument => {
       argument.0 == "with" ||
       (call.operation != "graft_graph" && argument.0 == "merge")
     }) else {
-    raise Abort(UnsupportedGraph)
+    raise Abort(InvalidQuery)
   }
   let origin = match
     @origin.range(@query.query_document(query), call.start, call.end) {
@@ -52,7 +52,7 @@ fn lower_script_graph_composition(
         match argument.1 {
           ListValue(items) => {
             guard call.operation == "union_graphs" && !items.is_empty() else {
-              raise Abort(UnsupportedGraph)
+              raise Abort(InvalidQuery)
             }
             construction.array(
               items.map(item => {

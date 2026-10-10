@@ -60,6 +60,7 @@ fn expression_role(
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "floor"
     | "lower"
     | "upper"
@@ -103,6 +104,10 @@ fn expression_role(
     | "starts_with"
     | "ends_with"
     | "safe_div"
+    | "safe_divide"
+    | "safe_add"
+    | "safe_subtract"
+    | "safe_multiply"
     | "replace"
     | "concat"
     | "date_trunc"
@@ -170,7 +175,7 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
     "empty_array" => ["items"]
     "case" => ["when"]
     "split_part" => ["value", "delimiter", "index"]
-    "substring" => ["value", "start", "length"]
+    "substring" => ["value", "start"]
     "utf8_truncate" => ["value", "max_bytes"]
     "try_number" => ["value"]
     "parse_timestamp" | "try_timestamp" | "format_timestamp" | "regex_match" =>
@@ -181,6 +186,9 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
     _ => []
   }
   let allowed = required.copy()
+  if tag == "substring" {
+    allowed.push("length")
+  }
   if tag == "case" {
     allowed.push("else")
   }
