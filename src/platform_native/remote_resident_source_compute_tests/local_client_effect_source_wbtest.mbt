@@ -684,6 +684,9 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   ).unwrap()
   // Reuse the existing checked Preview, full capture and persistence fault
   // fixtures. Protocol target metadata is explicit; no Provider write occurs.
+  let stop_custodies : Array[
+    (@resident.ResidentEffectSourceCustody, @store.Store),
+  ] = []
   retained_effect_preview_inputs(
     owner,
     facts.materials,
@@ -691,7 +694,7 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
     facts.invocation,
     facts.consumer,
     facts.consumer_index,
-    [],
+    stop_custodies,
     consumer_manifest,
     facts.imported,
     facts.acquired,
@@ -703,6 +706,16 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   authorized = false
   assert_true(capture.facts() is None)
   assert_false(work.close())
+  assert_eq(stop_custodies.length(), if review { 0 } else { 1 })
+  for (custody, store) in stop_custodies {
+    assert_true(custody.begin_payload() is Err(@resident.Unavailable))
+    assert_true(custody.confirm_payload() is Err(@resident.Unavailable))
+    assert_true(custody.open_reader() is Err(@resident.Unavailable))
+    assert_true(custody.retry_cleanup().unwrap())
+    assert_false(custody.retry_cleanup().unwrap())
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+    assert_true(store.close().unwrap())
+  }
   assert_true(capture.close())
   assert_true(capture.close())
   assert_true(owner.request_for_effect_review(facts.inputs) is None)
