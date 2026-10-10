@@ -68,3 +68,28 @@ No whole Core, Native/Wasm, full packed corpus or hosted CI success is claimed.
 Anonymous JOIN output handling, aggregate outputs (separate #1237), nonterminal
 anonymous scopes and public anonymous names remain separate unfinished coverage.
 The wider frontend goal remains active; this unit has no unmerged dependency.
+
+## First packed attempt and refusal classification
+
+Normal five-package production at `979b1b5abcf5b3c4b615870f66770834fcafb1bc`
+passed manifest revision and all tarball digest checks. Both Local and HTTPS
+completed all eight normal cases. The cohort then failed because the new
+BY NAME refusal inherited the generic invalid-input expectation. The existing
+`client_check.mbt` maps `UnsupportedProjection` to `Limit("implementation_limit")`;
+that is an implementation gap, not invalid syntax. Its fixture now explicitly
+expects `ClientProgramImplementationLimit`. The private-field refusal instead
+has `Expression(UnknownReference)`, classified by that same existing checker as
+invalid input, and explicitly expects `ClientProgramInvalidInput`.
+
+The failed receipt is
+`worktrees/.codex-scratch/public-query-evidence-tbno5C/summary.json`, with logs
+`010.stdout.log` and `010.stderr.log`. The terminal cohort status is one; the
+sibling was cancelled, inventories are incomplete, and later refusals are not
+claimed as executed. Artifacts were reclaimed after retaining evidence. This
+fixture-only correction preserves source, expected rows/types/order and zero
+admission/I/O obligations; it does not change the product error classifier.
+
+The corrected refusal fixtures and independent registration digest passed the
+same two targeted Node files: 40/40 (`run-ZPSO0F`, `focused-test-D68xBX`).
+The first sandboxed wrapper attempt could not inspect its own process group and
+executed no selected tests; the subsequent bounded run above is the evidence.

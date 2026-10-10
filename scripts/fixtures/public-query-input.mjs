@@ -51,8 +51,8 @@ export const relationDataRefusals = [
   {name: 'data-forward-reference', format: 'aql-text', text: 'DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id'},
   {name: 'data-duplicate', format: 'aql-text', text: 'DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id'},
   {name: 'data-sql-format', format: 'sql', text: 'DATA n = SELECT 1 AS id; FROM n |> SELECT id'},
-  {name: 'data-anonymous-set-by-name', format: 'aql-text', text: 'DATA n = SELECT 1 AS id UNION ALL BY NAME SELECT 2; FROM n |> SELECT id'},
-  {name: 'data-anonymous-set-private-field', format: 'aql-text', text: 'DATA n = SELECT 1 AS id UNION ALL SELECT 2; FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id'},
+  {name: 'data-anonymous-set-by-name', format: 'aql-text', expectedCode: 'ClientProgramImplementationLimit', text: 'DATA n = SELECT 1 AS id UNION ALL BY NAME SELECT 2; FROM n |> SELECT id'},
+  {name: 'data-anonymous-set-private-field', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text: 'DATA n = SELECT 1 AS id UNION ALL SELECT 2; FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id'},
 ];
 export const pipeResultSuccesses = [
   {name: 'result-exact-string-prefix', format: 'sql',

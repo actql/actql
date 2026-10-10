@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
-import {relationDataSuccesses} from './fixtures/public-query-input.mjs';
+import {relationDataSuccesses, relationDataRefusals} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
 
 test('shared Relation controls and Graph source cases have one request each', () => {
@@ -36,4 +36,12 @@ test('DATA positional fixture keeps NULL duplicates and public output contracts'
     [{name: 'id', contract: {type: 'number', nullable: true}}]);
   assert.deepEqual(cases.get('data-anonymous-set-cte-source').results.nodes.rows,
     [{id: 1}, {id: 2}]);
+});
+
+test('DATA refusal fixtures distinguish unsupported output names from private references', () => {
+  const cases = new Map(relationDataRefusals.map(item => [item.name, item]));
+  assert.equal(cases.get('data-anonymous-set-by-name').expectedCode,
+    'ClientProgramImplementationLimit');
+  assert.equal(cases.get('data-anonymous-set-private-field').expectedCode,
+    'ClientProgramInvalidInput');
 });
