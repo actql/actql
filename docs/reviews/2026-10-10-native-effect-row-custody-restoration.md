@@ -40,6 +40,9 @@ Before retiring its bounded single-row review connection, cleanup reads custody
 unless this connection already has a confirmed snapshot. Reopening the journal
 invalidates that snapshot. Unknown storage is retried by the same connection;
 known pending Effect responsibility blocks cleanup until common settlement.
+An uncertain custody read does not start holder retirement. The read is
+synchronous and invokes no caller callback; retirement starts only after the
+pending-responsibility check, before the existing retention cleanup operation.
 This guard protects this connection's temporary pins only; it does not mark the
 consumer, producer or entire Run as Released.
 
@@ -59,9 +62,21 @@ settles/repeats the common receipt without another Provider operation. It still
 retains its live original Source/Compute holders; journal reopening is not proof
 of whole Host restart recovery.
 
-At initial preparation, changed Native callers, JS portability stubs, generated
-interfaces and formatting compile successfully. Actual Native test execution is
-pending the shared heavy-verification lock. No prior-SHA Native success is claimed
-for this change. Final commands, source and receipts are recorded in the PR body.
+At source `0fb0fa5bd5edb3c86eeb4e4965923e20a9425c22`, the new actual SQLite
+case passed 1/1. The first attempt failed in foreign-fixture setup because a
+different dispatch ID still used the original attempt; the corrected fixture
+uses a distinct attempt and keeps the expected production rejection unchanged.
+
+The physical Provider case reached one write, saved-response restoration and
+idempotent settlement, but failed the existing later retention/admission
+regression. A failed custody probe had prematurely marked the holder retiring.
+Source `d2d3b9d78ad58e329b80f6a2f78f6014c7ae3ea8` removes that early state
+change and adds an original-approval admission assertion after settlement.
+Native/JS compilation, generated interfaces, formatting, syntax and whitespace
+checks passed on the corresponding code. Its actual Provider/no-write rerun did
+not start: bounded waiting ended with the shared heavy lock still owned by
+another verification. The original failure is not reported as resolved by those
+compile checks. The separate no-write case has not executed for this change.
+Exact commands, source correspondence and receipts are recorded in the PR body.
 Hosted CI, public SDK approval, Preview and formal distribution adoption remain
 unverified for this unit.
