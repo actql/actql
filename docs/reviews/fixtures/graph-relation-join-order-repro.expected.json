@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "value": true,
+      "tag": 10
+    },
+    {
+      "value": true,
+      "tag": 20
+    }
+  ],
+  "columns": [
+    {
+      "name": "value",
+      "contract": {
+        "type": "boolean",
+        "nullable": false
+      }
+    },
+    {
+      "name": "tag",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    }
+  ]
+}

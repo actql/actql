@@ -49,6 +49,26 @@ fn sga_operation(name : String) -> Bool {
 }
 
 ///|
+// Currently connected source lowerings with Relation output. False does not
+// assert a Graph output: other logical operations can remain unsupported.
+// The common checker owns Carrier validity and the operation's output schema.
+pub fn has_sga_relation_lowering(operation : String) -> Bool {
+  match operation {
+    "node_rows"
+    | "edge_rows"
+    | "degree"
+    | "graph_bounds"
+    | "components"
+    | "graphs_equal"
+    | "graph_diff"
+    | "match_nodes"
+    | "match_edges"
+    | "traverse" => true
+    _ => false
+  }
+}
+
+///|
 fn sga_call_head(token : Token) -> Bool {
   match token.value {
     Word(name) => sga_operation(ascii_upper(name).to_lower())

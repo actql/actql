@@ -4,14 +4,7 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if call.operation == "node_rows" ||
-      call.operation == "edge_rows" ||
-      script_graph_diagnostic_fields(call.operation) is Some(_) ||
-      call.operation == "graphs_equal" ||
-      call.operation == "graph_diff" ||
-      call.operation == "match_nodes" ||
-      call.operation == "match_edges" ||
-      call.operation == "traverse" {
+    if @query.has_sga_relation_lowering(call.operation) {
       return true
     }
   }
