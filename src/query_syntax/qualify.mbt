@@ -53,7 +53,15 @@ fn QueryParser::window_expression(
       Word(name) | QuotedName(name) =>
         [
           "ROW_NUMBER", "RANK", "DENSE_RANK", "LAG", "LEAD", "FIRST_VALUE", "LAST_VALUE",
-        ].contains(ascii_upper(name)) &&
+        ].contains(
+          ascii_upper(
+            if parser.peek().value is QuotedName(_) {
+              parser.source.identifier(name)
+            } else {
+              name
+            },
+          ),
+        ) &&
         parser.source.tokens[index + 1].value == Symbol(40)
       _ => false
     }

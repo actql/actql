@@ -22,6 +22,7 @@ import {
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {startNativeEffectCheckpointServer} from './fixtures/native-effect-checkpoint-server.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
@@ -200,6 +201,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
 
 let server;
 let bearerServers;
+let effectCheckpointServer;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -998,6 +1000,10 @@ try {
     cert: await readFile(join(root, 'server.crt')),
     root,
   });
+  effectCheckpointServer = await startNativeEffectCheckpointServer({
+    host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
+  });
   const moon = join(
     process.env.MOON_HOME ?? '',
     'bin',
@@ -1124,6 +1130,7 @@ try {
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
     ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+    ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
@@ -1215,6 +1222,25 @@ try {
     if (code !== 0) {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }
+  }
+  // The control replay case must use a fresh finite peer: original report
+  // bytes and accepted counts belong to this case, not the earlier client test.
+  await effectCheckpointServer.close();
+  effectCheckpointServer = await startNativeEffectCheckpointServer({
+    host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
+  });
+  const checkpointReplay = spawn(process.execPath, ['--input-type=module', '-e',
+    "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+    "process.exitCode=runFocusedTests('moon',['--target','native'," +
+    "'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt']," +
+    "{cwd:process.cwd(),timeout:90000});"], {
+    cwd: new URL('../', import.meta.url), stdio: 'inherit',
+    env: {...testEnvironment, ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin},
+  });
+  const [checkpointReplayCode, checkpointReplaySignal] = await once(checkpointReplay, 'exit');
+  if (checkpointReplayCode !== 0) {
+    throw new Error(`native Checkpoint control replay failed: ${checkpointReplayCode ?? checkpointReplaySignal}`);
   }
   execFileSync(moon, [
     'build', '--target', 'native', 'src/cmd/native_remote_credential',
@@ -2739,6 +2765,7 @@ try {
   await stopProductTransferService(productTransferService);
   productTransferService = undefined;
 } finally {
+  await effectCheckpointServer?.close();
   releaseStalePoll?.();
   if (applicationControlProxy !== undefined) {
     applicationControlProxy.close();

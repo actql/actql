@@ -2,11 +2,13 @@
 package "actql/actql/platform_native/remote_resident_host"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "actql/actql/client_local_host",
   "actql/actql/connectors/duckdb/adapters/native",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/duckdb/host_native",
   "actql/actql/connectors/duckdb/standard_host",
+  "actql/actql/effect_application",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
@@ -190,6 +192,28 @@ pub(all) enum ResidentEffectCapturedInvocationIssue {
   Invocation(@run_publication.RunEvidenceValueIssue)
 }
 
+type ResidentEffectCheckpointCustody
+pub fn ResidentEffectCheckpointCustody::confirm(Self) -> Result[(@checkpoint_runtime.PersistedCheckpoint, String), ResidentEffectCheckpointCustodyIssue]
+pub fn ResidentEffectCheckpointCustody::report(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectCheckpointCustodyIssue]
+pub fn ResidentEffectCheckpointCustody::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectCheckpointCustodyIssue]
+pub fn ResidentEffectCheckpointCustody::retry_cleanup(Self) -> Result[Bool, ResidentEffectCheckpointCustodyIssue]
+pub fn ResidentEffectCheckpointCustody::waiting_projection(Self, String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ResidentEffectCheckpointCustodyIssue]
+
+pub(all) struct ResidentEffectCheckpointCustodyFailure {
+  issue : ResidentEffectCheckpointCustodyIssue
+  custody : ResidentEffectCheckpointCustody?
+}
+
+pub(all) enum ResidentEffectCheckpointCustodyIssue {
+  Unavailable
+  Capture(ResidentEffectCaptureCustodyIssue)
+  Preview(ResidentEffectPreviewCustodyIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+  Capacity(@physical_resources.LedgerIssue)
+  Projection(@checkpoint_runtime.RunStateWireIssue)
+  Report(@remote_site_protocol.DispatchIssue)
+}
+
 pub(all) enum ResidentEffectDependencyCaptureIssue {
   Unavailable
   ForeignInput
@@ -197,6 +221,9 @@ pub(all) enum ResidentEffectDependencyCaptureIssue {
   Export(@execution_relation.CompletedExportIssue)
   Evidence(@run_publication_host.ClientEffectDependencyCaptureIssue)
 }
+
+type ResidentEffectDependencyPins
+pub fn ResidentEffectDependencyPins::close(Self) -> Bool
 
 type ResidentEffectPreviewCustody
 pub fn ResidentEffectPreviewCustody::confirm(Self) -> Result[(@run_publication.EffectPreviewIdentity, String), ResidentEffectPreviewCustodyIssue]
@@ -224,6 +251,36 @@ pub(all) enum ResidentEffectPreviewPlanIssue {
   Plan(@physical_strategy.CapturedEffectPlanVerifyIssue)
 }
 
+pub(all) struct ResidentEffectProducerCapture {
+  pins : ResidentEffectDependencyPins
+  acquired : @run_publication_host.ClientEffectAcquiredEvidence
+  acquired_bodies : (String, String)
+  observation : @run_publication.RunEvidenceValue
+  invocation : @run_publication.PublicationContract
+  artifact : @run_publication_host.ClientEffectLocalResultArtifact
+  manifest : @run_publication_host.ClientEffectLocalManifest
+  token : @run_publication_host.ClientEffectProducerArtifact
+}
+
+pub(all) struct ResidentEffectProducerCaptureFailure {
+  issue : ResidentEffectProducerCaptureIssue
+  pending : ResidentEffectDependencyPins?
+}
+
+pub(all) enum ResidentEffectProducerCaptureIssue {
+  Unavailable
+  WorkLimit
+  Source(ResidentEffectSourceEvidenceIssue)
+  Invocation(ResidentEffectCapturedInvocationIssue)
+  Pins(@physical_strategy.RunIssue)
+  Export(@physical_strategy.CapturedEffectLocalResultExportIssue)
+  Read(@execution_relation.CompletedExportIssue)
+  Definition(@run_publication_host.ClientEffectLocalResultDefinitionIssue)
+  Artifact(@run_publication_host.ClientEffectLocalResultArtifactIssue)
+  Manifest(@run_publication_host.ClientEffectLocalManifestIssue)
+  Binding(@run_publication_host.ClientEffectTransferredArtifactIssue)
+}
+
 pub(all) struct ResidentEffectProducerExecuted {
   executed : ResidentExecuted
   source : ResidentSourceCompute
@@ -232,6 +289,7 @@ pub(all) struct ResidentEffectProducerExecuted {
 pub fn ResidentEffectProducerExecuted::acquired_evidence_for_capture(Self, @remote_journal.Journal, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentEffectProducerExecuted::invocation_for_capture(Self, @remote_journal.Journal, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ResidentEffectCapturedInvocationIssue]
 pub fn ResidentEffectProducerExecuted::materials_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientEffectRunMaterials?
+pub fn ResidentEffectProducerExecuted::prepare_dependency_capture(Self, @remote_journal.Journal, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectProducerCapture, ResidentEffectProducerCaptureFailure]
 pub fn ResidentEffectProducerExecuted::source_for_capture(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 
 pub(all) struct ResidentEffectProducerExecutionFailure {
@@ -272,6 +330,30 @@ pub(all) enum ResidentEffectResultCaptureIssue {
   Export(@run_publication_host.PublicationOutputExportIssue)
   Manifest(@run_publication.ResultManifestIssuanceIssue)
   Receipt(@run_publication.RunReceiptIssuanceIssue)
+}
+
+pub struct ResidentEffectReviewCheckpoint {
+  source_owner : ResidentSourceCompute
+  capture_owner : ResidentEffectCaptureCustody
+  preview_owner : ResidentEffectPreviewCustody
+  store_authority : String
+  checkpoint : @checkpoint_runtime.SealedCheckpoint
+  continuation_wire : String
+  review_wire : String
+}
+
+pub(all) enum ResidentEffectReviewCheckpointIssue {
+  Unavailable
+  ForeignCapture
+  InvalidLimits
+  RunLifetimeUnavailable
+  Request(@run_publication_host.ClientRequestIdentityIssue)
+  Capture(ResidentEffectCaptureCustodyIssue)
+  Preview(ResidentEffectPreviewCustodyIssue)
+  Encoding
+  Keys(@effect_application.EffectPreviewRecoveryKeysIssue)
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  RunBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
 }
 
 pub(all) enum ResidentEffectRunCaptureIssue {
@@ -506,9 +588,11 @@ pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.Nat
 pub fn ResidentSourceCompute::issue_effect_source_artifact(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientEffectSourceArtifactIssue]
 pub fn ResidentSourceCompute::persist_effect_capture(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, @run_publication.PublicationContract, String, @signature.Library, Bytes, Int, Int, Int) -> Result[ResidentEffectCaptureCustody, ResidentEffectCaptureCustodyFailure]
 pub fn ResidentSourceCompute::persist_effect_preview(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, @run_publication.PublicationContract, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[ResidentEffectPreviewCustody, ResidentEffectPreviewCustodyFailure]
+pub fn ResidentSourceCompute::persist_effect_review_checkpoint(Self, @publication_store.Store, @physical_strategy.CapturedEffectInputs, ResidentEffectReviewCheckpoint, @signature.Library, Bytes) -> Result[ResidentEffectCheckpointCustody, ResidentEffectCheckpointCustodyFailure]
 pub fn ResidentSourceCompute::persist_effect_source_payload(Self, @publication_store.Store, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResidentEffectSourceCustody, ResidentEffectSourcePersistenceFailure]
 pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, String, String, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, ResidentEffectCaptureCustody, ResidentEffectPreviewCustody, String, String, String, @checkpoint_runtime.WireLimits) -> Result[ResidentEffectReviewCheckpoint, ResidentEffectReviewCheckpointIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::read_effect_proposals(Self, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int, Int, (Int, String, String) -> Result[Unit, Unit]) -> Result[Int, ResidentEffectProposalIssue]
