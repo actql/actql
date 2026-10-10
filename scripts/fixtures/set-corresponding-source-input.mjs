@@ -991,3 +991,56 @@ setCorrespondingRefusals.push(
   refusePositionalDistinct('qualified-private-anonymous', positionalDistinctHead + '|> AS r '
     + '|> DISTINCT |> WHERE r.aql_set_anonymous_4 > 0) ORDER BY a, b'),
 );
+
+// Kept anonymous occurrences retain ordinal meaning through ordinary UNPIVOT.
+export const positionalUnpivotProgram = {"version":"actql/0.1","id":"fixture.positional_unpivot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"unpivot":{"columns":["kept"],"keep":["neg"],"value_column":"value","name_column":"label"}},{"select":[{"a":"neg"},{"b":"value"},{"c":"label"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false},"c":{"type":"string","nullable":false}},"rows":[{"a":0,"b":0,"c":"anchor"}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"},{"field":"c","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b","c"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalUnpivotColumns = [{name: 'a', contract: {...number, nullable: true}},
+  {name: 'b', contract: number}, {name: 'c', contract: {type: 'string', nullable: false}}];
+const positionalUnpivot = (name, text, extra = {}) => success('positional-pipe-unpivot-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: positionalUnpivotColumns,
+    expected: [{a: -20, b: 2, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}], ...extra});
+const positionalUnpivotHead = "SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records |> SELECT id AS kept, -amount ";
+const positionalUnpivotTail = '|> SELECT *) ORDER BY a NULLS LAST, b NULLS LAST, c';
+const nullableUnpivotHead = "SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records |> SELECT amount AS target, -id ";
+const nullableUnpivotColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: {type: 'string', nullable: false}}];
+setCorrespondingSuccesses.push(
+  positionalUnpivot('json-control', JSON.stringify(positionalUnpivotProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalUnpivot('anonymous-source', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) ' + positionalUnpivotTail),
+  positionalUnpivot('current-renamed-label', positionalUnpivotHead + '|> SET kept = 7 |> RENAME kept AS renamed '
+    + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(renamed)) AS fresh ' + positionalUnpivotTail,
+    {format: 'aql-text', expected: [{a: -20, b: 7, c: 'renamed'}, {a: -10, b: 7, c: 'renamed'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('private-shaped-destination', positionalUnpivotHead
+    + '|> UNPIVOT INCLUDE NULLS(aql_set_anonymous_4 FOR label IN(kept)) |> WHERE aql_set_anonymous_4 > 0 ' + positionalUnpivotTail),
+  positionalUnpivot('repeated-selected-column', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept,kept)) ' + positionalUnpivotTail,
+    {expected: [{a: -20, b: 2, c: 'kept'}, {a: -20, b: 2, c: 'kept'},
+      {a: -10, b: 1, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('kept-duplicate-aliases', "SELECT 0 AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
+    + '|> SELECT id AS v, -id AS `V`, amount AS target |> UNPIVOT INCLUDE NULLS(value FOR label IN(target)) '
+    + '|> SELECT *) ORDER BY a, b, c NULLS LAST, d',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number},
+      {name: 'c', contract: {...number, nullable: true}}, {name: 'd', contract: {type: 'string', nullable: false}}],
+      expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 1, b: -1, c: 10, d: 'target'}, {a: 2, b: -2, c: 20, d: 'target'}]}),
+  positionalUnpivot('nullable-selected-value', nullableUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(target)) ' + positionalUnpivotTail,
+    {sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}], columns: nullableUnpivotColumns,
+      expected: [{a: -2, b: 20, c: 'target'}, {a: -1, b: null, c: 'target'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('exclude-null-selected-value', nullableUnpivotHead + '|> UNPIVOT(value FOR label IN(target)) ' + positionalUnpivotTail,
+    {sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}], columns: nullableUnpivotColumns,
+      expected: [{a: -2, b: 20, c: 'target'}, {a: 0, b: 0, c: 'anchor'}]}),
+  positionalUnpivot('typed-empty', "SELECT 0 AS a, 0 AS b, 'anchor' AS c WHERE FALSE UNION ALL (FROM records "
+    + '|> SELECT id AS kept, -amount |> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) ' + positionalUnpivotTail,
+    {sourceRows: [], expected: []}),
+);
+const refusePositionalUnpivot = (name, text) => ({name: 'set-corresponding-refuse-pipe-unpivot-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalUnpivot('private-anonymous', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(aql_set_anonymous_4)) ' + positionalUnpivotTail),
+  refusePositionalUnpivot('ambiguous', "SELECT 0 AS a, 0 AS b, 'anchor' AS c UNION ALL (FROM records "
+    + '|> SELECT id AS v, -amount AS `V` |> UNPIVOT INCLUDE NULLS(value FOR label IN(v)) ' + positionalUnpivotTail),
+  refusePositionalUnpivot('old-range', positionalUnpivotHead + '|> AS old |> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
+    + '|> WHERE old.kept > 0 ' + positionalUnpivotTail),
+  refusePositionalUnpivot('removed-column', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
+    + '|> WHERE kept > 0 ' + positionalUnpivotTail),
+  refusePositionalUnpivot('qualified-private-anonymous', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
+    + '|> AS fresh |> WHERE fresh.aql_set_anonymous_4 > 0 ' + positionalUnpivotTail),
+);

@@ -1988,6 +1988,10 @@ fn compile_steps(
               positional_destination_names.push(name)
             }
           }
+        Some(Unpivot(clause)) => {
+          positional_destination_names.push(clause.value_column)
+          positional_destination_names.push(clause.name_column)
+        }
         _ => ()
       }
     }
@@ -2312,6 +2316,18 @@ fn compile_steps(
         })
         .length() >
         1
+      }
+      if operation is Unpivot(clause) {
+        for name in clause.columns {
+          if positional_private_fields.any(field => {
+              same_name(name, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+          if ambiguous_current_name(name) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
       }
       if operation is Rename(names) {
         for (target, _) in names {

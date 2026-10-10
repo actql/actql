@@ -15,6 +15,7 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Rename(_)
       | Extend(_)
       | Alias(_)
+      | Unpivot(_)
       | Analytic(_)
       | AnalyticExpressions(_, _)
       | OrderAnalytic(_, _) => index -= 1
