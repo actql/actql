@@ -254,7 +254,7 @@ fn receipt_test_settle(
   key : @effect.EffectDispatchKey,
   basis : @effect.EffectLedgerBasis,
   current? : () -> Bool = () => true,
-  outcome? : String = "{\"state\":\"applied\",\"result\":{\"id\":\"001\"}}",
+  outcome? : String = "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
 ) -> Result[
   (@publication.PublicationContract, @effect.EffectLedgerEntry),
   NativeClientRunJournalIssue,
@@ -306,70 +306,6 @@ test "Native original receipt persists common terminal and exact replay across r
   journal.record_effect_row_unknown(dispatch).unwrap() |> ignore
   guard journal.lookup(dispatch.request, true) is Ok(Retained(before)) else {
     fail("Run missing")
-  }
-  match
-    @effect.admit_effect_single_row(
-      preview,
-      0,
-      0,
-      "update",
-      @host.client_request_logical_scope(dispatch.request),
-      @publication.effect_preview_ordered_row_identity(preview, 0, 0).unwrap(),
-      locator,
-      key,
-    ) {
-    Ok(_) => ()
-    Err(issue) =>
-      fail("Original fixture common row binding: " + @debug.to_string(issue))
-  }
-  let response = journal
-    .effect_row_response(dispatch, () => true, 4096)
-    .unwrap()
-    .unwrap()
-  let receipt_probe = match
-    @publication.issue_effect_row_outcome_receipt(
-      preview,
-      0,
-      0,
-      dispatch.dispatching.cid,
-      response.credential_use_cid,
-      response.body,
-      response.status_code,
-      "{\"state\":\"applied\",\"result\":{\"id\":\"001\"}}",
-      4096,
-      65536,
-      128,
-      16,
-    ) {
-    Ok(value) => value
-    Err(issue) =>
-      fail("Original fixture common outcome: " + @debug.to_string(issue))
-  }
-  let history_probe = before.checkpoint.unwrap().effect_ledger
-  match
-    @effect.issue_effect_row_receipt_terminal_entry(
-      preview,
-      0,
-      0,
-      @host.client_request_logical_scope(dispatch.request),
-      locator,
-      key,
-      basis.canonical_request_cid,
-      history_probe[history_probe.length() - 1],
-      history_probe,
-      dispatch.dispatching.cid,
-      response.credential_use_cid,
-      response.body,
-      response.status_code,
-      @publication.publication_contract_json(receipt_probe),
-      4096,
-      65536,
-      128,
-      16,
-    ) {
-    Ok(_) => ()
-    Err(issue) =>
-      fail("Original fixture common terminal: " + @debug.to_string(issue))
   }
   let (receipt, terminal) = receipt_test_settle(
     journal, dispatch, preview, locator, key, basis,
@@ -477,7 +413,9 @@ test "Native original receipt refuses missing response unknown projection and ch
       locator,
       key,
       basis,
-      outcome="{\"state\":\"unknown\"}",
+      outcome="{\"command_id\":\"original-write\",\"idempotency_key\":\"row-1\",\"reason\":\"response_lost\",\"reconciliation_contract\":{\"cid\":\"sha256:" +
+        "a".repeat(64) +
+        "\",\"id\":\"manual\",\"version\":\"0.1\"},\"state\":\"unknown\"}",
     )
     is Err(Checkpoint(InvalidMaterial)),
   )
