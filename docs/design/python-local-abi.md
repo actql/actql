@@ -91,6 +91,38 @@ objects, DuckDB workspace or aggregate Local execution. A product Host must
 reserve and account for those resources using their existing Owners before
 claiming an aggregate execution bound.
 
+## Physical DuckDB boundary
+
+The private Python adapter loads an explicitly installed standalone DuckDB C
+library with a verified digest and selected version. It neither discovers a
+Node package at runtime nor falls back to the Python extension's unbounded
+row-fetch APIs. The existing native adapter's C layouts and scalar row/field
+codec are shared boundary references. Canonical environment settings are
+generated from `adapters/connectors/duckdb/environment-contract.json`.
+
+Before opening a database, the product Host must reserve the native workspace
+through the existing Core resource Owner. The adapter applies a memory limit,
+one worker, disabled external access and extension loading, and no temporary
+spill. These physical settings alone are not an aggregate memory guarantee.
+
+SQL arrives from the existing checked acquisition Owner. The physical adapter
+does not parse, authorize or repair it. Current binding-free physical transfers
+refuse unbound parameters. Unsupported native types are rejected before rows
+are fetched. Core remains responsible for pre-execution Capability admission.
+
+Row and metadata encoding writes only into a bounded, caller-reserved bytearray.
+Native VARCHAR length is inspected before any Python cell copy. JSON escaping
+cannot grow that buffer, numeric payloads follow the existing native codec,
+and raw Unicode, embedded NULL and line endings are preserved. A capacity
+failure does not deliver a partial row, claim EOF or authorize a repeated query.
+
+Statement, result, chunk and logical-type handles belong to the exact physical
+connection and stream. Copied handles are refused. Interrupt delivery is not
+physical-stop acknowledgement or a Run cancellation result. While native I/O
+is active, close remains pending; failed destruction retains the same handles
+for retry. Closing a connection waits for its stream custody to settle and
+never starts another query or decides a Run outcome.
+
 ## Execution boundary
 
 The `actql_program_*` source-free preparation profile installs a trusted Check
