@@ -1,0 +1,251 @@
+///|
+/// Host-only evidence for all static values of one checked Source Request.
+/// The Host must verify the actual contributors before binding this evidence.
+/// A typed value, Source response policy, or equal CID is not that verification.
+/// This handle cannot be authored in a Program and grants no provider access.
+struct HostRequestValuePolicyEvidence {
+  environment : @environment.WireEnvironment
+  program_cid : String
+  parameters_cid : String
+  stage : Int
+  input : Int
+  source_view_cid : String
+  request_cid : String
+  origins : Array[(String, RequestValuePolicyOrigin)]
+  policy : @environment.SourceDataPolicy
+}
+
+///|
+priv enum RequestValuePolicyOrigin {
+  Literal
+  Parameter(String, @parameters.Origin)
+}
+
+///|
+// Effective Parameter Values deliberately exclude Default/Supplied origin.
+// Preserve it separately: equal values are not interchangeable provenance.
+fn request_value_origins(
+  request : @sourceviews.AcquisitionRequest,
+  budget : IdentityBudget,
+) -> Array[(String, RequestValuePolicyOrigin)] raise UnitBuildFailure {
+  let count = match request {
+    @sourceviews.Direct(_, value) =>
+      @sourceviews.parameterized_request_field_count(value)
+    @sourceviews.Keyed(_, value) =>
+      @sourceviews.parameterized_keyed_request_field_count(value)
+  }
+  identity_charge(budget, count)
+  let fields = []
+  for index in 0..<count {
+    let field = match request {
+      @sourceviews.Direct(_, value) =>
+        @sourceviews.parameterized_request_field_at(value, index).unwrap()
+      @sourceviews.Keyed(_, value) =>
+        @sourceviews.parameterized_keyed_request_field_at(value, index).unwrap()
+    }
+    identity_charge(budget, field.field.slot.field_name.length())
+    let origin = match field.value {
+      @sourceviews.CheckedLiteral(_) => Literal
+      @sourceviews.BoundParameter(parameter) => {
+        identity_charge(budget, parameter.name.length())
+        Parameter(parameter.name, parameter.origin)
+      }
+      @sourceviews.UnboundHostBinding(_) => raise ForeignOwner
+    }
+    fields.push((field.field.slot.field_name, origin))
+  }
+  identity_sort(fields, budget)
+  fields
+}
+
+///|
+// Hash exact bound static values with the existing value wire emitter.
+// Correlated keyed values retain their separate checked producer provenance.
+// Unresolved Host bindings cannot be attested as concrete values.
+fn request_value_identity(
+  request : @sourceviews.AcquisitionRequest,
+  budget : IdentityBudget,
+) -> String raise UnitBuildFailure {
+  let count = match request {
+    @sourceviews.Direct(_, value) =>
+      @sourceviews.parameterized_request_field_count(value)
+    @sourceviews.Keyed(_, value) =>
+      @sourceviews.parameterized_keyed_request_field_count(value)
+  }
+  identity_charge(budget, count)
+  let fields = []
+  for index in 0..<count {
+    let field = match request {
+      @sourceviews.Direct(_, value) =>
+        @sourceviews.parameterized_request_field_at(value, index).unwrap()
+      @sourceviews.Keyed(_, value) =>
+        @sourceviews.parameterized_keyed_request_field_at(value, index).unwrap()
+    }
+    if field.value is @sourceviews.UnboundHostBinding(_) {
+      raise ForeignOwner
+    }
+    fields.push((field.field.slot.field_name, field))
+  }
+  identity_sort(fields, budget)
+  let writer = identity_writer(budget)
+  try {
+    @encode.begin_object(writer)
+    for (name, field) in fields {
+      @encode.key(writer, name)
+      match field.value {
+        @sourceviews.CheckedLiteral(value) =>
+          @value.emit_checked_wire_value(value, writer)
+        @sourceviews.BoundParameter(parameter) =>
+          @value.emit_checked_wire_value(parameter.value, writer)
+        @sourceviews.UnboundHostBinding(_) =>
+          abort("unbound field escaped request identity admission")
+      }
+    }
+    @encode.end_object(writer)
+  } catch {
+    e => raise Encoding(e)
+  }
+  identity_finish(budget, writer)
+}
+
+///|
+/// Bind Host-verified request contributors to their exact admitted policy.
+/// Invoke only after the Host verifier accepts every static value. Evidence is
+/// reusable only for the same Program, Parameters, occurrence, SourceView,
+/// request bytes and admitted Environment. This is not Model approval.
+pub fn bind_host_verified_request_value_policy(
+  check : SourceExecution,
+  policy : @environment.SourceDataPolicy,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> HostRequestValuePolicyEvidence raise UnitBuildFailure {
+  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+    raise BudgetExceeded
+  }
+  let subject = check.subject
+  let environment = @environment.member_environment(
+    @environment.contract_member(
+      @environment.data_policy_envelope(
+        @environment.source_view_data_policy(
+          subject.response_policy.authoritative,
+        ),
+      ),
+    ),
+  )
+  if !physical_equal(
+      environment,
+      @environment.member_environment(
+        @environment.contract_member(@environment.data_policy_envelope(policy)),
+      ),
+    ) {
+    raise ForeignOwner
+  }
+  let budget = IdentityBudget::{
+    work: max_work,
+    bytes: max_bytes,
+    nodes: max_nodes,
+    depth: max_depth,
+  }
+  let request_cid = request_value_identity(subject.request, budget)
+  let origins = request_value_origins(subject.request, budget)
+  {
+    environment,
+    program_cid: @context.program_identity_definition_cid(subject.owner),
+    parameters_cid: @context.program_identity_parameter_values_cid(
+      subject.owner,
+    ),
+    stage: subject.stage,
+    input: subject.input,
+    source_view_cid: @sourceviews.selected_cid(subject.source),
+    request_cid,
+    origins,
+    policy,
+  }
+}
+
+///|
+// Fail closed on absent, stale, foreign or duplicate evidence. An admitted
+// policy Envelope cannot be transplanted to another value occurrence.
+fn select_request_value_policy(
+  identity : @context.ProgramSourceIdentity,
+  stage : Int,
+  input : Int,
+  request : @sourceviews.AcquisitionRequest,
+  response : SourceResponsePolicy,
+  evidence : Array[HostRequestValuePolicyEvidence],
+  budget : IdentityBudget,
+) -> @environment.SourceDataPolicy? raise UnitBuildFailure {
+  identity_charge(budget, evidence.length())
+  let fields = match request {
+    @sourceviews.Direct(_, value) =>
+      @sourceviews.parameterized_request_field_count(value)
+    @sourceviews.Keyed(_, value) =>
+      @sourceviews.parameterized_keyed_request_field_count(value)
+  }
+  if fields == 0 {
+    return None
+  }
+  let matching = []
+  for item in evidence {
+    if item.stage == stage && item.input == input {
+      matching.push(item)
+    }
+  }
+  guard matching.length() == 1 else { return None }
+  let item = matching[0]
+  let current_environment = @environment.member_environment(
+    @environment.contract_member(
+      @environment.data_policy_envelope(
+        @environment.source_view_data_policy(response.authoritative),
+      ),
+    ),
+  )
+  if !physical_equal(item.environment, current_environment) {
+    return None
+  }
+  for
+    (expected, actual) in [
+      (item.program_cid, @context.program_identity_definition_cid(identity)),
+      (
+        item.parameters_cid,
+        @context.program_identity_parameter_values_cid(identity),
+      ),
+      (item.source_view_cid, @sourceviews.selected_cid(response.source)),
+    ] {
+    if identity_compare(expected, actual, budget) != 0 {
+      return None
+    }
+  }
+  let origins = request_value_origins(request, budget)
+  if origins.length() != item.origins.length() {
+    return None
+  }
+  identity_charge(budget, origins.length())
+  for index in 0..<origins.length() {
+    let (name, origin) = origins[index]
+    let (previous_name, previous_origin) = item.origins[index]
+    if identity_compare(name, previous_name, budget) != 0 {
+      return None
+    }
+    match (origin, previous_origin) {
+      (Literal, Literal) => ()
+      (Parameter(name, origin), Parameter(previous_name, previous_origin)) =>
+        if origin != previous_origin ||
+          identity_compare(name, previous_name, budget) != 0 {
+          return None
+        }
+      _ => return None
+    }
+  }
+  if identity_compare(
+      item.request_cid,
+      request_value_identity(request, budget),
+      budget,
+    ) !=
+    0 {
+    return None
+  }
+  Some(item.policy)
+}

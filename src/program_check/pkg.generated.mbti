@@ -89,6 +89,8 @@ pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @ru
 
 pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[EffectProgramRunCandidate, EffectProgramRunIssue]
 
+pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
+
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
@@ -125,7 +127,7 @@ pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
-pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?) -> CheckEnvironment
+pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?, request_value_policies? : Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
 pub fn checking_environment_cid(CheckEnvironment) -> String
 
@@ -958,6 +960,7 @@ pub struct DirectSourcePolicy {
   response_cid : String
   classification : @check_environment.DataClassification
   unknown_provenance : Bool
+  request_value_policy : @check_environment.SourceDataPolicy?
 }
 
 type EffectComputationCandidate
@@ -1014,6 +1017,8 @@ type GroupLimit
 type GroupNumericSlot
 
 type GroupStringLimit
+
+type HostRequestValuePolicyEvidence
 
 pub struct InferItemLimit {
   owner : CheckedProgram
@@ -1350,6 +1355,7 @@ pub struct SourceExecutionSubject {
   response_policy : SourceResponsePolicy
   response_policy_cid : String
   direct_policy : DirectSourcePolicy?
+  request_value_policy : @check_environment.SourceDataPolicy?
   authority : SourceReadAuthority
 }
 

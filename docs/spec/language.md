@@ -7596,6 +7596,29 @@ data-handling contract and current Host policy, including the existing rejection
 of unknown classification for model egress. This classification calculation does
 not supply missing provenance or define a substitute effective-policy preimage.
 
+<!-- requirement-block: external-joins.host-request-value-policy-subject external-joins.host-request-value-policy-contribution external-joins.host-request-value-policy-verification external-joins.host-request-value-policy-fail-closed -->
+The Host may bind verified policy evidence for the complete static value set of
+one checked Source Request. Such evidence MUST bind the original Program
+Definition CID, effective Parameter Values CID, Stage/input occurrence, selected
+SourceView contract CID, and the canonical identity of its exact bound static
+request values. It MUST retain the contributing admitted data-policy Envelope
+from the same selected Environment separately from the response policy. The Host
+MUST verify all of those value contributors; the response classification alone
+does not establish their provenance. Authored Programs cannot self-assert this
+evidence. Missing, duplicate, foreign or mismatched evidence MUST NOT resolve
+unknown provenance. Unresolved Host bindings cannot be attested as concrete
+request values. Correlated keyed values still require their own producer policy.
+Default versus supplied Parameter origin remains a separate correspondence even
+when the effective Parameter Values CID and request bytes are identical; an
+attestation for one origin cannot be reused for the other without verification.
+
+<!-- requirement-block: external-joins.host-request-value-policy-authority -->
+Policy evidence for request values is not provider access or Model approval.
+Current egress, authorization, scope and approval checks remain independent, and
+an admitted policy whose classification is unknown remains unknown. Rechecking
+or recovery MUST establish the original correspondence before using the evidence;
+equal effective-policy CIDs do not permit transplanting it to another request.
+
 <!-- machine-import: ../../spec/contracts/actql-effective-data-policy.json# sha256:93dd2547ab54c61374ed35f397af0195be23555f63a383310323d909c489f5ff -->
 <!-- machine-import: ../../spec/contracts/actql-effective-data-policy.json#/schemas/policy sha256:529c2309545304d5436bfcaac9f5c878e8137df6d7030494b33920a6e6b6cb02 -->
 <!-- requirement-block: external-joins.effective-policy-preimage -->

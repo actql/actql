@@ -6779,6 +6779,61 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.host-request-value-policy-subject",
+      "statement_sha256": "b096bd87a753505539bdad4cf19e60ce85ccc1942f42fd50258f3aef9a962376",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.host-request-value-policy-contribution",
+      "statement_sha256": "76876bdac161a332cb5fdee5577b92c72810d8cfe9d463d392e751a24546a23b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.host-request-value-policy-verification",
+      "statement_sha256": "f9c1a37bab1bd6860d56cc27cd879a2ff3df9ea6083a597a959cc9af4db6ddad",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.host-request-value-policy-fail-closed",
+      "statement_sha256": "40d43c1f5e99a9cc18a53a8170b336a7cfe0372089d0c2dde4d3d76d0005bfbd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.host-request-value-policy-authority",
+      "statement_sha256": "b87cc66997266596e4babac3dbc35cf386a0ec2c79533760f84e20e2f6cb2c5b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.effective-policy-preimage",
       "statement_sha256": "5fcb8ac6017d1a18d336877c7c6ad625e5957bc64f12f8561a7dd9f364c58d5d",
       "status": "pending",
