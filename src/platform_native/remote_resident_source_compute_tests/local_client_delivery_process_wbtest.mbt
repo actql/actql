@@ -104,6 +104,43 @@ fn native_source_delivery_reader() -> Unit raise {
     result_name: "answer",
     attempt_id: "native-cli-sink-after-reopen",
   }
+  let lost_attempt = store
+    .read_publication_contract("delivery_attempt", saved("lost_attempt"))
+    .unwrap()
+  let lost_grant = @publication.delivery_attempt_read_grant_cid(lost_attempt).unwrap()
+  let audit = sqlite
+    .open_database(store_path + "/.actql-publication.sqlite3", 1000000L)
+    .unwrap()
+  let lost_usage_before = audit
+    .read("result_read_grant_usage", lost_grant)
+    .unwrap()
+  for _ in 0..<2 {
+    guard journal.lookup_submitted_result_delivery(
+        authority,
+        reference,
+        scope,
+        () => true,
+        1200.0,
+        service,
+        { ..selection, attempt_id: "native-cli-open-response-lost", },
+      )
+      is Ok(Some(lost)) &&
+      lost.record is Some(record) else {
+      fail("lost opening was not reconciled to its original attempt")
+    }
+    assert_eq(
+      @publication.publication_contract_identity(lost.attempt),
+      saved("lost_attempt"),
+    )
+    assert_eq(
+      @publication.publication_contract_identity(record),
+      saved("lost_record"),
+    )
+    let projection = @publication.project_delivery_record(record).unwrap()
+    assert_eq(projection.state, "streaming")
+    assert_eq(projection.confirmed_byte_count, 0L)
+    assert_true(lost.host_release_receipt is None)
+  }
   for _ in 0..<2 {
     guard journal.lookup_submitted_result_delivery(
         authority,
@@ -258,6 +295,16 @@ fn native_source_delivery_reader() -> Unit raise {
   assert_eq(saved("acquisitions"), "1")
   assert_eq(saved("consumers"), "1")
   assert_eq(saved("cleanups"), "1")
+  let lost_usage_after = audit
+    .read("result_read_grant_usage", lost_grant)
+    .unwrap()
+  assert_eq(lost_usage_after.body, lost_usage_before.body)
+  assert_eq(lost_usage_after.revision, lost_usage_before.revision)
+  assert_eq(
+    store.inspect_result_delivery("native-cli-open-response-lost").unwrap().delivery_record_cid,
+    saved("lost_record"),
+  )
+  audit.close_checked().unwrap()
   assert_true(store.close().unwrap())
   database.close_checked().unwrap()
 }

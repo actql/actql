@@ -485,6 +485,76 @@ fn local_client_source_publication_case(
       .unwrap()
       |> ignore
     }
+    let lost_admissions = Ref(0)
+    let lost_authority = @access.install_native_result_access_authority(
+      requested => {
+        requested.run_definition_cid ==
+        @publication.publication_contract_identity(definition) &&
+        requested.principal_id == "fixture-principal"
+      },
+      _ => {
+        lost_admissions.val += 1
+        Some({
+          authorization_context_cid: local_client_publication_cid(
+            "lost-open-auth",
+          ),
+          data_ceiling_cid: local_client_publication_cid("lost-open-ceiling"),
+          egress_admission_cid: local_client_publication_cid("lost-open-egress"),
+          expires_at: "2099-01-01T00:00:00.000Z",
+          max_bytes: 128,
+          max_uses: 1,
+        })
+      },
+      _ => true,
+    )
+    let lost_service = @access.install_native_result_access_service(
+      retained_store,
+      lost_authority,
+      () => "2026-10-10T00:00:09.000Z",
+      1000000,
+      100000,
+      16,
+      128,
+      3,
+    ).unwrap()
+    // Durable opening has completed. Its response is deliberately not handed
+    // to a reader and no byte is requested. Physical close cannot complete it.
+    let lost = journal
+      .open_submitted_result(
+        authority,
+        reference,
+        scope,
+        () => true,
+        1104.0,
+        lost_service,
+        {
+          namespace_id: "native-client-fixture",
+          principal_id: "fixture-principal",
+          purpose: "inspect",
+          result_name: "answer",
+          format: "jsonl",
+          attempt_id: "native-cli-open-response-lost",
+        },
+      )
+      .unwrap()
+    assert_eq(lost_admissions.val, 1)
+    lost.close().unwrap()
+    let lost_status = retained_store
+      .inspect_result_delivery("native-cli-open-response-lost")
+      .unwrap()
+    assert_eq(lost_status.state, "streaming")
+    assert_eq(lost_status.confirmed_bytes, 0L)
+    assert_true(lost_status.result_delivery_receipt_cid is None)
+    for
+      (key, value) in [
+        ("lost_attempt", lost_status.delivery_attempt_cid),
+        ("lost_record", lost_status.delivery_record_cid),
+      ] {
+      database
+      .insert("test_source_delivery_reference", key, @utf8.encode(value))
+      .unwrap()
+      |> ignore
+    }
     assert_true(retained_store.close().unwrap())
   }
   database.close_checked().unwrap()
