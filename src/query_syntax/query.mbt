@@ -219,6 +219,9 @@ pub(all) struct CtePart {
 ///|
 struct Query {
   source : Tokens
+  // Parser-owned operand roles; generated names do not establish either role.
+  positional_output : Bool
+  bound_source : NamePart?
   ctes : Array[CtePart]
   relation : Array[NamePart]
   source_alias : NamePart?
@@ -280,6 +283,11 @@ pub fn final_operation_at(query : Query, index : Int) -> QueryOperation? {
 ///|
 pub fn relation(query : Query) -> Array[NamePart] {
   query.relation.copy()
+}
+
+///|
+pub fn positional_output(query : Query) -> Bool {
+  query.positional_output
 }
 
 ///|
@@ -962,6 +970,8 @@ fn QueryParser::bind_query(
   }
   {
     source: self.source,
+    positional_output: false,
+    bound_source: Some(generated),
     ctes,
     relation: [generated],
     source_alias: None,
@@ -1027,9 +1037,41 @@ fn QueryParser::parenthesized(self : QueryParser) -> Query raise QueryAbort {
 }
 
 ///|
-fn QueryParser::sql_operand(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::mark_positional_output(
+  self : QueryParser,
+  query : Query,
+) -> Query raise QueryAbort {
+  let ctes = query.ctes.copy()
+  // Only an internal identity binding exports the same operand values.
+  // Authored CTEs and transformed continuations retain their own scopes.
+  if query.operations.is_empty() && query.bound_source is Some(bound) {
+    for index in 0..<ctes.length() {
+      self.spend(1)
+      if same_cte_name(ctes[index].name, bound) {
+        ctes[index] = {
+          ..ctes[index],
+          query: self.mark_positional_output(ctes[index].query),
+        }
+      }
+    }
+  }
+  { ..query, ctes, positional_output: true, }
+}
+
+///|
+fn QueryParser::sql_operand(
+  self : QueryParser,
+  positional_output? : Bool = false,
+) -> Query raise QueryAbort {
   if self.peek().value == Symbol(40) {
-    self.bind_query(self.parenthesized())
+    let inner = self.parenthesized()
+    self.bind_query(
+      if positional_output {
+        self.mark_positional_output(inner)
+      } else {
+        inner
+      },
+    )
   } else {
     self.sql_term()
   }
@@ -2013,6 +2055,8 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       let expanded = self.bind_query(
         {
           source: self.source,
+          positional_output: false,
+          bound_source: None,
           relation,
           source_alias,
           ctes,
@@ -2174,6 +2218,8 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   }
   {
     source: self.source,
+    positional_output: false,
+    bound_source: None,
     ctes,
     relation,
     source_alias,
@@ -2356,7 +2402,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
           (kind, duplicates, by_name, inner_by_name, by_name_columns),
         )
     }
-    let right = self.sql_operand()
+    let right = self.sql_operand(positional_output=!by_name)
     for cte in right.ctes {
       ctes.push(cte)
     }
@@ -2481,6 +2527,8 @@ fn QueryParser::pipe(
   self.pipe_tail(
     {
       source: self.source,
+      positional_output: false,
+      bound_source: None,
       ctes,
       relation,
       source_alias,
@@ -2540,6 +2588,8 @@ fn QueryParser::pipe_tail(
       ) {
       let producer : Query = {
         source: self.source,
+        positional_output: input.positional_output,
+        bound_source: input.bound_source,
         ctes,
         relation,
         source_alias,
@@ -2561,6 +2611,8 @@ fn QueryParser::pipe_tail(
       !(operations.length() == 1 && operations[0] is Where(_)) {
       let producer : Query = {
         source: self.source,
+        positional_output: input.positional_output,
+        bound_source: input.bound_source,
         ctes,
         relation,
         source_alias,
@@ -2677,7 +2729,13 @@ fn QueryParser::pipe_tail(
       let parsed = self.query(cte_body=true)
       self.source_depth -= 1
       let right = if !parsed.sets.is_empty() {
-        self.bind_query(parsed)
+        self.bind_query(
+          if !by_name {
+            self.mark_positional_output(parsed)
+          } else {
+            parsed
+          },
+        )
       } else {
         parsed
       }
@@ -3075,6 +3133,8 @@ fn QueryParser::pipe_tail(
   }
   {
     source: self.source,
+    positional_output: input.positional_output,
+    bound_source: input.bound_source,
     ctes,
     relation,
     source_alias,
