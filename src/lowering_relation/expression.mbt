@@ -92,6 +92,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Substring
   Between
 } derive(Eq, Debug)
 
@@ -246,6 +247,7 @@ fn expression_tag(
     | "concat_strict"
     | "len"
     | "replace"
+    | "substring"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -263,6 +265,17 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "substring" => {
+      let obj = @decode.open_object(body).unwrap()
+      let children = [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "start").unwrap(),
+      ]
+      if @decode.lookup(obj, "length") is Some(length) {
+        children.push(length)
+      }
+      children
+    }
     "property" =>
       [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
     "object" => {
@@ -941,6 +954,7 @@ fn lower_typed_expression_measured(
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "substring" => Many(Substring, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

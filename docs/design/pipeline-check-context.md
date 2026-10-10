@@ -329,7 +329,11 @@ runtime input obligation, not permission to drop the child operation's own
 checks, claim an extent was statically established, or evaluate the expression
 during compilation. Generic expression bounds are not fabricated by folding.
 
-Bound length values can tighten substring/utf8_truncate. Dynamic expressions,
+Bound length values can tighten utf8_truncate. Current common substring retains
+known input String maxima through scalar typing, with no self-envelope or
+length-based profile derivation. Nested profile children keep their own
+obligations; an outer profile consumes checked maxima or RuntimePreflight.
+Dynamic expressions,
 null, negative or fractional lengths keep the conservative bound; demanded
 evaluation errors remain separate. The original checked node's nullability
 widens the derived contract when another argument can be null. Derived bounds
