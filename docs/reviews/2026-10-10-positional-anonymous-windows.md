@@ -2,8 +2,11 @@
 
 This is a frontend connection repair based on window parent #1265 at
 `6015995f1de5d836323b1617bb8d7778eabf9b46`, containing main
-`5f07afe9a21daaea46d420e7eb1b6567aa062d93`. The parent is an explicit
-unmerged dependency; final destination is main, never the dependency branch.
+`5f07afe9a21daaea46d420e7eb1b6567aa062d93`. Parents #1254 and #1265 are
+now merged into main. Integration commit
+`1a7c99650e45a5fdf75fd9e16f8121568850f64b` normally merges main
+`8e1d4277cae568f498ab3b90543bbaff86bdb857`; no unmerged parent dependency
+remains. Final destination is main, never a dependency branch.
 
 ## Existing meaning and fixed counterexample
 
