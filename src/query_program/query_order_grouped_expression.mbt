@@ -16,7 +16,7 @@ fn append_order_grouped_expression(
   max_work : Int,
 ) -> @builder.Node raise Abort {
   let resolve_input = fn(path : Array[@query.NamePart]) -> String? {
-    pipe_slot(path, input_scope.visible, input_scope.ranges)
+    scope_expression_slot(path, input_scope)
   }
   let resolve_order_input = fn(path : Array[@query.NamePart]) -> String? {
     if path.length() == 1 {
