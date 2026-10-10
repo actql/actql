@@ -1,8 +1,9 @@
 # Graph rows as ordinary set operands
 
 Baseline: main `ce027a937cf780f617d5ed98bb4d56ecbb010877`.
-This complements #1243's JOIN connection: both use the established terminal
-positional SELECT contract. It changes frontend assembly only, without a
+This is independent of #1243's JOIN connection. Both use the established
+terminal positional SELECT contract, but JOIN public acceptance retains a
+separate physical-capacity dependency. It changes frontend assembly only, without a
 Graph execution owner, schema inference, legacy carrier conversion or limit
 change.
 
@@ -68,7 +69,9 @@ The ordinary and `--graph-rows-only` registrations contain all 36 cases:
 3,315 occurrences with digest
 `445ca703bc5abc13f16e109e3a0b102365f8b04561d9e417c4371fec11c7b2da`.
 These registration identities enumerate authored fixtures, not product output.
-The combined #1243 inventory is recorded separately after integration.
+The final standalone inventory after the refusal-source correction is recorded
+below. The temporary combined integration SHA is retained as earlier evidence,
+not this PR's release unit.
 
 ## Focused verification
 
@@ -86,7 +89,79 @@ node scripts/local-checks.mjs test node --timeout-seconds 180 -- scripts/graph-r
 
 The first test-authoring attempt used an unsupported Debug conversion for
 query_program.Issue and executed no tests (`run-s4O5me`). It was corrected
-before the failing counterexample above. No public execution or full Core,
-Native/Wasm, hosted CI or complete packed-corpus success is claimed here.
-Normal five-package production and the scoped public consumer must still run
-on the combined clean SHA; its receipts belong to that actual SHA.
+before the failing counterexample above. These focused checks alone did not
+establish public execution. The current-main acceptance below records the
+subsequent scoped execution, separately from full Core, Native/Wasm, hosted CI
+and complete packed-corpus coverage.
+
+
+## Current-main public acceptance
+
+Adopted main: `0c6538b53f63a3c8a42770092e16035103749e9e` (normal merge,
+no conflict). Clean implementation/fixture SHA:
+`b54e2fd795dc04d1a465b9b778e76ced1ee58d7b`.
+
+- Selected JS Graph/set/DATA callers: 14/14 (`run-Hr0umc`,
+  `focused-test-DVexah`).
+- Selected Node fixtures/profile registration: 38/38 (`run-uJi7QO`,
+  `focused-test-vlLSt7`).
+- Normal exact-HEAD five-package producer, independent manifest/digest check
+  and existing `--graph-rows-only` consumer: passed (`run-PCM18C`).
+- Embedded Local and authenticated HTTPS each completed all 36/36 cases:
+  23 normal and 13 refusal cases. Both inventory hashes equal
+  `4f9ff4b2ac79ce815274743fdabbc6b55d6936a448dd888897d04b8cfa5b0037`.
+  The full authored registration is 3,315 occurrences, digest
+  `27202fc0839224dcf87a8d4a37c6642350c59bba7148619f15fc034ffd39b19b`.
+- The existing consumer checked rows, actual describe contracts/nullability,
+  column order, internal-field absence, same-request Run reuse and reread.
+  Refusals retained zero Run admission and provider I/O. No Source reads were
+  added to source-free cases. Both workers exited zero, with no live children.
+- Receipt `public-query-evidence-GtQoXO` is complete/passed, has no evidence
+  errors and confirms the owned installation artifacts were removed. Logs,
+  manifest and receipts were retained. `git diff --check` and the changed-file
+  MoonBit format check passed.
+
+Evidence paths relative to the worktree:
+`_build/local-checks/attempts/run-PCM18C/{summary.json,output.log}` and
+`../.codex-scratch/public-query-evidence-GtQoXO/{summary.json,010.stdout.log,010.stderr.log}`.
+Packages/manifest: `/private/tmp/actql-b-graph-rows-set-b54e2fd79-pack`.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | 642f838049f32ba9a43860e29f941f845861459aed6fb5421f0d89435cc585b9 |
+| local-node | 0942037d2729ae35816d98906cc25638fe339ddc621b766f5381095d4bedb28d |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-graph-rows-set-b54e2fd79-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-graph-rows-set-b54e2fd79-pack node scripts/test-packed-public-query.mjs --graph-rows-only
+```
+
+The commands ran under the bounded exclusive local-check owner, using pinned
+Node/MoonBit, one normal producer and one scoped consumer. Subsequent evidence
+edits do not rename this tested distribution revision to a later submitted SHA.
+Full Core, other targets, the full packed corpus and hosted required CI were
+not run. This is a bounded frontend repair, not completion of all frontend
+coverage. Explicit RESULT directly following a set chain is not established
+by these fixtures; the root set uses the existing default Result, while DATA
+sets use an explicit subsequent Result declaration.
+
+## Earlier refusal-fixture correction
+
+On temporary combined SHA
+`81250607ee8621659276653afa6c9bbc1fc680e3`, the same normal Graph cases passed
+both transports, but the newly authored private-field refusal placed ORDER in
+a subsequent DATA consumer. That reached existing `UnsupportedOrdering`
+implementation-limit classification instead of the set-tail `UnknownReference`
+boundary fixed by the MoonBit regression (`run-hURH47`,
+`public-query-evidence-TUqie2`). It was not a complete successful cohort.
+
+Move this refusal source to the same set-tail scope as the independent MoonBit
+regression; keep `ClientProgramInvalidInput`, the private field and zero
+admission/I/O expectations unchanged. The Node fixture guard now checks that
+scope explicitly. No product refusal check was weakened, and no expected
+row/type/order was changed. The later ordinary Relation ORDER diagnostic is
+not certified by this correction. The complete current-main acceptance above
+supersedes only this corrected fixture, without relabelling the earlier SHA.
