@@ -2429,6 +2429,34 @@ fn compile_steps(
         pipe_rebound = true
         pipe_changed = true
         deferred = true
+        if positional_projection is Some(projection) && i > projection {
+          let names = pipe_visible.map(column => column.0)
+          let bindings = pipe_visible.copy()
+          let selected = pipe_visible.map(column => {
+            construction.object([(column.0, construction.text(column.1))])
+          })
+          let private_fields = privatize_positional_duplicate_columns(
+            construction,
+            names,
+            bindings,
+            selected,
+            active_fields,
+            authored_aliases=Some(positional_authored_aliases),
+            reserved_names=positional_destination_names,
+          )
+          if !private_fields.is_empty() {
+            // UNPIVOT may name a new value/label like a retained column.
+            // Copy each evaluated occurrence; neither value is overwritten.
+            positional_private_fields.append(private_fields)
+            entries.push(("select", construction.array(selected)))
+            active_fields = names.copy()
+            output = names
+            pipe_visible = names.map(name => (name, name))
+            pipe_columns = pipe_visible.copy()
+            pipe_changed = false
+            deferred = false
+          }
+        }
       }
       UnnestSource(expression, element, offset) => {
         let correlated = i != 0 || !@query.relation(query).is_empty()

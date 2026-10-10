@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram, positionalUnpivotCollisionProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 169);
-  assert.equal(setCorrespondingRefusals.length, 114);
+  assert.equal(setCorrespondingSuccesses.length, 178);
+  assert.equal(setCorrespondingRefusals.length, 120);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -501,5 +501,33 @@ test('positional UNPIVOT retains anonymous values, generated current labels and 
   assert.deepEqual(positionalUnpivotProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unpivot-'));
   assert.equal(refusals.length, 5);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('UNPIVOT generated-name collisions keep old and new values as separate positional occurrences', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-unpivot-name-collision-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-value-column'));
+  assert.deepEqual(source.expected, [{a: 0, b: 0, c: 0, d: 'anchor'},
+    {a: 10, b: -10, c: 1, d: 'kept'}, {a: 20, b: -20, c: 2, d: 'kept'}]);
+  assert.notEqual(source.expected[1].a, source.expected[1].c);
+  const labelCollision = cases.find(x => x.name.endsWith('-name-column'));
+  assert.deepEqual(labelCollision.columns[0], {name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}});
+  assert.equal(Buffer.byteLength('anchor', 'utf8'), 6);
+  assert.equal(Buffer.byteLength('user', 'utf8'), 4);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-star')).expected, source.expected);
+  assert.ok(cases.find(x => x.name.endsWith('-immutable-star')).text.includes("SET label = 'changed'"));
+  assert.deepEqual(cases.find(x => x.name.endsWith('-distinct-complete-row')).expected,
+    [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'}, {a: 10, b: -10, c: 2, d: 'kept'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-drop-all-matching-occurrences')).expected,
+    [{a: -20, b: 'kept'}, {a: -10, b: 'kept'}, {a: 0, b: 'anchor'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.deepEqual(positionalUnpivotCollisionProgram.stages[0].steps[3].unpivot,
+    {columns: ['kept'], keep: ['extra', 'neg'], value_column: 'expanded', name_column: 'label'});
+  assert.deepEqual(positionalUnpivotCollisionProgram.stages[0].steps[4].select,
+    [{a: 'extra'}, {b: 'neg'}, {c: 'expanded'}, {d: 'label'}]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-unpivot-name-collision-'));
+  assert.equal(refusals.length, 6);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
