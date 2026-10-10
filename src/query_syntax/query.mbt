@@ -1423,9 +1423,8 @@ fn QueryParser::value_projection(
   } else {
     self.optional_output_alias()
   }
-  if analytic is Some(_) && name is None {
-    raise QueryAbort("Function output requires a name", self.peek().start)
-  }
+  // Anonymous SELECT values retain no authored alias. Their eventual
+  // output support and ordinal alignment belong to Program lowering.
   {
     expression: if analytic is Some(_) {
       None
