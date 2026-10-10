@@ -52,14 +52,21 @@ pub fn ResidentSourceCompute::source_publication_observation(
 ] {
   guard !self.stopping &&
     !self.source_closed.val &&
-    self.capture is Some(captured) &&
-    self.acquired_source is Some(original) &&
-    @planning.query_requirement_source_evidence_facts(original.requirement)
+    self.capture is Some(captured) else {
+    return Err(Unavailable)
+  }
+  let (requirement, capture) = match
+    (self.acquired_source, self.effect_source) {
+    (Some(original), None) => (original.requirement, original.capture)
+    (None, Some(original)) => (original.requirement, original.capture)
+    _ => return Err(Unavailable)
+  }
+  guard @planning.query_requirement_source_evidence_facts(requirement)
     is Some(facts) else {
     return Err(Unavailable)
   }
   let context = match
-    @duckdb_host.prepare_native_source_evidence_context(original.requirement) {
+    @duckdb_host.prepare_native_source_evidence_context(requirement) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
@@ -81,7 +88,7 @@ pub fn ResidentSourceCompute::source_publication_observation(
       @strategy.captured_dag_graph(self.run),
       captured,
       identity,
-      original.requirement,
+      requirement,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Logical(issue))
@@ -89,13 +96,7 @@ pub fn ResidentSourceCompute::source_publication_observation(
   let policy_cid = @planning.query_source_evidence_fact_values(facts)[3]
   let evidence = match
     @duckdb_host.issue_native_host_source_evidence(
-      original.capture,
-      context,
-      identity,
-      logical,
-      authority_scope_cid,
-      policy_cid,
-      captured_at,
+      capture, context, identity, logical, authority_scope_cid, policy_cid, captured_at,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
@@ -104,7 +105,7 @@ pub fn ResidentSourceCompute::source_publication_observation(
     return Err(Unavailable)
   }
   let (source_ref, source_contract_cid) = @planning.query_requirement_source(
-    original.requirement,
+    requirement,
   )
   Ok({ evidence, logical, source_ref, source_contract_cid, policy_cid, })
 }

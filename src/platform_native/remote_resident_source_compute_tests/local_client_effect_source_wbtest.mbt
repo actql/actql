@@ -280,3 +280,189 @@ test "Native original accepted Effect Run acquires once computes its Result and 
   assert_eq(consumers, 1)
   database.close_checked().unwrap()
 }
+
+///|
+test "Native original Effect captures its real acquired producer and local import without Remote dispatch" {
+  guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
+    abort("Native Client Effect capture requires actual DuckDB")
+  }
+  let library = @duckdb.load_library(library_path).unwrap()
+  let name = "native-client-effect-capture-" +
+    @env.now().to_string() +
+    ".duckdb"
+  let path = root_path + "/" + name
+  let root = @filesystem.open_root(root_path).unwrap()
+  resident_compute_database(library, path)
+  let (database, journal, _, request, allowed, definition) = local_client_effect_source_original(
+    root_path, name,
+  )
+  let configured = resident_compute_configuration(library, path)
+  let configuration : @resident.ResidentSourceComputeConfiguration = {
+    ..configured,
+    source: {
+      ..configured.source,
+      ledger: {
+        ..configured.source.ledger,
+        retained_bytes: 536870912L,
+        execution_bytes: 536870912L,
+      },
+    },
+  }
+  let mut acquisitions = 0
+  let mut computations = 0
+  let mut authorized = true
+  let work = @client.open_native_client_effect_source_work(
+    journal,
+    request,
+    allowed,
+    definition,
+    configuration,
+    name,
+    () => "2026-10-10T00:00:01.000Z",
+    () => authorized,
+    observe=event => {
+      match event {
+        @resident.AcquisitionEntered => acquisitions += 1
+        @resident.ConsumerEntered(_) => computations += 1
+        _ => ()
+      }
+      true
+    },
+  ).unwrap()
+  work.execute_task(1).unwrap()
+  resident_compute_reclaim(root, name)
+  let normalization = @publication.seal_run_evidence_value(
+    "normalization_journal",
+    "{\"version\":\"actql-normalization-journal/0.1\",\"rule_catalog_cid\":\"sha256:" +
+    "d".repeat(64) +
+    "\",\"entries\":[]}",
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  let before = work.usage()
+  assert_true(
+    work.prepare_capture_context(
+      retained_compute_effect_retention(),
+      normalization,
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+      max_work=0,
+    )
+    is Err(@client.Capture(@resident.InvalidLimits)),
+  )
+  assert_eq(work.usage(), before)
+  assert_true(
+    work.prepare_capture_context(
+      retained_compute_effect_retention(),
+      normalization,
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+      max_work=1,
+    )
+    is Err(@client.Capture(@resident.Pins(@strategy.PreviewWorkLimit))),
+  )
+  assert_eq(work.usage().held_bytes, before.held_bytes)
+  assert_eq(
+    work.usage().reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  assert_eq(
+    work.usage().reserved_execution_bytes,
+    before.reserved_execution_bytes,
+  )
+  let foreign = @host.issue_client_effect_run_definition(
+    allowed, "native-client-effect-fixture", "foreign-local-effect-capture-run",
+    "2026-10-10T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let owner = work.owner_for_capture().unwrap()
+  assert_true(
+    owner.prepare_local_effect_capture_context(
+      {
+        prepared: @host.client_effect_compilation_owner(allowed.compilation),
+        compilation: allowed.compilation,
+        allowed,
+        run_definition: foreign,
+        request: Some(request),
+      },
+      request,
+      "2026-10-10T00:00:01.000Z",
+      "2026-10-10T00:00:01.000Z",
+      retained_compute_effect_retention(),
+      normalization,
+      resident_compute_limits(),
+      4,
+      10000,
+      65536,
+      4096,
+      64,
+      () => true,
+    )
+    is Err(@resident.Invocation(@resident.ForeignRun)),
+  )
+  assert_eq(work.usage().held_bytes, before.held_bytes)
+  assert_eq(acquisitions, 1)
+  assert_eq(computations, 1)
+  let capture = work
+    .prepare_capture_context(
+      retained_compute_effect_retention(),
+      normalization,
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+    )
+    .unwrap()
+  let facts = capture.facts().unwrap()
+  assert_eq(facts.materials.request, Some(request))
+  assert_eq(
+    @publication.publication_contract_identity(facts.materials.run_definition),
+    @publication.publication_contract_identity(definition),
+  )
+  assert_eq(facts.result.output.result_fields().unwrap(), ["id"])
+  assert_eq(
+    facts.result.output.result_schema_wire().unwrap(),
+    "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+  )
+  let replay = facts.result.output.replay().unwrap()
+  let rows = StringBuilder()
+  while replay.next().unwrap() is Some(chunk) {
+    rows.write_string(chunk)
+  }
+  rows.write_string(replay.finish().unwrap())
+  assert_eq(rows.to_string(), "[{\"id\":3}]")
+  replay.cancel()
+  @publication.validate_run_publication_chain(
+    definition,
+    facts.invocation,
+    [facts.result.definition],
+    [facts.result.artifact],
+    facts.result.manifest,
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  |> ignore
+  assert_eq(@strategy.captured_effect_local_result_count(facts.inputs), 2)
+  assert_true(
+    @host.client_effect_imported_scope_json(facts.imported).contains(
+      "actql-acquisition-scope/0.1",
+    ),
+  )
+  authorized = false
+  assert_true(capture.facts() is None)
+  assert_false(work.close())
+  assert_true(capture.close())
+  assert_true(capture.close())
+  assert_true(work.close())
+  assert_eq(acquisitions, 1)
+  assert_eq(computations, 1)
+  assert_eq(work.usage().held_bytes, 0L)
+  assert_eq(work.usage().reserved_retention_bytes, 0L)
+  assert_eq(work.usage().reserved_execution_bytes, 0L)
+  database.close_checked().unwrap()
+}

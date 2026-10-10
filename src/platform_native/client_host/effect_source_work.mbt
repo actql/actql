@@ -10,6 +10,8 @@ struct NativeClientEffectSourceWork {
   definition : @publication.PublicationContract
   current_time : () -> String
   current_authorization : () -> Bool
+  capture_started_at : String
+  capture_completed_at : String
 }
 
 ///|
@@ -80,7 +82,10 @@ pub fn open_native_client_effect_source_work(
   }
   // Observe time before the final original-claim guard. A clock callback may
   // itself accept cancellation and must never bypass that guard.
-  if !@host.client_effect_run_start_current(allowed, definition, current_time()) {
+  let capture_started_at = current_time()
+  if !@host.client_effect_run_start_current(
+      allowed, definition, capture_started_at,
+    ) {
     return Err(OriginalRunNotCurrent)
   }
   let bound = match
@@ -118,6 +123,8 @@ pub fn open_native_client_effect_source_work(
         definition,
         current_time,
         current_authorization,
+        capture_started_at,
+        capture_completed_at: current_time(),
       })
     Err((issue, cleanup)) => Err(Open(issue, cleanup))
   }
