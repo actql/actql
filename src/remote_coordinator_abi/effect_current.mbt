@@ -66,3 +66,12 @@ pub fn coordinator_effect_current_reply_projection(
     saved.to_string(),
   ]
 }
+
+///|
+/// Poll routing derives its dispatch from the original query Owner.
+#export_name("coordinatorEffectCurrentPollJson")
+pub fn coordinator_effect_current_poll_json(
+  query : @remote.RemoteEffectCurrentQuery,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.remote_poll_effect_current_json(query)
+}

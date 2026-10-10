@@ -11,7 +11,7 @@ test('Effect current fixed queries and replies bind the original report and fres
   const original = read(fixed.source_fixture);
   assert.equal(createHash('sha256').update(readFileSync(fixed.source_fixture)).digest('hex'), fixed.source_fixture_sha256);
   assert.equal(fixed.query.body.report_cid, hash(canonical(original.report)));
-  for (const [name, values] of [['effect_current_query', [fixed.query]], ['effect_current_reply', fixed.replies]]) {
+  for (const [name, values] of [['effect_current_query', [fixed.query]], ['effect_current_reply', fixed.replies], ['poll_effect_current', [fixed.poll]]]) {
     const schema = registry.schemas[name];
     assert.equal(hash(canonical(schema)), registry.schema_cids[name]);
     for (const vector of values) {

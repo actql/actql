@@ -525,6 +525,35 @@
           "const": "actql-remote-effect-current-reply/0.1"
         }
       }
+    },
+    "poll_effect_current": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_request_cid",
+        "query_json",
+        "request_json",
+        "version"
+      ],
+      "properties": {
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "query_json": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "request_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-remote-poll-effect-current/0.1"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -538,6 +567,7 @@
     "effect_resume_delivery": "sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5",
     "poll_effect_resume": "sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265",
     "effect_current_query": "sha256:a11afe0b0327e7c253cc2a8d621282cfc5c994fbb304ec2178ce5d2132a7e343",
-    "effect_current_reply": "sha256:d898c42ea28d2f776df4dbd1d910b27b3d13afe7f9479edca364a1387ef9e380"
+    "effect_current_reply": "sha256:d898c42ea28d2f776df4dbd1d910b27b3d13afe7f9479edca364a1387ef9e380",
+    "poll_effect_current": "sha256:ec96478794b68708c384b01df952e25d99961e909927137398a9a05c4920079f"
   }
 }

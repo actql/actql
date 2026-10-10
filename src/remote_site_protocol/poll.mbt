@@ -71,6 +71,7 @@ pub(all) enum RemotePollOperation {
   RetainedPlan(RemotePollRetainedInput)
   RetainedTransfer(RemotePollRetainedTransfer)
   RetainedCurrent(RemotePollRetainedCurrent)
+  EffectCurrent(RemotePollEffectCurrent)
   EffectResume(RemotePollEffectResume)
   Output(RemotePollOutput)
   Query(DispatchRequest)
@@ -458,6 +459,10 @@ pub fn admit_remote_poll_operation_json(
     Ok(input) => return Ok(RetainedCurrent(input))
     Err(_) => ()
   }
+  match admit_remote_poll_effect_current_json(body) {
+    Ok(query) => return Ok(EffectCurrent(query))
+    Err(_) => ()
+  }
   match admit_remote_poll_effect_resume_json(body) {
     Ok(delivery) => return Ok(EffectResume(delivery))
     Err(_) => ()
@@ -495,6 +500,7 @@ pub fn remote_poll_operation_request(
     RetainedPlan(input) => input.request
     RetainedTransfer(input) => input.intent.request
     RetainedCurrent(input) => input.handoff.intent.request
+    EffectCurrent(query) => query.request
     EffectResume(delivery) => delivery.request
     Query(request) | Cancel(request) | Release(request) => request
   }
@@ -507,6 +513,7 @@ pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
     | RetainedPlan(_)
     | RetainedTransfer(_)
     | RetainedCurrent(_)
+    | EffectCurrent(_)
     | EffectResume(_)
     | Plan(_)
     | Output(_) => false
@@ -525,6 +532,7 @@ pub fn remote_poll_operation_is_release(
     | RetainedPlan(_)
     | RetainedTransfer(_)
     | RetainedCurrent(_)
+    | EffectCurrent(_)
     | EffectResume(_)
     | Plan(_)
     | Output(_)
@@ -541,6 +549,7 @@ pub fn remote_poll_operation_is_output(operation : RemotePollOperation) -> Bool 
     | RetainedPlan(_)
     | RetainedTransfer(_)
     | RetainedCurrent(_)
+    | EffectCurrent(_)
     | EffectResume(_)
     | Plan(_)
     | Query(_)
@@ -559,6 +568,7 @@ pub fn remote_poll_operation_is_output_plan(
     | RetainedPlan(_)
     | RetainedTransfer(_)
     | RetainedCurrent(_)
+    | EffectCurrent(_)
     | EffectResume(_)
     | Output(_)
     | Query(_)
@@ -648,6 +658,7 @@ pub fn remote_poll_operation_is_cancel(operation : RemotePollOperation) -> Bool 
     | RetainedPlan(_)
     | RetainedTransfer(_)
     | RetainedCurrent(_)
+    | EffectCurrent(_)
     | EffectResume(_)
     | Plan(_)
     | Output(_)
@@ -682,4 +693,11 @@ pub fn remote_poll_operation_is_effect_resume(
   operation : RemotePollOperation,
 ) -> Bool {
   operation is EffectResume(_)
+}
+
+///|
+pub fn remote_poll_operation_is_effect_current(
+  operation : RemotePollOperation,
+) -> Bool {
+  operation is EffectCurrent(_)
 }
