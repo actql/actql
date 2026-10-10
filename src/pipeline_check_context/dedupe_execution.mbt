@@ -224,6 +224,15 @@ pub fn operation_execution_phase(
     TraversalExecution(v) =>
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
+        ShortestRule(rule) =>
+          match rule {
+            AdmitShortestGraph
+            | AdmitShortestSelectors
+            | DeduplicateShortestSelectors
+            | RequireShortestMembership
+            | ValidateEveryShortestWeight => BeforeOperationInputUse
+            _ => BeforeOperationOutput
+          }
         RespectAuthoredHops
         | FilterAuthoredLabels
         | EnumerateGraphPaths

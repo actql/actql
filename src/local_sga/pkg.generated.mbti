@@ -175,6 +175,8 @@ pub fn traverse_private_entry_count(TraverseExecution) -> Int
 
 pub fn traverse_private_workspace_usage(TraverseExecution) -> (Int, Int)
 
+pub fn traverse_shortest_winner_count(TraverseExecution) -> Int
+
 pub fn traverse_stopped(TraverseExecution) -> Bool
 
 pub fn traverse_value_item_attempts(TraverseExecution) -> Int
@@ -368,6 +370,14 @@ pub enum NormalizePoll {
   NormalizeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
+pub(all) enum ShortestCandidateIssue {
+  InvalidShortestCost
+  ShortestCandidateInputUnavailable
+  ShortestCandidateWorkLimit
+  InvalidShortestCandidateCursor
+  SelectedShortestOverrange
+} derive(Eq, @debug.Debug)
+
 type SubgraphExecution
 
 pub(all) enum SubgraphIssue {
@@ -410,6 +420,7 @@ pub(all) enum TraversePathsIssue {
   TraversePathsOutput(@execution_relation.CaptureIssue)
   TraversePathsCompletion(@execution_relation.TrustedOutputIssue)
   TraversePathsExecutionIssue(@bounded_execution.Issue)
+  TraversePathsShortest(ShortestCandidateIssue)
 } derive(Eq, @debug.Debug)
 
 pub enum TraversePoll {

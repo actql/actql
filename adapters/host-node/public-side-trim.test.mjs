@@ -257,7 +257,7 @@ test('public side trims refuse wrong arity, types, bindings, and excluded overlo
     for (const {tag, call} of operators) {
       const invalid = [
         {text: `${call}()`, expression: {[tag]: []}},
-        {text: `${call}(' a ', ' ')`, expression: {[tag]: [literal(' a '), literal(' ')]}},
+        {text: `${call}(' a ', 1)`, expression: {[tag]: [literal(' a '), literal(1)]}},
         {text: `${call}('a', 'b', 'c')`,
           expression: {[tag]: [literal('a'), literal('b'), literal('c')]}},
         {text: `${call}(1)`, expression: {[tag]: literal(1)}},

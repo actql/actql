@@ -19,7 +19,8 @@ try {
     const expected = cohorts.filter(cohort => cohort.mode === mode).map(cohort => cohort.directory);
     const report = JSON.parse(await readFile(`transport-restart.${mode}.json`, 'utf8'));
     assert.equal(report.mode, mode);
-    assert.equal(report.stringComplete, true);
+    assert.equal(report.stringComplete, process.env.ACTQL_TEST_RETAINED_COHORT_ONLY !== '1');
+    assert.ok(expected.length > 0, 'restart must execute retained Result cohorts');
     requireCompleteInventory(expected, report.completedRoots);
     roots.push({mode, expectedRoots: expected.length, completedRoots: report.completedRoots.length});
   }

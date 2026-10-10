@@ -12,6 +12,8 @@ pub(all) enum ExpressionConsumer {
   GraphSubgraphEdgePredicate
   GraphTraverseEdgePredicate(Int)
   GraphTraverseNodePredicate(Int)
+  GraphNodeSelectorPredicate
+  GraphTargetSelectorPredicate
   InferInput(Int)
 } derive(Eq, Debug)
 
@@ -268,7 +270,22 @@ pub fn collect_expression_slots(
             @graph.subgraph_edges(checked),
             GraphSubgraphEdgePredicate,
           )
-        Traverse(checked~, ..) =>
+        Traverse(checked~, ..) => {
+          let start = @graph.traverse_start(checked)
+          if @graph.selector_predicate(start) is Some(predicate) {
+            slot_predicate(c, step, Some(predicate), GraphNodeSelectorPredicate)
+          }
+          if @graph.traverse_shortest(checked)
+            .map(@graph.shortest_targets)
+            .bind(@graph.selector_predicate)
+            is Some(predicate) {
+            slot_predicate(
+              c,
+              step,
+              Some(predicate),
+              GraphTargetSelectorPredicate,
+            )
+          }
           for i in 0..<@graph.traverse_hop_count(checked) {
             let hop = @graph.traverse_hop_at(checked, i).unwrap()
             slot_predicate(
@@ -284,6 +301,7 @@ pub fn collect_expression_slots(
               GraphTraverseNodePredicate(i),
             )
           }
+        }
         // These checked forms retain scalar/cell operands or field selectors,
         // not general Expression roots. Do not use a catch-all here.
         Join(..)
