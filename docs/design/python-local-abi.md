@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 4; this private ABI
+before opening the instance. `actql_host_abi_version` returns 5; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -204,6 +204,27 @@ existing captured Local Host. Compute binds that retained decision rather than
 claiming the Run is still physically unstarted after acquisition. A decision
 from another plan cannot authorize this Host. Current authorization is still
 checked at each task activation.
+
+The private `actql_run_reserve_physical_start` scalar entry retains one exact
+immutable fact loan and the installed current account configuration against the
+original Run handle. Its closed object contains the original request record,
+`definition_cid`, and explicit boolean facts `reserved`, `physically_unstarted`,
+`cancellation_requested` and `pre_start_failure_confirmed`. Missing or NULL
+facts are malformed physical Host input, never false or a default value. The
+physical adapter must obtain these facts from its durable original journal and
+resource reservations; neither a Client payload nor preparation can supply
+proof that they are true.
+
+`actql_run_confirm_physical_start` admits the retained request through its
+existing codec and calls the common Run start Owner under current subject-bound
+authorization. The input loan and Run remain live during an interrupted call.
+One original Run handle reserves at most one start invocation, including after
+that invocation closes. A known result may be observed again without redoing
+the evaluation. Unknown, interrupted or malformed invocations cannot silently
+replace their facts, reserve another start or imply unstarted physical work.
+The readiness status is not a durable Submission response or evidence that I/O
+was dispatched. Closing this loan requires physical reader-stop acknowledgement
+and does not cancel or rewrite the original Run.
 
 Captured root inputs and completed Compute producers use the existing managed
 driver's distinct input variants. The common compute Host refreshes its normal

@@ -20,6 +20,7 @@ priv struct Instance {
   runs : Map[Int, StoredRun]
   materials : Map[Int, StoredMaterial]
   restorations : Map[Int, StoredRestoration]
+  physical_starts : Map[Int, StoredPhysicalStart]
   mut next_handle : Int
 }
 
@@ -86,6 +87,7 @@ pub fn open(
         runs: {},
         materials: {},
         restorations: {},
+        physical_starts: {},
         next_handle: 1,
       })
       0

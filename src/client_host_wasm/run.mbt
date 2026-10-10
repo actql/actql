@@ -21,6 +21,7 @@ priv struct StoredRun {
   preparation : Int
   mut invoked : Bool
   mut restoration : Int?
+  mut physical_start_reserved : Bool
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
 }
 
@@ -120,6 +121,7 @@ pub fn reserve_run(
     preparation,
     invoked: false,
     restoration: None,
+    physical_start_reserved: false,
     outcome: None,
   }
   value.next_handle += 1
@@ -284,7 +286,8 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
   }
-  if value.materials.values().any(material => material.run == handle) {
+  if value.materials.values().any(material => material.run == handle) ||
+    value.physical_starts.values().any(start => start.run == handle) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
@@ -301,7 +304,10 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     value.run_configurations.get(handle) is Some(record) else {
     return -2
   }
-  if value.runs.values().any(run => run.configuration == handle) {
+  if value.runs.values().any(run => run.configuration == handle) ||
+    value.physical_starts
+    .values()
+    .any(start => start.current_configuration == handle) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
