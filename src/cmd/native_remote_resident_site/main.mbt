@@ -2213,6 +2213,24 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("retained-current-unavailable", [("request_cid", identity)])
         }
       }
+      Ok(Some(@remote.EffectCurrent(query))) => {
+        backoff_ms = 0
+        let request = @remote.remote_poll_effect_current_request(query)
+        // Transport cannot fabricate a current Ledger observation. Preserve
+        // pending custody until the original review Owner is installed.
+        match
+          @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          ) {
+          Err(refusal) =>
+            report("effect-current-refused", [("reason", refusal_code(refusal))])
+          Ok(_) =>
+            report("effect-current-pending", [
+              ("request_cid", @remote.dispatch_request_identity(request)),
+              ("reason", "review-owner-unavailable"),
+            ])
+        }
+      }
       Ok(Some(@remote.EffectResume(delivery))) => {
         backoff_ms = 0
         let request = @remote.remote_poll_effect_resume_request(delivery)

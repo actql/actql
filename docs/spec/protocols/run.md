@@ -16,6 +16,7 @@ normative_dependencies: [actql.execution, actql.protocol.contracts, actql.protoc
 <!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_resume sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265 -->
 <!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_current_reply sha256:d898c42ea28d2f776df4dbd1d910b27b3d13afe7f9479edca364a1387ef9e380 -->
 <!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_current_query sha256:a11afe0b0327e7c253cc2a8d621282cfc5c994fbb304ec2178ce5d2132a7e343 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_current sha256:ec96478794b68708c384b01df952e25d99961e909927137398a9a05c4920079f -->
 
 This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, apply-receipt, reconciliation-receipt. It does not define other owners' wire protocols or a particular Host implementation. Cross-owner links outside the declared dependencies are informative navigation to protocol bindings or conformance evidence; they do not import those documents' requirements. Narrow machine contracts remain authoritative for their explicitly referenced values and envelopes.
 

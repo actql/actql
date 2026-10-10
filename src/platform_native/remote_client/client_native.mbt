@@ -154,6 +154,7 @@ pub fn poll(
     Ok(Some(@remote.RetainedPlan(_)))
     | Ok(Some(@remote.RetainedTransfer(_)))
     | Ok(Some(@remote.RetainedCurrent(_)))
+    | Ok(Some(@remote.EffectCurrent(_)))
     | Ok(Some(@remote.EffectResume(_)))
     | Ok(Some(@remote.Plan(_)))
     | Ok(Some(@remote.Output(_)))
