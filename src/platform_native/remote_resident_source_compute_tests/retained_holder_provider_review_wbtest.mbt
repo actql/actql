@@ -4,6 +4,7 @@
 /// integration, not a Cloud waiting commit, approval or external write.
 fn retained_holder_provider_review(
   consumer : @resident.ResidentSourceCompute,
+  source_owner : @resident.ResidentSourceCompute,
   materials : @host.ClientEffectRunMaterials,
   inputs : @strategy.CapturedEffectInputs,
   dispatch : @remote.DispatchRequest,
@@ -100,6 +101,44 @@ fn retained_holder_provider_review(
     4096,
     64,
   ).unwrap()
+  // A genuine second observation of the retained Source must not replace
+  // the original journal fact. It reads the held capture, never the Source.
+  let (refreshed, refreshed_bodies) = retained_compute_acquired_evidence(
+    source_owner,
+  ).unwrap()
+  assert_false(
+    @publication.run_evidence_value_identity(
+      @host.client_effect_acquired_observation(refreshed),
+    ) ==
+    @publication.run_evidence_value_identity(
+      @host.client_effect_acquired_observation(producer.acquired),
+    ),
+  )
+  assert_true(
+    @host.issue_client_effect_capture_inventory(
+      materials,
+      inputs,
+      0,
+      source,
+      manifest,
+      artifact,
+      imported,
+      refreshed,
+      refreshed_bodies.0,
+      refreshed_bodies.1,
+      dependencies,
+      [],
+      {
+        max_entries: 100,
+        max_total_bytes: 65536,
+        max_depth: 64,
+        max_references: 1000,
+      },
+      10000,
+      64,
+    )
+    is Err(ForeignInput),
+  )
   let (local_source, inventory) = retained_effect_capture_inventory(
     materials,
     inputs,

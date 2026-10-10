@@ -366,6 +366,7 @@ fn retained_holder_effect_transfer_capture(
   if provider {
     retained_holder_provider_review(
       consumer,
+      source_owner,
       materials,
       inputs,
       producer.executed.request,
