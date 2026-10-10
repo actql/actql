@@ -1858,6 +1858,8 @@ pub(all) enum UnaryOperator {
   Sqrt
   Abs
   Sign
+  Round
+  Trunc
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

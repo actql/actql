@@ -397,10 +397,13 @@ pub fn ResidentEffectReviewRetention::persist(Self, @publication_store.Store) ->
 pub fn ResidentEffectReviewRetention::report(Self) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::retry_cleanup(Self) -> Result[Bool, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::review_projection(Self, () -> Bool, Int) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), ResidentEffectReviewRetentionIssue]
 
 pub(all) enum ResidentEffectReviewRetentionIssue {
   Unavailable
   InvalidConfiguration
+  EvidenceDenied
+  ProjectionTooLarge
   Capture(ResidentEffectCaptureCustodyIssue)
   Preview(ResidentEffectPreviewCustodyIssue)
   Preparation(ResidentEffectReviewCheckpointIssue)

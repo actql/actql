@@ -125,6 +125,20 @@ This implements the finite FLOAT64 subset. INT64, NUMERIC, BIGNUMERIC and
 non-finite overload domains remain unsupported; no implicit conversion is
 introduced by the frontend.
 
+`ROUND(expr)` and `TRUNC(expr)` each take exactly one finite binary64 `number`
+operand and lower to their common `round` or `trunc` node. The selected
+[GoogleSQL ROUND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#round)
+and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc)
+unary rules round to the nearest integer with halfway cases away from zero,
+and to the nearest integer toward zero, respectively. Already-integral values
+remain unchanged, including the largest finite magnitudes. Zero results use
+the existing ActQL positive-zero rule. NULL propagates and operand nullability
+is preserved, including on empty input. The child is demanded exactly once
+under the common failure, lazy-demand, cancellation and budget rules.
+Optional decimal-position `N`, explicit `rounding_mode`, INT64/NUMERIC/BIGNUMERIC
+and non-finite overload domains remain coverage gaps. Extra arguments and
+wrong types MUST be refused rather than ignored or coerced.
+
 `SELECT * EXCEPT (name, ...)` uses the adopted
 [GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).
 It expands the current visible star columns, removes all matching named
