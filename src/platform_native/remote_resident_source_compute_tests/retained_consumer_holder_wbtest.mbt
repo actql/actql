@@ -860,7 +860,8 @@ fn retained_consumer_holder_case(
     assert_eq(facts.row_count, 1)
     assert_eq(
       facts.result_schema_cid,
-      "sha256:" + @sha.hex(@utf8.encode(retained_effect_expected_schema(provider))),
+      "sha256:" +
+      @sha.hex(@utf8.encode(retained_effect_expected_schema(provider))),
     )
   }
   // A live Result reader prevents output-file cleanup. Its independent file
