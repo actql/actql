@@ -17,6 +17,8 @@ import {
 }
 
 // Values
+pub fn effect_response_body_digest(Bytes) -> String
+
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
 
 pub fn native_output_file_custody_generation(NativeOutputFileCustody) -> @filesystem.NativeFileGeneration
