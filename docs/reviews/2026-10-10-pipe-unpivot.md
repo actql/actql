@@ -237,3 +237,22 @@ After a reviewed common fix, B must rerun the unchanged seven normal and six
 refusal cases on a newly fixed-SHA normal distribution, on both transports.
 Until then PR #1230 remains Draft; full required CI and Wasm/Native execution
 are unverified. The wider frontend goal remains active.
+
+## Integration fix: completed UNPIVOT scratch lifetime
+
+The existing bounded UNPIVOT kernel seals its accepted rows into a
+completion port capturing only the rows/live references. Its cleanup
+clears private mappings, cursors and workspace while preserving accepted
+rows. The chain now includes that kernel in the existing sequential
+reclamation path. Capacity uses the existing maximum live child scratch
+plus every retained child output and metadata/preparation allowance.
+Neither the capacity coefficients nor the 512 MiB limit changed.
+
+Three targeted counterexamples failed before the change (run-orMqco).
+After the connection, these and existing chain/analytic regressions
+passed 14/14 (run-Lm9Ycy): duplicate rows and labels survive cleanup;
+false/error cleanup keeps the same child until retry; cancellation
+retains reclamation custody without repeated work or source invalidation.
+An initial new-test compilation error and a positional-column assertion
+were corrected separately; output cells are checked by canonical names.
+The fixed public SET/RENAME case still requires fresh packed acceptance.
