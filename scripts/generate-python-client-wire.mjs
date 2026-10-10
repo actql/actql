@@ -29,9 +29,22 @@ export function pythonTypes(schemas) {
   const declarations = [];
   const identifier = value => value.split(/[^a-zA-Z0-9]+/u).filter(Boolean)
     .map(part => part[0].toUpperCase() + part.slice(1)).join('');
+  const roots = new Set(Object.keys(schemas).map(identifier));
+  if (roots.size !== Object.keys(schemas).length) throw Error('ConflictingPythonRootTypes');
+  const nested = new Set();
+  const nestedName = path => {
+    let name = path;
+    let suffix = 1;
+    while (roots.has(name) || nested.has(name)) {
+      name = path + 'Field' + (suffix === 1 ? '' : suffix);
+      suffix += 1;
+    }
+    nested.add(name);
+    return name;
+  };
   const literal = value => value === true ? 'True' : value === false ? 'False' :
     value === null ? 'None' : JSON.stringify(value);
-  function type(schema, path) {
+  function type(schema, path, root = false) {
     if (schema.$ref) return identifier(schema.$ref);
     if (schema.oneOf) return schema.oneOf.map((rule, index) => type(rule, path + index)).join(' | ');
     if (Object.hasOwn(schema, 'const')) return schema.const === null ? 'None' : `Literal[${literal(schema.const)}]`;
@@ -44,16 +57,17 @@ export function pythonTypes(schemas) {
     if (schema.type === 'object') {
       if (!schema.properties) return `dict[str, ${typeof schema.additionalProperties === 'object'
         ? type(schema.additionalProperties, path + 'Value') : 'Any'}]`;
+      const name = root ? path : nestedName(path);
       const fields = Object.entries(schema.properties).map(([key, value]) =>
-        `${JSON.stringify(key)}: ${schema.required?.includes(key) ? 'Required' : 'NotRequired'}[${type(value, path + identifier(key))}]`);
-      declarations.push(`${path} = TypedDict(${JSON.stringify(path)}, {${fields.join(', ')}}, total=False)`);
-      return path;
+        `${JSON.stringify(key)}: ${schema.required?.includes(key) ? 'Required' : 'NotRequired'}[${type(value, name + identifier(key))}]`);
+      declarations.push(`${name} = TypedDict(${JSON.stringify(name)}, {${fields.join(', ')}}, total=False)`);
+      return name;
     }
     return 'Any';
   }
   for (const [name, schema] of Object.entries(schemas)) {
     const alias = identifier(name);
-    const result = type(schema, alias);
+    const result = type(schema, alias, true);
     if (result !== alias) declarations.push(`${alias} = ${result}`);
   }
   // Quoted annotations allow schema references to later DTO declarations.
