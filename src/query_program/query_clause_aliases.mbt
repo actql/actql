@@ -28,16 +28,24 @@ fn materialize_clause_aliases(
       value: output_name(projection),
       quoted: false,
     })
+    let demanded = references.any(path => {
+      // A qualified input receiver keeps its range meaning, including when
+      // followed by nested properties, rather than demanding a SELECT alias.
+      !(path.length() > 1 &&
+      pipe_slot(path[:2].to_owned(), input_scope.visible, input_scope.ranges)
+      is Some(_)) &&
+      same_name(path[0], name)
+    })
+    if !demanded {
+      continue
+    }
+    if duplicate_projection_alias(projections, name.value) {
+      raise Abort(AmbiguousColumn)
+    }
     if aliases.any(binding => same_name(binding.0, name)) {
       raise Abort(DuplicateOutput)
     }
     if reject_window_aliases &&
-      references.any(path => {
-        !(path.length() > 1 &&
-        pipe_slot(path[:2].to_owned(), input_scope.visible, input_scope.ranges)
-        is Some(_)) &&
-        same_name(path[0], name)
-      }) &&
       (
         projection.analytic is Some(_) ||
         projection.expression
@@ -74,17 +82,6 @@ fn materialize_clause_aliases(
       continue
     }
     let expression = projection.expression.unwrap()
-    if !references.any(path => {
-        // A qualified input receiver keeps its range meaning even
-        // when followed by nested property access. The common lowerer
-        // resolves that two-part prefix before a one-part alias.
-        !(path.length() > 1 &&
-        pipe_slot(path[:2].to_owned(), input_scope.visible, input_scope.ranges)
-        is Some(_)) &&
-        same_name(path[0], name)
-      }) {
-      continue
-    }
     let cached = qualify_cached_slot(expression, cached_values + qualify_values)
     let direct = match
       @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {

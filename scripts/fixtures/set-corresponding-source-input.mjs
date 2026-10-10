@@ -117,3 +117,52 @@ setCorrespondingRefusals.push(...[
     text: 'SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x ORDER BY aql_set_duplicate_2'},
 ].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
   format: 'sql', expectedCode: 'ClientProgramInvalidInput'})));
+
+// Independent COUNT semantics: a single NULL input is counted by COUNT(*)
+// and excluded by COUNT(field). Both output columns are nonnullable numbers.
+const aggregateColumns = [{name: 'a', contract: number}, {name: 'b', contract: number}];
+const aggregateRows = [{a: 0, b: 0}, {a: 1, b: 0}];
+export const positionalAggregateProgram = {version: 'actql/0.1', id: 'fixture.aggregate_duplicates',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {nullable_input: {...number, nullable: true}},
+      rows: [{nullable_input: null}]}, as: 'input'},
+    {from: 'input', group: {by: [], aggregates: {
+      one: {fn: 'count'}, zero: {fn: 'count', field: 'nullable_input'},
+    }}},
+    {select: [{a: 'one'}, {b: 'zero'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+      {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const aggregateText = 'SELECT 0 AS a, 0 AS b UNION ALL '
+  + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n';
+const aggregateQualify = 'DATA r = SELECT 1 AS x; SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL '
+  + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n, '
+  + 'ROW_NUMBER() OVER (ORDER BY r.x) AS rn FROM r GROUP BY r.x QUALIFY ';
+const aggregate = (name, text, extra = {}) => positional('aggregate-' + name, text,
+  {columns: aggregateColumns, expected: aggregateRows, ...extra});
+setCorrespondingSuccesses.push(
+  aggregate('json-control', JSON.stringify(positionalAggregateProgram), {format: 'json'}),
+  aggregate('distinct-count-inputs', aggregateText + ' ORDER BY a, b'),
+  aggregate('data-case-aliases', 'DATA combined = SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS `N`; '
+    + 'FROM combined |> ORDER BY a, b', {format: 'aql-text'}),
+  aggregate('empty-global', aggregateText + ' WHERE FALSE ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 0, b: 0}]}),
+  aggregate('explicit-having-call', aggregateText + ' HAVING COUNT(*) > 0 ORDER BY a, b'),
+  aggregate('qualified-input-having', 'DATA r = SELECT 1 AS x; '
+    + aggregateText + ' FROM r AS n GROUP BY n.x HAVING n.x > 0 ORDER BY a, b',
+    {format: 'aql-text'}),
+  aggregate('undemanded-qualify-aliases', aggregateQualify + 'r.x > 0 AND rn = 1 ORDER BY a, b, c',
+    {format: 'aql-text', expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 0, c: 1}],
+      columns: [...aggregateColumns, {name: 'c', contract: number}]}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'aggregate-ambiguous-having', text: aggregateText + ' HAVING n > 0'},
+  {name: 'aggregate-ambiguous-receiver', text: aggregateText + ' HAVING n.member = 1'},
+  {name: 'aggregate-private-having', text: aggregateText + ' HAVING aql_select_aggregate_2 > 0'},
+  {name: 'aggregate-ambiguous-qualify', format: 'aql-text', text: aggregateQualify + 'n > 0'},
+].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
+  format: item.format ?? 'sql', expectedCode: 'ClientProgramInvalidInput'})));

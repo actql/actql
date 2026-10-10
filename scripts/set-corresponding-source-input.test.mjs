@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 17);
-  assert.equal(setCorrespondingRefusals.length, 11);
+  assert.equal(setCorrespondingSuccesses.length, 24);
+  assert.equal(setCorrespondingRefusals.length, 15);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -14,6 +14,27 @@ test('CORRESPONDING matching has independent row, type, scope and multiplicity c
   assert.deepEqual(setCorrespondingProgram.stages[1].steps[0].filter, {gt: [{field: 'id'}, {literal: 1}]});
   assert.deepEqual(setCorrespondingProgram.stages[1].steps[2].filter, {lte: [{field: 'id'}, {literal: 2}]});
   assert.deepEqual(setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-global-common-type').expected, [{x: 1}, {x: 3}, {x: 4}]);
+});
+
+test('duplicate aggregate aliases retain different COUNT arguments and empty global rows', () => {
+  const counts = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-aggregate-distinct-count-inputs');
+  assert.deepEqual(counts.expected, [{a: 0, b: 0}, {a: 1, b: 0}]);
+  assert.deepEqual(counts.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: false}}]);
+  assert.equal(counts.sourceReadSessionCount, 0);
+  assert.deepEqual(positionalAggregateProgram.stages[0].steps[1].group.aggregates,
+    {one: {fn: 'count'}, zero: {fn: 'count', field: 'nullable_input'}});
+  const empty = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-aggregate-empty-global');
+  assert.deepEqual(empty.expected, [{a: 0, b: 0}, {a: 0, b: 0}]);
+  const input = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-aggregate-qualified-input-having');
+  assert.ok(input.text.includes('GROUP BY n.x HAVING n.x > 0'));
+  const qualify = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-aggregate-undemanded-qualify-aliases');
+  assert.deepEqual(qualify.expected, [{a: 0, b: 0, c: 0}, {a: 1, b: 0, c: 1}]);
+  assert.deepEqual(qualify.columns.map(x => [x.name, x.contract.nullable]),
+    [['a', false], ['b', false], ['c', false]]);
+  for (const fixture of setCorrespondingRefusals.filter(x => x.name.includes('aggregate-'))) {
+    assert.equal(fixture.expectedCode, 'ClientProgramInvalidInput');
+  }
 });
 
 test('positional duplicate controls retain both values, types and scope', () => {
