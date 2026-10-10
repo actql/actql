@@ -22,6 +22,7 @@ import {
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {startNativeEffectCheckpointServer} from './fixtures/native-effect-checkpoint-server.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
@@ -200,6 +201,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
 
 let server;
 let bearerServers;
+let effectCheckpointServer;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -998,6 +1000,10 @@ try {
     cert: await readFile(join(root, 'server.crt')),
     root,
   });
+  effectCheckpointServer = await startNativeEffectCheckpointServer({
+    host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
+    cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
+  });
   const moon = join(
     process.env.MOON_HOME ?? '',
     'bin',
@@ -1124,6 +1130,7 @@ try {
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
     ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+    ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
     ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
@@ -2739,6 +2746,7 @@ try {
   await stopProductTransferService(productTransferService);
   productTransferService = undefined;
 } finally {
+  await effectCheckpointServer?.close();
   releaseStalePoll?.();
   if (applicationControlProxy !== undefined) {
     applicationControlProxy.close();

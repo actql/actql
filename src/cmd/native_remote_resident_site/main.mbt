@@ -211,6 +211,7 @@ fn client_code(issue : @client.NativeRemoteClientIssue) -> String {
     Journal(_) => "journal"
     InvalidUtf8 => "invalid-utf8"
     OutputReportRefused(reason) => "output-report-" + reason
+    EffectCheckpointRefused(reason) => "effect-checkpoint-" + reason
     OutcomeUnknownPersistence(_, _) => "outcome-unknown"
     Closed => "closed"
     UnsupportedTarget => "unsupported-target"

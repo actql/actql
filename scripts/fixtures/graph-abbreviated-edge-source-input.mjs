@@ -87,5 +87,6 @@ export const graphAbbreviatedRefusals = [
     ['foreign-receiver', '(a:Node WHERE id = 1)->(b:Node WHERE a.payload.score > 10)'],
     ['unknown-member', '(a:Node WHERE id = 1)->(b:Node WHERE payload.missing > 10)']]
     .map(([name, pattern]) => ({name: 'graph-abbreviated-' + name, format: 'aql-text',
+      ...(name === 'terminal-quantified-predicate' ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
       text: data + mapping + tail(pattern), parameterDeclarations: declarations, parameters})),
 ];

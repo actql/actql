@@ -2,6 +2,7 @@
 /// The already-admitted destination reader remains owned by the existing
 /// retained output. Keeping this reference does not acquire another borrow.
 priv struct ResidentEffectRetainedCapture {
+  dispatch : @remote.DispatchRequest
   input : @output.NativeRemoteRetainedTaskInput
   material : @transfer_client.NativeRemoteDestinationMaterialUse
   current : @output.NativeRemoteRetainedInputCurrent
