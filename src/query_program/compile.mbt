@@ -2187,6 +2187,15 @@ fn compile_steps(
       sql_group_projection = false
     }
     if positional_projection is Some(projection) && i > projection {
+      if operation is Set(assignments) {
+        for assignment in assignments {
+          if positional_private_fields.any(field => {
+              same_name(assignment.0, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
       // EXCEPT/REPLACE address authored names, never the storage name of an
       // anonymous value. The ordinary star helper retains all other columns.
       if operation is Select(columns, _) {
@@ -2210,6 +2219,7 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
+        Set(assignments) => assignments.map(assignment => assignment.1)
         Select(columns, _)
         | Analytic(columns)
         | AnalyticExpressions(columns, _)
@@ -2219,6 +2229,7 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is Set(_) ||
           operation is Select(_, _) ||
           operation is Analytic(_) ||
           operation is AnalyticExpressions(_, _) ||
@@ -2248,6 +2259,16 @@ fn compile_steps(
           active_fields.contains(mapping.0)
         })
       })
+      if operation is Set(assignments) {
+        for assignment in assignments {
+          if duplicate_projection_alias(
+              remaining_projections,
+              assignment.0.value,
+            ) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
+      }
       for expression in expressions {
         let references = join_reference_paths(expression)
         reject_duplicate_projection_references(

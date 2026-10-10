@@ -612,3 +612,45 @@ setCorrespondingRefusals.push(
     text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS kept '
       + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY v) AS kept)) ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput'},
 );
+
+// SET reads the pre-assignment snapshot; anonymous values retain their ordinal.
+const positionalSet = (name, text, extra = {}) => success('positional-pipe-set-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}], ...extra});
+const positionalSetHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> SET ';
+setCorrespondingSuccesses.push(
+  positionalSet('json-control', JSON.stringify(positionalReplacementProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalSet('source', positionalSetHead + 'kept = kept + 10) ORDER BY a, b'),
+  positionalSet('quoted-chain-limit', positionalSetHead + '`KEPT` = kept + 10 |> WHERE kept > 11 |> SELECT * |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 12, b: -2}]}),
+  positionalSet('simultaneous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> SET first = second, second = first) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 10, b: 1, c: -1}, {a: 20, b: 2, c: -2}]}),
+  positionalSet('retained-duplicates', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> SET kept = kept + 1) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 12}, {a: 2, b: -2, c: 13}]}),
+  positionalSet('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> SET kept = kept + 10) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]}),
+  positionalSet('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> SET kept = kept + 10) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4 = 0', '`AQL_SET_ANONYMOUS_4` = 0', 'kept = aql_set_anonymous_4 + 1', 'kept = 1, `KEPT` = 2'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-set-private-' + index, format: 'sql',
+    text: positionalSetHead + value + ') ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  ...['v = 0', 'kept = v + 1'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-set-ambiguous-' + index, format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+      + '|> SET ' + value + ') ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-set-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SET kept = old.id) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
