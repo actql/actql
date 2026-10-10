@@ -41,13 +41,13 @@ pub fn client_effect_review_checkpoint_members(
   for index in 0..<count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     if @syntax.effect_header_stage(header) == stage {
-      let member = @syntax.effect_header_id(header)
+      let effect_id = @syntax.effect_header_id(header)
       // Unique member names are already admitted by the original syntax/static
       // Owner; this projection does not repeat unbudgeted string comparisons.
       if members.length() >= max_members {
         return Err(UnsupportedInventory)
       }
-      members.push(member)
+      members.push(effect_id)
     }
   }
   if members.is_empty() {
