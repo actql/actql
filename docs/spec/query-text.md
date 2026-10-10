@@ -407,7 +407,7 @@ Pipe `PIVOT(aggregate(expression) [AS prefix] FOR axis IN ('value' [AS name], ..
 [GoogleSQL PIVOT profile](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#pivot_pipe_operator)
 to the ordinary common `pivot` operation. This initial surface supports one
 SUM, AVG, COUNT, MIN or MAX of a scalar expression over current or range-qualified
-input columns, parameters and existing scalar operations, a
+input columns, parameters and existing scalar operations, or COUNT(*), a
 String axis and a nonempty list of static String bucket values. The current
 columns not consumed by the aggregate argument or axis become implicit group
 keys in their current order. All input slots referenced by the argument, including
@@ -433,6 +433,14 @@ retain their implicit index group. Empty input with no implicit keys has one
 global group; empty keyed input has no groups. These are existing common pivot
 rules, not frontend implementations of aggregation.
 
+COUNT(*) references no input column. All current columns other than the axis
+remain implicit group keys; NULLs in those columns do not exclude the row from
+counting. Lowering derives one private nonnullable row witness and counts that
+witness with the existing pivot operation. It is neither an index column nor a
+public field. COUNT(column) retains its existing NULL-excluding argument and
+consumed-column behavior. Empty global input returns zero for each declared
+COUNT bucket; keyed empty input has no groups. No other aggregate accepts star.
+
 Scalar arguments use the ordinary expression lowerer and one private derive before
 pivoting. That private value is neither an implicit group key nor a public column.
 Current and immutable-range references retain their existing resolved slots: a
@@ -440,8 +448,25 @@ reference to an old value does not consume a different current replacement slot.
 Nested aggregate calls are refused; property typing and NULL propagation remain
 owned by the common checker and expression evaluator.
 
-FROM-suffix PIVOT, multiple aggregates, aggregate modifiers,
-COUNT(*), non-String axes and NULL bucket constants remain unimplemented
+The same selected PIVOT clause is supported as a FROM postfix, on a named
+Relation/CTE or a parenthesized query, before surrounding JOIN, WHERE and SELECT.
+A parenthesized PIVOT input may omit its input alias. References inside PIVOT
+resolve against that input and its optional alias. The postfix result exposes
+only its output columns and optional result alias; input ranges and consumed
+columns do not escape. This follows the fixed GoogleSQL analyzer's fresh PIVOT
+NameList. Quoted names remain names, including `PIVOT` and `ORDER` aliases.
+
+A postfix becomes an ordinary projected producer through the existing query
+binding path, so both left and right JOIN inputs use their transformed Relation.
+No SQL rewriting, new acquisition/storage owner or physical-placement selector
+is introduced. The existing Program Stage/result dependency carries the value;
+WHERE on the pivot output remains downstream. All predicates and explicit JOIN
+bounds retain their original expressions and values. Other postfix operators,
+correlated outer-row inputs and the broader multiple-aggregate surface remain
+separate coverage, rather than being approximated by this connection.
+
+Multiple aggregates, aggregate modifiers,
+non-String axes and NULL bucket constants remain unimplemented
 surface coverage. The common requirement that bucket values also be admitted
 output field names, with unique values and no collision with physical index
 fields, is a recorded restriction of the existing contract. This does not

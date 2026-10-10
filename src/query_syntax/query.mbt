@@ -138,6 +138,7 @@ pub(all) struct KeepItem {
 ///|
 pub(all) struct PivotClause {
   function_name : String
+  count_star : Bool
   argument : Array[NamePart]
   argument_expression : Expression?
   column : Array[NamePart]
@@ -932,7 +933,7 @@ fn QueryParser::optional_source_alias(
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
-      "QUALIFY", "WINDOW",
+      "QUALIFY", "WINDOW", "PIVOT",
     ].contains(value.to_upper()) {
     Some(self.name())
   } else {
@@ -946,14 +947,14 @@ fn QueryParser::query_source(
 ) -> (Array[NamePart], NamePart?, Array[CtePart]) raise QueryAbort {
   if self.peek().value != Symbol(40) {
     let (relation, source_alias) = self.source_name()
-    return (relation, source_alias, [])
+    return self.from_pivot_source(relation, source_alias, [])
   }
   let bound = self.bind_query(self.parenthesized())
-  let source_alias = match self.optional_source_alias() {
-    Some(value) => value
-    None => raise QueryAbort("Subquery requires an alias", self.peek().start)
+  let source_alias = self.optional_source_alias()
+  if source_alias is None && !self.has("PIVOT") {
+    raise QueryAbort("Subquery requires an alias", self.peek().start)
   }
-  (bound.relation, Some(source_alias), bound.ctes)
+  self.from_pivot_source(bound.relation, source_alias, bound.ctes)
 }
 
 ///|

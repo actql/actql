@@ -2417,7 +2417,7 @@ fn compile_steps(
       }
       if operation is Pivot(clause) {
         check_references(
-          if clause.argument_expression is Some(_) {
+          if clause.count_star || clause.argument_expression is Some(_) {
             [clause.column]
           } else {
             [clause.argument, clause.column]
@@ -3403,6 +3403,39 @@ fn compile_steps(
         if pipe_value_table {
           raise Abort(UnsupportedGrouping)
         }
+        let row_witness = if clause.count_star {
+          // Every matching row counts, including NULLs in other columns.
+          // This private value is not an implicit grouping column.
+          let reserved = active_fields + pipe_columns.map(column => column.0)
+          for entry in clause.values {
+            let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
+            reserved.push(
+              clause.prefix
+              .map(prefix => prefix.value + "_" + suffix)
+              .unwrap_or(suffix),
+            )
+          }
+          let name = pipe_physical_name(reserved, "aql_pivot_row_")
+          entries.push(
+            (
+              "derive",
+              construction.object([
+                (
+                  name,
+                  construction.object([
+                    ("literal", construction.add(Number(1.0))),
+                  ]),
+                ),
+              ]),
+            ),
+          )
+          step_entries.push(entries.copy())
+          entries.clear()
+          active_fields.push(name)
+          Some(name)
+        } else {
+          None
+        }
         let consumed_fields : Array[String] = []
         let direct_argument = clause.argument_expression
           .map(expression => {
@@ -3414,7 +3447,8 @@ fn compile_steps(
             pipe_slot(clause.argument, pipe_visible, pipe_ranges) is Some(_)
           })
           .unwrap_or(false)
-        let argument_value = if clause.argument_expression is Some(expression) &&
+        let argument_value = if !clause.count_star &&
+          clause.argument_expression is Some(expression) &&
           !direct_argument {
           let resolve = path => pipe_slot(path, pipe_visible, pipe_ranges)
           if @query.expression_node(
@@ -3481,6 +3515,7 @@ fn compile_steps(
           pipe_columns,
           pipe_ranges,
           argument_value~,
+          row_witness~,
           consumed_fields~,
           authored_aliases=positional_authored_aliases,
         )
@@ -5547,7 +5582,12 @@ fn compile_steps(
           scalar_value_table_ranges = []
         }
       }
+      // An otherwise empty Stage Result consumer needs its own declared output
+      // operation. A projection inside an existing JOIN pipeline may still elide.
       Select(projections, distinct) if !preserve_identity_select &&
+        !(input.source is StageResult(_, _) &&
+        step_entries.is_empty() &&
+        !projected_input) &&
         !sql_group_projection &&
         !distinct &&
         projections.length() == 1 &&

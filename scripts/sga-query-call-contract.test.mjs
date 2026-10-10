@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:792dedb6f23299171b2a50f6a5bd26418a7e914a9c58b4303b4fd7c0b307ab14';
+  const currentExpected = 'sha256:af2006c8fe5b67e74d57053355d625dc214ff3b3a3700ea2f342c21465ce9638';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -477,8 +477,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     expression_contract_cid: 'sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd',
     expression_text_grammar_sha256: '12dfcd8853b43a66946036e8c9cc7bdf092b8cf2d911062fec57a9614f66285b',
     expression_text_rules_sha256: 'af98f75d2a1b4199171f72c3a88c36378a87b9be25955c9f112b4cfe56527313',
-    query_text_grammar_sha256: 'abef862dd1dbfb7f60f1f288c4355d3d9076bdad736a81d4e74ec653d384b36d',
-    query_text_rules_sha256: 'd60d15ea747d6321fa4fefbf2af476b00b51879d0919d2c12bf081c9fa3fbf8b'});
+    query_text_grammar_sha256: '5b19475de837a4a5896d6404a62e391a175a2a60d870c45a9ff58a2f324bf78c',
+    query_text_rules_sha256: '19f21bb4eb578d35ade092e04e640c038099dce631494b9f974d33104cf3dc45'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
@@ -487,7 +487,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   }
 });
 
-test('PIVOT scalar argument only changes its source grammar and lowering rules pins', () => {
+test('combined PIVOT argument roles only change source grammar and lowering rules pins', () => {
   const before = read('scripts/fixtures/pre-pivot-argument-expression-values-identities.json').grammar;
   const after = read('spec/manifests/actql-grammar-0.1.json');
   const {grammar_manifest_cid: beforeCid, query_text_grammar_sha256: beforeSyntax,
@@ -500,4 +500,14 @@ test('PIVOT scalar argument only changes its source grammar and lowering rules p
   assert.notEqual(afterSyntax, beforeSyntax);
   assert.notEqual(afterRules, beforeRules);
   assert.notEqual(afterCid, beforeCid);
+});
+
+test('FROM PIVOT only changes source grammar and source-lowering rules',()=>{
+ const before=read('scripts/fixtures/pre-from-pivot-values-identities.json').grammar;
+ const after=read('spec/manifests/actql-grammar-0.1.json');
+ const {grammar_manifest_cid:bc,query_text_grammar_sha256:bg,query_text_rules_sha256:br,...commonBefore}=before;
+ const {grammar_manifest_cid:ac,query_text_grammar_sha256:ag,query_text_rules_sha256:ar,...commonAfter}=after;
+ assert.deepEqual(commonAfter,commonBefore);
+ assert.equal(cid({...commonBefore,query_text_grammar_sha256:bg,query_text_rules_sha256:br}),bc);
+ assert.notEqual(ag,bg);assert.notEqual(ar,br);assert.notEqual(ac,bc);
 });
