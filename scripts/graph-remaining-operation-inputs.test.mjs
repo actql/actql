@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {graphRemainingOperationInputs} from './fixtures/graph-remaining-operation-inputs.mjs';
+import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
+  from './fixtures/graph-remaining-operation-inputs.mjs';
 import {graphGraftSourceSuccesses, graphGraftSourceRefusals,
   graphGraftSourceExecutionFailures} from './fixtures/graph-graft-source-input.mjs';
 import {graphReachSourceSuccesses, graphReachSourceRefusals}
@@ -28,6 +29,38 @@ test('combined Graph selection retains all original independent oracles exactly 
   }
 });
 
+test('each Graph operation has independent JSON and AQL fresh-process boundaries', () => {
+  const groups = graphRemainingOperationCohortInputs(graphRemainingOperationInputs);
+  assert.deepEqual(groups.map(group => [group.successes.length,
+    group.executionFailures.length, group.refusals.length]),
+  [[5, 1, 4], [9, 0, 4], [7, 0, 5], [6, 0, 3]]);
+  assert.deepEqual(groups.map(group => [group.successes[0].name,
+    group.successes.at(-1).name]), [
+    ['graph-graft-independent-json-two-consumers', 'graph-graft-terminal-query'],
+    ['graph-reach-json-raw-identity-two-consumers', 'graph-reach-aql-connected-in'],
+    ['graph-shortest-json-zero-hop-two-consumers', 'graph-shortest-aql-weighted-parallel-edges'],
+    ['graph-mean-json-explicit-repeated-samples-two-consumers', 'graph-mean-aql-asymmetric-ordered-samples'],
+  ]);
+  for (const kind of ['successes', 'executionFailures', 'refusals']) {
+    const flattened = groups.flatMap(group => group[kind]);
+    for (const [index, expected] of graphRemainingOperationInputs[kind].entries()) {
+      assert.equal(flattened[index], expected, 'cohort grouping retains oracle identity');
+    }
+  }
+});
+
+test('Graph operation cohorts cannot silently drop unknown fixtures or a family', () => {
+  assert.throws(() => graphRemainingOperationCohortInputs({
+    ...graphRemainingOperationInputs,
+    refusals: [...graphRemainingOperationInputs.refusals, {name: 'unknown-operation'}],
+  }), /preserve every refusals fixture/);
+  assert.throws(() => graphRemainingOperationCohortInputs({
+    ...graphRemainingOperationInputs,
+    successes: graphRemainingOperationInputs.successes.filter(item =>
+      !item.name.startsWith('graph-mean-')),
+  }), /Every Graph operation/);
+});
+
 test('combined Graph selection stays narrow and rereads after both producers exit', async () => {
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   const flag = "'--graph-remaining-operations-only'";
@@ -46,4 +79,10 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   assert.ok(branch.includes('return;'));
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(corpus.includes('graphRemainingOperationsOnly ? graphRemainingOperationInputs'));
+  assert.ok(corpus.includes('graphRemainingOperationCohortInputs(scopeInputs).flatMap(publicQueryCohorts)'));
+  assert.ok(corpus.includes('saved.expectedSampleNames = [...boundaryNames]'));
+  assert.ok(corpus.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
+  const reader = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
+  assert.ok(reader.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
+  assert.ok(reader.includes('cohort.samples.length >= 1 && cohort.samples.length <= 2'));
 });

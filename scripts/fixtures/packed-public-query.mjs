@@ -52,7 +52,8 @@ import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
 import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
-import {graphRemainingOperationInputs} from './graph-remaining-operation-inputs.mjs';
+import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
+  from './graph-remaining-operation-inputs.mjs';
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -789,10 +790,17 @@ const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executio
 for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
   of publicQueryProfiles(scopeInputs)) {
 if (transport === 'tail' && profileName !== 'standard') continue;
-if (transport !== 'tail') expectedInventory.push(...inventoryKeys(profileName, profileInputs));
 const completedOffsets = {};
 const scopeInputs = profileInputs;
-const cohorts = publicQueryCohorts(scopeInputs);
+const cohorts = graphRemainingOperationsOnly
+  ? graphRemainingOperationCohortInputs(scopeInputs).flatMap(publicQueryCohorts)
+  : publicQueryCohorts(scopeInputs);
+if (transport !== 'tail') {
+  const expectedOffsets = {};
+  expectedInventory.push(...(graphRemainingOperationsOnly
+    ? cohorts.flatMap(cohort => inventoryKeys(profileName, cohort, expectedOffsets))
+    : inventoryKeys(profileName, profileInputs)));
+}
 if (transport !== 'tail') expectedRetainedCohorts += cohorts.filter(cohort => cohort.successes.length > 0).length;
 // The independent fresh-process String regression uses these original roots.
 if (scopeInputs.successes.some(item => item.name === 'exact-string-values')) {
@@ -1056,6 +1064,7 @@ const recordCohort = (mode, directory, cohort) => {
   const boundaryNames = new Set([cohort.successes[0]?.name,
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
+  if (graphRemainingOperationsOnly) saved.expectedSampleNames = [...boundaryNames];
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return item => {
     recordString(mode)(item);
@@ -1142,6 +1151,10 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
   assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
+  if (graphRemainingOperationsOnly) for (const cohort of retainedCohorts) {
+    assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,
+      'Every authored Graph restart boundary must be retained before producer exit');
+  }
   await writeFile(transport === undefined ? 'retained-cohort-results.json' :
     `retained-cohort-results.${transport}.json`, encodeRetainedFixture(retainedCohorts));
   if (transport !== undefined) await writeFile(`transport-completion.${transport}.json`,

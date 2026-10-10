@@ -79,6 +79,10 @@ async function readRetainedCohort(cohort, options) {
   const client = await connect(options);
   try {
     assert.ok(cohort.samples.length >= 1 && cohort.samples.length <= 2);
+    if (cohort.expectedSampleNames !== undefined) {
+      assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,
+        'Fresh-process Graph reader requires every original boundary sample');
+    }
     for (const {source, ref, submissionRef} of cohort.samples) {
       const execution = await client.attach(ref);
       assert.equal((await execution.status()).status, 'succeeded');

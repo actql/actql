@@ -45,11 +45,83 @@ finish this assignment.
 
 ## Current delivery checkpoint
 
-Draft PR #1284 contains Graft, Reach and Shortest integration; Mean is a
-separate private continuation. The historical checkpoints below retain their
+Draft PR #1284 contains Graft, Reach and Shortest integration; Draft PR #1296
+contains the dependent Mean continuation. Both are public and delivery remains
+incomplete. The historical checkpoints below retain their
 original SHAs, commands and receipts. Three private commit messages were
 wrapped before publication with trees and mapped parents unchanged; no test
 receipt is rewritten to the replacement SHA.
+
+At `b50ecbd9502751c49eeb141323cc06d5982f163b`, the focused checkout
+Reach/Shortest/Mean public Host controls passed 8/8 on Local and HTTPS
+(`run-XNlHUx`, `focused-test-3fB0U5`). The formal five-package cohort was then
+built at that clean source. Its external public-query consumer passed all 27
+normal authored cases on each transport, but failed at `graph-graft-refuse-0`:
+the malformed binary peer list was classified as an implementation limit.
+The failed producer run did not reach the fresh-process reader or the separate
+packed Host control. This is not a passed packed campaign.
+
+The next batch corrects that existing lowerer classification and explicitly
+assigns fresh-process JSON/AQL boundary samples to each of the four operations.
+Final packed refusal/restart execution, public failure/cleanup retry evidence,
+and literal/Relation identity-prefix boundedness remain open. CI is stopped.
+
+### Graft input diagnostics and per-operation restart coverage
+
+The clean `b50ecbd9502751c49eeb141323cc06d5982f163b` five-package pack is
+retained as `graph-four-b50-UZJlpe/packed-client-packages.json`. Its raw SHA-256
+digests are:
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `549f6dd36d0d074d5957e906900a0d5c26307e5d44e296f02bd49d779556d403` |
+| local-node | `18c4d8fba9f488bb487474167d59abb9c558b725a58ccc6b1be7a0ab2fca9d4f` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+The sequential guarded command `run-gUDCtl` ran the normal pack producer,
+then `test-packed-public-query.mjs --graph-remaining-operations-only` using
+that manifest. Packing passed; the public consumer failed. The planned third
+step, `test-packed-graph.mjs --remaining-operations-only`, was not started.
+External evidence is retained in `public-query-evidence-rEZ81n`, including
+`010.stdout.log`, `010.stderr.log`, `010.result.json` and terminal transport
+records. Both owned transport children were stopped; no restart ran. The Local
+Graft conflict fixture passed before the refusal failure; its remote sibling
+is not claimed as verified.
+
+Before changing the lowerer, the new typed regression failed at the same
+malformed list (`run-84NJBO`, `focused-test-M8hwJo`, 0/1). The existing
+`InvalidQuery` classification now covers invalid composition argument shapes,
+including forbidden graft merge policy, empty union list and binary subtraction
+lists. Unknown Graph producers retain `UnknownRelation`; unknown operations
+retain `UnsupportedGraph`. No public error category or support contract was
+added. Union/subtraction callers now assert the same input-violation distinction.
+
+Focused JS verification on the working tree based on b50 passed Graft 3/3,
+Union 6/6, Subtraction 5/5, Graph refusal classification 5/5 and Source
+preparation 4/4 (`run-Bldvja`). The prior multi-pattern selection discovered
+zero tests and failed its nonzero guard (`run-hLq0EL`); it is not evidence of
+successful execution. No full Core suite was run.
+
+The four-operation-only packed selection now uses four authored family cohorts
+within the existing shared cohort planner. The generic reader still admits at
+most two samples per root and keeps its existing aggregate deadline, Store
+budget and delivery-work bound. Each family retains its original first JSON
+and last AQL oracle, including the multi-Result consumer fixture. Producer and
+reader both require every expected boundary name; missing samples cannot pass
+as a smaller selection. Per-kind authored identities and order are unchanged;
+transport inventory follows the explicit family execution order.
+
+Cohort identity, missing-family/unknown-fixture refusal, complete transport
+inventory and owned-worker/restart regressions passed 13/13 in `run-Bldvja`.
+After adding the explicit producer/reader boundary-name guard, the same narrow
+Node selection passed 13/13 (`run-NKLoPW`, `focused-test-N50Ul2`). These are
+selection/harness proofs, not fresh-process product execution. A new clean
+source pack is required for the changed lowerer; the b50 manifest is not reused
+as new-SHA acceptance.
+
+### Earlier integration checkpoint
 
 Earlier adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
 Integration commit: `33118a87b303011999d81b8d33a6efc9c2fd42ab`.
