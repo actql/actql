@@ -142,6 +142,7 @@ pub(all) enum NativeResidentEffectResolutionIssue {
 
 type NativeResidentEffectReview
 pub fn NativeResidentEffectReview::admit_resolution(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
+pub fn NativeResidentEffectReview::answer_effect_current(Self, @remote_site_protocol.RemoteEffectCurrentQuery, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, NativeResidentEffectObservationIssue]
 pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit, capture_progress? : (@remote_resident_host.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::complete_saved_effect(Self, () -> Bool, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectCompletion, NativeResidentEffectCompletionIssue]
 pub fn NativeResidentEffectReview::dispatch_identity(Self) -> String
