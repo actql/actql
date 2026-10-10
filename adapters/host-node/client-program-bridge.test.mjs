@@ -1361,7 +1361,9 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     bytesLimit.unit, bytesLimit.effective_max],
   ['rows', 2, 'bytes', 1000]);
   assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.role),
-    ['host_ceiling', 'proven_upper_bound']);
+    ['proven_upper_bound', 'host_ceiling']);
+  assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.witness_cid),
+    [...rowsLimit.candidates.map(candidate => candidate.witness_cid)].sort());
   for (const limit of [rowsLimit, bytesLimit]) {
     assert.equal(limit.version, 'actql-resolved-limit/0.1');
     assert.equal(limit.resolved_limit_cid,
@@ -1391,8 +1393,8 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   {code: 'MoonBitHostFailure'});
   const rowsBinding = JSON.parse(rowsBindingBody);
   const bytesBinding = JSON.parse(bytesBindingBody);
-  const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows');
-  const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes');
+  const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows', 'rows', {legacy: true});
+  const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes', {legacy: true});
   const predecessor = valuesPublicationOracle({legacy: true});
   assert.equal(oldUnit, predecessor.unit);
   assert.deepEqual([

@@ -1073,6 +1073,7 @@ pub(all) enum BinaryOperator {
   Multiply
   Divide
   Modulo
+  Strpos
   StartsWith
   EndsWith
   Equal
