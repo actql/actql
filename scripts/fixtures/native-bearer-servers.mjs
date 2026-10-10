@@ -46,7 +46,7 @@ async function listen(server, host) {
   return `https://${host}:${address.port}`;
 }
 
-export async function startNativeBearerServers({host, key, cert, root}) {
+export async function startNativeBearerServers({host, key, cert, root, allowEffectWrite = false}) {
   const directory = join(root, 'bearer');
   await mkdir(directory, {recursive: true, mode: 0o700});
   const files = {
@@ -68,6 +68,7 @@ export async function startNativeBearerServers({host, key, cert, root}) {
   let probes = 0;
   let effectTargetReads = 0;
   let effectTargetWrites = 0;
+  let effectTargetValue = 7;
   const foreignRequests = [];
   const foreign = createServer({key, cert}, async (request, response) => {
     await readBody(request);
@@ -87,13 +88,21 @@ export async function startNativeBearerServers({host, key, cert, root}) {
     const authorization = request.headers.authorization;
     const control = authorization === `Bearer ${controlToken}`;
     if (request.url === '/services/data/v66.0/sobjects/ActQL_Test_Record__c/001000000000001') {
+      if (allowEffectWrite && control && request.method === 'PATCH') {
+        if (body.toString('utf8') !== '{"Count__c":3}') {
+          reply(response, 422, {refused: true}); return;
+        }
+        effectTargetWrites++;
+        effectTargetValue = 3;
+        response.writeHead(204); response.end(); return;
+      }
       if (request.method !== 'GET') effectTargetWrites++;
       if (!control || request.method !== 'GET') {
         reply(response, 403, {refused: true}); return;
       }
       effectTargetReads++;
       // Independent physical fixture state, never copied from the proposal.
-      reply(response, 200, {Id: '001000000000001AAA', Count__c: 7}); return;
+      reply(response, 200, {Id: '001000000000001AAA', Count__c: effectTargetValue}); return;
     }
     switch (`${request.method} ${request.url}`) {
       case 'POST /bearer/probe':
@@ -148,6 +157,7 @@ export async function startNativeBearerServers({host, key, cert, root}) {
     foreignOrigin,
     directory,
     effectTargets() { return {reads: effectTargetReads, writes: effectTargetWrites}; },
+    effectTargetValue() { return effectTargetValue; },
     // Authorization header value expected by the mutual TLS server's
     // combined-authentication route.
     controlAuthorization: `Bearer ${controlToken}`,

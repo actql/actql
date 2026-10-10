@@ -1,0 +1,134 @@
+[
+  {
+    "name": "set-join-anonymous-named-control",
+    "format": "sql",
+    "text": "SELECT l.id AS id, r.amount AS amount FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id = 1 UNION ALL SELECT l.id + r.id AS id, r.amount + 0 AS amount FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id >= 2 ORDER BY amount NULLS LAST, id",
+    "sourceRows": [
+      {
+        "id": 3,
+        "amount": null
+      },
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 2,
+        "amount": 20
+      }
+    ],
+    "expected": [
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 6,
+        "amount": null
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "amount",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ],
+    "sourceReadSessionCount": 1
+  },
+  {
+    "name": "set-join-anonymous-positional",
+    "format": "sql",
+    "text": "SELECT l.id AS id, r.amount AS amount FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id = 1 UNION ALL SELECT l.id + r.id, r.amount + 0 FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id >= 2 ORDER BY amount NULLS LAST, id",
+    "sourceRows": [
+      {
+        "id": 3,
+        "amount": null
+      },
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 2,
+        "amount": 20
+      }
+    ],
+    "expected": [
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 4,
+        "amount": 20
+      },
+      {
+        "id": 6,
+        "amount": null
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "amount",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ],
+    "sourceReadSessionCount": 1
+  }
+]

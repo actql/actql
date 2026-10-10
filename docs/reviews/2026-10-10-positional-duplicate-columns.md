@@ -1,0 +1,249 @@
+# Terminal positional set operands with duplicate column names
+
+Adopted main: `42e8ad04f391218bc4ee36f61fba99f89c0bd327`. This is a
+frontend projection repair using existing Program, alignment, checking and
+execution owners. It does not change public duplicate-name policy, Graph
+identity, capacity derivation, acquisition, grammar, wire or machine laws.
+
+## Counterexample and selected existing meaning
+
+```sql
+SELECT 0 AS a, 0 AS b
+UNION ALL
+SELECT 1 AS x, 2 AS x
+ORDER BY a, b
+```
+
+The independent result is `[{"a":0,"b":0},{"a":1,"b":2}]`. Each output
+column is a nonnullable number. The ordinary named control uses right aliases
+x/y. Before repair, duplicate x/x fails `DuplicateOutput`: focused JS
+`run-eOLTdk`, `focused-test-MZ8FKt`, 0/1. This is a lowering rejection, not
+an executed wrong result or capacity failure.
+
+GoogleSQL's [positional set rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators)
+match ordinals and use the first operand's output names. Its
+[duplicate-alias rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#duplicate_aliases)
+permit duplicate SELECT aliases when no other clause refers to their ambiguous
+name. These references were inspected on 2026-10-10. No live Google service
+execution is claimed. The repair is limited to an already positional right
+operand's terminal projection, where no later authored alias reference exists.
+It does not introduce the reference service's automatic top-level Result
+renaming: current ActQL Named Results still require unique field names.
+
+## Minimal connection and independent obligations
+
+The two existing SELECT lowering branches keep each duplicate occurrence's
+evaluated source in a fresh internal field before the existing duplicate
+output check. Existing positional alignment replaces those physical names
+with the left operand's names. Names use case-insensitive collision checks
+and are reserved against physical/authored fields. No expression is inserted
+or reevaluated by this renaming. Public, BY NAME and nonterminal projections
+keep their existing checks. Input resolution and unknown/ambiguous references
+still belong to the ordinary expression lowerer.
+
+- An independently authored complete Values/derive/select/append Program
+  is compared with DATA lowering and passes the ordinary checker. Its two
+  right values remain distinct through unique internal fields and alignment.
+- Named, implicit repeated-column and star-plus-column occurrences are
+  checked. A scoped Pipe uses `original.x AS x, x AS X` after SET, retaining
+  the original one and current two rather than collapsing either field.
+- The ordinary SQL compiler entry is checked separately from script lowering.
+- Exact `DuplicateOutput` refusals fix public duplicate columns, duplicate
+  left output names, BY NAME inputs and an ambiguous operand ORDER reference.
+- The existing normal and `--set-corresponding-only` public consumer gain
+  five positive fixtures and three exact input refusals. Authored JSON is an
+  ordinary Values/sort control, never generated from frontend output. Cases
+  cover numeric values versus typed NULL, current versus immutable ranges,
+  empty typed output and repeated Source rows. Shared Source uses one read;
+  source-free cases use zero. Existing rows/describe/column order/hidden-field
+  checks, same-request reuse, reread and refusal admission/I/O checks remain.
+
+The scoped consumer now has 40 cases (25 normal, 15 refusal). All additions
+are also registered in the ordinary public corpus. The inventory has 3,311
+authored occurrences and SHA-256
+`ae1a1c320217db945edc0cef7920bba127b97c6a039604f5690b56f0d73aba89`.
+Its historical sourceBaseline is retained; it is not the adopted-main SHA.
+This registration digest is computed from authored data, not product results.
+No grammar/rule manifest or common-contract CID changes are needed for this
+connection of existing syntax and semantics.
+
+## Focused checks
+
+- JS projection/DATA/name-matching/scope/aggregate callers: 20/20
+  (`run-kU0SeS`, `focused-test-nxUJjT`).
+- Additional ordinary SQL entry and all local regression tests: 4/4
+  (`run-MTVHZl`, `focused-test-XgBPxq`).
+- Node authored fixtures/normal registration: 39/39
+  (`run-yeTZZP`, `focused-test-zvWwxw`).
+- Changed-file MoonBit formatting and `git diff --check` passed.
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_program/positional_duplicate_columns_test.mbt src/query_program/data_positional_set_test.mbt src/query_program/set_corresponding_test.mbt src/query_program/pipe_set_target_scope_test.mbt src/query_program/positional_set_aggregate_test.mbt
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_program/positional_duplicate_columns_test.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- scripts/set-corresponding-source-input.test.mjs scripts/public-query-profiles.test.mjs
+```
+
+## Pending public acceptance and broader boundaries
+
+### First pristine packed attempt and control correction
+
+Normal five-package production and independent digest validation passed on
+published SHA `c0cd08d77849d4035aaabd534a4a13c86e755dfa`, using
+`/private/tmp/actql-b-positional-duplicates-c0cd08d77-pack` and its manifest.
+The scoped public attempt `run-Gnh4V0` / receipt
+`worktrees/.codex-scratch/public-query-evidence-XsipCO` failed and is incomplete.
+Its existing 12 CORRESPONDING normal cases passed on each Local/HTTPS
+transport. The first new `positional-json-control` received a definitive
+Local `ClientProgramInvalidInput` before admission; the HTTPS sibling was
+cancelled, and the new text/refusal/JOIN cases were not certified.
+The receipt records no live child and no evidence errors; owned installations
+were removed by the ordinary harness. Logs/receipts and package manifests remain.
+
+The independent Values/sort control omitted the mandatory Values producer
+alias. It now declares `as: seed` and sorts `from: seed`; its rows,
+number/nullable contracts, column order and NULL sort rule are unchanged.
+A new ordinary-checker control and a Node producer-link assertion fix this
+obligation rather than excluding the case or changing the oracle. Focused JS
+passed 5/5 (`run-mgES6u`, `focused-test-saciVd`); Node fixture/inventory
+checks passed 39/39 (`run-IPhQcp`, `focused-test-24AeQ6`). The final authored
+inventory keeps 3,323 occurrences with corrected control digest
+`47aebed20da7c716bf9b7dbfae034cc42e2073f1d90061ed24bd28fc391eb4f2`.
+This is a fixture construction repair, not an executed frontend wrong result.
+Pristine public acceptance must be repeated for the corrected source revision.
+
+### Current-main integration
+
+Normal merge `f86f5b9d07999ce3401c4a2b606918f0f36454e4` adopts main
+`c00439f4f1d4b942e16e4eece97990866c3ec02e`, including the separately
+merged Graph-row set repair #1248 and updated core fixtures. The only
+conflicts were the authored public inventory metadata and its count test.
+Their resolved values were checked against actual authored registration:
+3,323 occurrences, 2,103 normal, 1,173 refusal and 47 execution-failure
+expectations; digest
+`e005d979b379bc3131379c18e26a26496a7a44fbf0fa202e5341eb0b5f54784c`.
+The final metadata preserves main's historical sourceBaseline
+`ce027a937cf780f617d5ed98bb4d56ecbb010877`; the automatic cached resolution's
+different baseline is not retained. No expected rows, types, scopes, limits,
+Graph rejection behavior or CI workflows were changed in conflict resolution.
+The initial counts above remain evidence of the earlier revision, not of
+this integrated source. Post-integration focused JS positional/Graph-row
+callers passed 24/24 (`run-zxzbJZ`, `focused-test-kRraU7`); Node authored
+fixture/inventory checks passed 39/39 (`run-H453Yf`, `focused-test-VbAjBc`).
+These commands used the merged product and final metadata; the follow-up
+commit changes only this record and the baseline metadata correction.
+
+Normal exact-SHA five-package production and the existing 40-case Embedded
+Local/authenticated HTTPS consumer are the next check. Focused success alone
+is not public execution evidence. Actual source revision, digests and receipts
+will be recorded in the PR's acceptance status after execution; this paragraph
+records the planned check when this source was committed. Full Core, Native/Wasm, complete packed
+corpus and hosted CI have not been run locally. No manual CI rerun or merge.
+
+This unit does not certify nonterminal duplicate projections, duplicate
+GROUP/analytic alias tables or specialized JOIN/Graph entries. Their existing
+refusals are not declared permanent language restrictions. #1243's actual
+JOIN capacity reproduction and #1248's Graph-row set connection remain
+independent. The wider frontend goal remains active.
+
+### Integration review: explicit script format
+
+The second pristine packed campaign at `d6828990` passed the independent
+JSON control and duplicate-alias scalar case on Local and HTTPS, but then
+rejected `positional-scoped-current-and-original` before Run admission.
+Its DATA script inherited the helper's SQL format. The Source frontend's
+SQL branch intentionally parses one SQL query; its text branch parses DATA
+declarations. The typed-empty DATA control had the same registration error.
+
+Both authored DATA cases now explicitly select `aql-text`. Their source,
+independent rows, contracts, ordering and refusal controls remain unchanged.
+Node guards check both format declarations. The independent authored
+inventory still has 3,323 occurrences, with digest
+`e5ccf066018866f3171cf8670670536ad5dca5fdaed7609ced82d874b0b9e64d`.
+Selected Node checks passed 39/39 at the corrected patch on `abd422529`
+(`run-EoGnw5`, `focused-test-f1PBq0`). That is patch evidence, not a claim
+that the previous commit or the pristine public campaign passed.
+
+The rejected campaign and retained receipt `run-Pnss1a` remain failures.
+Exact-source packed Local/HTTPS acceptance is still required before merge.
+### Public fixture format repair
+
+The pristine five-package attempt at `d682899013ae377f683841e7fa421c04b963bfe3`
+(`run-Pnss1a`, receipt `worktrees/.codex-scratch/public-query-evidence-oxQD9D`)
+passed the existing 12 CORRESPONDING normal cases and the new positional JSON
+control and SQL duplicate-alias case on both Embedded Local and authenticated
+HTTPS. The next DATA-scoped case received definitive HTTPS
+`ClientProgramInvalidInput`; its Local sibling was cancelled. Later normal,
+refusal and JOIN cases remain unverified at that revision.
+
+Both new DATA-script fixtures incorrectly inherited `format: sql`. Public Sql
+admits a SQL query head, while DATA declarations use the existing Text script
+route. They now explicitly use `aql-text`; sources, independent rows, column
+contracts, sort rules and acquisition counts are unchanged. Node assertions
+retain that format choice. The focused public Text-lowering/checker regression
+also verifies exact `WrongQueryForm` for the mismatched Sql route. No routing
+restriction is removed and no fallback is added.
+
+Focused JS passed 6/6 (`run-KTQoOI`, `focused-test-0yxw18`); authored Node
+fixture/inventory tests passed 39/39 (`run-V9V22W`, `focused-test-lfkydj`).
+An earlier name-filter selection executed zero tests and failed the nonzero
+guard (`run-JvWZlM`); it is not counted as successful evidence. The regenerated
+authored inventory retains 3,323 cases and historical baseline `ce027a937cf780f617d5ed98bb4d56ecbb010877`,
+with digest `e5ccf066018866f3171cf8670670536ad5dca5fdaed7609ced82d874b0b9e64d`.
+These focused checks ran against the pending patch on d68289901, not a claim
+of hosted CI or final fresh-package completion. Repeat the unchanged 40-case
+public cohort from the corrected clean revision.
+
+### Capture placement counterexample and repair
+
+The integrated child attempt at `a9b7bbd46c50dc85161fd4c9c2364bb8069487af`
+(`run-QEtRC7`, receipt `worktrees/.codex-scratch/public-query-evidence-t7JftE`)
+passed 16 normal cases per transport, including corrected original/current DATA
+and typed empty controls. It then failed on `positional-shared-source` with
+Local `SubmissionUnknown` / `ClientHostFailure`; HTTPS was cancelled. Later
+scalar, aggregate, refusal and JOIN cases are not certified. Normal five-package
+production and independent digest verification succeeded at that exact clean SHA.
+
+A minimal direct preparation diagnostic (`run-If98Y9`) emitted the ordinary
+Program without changing the submitted source. A private diagnostic installation
+of those same tarballs (`run-qjaexM`) reproduced the Host failure for both the
+authored source and its unmodified generated JSON. Cause-only logging locates
+`RunHostTaskCompilationRejected` at `local-values-plan.mjs::checkedTaskRunAdmission`;
+the typed cause is `Compilation(Plan(TaskGraph(UnsupportedGraph)))`. The probe's
+zero exit records two observed failures, not successful acceptance. Its Store,
+source profile and observations remain at
+`/private/tmp/actql-b-positional-source-host-Wsh2mc`; the semantic Program remains
+at `/private/tmp/set-corresponding-positional-shared-source.program.json`.
+This private logging overlay is not a pristine public-success receipt.
+
+The set emitter placed left Values seed/term stages before the later acquired
+Source capture. The existing captured DAG requires acquisition at unit zero;
+its ordered receiving-port coverage cannot treat a later external root as a
+completed prefix. `compile_set_stages` now inserts the sole existing capture
+stage first. It retains every producer name, source predicate, term body,
+left/right append edge, order expression and Result. It neither adds acquisition
+nor modifies a common Owner. Captured declarations have no stage-producer
+dependency; this placement satisfies the already selected acquired profile.
+
+The published review integration was retained by normal fast-forward to
+`03829331b686d3d0b9c037651cb2248492937bf7`, including main
+`74731446bf520e6aea7fdfca573474212e6a656c`. No force push, reverted review
+change or old compatibility route. A hand-authored stage-order/predicate/append
+regression failed before repair (`run-CmUMzU`, `focused-test-RIpmSR`, 0/1),
+then focused scalar/CORRESPONDING/DATA JS passed 15/15 after repair
+(`run-KVZfRZ`, `focused-test-GGtHGJ`). Public fixture sources, rows/types/order,
+read/reuse expectations and authored inventory are unchanged. These focused
+checks used the pending patch on 03829331b; new exact-SHA public acceptance
+remains required. Full Core, Native/Wasm and hosted CI were not rerun.
+
+### Coordinator integration after the capacity repair
+
+Normally adopted main c9fdae0d8, including #1243's Append scratch lifetime
+repair, without reverting the author's capture-before-Values correction.
+Only the independently enumerated inventory/count conflicts were resolved.
+All authored duplicate, JOIN, Graph-row and refusal fixtures remain; result
+expectations, the historical baseline, ceilings and CI settings are unchanged.
+The combined inventory contains 3,330 occurrences (2,108 successes,
+1,175 refusals and 47 execution failures), digest
+`89dfcbdecc5cdc18f4a632eccf78c2b558b19c3676f115ce17d3403e5f633d2d`.
+Clean-source caller and pristine packed acceptance are still pending at
+this integration point; earlier successful subsets are not a full campaign.

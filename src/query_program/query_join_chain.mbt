@@ -254,6 +254,7 @@ fn compile_join_chain_steps(
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
   prefix_context? : Context? = None,
+  positional_set_output? : Bool = false,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
     inputs.length() < 2 ||
@@ -556,6 +557,7 @@ fn compile_join_chain_steps(
     parameter_declarations~,
     prefix_steps=prefix_steps + steps,
     prefix_context~,
+    positional_set_output~,
   )
   steps.append(tail)
   (steps, output, if tail.is_empty() { from } else { final_from })

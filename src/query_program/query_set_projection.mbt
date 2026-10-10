@@ -17,6 +17,36 @@ fn anonymous_set_projection_name(
 }
 
 ///|
+// A terminal positional operand exports values by ordinal, not its authored
+// names. Keep each duplicate occurrence in a distinct physical column until
+// the existing set alignment replaces those names with the left output names.
+// This is not a public duplicate-name policy or an alias lookup rule.
+fn privatize_positional_duplicate_columns(
+  construction : Construction,
+  names : Array[String],
+  bindings : Array[(String, String)],
+  selected : Array[@builder.Node],
+  physical : Array[String],
+) -> Unit raise Abort {
+  let counts : Map[String, Int] = Map([])
+  for name in names {
+    let key = ascii_upper(name)
+    counts[key] = counts.get(key).unwrap_or(0) + 1
+  }
+  let reserved = physical + names
+  for index in 0..<names.length() {
+    if counts[ascii_upper(names[index])] > 1 {
+      let name = pipe_physical_name(reserved, "aql_set_duplicate_")
+      reserved.push(name)
+      let source = bindings[index].1
+      names[index] = name
+      bindings[index] = (name, source)
+      selected[index] = construction.object([(name, construction.text(source))])
+    }
+  }
+}
+
+///|
 // Anonymous aggregate outputs retain the evaluated aggregate's input meaning.
 // They are physical set-operand fields, never authored SELECT aliases.
 fn anonymous_set_aggregate_slot(

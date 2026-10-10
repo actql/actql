@@ -7,7 +7,8 @@ import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentOriginalHolder = process.argv.includes('--resident-original-holder-review');
+const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
+const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
 const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-runtime-capture');
@@ -179,9 +180,10 @@ try {
     const runtimeKeys = generateKeyPairSync('ed25519');
     bearer = await startNativeBearerServers({host: '127.0.0.1',
       key: await readFile(join(root, 'server.key')),
-      cert: await readFile(join(root, 'server.crt')), root});
+      cert: await readFile(join(root, 'server.crt')), root, allowEffectWrite: residentApprovedRow});
     await mkdir(join(root, 'retained'), {recursive: true});
     Object.assign(testEnv, {
+      ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW: residentApprovedRow ? '1' : '0',
       ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearer.origin,
       ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearer.directory,
       ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: join(root, 'retained'),
@@ -232,8 +234,10 @@ try {
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests,
-    provider: bearer?.effectTargets(),
-    scope: residentOriginalHolder
+    provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
+    scope: residentApprovedRow
+      ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
+      : residentOriginalHolder
       ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
       : residentEffectRuntimeCapture
       ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
@@ -248,7 +252,8 @@ try {
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: 0});
+    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.equal(bearer.effectTargetValue(), residentApprovedRow ? 3 : 7);
   } else {
     assert.deepEqual(paths.filter(value => value.method === 'GET'), [
       {method: 'GET', path: expected + '001000000000001'},

@@ -189,3 +189,23 @@ and [SIGN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/ma
 consulted 2026-10-10. Source grammar, embedded schema alternatives, common laws,
 execution registrations and dependent identities change together on the
 initial 0.1 baseline. Earlier pinned bodies keep their earlier meanings.
+
+### STRING position
+
+STRPOS adds first-occurrence position to the same common expression owner for
+SQL, Pipe and JSON/YAML. The adopted value rule is 1-based Unicode scalar
+position, absent 0 and empty needle 1. Ordinary eager strict-NULL evaluation
+and left-to-right failure precedence apply; surrounding lazy demand remains
+unchanged. The [GoogleSQL STRPOS reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#strpos)
+and [pinned compliance cases](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/compliance/functions_testlib_string_2.cc#L398-L413)
+anchor the selected STRING/default binary subset, including empty, NULL,
+multibyte and embedded-NUL cases. ActQL retains exact strings and introduces
+no normalization or implicit coercion.
+
+The common finite binary64 `number` represents these bounded string positions
+exactly. This is a result-representation difference from Google's INT64 type,
+not a claim of full INT64 support. BYTES and explicit collation are still
+unsupported. Existing string/resource admission determines the supported
+extent; the search does not add an unrelated language-length restriction.
+Canonical schemas, registries and their current dependent identities include
+the added common node; complete predecessor preimages retain their old CIDs.

@@ -106,7 +106,7 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
   assert.equal(cid(body), 'sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210');
-  assert.equal(cid(registry), 'sha256:bad5b4562a4e6cbb056ab2dea31cd9a20366190353b14e0be3125454177519b8');
+  assert.equal(cid(registry), 'sha256:2a3eb0f605415ab27321177d3c4629b7bd33928d74b4cd5d206d38bdc696305e');
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
   assert.equal(body.dependencies.canonical_value_contract.cid,
@@ -116,17 +116,14 @@ test('constructor pins a distinct complete execution contract and exact shared d
 });
 
 test('Graph migration preserves the frozen prior registry and replaces the constructor contract', () => {
-  const {[operation]: added, ...previous} = registry;
-  assert.ok(added);
-  // Integrated String semantics change REL.values, not the Graph addition.
-  // Historical absence of the keyed operation retains the pre-alignment
-  // shared-expression pins, independently of today's membership contract.
-  const historical = structuredClone(previous);
-  historical['BRIDGE.rows.to_graph'] = {inputs: ['relation', 'relation'], output: 'graph'};
-  historical['REL.derive'].execution_extensions.ordered_bindings.cid =
-    'sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de';
-  historical['ACTQL.expression_fragment/0.1'].execution_contract.cid =
-    'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
+  assert.ok(registry[operation]);
+  // Later scalar and graph additions cannot recreate an earlier registry by
+  // deleting one operation and substituting a few current dependency pins.
+  // Retain the exact published pre-constructor body and its independent CID.
+  const historical = read('portability/fixtures/pipeline-registry-exact-strings.json');
+  assert.equal(Object.hasOwn(historical[operation], 'execution_contract'), false);
+  assert.deepEqual(historical['BRIDGE.rows.to_graph'],
+    {inputs: ['relation', 'relation'], output: 'graph'});
   assert.equal(cid(historical), 'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
   assert.deepEqual(registry[operation].finite_inputs, {repeated_input: 'relation', minimum_inputs: 0});
   assert.equal(aoa.local_family_execution_profile.registry_operations.includes(operation), true);

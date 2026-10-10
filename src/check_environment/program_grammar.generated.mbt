@@ -2,5 +2,5 @@
 
 ///|
 pub fn program_source_grammar_cid() -> String {
-  "sha256:5f67400cee99f7f718eb812bae8d39bb6058cd81038bd805f00e33e84a84c893"
+  "sha256:64e8361cab632650d7b58e38a5535db6a02b19c179adb44eb0b08e48ed5541d3"
 }

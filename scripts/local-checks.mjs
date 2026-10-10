@@ -173,6 +173,20 @@ const areas = [
   [/^scripts\/.*(connector|duckdb-environment)/u, ['connector-addition']],
 ];
 
+// One known admission-fixture edge, not a general reverse-dependency map.
+// Keep these direct inputs and the output aligned with infer-host-fixtures.mjs;
+// the registry path is the current actql-aoa.json pipeline_registry_file.
+const inferAdmissionPaths = new Set([
+  'scripts/infer-host-fixtures.mjs',
+  'scripts/check-canonical-json.mjs',
+  'spec/contracts/actql-aoa.json',
+  'spec/dependencies/aoa-pipeline-registry.json',
+  'spec/local-check-environment.json',
+  'src/stage_results/infer_program_test.mbt',
+  'src/run_publication_host/client_infer_prefix_wbtest.mbt',
+  'src/client_infer_host/fixture.generated_wbtest.mbt',
+]);
+
 function changed() {
   const base = option('--base', 'origin/main');
   const git = (...args) => execFileSync('git', args,
@@ -203,6 +217,11 @@ function changed() {
       if (pattern.test(file)) names.forEach(name => related.add(name));
     }
   }
+  const inferAdmissionChanged = unique.some(file => inferAdmissionPaths.has(file));
+  if (inferAdmissionChanged) {
+    narrow.add('node scripts/infer-host-fixtures.mjs');
+    narrow.add('node scripts/local-checks.mjs test moon -- --target js -p client_infer_host');
+  }
   if (packages.size > 0) {
     narrow.add('moon fmt --check');
     for (const directory of [...packages].sort()) {
@@ -213,6 +232,11 @@ function changed() {
   console.log(`Changed since ${base}: ${unique.length} files\n`);
   console.log('Candidate narrow checks (inspect affected callers and validators too):');
   for (const command of narrow) console.log(`  ${command}`);
+  if (inferAdmissionChanged) {
+    console.log('\nKnown INFER admission dependency (advisory, incomplete):');
+    console.log('  The existing read-only freshness check requires the pinned MOON_HOME.');
+    console.log('  Inspect the generated admission fixture and affected caller tests; no checks were executed.');
+  }
   console.log('\nRelated CI jobs (advisory inspection; not required local execution):');
   for (const name of [...related].sort()) {
     const note = ciOnly.has(name) ? `  # CI only: ${ciOnly.get(name)}`
