@@ -15,6 +15,20 @@ fn journal_test_run(
     None,
     @host.client_standard_program_preparation_limits(),
   ).unwrap()
+  journal_test_prepared_run(prepared, request_id, run_id)
+}
+
+///|
+fn journal_test_prepared_run(
+  prepared : @host.PreparedClientProgram,
+  request_id : String,
+  run_id : String,
+) -> (
+  @host.ClientRequestIdentity,
+  @host.PreparedClientProgram,
+  @host.ClientCompiledRun,
+  @publication.PublicationContract,
+) {
   let manifests = @host.admit_client_compilation_manifests(
     @environment.compiler_grammar_manifest_wire(),
     @environment.compiler_barrier_contract_manifest_wire(),

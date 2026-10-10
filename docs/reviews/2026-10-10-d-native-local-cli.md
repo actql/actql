@@ -367,3 +367,60 @@ refusals are retained as failed/unexecuted evidence, not product successes.
 
 No public CLI run, release artifact, packed acceptance or Hosted CI result is
 claimed by this limited Native journal/preparation regression.
+
+## Original Submission-to-Run atomic acceptance
+
+Main `8a54cee9230958e1749fc74abd90610393d9a338` was merged normally as
+`cb1c524ce2fe309b27afc74bc88b470e017c2996`, with no conflicts. Its other parent
+is `44206b94f5975a0412763ce524217d6963cf93bd`. Existing custody, evidence and
+history were retained. This integration includes the Native Site Effect Ledger
+storage seam; that Site/dispatch-bound seam is not an implemented Local Effect
+send permit or CLI approval path.
+
+`accept_submitted_run` now connects an already retained original intent to its
+opaque ordinary preparation, exact compiled owner and owner-issued Run. It
+uses the existing request journal transaction and shared submitted-intent
+transition rule. The ready acceptance fact and new Run binding/count commit
+together. Repeated acceptance retrieves the same Run; a different input,
+preparation owner, reference, authority scope or Run definition is refused.
+Missing original intent or capacity refusal cannot issue a Run.
+
+The ready record retains the original request identity, Run definition CID and
+immutable admission revision. This revision is exact decimal Int64 text under
+the existing decoder, not a floating-point JSON number or a current control
+revision. Later reservation/control updates do not replace the admission fact.
+Read-only custody inspection also verifies this recorded relationship against
+the actual Run row. The former preparing record encoding is unchanged.
+
+Commit uncertainty fences the original physical handle. On reopening, a failed
+pre-commit transaction retains preparing only, whereas a committed transaction
+with a lost reply retains the original ready Run. Reference-only lookup neither
+accepts, reserves nor starts work. Neither outcome permits automatic resend.
+Corrupt custody is refused and preserved rather than repaired.
+
+This connection currently accepts ordinary computations. Effect preparation is
+explicitly `UnsupportedPreparation`; it does not fall back to an ordinary Owner.
+Admission itself is not a physical-start permit, successful Run, public receipt
+or persisted execution continuation. The trusted Host still has to retain the
+original selected installation/context and apply current authority. Public CLI
+bootstrap/run, lifecycle publication/read, approval and packed installation
+remain unfinished.
+
+Scoped Native typechecking, including the CLI consumer, passed in
+`local-checks/attempts/run-FxFSBf`. The first check's test-helper missing error
+signature (`run-W2vGmn`) was corrected. The initial actual Native run
+(`run-FlxH6D`) failed reading the new admission revision: the writer emitted a
+JSON number but the existing exact Int64 decoder requires decimal text. The
+writer was corrected without relaxing admission or decoder checks. Independent
+cases now include zero, a revision above `2^53`, Int64 maximum, and refusal of
+numeric, negative, noncanonical or overflowing encodings.
+
+The bounded runner `/private/tmp/actql-d-native-original-intent-check.mjs`
+passed all 34 Native Client Host cases and seven selected shared SQLite cases
+in `run-4uotsX`, with focused records `focused-test-oTc7WQ` and
+`focused-test-PlAdyL`. It used system SQLite, the configured OpenSSL library
+and owned fixture root `/private/tmp/actql-d-native-original-intent-Cko4Sl`.
+This is working-tree evidence based on `cb1c524ce2fe309b27afc74bc88b470e017c2996`,
+not a clean-SHA or fresh release artifact claim. Shared-lock refusal
+`run-oEr5dg` remains unexecuted. Historical clean-SHA and debug binary evidence
+are not transferred to this new integration.

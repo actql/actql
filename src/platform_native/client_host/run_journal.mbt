@@ -23,6 +23,7 @@ pub(all) enum NativeClientRunJournalIssue {
   Epoch(NativeClientEpochIssue)
   InvalidSubmission
   SubmissionEpochRejected(@scope.SubmissionEpochValidity)
+  UnsupportedPreparation
 }
 
 ///|
@@ -364,6 +365,23 @@ pub fn NativeClientRunJournal::bind_run(
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
+  match
+    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.transaction(() => self.bind_run_locked(request, definition))
+}
+
+///|
+/// Both ordinary Run binding and original Submission acceptance use the same
+/// checked compilation and definition owner; no alternate admission path.
+fn validate_native_client_run_binding(
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[Unit, NativeClientRunJournalIssue] {
   let identity = @host.prepared_client_identity(prepared)
   if !@host.client_compiled_run_matches(compiled, prepared) ||
     @host.client_request_program_cid(request) != identity.program_definition_cid ||
@@ -374,77 +392,86 @@ pub fn NativeClientRunJournal::bind_run(
   if @host.check_client_compiled_run_definition(compiled, definition) is Err(_) {
     return Err(ForeignRun)
   }
-  self.transaction(() => {
-    match self.retained(request) {
-      Err(issue) => return Err(issue)
-      Ok(Some(retained)) => {
-        if @publication.publication_contract_identity(definition) !=
-          @publication.publication_contract_identity(retained.definition) {
-          return Err(ForeignRun)
-        }
-        return Ok(retained)
-      }
-      Ok(None) => ()
-    }
-    let (count, revision) = match
-      run_journal_custody(self.database, self.max_records) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if count == self.max_records {
-      return Err(CapacityExceeded)
-    }
-    let mut cursor = ""
-    while true {
-      let row = match self.database.scan_after("client_runs", cursor) {
-        Ok(value) => value
-        Err(@sqlite.NotFound) => break
-        Err(issue) => return Err(Physical(issue))
-      }
-      let other = match
-        read_run_record({ body: row.body, revision: row.revision, }) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      if @publication.publication_contract_identity(other.definition) ==
-        @publication.publication_contract_identity(definition) {
+  Ok(())
+}
+
+///|
+/// The caller holds the existing journal transaction and has validated the
+/// exact checked binding. This helper neither begins nor commits a transaction.
+fn NativeClientRunJournal::bind_run_locked(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  match self.retained(request) {
+    Err(issue) => return Err(issue)
+    Ok(Some(retained)) => {
+      if @publication.publication_contract_identity(definition) !=
+        @publication.publication_contract_identity(retained.definition) {
         return Err(ForeignRun)
       }
-      cursor = row.key
+      return Ok(retained)
     }
-    let record : NativeClientRunRecord = {
-      request,
-      definition,
-      dispatch_reserved: false,
-      physical_start_claimed: false,
-      cancellation_requested: false,
-      revision: 0L,
+    Ok(None) => ()
+  }
+  let (count, revision) = match
+    run_journal_custody(self.database, self.max_records) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if count == self.max_records {
+    return Err(CapacityExceeded)
+  }
+  let mut cursor = ""
+  while true {
+    let row = match self.database.scan_after("client_runs", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
     }
-    let body = match run_record_body(record) {
+    let other = match
+      read_run_record({ body: row.body, revision: row.revision, }) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let revision = match
-      self.database.compare_exchange(
-        "client_run_custody",
-        "issued",
-        revision,
-        @utf8.encode((count + 1).to_string()),
-      ) {
-      Ok(_) =>
-        match
-          self.database.insert(
-            "client_runs",
-            @host.client_request_scope_cid(request),
-            body,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(Physical(issue))
-        }
-      Err(issue) => return Err(Physical(issue))
+    if @publication.publication_contract_identity(other.definition) ==
+      @publication.publication_contract_identity(definition) {
+      return Err(ForeignRun)
     }
-    Ok({ ..record, revision, })
-  })
+    cursor = row.key
+  }
+  let record : NativeClientRunRecord = {
+    request,
+    definition,
+    dispatch_reserved: false,
+    physical_start_claimed: false,
+    cancellation_requested: false,
+    revision: 0L,
+  }
+  let body = match run_record_body(record) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let revision = match
+    self.database.compare_exchange(
+      "client_run_custody",
+      "issued",
+      revision,
+      @utf8.encode((count + 1).to_string()),
+    ) {
+    Ok(_) =>
+      match
+        self.database.insert(
+          "client_runs",
+          @host.client_request_scope_cid(request),
+          body,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+    Err(issue) => return Err(Physical(issue))
+  }
+  Ok({ ..record, revision, })
 }
 
 ///|

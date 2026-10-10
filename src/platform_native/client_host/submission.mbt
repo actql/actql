@@ -90,11 +90,12 @@ pub fn admit_native_client_submission_reference(
 ///|
 /// Existing request-journal custody before a Run is issued. The original
 /// submitted intent is admitted by the shared owner, never reconstructed from
-/// a prepared Program. This slice records preparation only, not a ready Run,
-/// dispatch, retry decision or public refusal.
+/// a prepared Program. A retained Run admission is separate from dispatch,
+/// execution outcome, retry permission and a public refusal.
 struct NativeClientSubmittedIntentRecord {
   reference : NativeClientSubmissionReference
   intent : @host.ClientSubmittedIntent
+  run_admission : NativeClientSubmittedRunAdmission?
   revision : Int64
 }
 
@@ -122,6 +123,7 @@ pub fn native_client_submitted_intent_revision(
 fn submitted_intent_body(
   reference : NativeClientSubmissionReference,
   intent : @host.ClientSubmittedIntent,
+  run_admission? : NativeClientSubmittedRunAdmission? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   let wire = @host.client_submitted_intent_wire(intent)
   // This physical profile is explicitly finite. Capacity does not classify
@@ -135,9 +137,24 @@ fn submitted_intent_body(
     @encode.key(writer, "intent")
     @encode.string_value(writer, wire)
     @encode.key(writer, "phase")
-    @encode.string_value(writer, "preparing")
+    @encode.string_value(
+      writer,
+      if run_admission is Some(_) {
+        "ready"
+      } else {
+        "preparing"
+      },
+    )
     @encode.key(writer, "reference")
     @encode.string_value(writer, reference.wire)
+    if run_admission is Some(admission) {
+      let wire = match submitted_run_admission_body(admission) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      @encode.key(writer, "run_admission")
+      @encode.string_value(writer, wire)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-submitted-intent-row/0.1")
     @encode.end_object(writer)
@@ -164,11 +181,13 @@ fn read_submitted_intent(
       max_total_string_bytes: 262144,
     })
     is Ok(cursor) &&
-    @decode.closed_object(cursor, ["intent", "phase", "reference", "version"])
+    @decode.closed_object(cursor, [
+      "intent", "phase", "reference", "run_admission", "version",
+    ])
     is Ok(object) &&
     epoch_text(object, "version") ==
     Some("actql-native-client-submitted-intent-row/0.1") &&
-    epoch_text(object, "phase") == Some("preparing") &&
+    epoch_text(object, "phase") is Some(phase) &&
     epoch_text(object, "reference") is Some(reference_wire) &&
     epoch_text(object, "intent") is Some(intent_wire) else {
     return Err(CustodyLost)
@@ -183,9 +202,23 @@ fn read_submitted_intent(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  match submitted_intent_body(reference, intent) {
+  let run_admission = match @decode.lookup(object, "run_admission") {
+    None => None
+    Some(value) => {
+      guard @decode.text(value) is Ok(wire) else { return Err(CustodyLost) }
+      match read_submitted_run_admission(wire) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+    }
+  }
+  if phase != (if run_admission is Some(_) { "ready" } else { "preparing" }) ||
+    !@host.client_submitted_intent_transition(phase, phase) {
+    return Err(CustodyLost)
+  }
+  match submitted_intent_body(reference, intent, run_admission~) {
     Ok(body) if body == row.body =>
-      Ok({ reference, intent, revision: row.revision, })
+      Ok({ reference, intent, run_admission, revision: row.revision, })
     _ => Err(CustodyLost)
   }
 }
@@ -267,6 +300,10 @@ fn NativeClientRunJournal::submitted_intent_custody(
     if record.reference.request_id != row.key {
       return Err(CustodyLost)
     }
+    match self.validate_submitted_run_admission(record) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
     retained_bytes = retained_bytes +
       @utf8.encode(@host.client_submitted_intent_wire(record.intent))
       .length()
@@ -319,6 +356,10 @@ fn NativeClientRunJournal::retained_submission(
   }
   if record.reference.wire != reference.wire {
     return Err(CustodyLost)
+  }
+  match self.validate_submitted_run_admission(record) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   Ok(Some(record))
 }
@@ -401,7 +442,7 @@ pub fn NativeClientRunJournal::record_submitted_intent(
     }
     self.database
     .insert("client_submitted_intents", reference.request_id, body)
-    .map(revision => { reference, intent, revision, })
+    .map(revision => { reference, intent, run_admission: None, revision, })
     .map_err(issue => Physical(issue))
   })
 }
