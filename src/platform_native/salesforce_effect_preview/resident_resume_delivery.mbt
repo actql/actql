@@ -3,7 +3,8 @@
 /// signature, Ledger and current resume-fence Owners. The wire's claim is
 /// never converted into an observation or permission. The trusted read port
 /// must independently confirm that exact claim before preparation and every
-/// subsequent Provider send/reconciliation.
+/// subsequent Provider send. Historical saved-response settlement keeps its
+/// existing Ledger custody rules; it does not renew permission to send.
 pub fn NativeResidentEffectReview::prepare_remote_approved_row(
   self : NativeResidentEffectReview,
   body : String,
@@ -61,8 +62,9 @@ pub fn NativeResidentEffectReview::prepare_remote_approved_row(
   if observed_current() is None || !current_authority() || !self.current() {
     return Err(AuthorityDenied)
   }
-  // Keep this fenced observer in the existing row Owner, including during
-  // saved-response reconciliation. Preparation itself never sends a write.
+  // Keep this exact delivery claim in the existing row Owner for later sends.
+  // Historical saved-response settlement remains separate from renewed send
+  // authority. Preparation itself never sends a write.
   self.prepare_approved_row(
     resolution.wire,
     authentication,

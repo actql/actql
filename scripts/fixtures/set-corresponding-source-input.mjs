@@ -717,3 +717,80 @@ setCorrespondingRefusals.push(
     text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS removed '
       + '|> DROP removed |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
 );
+
+// RENAME changes authored lookup, retaining values and their ordinal positions.
+// This ordinary JSON control is authored independently of text lowering.
+export const positionalRenameProgram = {version: 'actql/0.1', id: 'fixture.positional_rename',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number}, rows: [{id: 2}, {id: 1}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'id'}}}},
+    {select: [{kept: 'id'}, 'neg']},
+    {select: [{renamed: 'kept'}, 'neg']},
+    {select: [{a: 'renamed'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const positionalRename = (name, text, extra = {}) => success('positional-pipe-rename-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 1, b: -1}, {a: 2, b: -2}], ...extra});
+const positionalRenameHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> RENAME ';
+setCorrespondingSuccesses.push(
+  positionalRename('json-control', JSON.stringify(positionalRenameProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalRename('source', positionalRenameHead + 'kept AS renamed) ORDER BY a, b'),
+  // WHERE and ORDER must use renamed -id, not the original positive input id.
+  positionalRename('current-expression-limit', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT -id AS kept, id + 10 |> RENAME kept AS id |> WHERE id < 0 |> ORDER BY -id |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: -1, b: 11}, {a: 0, b: 0}]}),
+  positionalRename('quoted-chain', positionalRenameHead + '`KEPT` AS first |> RENAME first AS result '
+    + '|> WHERE result > 1) ORDER BY a, b', {expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  positionalRename('introduced-duplicates', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS kept, amount AS other, -id |> RENAME other AS kept |> ORDER BY 2 DESC |> LIMIT 1) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 2, b: 20, c: -2}]}),
+  positionalRename('private-shaped-anonymous-destination', positionalRenameHead + 'kept AS `AQL_SET_ANONYMOUS_4` '
+    + '|> WHERE aql_set_anonymous_4 > 1) ORDER BY a, b', {expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  positionalRename('private-shaped-duplicate-destination', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> RENAME kept AS `AQL_SET_DUPLICATE_5` '
+    + '|> WHERE aql_set_duplicate_5 > 11) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]}),
+  positionalRename('introduced-duplicates-drop', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> RENAME first AS kept, second AS kept |> DROP kept) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}]}),
+  positionalRename('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> RENAME kept AS renamed) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: null}]}),
+  positionalRename('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> RENAME kept AS renamed) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4 AS next', '`AQL_SET_ANONYMOUS_4` AS next', 'kept AS first, `KEPT` AS second'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-rename-target-' + index, format: 'sql',
+    text: positionalRenameHead + value + ') ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-rename-original-duplicate', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+      + '|> RENAME v AS changed) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  ...['WHERE kept > 0', 'RENAME kept AS changed'].map((tail, index) => ({
+    name: 'set-corresponding-refuse-pipe-rename-introduced-duplicate-' + index, format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS kept, amount AS other, -id '
+      + '|> RENAME other AS kept |> ' + tail + ') ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-rename-removed', format: 'sql',
+    text: positionalRenameHead + 'kept AS renamed |> WHERE kept > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-rename-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> RENAME kept AS renamed |> WHERE old.id > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-rename-anonymous-private-value', format: 'sql',
+    text: positionalRenameHead + 'kept AS aql_set_anonymous_4 |> WHERE aql_set_anonymous_5 > 0) ORDER BY a, b',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-rename-duplicate-private-value', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+      + '|> RENAME kept AS aql_set_duplicate_5 |> WHERE aql_set_duplicate_6 > 0) ORDER BY a, b, c',
+    expectedCode: 'ClientProgramInvalidInput'},
+);

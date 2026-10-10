@@ -21,8 +21,15 @@ the physical Host signature through the existing Native Resolution boundary.
 The trusted current resume-observation port must separately confirm the delivered
 claim, original identities and a current non-settlement fence. Delivered bytes
 are never converted into that observation. The row retains this exact delivery
-claim and fences it again during every subsequent send and reconciliation;
-another envelope or an unfenced cached row cannot replace it.
+claim and fences it again during every subsequent send; another envelope or an
+unfenced cached row cannot replace it.
+
+Historical settlement of the original Store-owned response does not renew the
+claim or require renewed write authority. It uses the existing durable Ledger
+head and saved-response admission rules. Public completion evidence separately
+requires current evidence-read permission before and after settlement. The
+physical fixture explicitly settles after write permission is revoked and the
+resume observation becomes settlement-only; this never permits another send.
 
 Preparation performs no write. Current Reviewer/Provider authority, original
 retained-input custody, lifetime, pending Ledger responsibility and saved-response
