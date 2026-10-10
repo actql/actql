@@ -80,6 +80,14 @@ pub fn cancel_recheck_runtime_value(cursor : RecheckCursor) -> Unit {
 }
 
 ///|
+/// Retained continuations only, not value nodes or borrowed payload bytes.
+/// One poll can grow the frame stack by at most one: callers reserve that
+/// extra slot before advancing, then release unused capacity afterwards.
+pub fn recheck_pending_frames(cursor : RecheckCursor) -> Int {
+  cursor.stack.length()
+}
+
+///|
 fn recheck_step_fail(cursor : RecheckCursor) -> RecheckPoll {
   cancel_recheck_runtime_value(cursor)
   RecheckFailed

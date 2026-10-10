@@ -36,7 +36,9 @@ test('Source Graph member selection is narrow while the normal corpus retains it
   assert.ok(driver.slice(start, end).includes("'--source-graph-member-only'"),
     'the explicit selection must not start the independent Planner/Effect campaigns');
   const sourceEnd = driver.indexOf("if (process.argv.includes('--source-graph-member-only')) return;", end);
-  const restart = driver.indexOf("['packed-query-restart-transports.mjs']", end);
+  // Defining the shared restart helper performs no I/O. Pin its actual
+  // unrelated String invocation, not the retained Graph helper's definition.
+  const restart = driver.indexOf('await exerciseRetainedQueryRestart();', end);
   const acceptance = driver.indexOf("['packed-query-transports.mjs']", end);
   assert.ok(acceptance >= 0 && sourceEnd > acceptance && restart > sourceEnd,
     'finish Source acceptance before any unrelated retained String restart');
@@ -269,17 +271,17 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, 'ce027a937cf780f617d5ed98bb4d56ecbb010877');
-  assert.equal(pin.totalCases, 3571);
-  assert.deepEqual(pin.counts, {successes: 2251, refusals: 1273, executionFailures: 47});
+  assert.equal(pin.totalCases, 3583 + 19);
+  assert.deepEqual(pin.counts, {successes: 2256 + 12, refusals: 1279 + 7, executionFailures: 48});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2198, executionFailures: 45, refusals: 1238}],
+    ['standard', {successes: 2203 + 12, executionFailures: 46, refusals: 1244 + 7}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
   ]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 43]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 44]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 44]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 45]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();

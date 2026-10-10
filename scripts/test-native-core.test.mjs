@@ -52,6 +52,37 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
 
+test('common Core stack prerequisite is confined to Linux Native children', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-stack-scope-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const bin = join(root, 'bin');
+  mkdirSync(bin);
+  // Observe the real shell limits without launching another Core campaign.
+  for (const name of ['node', 'moon']) {
+    const command = join(bin, name);
+    writeFileSync(command, '#!/bin/sh\nprintf "%s:%s\\n" "$(ulimit -S -s)" "$(ulimit -H -s)"\n');
+    chmodSync(command, 0o755);
+  }
+  for (const target of ['js', 'wasm', 'native']) {
+    const hardLimit = spawnSync('bash', ['-c', 'ulimit -H -s'], {
+      encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(hardLimit.status, 0, hardLimit.stderr);
+    const script = 'ulimit -S -s 8192\n' +
+      coreStep.run.replaceAll('${{ matrix.target }}', target);
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
+      cwd: root, encoding: 'utf8', timeout: 5000,
+      env: {...process.env, PATH: bin + ':' + process.env.PATH},
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.signal, null);
+    const observed = result.stdout.trim().split('\n');
+    const expected = target === 'native' && process.platform === 'linux' ? 65536 : 8192;
+    assert.deepEqual(observed, Array(target === 'native' ? 2 : 1)
+      .fill(`${expected}:${hardLimit.stdout.trim()}`));
+  }
+});
+
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));

@@ -301,7 +301,7 @@ pub fn binary(
   match op {
     // Text operations run through their retained, bounded cursor.
     // This scalar fallback handles only its NULL and invalid-domain cases.
-    Strpos | StartsWith | EndsWith =>
+    Strpos | StartsWith | EndsWith | TrimSet | LTrimSet | RTrimSet =>
       if left is Null || right is Null {
         Ok(Null)
       } else {
@@ -357,6 +357,9 @@ pub fn binary(
         | NullIf
         | In
         | NotIn
+        | TrimSet
+        | LTrimSet
+        | RTrimSet
         | Strpos
         | StartsWith
         | EndsWith => Err(InvalidOperand)
@@ -418,6 +421,9 @@ fn binary_comparison_result(
     | Modulo
     | In
     | NotIn
+    | TrimSet
+    | LTrimSet
+    | RTrimSet
     | Strpos
     | StartsWith
     | EndsWith => Err(InvalidOperand)

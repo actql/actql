@@ -46,6 +46,9 @@ await run('npm',['install','--ignore-scripts','--no-save',...CLIENT_PACKAGES.map
   join(root,`actql-${name}-0.0.0-development.tgz`))]);
 await mkdir(join(root,'fixtures'));
 for (const name of ['graph-public-host.test.mjs','check-canonical-json.mjs',
+  'fixtures/graph-host-cases.mjs',
+  'fixtures/graph-reach-source-input.mjs',
+  'fixtures/graph-shortest-source-input.mjs',
   'fixtures/graph-parallel.program.json',
   'fixtures/graph-presence.program.json',
   'fixtures/graph-delta-application.mjs',

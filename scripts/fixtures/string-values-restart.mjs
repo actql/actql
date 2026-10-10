@@ -16,16 +16,18 @@ const mode = process.env.ACTQL_TEST_QUERY_TRANSPORT;
 assert.ok(mode === undefined || ['local', 'remote'].includes(mode));
 const worker = mode === undefined ? undefined : transportWorker();
 worker?.check();
-const retained = JSON.parse(await readFile('retained-string-results.json', 'utf8'));
-const {hostCapacityPolicy} = retained;
-assert.ok(hostCapacityPolicy !== null && typeof hostCapacityPolicy === 'object');
-const sourceProfilePath = mode => resolve(retained.sourceProfilePaths?.[mode] ?? 'source-profile.json');
 function accepted(directory) {
   const db = new DatabaseSync(resolve(directory, 'requests/client-requests.sqlite3'),
     {readOnly: true});
   try { return db.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count; }
   finally { db.close(); }
 }
+const cohortOnly = process.env.ACTQL_TEST_RETAINED_COHORT_ONLY === '1';
+if (!cohortOnly) {
+const retained = JSON.parse(await readFile('retained-string-results.json', 'utf8'));
+const {hostCapacityPolicy} = retained;
+assert.ok(hostCapacityPolicy !== null && typeof hostCapacityPolicy === 'object');
+const sourceProfilePath = mode => resolve(retained.sourceProfilePaths?.[mode] ?? 'source-profile.json');
 async function readRetained(mode, options, directory) {
   const before = accepted(directory);
   const client = await connect(options);
@@ -55,6 +57,8 @@ try {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
   await host.close();
+}
+
 }
 
 }
@@ -129,5 +133,5 @@ for (const cohort of cohorts) {
   completedRoots.push(cohort.directory);
 }
 if (mode !== undefined) await writeFile(`transport-restart.${mode}.json`,
-  JSON.stringify({mode, stringComplete: true, completedRoots}) + '\n', {flag: 'wx'});
+  JSON.stringify({mode, stringComplete: !cohortOnly, completedRoots}) + '\n', {flag: 'wx'});
 console.log('Retained cohort boundary Results preserve attach/replay ownership after fresh Host processes');

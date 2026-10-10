@@ -145,6 +145,9 @@ fn check_backend_capabilities(
             | Multiply
             | Divide
             | Modulo
+            | TrimSet
+            | LTrimSet
+            | RTrimSet
             | Strpos
             | StartsWith
             | EndsWith => ()
