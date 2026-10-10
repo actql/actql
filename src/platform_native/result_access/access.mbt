@@ -161,11 +161,16 @@ pub fn install_native_result_access_service(
   max_row_bytes : Int,
   input_chunk_bytes : Int,
 ) -> Result[NativeResultAccessService, NativeResultAccessIssue] {
+  // These are the existing durable row-framer's supported limits. Reject
+  // incompatible service settings before issuing a grant or read attempt.
   if max_wire_bytes < 1 ||
     max_nodes < 1 ||
     max_depth < 1 ||
+    max_depth > 64 ||
     max_row_bytes < 1 ||
-    input_chunk_bytes < 1 {
+    max_row_bytes > 16777216 ||
+    input_chunk_bytes < 1 ||
+    input_chunk_bytes > 16777216 {
     return Err(InvalidRequest)
   }
   Ok({
