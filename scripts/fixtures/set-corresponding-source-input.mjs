@@ -543,7 +543,8 @@ setCorrespondingSuccesses.push(
       expected: [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]}),
   replacement('value-type', "SELECT 'anchor' AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id "
     + "|> SELECT * REPLACE ('changed' AS kept)) ORDER BY a, b",
-    {columns: [{name: 'a', contract: {type: 'string', nullable: false}}, {name: 'b', contract: number}],
+    // Literal UTF-8 bounds are 6 for anchor and 7 for changed; append keeps 7.
+    {columns: [{name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}}, {name: 'b', contract: number}],
       expected: [{a: 'anchor', b: 0}, {a: 'changed', b: -2}, {a: 'changed', b: -1}]}),
   replacement('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
     + '|> SELECT * REPLACE (kept + 10 AS kept)) ORDER BY a, b', {sourceRows: [], expected: []}),

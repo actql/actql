@@ -257,7 +257,9 @@ test('positional replacement preserves snapshots anonymous values and column typ
   assert.deepEqual(find('distinct').sourceRows.map(x => x.id), [2, 2, 1]);
   assert.deepEqual(find('nullable').expected, [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]);
   assert.equal(find('nullable').columns[1].contract.nullable, true);
-  assert.deepEqual(find('value-type').columns[0], {name: 'a', contract: {type: 'string', nullable: false}});
+  assert.equal(Buffer.byteLength('anchor', 'utf8'), 6);
+  assert.equal(Buffer.byteLength('changed', 'utf8'), 7);
+  assert.deepEqual(find('value-type').columns[0], {name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}});
   assert.deepEqual(find('value-type').expected, [{a: 'anchor', b: 0}, {a: 'changed', b: -2}, {a: 'changed', b: -1}]);
   assert.deepEqual(find('typed-empty').expected, []);
   assert.deepEqual(find('typed-empty').columns.map(x => x.contract.nullable), [false, false]);
