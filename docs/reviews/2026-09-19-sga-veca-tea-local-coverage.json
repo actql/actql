@@ -89,7 +89,7 @@
       "traverse": "partial",
       "shortest_path": "blocked",
       "components": "partial",
-      "reach": "blocked",
+      "reach": "partial",
       "graph_bounds": "partial",
       "degree": "partial",
       "graph_diff": "partial",
@@ -1441,9 +1441,9 @@
         "self loops",
         "bounded depth"
       ],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Reach uses current typed selectors, checked traversal, SGA.reachable lowering and the bounded traversal provider. Raw identities, nullable Relation starts and statically checked node predicates are connected; malformed options remain refused. Independent current tests are distinct from historical tuple evidence. Fixed-SHA matching backends, public retained Local/HTTPS, fresh-process reads and operation-wide failure/custody acceptance remain unverified.",
       "completed_layers": [
         "contract"
       ],

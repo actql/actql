@@ -63,7 +63,8 @@ pub fn has_sga_relation_lowering(operation : String) -> Bool {
     | "graph_diff"
     | "match_nodes"
     | "match_edges"
-    | "traverse" => true
+    | "traverse"
+    | "reach" => true
     _ => false
   }
 }

@@ -32,11 +32,9 @@ test "Graph argument selector and Carrier violations are distinct from support g
 test "Graph row classification does not reinterpret unconnected operation options as selectors" {
   let prefix = graph_rows_prefix() +
     "DATA seeds = FROM g |> node_rows() |> SELECT id; "
-  // Reach and shortest_path have complete adopted arguments and ordinary
-  // Relation consumers. Their source connection remains unavailable.
+  // shortest_path still has no public execution connection.
   for
     tail in [
-      "DATA reached = FROM g |> reach(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 1); FROM reached |> SELECT depth",
       "DATA paths = FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1); FROM paths |> SELECT hop_count",
     ] {
     assert_true(

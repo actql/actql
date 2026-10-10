@@ -106,7 +106,12 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     GraphTraverseRows(checked) =>
-      operation(node) == "SGA.traverse" &&
+      operation(node) ==
+      (if @graph.traverse_is_reach(checked) {
+        "SGA.reachable"
+      } else {
+        "SGA.traverse"
+      }) &&
       (
         node.input_targets.length() == 2 ||
         (
@@ -294,7 +299,14 @@ pub fn node_accepts_managed_relation_view(
   }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
-      GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphTraverseRows(checked) =>
+        index == 1 &&
+        operation(node) ==
+        (if @graph.traverse_is_reach(checked) {
+          "SGA.reachable"
+        } else {
+          "SGA.traverse"
+        })
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       GraphDeltaValue(checked) =>
         index == 1 &&

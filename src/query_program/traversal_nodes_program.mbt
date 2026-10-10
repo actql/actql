@@ -62,12 +62,16 @@ fn lower_script_traversal_rows(
   // Node and path emissions have different contracts. Do not borrow one
   // output schema for the other or replace an authored emission/default.
   let emissions = call.arguments.filter(argument => argument.0 == "emit")
-  guard emissions.length() == 1 else { raise Abort(UnsupportedGraph) }
-  let fields = match emissions[0].1 {
-    @query.TextValue("nodes") => ["start_id", "node_id", "depth"]
-    @query.TextValue("paths") =>
-      ["start_id", "end_id", "hop_count", "node_ids", "edge_ids"]
-    _ => raise Abort(UnsupportedGraph)
+  let fields = if call.operation == "reach" {
+    ["start_id", "node_id", "depth"]
+  } else {
+    guard emissions.length() == 1 else { raise Abort(UnsupportedGraph) }
+    match emissions[0].1 {
+      @query.TextValue("nodes") => ["start_id", "node_id", "depth"]
+      @query.TextValue("paths") =>
+        ["start_id", "end_id", "hop_count", "node_ids", "edge_ids"]
+      _ => raise Abort(UnsupportedGraph)
+    }
   }
   let origin = match
     @origin.range(@query.query_document(query), call.start, call.end) {
@@ -88,7 +92,7 @@ fn lower_script_traversal_rows(
   steps.push(
     construction.object([
       ("from", construction.text(graph)),
-      ("traverse", body),
+      (call.operation, body),
       ("as", construction.text(output)),
     ]),
   )

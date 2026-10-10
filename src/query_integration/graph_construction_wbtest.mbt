@@ -1,12 +1,18 @@
 ///|
-fn keyed_source_owner(schema : String, rows : String) -> @lower.BoundPrepared {
+fn keyed_source_owner(
+  schema : String,
+  rows : String,
+  suffix? : String = "",
+) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
       "[{\"values\":{\"schema\":" +
       schema +
       ",\"rows\":" +
       rows +
-      "},\"as\":\"source\"}]",
+      "},\"as\":\"source\"}" +
+      suffix +
+      "]",
     ),
     [],
     None,

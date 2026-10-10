@@ -8,6 +8,7 @@ priv struct TraversalPath {
 priv enum TraversePathStarts {
   LiteralPathStarts
   RelationPathStarts(@execution.ProducerRead, Int)
+  PredicatePathStarts
 }
 
 ///|
@@ -50,6 +51,7 @@ priv enum TraversePathsPhase {
 priv enum TraversePredicateKind {
   EdgePredicate
   NodePredicate
+  StartPredicate
 } derive(Eq)
 
 ///|
@@ -167,6 +169,7 @@ fn traverse_path_start_count(state : TraversePathsState) -> Int {
   match state.starts {
     LiteralPathStarts => @lower.graph_traverse_start_id_count(state.prepared)
     RelationPathStarts(input, _) => @execution.producer_read_row_count(input)
+    PredicatePathStarts => graph_read_node_count(state.source).unwrap_or(0)
   }
 }
 
@@ -185,13 +188,14 @@ fn traverse_path_start_at(
         column,
         state.value_limits,
       )
+    PredicatePathStarts => graph_read_node_identity(state.source, index)
   }
 }
 
 ///|
 fn traverse_path_starts_available(state : TraversePathsState) -> Bool {
   match state.starts {
-    LiteralPathStarts => true
+    LiteralPathStarts | PredicatePathStarts => true
     RelationPathStarts(input, _) => @execution.producer_read_available(input)
   }
 }
@@ -446,6 +450,7 @@ fn traverse_path_predicate_binding(
   let fields = match state.predicate_kind {
     EdgePredicate => @lower.graph_traverse_hop_edge_fields(state.prepared, hop)
     NodePredicate => @lower.graph_traverse_hop_node_fields(state.prepared, hop)
+    StartPredicate => @lower.graph_traverse_start_fields(state.prepared)
   }
   guard fields is Some(fields) &&
     @carrier.field_at(fields, state.predicate_field) is Some(field) &&
@@ -469,6 +474,16 @@ fn traverse_path_predicate_binding(
         @lower.graph_traverse_hop_node_property_position(
           state.prepared,
           hop,
+          definition,
+          state.predicate_field,
+        ).bind(index => {
+          graph_read_node_property(state.source, state.candidate_node, index)
+        })
+      })
+    StartPredicate =>
+      graph_read_node_definition(state.source, state.candidate_node).bind(definition => {
+        @lower.graph_traverse_start_property_position(
+          state.prepared,
           definition,
           state.predicate_field,
         ).bind(index => {
@@ -586,6 +601,13 @@ fn traverse_paths_step(
       ResolveStarts =>
         if state.start_scan < traverse_path_start_count(state) {
           used += 1
+          if state.starts is PredicatePathStarts {
+            state.candidate_node = state.start_scan
+            state.predicate_kind = StartPredicate
+            state.predicate_field = 0
+            state.phase = PreparePredicate
+            continue
+          }
           guard traverse_path_start_at(state, state.start_scan)
             is Some(identity) else {
             return @bounded.Failed(
@@ -896,6 +918,7 @@ fn traverse_paths_step(
             @lower.graph_traverse_hop_edge_fields(state.prepared, hop)
           NodePredicate =>
             @lower.graph_traverse_hop_node_fields(state.prepared, hop)
+          StartPredicate => @lower.graph_traverse_start_fields(state.prepared)
         }
         guard fields is Some(fields) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
@@ -926,6 +949,8 @@ fn traverse_paths_step(
               @lower.graph_traverse_hop_edge_predicate(state.prepared, hop)
             NodePredicate =>
               @lower.graph_traverse_hop_node_predicate(state.prepared, hop)
+            StartPredicate =>
+              @lower.graph_traverse_start_predicate(state.prepared)
           }
           guard predicate is Some(predicate) else {
             return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
@@ -978,7 +1003,13 @@ fn traverse_paths_step(
             state.predicate_input.clear()
             state.workspace_slots -= state.predicate_slots
             state.predicate_slots = 0
-            if !selected {
+            if state.predicate_kind == StartPredicate {
+              if selected {
+                state.start_selected[state.start_scan] = true
+              }
+              state.start_scan += 1
+              state.phase = ResolveStarts
+            } else if !selected {
               state.phase = ScanEdge
             } else if state.predicate_kind == EdgePredicate {
               state.phase = BeginNodePredicate
@@ -1606,12 +1637,15 @@ fn start_traverse_paths_read(
     return Err(InvalidTraversePathsKernel)
   }
   let starts = match @lower.graph_traverse_start_relation_field(prepared) {
-    None => {
-      guard @lower.graph_traverse_start_id_count(prepared) > 0 else {
-        return Err(InvalidTraversePathsKernel)
+    None =>
+      if @lower.graph_traverse_start_predicate(prepared) is Some(_) {
+        PredicatePathStarts
+      } else {
+        guard @lower.graph_traverse_start_id_count(prepared) > 0 else {
+          return Err(InvalidTraversePathsKernel)
+        }
+        LiteralPathStarts
       }
-      LiteralPathStarts
-    }
     Some(field) => {
       let mut selector = None
       for candidate in inputs {

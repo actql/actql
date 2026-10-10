@@ -50,7 +50,7 @@ be referenced normally; this does not complete conditional Result delivery.
 | match_nodes, match_edges | src/graph_typing/match_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
 | traverse | src/graph_typing/traverse_test.mbt | src/pipeline_typing/graph_test.mbt | scripts/graph-schema.mjs |
 | shortest_path | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| reach | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| reach | src/graph_typing/reach_test.mbt | src/query_integration/graph_reach_wbtest.mbt | scripts/graph-schema.mjs |
 | subgraph | src/pipeline_check_context/subgraph_execution_wbtest.mbt | src/query_integration/graph_subgraph_wbtest.mbt | scripts/graph-schema.mjs |
 | graphs_equal | src/graph_typing/equality_test.mbt | src/query_integration/graph_equal_wbtest.mbt | scripts/graph-schema.mjs |
 | graph_diff | src/lowering_relation/graph_delta_test.mbt | src/query_integration/graph_diff_provider_wbtest.mbt | scripts/graph-schema.mjs |

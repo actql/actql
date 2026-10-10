@@ -46,6 +46,7 @@ struct CheckedTraverse {
   output : @carrier.Carrier
   usage : PredicateUsage
   path_mode : GraphPathMode
+  reachable : Bool
 }
 
 ///|
@@ -97,6 +98,34 @@ pub fn check_traverse(
   parameters : @parameter.Declarations?,
   limits : PredicateLimits,
 ) -> Result[CheckedTraverse, MatchIssue] {
+  check_traversal_profile(
+    source, input, selector_relation, parameters, limits, false,
+  )
+}
+
+///|
+/// Reach shares traversal semantics without accepting authored traversal options.
+pub fn check_reach(
+  source : @decode.Cursor,
+  input : @carrier.Carrier,
+  selector_relation : @carrier.Carrier?,
+  parameters : @parameter.Declarations?,
+  limits : PredicateLimits,
+) -> Result[CheckedTraverse, MatchIssue] {
+  check_traversal_profile(
+    source, input, selector_relation, parameters, limits, true,
+  )
+}
+
+///|
+fn check_traversal_profile(
+  source : @decode.Cursor,
+  input : @carrier.Carrier,
+  selector_relation : @carrier.Carrier?,
+  parameters : @parameter.Declarations?,
+  limits : PredicateLimits,
+  reachable : Bool,
+) -> Result[CheckedTraverse, MatchIssue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||
@@ -124,12 +153,23 @@ pub fn check_traverse(
       fail(source, IncompleteGraph)
     }
     let root = decoded(
-      @decode.closed_object(source, [
-        "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-        "max_output_rows", "path_mode", "edge_where", "node_where",
-      ]),
+      @decode.closed_object(
+        source,
+        if reachable {
+          ["start", "direction", "max_depth"]
+        } else {
+          [
+            "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
+            "max_output_rows", "path_mode", "edge_where", "node_where",
+          ]
+        },
+      ),
     )
-    let path_mode = {
+    let path_mode = if reachable {
+      // Removing cycles preserves every minimum eligible depth while reusing
+      // the finite path owner. This is not an authored path-mode restriction.
+      Acyclic
+    } else {
       // A current path mode cannot be interpreted as a historical simple path.
       guard @decode.lookup(root, "path_mode") is Some(at) else {
         fail(source, UnsupportedGraphProfile)
@@ -142,27 +182,42 @@ pub fn check_traverse(
       }
     }
     let at = decoded(@decode.required(root, "start"))
-    let start = match
-      check_selector(at, input, selector_relation, parameters, {
-        ..limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
+    let start_limits = {
+      ..limits,
+      max_work: b.work,
+      max_nodes: b.nodes,
+      max_text_bytes: b.text,
+    }
+    let selection = if reachable {
+      check_reach_selector(
+        at, input, selector_relation, parameters, start_limits,
+      )
+    } else {
+      check_selector(at, input, selector_relation, parameters, start_limits)
+    }
+    let start = match selection {
       Ok(s) => s
       Err(e) => raise MatchStop(e)
     }
     b.work -= start.usage.work
     b.nodes -= start.usage.nodes
     b.text -= start.usage.text_bytes
-    let at = decoded(@decode.required(root, "emit"))
-    let emit = match decoded(@decode.text(at)) {
-      "nodes" => TraversedNodes
-      "paths" => TraversedPaths
-      _ => fail(at, InvalidBody)
+    let at = if reachable {
+      source
+    } else {
+      decoded(@decode.required(root, "emit"))
+    }
+    let emit = if reachable {
+      TraversedNodes
+    } else {
+      match decoded(@decode.text(at)) {
+        "nodes" => TraversedNodes
+        "paths" => TraversedPaths
+        _ => fail(at, InvalidBody)
+      }
     }
     let hops = []
-    let mut predicate_tokens = 0
+    let mut predicate_tokens = start.usage.tokens
     let patterned = @decode.lookup(root, "hops") is Some(_)
     let (minimum, maximum) = match @decode.lookup(root, "hops") {
       Some(at) => {
@@ -216,12 +271,22 @@ pub fn check_traverse(
         let direction = traversal_direction(
           decoded(@decode.required(root, "direction")),
         )
-        let minimum = traversal_bound(
-          decoded(@decode.required(root, "min_hops")),
-          0.0,
-        )
+        let minimum = if reachable {
+          0.0
+        } else {
+          traversal_bound(decoded(@decode.required(root, "min_hops")), 0.0)
+        }
         let maximum = traversal_bound(
-          decoded(@decode.required(root, "max_hops")),
+          decoded(
+            @decode.required(
+              root,
+              if reachable {
+                "max_depth"
+              } else {
+                "max_hops"
+              },
+            ),
+          ),
           1.0,
         )
         if minimum > maximum {
@@ -289,6 +354,7 @@ pub fn check_traverse(
       guard_rows,
       output: output.output,
       path_mode,
+      reachable,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -306,6 +372,12 @@ pub fn check_traverse(
 ///|
 pub fn traverse_source(c : CheckedTraverse) -> @decode.Cursor {
   c.source
+}
+
+///|
+/// Immutable authored profile; never infer Reach from a coincidental hop shape.
+pub fn traverse_is_reach(c : CheckedTraverse) -> Bool {
+  c.reachable
 }
 
 ///|

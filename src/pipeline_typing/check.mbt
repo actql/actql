@@ -1108,41 +1108,6 @@ fn check_impl(
           fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
       }
     }
-    if key == "reach" {
-      let root = match
-        @decode.closed_object(operation_body, [
-          "start", "direction", "max_depth",
-        ]) {
-        Ok(o) => o
-        Err(_) => fail(operation_body, InvalidBody)
-      }
-      let start = match @decode.required(root, "start") {
-        Ok(c) => c
-        Err(_) => fail(operation_body, InvalidBody)
-      }
-      let selector = match @decode.view(start) {
-        ObjectValue(_) => {
-          let body = match
-            @decode.closed_object(start, ["ids", "from", "id", "where"]) {
-            Ok(o) => o
-            Err(_) => fail(start, InvalidBody)
-          }
-          @decode.lookup(body, "from").map(at => resolve_target(b, at, names))
-        }
-        _ => None
-      }
-      // A bounded authored reference is checked above, but reach has no
-      // implementation under the sole keyed Graph contract.
-      ignore(selector)
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
-      }
-    }
     if key == "subgraph" {
       let root = match
         @decode.closed_object(operation_body, ["nodes", "edges"]) {
@@ -1213,12 +1178,19 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "traverse" {
+    if key == "traverse" || key == "reach" {
       let root = match
-        @decode.closed_object(operation_body, [
-          "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-          "max_output_rows", "path_mode", "edge_where", "node_where",
-        ]) {
+        @decode.closed_object(
+          operation_body,
+          if key == "reach" {
+            ["start", "direction", "max_depth"]
+          } else {
+            [
+              "start", "hops", "direction", "edge_types", "min_hops", "max_hops",
+              "emit", "max_output_rows", "path_mode", "edge_where", "node_where",
+            ]
+          },
+        ) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -1226,14 +1198,14 @@ fn check_impl(
         Ok(c) => c
         Err(_) => fail(operation_body, InvalidBody)
       }
-      let selector_body = match
-        @decode.closed_object(at, ["ids", "from", "id", "where"]) {
-        Ok(o) => o
+      let selector_body = match @decode.open_object(at) {
+        Ok(o) => Some(o)
+        Err(_) if key == "reach" => None
         Err(_) => fail(at, InvalidBody)
       }
-      let selector = @decode.lookup(selector_body, "from").map(at => {
-        resolve_target(b, at, names)
-      })
+      let selector = selector_body
+        .bind(body => @decode.lookup(body, "from"))
+        .map(at => resolve_target(b, at, names))
       let caps : @graph.PredicateLimits = {
         max_work: b.work,
         max_nodes: b.nodes,
@@ -1241,7 +1213,11 @@ fn check_impl(
         max_text_bytes: b.text,
         max_tokens: b.tokens,
       }
-      let checked = @graph.check_traverse(
+      let checked = (if key == "reach" {
+        @graph.check_reach
+      } else {
+        @graph.check_traverse
+      })(
         operation_body,
         carrier(input, inputs, steps),
         selector.map(t => carrier(t, inputs, steps)),

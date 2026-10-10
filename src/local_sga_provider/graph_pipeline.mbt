@@ -218,7 +218,8 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   maximum <= 2147483647L &&
   (
     @lower.graph_traverse_start_id_count(value) > 0 ||
-    @lower.graph_traverse_start_relation_field(value) is Some(_)
+    @lower.graph_traverse_start_relation_field(value) is Some(_) ||
+    @lower.graph_traverse_start_predicate(value) is Some(_)
   ) &&
   hop_count > 0 &&
   ({
@@ -281,7 +282,12 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           return false
         }
         current_graph(carrier) &&
-        @lower.operation(node) == "SGA.traverse" &&
+        @lower.operation(node) ==
+        (if @lower.graph_traverse_is_reach(traverse) {
+          "SGA.reachable"
+        } else {
+          "SGA.traverse"
+        }) &&
         accepts_traverse(traverse)
       }
       @lower.GraphSubgraphStep(subgraph) => {

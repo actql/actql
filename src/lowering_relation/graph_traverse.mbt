@@ -11,6 +11,12 @@ struct PreparedGraphTraverse {
   checked : @graph.CheckedTraverse
   hops : Array[PreparedGraphTraverseHop]
   output_guard : Int64?
+  start_predicate : Expression?
+}
+
+///|
+pub fn graph_traverse_is_reach(value : PreparedGraphTraverse) -> Bool {
+  @graph.traverse_is_reach(value.checked)
 }
 
 ///|
@@ -64,6 +70,33 @@ pub fn graph_traverse_output_guard(value : PreparedGraphTraverse) -> Int64? {
 /// Number of checked literal identities in the start selector.
 pub fn graph_traverse_start_id_count(value : PreparedGraphTraverse) -> Int {
   @graph.selector_id_count(@graph.traverse_start(value.checked))
+}
+
+///|
+pub fn graph_traverse_start_predicate(
+  value : PreparedGraphTraverse,
+) -> Expression? {
+  value.start_predicate
+}
+
+///|
+pub fn graph_traverse_start_fields(
+  value : PreparedGraphTraverse,
+) -> @carrier.Knowledge? {
+  @graph.selector_fields(@graph.traverse_start(value.checked))
+}
+
+///|
+pub fn graph_traverse_start_property_position(
+  value : PreparedGraphTraverse,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  @graph.selector_property_position(
+    @graph.traverse_start(value.checked),
+    definition,
+    field,
+  )
 }
 
 ///|
@@ -248,6 +281,24 @@ fn prepare_graph_traverse_node(
   }
   let hops : Array[PreparedGraphTraverseHop] = []
   let mut remaining = expressions
+  let start_predicate = if @graph.selector_predicate(start) is Some(_) {
+    let (expression, usage) = match
+      lower_expression_measured(owner, step_index, hop_count * 2, remaining) {
+      Ok(value) => value
+      Err(issue) => return Err(GraphTraverseExpression(issue))
+    }
+    remaining = {
+      ..remaining,
+      max_nodes: remaining.max_nodes - usage.nodes,
+      max_work: remaining.max_work - usage.work,
+      max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+      max_literal_text_bytes: remaining.max_literal_text_bytes -
+      usage.literal_bytes,
+    }
+    Some(expression)
+  } else {
+    None
+  }
   for index in 0..<hop_count {
     let hop = @graph.traverse_hop_at(checked, index).unwrap()
     let edge_predicate = if @graph.hop_edge_predicate(hop) is Some(_) {
@@ -309,7 +360,14 @@ fn prepare_graph_traverse_node(
       Some(integer)
     }
   }
-  Ok(({ node, checked, hops, output_guard, }, entries, name_bytes, remaining))
+  Ok(
+    (
+      { node, checked, hops, output_guard, start_predicate, },
+      entries,
+      name_bytes,
+      remaining,
+    ),
+  )
 }
 
 ///|
@@ -342,11 +400,24 @@ fn emit_graph_traverse_node(
   }
   @encode.end_array(out)
   @encode.key(out, "op")
-  @encode.string_value(out, "SGA.traverse")
+  @encode.string_value(out, operation(prepared.node))
   @encode.key(out, "params")
   @encode.begin_object(out)
   @encode.key(out, "start")
-  emit_graph_selector(@graph.traverse_start(prepared.checked), out)
+  emit_graph_selector(
+    @graph.traverse_start(prepared.checked),
+    out,
+    predicate=prepared.start_predicate,
+  )
+  if graph_traverse_is_reach(prepared) {
+    @encode.key(out, "direction")
+    emit_graph_direction(@graph.hop_direction(prepared.hops[0].checked), out)
+    @encode.key(out, "max_depth")
+    @encode.number_value(out, @graph.traverse_bounds(prepared.checked).1)
+    @encode.end_object(out)
+    @encode.end_object(out)
+    return
+  }
   @encode.key(out, "path_mode")
   @encode.string_value(
     out,

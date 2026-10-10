@@ -2,6 +2,7 @@
 fn emit_graph_selector(
   selector : @graph.CheckedSelector,
   out : @encode.Writer,
+  predicate? : Expression? = None,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
   match @graph.selector_form(selector) {
@@ -21,6 +22,11 @@ fn emit_graph_selector(
       @encode.number_value(out, 1.0)
       @encode.key(out, "id")
       @encode.string_value(out, @schema.reference_name(field))
+    }
+    @graph.NodeWhere => {
+      @encode.key(out, "where")
+      // A checked predicate cannot be encoded without its prepared expression.
+      emit_expression(predicate.unwrap(), out)
     }
   }
   @encode.end_object(out)

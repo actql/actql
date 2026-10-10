@@ -413,15 +413,23 @@ pub fn graph_traverse_hop_type_at(PreparedGraphTraverse, Int, Int) -> String?
 
 pub fn graph_traverse_hop_type_count(PreparedGraphTraverse, Int) -> Int?
 
+pub fn graph_traverse_is_reach(PreparedGraphTraverse) -> Bool
+
 pub fn graph_traverse_output_guard(PreparedGraphTraverse) -> Int64?
 
 pub fn graph_traverse_output_schema(PreparedGraphTraverse) -> @relation_schema.Schema
 
 pub fn graph_traverse_patterned(PreparedGraphTraverse) -> Bool
 
+pub fn graph_traverse_start_fields(PreparedGraphTraverse) -> @carrier_contract.Knowledge?
+
 pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
 
 pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
+
+pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
+
+pub fn graph_traverse_start_property_position(PreparedGraphTraverse, Int, Int) -> Int?
 
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
 

@@ -74,5 +74,49 @@ cleanup false/error/retry fixture preserve borrowed input custody.
 
 Remaining graft evidence: fixed-SHA verification, required matching backends,
 packed Local/HTTPS, separate-process reads, and operation-wide public failure
-evidence. Reach's predicate selector is also currently unsupported by the
-shared selector checker; opening only its operation key will not finish Reach.
+evidence.
+
+## Reach implementation checkpoint
+
+Reach retains its own checked operation identity and resource subjects while
+sharing the typed traversal owner, expression frames and output completion.
+It fixes minimum depth at zero and admits only start, direction and a positive
+finite max_depth. Raw identity, ID list, nullable Relation and node predicate
+selectors use existing value and predicate admission. Predicates must be valid
+for every static node definition; absent properties are not fabricated NULLs.
+The finite acyclic traversal profile preserves minimum reachable depths.
+
+DATA and terminal AQL routes lower to the same independently authored Program.
+No scheduler, synchronous execution fallback or legacy Graph conversion was
+added. Nullable non-NULL identities are readmitted before storage lookup; NULL
+and missing membership keep different typed causes.
+
+The focused JS selection across graph_typing, pipeline_typing,
+lowering_relation, query_integration, query_program and relation_results passes
+10/10 on the working source. Command:
+`node scripts/local-checks.mjs test moon -- --target js src/graph_typing src/pipeline_typing src/lowering_relation src/query_integration src/query_program src/relation_results --filter '*Reach*'`.
+Receipts: `_build/local-checks/attempts/run-ML4YPk` and
+`_build/focused-evidence/focused-test-4zgYJt`. This is not fixed-SHA public
+acceptance or CI success. Earlier failure receipts remain retained.
+
+Existing TRAIL callers in pipeline_typing and query_integration pass 15/15
+with `--target js --filter '*TRAIL*'` (run-DZX5xQ,
+focused-test-kX7SBl). The operation evidence index passes 4/4 through
+`node scripts/local-checks.mjs test node -- scripts/pure-operation-inventory.test.mjs`
+(run-V17zbg, focused-test-ZDwXnj). Current refusal classification and actual
+execution evidence are kept separate. Changed interfaces were regenerated
+with the pinned `moon info` generator, not edited by hand.
+
+For one node with 100 self-loop edges, exact control work is independently
+derived as 3 start operations, 1 depth entry, 1 endpoint, 3 scalar fields,
+1 row commit, 1 handoff, and 100 times (2 directional scans + 1 membership
+check): 310. The reverse self-loop occurrence is rejected before membership
+by traversal_neighbor. Peak workspace is 1 start index + 1 depth index +
+2 seed-path slots + 1 endpoint index: 5. Exact and one-short verify typed
+causes at quantum 1, 7 and 64. Every pre-handoff quantum-1 boundary and the
+start-predicate execution boundary preserve input custody on cancellation.
+
+Remaining Reach evidence: selected public Host/retained Store execution,
+packed Local/HTTPS, fresh-process Result reads, required matching backends,
+shared-input consumer and cleanup retry acceptance. It remains partial, not
+delivery-complete. shortest_path and mean_graphs remain unconnected.

@@ -43,6 +43,8 @@ pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -
 
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
+pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
+
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
@@ -267,6 +269,8 @@ pub fn predicate_reference_name(CheckedPredicate, Int) -> String?
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
 
+pub fn selector_fields(CheckedSelector) -> @carrier_contract.Knowledge?
+
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
 pub fn selector_id_at(CheckedSelector, Int) -> @value_admission.CheckedValue?
@@ -282,6 +286,10 @@ pub fn selector_pending(CheckedSelector) -> Array[SelectorObligation]
 pub fn selector_pending_at(CheckedSelector, Int) -> SelectorObligation?
 
 pub fn selector_pending_count(CheckedSelector) -> Int
+
+pub fn selector_predicate(CheckedSelector) -> CheckedPredicate?
+
+pub fn selector_property_position(CheckedSelector, Int, Int) -> Int?
 
 pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
@@ -330,6 +338,8 @@ pub fn traverse_hop_at(CheckedTraverse, Int) -> TraversalHop?
 pub fn traverse_hop_count(CheckedTraverse) -> Int
 
 pub fn traverse_input(CheckedTraverse) -> @carrier_contract.Carrier
+
+pub fn traverse_is_reach(CheckedTraverse) -> Bool
 
 pub fn traverse_output(CheckedTraverse) -> @carrier_contract.Carrier
 
@@ -628,6 +638,7 @@ pub(all) struct PredicateUsage {
 pub enum SelectorForm {
   ExplicitIds
   RelationIds(from~ : String, field~ : @relation_schema.FieldName)
+  NodeWhere
 }
 
 pub(all) enum SelectorObligation {

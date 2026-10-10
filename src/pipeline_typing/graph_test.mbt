@@ -338,12 +338,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
   for
     (name, body) in [
       (
-        "reach",
-        "{\"start\":{\"ids\":[" +
-        identity +
-        "]},\"direction\":\"out\",\"max_depth\":1}",
-      ),
-      (
         "shortest_path",
         "{\"source\":{\"ids\":[" +
         identity +

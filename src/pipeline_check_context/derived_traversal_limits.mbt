@@ -60,8 +60,12 @@ fn derive_traversal_limits(
       }
       let (operation, output_law) = match
         @pipeline.step_at(pipeline, step).unwrap().operation {
-        @pipeline.Traverse(..) =>
-          ("traverse", Some("actql.bound.traverse-nodes"))
+        @pipeline.Traverse(checked=operation, ..) =>
+          if @graph.traverse_is_reach(operation) {
+            ("reach", Some("actql.bound.reach-nodes"))
+          } else {
+            ("traverse", Some("actql.bound.traverse-nodes"))
+          }
         _ => continue
       }
       let subject = operation + ":checked-step:" + step.to_string()
