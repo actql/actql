@@ -199,6 +199,7 @@ fn scalar_call(
     "ROUND" => ("ROUND", "round", 1, 1)
     "TRUNC" => ("TRUNC", "trunc", 1, 1)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
+    "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "STARTS_WITH" => ("STARTS_WITH", "starts_with", 2, 2)
     "ENDS_WITH" => ("ENDS_WITH", "ends_with", 2, 2)
     "FLOOR" => ("FLOOR", "floor", 1, 1)
@@ -576,6 +577,15 @@ fn append_resolved(
                   nodes[args[0]],
                 ])
                 lowering.form("negate", lowering.form("floor", negative))
+              } else if name == "substring" {
+                let fields = [
+                  ("value", nodes[args[0]]),
+                  ("start", nodes[args[1]]),
+                ]
+                if args.get(2) is Some(length) {
+                  fields.push(("length", nodes[length]))
+                }
+                lowering.form(name, lowering.object(fields))
               } else if maximum == 1 ||
                 (
                   ["trim", "ltrim", "rtrim"].contains(name) &&

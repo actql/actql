@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 160);
-  assert.equal(setCorrespondingRefusals.length, 109);
+  assert.equal(setCorrespondingSuccesses.length, 169);
+  assert.equal(setCorrespondingRefusals.length, 114);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -479,5 +479,27 @@ test('positional UNNEST preserves anonymous occurrences, child multiplicity and 
   assert.deepEqual(positionalUnnestProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unnest-'));
   assert.equal(refusals.length, 7);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('positional UNPIVOT retains anonymous values, generated current labels and repeated-row multiplicity', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-unpivot-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.expected, [{a: -20, b: 2, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: true}},
+    {name: 'b', contract: {type: 'number', nullable: false}}, {name: 'c', contract: {type: 'string', nullable: false}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-current-renamed-label')).expected,
+    [{a: -20, b: 7, c: 'renamed'}, {a: -10, b: 7, c: 'renamed'}, {a: 0, b: 0, c: 'anchor'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-repeated-selected-column')).expected.slice(0,2),
+    [{a: -20, b: 2, c: 'kept'}, {a: -20, b: 2, c: 'kept'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-destination')).text.includes('INCLUDE NULLS(aql_set_anonymous_4'));
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[3].unpivot,
+    {columns: ['kept'], keep: ['neg'], value_column: 'value', name_column: 'label'});
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[4].select, [{a: 'neg'}, {b: 'value'}, {c: 'label'}]);
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unpivot-'));
+  assert.equal(refusals.length, 5);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });

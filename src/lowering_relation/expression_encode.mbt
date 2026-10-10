@@ -208,6 +208,17 @@ fn emit_frames(
             @encode.begin_array(output)
             pending.push(Expressions(children, 0))
           }
+          Many(Substring, args) => {
+            pending.push(Op("substring"))
+            @encode.begin_object(output)
+            let fields = []
+            if args.get(2) is Some(length) {
+              fields.push(("length", length))
+            }
+            fields.push(("start", args[1]))
+            fields.push(("value", args[0]))
+            pending.push(ObjectExpressions(fields, 0))
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -218,6 +229,7 @@ fn emit_frames(
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
+                  Substring => "substring"
                   Between => "between"
                 },
               ),
