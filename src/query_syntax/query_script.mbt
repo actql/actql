@@ -99,7 +99,9 @@ pub fn parse_query_script(
       } else {
         // Use the same query-expression parser and original token stream.
         // A retained declaration is not an externally exported Result.
-        DataExpression::RelationQuery(parser.query(cte_body=true))
+        DataExpression::RelationQuery(
+          parser.query(cte_body=true, graph_data_body=true),
+        )
       }
       let end = parser.peek().end
       parser.symbol(59)
