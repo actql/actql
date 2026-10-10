@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from threading import Event, Thread
+import time
 import unittest
 from unittest.mock import patch
 
@@ -142,6 +144,47 @@ class StandaloneDuckDBTests(unittest.TestCase):
             "current_setting('default_collation')")
         self.assertEqual(rows, [b'[false,false,false,false,true,"1","0 bytes","binary"]'])
 
+    def test_interrupt_delivery_is_not_stop_until_native_call_returns(self):
+        self.stream = self.connection.prepare(
+            'SELECT sum(a.i::DOUBLE*b.i) FROM range(100000) a(i), range(100000) b(i)',
+            DuckDBTransferLimits())
+        entered = Event()
+        returned = Event()
+        outcome = []
+        execute = library.api.duckdb_execute_prepared_streaming
+
+        def physical_call(*arguments):
+            entered.set()
+            return execute(*arguments)
+
+        def worker():
+            try:
+                self.stream.execute()
+                outcome.append('completed')
+            except DuckDBPhysicalError:
+                outcome.append('physical_error')
+            finally:
+                returned.set()
+
+        with patch.object(library.api, 'duckdb_execute_prepared_streaming', side_effect=physical_call):
+            thread = Thread(target=worker, daemon=True)
+            thread.start()
+            self.assertTrue(entered.wait(1))
+            try:
+                # Only a short bounded native diagnostic; no completed work is
+                # required. Give the C call time to enter before interruption.
+                time.sleep(0.02)
+                self.assertFalse(returned.is_set())
+                self.assertFalse(self.stream.close())
+                self.assertFalse(self.connection.close())
+            finally:
+                self.connection.interrupt()
+            self.assertTrue(returned.wait(2), 'Native execution did not acknowledge interruption')
+            thread.join(timeout=1)
+        self.assertEqual(outcome, ['physical_error'])
+        self.assertTrue(self.stream.close())
+        self.assertTrue(self.connection.close())
+
     def test_readonly_source_blocks_write_physically(self):
         self.assertTrue(self.connection.close())
         with tempfile.TemporaryDirectory() as directory:
@@ -175,4 +218,4 @@ print(json.dumps({'source_sha': source, 'library': str(args.library),
     'python': sys.version, 'platform': platform.platform(),
     'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
     'public_local_acceptance': False, 'wheel_acceptance': False}))
-sys.exit(0 if result.wasSuccessful() and result.testsRun == 10 else 1)
+sys.exit(0 if result.wasSuccessful() and result.testsRun == 11 else 1)
