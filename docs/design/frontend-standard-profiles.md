@@ -209,3 +209,22 @@ unsupported. Existing string/resource admission determines the supported
 extent; the search does not add an unrelated language-length restriction.
 Canonical schemas, registries and their current dependent identities include
 the added common node; complete predecessor preimages retain their old CIDs.
+
+### Unary finite-number ROUND and TRUNC
+
+`ROUND(X)` and `TRUNC(X)` select the common unary expression Owner for finite
+binary64 numbers. ROUND chooses the nearest integer and breaks exact ties away
+from zero; TRUNC chooses the nearest integer toward zero. Neither changes an
+already-integral value or overflows on an admitted finite input. ActQL's existing
+arithmetic canonicalizes zero results to positive zero. The operand remains a
+single retained subtree with the ordinary nullable type, demand, failure,
+cancellation and bounded-execution rules.
+
+The finite unary value rules follow Google's
+[ROUND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#round)
+and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc)
+references. Optional decimal-position N, explicit rounding modes, distinct
+INT64/NUMERIC/BIGNUMERIC overloads and non-finite values are unimplemented
+coverage, not restrictions claimed for GoogleSQL. Existing CIDs retain their
+predecessor meaning; new expression/schema/registry identities are propagated
+through the ordinary contract Owners. No adapter-specific evaluator is added.

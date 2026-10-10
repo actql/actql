@@ -196,6 +196,8 @@ fn scalar_call(
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "ABS" => ("ABS", "abs", 1, 1)
     "SIGN" => ("SIGN", "sign", 1, 1)
+    "ROUND" => ("ROUND", "round", 1, 1)
+    "TRUNC" => ("TRUNC", "trunc", 1, 1)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
     "STARTS_WITH" => ("STARTS_WITH", "starts_with", 2, 2)
     "ENDS_WITH" => ("ENDS_WITH", "ends_with", 2, 2)
