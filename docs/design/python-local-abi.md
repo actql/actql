@@ -11,6 +11,9 @@ capacity, allocations and borrows. A pool reserves its allowance once. A transfe
 charges both mutable staging and immutable wire payload capacity, including the
 overlap during sealing, plus the physical adapter's copy allowance. All live
 transfers share that allowance; byte equality does not merge allocations.
+Reservation issues custody before allocating the large staging array. The
+first admitted fill allocates storage under that existing reservation, so a
+trap during transfer still leaves the caller's exact handle available.
 
 The source decoder preserves raw JSON strings and keys, including Unicode and
 NULL. It distinguishes parsing limits from malformed input. Sealing a transfer
@@ -29,6 +32,22 @@ issues monotonically increasing handles from a shared sequence for input and
 reader kinds. Handles are never serialized Client references, durable operation
 identities or execution authority. The adapter must keep handles private to the
 owning instance; neither a handle nor a nonce is an authorization token.
+
+The Python physical bridge checks the installed artifact digest, scalar ABI
+version, exact callback signatures, required exports and linear-memory maximum
+before opening the instance. `actql_host_abi_version` returns 1; this private ABI
+version is independent of Client wire and package release versions. Optional
+Wasmtime import is deferred until physical Local construction. Remote import
+does not load Wasmtime or DuckDB.
+
+Calls into an instance are serialized. Physical callbacks cannot reenter it.
+Input loans belong to their exact bridge object; copying a loan or using it in
+another instance cannot acquire custody. Python retains immutable bytes and
+measures their copy allowance before transfer. Only an explicit physical
+callback returning true acknowledges stop or cleanup; exceptions retain pending
+custody. Failed close keeps the same instance and its reservations for retry.
+Closing this Host bridge is separate from closing a Client connection and
+cannot decide Run cancellation.
 
 All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
 and admitted before the physical callback runs. The three imports are
