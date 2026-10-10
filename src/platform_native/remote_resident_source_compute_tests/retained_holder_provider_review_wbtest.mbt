@@ -1,39 +1,12 @@
 ///|
-/// Real original holders through the production Provider/review connection.
-/// Credential authorization is separately installed by the physical fixture;
-/// journal report custody is real, while Cloud commit/approval/write remain
-/// separate and unverified here.
-fn retained_holder_provider_review(
+/// Independently installed physical Provider policy, shared by refusal and
+/// success cases. This fixture is not Cloud approval authority.
+fn retained_holder_review_policy(
   holder : @resident.ResidentRetainedConsumer,
-  journal : @dispatch_journal.Journal,
-  consumer : @resident.ResidentSourceCompute,
-  source_owner : @resident.ResidentSourceCompute,
-  materials : @host.ClientEffectRunMaterials,
   inputs : @strategy.CapturedEffectInputs,
-  dispatch : @remote.DispatchRequest,
   invocation : @publication.PublicationContract,
-  observation : @publication.RunEvidenceValue,
-  producer : @resident.ResidentEffectProducerCapture,
-  receiver : @host.ClientEffectLocalResultArtifact,
-  imported : @host.ClientEffectImportedEvidence,
-  root_index : Int,
-  public_result : @resident.ResidentEffectResultCapture,
-  root_path : String,
-  name : String,
-  owned_context : @resident.ResidentEffectReviewInputContext,
-  normalization : @publication.RunEvidenceValue,
-  original_producer : @resident.ResidentEffectProducerExecuted,
-  producer_journal : @dispatch_journal.Journal,
-) -> Unit raise {
-  let mark = (phase : String) => {
-    @filesystem.open_root(root_path)
-    .unwrap()
-    .create_directory(name + ".review-" + phase)
-    .unwrap()
-    |> ignore
-  }
-  let request = consumer.request_for_effect_review(inputs).unwrap()
-  assert_eq(Some(request), materials.request)
+) -> @effect_provider.NativeResidentEffectReviewPolicy raise {
+  let dispatch = @resident.resident_retained_consumer_request(holder)
   let mut result_index = -1
   for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
     if @strategy.captured_effect_local_result_matches_member(inputs, index, 0) {
@@ -47,7 +20,7 @@ fn retained_holder_provider_review(
     dispatch_request_cid: @remote.dispatch_request_identity(dispatch),
   }
   let catalog = provider_catalog(binding)
-  let policy : @effect_provider.NativeResidentEffectReviewPolicy = {
+  {
     stage: 1,
     effect_id: "save",
     result_index,
@@ -117,6 +90,43 @@ fn retained_holder_provider_review(
     max_work: 10000,
     max_utf16_units: 10000,
   }
+}
+
+///|
+/// Real original holders through the production Provider/review connection.
+/// Credential authorization is separately installed by the physical fixture;
+/// journal report custody is real, while Cloud commit/approval/write remain
+/// separate and unverified here.
+fn retained_holder_provider_review(
+  holder : @resident.ResidentRetainedConsumer,
+  journal : @dispatch_journal.Journal,
+  consumer : @resident.ResidentSourceCompute,
+  source_owner : @resident.ResidentSourceCompute,
+  materials : @host.ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  dispatch : @remote.DispatchRequest,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  producer : @resident.ResidentEffectProducerCapture,
+  receiver : @host.ClientEffectLocalResultArtifact,
+  imported : @host.ClientEffectImportedEvidence,
+  root_index : Int,
+  public_result : @resident.ResidentEffectResultCapture,
+  root_path : String,
+  name : String,
+  owned_context : @resident.ResidentEffectReviewInputContext,
+  normalization : @publication.RunEvidenceValue,
+) -> Unit raise {
+  let mark = (phase : String) => {
+    @filesystem.open_root(root_path)
+    .unwrap()
+    .create_directory(name + ".review-" + phase)
+    .unwrap()
+    |> ignore
+  }
+  let request = consumer.request_for_effect_review(inputs).unwrap()
+  assert_eq(Some(request), materials.request)
+  let policy = retained_holder_review_policy(holder, inputs, invocation)
   let prepare = (material, policy) => {
     @effect_provider.prepare_native_resident_effect_review(
       holder, journal, material, inputs, producer, receiver, imported, root_index,
@@ -146,46 +156,9 @@ fn retained_holder_provider_review(
     is Err(InvalidLimits),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, before)
-  // A failed Result capture consumes only its private pins/export. The actual
-  // Source, receiver and Runtime remain held, and Provider access is not begun.
-  let rejected_context = holder
-    .prepare_effect_review_inputs(
-      journal,
-      original_producer,
-      producer_journal,
-      1,
-      0,
-      policy.retention,
-      policy.export_limits,
-      4,
-      10000,
-      65536,
-      4096,
-      64,
-    )
-    .unwrap()
-  assert_true(
-    @effect_provider.prepare_native_resident_effect_review_from_context(
-      holder,
-      journal,
-      rejected_context,
-      observation,
-      [],
-      [],
-      policy,
-    )
-    is Err(
-      {
-        issue: Result(
-          Receipt(ReceiptIssuanceWrongContract("normalization_journal"))
-        ),
-        pending: None,
-      }
-    ),
-  )
-  assert_true(rejected_context.facts(journal) is None)
-  assert_true(rejected_context.close())
-  assert_eq(consumer.usage().reserved_retention_bytes, before)
+  // The old raw-adapter refusal cases are complete. Return their separate
+  // Result export before the consuming constructor acquires its own pin.
+  public_result.output.cancel()
   let work = @effect_provider.prepare_native_resident_effect_review_from_context(
     holder,
     journal,
