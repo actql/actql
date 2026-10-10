@@ -487,7 +487,7 @@ fn local_client_read_result_sink(
     128,
     3,
   ).unwrap()
-  let session = @access.open_native_result_access(service, {
+  let session = match @access.open_native_result_access(service, {
     namespace_id: "native-client-fixture",
     authority_scope_cid: @host.client_request_authority_scope_cid(request),
     run_definition_cid: @publication.publication_contract_identity(definition),
@@ -496,7 +496,10 @@ fn local_client_read_result_sink(
     result_name: "answer",
     format: "jsonl",
     attempt_id: attempt,
-  }).unwrap()
+  }) {
+    Ok(value) => value
+    Err(issue) => fail("actual Source Result access: " + @debug.to_string(issue))
+  }
   let output : Array[Byte] = []
   let finishes = Ref(0)
   let sink = @access.install_native_result_sink(

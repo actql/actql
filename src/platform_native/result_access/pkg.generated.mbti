@@ -92,8 +92,6 @@ pub(all) enum NativeResultSinkIssue {
   Access(NativeResultAccessIssue)
 }
 
-type NativeResultSinkPhase
-
 pub(all) enum NativeResultSinkStep {
   SinkProgress
   SinkComplete(@publication_store.NativeResultDeliverySuccess)

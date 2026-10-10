@@ -22,6 +22,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/platform_native/filesystem",
   "moonbitlang/core/env",
+  "moonbitlang/core/debug",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/encoding/base64",
   "actql/actql/check_environment" @environment,
