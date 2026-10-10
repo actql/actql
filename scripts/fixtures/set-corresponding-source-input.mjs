@@ -444,3 +444,54 @@ setCorrespondingRefusals.push(
     text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
       + '|> WHERE v > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
 );
+
+// EXCEPT names authored columns; anonymous values remain ordinal-only. The
+// independent JSON control projects already evaluated values before append.
+export const positionalExclusionProgram = {version: 'actql/0.1', id: 'fixture.positional_exclusion',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{kept: 'x'}, 'neg']}, {select: ['neg']},
+    {select: [{a: 'neg'}], as: 'right'},
+    {values: {schema: {a: number}, rows: [{a: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const exclusion = (name, text, extra = {}) => success('positional-exclusion-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}], ...extra});
+const exclusionHead = 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * EXCEPT (';
+setCorrespondingSuccesses.push(
+  exclusion('json-control', JSON.stringify(positionalExclusionProgram), {format: 'json', sourceReadSessionCount: 0}),
+  exclusion('source-scalar', exclusionHead + 'kept)) ORDER BY a'),
+  exclusion('quoted-repeated-limit', exclusionHead + '`KEPT`) |> SELECT * |> WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a',
+    {expected: [{a: -1}, {a: 0}]}),
+  exclusion('duplicate-aliases', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 '
+    + '|> SELECT * EXCEPT (v)) ORDER BY a', {expected: [{a: 0}, {a: 11}, {a: 12}]}),
+  exclusion('distinct', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT DISTINCT * EXCEPT (kept)) ORDER BY a',
+    {sourceRows: [{id: 2, amount: 20}, {id: 2, amount: 20}, {id: 1, amount: 10}]}),
+  exclusion('analytic', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, ROW_NUMBER() OVER (ORDER BY id) '
+    + '|> SELECT * EXCEPT (kept) |> ORDER BY 1 DESC |> LIMIT 1) ORDER BY a', {expected: [{a: 0}, {a: 2}]}),
+  exclusion('global', 'SELECT 0 AS a UNION ALL (SELECT COUNT(id) AS kept, SUM(id) FROM records |> SELECT * EXCEPT (kept)) ORDER BY a',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: 0}, {a: 3}]}),
+  exclusion('nullable', 'SELECT 0 AS a UNION ALL (FROM records |> SELECT id AS kept, -amount |> SELECT * EXCEPT (kept)) ORDER BY a NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}], expected: [{a: -10}, {a: 0}, {a: null}]}),
+  exclusion('typed-empty', 'SELECT 0 AS a WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * EXCEPT (kept)) ORDER BY a',
+    {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4', '`AQL_SET_ANONYMOUS_4`', 'missing'].map((field, index) => ({
+    name: 'set-corresponding-refuse-exclusion-name-' + index, format: 'sql',
+    text: exclusionHead + field + ')) ORDER BY a', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-exclusion-dropped-alias', format: 'sql',
+    text: exclusionHead + 'kept) |> ORDER BY kept) ORDER BY a', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-exclusion-old-range', format: 'sql',
+    text: 'SELECT 0 AS a UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SELECT * EXCEPT (kept) |> ORDER BY old.id) ORDER BY a', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-exclusion-retained-duplicate', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS dropped '
+      + '|> SELECT * EXCEPT (dropped) |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
