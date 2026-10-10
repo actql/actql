@@ -102,3 +102,21 @@ Final preparation run-wSjkFQ checks the consuming Values Run identity 2/2 and
 read-only compilation manifest, document metadata, spec family, canonical,
 Workers and Node freshness. Pre-submission main remains eefdda1a85c4e033d6dcefcc774095949cc97262;
 parent #1353 remains open at bcd0fb5ce617be52d2efb6d3aab0d2bfba16d157.
+
+## First public gate: independent object schema default omission
+
+Fixed initial source 6f6056d06c85142d9c5130f51ced07650c6e4f71 normally packs all
+five packages and passes actual digests. Guard run-lK13qT reaches the five new
+scalar cases successfully on both transports; it fails at the object JSON
+control's describe comparison. The normalized closed-object contract includes
+additional_properties=false, which the newly authored expected contract omitted.
+No source-generated object case/later/refusal/inventory success is claimed for
+this failed run. Original receipt/logs retained at
+/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-2WIyK5.
+
+Declare the existing closed-object constraint explicitly in the hand-authored
+contract used by both parameter declarations and expected describe. The same
+existing value-contract normalization default applies; do not remove closure
+checking or infer a type from rows. Preserve object NULL/field NULL, inside id
+nonnullable/outside property nullable, all rows, column order and case coverage.
+This is a new expected-schema default omission, not a change to product meaning.

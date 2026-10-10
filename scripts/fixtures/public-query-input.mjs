@@ -333,7 +333,7 @@ const derivedValueCase=(name,text,expected,columns,extra={})=>({
 const derivedValueColumns=[optionalNumber('value',true)];
 const derivedScalarRows=[{value:null},{value:2},{value:2}];
 const derivedScalarText='SELECT chosen AS value FROM (FROM UNNEST(@items) element) chosen ORDER BY value NULLS FIRST';
-const derivedObjectContract={type:'object',nullable:true,fields:{id:{type:'number',nullable:false},label:{type:'string',nullable:true}}};
+const derivedObjectContract={type:'object',nullable:true,additional_properties:false,fields:{id:{type:'number',nullable:false},label:{type:'string',nullable:true}}};
 const derivedObjectDeclarations={items:{type:'array',nullable:true,max_items:3,items:derivedObjectContract}};
 const derivedObjectItems=[{id:2,label:'kept'},null,{id:2,label:null}];
 const derivedObjectRows=[{value:null,id:null},{value:{id:2,label:null},id:2},{value:{id:2,label:'kept'},id:2}];
