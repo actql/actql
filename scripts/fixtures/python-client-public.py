@@ -87,6 +87,21 @@ def structured_checks(client):
     assert 'payload' not in get_check_input(absent, 'parameters')['value']
 
 
+def authored_executions(client):
+    program = authoring_program()
+    program['params'] = {}
+    program['stages'][0]['steps'][1]['derive']['n'] = 'id + 1'
+    run = yield client.start(program,
+        submission_ref=client.new_submission(nonce='python-program-' + facade))
+    assert (yield run.wait())['status'] == 'succeeded'
+    assert (yield run.result('out').all(max_rows=1)) == [{'n': 2}]
+    text = 'DATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer'
+    run = yield client.start_source(text, format='aql-text',
+        submission_ref=client.new_submission(nonce='python-aql-' + facade))
+    assert (yield run.wait())['status'] == 'succeeded'
+    assert (yield run.result('answer').all(max_rows=1)) == [{'value': 2}]
+
+
 def number_roundtrips(client):
     for sign in [1, -1]:
         number = sign * float.fromhex('0x1p+63')
@@ -146,6 +161,8 @@ async def asynchronous():
             await run_async_steps(structured_checks(client))
         elif phase == 'numbers':
             await run_async_steps(number_roundtrips(client))
+        elif phase == 'authored':
+            await run_async_steps(authored_executions(client))
         else:
             raise AssertionError('Unknown public phase')
 
@@ -177,6 +194,8 @@ def synchronous():
             run_sync_steps(structured_checks(client))
         elif phase == 'numbers':
             run_sync_steps(number_roundtrips(client))
+        elif phase == 'authored':
+            run_sync_steps(authored_executions(client))
         else:
             raise AssertionError('Unknown public phase')
 

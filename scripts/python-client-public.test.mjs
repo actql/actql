@@ -51,5 +51,11 @@ test('wheel: async and sync normal, separate-process attach, text and structured
     assert.deepEqual(receipt,{phase,facade,success:true});results.push(receipt);
   }
   assert.equal(counts.computed,6,'Only four additional explicit binary64 submissions compute.');
+  for(const facade of ['async','sync']){
+    const phase='authored';
+    const receipt=await python([resolve('scripts/fixtures/python-client-public.py'),phase,facade,endpoint,certificates.caPath,join(root,`${facade}.custody.json`)],root);
+    assert.deepEqual(receipt,{phase,facade,success:true});results.push(receipt);
+  }
+  assert.equal(counts.computed,10,'Exactly four explicit structured/AQL submissions compute.');
   await writeFile(join(root,'receipt.json'),JSON.stringify({results,counts},null,2)+'\n');
 });
