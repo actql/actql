@@ -268,11 +268,11 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
-  assert.equal(pin.sourceBaseline, 'd596c9fc5146925e5707e69afe82c2b07807a456');
-  assert.equal(pin.totalCases, 3291);
-  assert.deepEqual(pin.counts, {successes: 2081, refusals: 1163, executionFailures: 47});
+  assert.equal(pin.sourceBaseline, 'ab69cd06a94b1c5a998521435e61c9f201a5c9a9');
+  assert.equal(pin.totalCases, 3297);
+  assert.deepEqual(pin.counts, {successes: 2084, refusals: 1166, executionFailures: 47});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2028, executionFailures: 45, refusals: 1128}],
+    ['standard', {successes: 2031, executionFailures: 45, refusals: 1131}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
