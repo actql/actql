@@ -68,6 +68,8 @@ pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_canonical_conversion(CanonicalConversion) -> Unit
 
+pub fn cancel_complete_equality(CompleteEquality) -> Unit
+
 pub fn cancel_complete_order(CompleteOrder) -> Unit
 
 pub fn cancel_json_admission(JsonAdmission) -> Unit
@@ -105,6 +107,10 @@ pub fn compare_group_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOr
 pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
 pub fn compare_present_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
+
+pub fn complete_equality_next_frame_bound(CompleteEquality) -> Int
+
+pub fn complete_equality_pending_frames(CompleteEquality) -> Int
 
 pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderIssue]
 
@@ -151,6 +157,8 @@ pub fn prepare_object_value(Int, data_keys? : Bool) -> ObjectBuilder?
 pub fn prepare_vector_value(Int) -> VectorBuilder?
 
 pub fn recheck_json_payload_usage(Value, Limits) -> (CheckedValue, Int, Int)?
+
+pub fn recheck_pending_frames(RecheckCursor) -> Int
 
 pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
 

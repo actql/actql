@@ -469,20 +469,17 @@ pub fn compile_query_script(
           })
         }
         NamedGraphCall(call) => {
-          // The common mean body requires all four members. A missing member
-          // is invalid independently of the still-unconnected consumer below.
-          if call.operation == "mean_graphs" {
-            let required = ["with", "weights", "support", "properties"]
-            if call.arguments.any(argument => !required.contains(argument.0)) ||
-              required.any(name => {
-                !call.arguments.any(argument => argument.0 == name)
-              }) {
-              raise Abort(InvalidQuery)
-            }
-          }
-          // Explicit Graph-list construction has no adapted output contract
-          // yet. Never add the current Graph or reinterpret it as a Relation.
-          raise Abort(UnsupportedGraph)
+          let bound = lower_script_mean_generator(
+            construction, document, call, graphs, known, limits, steps, output,
+          )
+          graphs = graphs.filter(graph => {
+            !same_name(graph.name, declaration.name)
+          })
+          graphs.push({ ..bound, name: declaration.name, })
+          known = known.filter(input => {
+            !(input.relation.length() == 1 &&
+            same_name(input.relation[0], declaration.name))
+          })
         }
       }
     }

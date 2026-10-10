@@ -41,7 +41,7 @@ fn bound_fixture(
 ///|
 test "text bound search follows UTF-16 order for unequal names" {
   let patterns = bound_fixture(
-    "substring($count, 1, $n)",
+    "utf8_truncate($count, $n)",
     parameters="{\"count\":{\"type\":\"string\",\"default\":\"abc\"},\"n\":{\"type\":\"number\",\"default\":1}}",
   )
   let checked = check_text_bounds(patterns, bound_limits()).unwrap()
@@ -62,7 +62,7 @@ test "text bound search follows UTF-16 order for unequal names" {
 test "text bounds resolve every portable formula from owned expression sites" {
   let examples = [
     ("split_part('é😀', ',', 1)", 6L),
-    ("substring('é😀', 1, 1)", 4L),
+    ("utf8_truncate('é😀', 4)", 4L),
     ("utf8_truncate('é😀', 3)", 3L),
     ("try_number('1')", 32L),
     ("nfkc('é😀')", 144L),
@@ -113,7 +113,7 @@ test "text bounds resolve every portable formula from owned expression sites" {
 ///|
 test "text bounds preserve selected values and direct child derivations" {
   let patterns = bound_fixture(
-    "substring(nfkc($p), 1, $n)",
+    "utf8_truncate(nfkc($p), $n)",
     supplied=Some(cursor("{\"p\":\"é😀\",\"n\":2}")),
   )
   let checks = check_text_bounds(patterns, bound_limits()).unwrap()
@@ -123,7 +123,7 @@ test "text bounds preserve selected values and direct child derivations" {
     let parent = text_bound_at(checks, i * 2).unwrap()
     let child = text_bound_at(checks, i * 2 + 1).unwrap()
     assert_eq(@bounds.output_bytes(text_bound_output(child)), 144L)
-    assert_eq(@bounds.output_bytes(text_bound_output(parent)), 8L)
+    assert_eq(@bounds.output_bytes(text_bound_output(parent)), 2L)
     assert_true(
       physical_equal(
         @bounds.input_producer(@bounds.output_input(text_bound_output(parent))).unwrap(),
@@ -144,7 +144,7 @@ test "text bounds preserve selected values and direct child derivations" {
     )
   }
   let patterns = bound_fixture(
-    "nfkc(substring('abc', 1, $n))",
+    "nfkc(utf8_truncate('abc', $n))",
     parameters="{\"n\":{\"type\":\"number\",\"nullable\":true,\"default\":null}}",
   )
   let checks = check_text_bounds(patterns, bound_limits()).unwrap()
@@ -174,7 +174,7 @@ test "text bounds retain runtime input preflight and never evaluate dynamic leng
   )
   for
     expression in [
-      "substring('abc', 1, -1)", "substring('abc', 1, 1 / 0)", "substring('abc', 1, $n)",
+      "utf8_truncate('abc', -1)", "utf8_truncate('abc', 1 / 0)", "utf8_truncate('abc', $n)",
     ] {
     let checks = check_text_bounds(
       bound_fixture(expression, supplied=Some(cursor("{\"n\":-1}"))),
@@ -201,7 +201,7 @@ test "text bounds retain runtime input preflight and never evaluate dynamic leng
 
 ///|
 test "text bound checks share cumulative limits and reject late static failures" {
-  let patterns = bound_fixture("substring(nfkc($p), 1, $n)")
+  let patterns = bound_fixture("utf8_truncate(nfkc($p), $n)")
   let checks = check_text_bounds(patterns, bound_limits()).unwrap()
   let usage = text_bounds_usage(checks)
   let exact : TextBoundsLimits = {
@@ -284,5 +284,91 @@ test "text bounds retain derived conditional demand without evaluating it" {
       @typing.demand_pointer(demand, tests[0].node_index, max_bytes=100).unwrap(),
       Some("/if/0"),
     )
+  }
+}
+
+///|
+test "scalar substring adds no envelope while a nested profile retains input preflight" {
+  for
+    text in [
+      "substring('abc',0)", "substring('abc',1,-1)", "substring('abc',1,1 / 0)",
+    ] {
+    let checks = check_text_bounds(bound_fixture(text), bound_limits()).unwrap()
+    assert_eq(text_bound_count(checks), 0)
+  }
+  let checks = check_text_bounds(
+    bound_fixture("nfkc(substring(concat('a','bc'),0,2))"),
+    bound_limits(),
+  ).unwrap()
+  assert_eq(text_bound_count(checks), 3)
+  for index in 0..<3 {
+    let output = text_bound_output(text_bound_at(checks, index).unwrap())
+    let input = @bounds.output_input(output)
+    assert_eq(@bounds.input_origin(input), @bounds.RuntimePreflight)
+    assert_eq(@bounds.input_extent(input), (1000L, 4000L))
+    assert_eq(@bounds.output_bytes(output), 72000L)
+  }
+}
+
+///|
+test "nested substring preserves profile source limits without inventing its own envelope" {
+  let patterns = bound_fixture(
+    "substring(nfkc($p),1,$n)",
+    supplied=Some(cursor("{\"p\":\"é😀\",\"n\":2}")),
+  )
+  let checks = check_text_bounds(patterns, bound_limits()).unwrap()
+  assert_eq(text_bound_count(checks), 3)
+  for i in 0..<3 {
+    let child = text_bound_at(checks, i).unwrap()
+    assert_eq(@bounds.output_bytes(text_bound_output(child)), 144L)
+    assert_eq(text_bound_input_parameter(child).unwrap().name, "p")
+    assert_eq(
+      @bounds.input_origin(@bounds.output_input(text_bound_output(child))),
+      @bounds.KnownValue,
+    )
+  }
+  let usage = text_bounds_usage(checks)
+  assert_true(
+    check_text_bounds(patterns, {
+      max_work: usage.work,
+      max_text_bytes: usage.text_bytes,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    check_text_bounds(patterns, {
+      max_work: usage.work - 1,
+      max_text_bytes: usage.text_bytes,
+    })
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    check_text_bounds(patterns, {
+      max_work: usage.work,
+      max_text_bytes: usage.text_bytes - 1,
+    })
+    is Err(BudgetExceeded),
+  )
+  for
+    text in [
+      "nfkc(substring('abc',0,2))", "if(FALSE,nfkc(substring('abc',1,-1)),'safe')",
+    ] {
+    let checks = check_text_bounds(bound_fixture(text), bound_limits()).unwrap()
+    assert_eq(text_bound_count(checks), 3)
+    for i in 0..<3 {
+      let output = text_bound_output(text_bound_at(checks, i).unwrap())
+      assert_eq(@bounds.input_extent(@bounds.output_input(output)), (3L, 3L))
+      assert_eq(@bounds.output_bytes(output), 216L)
+    }
+  }
+  for
+    text in [
+      "substring(nfkc($p),1,$n)", "nfkc(substring($p,1,$n))", "if(FALSE,nfkc(substring($p,1,-1)),'safe')",
+    ] {
+    let checks = check_text_bounds(
+      bound_fixture(text, profile=capacity_profile(false)),
+      bound_limits(),
+    )
+    assert_true(checks is Err(MissingPolicy(_)))
   }
 }

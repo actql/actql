@@ -87,6 +87,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
       | GraphNormalize(_)
       | GraphDelta(..)
       | GraphUnion(..)
+      | GraphMean(..)
       | GraphSubtraction(..)
       | GraphComponents(_)
       | Subgraph(..)

@@ -2,6 +2,7 @@
 pub(all) enum PathOutput {
   TraversedNodes
   TraversedPaths
+  ShortestPaths
 } derive(Eq, Debug)
 
 ///|
@@ -41,25 +42,44 @@ pub fn check_path_contract(
     let number = @contract.primitive(NumberType, nullable=false)
     let fields : Array[(@row.FieldName, @contract.Contract?)] = []
     // Both emissions retain complete identity; only paths add array wrappers.
-    let wrappers = if kind == TraversedPaths { 2 } else { 0 }
+    let wrappers = if kind == TraversedNodes { 0 } else { 2 }
     if b.nodes < wrappers || limits.max_depth < 2 {
       fail(source, BudgetExceeded)
     }
     b.nodes -= wrappers
     spend(b, source, 2)
-    fields.push((Unqualified("start_id"), Some(id)))
     match kind {
       TraversedNodes => {
+        fields.push((Unqualified("start_id"), Some(id)))
         fields.push((Unqualified("node_id"), Some(id)))
         fields.push((Unqualified("depth"), Some(number)))
       }
       TraversedPaths => {
+        fields.push((Unqualified("start_id"), Some(id)))
         let node_ids = @contract.array_contract(id, nullable=false).unwrap()
         let edge_ids = @contract.array_contract(id, nullable=false).unwrap()
         fields.push((Unqualified("end_id"), Some(id)))
         fields.push((Unqualified("hop_count"), Some(number)))
         fields.push((Unqualified("node_ids"), Some(node_ids)))
         fields.push((Unqualified("edge_ids"), Some(edge_ids)))
+      }
+      ShortestPaths => {
+        fields.push((Unqualified("source_id"), Some(id)))
+        fields.push((Unqualified("target_id"), Some(id)))
+        fields.push((Unqualified("total_cost"), Some(number)))
+        fields.push((Unqualified("hop_count"), Some(number)))
+        fields.push(
+          (
+            Unqualified("node_ids"),
+            Some(@contract.array_contract(id, nullable=false).unwrap()),
+          ),
+        )
+        fields.push(
+          (
+            Unqualified("edge_ids"),
+            Some(@contract.array_contract(id, nullable=false).unwrap()),
+          ),
+        )
       }
     }
     spend(b, source, fields.length())

@@ -191,22 +191,34 @@ test "current identity projection loss and TRAIL enumeration do not fabricate Re
     limits(),
   ).unwrap()
   assert_true(@pipeline_typing.candidate_key(trail, Step(0)) is None)
-  for
-    operation in [
-      "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":3}",
-    ] {
-    let issue = @pipeline_typing.check_carriers(
-      cursor("[{" + operation + "}]"),
+  for selection in ["each_pair", "nearest_per_source", "nearest_pair"] {
+    let shortest = @pipeline_typing.check_carriers(
+      cursor(
+        "[{\"shortest_path\":{\"source\":{\"ids\":[" +
+        identity +
+        "]},\"target\":{\"ids\":[" +
+        identity +
+        "]},\"selection\":\"" +
+        selection +
+        "\",\"direction\":\"out\",\"max_hops\":3}}]",
+      ),
       [("g", graph)],
       None,
       None,
       limits(),
-    ).unwrap_err()
-    assert_true(
-      issue.kind is Graph(@graph.UnsupportedGraphOperation) ||
-      issue.kind
-      is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
+    ).unwrap()
+    let key = @pipeline_typing.candidate_key(shortest, Step(0)).unwrap()
+    assert_eq(@evidence.key_field_count(key), 2)
+    assert_eq(
+      @evidence.key_field_at(key, 0).unwrap().name,
+      Unqualified("source_id"),
     )
+    assert_eq(
+      @evidence.key_field_at(key, 1).unwrap().name,
+      Unqualified("target_id"),
+    )
+    let schema = @pipeline_typing.output_schema(shortest).unwrap()
+    assert_eq(@schema.field_count(schema), 6)
   }
   for kind in ["weak", "strong"] {
     guard graph is @carrier.GraphValue(graph_schema) else {

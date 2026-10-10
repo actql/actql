@@ -701,12 +701,22 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
-            if op == @lower.Replace {
-              if children.length() != 3 || !reserve_slots(workspace, 6) {
+            if op == @lower.Replace || op == @lower.Substring {
+              let valid = if op == @lower.Replace {
+                children.length() == 3
+              } else {
+                children.length() == 2 || children.length() == 3
+              }
+              if !valid || !reserve_slots(workspace, children.length() * 2) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
               }
               frame.stack.push(
                 TextArguments({
+                  kind: if op == @lower.Replace {
+                    TextReplace
+                  } else {
+                    TextSubstring
+                  },
                   expression: expr,
                   children,
                   values: [],
@@ -721,7 +731,7 @@ fn advance_expression_frame_impl(
               And => Boolean(true)
               Or => Boolean(false)
               Coalesce | Between => Null
-              Concat | ConcatStrict | Replace => Text("")
+              Concat | ConcatStrict | Replace | Substring => Text("")
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
             frame.state = Enter(first)
@@ -865,7 +875,7 @@ fn advance_expression_frame_impl(
                   args.expression,
                   args.values,
                   args.roots,
-                  TextReplace,
+                  args.kind,
                   scope,
                   workspace,
                 ) {
@@ -1103,7 +1113,10 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if op == @lower.Strpos {
+            if op == @lower.Strpos ||
+              op == @lower.TrimSet ||
+              op == @lower.LTrimSet ||
+              op == @lower.RTrimSet {
               if charge_value(left, left_root) is Some(issue) {
                 return Err({ kind: LogicalValue(issue), expression: expr, })
               }
@@ -1116,7 +1129,15 @@ fn advance_expression_frame_impl(
                   expr,
                   [left, value],
                   [left_root, frame.current_root],
-                  TextStrpos,
+                  if op == @lower.TrimSet {
+                    TextTrim
+                  } else if op == @lower.LTrimSet {
+                    TextLTrim
+                  } else if op == @lower.RTrimSet {
+                    TextRTrim
+                  } else {
+                    TextStrpos
+                  },
                   scope,
                   workspace,
                 ) {
@@ -1342,7 +1363,7 @@ fn advance_expression_frame_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let combined = match op {
-              Replace | Between =>
+              Replace | Substring | Between =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               And | Or =>

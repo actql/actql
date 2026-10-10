@@ -49,7 +49,18 @@
     "safe_divide_by_zero": "null",
     "aggregate_fold": "canonical-value-cid-order-left-fold",
     "modulo": "truncating-remainder-sign-of-dividend-zero-divisor-failure",
-    "sqrt_negative": "failure"
+    "sqrt_negative": "failure",
+    "safe_arithmetic": {
+      "domain": "finite-ieee754-binary64-only",
+      "safe_add": "overflow-null",
+      "safe_subtract": "overflow-null",
+      "safe_multiply": "overflow-null",
+      "safe_divide": "zero-divisor-or-overflow-null",
+      "safe_negate": "finite-negation-cannot-overflow",
+      "legacy_safe_div": "zero-divisor-null-overflow-failure",
+      "underflow": "finite-rounded-result-including-canonical-positive-zero",
+      "boundary": "only-own-arithmetic-errors-after-once-only-eager-children"
+    }
   },
   "time": {
     "timestamp": "utc-iso8601-millisecond-Z",
@@ -91,7 +102,9 @@
       "3000"
     ],
     "ltrim": "unicode-white-space-leading",
-    "rtrim": "unicode-white-space-trailing"
+    "rtrim": "unicode-white-space-trailing",
+    "trim_character_set": "unicode-code-point-membership",
+    "trim_empty_character_set": "preserve-value"
   },
   "conversion_truth_table": {
     "to_number": {

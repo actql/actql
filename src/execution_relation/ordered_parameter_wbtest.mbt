@@ -53,7 +53,7 @@ test "ordered parameter source machine and result preserve distinct field slot a
     100,
   )
   assert_eq(
-    machine, "{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":\"n\",\"op\":\"field\"},\"name\":\"saved\"},{\"expr\":{\"body\":[{\"body\":\"saved\",\"op\":\"field\"},{\"body\":3,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"n\"}],\"references\":[{\"at\":\"/bindings/0/expr\",\"target\":{\"input_field\":\"n\"}},{\"at\":\"/bindings/1/expr/body/0\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:6670d022d636287aff383c6a500cd60f2545749f0853515f4d5781b24ac24066\"}}",
+    machine, "{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":\"n\",\"op\":\"field\"},\"name\":\"saved\"},{\"expr\":{\"body\":[{\"body\":\"saved\",\"op\":\"field\"},{\"body\":3,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"n\"}],\"references\":[{\"at\":\"/bindings/0/expr\",\"target\":{\"input_field\":\"n\"}},{\"at\":\"/bindings/1/expr/body/0\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:cd4b724531d752f9f444033c1be1b7eac68f32baa1ff0206e8576883061af098\"}}",
   )
   let contracts = registered_relation_contracts()
   let generated = prepare_generated_sequence(

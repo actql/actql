@@ -1986,15 +1986,23 @@ fn QueryParser::unnest_source(
 ///|
 // Correlation expands the current row; it is not an independent JOIN input.
 // Fixed lookahead keeps quoted names out of the operator dispatch.
-fn QueryParser::starts_correlated_unnest(self : QueryParser) -> Bool {
-  if self.has("JOIN") {
-    self.index + 1 < self.source.tokens.length() &&
-    keyword(self.source.tokens[self.index + 1], "UNNEST")
+fn QueryParser::starts_correlated_unnest(
+  self : QueryParser,
+  lookahead_offset? : Int = 0,
+) -> Bool {
+  let index = self.index + lookahead_offset
+  if index < self.source.tokens.length() &&
+    keyword(self.source.tokens[index], "JOIN") {
+    index + 1 < self.source.tokens.length() &&
+    keyword(self.source.tokens[index + 1], "UNNEST")
   } else {
-    self.index + 2 < self.source.tokens.length() &&
-    (self.has("CROSS") || self.has("INNER")) &&
-    keyword(self.source.tokens[self.index + 1], "JOIN") &&
-    keyword(self.source.tokens[self.index + 2], "UNNEST")
+    index + 2 < self.source.tokens.length() &&
+    (
+      keyword(self.source.tokens[index], "CROSS") ||
+      keyword(self.source.tokens[index], "INNER")
+    ) &&
+    keyword(self.source.tokens[index + 1], "JOIN") &&
+    keyword(self.source.tokens[index + 2], "UNNEST")
   }
 }
 
@@ -2632,6 +2640,7 @@ fn QueryParser::pipe_tail(
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
     if pipe_join_head(next) &&
+      !self.starts_correlated_unnest(lookahead_offset=1) &&
       !(keyword(next, "INNER") &&
       set_operator_token(token_at(self.source, self.index + 2).unwrap())) &&
       !operations.is_empty() &&

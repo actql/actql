@@ -65,20 +65,13 @@ pub fn issue_prepared_client_task_compilation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
-  let plan = match
-    issue_prepared_client_task_executable_plan(
+  let (plan, material, graph) = match
+    issue_prepared_client_task_plan_parts(
       value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
       max_nodes, max_depth,
     ) {
-    Ok(plan) => plan
+    Ok(parts) => parts
     Err(issue) => return Err(Plan(issue))
-  }
-  let material = match
-    issue_prepared_client_task_execution_material(
-      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(material) => material
-    Err(issue) => return Err(Material(issue))
   }
   let template = match
     @publication.admit_run_evidence_value(
@@ -90,13 +83,6 @@ pub fn issue_prepared_client_task_compilation(
     ) {
     Ok(template) => template
     Err(issue) => return Err(Template(issue))
-  }
-  let graph = match
-    issue_prepared_client_task_plan_graph(
-      value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(graph) => graph
-    Err(issue) => return Err(Graph(issue))
   }
   finish_client_task_compilation(
     value, plan, template, graph, max_wire_bytes, max_nodes, max_depth,

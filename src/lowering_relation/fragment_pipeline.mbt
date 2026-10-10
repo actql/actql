@@ -40,6 +40,7 @@ pub fn prepare_fragment_pipeline(
     | GraphNormalizeStep(_)
     | GraphDeltaStep(_)
     | GraphUnionStep(_)
+    | GraphMeanStep(_)
     | GraphSubtractionStep(_)
     | GraphTraverseStep(_)
     | GraphConstructionStep(_)

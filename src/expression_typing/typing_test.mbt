@@ -385,7 +385,7 @@ test "type checking does not evaluate invalid literal data" {
     )
   }
   assert_type(
-    "\"substring('abc',1,-1)\"", "{}", "null", "{\"type\":\"string\",\"nullable\":false}",
+    "\"substring('abc',1,-1)\"", "{}", "null", "{\"type\":\"string\",\"nullable\":false,\"max_utf8_bytes\":3}",
   )
 }
 
@@ -645,4 +645,40 @@ test "diagnostics and synthetic roles point into the retained syntax" {
       is Err({ kind: InvalidScope("fields"), .. }),
     )
   }
+}
+
+///|
+test "substring preserves input maxima drops minimum and unions supplied nullability" {
+  let scope = @contract.read_checked(
+    cursor(
+      "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{\"s\":{\"type\":\"string\",\"nullable\":false,\"min_length\":2,\"max_codepoints\":3,\"max_utf8_bytes\":8},\"n\":{\"type\":\"number\",\"nullable\":true}}}",
+    ),
+    { max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for
+    (source, nullable) in [
+      ("substring(s,1)", false),
+      ("substring(s,1,-1)", false),
+      ("substring(s,1,0)", false),
+      ("substring(s,n)", true),
+      ("substring(s,1,n)", true),
+    ] {
+    let typed = @expression_typing.check(
+      syntax("\"" + source + "\""),
+      { ..env(), fields: Some(scope), },
+      test_limits(),
+    ).unwrap()
+    let actual = @expression_typing.result_type(typed)
+    assert_eq(actual.nullable, nullable)
+    guard actual.shape is @contract.Text(bounds) else {
+      fail("substring string contract")
+    }
+    assert_eq(
+      (bounds.min_length, bounds.max_codepoints, bounds.max_utf8_bytes),
+      (None, Some(3L), Some(8L)),
+    )
+  }
+  assert_type(
+    "\"substring(NULL,1)\"", "{}", "null", "{\"type\":\"string\",\"nullable\":true}",
+  )
 }

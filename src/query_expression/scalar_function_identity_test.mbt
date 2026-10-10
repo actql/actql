@@ -9,7 +9,11 @@ fn scalar_identity_name(
 ///|
 test "scalar reuse identity comes from the installed lowering registry" {
   for
-    (left, right) in [("char_length", "CHARACTER_LENGTH"), ("CEIL", "CEILING")] {
+    (left, right) in [
+      ("char_length", "CHARACTER_LENGTH"),
+      ("CEIL", "CEILING"),
+      ("SUBSTR", "SUBSTRING"),
+    ] {
     assert_true(
       same_scalar_function(
         scalar_identity_name(left),

@@ -279,7 +279,7 @@ function fixtures() {
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
     // Independent canonical JSON oracle for the current closed Program schema,
     // including the selected common GoogleSQL scalar function alternatives.
-    cid: 'sha256:58367b448cec372d14cb51009b54e918e1fca2299ae7d6c9042aab016a5d107f',
+    cid: 'sha256:d0e009e3e3267605dab2e2ccd0119756adb810c33efb48aa16dee63ee66207d4',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {
@@ -292,6 +292,12 @@ function fixtures() {
       assert.deepEqual(item.preimage[key], {}); // This corpus covers empty-Effect gates only.
     }
     result.push({id: 'incoming gate ' + item.id, value: item.preimage, cid: item.expected_cid});
+  }
+  const effectCurrent = read('spec/fixtures/remote-effect-current-vectors.json');
+  assert.equal(effectCurrent.version, 'actql-remote-effect-current-vectors/0.1');
+  for (const item of [{id: 'query', ...effectCurrent.query}, {id: 'poll', ...effectCurrent.poll}, ...effectCurrent.replies]) {
+    result.push({id: 'Remote Effect current ' + item.id,
+      value: item.body, cid: item.cid, text: item.canonical});
   }
   return result;
 }

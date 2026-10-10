@@ -118,7 +118,14 @@ fn flatten(
           _ => ["value"]
         }
         for name in names {
-          children.push((part(body, name), Form))
+          if tag == "substring" && name == "length" {
+            let obj = decoded(@decode.open_object(body), body)
+            if @decode.lookup(obj, name) is Some(length) {
+              children.push((length, Form))
+            }
+          } else {
+            children.push((part(body, name), Form))
+          }
         }
       }
       "case" => {
@@ -149,6 +156,14 @@ fn flatten(
         children.push((args[0], Form))
         children.push((args[1], Membership))
       }
+      "trim" | "ltrim" | "rtrim" =>
+        if @decode.array_length(body) is Some(_) {
+          for child in decoded(@decode.elements(body), body) {
+            children.push((child, Form))
+          }
+        } else {
+          children.push((body, Form))
+        }
       "negate"
       | "not"
       | "is_null"
@@ -162,12 +177,10 @@ fn flatten(
       | "sign"
       | "round"
       | "trunc"
+      | "safe_negate"
       | "floor"
       | "lower"
       | "upper"
-      | "trim"
-      | "ltrim"
-      | "rtrim"
       | "nfkc"
       | "case_fold" => children.push((body, Form))
       _ =>

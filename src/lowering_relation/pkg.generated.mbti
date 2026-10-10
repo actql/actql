@@ -373,6 +373,8 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_mean_checked(PreparedGraphMean) -> @graph_typing.CheckedMean
+
 pub fn graph_subgraph_edge_fields(PreparedGraphSubgraph) -> @carrier_contract.Knowledge
 
 pub fn graph_subgraph_edge_predicate(PreparedGraphSubgraph) -> Expression?
@@ -413,17 +415,31 @@ pub fn graph_traverse_hop_type_at(PreparedGraphTraverse, Int, Int) -> String?
 
 pub fn graph_traverse_hop_type_count(PreparedGraphTraverse, Int) -> Int?
 
+pub fn graph_traverse_is_reach(PreparedGraphTraverse) -> Bool
+
 pub fn graph_traverse_output_guard(PreparedGraphTraverse) -> Int64?
 
 pub fn graph_traverse_output_schema(PreparedGraphTraverse) -> @relation_schema.Schema
 
 pub fn graph_traverse_patterned(PreparedGraphTraverse) -> Bool
 
+pub fn graph_traverse_shortest(PreparedGraphTraverse) -> @graph_typing.CheckedShortest?
+
+pub fn graph_traverse_start_fields(PreparedGraphTraverse) -> @carrier_contract.Knowledge?
+
 pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
 
 pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
 
+pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
+
+pub fn graph_traverse_start_property_position(PreparedGraphTraverse, Int, Int) -> Int?
+
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
+
+pub fn graph_traverse_target_predicate(PreparedGraphTraverse) -> Expression?
+
+pub fn graph_traverse_target_selector(PreparedGraphTraverse) -> @graph_typing.CheckedSelector?
 
 pub fn graph_union_checked(PreparedGraphUnion) -> @graph_typing.CheckedUnion
 
@@ -1098,8 +1114,15 @@ pub(all) enum BinaryOperator {
   Subtract
   Multiply
   Divide
+  SafeDivide
+  SafeAdd
+  SafeSubtract
+  SafeMultiply
   Modulo
   Strpos
+  TrimSet
+  LTrimSet
+  RTrimSet
   StartsWith
   EndsWith
   Equal
@@ -1340,6 +1363,10 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectAllEntities
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphMeanIssue {
+  InvalidGraphMeanWiring
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphSubgraphIssue {
   InvalidGraphSubgraphLimits
   InvalidGraphSubgraphWiring
@@ -1478,6 +1505,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Substring
   Between
 } derive(Eq, @debug.Debug)
 
@@ -1551,6 +1579,7 @@ pub enum Payload {
   GraphNormalizeValue(@graph_typing.CheckedNormalize)
   GraphDeltaValue(@graph_typing.CheckedDelta)
   GraphUnionValue(@graph_typing.CheckedUnion)
+  GraphMeanValue(@graph_typing.CheckedMean)
   GraphSubtractionValue(@graph_typing.CheckedSubtraction)
   GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
@@ -1636,6 +1665,8 @@ type PreparedGraphDiagnostic
 type PreparedGraphEquality
 
 type PreparedGraphMatch
+
+type PreparedGraphMean
 
 type PreparedGraphSubgraph
 
@@ -1723,6 +1754,7 @@ pub enum PreparedStep {
   GraphNormalizeStep(Int)
   GraphDeltaStep(PreparedGraphDelta)
   GraphUnionStep(PreparedGraphUnion)
+  GraphMeanStep(PreparedGraphMean)
   GraphSubtractionStep(PreparedGraphUnion)
   GraphTraverseStep(PreparedGraphTraverse)
   GraphConstructionStep(PreparedGraphConstruction)
@@ -1817,6 +1849,7 @@ pub(all) enum SequenceIssue {
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphDeltaFailure(Int, GraphDeltaIssue)
   GraphUnionFailure(Int, GraphUnionIssue)
+  GraphMeanFailure(Int, GraphMeanIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
@@ -1907,6 +1940,7 @@ pub(all) enum UnaryOperator {
   Sign
   Round
   Trunc
+  SafeNegate
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

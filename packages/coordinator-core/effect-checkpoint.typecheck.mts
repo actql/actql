@@ -1,4 +1,4 @@
-import {admitDispatchJson, effectCheckpointReports, effectResumeDeliveries,
+import {admitDispatchJson, effectCheckpointReports, effectResumeDeliveries, effectCurrentObservations,
   type EffectCheckpointReport, type EffectCheckpointReply}
   from '@actql/coordinator-core';
 
@@ -35,3 +35,25 @@ effectResumeDeliveries.prepareJson(dispatch, '', auth, reviewers, claim, limits)
 // @ts-expect-error Claim generation is an exact signed Int64, not a JS number.
 effectResumeDeliveries.prepareJson(report, '', auth, reviewers, {...claim, generation: 1}, limits);
 void delivery;
+
+const poll: string = effectResumeDeliveries.preparePollJson(report, "", auth, reviewers, claim, limits);
+// @ts-expect-error Routing still requires the original opaque report.
+effectResumeDeliveries.preparePollJson(dispatch, "", auth, reviewers, claim, limits);
+void poll;
+const currentQuery = effectCurrentObservations.prepareQuery(report, 'effect', 'query', limits);
+const currentReply = effectCurrentObservations.admitReplyJson(currentQuery, '', limits);
+const currentFacts = effectCurrentObservations.replyFacts(currentReply);
+// @ts-expect-error A dispatch is not an original admitted report.
+effectCurrentObservations.prepareQuery(dispatch, 'effect', 'query', limits);
+// @ts-expect-error Query JSON is not a nominal current query handle.
+effectCurrentObservations.admitReplyJson('', '', limits);
+// @ts-expect-error Current facts are not a nominal reply handle.
+effectCurrentObservations.replyFacts(currentFacts);
+// @ts-expect-error The returned unknown outcome inventory is immutable.
+currentFacts.unknownEffects.push('fake');
+void currentReply;
+
+const currentPoll: string = effectCurrentObservations.pollJson(currentQuery);
+// @ts-expect-error A plain reply cannot stand in for the query Owner.
+effectCurrentObservations.pollJson(currentReply);
+void currentPoll;

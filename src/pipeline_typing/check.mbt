@@ -415,7 +415,6 @@ fn check_impl(
         metadata(b, s)
       }
       let at = @decode.lookup(object, key).unwrap()
-      // Validate authored options, but never issue an executable old Graph mean.
       match
         @graph.check_mean_options(at, {
           max_work: b.work,
@@ -423,7 +422,7 @@ fn check_impl(
           max_text_bytes: b.text,
           max_depth: limits.max_depth,
         }) {
-        Ok(_) => fail(at, Graph(@graph.UnsupportedGraphOperation))
+        Ok(_) => ()
         Err(e) =>
           raise Stop({
             kind: Graph(e.kind),
@@ -433,6 +432,58 @@ fn check_impl(
             range: None,
           })
       }
+      let operands = []
+      let carriers = []
+      let authored = @decode.elements(
+        @decode.lookup(@decode.open_object(at).unwrap(), "with").unwrap(),
+      ).unwrap()
+      for peer in authored {
+        let target = resolve_target(b, peer, names)
+        operands.push(target)
+        carriers.push(carrier(target, inputs, steps))
+      }
+      // Typed mean owns alignment and all obligations. The ordered sample
+      // list never acquires an implicit current input or pairwise union.
+      let checked = match
+        @graph.check_mean(at, carriers, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(checked) => checked
+        Err(e) =>
+          raise Stop({
+            kind: Graph(e.kind),
+            source: at,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @graph.mean_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: None,
+        binding_name: Some(binding),
+        metadata: @decode.lookup(object, "meta"),
+        operation: GraphMean(inputs=operands, checked~),
+        output: @graph.mean_output(checked),
+        connections: {
+          entries: operands.mapi((index, target) => {
+            role: Sample(index),
+            target,
+          }),
+        },
+        window: None,
+      })
+      names[binding] = target
+      current = Some(target)
+      continue
     }
     if key == "time_series" {
       if @decode.lookup(object, "from") is Some(s) {
@@ -955,9 +1006,16 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "union_graphs" {
+    if key == "union_graphs" || key == "graft_graph" {
       let object = match
-        @decode.closed_object(operation_body, ["with", "merge"]) {
+        @decode.closed_object(
+          operation_body,
+          if key == "graft_graph" {
+            ["with"]
+          } else {
+            ["with", "merge"]
+          },
+        ) {
         Ok(object) => object
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -966,7 +1024,7 @@ fn check_impl(
         Err(_) => fail(operation_body, InvalidBody)
       }
       let peers = if @decode.array_length(at) is Some(count) {
-        if count == 0 {
+        if count == 0 || key == "graft_graph" {
           fail(at, InvalidBody)
         }
         spend(b, at, count)
@@ -981,12 +1039,17 @@ fn check_impl(
         operands.push(target)
         carriers.push(carrier(target, inputs, steps))
       }
+      let graph_limits : @graph.Limits = {
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_text_bytes: b.text,
+        max_depth: limits.max_depth,
+      }
       let checked = match
-        @graph.check_union(operation_body, carriers, {
-          max_work: b.work,
-          max_nodes: b.nodes,
-          max_text_bytes: b.text,
-          max_depth: limits.max_depth,
+        (if key == "graft_graph" {
+          @graph.check_graft(operation_body, carriers, graph_limits)
+        } else {
+          @graph.check_union(operation_body, carriers, graph_limits)
         }) {
         Ok(checked) => checked
         Err(issue) =>
@@ -1087,27 +1150,6 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graft_graph" {
-      let object = match @decode.closed_object(operation_body, ["with"]) {
-        Ok(object) => object
-        Err(_) => fail(operation_body, InvalidBody)
-      }
-      let at = match @decode.required(object, "with") {
-        Ok(at) => at
-        Err(_) => fail(operation_body, InvalidBody)
-      }
-      ignore(resolve_target(b, at, names))
-      // Graft has no current realization. It cannot issue an old tuple output
-      // or reuse the checked permission of a supported structural composition.
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
-      }
-    }
     if key == "shortest_path" {
       let root = match
         @decode.closed_object(operation_body, [
@@ -1117,65 +1159,79 @@ fn check_impl(
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
+      let selectors : Array[Target?] = []
       for name in ["source", "target"] {
         let at = match @decode.required(root, name) {
           Ok(c) => c
           Err(_) => fail(operation_body, InvalidBody)
         }
-        let _ = if @decode.view(at) is ObjectValue(_) {
-          let o = match
-            @decode.closed_object(at, ["ids", "from", "id", "where"]) {
-            Ok(o) => o
-            Err(_) => fail(at, InvalidBody)
-          }
-          @decode.lookup(o, "from").map(c => resolve_target(b, c, names))
-        } else {
-          None
+        selectors.push(
+          match @decode.open_object(at) {
+            Ok(o) =>
+              @decode.lookup(o, "from").map(c => resolve_target(b, c, names))
+            Err(_) => None
+          },
+        )
+      }
+      let shortest = match
+        @graph.check_shortest(
+          operation_body,
+          carrier(input, inputs, steps),
+          selectors[0].map(t => carrier(t, inputs, steps)),
+          selectors[1].map(t => carrier(t, inputs, steps)),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          let diagnostic = @graph.match_diagnostic(issue, operation_body)
+          raise Stop({
+            kind: GraphMatch(diagnostic.kind),
+            source: operation_body,
+            path: diagnostic.path.copy(),
+            span: diagnostic.span,
+            range: diagnostic.range,
+          })
         }
       }
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
+      let used = @graph.shortest_usage(shortest)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let entries = [{ role: Primary, target: input, }]
+      if selectors[0] is Some(target) {
+        entries.push({ role: Right, target, })
       }
-    }
-    if key == "reach" {
-      let root = match
-        @decode.closed_object(operation_body, [
-          "start", "direction", "max_depth",
-        ]) {
-        Ok(o) => o
-        Err(_) => fail(operation_body, InvalidBody)
+      if selectors[1] is Some(target) {
+        // Preserve this occurrence even when both selectors read one producer.
+        entries.push({ role: Sample(0), target, })
       }
-      let start = match @decode.required(root, "start") {
-        Ok(c) => c
-        Err(_) => fail(operation_body, InvalidBody)
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Traverse(
+          selector=selectors[0],
+          checked=@graph.shortest_traversal(shortest),
+        ),
+        output: @graph.shortest_output(shortest),
+        connections: { entries, },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
       }
-      let selector = match @decode.view(start) {
-        ObjectValue(_) => {
-          let body = match
-            @decode.closed_object(start, ["ids", "from", "id", "where"]) {
-            Ok(o) => o
-            Err(_) => fail(start, InvalidBody)
-          }
-          @decode.lookup(body, "from").map(at => resolve_target(b, at, names))
-        }
-        _ => None
-      }
-      // A bounded authored reference is checked above, but reach has no
-      // implementation under the sole keyed Graph contract.
-      ignore(selector)
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
-      }
+      current = Some(target)
+      continue
     }
     if key == "subgraph" {
       let root = match
@@ -1247,12 +1303,19 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "traverse" {
+    if key == "traverse" || key == "reach" {
       let root = match
-        @decode.closed_object(operation_body, [
-          "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-          "max_output_rows", "path_mode", "edge_where", "node_where",
-        ]) {
+        @decode.closed_object(
+          operation_body,
+          if key == "reach" {
+            ["start", "direction", "max_depth"]
+          } else {
+            [
+              "start", "hops", "direction", "edge_types", "min_hops", "max_hops",
+              "emit", "max_output_rows", "path_mode", "edge_where", "node_where",
+            ]
+          },
+        ) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -1260,14 +1323,14 @@ fn check_impl(
         Ok(c) => c
         Err(_) => fail(operation_body, InvalidBody)
       }
-      let selector_body = match
-        @decode.closed_object(at, ["ids", "from", "id", "where"]) {
-        Ok(o) => o
+      let selector_body = match @decode.open_object(at) {
+        Ok(o) => Some(o)
+        Err(_) if key == "reach" => None
         Err(_) => fail(at, InvalidBody)
       }
-      let selector = @decode.lookup(selector_body, "from").map(at => {
-        resolve_target(b, at, names)
-      })
+      let selector = selector_body
+        .bind(body => @decode.lookup(body, "from"))
+        .map(at => resolve_target(b, at, names))
       let caps : @graph.PredicateLimits = {
         max_work: b.work,
         max_nodes: b.nodes,
@@ -1275,7 +1338,11 @@ fn check_impl(
         max_text_bytes: b.text,
         max_tokens: b.tokens,
       }
-      let checked = @graph.check_traverse(
+      let checked = (if key == "reach" {
+        @graph.check_reach
+      } else {
+        @graph.check_traverse
+      })(
         operation_body,
         carrier(input, inputs, steps),
         selector.map(t => carrier(t, inputs, steps)),
@@ -2284,7 +2351,9 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
-        GraphConstruction(inputs~, ..) | GraphUnion(inputs~, ..) =>
+        GraphConstruction(inputs~, ..)
+        | GraphUnion(inputs~, ..)
+        | GraphMean(inputs~, ..) =>
           inputs.mapi((index, target) => { role: Sample(index), target, })
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>

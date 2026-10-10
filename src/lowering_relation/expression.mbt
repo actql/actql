@@ -57,6 +57,7 @@ pub(all) enum UnaryOperator {
   Sign
   Round
   Trunc
+  SafeNegate
 } derive(Eq, Debug)
 
 ///|
@@ -65,8 +66,15 @@ pub(all) enum BinaryOperator {
   Subtract
   Multiply
   Divide
+  SafeDivide
+  SafeAdd
+  SafeSubtract
+  SafeMultiply
   Modulo
   Strpos
+  TrimSet
+  LTrimSet
+  RTrimSet
   StartsWith
   EndsWith
   Equal
@@ -89,6 +97,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Substring
   Between
 } derive(Eq, Debug)
 
@@ -211,6 +220,7 @@ fn expression_tag(
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -221,6 +231,10 @@ fn expression_tag(
     | "subtract"
     | "multiply"
     | "divide"
+    | "safe_divide"
+    | "safe_add"
+    | "safe_subtract"
+    | "safe_multiply"
     | "modulo"
     | "strpos"
     | "starts_with"
@@ -243,6 +257,7 @@ fn expression_tag(
     | "concat_strict"
     | "len"
     | "replace"
+    | "substring"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -260,6 +275,17 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "substring" => {
+      let obj = @decode.open_object(body).unwrap()
+      let children = [
+        @decode.lookup(obj, "value").unwrap(),
+        @decode.lookup(obj, "start").unwrap(),
+      ]
+      if @decode.lookup(obj, "length") is Some(length) {
+        children.push(length)
+      }
+      children
+    }
     "property" =>
       [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
     "object" => {
@@ -278,18 +304,22 @@ fn expression_children(
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
+    "trim" | "ltrim" | "rtrim" =>
+      if @decode.array_length(body) is Some(_) {
+        @decode.elements(body).unwrap()
+      } else {
+        [body]
+      }
     "negate"
     | "upper"
     | "lower"
-    | "trim"
-    | "ltrim"
-    | "rtrim"
     | "floor"
     | "sqrt"
     | "abs"
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "not"
     | "is_null"
     | "not_null"
@@ -558,15 +588,25 @@ fn lower_expression_measured(
         (@graph.predicate_expression(predicate), references)
       }
       GraphTraverseRows(checked) => {
-        let hop_index = binding_index / 2
-        guard binding_index >= 0 &&
-          @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        let predicate = if binding_index % 2 == 0 {
-          @graph.hop_edge_predicate(hop)
+        let selector = @graph.traverse_start(checked)
+        let predicate = if binding_index ==
+          @graph.traverse_hop_count(checked) * 2 {
+          @graph.selector_predicate(selector)
+        } else if binding_index == @graph.traverse_hop_count(checked) * 2 + 1 {
+          @graph.traverse_shortest(checked)
+          .map(@graph.shortest_targets)
+          .bind(@graph.selector_predicate)
         } else {
-          @graph.hop_node_predicate(hop)
+          let hop_index = binding_index / 2
+          guard binding_index >= 0 &&
+            @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
+            expression_fail(step.source, MissingCheckedBinding)
+          }
+          if binding_index % 2 == 0 {
+            @graph.hop_edge_predicate(hop)
+          } else {
+            @graph.hop_node_predicate(hop)
+          }
         }
         guard predicate is Some(predicate) else {
           expression_fail(step.source, MissingCheckedBinding)
@@ -622,6 +662,7 @@ fn lower_expression_measured(
       | GraphNormalizeValue(_)
       | GraphDeltaValue(_)
       | GraphUnionValue(_)
+      | GraphMeanValue(_)
       | GraphSubtractionValue(_)
       | GraphComponentsRows(_)
       | GraphConstructionValue(_)
@@ -856,15 +897,31 @@ fn lower_typed_expression_measured(
         "negate" => Unary(Negate, args[0])
         "upper" => Unary(Upper, args[0])
         "lower" => Unary(Lower, args[0])
-        "trim" => Unary(Trim, args[0])
-        "ltrim" => Unary(LTrim, args[0])
-        "rtrim" => Unary(RTrim, args[0])
+        "trim" =>
+          if args.length() == 1 {
+            Unary(Trim, args[0])
+          } else {
+            Binary(TrimSet, args[0], args[1])
+          }
+        "ltrim" =>
+          if args.length() == 1 {
+            Unary(LTrim, args[0])
+          } else {
+            Binary(LTrimSet, args[0], args[1])
+          }
+        "rtrim" =>
+          if args.length() == 1 {
+            Unary(RTrim, args[0])
+          } else {
+            Binary(RTrimSet, args[0], args[1])
+          }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
         "abs" => Unary(Abs, args[0])
         "sign" => Unary(Sign, args[0])
         "round" => Unary(Round, args[0])
         "trunc" => Unary(Trunc, args[0])
+        "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
@@ -877,6 +934,10 @@ fn lower_typed_expression_measured(
         "subtract" => Binary(Subtract, args[0], args[1])
         "multiply" => Binary(Multiply, args[0], args[1])
         "divide" => Binary(Divide, args[0], args[1])
+        "safe_divide" => Binary(SafeDivide, args[0], args[1])
+        "safe_add" => Binary(SafeAdd, args[0], args[1])
+        "safe_subtract" => Binary(SafeSubtract, args[0], args[1])
+        "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
@@ -910,6 +971,7 @@ fn lower_typed_expression_measured(
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "substring" => Many(Substring, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

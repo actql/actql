@@ -1,23 +1,30 @@
 ///|
-test "unconnected structural Graph operations refuse before Result publication" {
-  for
-    (operation, expected) in [
-      (
-        "\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":2}",
-        @pipeline.Graph(@graph.UnsupportedGraphOperation),
-      ),
-    ] {
-    assert_eq(
-      @pipeline.check_carriers(
-        cursor("[{" + operation + ",\"as\":\"out\"}]"),
-        [("g", property_query_graph())],
-        None,
-        None,
-        ranking_limits(),
-      ).unwrap_err().kind,
-      expected,
-    )
-  }
+test "Reach publishes its typed identity columns using existing node emission order" {
+  let pipeline = @pipeline.check_carriers(
+    cursor(
+      "[{\"from\":\"g\",\"reach\":{\"start\":{\"where\":\"true\"},\"direction\":\"both\",\"max_depth\":2},\"as\":\"out\"}]",
+    ),
+    [("g", property_query_graph())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  let result = @relation_results.check(
+    pipeline,
+    cursor(
+      "{\"out\":{\"from\":\"out\",\"fields\":[\"start_id\",\"node_id\",\"depth\"]}}",
+    ),
+    limits(),
+  ).unwrap()
+  assert_eq(@relation_results.count(result), 1)
+  let publication = resolve(result)
+  assert_eq(@relation_results.publication_strategy(publication), Inherited)
+  assert_eq(
+    @pipeline.order_origin(
+      @relation_results.publication_inherited_order(publication).unwrap(),
+    ),
+    Step(0),
+  )
 }
 
 ///|

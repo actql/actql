@@ -142,6 +142,21 @@ an exact integer-valued finite `number` within its bounded string domain;
 GoogleSQL's INT64 result type, BYTES overload and explicit collation remain
 coverage gaps.
 
+`SUBSTR(value, position[, length])` and `SUBSTRING(value, position[, length])`
+are aliases of the common named-body `substring` scalar. Their selected
+[GoogleSQL STRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#substr)
+counts Unicode scalars, uses one-based positive and end-relative negative
+positions, and treats zero or overly negative positions as one. Omission
+retains the suffix; length zero or a position beyond the end returns empty.
+A negative/nonintegral/unsafe length or nonintegral/unsafe position fails on a
+demanded non-null call, after every supplied operand has evaluated once.
+Strict NULL, lazy demand and resource/cancellation laws belong to the common
+owner. Result nullability combines all supplied arguments; known input String
+upper bounds are preserved, including on empty input. Canonical omission is
+preserved without a synthetic length expression. The admitted number indices
+are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
+coverage gaps. Quoted/case variants retain the same function identity.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive

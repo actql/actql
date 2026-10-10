@@ -53,6 +53,7 @@ fn operation_count_contract(
     // requirement is not a count proof or evidence of successful admission.
     @pipeline.GraphDelta(..)
     | @pipeline.GraphUnion(..)
+    | @pipeline.GraphMean(..)
     | @pipeline.GraphSubtraction(..) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking

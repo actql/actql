@@ -34,7 +34,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority, installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-import {connect as connectClient} from '../../packages/sdk/index.mjs';
+import {connect as connectClient, getSubmissionAttempt, getSubmissionOutcome}
+  from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
@@ -1674,7 +1675,7 @@ test('public submit rejects checker failures before Run admission', async t => {
         maxBatchRetainedValueBytes: 2048},
     }),
     prepareSubmit, lookupRequest, submit: submitProgram,
-    submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
+    submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
   }));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -1687,9 +1688,11 @@ test('public submit rejects checker failures before Run admission', async t => {
       const source = {kind: 'aql', input: {text: document, format: 'json'}, parameters};
       const intent = moon.clientSubmittedIntent(JSON.stringify(source), 1048576, 65536, 64);
       assert.ok(intent);
+      const submissionRef = {epoch, nonce: `checker-${++nonce}`};
+      const attemptRef = {operation: 'submit', attemptId: `checker-attempt-${nonce}`};
       return fetch(new URL('actql/client/0.1/submit-intent', origin), {
         method: 'POST', headers: {authorization: 'Bearer scoped-token', 'content-type': 'application/json'},
-        body: JSON.stringify({connection, submissionRef: {epoch, nonce: `checker-${++nonce}`},
+        body: JSON.stringify({connection, submissionRef, attemptRef,
           intentCid: moon.clientSubmittedIntentCid(intent), ...source}),
       });
     };
@@ -1702,7 +1705,11 @@ test('public submit rejects checker failures before Run admission', async t => {
     ]) {
       const response = await submit(parameters);
       assert.equal(response.status, 200);
-      const outcome = await response.json();
+      const attempt = await response.json();
+      assert.equal(attempt.kind, 'recorded');
+      assert.deepEqual(attempt.attemptRef,
+        {operation: 'submit', attemptId: `checker-attempt-${nonce}`});
+      const outcome = attempt.outcome;
       assert.equal(outcome.kind, 'not_accepted');
       assert.deepEqual(outcome.problem, {code, classification});
       assert.deepEqual(await submission.lookupSubmission({principalId: 'principal-a', connection,
@@ -1731,7 +1738,9 @@ test('public submit rejects checker failures before Run admission', async t => {
       moon.clientProgramSemanticsCid(prepared));
     const accepted = await submit({n: 2});
     assert.equal(accepted.status, 200);
-    assert.equal((await accepted.json()).kind, 'ready');
+    const acceptedAttempt = await accepted.json();
+    assert.equal(acceptedAttempt.kind, 'recorded');
+    assert.equal(acceptedAttempt.outcome.kind, 'ready');
     assert.equal(admissions, 1);
     assert.equal(moon.clientRequestParametersCid(admittedIdentity),
       moon.clientRequestParametersCid(moon.clientProgramRequestIdentity(
@@ -2108,7 +2117,7 @@ test('public Values submit computes and reads its real Local Result',
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local',
         negotiate, prepareSubmit, lookupRequest, submit,
-        submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
+        submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
         resolve));
@@ -2120,7 +2129,7 @@ test('public Values submit computes and reads its real Local Result',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
           negotiate, prepareSubmit, lookupRequest, submit,
-          submitIntent: submission.submitIntent, lookupSubmission: submission.lookupSubmission,
+          submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
@@ -2177,9 +2186,16 @@ test('public Values submit computes and reads its real Local Result',
           assert.notEqual(changed, document);
           await assert.rejects(client.startSource(changed, {format: 'json',
             submissionRef}),
-          error => error.code === 'SubmissionUnknown' &&
-            error.cause?.code === 'ClientSubmittedIntentConflict' &&
-            error.submissionRef.nonce === submissionRef.nonce);
+          error => {
+            assert.equal(error.code, 'SubmissionConflict');
+            const attempt = getSubmissionAttempt(error);
+            assert.equal(attempt.kind, 'conflict');
+            assert.equal(attempt.reason, 'intent');
+            assert.deepEqual(attempt.submissionRef, submissionRef);
+            assert.deepEqual(attempt.attemptRef, error.attemptRef);
+            assert.equal(getSubmissionOutcome(error), undefined);
+            return true;
+          });
           assert.deepEqual(await client.lookupSubmission(submissionRef), recovered);
           const found = await client.lookupRequest(originalRequestId);
           assert.deepEqual(found.ref, submitted.ref);

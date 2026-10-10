@@ -327,6 +327,7 @@ pub(all) struct ResidentEffectResultCapture {
 pub(all) enum ResidentEffectResultCaptureIssue {
   Unavailable
   Context(@run_publication_host.ClientEffectLocalResultArtifactIssue)
+  Bindings(@run_publication_host.ClientEffectReceiptBindingsIssue)
   Native(ResidentSourceComputeIssue)
   Export(@run_publication_host.PublicationOutputExportIssue)
   Manifest(@run_publication.ResultManifestIssuanceIssue)
@@ -358,7 +359,7 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
 }
 
 type ResidentEffectReviewInputContext
-pub fn ResidentEffectReviewInputContext::capture_result(Self, @remote_journal.Journal, @run_publication.RunEvidenceValue, Array[String], Array[String], Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
+pub fn ResidentEffectReviewInputContext::capture_result(Self, @remote_journal.Journal, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
 pub fn ResidentEffectReviewInputContext::close(Self) -> Bool
 pub fn ResidentEffectReviewInputContext::facts(Self, @remote_journal.Journal) -> ResidentEffectReviewInputFacts?
 pub fn ResidentEffectReviewInputContext::matches_holder(Self, ResidentRetainedConsumer, @remote_journal.Journal) -> Bool

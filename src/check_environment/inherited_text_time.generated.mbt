@@ -3,7 +3,7 @@
 ///|
 /// Interpret the inherited edge only, not the whole expression contract.
 pub fn inherited_text_time_for_expression(cid : String) -> InheritedTextTimeContract? {
-  if cid == "sha256:c4fbe92195097a77090bbb10e8eb6544c3a14b533c88595649c954cf71067c41" {
+  if cid == "sha256:25f7515bf3c9fde6796c7702474bfa10460e5fcc3adf355a2a9eceff99f9c323" {
     Some(Base)
   } else {
     None
