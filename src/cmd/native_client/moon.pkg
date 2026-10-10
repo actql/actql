@@ -11,6 +11,7 @@ import {
   "actql/actql/run_publication_host" @run_host,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/platform_native/client_host" @local_host,
+  "actql/actql/platform_native/result_access" @local_result,
   "actql/actql/source_frontend" @frontend,
   "actql/actql/program_check" @checked,
   "actql/actql/decode_core" @decode,

@@ -9,6 +9,7 @@ import {
   "actql/actql/canonical_json" @json,
   "actql/actql/encode_core" @encode,
   "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/filesystem",
   "actql/actql/publication_payload" @payload,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,

@@ -16,3 +16,7 @@ void actql_native_client_fail(moonbit_bytes_t bytes, int32_t length) {
   fflush(stderr);
   exit(1);
 }
+
+int32_t actql_native_client_flush_stdout(void) {
+  return fflush(stdout) == 0;
+}

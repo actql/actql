@@ -11,6 +11,8 @@ pub fn install_native_result_access_authority((NativeResultAccessRequest) -> Boo
 
 pub fn install_native_result_access_service(@publication_store.Store, NativeResultAccessAuthority, () -> String, Int, Int, Int, Int, Int) -> Result[NativeResultAccessService, NativeResultAccessIssue]
 
+pub fn install_native_result_sink(NativeResultAccessSession, Int, Int, (Bytes) -> NativeResultSinkWrite, () -> Bool) -> Result[NativeResultSink, NativeResultSinkIssue]
+
 pub fn open_native_result_access(NativeResultAccessService, NativeResultAccessRequest) -> Result[NativeResultAccessSession, NativeResultAccessIssue]
 
 // Errors
@@ -74,6 +76,33 @@ pub(all) struct NativeResultReadFacts {
   result_definition_cid : String
   material_generation_cid : String
   observed_at : String
+}
+
+type NativeResultSink
+pub fn NativeResultSink::attempt_cid(Self) -> String
+pub fn NativeResultSink::close(Self) -> Result[Unit, NativeResultAccessIssue]
+pub fn NativeResultSink::poll(Self) -> Result[NativeResultSinkStep, NativeResultSinkIssue]
+
+pub(all) enum NativeResultSinkIssue {
+  InvalidSinkLimits
+  InvalidSinkWrite
+  SinkWriteFailed
+  SinkFinishFailed
+  SinkOutputLimit
+  Access(NativeResultAccessIssue)
+}
+
+type NativeResultSinkPhase
+
+pub(all) enum NativeResultSinkStep {
+  SinkProgress
+  SinkComplete(@publication_store.NativeResultDeliverySuccess)
+  SinkFailed(NativeResultSinkIssue, @publication_store.NativeResultDeliveryFailure)
+}
+
+pub(all) enum NativeResultSinkWrite {
+  SinkChunkConfirmed
+  SinkChunkFailed(Int, Int)
 }
 
 // Type aliases

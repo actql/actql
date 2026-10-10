@@ -1,0 +1,215 @@
+///|
+fn sink_access_case(
+  case : String,
+) -> (@store.Store, NativeResultAccessSession, Ref[Bool]) {
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let parent = @filesystem.open_root(root_path).unwrap()
+  let name = "sink-" + case + "-" + @env.now().to_string()
+  parent.create_directory(name).unwrap() |> ignore
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let authority = native_access_cid(name + "-store")
+  let store = @store.open_store(
+    library,
+    root_path + "/" + name,
+    authority,
+    256L,
+    8L,
+    65536L,
+  ).unwrap()
+  let fixture = native_access_fixture(store, authority, name)
+  commit_access_fixture(store, fixture)
+  let receipt_allowed = Ref(true)
+  let policy = install_native_result_access_authority(
+    request => request.principal_id == "principal",
+    _ => {
+      Some({
+        authorization_context_cid: native_access_cid(name + "-auth"),
+        data_ceiling_cid: native_access_cid(name + "-ceiling"),
+        egress_admission_cid: native_access_cid(name + "-egress"),
+        expires_at: "2026-09-21T00:00:00.000Z",
+        max_bytes: 64,
+        max_uses: 1,
+      })
+    },
+    facts => facts.stage != "receipt" || receipt_allowed.val,
+  )
+  let service = install_native_result_access_service(
+    store,
+    policy,
+    () => "2026-09-20T01:00:00.000Z",
+    65536,
+    4096,
+    32,
+    65536,
+    3,
+  ).unwrap()
+  let session = open_native_result_access(service, {
+    namespace_id: "namespace_id",
+    authority_scope_cid: fixture.authority_scope_cid,
+    run_definition_cid: @publication.publication_contract_identity(
+      fixture.run_definition,
+    ),
+    principal_id: "principal",
+    purpose: "download",
+    result_name: "answer",
+    format: "jsonl",
+    attempt_id: name + "-original-attempt",
+  }).unwrap()
+  (store, session, receipt_allowed)
+}
+
+///|
+test "Native sink completes exact bounded output only after durable receipt and never rewrites on replay" {
+  let (store, session, _) = sink_access_case("complete")
+  let output : Array[Byte] = []
+  let finish_calls = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    12,
+    bytes => {
+      for byte in bytes {
+        output.push(byte)
+      }
+      SinkChunkConfirmed
+    },
+    () => {
+      finish_calls.val += 1
+      true
+    },
+  ).unwrap()
+  let mut receipt = None
+  for _ in 0..<40 {
+    match sink.poll().unwrap() {
+      SinkComplete(value) => {
+        receipt = Some(value)
+        break
+      }
+      SinkProgress => ()
+      SinkFailed(_, _) => abort("normal sink must complete")
+    }
+  }
+  assert_eq(@utf8.decode(Bytes::from_array(output)), "{\"value\":7}\n")
+  assert_eq(finish_calls.val, 1)
+  guard receipt is Some(receipt) else { fail("finite sink did not complete") }
+  assert_eq(receipt.confirmed_bytes, 12L)
+  assert_true(sink.poll() is Ok(SinkComplete(_)))
+  assert_eq(output.length(), 12)
+  assert_eq(finish_calls.val, 1)
+  sink.close().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "Native sink exact failed prefix and unconfirmed exposure stay failed without another write" {
+  let (store, session, _) = sink_access_case("failed-prefix")
+  let writes = Ref(0)
+  let finishes = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    64,
+    _ => {
+      writes.val += 1
+      SinkChunkFailed(2, 1)
+    },
+    () => {
+      finishes.val += 1
+      true
+    },
+  ).unwrap()
+  assert_true(sink.poll() is Ok(SinkProgress))
+  guard sink.poll() is Ok(SinkFailed(SinkWriteFailed, record)) else {
+    fail("failed prefix not retained")
+  }
+  assert_eq(record.confirmed_bytes, 2L)
+  assert_eq(record.state, "failed")
+  assert_true(sink.poll() is Ok(SinkFailed(SinkWriteFailed, _)))
+  assert_eq(writes.val, 1)
+  assert_eq(finishes.val, 0)
+  sink.close().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "Native sink receipt denial retains the original session and retries no physical output" {
+  let (store, session, allowed) = sink_access_case("receipt-denied")
+  allowed.val = false
+  let written = Ref(0)
+  let finishes = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    64,
+    bytes => {
+      written.val += bytes.length()
+      SinkChunkConfirmed
+    },
+    () => {
+      finishes.val += 1
+      true
+    },
+  ).unwrap()
+  let mut blocked = false
+  for _ in 0..<40 {
+    match sink.poll() {
+      Err(Access(AccessDenied)) => {
+        blocked = true
+        break
+      }
+      Ok(SinkProgress) => ()
+      _ => fail("unconfirmed receipt cannot be completion")
+    }
+  }
+  assert_true(blocked)
+  assert_eq(written.val, 12)
+  assert_eq(finishes.val, 1)
+  allowed.val = true
+  guard sink.poll() is Ok(SinkComplete(receipt)) else {
+    fail("original receipt retry failed")
+  }
+  assert_eq(receipt.delivery_attempt_cid, session.attempt_cid())
+  assert_eq(written.val, 12)
+  assert_eq(finishes.val, 1)
+  sink.close().unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "Native sink output limit does not expose the private probe byte or finish a partial read" {
+  let (store, session, _) = sink_access_case("output-limit")
+  let written = Ref(0)
+  let finishes = Ref(0)
+  let sink = install_native_result_sink(
+    session,
+    3,
+    5,
+    bytes => {
+      written.val += bytes.length()
+      SinkChunkConfirmed
+    },
+    () => {
+      finishes.val += 1
+      true
+    },
+  ).unwrap()
+  let mut stopped = false
+  for _ in 0..<40 {
+    match sink.poll().unwrap() {
+      SinkFailed(SinkOutputLimit, record) => {
+        assert_eq(record.confirmed_bytes, 5L)
+        stopped = true
+        break
+      }
+      SinkProgress => ()
+      _ => fail("bounded prefix cannot be success")
+    }
+  }
+  assert_true(stopped)
+  assert_eq(written.val, 5)
+  assert_eq(finishes.val, 0)
+  sink.close().unwrap()
+  assert_true(store.close().unwrap())
+}
