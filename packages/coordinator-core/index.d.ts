@@ -83,6 +83,18 @@ export type EffectCheckpointRefusal = 'authorization_denied' | 'scope_mismatch' 
 export type EffectCheckpointReply = Readonly<{kind: 'accepted'} |
   {kind: 'refused'; reason: EffectCheckpointRefusal}>;
 
+/** Serialization only: physical Reviewer/Host authentication, durable claim
+ * and current fencing remain responsibilities of the existing trusted Owners. */
+export const effectResumeDeliveries: Readonly<{
+  prepareJson(report: EffectCheckpointReport, resolutionWire: string,
+    authentication: Readonly<{key_id: string; reviewer_id: string;
+      expected_authority_scope_cid: string; authority_context_cid: string;
+      policy_cid: string; proof_preimage: string}>,
+    reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[],
+    claim: Readonly<{claimant: string; generation: bigint}>,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): string;
+}>;
+
 /** Canonical report admission is not remote persistence, approval, execution or
  * cleanup evidence. Authenticate the current Site and validate the original
  * Run/unit, consumer and retained custody using the existing trusted Owners. */
