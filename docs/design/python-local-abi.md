@@ -65,6 +65,28 @@ claiming an aggregate execution bound.
 
 ## Execution boundary
 
+The `actql_program_*` source-free preparation profile installs a trusted Check
+Environment through its existing canonical-wire Owner. Its environment handle
+holds the configuration's exact buffer borrow. `prepare` selects structured JSON
+or an AQL string explicitly and invokes the common frontend and Checker. AQL
+retains the lowerer's parsed Program and authored provenance. There is no syntax
+fallback, fabricated parameter value or physical Source lookup.
+
+A preparation handle retains the original input borrow, its environment handle
+and the Core's typed success or rejection. Environment close is pending while
+any dependent preparation is retained. Preparation close returns its exact loan
+only after the physical callback acknowledges stop. Rejected preparations have
+the same custody obligations. Root close retains capacity while any loan or
+cleanup remains pending.
+
+The private `prepared_results` and `prepared_tasks` exports project inventory
+only from a prepared Core value. -22 means that the retained typed preparation
+has an error; it is not a public invalid/undetermined classification. -20 rejects
+an installation configuration and -21 rejects an input of the wrong ABI kind.
+The public diagnostic projection must use the retained Core reason rather than
+infer a verdict from these readiness codes. This source-free profile supplies
+no bindings and grants no Run admission, execution or Result access.
+
 Run admission, checked task progress, publication, cancellation eligibility and
 durable recovery remain MoonBit Owner responsibilities. Python provides physical
 callbacks and persistence, not a second Run or recovery state machine. This
