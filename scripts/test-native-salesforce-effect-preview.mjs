@@ -5,6 +5,7 @@ import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
+import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentOriginalHolder = process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
@@ -31,10 +32,27 @@ openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.crt', '-CAkey',
 await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
   {mode: 0o600});
 const paths = [];
+let resolutionRequests = 0;
 let writes = 0;
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
+    if (request.headers.authorization !== 'Bearer native-target-test') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks=[];let bytes=0;
+    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>262144)request.destroy();else chunks.push(chunk);});
+    request.on('end',()=>{
+      try {
+        const fixture=nativeResolutionFixture(Buffer.concat(chunks).toString('utf8'));
+        resolutionRequests++;
+        response.writeHead(200,{'content-type':'application/json'});
+        response.end(JSON.stringify(fixture));
+      } catch {response.writeHead(422);response.end();}
+    });
+    return;
+  }
   if (request.method !== 'GET') writes++;
   paths.push({method: request.method, path: request.url});
   if (request.headers.authorization !== 'Bearer native-target-test' ||
@@ -72,7 +90,8 @@ try {
   const signature = sign(null,
     Buffer.from('actql-remote-credential-grant-signature/0.1\0' + cid + '\0' + body),
     keys.privateKey).toString('base64url');
-  const testEnv = {...process.env,
+  const testEnv = {...process.env, ...nativeResolutionFixture(),
+    ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL:origin+'/fixture/effect-resolution',
     ACTQL_TEST_NATIVE_HTTP_URL: origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
@@ -135,16 +154,16 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + (residentOriginalHolder ? ", '--filter', 'Effect original holders retain physical Provider review*'" : residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
+    JSON.stringify(selection) + (!residentProposals ? ", 'src/platform_native/salesforce_effect_preview/resolution_native_wbtest.mbt'" : '') + (residentOriginalHolder ? ", '--filter', 'Effect original holders retain physical Provider review*'" : residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
     "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes,
+    code, signal, requests: paths, writes, resolutionRequests,
     provider: bearer?.effectTargets(),
     scope: residentOriginalHolder
-      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint; live Ledger retained; no Cloud waiting commit, approval or write'
+      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
       : residentEffectRuntimeCapture
       ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
       : residentProposals
@@ -152,6 +171,7 @@ try {
       : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   assert.equal(writes, 0);
+  assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   if (residentProposals) {
     assert.deepEqual(paths, []);
     assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: 0});
