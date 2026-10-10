@@ -41,7 +41,7 @@ test "Shortest retains two explicit Relation selectors through public source com
 }
 
 ///|
-test "mean required arguments are invalid while a complete unconnected mean stays unsupported" {
+test "mean required arguments are invalid while the explicit complete generator lowers" {
   let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
   let suffix = "; FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id"
   let complete = "with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {id: 'exact_equal', entity_type: 'exact_equal'}, edges: {}}"
@@ -65,7 +65,7 @@ test "mean required arguments are invalid while a complete unconnected mean stay
     classified_graph_source(
       prefix + "DATA combined = mean_graphs(" + complete + ")" + suffix,
     )
-    is Err(UnsupportedGraph),
+    is Ok(_),
   )
   // Duplicate names remain the existing syntax owner's diagnostic.
   assert_true(

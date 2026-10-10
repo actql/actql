@@ -63,11 +63,19 @@ fn expression_role(
     | "floor"
     | "lower"
     | "upper"
-    | "trim"
-    | "ltrim"
-    | "rtrim"
     | "nfkc"
     | "case_fold" => Expr
+    "trim" | "ltrim" | "rtrim" => {
+      let body = decoded(
+        @decode.required(decoded(@decode.open_object(cursor), origin), tag),
+        origin,
+      )
+      if @decode.array_length(body) is Some(_) {
+        Arguments(tag)
+      } else {
+        Expr
+      }
+    }
     "add"
     | "subtract"
     | "multiply"

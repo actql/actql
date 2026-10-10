@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:e378090de5006ee78e403323aa6086684f2a22ac22b4dc8a93e41be74cae9007",
+  "artifact_registry_cid": "sha256:237214004305c83944d93c6aa5acc4e12945ce60ba11b2ad8c14ba0fc31d2cff",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:ec422d0df562e8e7c6d9292cee24b08a3da9236074c43a85fa97388fe0ae13f7",
+    "executable_plan": "sha256:02c7fca11b41c6f37a26acb2a8bfb916242da921db19158ca902f8c354794582",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:548ae6903772ccdbc6f9a1c6d385873833063549c9d4bd62ba185df9b0bdf5fb",
+    "plan_document": "sha256:611d4c71d262ab05a22e73297f30888c63ecb36331f463b3d30c31b98b5c0d3f",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
     "captured_run": "sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4",
@@ -16532,7 +16532,19 @@
                       ],
                       "properties": {
                         "rtrim": {
-                          "$ref": "#/$defs/value_expression"
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -16544,7 +16556,19 @@
                       ],
                       "properties": {
                         "ltrim": {
-                          "$ref": "#/$defs/value_expression"
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -16628,7 +16652,19 @@
                       ],
                       "properties": {
                         "trim": {
-                          "$ref": "#/$defs/value_expression"
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -21760,7 +21796,19 @@
                       ],
                       "properties": {
                         "rtrim": {
-                          "$ref": "#/$defs/value_expression"
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -21772,7 +21820,19 @@
                       ],
                       "properties": {
                         "ltrim": {
-                          "$ref": "#/$defs/value_expression"
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -21856,7 +21916,19 @@
                       ],
                       "properties": {
                         "trim": {
-                          "$ref": "#/$defs/value_expression"
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              }
+                            }
+                          ]
                         }
                       }
                     },
@@ -46411,7 +46483,19 @@
                           ],
                           "properties": {
                             "rtrim": {
-                              "$ref": "#/$defs/value_expression"
+                              "oneOf": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "$ref": "#/$defs/value_expression"
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -46423,7 +46507,19 @@
                           ],
                           "properties": {
                             "ltrim": {
-                              "$ref": "#/$defs/value_expression"
+                              "oneOf": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "$ref": "#/$defs/value_expression"
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -46507,7 +46603,19 @@
                           ],
                           "properties": {
                             "trim": {
-                              "$ref": "#/$defs/value_expression"
+                              "oneOf": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "$ref": "#/$defs/value_expression"
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -51639,7 +51747,19 @@
                           ],
                           "properties": {
                             "rtrim": {
-                              "$ref": "#/$defs/value_expression"
+                              "oneOf": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "$ref": "#/$defs/value_expression"
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -51651,7 +51771,19 @@
                           ],
                           "properties": {
                             "ltrim": {
-                              "$ref": "#/$defs/value_expression"
+                              "oneOf": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "$ref": "#/$defs/value_expression"
+                                  }
+                                }
+                              ]
                             }
                           }
                         },
@@ -51735,7 +51867,19 @@
                           ],
                           "properties": {
                             "trim": {
-                              "$ref": "#/$defs/value_expression"
+                              "oneOf": [
+                                {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "$ref": "#/$defs/value_expression"
+                                  }
+                                }
+                              ]
                             }
                           }
                         },

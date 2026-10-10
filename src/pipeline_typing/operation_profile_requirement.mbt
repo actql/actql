@@ -60,6 +60,16 @@ pub fn operation_profile_requirement(
         | CanonicalUnionOrder
         | ResolveUnionResources => None
       }
+    MeanRequirement(o) =>
+      match o {
+        AdmitMeanInputs => Some(GraphProfile)
+        PreserveMeanIdentities
+        | CheckMeanLabelsAndEndpoints
+        | ResolveMeanResources
+        | ApplyExactMeanSupport
+        | ApplyMeanPropertyStrategies
+        | CanonicalMeanOrder => None
+      }
     ComponentsRequirement(o) =>
       match o {
         AdmitComponentGraph => Some(GraphProfile)

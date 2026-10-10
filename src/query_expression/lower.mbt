@@ -205,9 +205,9 @@ fn scalar_call(
     "CEIL" | "CEILING" => ("CEIL", "ceil", 1, 1)
     "LOWER" => ("LOWER", "lower", 1, 1)
     "UPPER" => ("UPPER", "upper", 1, 1)
-    "TRIM" => ("TRIM", "trim", 1, 1)
-    "LTRIM" => ("LTRIM", "ltrim", 1, 1)
-    "RTRIM" => ("RTRIM", "rtrim", 1, 1)
+    "TRIM" => ("TRIM", "trim", 1, 2)
+    "LTRIM" => ("LTRIM", "ltrim", 1, 2)
+    "RTRIM" => ("RTRIM", "rtrim", 1, 2)
     "REPLACE" => ("REPLACE", "replace", 3, 3)
     "COALESCE" => ("COALESCE", "coalesce", 1, 2147483647)
     "IFNULL" => ("IFNULL", "coalesce", 2, 2)
@@ -576,7 +576,11 @@ fn append_resolved(
                   nodes[args[0]],
                 ])
                 lowering.form("negate", lowering.form("floor", negative))
-              } else if maximum == 1 {
+              } else if maximum == 1 ||
+                (
+                  ["trim", "ltrim", "rtrim"].contains(name) &&
+                  args.length() == 1
+                ) {
                 lowering.form(name, nodes[args[0]])
               } else {
                 lowering.arguments(name, args.map(i => nodes[i]))

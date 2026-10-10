@@ -35,6 +35,8 @@ pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, M
 
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
 
+pub fn advance_mean(MeanExecution, Int) -> Result[MeanPoll, MeanIssue]
+
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
 pub fn advance_subgraph(SubgraphExecution, Int) -> Result[SubgraphPoll, SubgraphIssue]
@@ -60,6 +62,8 @@ pub fn cleanup_graph_equality(GraphEqualityExecution) -> Result[Bool, GraphEqual
 pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
+
+pub fn cleanup_mean(MeanExecution) -> Result[Bool, MeanIssue]
 
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
@@ -115,9 +119,21 @@ pub fn match_nodes_scratch_slots(MatchNodesExecution) -> Int
 
 pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
 
+pub fn mean_cleanup_pending(MeanExecution) -> Bool
+
+pub fn mean_limits_valid(MeanLimits) -> Bool
+
+pub fn mean_reserved_output_limits(MeanReservation) -> @managed_graph_storage.Limits
+
+pub fn mean_reserved_scratch_bytes(MeanReservation) -> Int
+
+pub fn mean_reserved_scratch_slots(MeanReservation) -> Int
+
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
 
 pub fn prepare_delta_apply_input(@lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @bounded_graph_diff.Limits, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[DeltaApplyInputPreparation, DeltaApplyIssue]
+
+pub fn prepare_mean_reservation(@graph_typing.CheckedMean, @managed_graph_storage.Limits, MeanLimits) -> Result[MeanReservation, MeanResourceIssue]
 
 pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
 
@@ -148,6 +164,8 @@ pub fn start_match_edges_view(@bounded_execution.Control, @execution_relation.Co
 pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
+
+pub fn start_mean_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, MeanLimits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[MeanExecution, MeanIssue]
 
 pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[NormalizeExecution, NormalizeIssue]
 
@@ -351,6 +369,62 @@ pub enum MatchNodesPoll {
   MatchNodesFailed(MatchNodesIssue, progress~ : Int64, work~ : Int64)
   MatchNodesStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
+
+type MeanExecution
+
+pub(all) enum MeanFoldIssue {
+  InvalidMeanFold
+  MeanInputUnavailable
+  MeanFoldWorkLimit
+  MeanExactWorkLimit
+  MeanEndpointConflict
+  MeanFoldProperty(MeanPropertyIssue)
+  MeanFoldArithmetic(@exact_binary64.Issue)
+  MeanFoldStorage(@managed_graph_storage.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MeanIssue {
+  InvalidMeanExecution
+  MeanInputBinding
+  MeanResources(MeanResourceIssue)
+  MeanFoldFailure(MeanFoldIssue)
+  MeanOutputFailure(@managed_graph_runtime.Issue)
+  MeanExecutionFailure(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MeanLimits {
+  max_samples : Int
+  max_exact_operations : Int
+  max_coefficient_bits : Int
+  max_temporary_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub enum MeanPoll {
+  MeanContinue(progress~ : Int64, work~ : Int64)
+  MeanComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
+  MeanFailed(MeanIssue, progress~ : Int64, work~ : Int64)
+  MeanStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+pub(all) enum MeanPropertyIssue {
+  InvalidMeanProperty
+  MeanPropertyConflict
+  MeanPropertyNull
+  MeanPropertyWorkLimit
+  MeanPropertyExactWorkLimit
+  MeanPropertyValueLimit
+  MeanPropertyArithmetic(@exact_binary64.Issue)
+  MeanPropertyEquality(@value_admission.CompleteEqualityIssue)
+} derive(Eq, @debug.Debug)
+
+type MeanReservation
+
+pub(all) enum MeanResourceIssue {
+  InvalidMeanLimits
+  MeanSampleLimit
+  MeanTemporaryLimit
+  MeanWorkspaceLimit
+} derive(Eq, @debug.Debug)
 
 type NormalizeExecution
 

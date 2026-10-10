@@ -188,13 +188,13 @@ test('public TRIM refuses wrong arity, types, bindings, and excluded overloads b
     const f = await fixture(t);
     const invalid = [
       {text: 'TRIM()', expression: {trim: []}},
-      {text: "TRIM(' a ', ' ')", expression: {trim: [literal(' a '), literal(' ')]}},
+      {text: "TRIM(' a ', 1)", expression: {trim: [literal(' a '), literal(1)]}},
       {text: "TRIM('a', 'b', 'c')", expression: {trim: [literal('a'), literal('b'), literal('c')]}},
       {text: 'TRIM(1)', expression: {trim: literal(1)}},
       {text: 'TRIM(TRUE)', expression: {trim: literal(true)}},
-      // Side-specific unary trims are admitted; explicit character sets remain excluded.
-      {text: "LTRIM(' a ', ' ')", expression: {ltrim: [literal(' a '), literal(' ')]}},
-      {text: "RTRIM(' a ', ' ')", expression: {rtrim: [literal(' a '), literal(' ')]}},
+      // Side-specific trims share the STRING-only explicit-set type rule.
+      {text: "LTRIM(' a ', 1)", expression: {ltrim: [literal(' a '), literal(1)]}},
+      {text: "RTRIM(' a ', 1)", expression: {rtrim: [literal(' a '), literal(1)]}},
     ];
     for (const [index, item] of invalid.entries()) {
       for (const format of formats) {
