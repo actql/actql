@@ -357,6 +357,39 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
   RunBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
 }
 
+type ResidentEffectReviewInputContext
+pub fn ResidentEffectReviewInputContext::capture_result(Self, @remote_journal.Journal, @run_publication.RunEvidenceValue, Array[String], Array[String], Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
+pub fn ResidentEffectReviewInputContext::close(Self) -> Bool
+pub fn ResidentEffectReviewInputContext::facts(Self, @remote_journal.Journal) -> ResidentEffectReviewInputFacts?
+
+pub(all) struct ResidentEffectReviewInputFacts {
+  materials : @run_publication_host.ClientEffectRunMaterials
+  inputs : @physical_strategy.CapturedEffectInputs
+  producer : ResidentEffectProducerCapture
+  receiver : @run_publication_host.ClientEffectLocalResultArtifact
+  imported : @run_publication_host.ClientEffectImportedEvidence
+  root_index : Int
+}
+
+pub(all) struct ResidentEffectReviewInputFailure {
+  issue : ResidentEffectReviewInputIssue
+  pending : ResidentEffectReviewInputContext?
+}
+
+pub(all) enum ResidentEffectReviewInputIssue {
+  Unavailable
+  InvalidLimits
+  Producer(ResidentEffectProducerCaptureIssue)
+  Pins(@physical_strategy.RunIssue)
+  Import(@physical_strategy.RunIssue)
+  Export(ResidentSourceComputeIssue)
+  Read(ResidentEffectProducerCaptureIssue)
+  Binding(@run_publication_host.ClientEffectTransferredArtifactIssue)
+  Manifest(@run_publication_host.ClientEffectLocalManifestIssue)
+  Observation(@run_publication_host.ClientEffectResultImportIssue)
+  Evidence(@run_publication_host.ClientEffectImportedEvidenceIssue)
+}
+
 type ResidentEffectReviewRetention
 pub fn ResidentEffectReviewRetention::persist(Self, @publication_store.Store) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::report(Self) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
@@ -508,6 +541,7 @@ pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_cli
 pub fn ResidentRetainedConsumer::close(Self) -> Bool
 pub fn ResidentRetainedConsumer::effect_computation(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
+pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.Journal, Int, Int, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectReviewInputContext, ResidentEffectReviewInputFailure]
 
 pub(all) struct ResidentRetainedExecutionFailure {
   issue : ResidentRetainedExecutionIssue

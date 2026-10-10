@@ -85,6 +85,14 @@ fn retained_holder_effect_transfer_capture(
     producer.invocation_for_capture(producer_journal, 1, 4096, 64)
     is Err(Invocation(_)),
   )
+  if provider {
+    retained_holder_context_review(
+      holder, journal, producer, producer_journal, root_path, name,
+    )
+    assert_eq(source_owner.usage().held_bytes, source_usage.held_bytes)
+    assert_eq(consumer.usage().held_bytes, consumer_usage.held_bytes)
+    return
+  }
   // The production adapter joins actual original journal evidence to the
   // existing captured Result; no test issuer supplies its name or timestamps.
   assert_true(
@@ -363,26 +371,6 @@ fn retained_holder_effect_transfer_capture(
     64,
   ).unwrap()
   |> ignore
-  if provider {
-    retained_holder_provider_review(
-      holder,
-      journal,
-      consumer,
-      source_owner,
-      materials,
-      inputs,
-      @resident.resident_retained_consumer_request(holder),
-      original_run_invocation,
-      original_observation_set,
-      dependency,
-      receiver,
-      imported,
-      root_index,
-      result,
-      root_path,
-      name,
-    )
-  }
   result.output.cancel()
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   assert_true(consumer.request_for_effect_review(inputs) is None)
