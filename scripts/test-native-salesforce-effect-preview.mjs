@@ -5,14 +5,22 @@ import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
+import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentOriginalHolder = process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
 const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-runtime-capture');
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
+const coreIndex = process.argv.indexOf('--core-test-json');
+const coreArgs = coreIndex < 0 ? undefined : JSON.parse(process.argv[coreIndex + 1]);
+if (coreArgs !== undefined) {
+  assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
+    'Invalid Native core fixture invocation');
+}
 
-const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT;
+const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT ?? (coreArgs === undefined ? undefined :
+  join(process.cwd(), '_build', 'native-core-physical'));
 assert(typeof scratch === 'string' && scratch.length > 0,
   'ACTQL_TEST_SCRATCH_ROOT is required');
 await mkdir(scratch, {recursive: true});
@@ -31,10 +39,27 @@ openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.crt', '-CAkey',
 await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
   {mode: 0o600});
 const paths = [];
+let resolutionRequests = 0;
 let writes = 0;
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
+    if (request.headers.authorization !== 'Bearer native-target-test') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks=[];let bytes=0;
+    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>262144)request.destroy();else chunks.push(chunk);});
+    request.on('end',()=>{
+      try {
+        const fixture=nativeResolutionFixture(Buffer.concat(chunks).toString('utf8'));
+        resolutionRequests++;
+        response.writeHead(200,{'content-type':'application/json'});
+        response.end(JSON.stringify(fixture));
+      } catch {response.writeHead(422);response.end();}
+    });
+    return;
+  }
   if (request.method !== 'GET') writes++;
   paths.push({method: request.method, path: request.url});
   if (request.headers.authorization !== 'Bearer native-target-test' ||
@@ -72,7 +97,8 @@ try {
   const signature = sign(null,
     Buffer.from('actql-remote-credential-grant-signature/0.1\0' + cid + '\0' + body),
     keys.privateKey).toString('base64url');
-  const testEnv = {...process.env,
+  const testEnv = {...process.env, ...nativeResolutionFixture(),
+    ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL:origin+'/fixture/effect-resolution',
     ACTQL_TEST_NATIVE_HTTP_URL: origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
@@ -127,24 +153,42 @@ try {
         .toString('base64url'),
     });
   }
+  // Only this package consumes the target fixture. A full Core run must not
+  // accidentally activate unrelated optional HTTP tests with this endpoint.
+  for (const suffix of ['HTTP_URL', 'HTTP_CA', 'HTTP_SECRET', 'HTTP_LIBRARY', 'TARGET_ROOT',
+    'CREDENTIAL_GRANT_BODY', 'CREDENTIAL_GRANT_CID', 'CREDENTIAL_SIGNATURE', 'CREDENTIAL_PUBLIC_KEY']) {
+    const key = 'ACTQL_TEST_NATIVE_' + suffix;
+    testEnv['ACTQL_TEST_NATIVE_SALESFORCE_' + suffix] = testEnv[key];
+    if (coreArgs !== undefined) {
+      if (process.env[key] === undefined) delete testEnv[key];
+      else testEnv[key] = process.env[key];
+    }
+  }
   const selection = residentOriginalHolder
     ? 'src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt'
     : residentProposals
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
-    : 'src/platform_native/salesforce_effect_preview/target_native_wbtest.mbt';
+    : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
+  const moonArgs = coreArgs === undefined ? ['--target', 'native', '--strip', selection,
+    ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt'] : []),
+    ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
+      : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
+      : residentPreview ? ['--filter', 'Native retained consumer*']
+      : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
+    : ['--target', 'native', ...coreArgs];
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-    "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + (residentOriginalHolder ? ", '--filter', 'Effect original holders retain physical Provider review*'" : residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
-    "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
+    "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
+    "{timeout: " + (coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes,
+    code, signal, requests: paths, writes, resolutionRequests,
     provider: bearer?.effectTargets(),
     scope: residentOriginalHolder
-      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint; live Ledger retained; no Cloud waiting commit, approval or write'
+      ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
       : residentEffectRuntimeCapture
       ? 'Actual retained Native computation, dependency capture and encrypted Store custody; protocol target metadata only; no approval, apply or Cloud'
       : residentProposals
@@ -152,6 +196,7 @@ try {
       : 'Native HTTPS target observation and durable scoped credential use; no Source capture, whole Preview, approval or apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
   assert.equal(writes, 0);
+  assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   if (residentProposals) {
     assert.deepEqual(paths, []);
     assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: 0});

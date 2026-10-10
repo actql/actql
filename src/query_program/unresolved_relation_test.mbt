@@ -29,7 +29,10 @@ test "unresolved relation witnesses retain the exact selected semantic path" {
         "SELECT 1 AS n FROM catalog.missing",
         [("catalog", false), ("missing", false)],
       ),
-      ("SELECT 1 AS n FROM `é/~🧭`", [("é/~🧭", true)]),
+      // The witness retains the admitted semantic name; decoded lexemes and
+      // authored coordinates retain the original decomposition separately.
+      ("SELECT 1 AS n FROM `é/~🧭`", [("é/~🧭", true)]),
+      ("SELECT 1 AS n FROM `é/~🧭`", [("é/~🧭", true)]),
       (
         "SELECT o.id AS n FROM orders AS o JOIN missing AS m ON o.id = m.id",
         [("missing", false)],

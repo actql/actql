@@ -142,7 +142,7 @@ test "unified Graph equality retains unresolved producer and invalid argument re
       if unknown_producer {
         actual is @query.UnknownRelation
       } else {
-        actual is @query.UnsupportedGraph
+        actual is @query.InvalidQuery
       },
       msg=call,
     )
@@ -152,12 +152,19 @@ test "unified Graph equality retains unresolved producer and invalid argument re
 }
 
 ///|
-test "unified dependency refuses unsupported mean Graph source without legacy dispatch" {
+test "unified dependency separates invalid mean arguments from an unconnected mean source" {
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   let source = unified_graph_prefix() +
     "DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id"
   assert_true(
     lower(source, Text, Some(context))
+    is Err(QueryLowering(@query.InvalidQuery)),
+  )
+  // A complete adopted mean is still an unconnected source, not invalid syntax.
+  let complete = unified_graph_prefix() +
+    "DATA combined = mean_graphs(with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {id: 'exact_equal'}, edges: {}}); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id"
+  assert_true(
+    lower(complete, Text, Some(context))
     is Err(QueryLowering(@query.UnsupportedGraph)),
   )
 }
