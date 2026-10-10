@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const divergence = /^#\n# Package ([^ ]+) (?:has diverging interfaces across backends:|has requested interfaces different from canonical backend)[\s\S]*?^# ------\n?/gm;
 
-function withoutNativeOnlyPackages(root, report) {
+function withoutTargetOnlyPackages(root, report) {
   const moduleText = readFileSync(join(root, 'moon.mod'), 'utf8');
   const moduleName = /^name\s*=\s*"([^"]+)"/m.exec(moduleText)?.[1];
   const sourceRoot = /^source\s*=\s*"([^"]+)"/m.exec(moduleText)?.[1] ?? 'src';
@@ -21,8 +21,10 @@ function withoutNativeOnlyPackages(root, report) {
     );
     if (!existsSync(manifestPath)) return block;
     const manifest = readFileSync(manifestPath, 'utf8');
-    const nativeOnly = /supported_targets\s*=\s*"native"/.test(manifest);
-    if (nativeOnly) return '';
+    // A package explicitly supporting just Native or Wasm has no canonical
+    // JS interface to compare. Keep every multi-target divergence required.
+    const targetOnly = /^[ \t]*supported_targets[ \t]*=[ \t]*"(?:native|wasm)"[ \t]*(?:\/\/[^\r\n]*)?$/m.test(manifest);
+    if (targetOnly) return '';
     return block;
   });
 }
@@ -31,7 +33,7 @@ export function checkInterfaces(root) {
   const report = execFileSync('moon', ['info', '--target', 'js,wasm,native'], {
     cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
   });
-  const relevantReport = withoutNativeOnlyPackages(root, report);
+  const relevantReport = withoutTargetOnlyPackages(root, report);
   // Pinned moon 94521db reports divergence with exit code zero.
   // The live-tool regression test must accompany toolchain upgrades.
   if (/^# Package .* (?:has diverging interfaces across backends:|has requested interfaces different from canonical backend)/m.test(relevantReport)) {
