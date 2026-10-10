@@ -283,28 +283,20 @@ fn retained_holder_provider_review(
     is Err(ForeignInput),
   )
   mark("retention-start")
-  retained_effect_complete_capture(
+  // This production connection already issued the full Captured Run. Reuse
+  // that Owner result; the independent common-capture cases cover reissuance.
+  retained_effect_review_retention_store(
     consumer,
     materials,
     inputs,
+    public_result,
     invocation,
     complete.preview.preview,
-    complete.preview.proof,
-    complete.source,
-    complete.local_source,
-    complete.inventory,
-    complete.preview.authoring,
-    public_result,
-    provider=true,
-    checkpoint_custody=true,
-    review_retention=true,
+    complete.captured,
+    @publication.captured_effect_source_store_authority_cid(complete.source),
+    complete.preview.wire,
+    @publication.run_evidence_value_identity(complete.preview.authoring),
     review_work=Some(work),
-    private_preview=Some(
-      (
-        complete.preview.wire,
-        @publication.run_evidence_value_identity(complete.preview.authoring),
-      ),
-    ),
   )
   let saved = journal
     .effect_checkpoint_report(dispatch, {
