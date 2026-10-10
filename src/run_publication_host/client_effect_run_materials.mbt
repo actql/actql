@@ -6,6 +6,7 @@ pub(all) struct ClientEffectRunMaterials {
   compilation : ClientEffectCompilation
   allowed : ClientEffectAllowedRun
   run_definition : @publication.PublicationContract
+  request : ClientRequestIdentity?
 }
 
 ///|
@@ -15,6 +16,38 @@ pub(all) enum ClientEffectRunMaterialsIssue {
   Compilation(ClientEffectCompilationIssue)
   Binding(ClientEffectCompiledRunIssue)
   RunMismatch
+  Request(ClientRequestIdentityIssue)
+}
+
+///|
+/// Inspect the transported original request without issuing a replacement.
+/// Missing context remains missing: it cannot authorize Preview/approval.
+/// The exact dispatch and checked Program must agree before Provider I/O.
+pub fn client_effect_run_materials_request_for_dispatch(
+  materials : ClientEffectRunMaterials,
+  dispatch : @remote.DispatchRequest,
+) -> Result[ClientRequestIdentity?, ClientRequestIdentityIssue] {
+  guard materials.request is Some(request) else { return Ok(None) }
+  if bind_client_effect_compiled_run(
+      materials.prepared,
+      materials.allowed,
+      materials.run_definition,
+    )
+    is Err(_) ||
+    !physical_equal(materials.compilation, materials.allowed.compilation) {
+    return Err(IdentityMismatch)
+  }
+  if @remote.dispatch_request_task_scope(dispatch).0 !=
+    @publication.publication_contract_identity(materials.run_definition) ||
+    @remote.dispatch_request_journal_key(dispatch)[0] !=
+    client_request_authority_scope_cid(request) ||
+    client_request_input_cid(request) != source_free_caller_input_intent_cid() {
+    return Err(IdentityMismatch)
+  }
+  match prepared_client_effect_request_scope(materials.prepared, request) {
+    Ok(_) => Ok(Some(request))
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -28,6 +61,7 @@ pub fn issue_client_effect_run_materials(
   program : String,
   parameters_wire : String?,
   effect_limits : ClientEffectComputationLimits,
+  request? : ClientRequestIdentity? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = client_effect_compilation_owner(allowed.compilation)
   match bind_client_effect_compiled_run(prepared, allowed, definition) {
@@ -48,6 +82,23 @@ pub fn issue_client_effect_run_materials(
   }
   // Use the same bounded encoder and Parameter Values decoder as ordinary
   // Run materials. Neither operation adds a grant or refreshes the lifetime.
+  let request_wire = match request {
+    None => None
+    Some(value) => {
+      match prepared_client_effect_request_scope(prepared, value) {
+        Ok(_) => ()
+        Err(issue) => return Err(Request(issue))
+      }
+      if client_request_input_cid(value) !=
+        source_free_caller_input_intent_cid() {
+        return Err(Request(IdentityMismatch))
+      }
+      match client_request_identity_record_wire(value) {
+        Ok(wire) => Some(wire)
+        Err(issue) => return Err(Request(issue))
+      }
+    }
+  }
   let wire = match
     encode_client_run_materials_body(
       allowed.admission,
@@ -56,6 +107,7 @@ pub fn issue_client_effect_run_materials(
       environment_wire,
       program,
       parameters_wire,
+      request_wire~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -166,5 +218,23 @@ pub fn admit_client_effect_run_materials(
     expected_run_definition_cid {
     return Err(RunMismatch)
   }
-  Ok({ prepared, compilation, allowed, run_definition, })
+  let request = match body.request_wire {
+    None => None
+    Some(wire) => {
+      let value = match admit_client_request_identity_record_wire(wire) {
+        Ok(value) => value
+        Err(issue) => return Err(Request(issue))
+      }
+      match prepared_client_effect_request_scope(prepared, value) {
+        Ok(_) => ()
+        Err(issue) => return Err(Request(issue))
+      }
+      if client_request_input_cid(value) !=
+        source_free_caller_input_intent_cid() {
+        return Err(Request(IdentityMismatch))
+      }
+      Some(value)
+    }
+  }
+  Ok({ prepared, compilation, allowed, run_definition, request, })
 }

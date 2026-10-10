@@ -44,6 +44,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
+  ['scripts/fixtures/negated-predicate-reuse-source-input.mjs', 'negated-predicate-reuse-source-input.mjs'],
+  ['scripts/fixtures/membership-expression-reuse-source-input.mjs', 'membership-expression-reuse-source-input.mjs'],
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
@@ -113,11 +115,14 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+    ['scripts/fixtures/concat-expression-reuse-source-input.mjs', 'concat-expression-reuse-source-input.mjs'],
   ['scripts/fixtures/distinct-order-member-source-input.mjs', 'distinct-order-member-source-input.mjs'],
   ['scripts/fixtures/sqrt-source-input.mjs', 'sqrt-source-input.mjs'],
   ['scripts/fixtures/ceiling-source-input.mjs', 'ceiling-source-input.mjs'],
   ['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs'],
+  ['scripts/fixtures/between-source-input.mjs', 'between-source-input.mjs'],
   ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
+  ['scripts/fixtures/ifnull-coalesce-reuse-source-input.mjs', 'ifnull-coalesce-reuse-source-input.mjs'],
   ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
@@ -134,6 +139,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/group-property-receiver-source-input.mjs', 'group-property-receiver-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/graph-source-input.mjs', 'graph-source-input.mjs'],
+  ['scripts/fixtures/graph-rows-join-source-input.mjs', 'graph-rows-join-source-input.mjs'],
   ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
   ['scripts/fixtures/graph-match-source-input.mjs', 'graph-match-source-input.mjs'],
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
@@ -288,6 +294,9 @@ if (process.argv.includes('--graph-property-predicate-only')) {
 if (process.argv.includes('--grouped-in-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
 }
+if (process.argv.includes('--concat-expression-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_CONCAT_REUSE_ONLY = '1';
+}
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
 }
@@ -308,6 +317,9 @@ if (process.argv.includes('--graph-diagnostics-only')) {
 }
 if (process.argv.includes('--graph-match-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_MATCH_ONLY = '1';
+}
+if (process.argv.includes('--graph-rows-join-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_JOIN_ONLY = '1';
 }
 if (process.argv.includes('--graph-rows-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1';
@@ -383,6 +395,12 @@ if (process.argv.includes('--analytic-string-agg-only')) {
 }
 if (process.argv.includes('--analytic-countif-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1';
+}
+if (process.argv.includes('--negated-predicate-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY = '1';
+}
+if (process.argv.includes('--membership-expression-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_MEMBERSHIP_REUSE_ONLY = '1';
 }
 if (process.argv.includes('--in-unnest-literal-array-only')) {
   runtimeEnvironment.ACTQL_TEST_IN_UNNEST_LITERAL_ARRAY_ONLY = '1';
@@ -531,6 +549,12 @@ if (process.argv.includes('--computed-object-property-only')) {
 if (process.argv.includes('--having-projection-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_PROJECTION_ONLY = '1';
 }
+if (process.argv.includes('--between-only')) {
+  runtimeEnvironment.ACTQL_TEST_BETWEEN_ONLY = '1';
+}
+if (process.argv.includes('--ifnull-coalesce-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_IFNULL_COALESCE_REUSE_ONLY = '1';
+}
 if (process.argv.includes('--ifnull-only')) {
   runtimeEnvironment.ACTQL_TEST_IFNULL_ONLY = '1';
 }
@@ -614,7 +638,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -633,7 +657,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-a
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
@@ -707,6 +731,8 @@ try {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 if (process.argv.includes('--source-graph-member-only')) return;
+if (process.argv.includes('--negated-predicate-reuse-only')) return;
+if (process.argv.includes('--membership-expression-reuse-only')) return;
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
 if (process.argv.includes('--correlated-unnest-only')) return;
@@ -732,10 +758,12 @@ if (process.argv.includes('--named-window-only')) return;
 if (process.argv.includes('--group-by-all-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--min-max-distinct-only')) return;
+if (process.argv.includes('--graph-rows-join-only')) return;
+if (process.argv.includes('--between-only')) return;
 if (process.argv.includes('--countif-distinct-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--distinct-aggregate-order-only') || process.argv.includes('--analytic-distinct-frame-only') || process.argv.includes('--set-corresponding-only') || process.argv.includes('--set-inner-by-name-only') || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
-    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only')) return;
+    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-coalesce-reuse-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
@@ -750,7 +778,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   let restartSucceeded = false, restartFailure;
@@ -793,6 +821,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--grouped-implicit-property-names-only') ||
     process.argv.includes('--group-having-implicit-aliases-only') ||
     process.argv.includes('--distinct-order-only') ||
+    process.argv.includes('--concat-expression-reuse-only') ||
     process.argv.includes('--implicit-property-only') ||
     process.argv.includes('--computed-object-property-only') ||
   process.argv.includes('--source-free-only') ||

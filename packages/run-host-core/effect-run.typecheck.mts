@@ -45,6 +45,14 @@ void [copiedPreparation, copiedCompilation, copiedAllowed];
 declare const selection: ValuesSiteSelection;
 declare const retainedInput: RetainedTaskInput;
 const caller = prepareEffectRequest(prepared, compiled, 'authority', 'caller');
+issueEffectRunMaterials(allowed, definition,
+  {format: 'json', document: '{}', environment, environmentWire: '{}'}, caller);
+if (restored.request) {
+  issueEffectRunMaterials(restored.allowed, restored.definition,
+    {format: 'json', document: '{}', environment, environmentWire: '{}'}, restored.request);
+}
+// @ts-expect-error Only the original opaque request Owner can be transported.
+issueEffectRunMaterials(allowed, definition, {format: 'json', document: '{}', environment, environmentWire: '{}'}, {callerRequestId: 'caller'});
 effectSourceInputBinding(compiled);
 prepareEffectRetainedTaskInputEdge(allowed, definition);
 issueEffectSourceDispatch(allowed, definition, caller, selection);

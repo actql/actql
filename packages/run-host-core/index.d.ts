@@ -83,6 +83,13 @@ export function effectResultDefinitions(prepared: PreparedEffectProgram,
 export function effectResultSchema(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, resultName: string): Readonly<{
     cid: string; wire: string; fields: readonly string[]}>;
+/** Metadata binding to the original checked Effect Run/unit/window only.
+ * Does not confirm Native custody, current authority, waiting or approval. */
+export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
+  definition: RunDefinition, checkpointWire: string): Readonly<{
+    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
+    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
+    continuationCid: string}>;
 /** Original Catalog evidence; current read authority remains a separate check. */
 export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
@@ -102,12 +109,12 @@ export function issueEffectRunDefinition(allowed: AllowedEffectRun,
 export function issueEffectRunMaterials(allowed: AllowedEffectRun,
   definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
     environment: CheckEnvironment; environmentWire: string;
-    parametersWire?: string}>): string;
+    parametersWire?: string}>, request?: RequestIdentity): string;
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
     sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>):
   Readonly<{prepared: PreparedEffectProgram; compilation: EffectCompilation;
-    allowed: AllowedEffectRun; definition: RunDefinition}>;
+    allowed: AllowedEffectRun; definition: RunDefinition; request?: RequestIdentity}>;
 /** Original saved policy lifetime, not current Host authority or approval. */
 export function effectRunStartCurrent(allowed: AllowedEffectRun,
   definition: RunDefinition, at: string): boolean;

@@ -312,12 +312,13 @@ export function issueEffectRunDefinition(allowed, scopeId, runId, createdAt, val
 }
 
 /** Project the original Effect materials using the existing bounded codec. */
-export function issueEffectRunMaterials(allowed, definition, retained) {
+export function issueEffectRunMaterials(allowed, definition, retained, request) {
   validateRunMaterialsInput(retained);
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return checked(owner.clientValuesHostIssueEffectRunMaterials(value,
     requireHandle(definitions, definition), requireHandle(environments, retained.environment),
-    retained.environmentWire, retained.document, retained.parametersWire), 'RunHostEffectRunMaterialsRejected');
+    retained.environmentWire, retained.document, retained.parametersWire,
+    request === undefined ? undefined : requireHandle(requests, request)), 'RunHostEffectRunMaterialsRejected');
 }
 
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
@@ -330,7 +331,10 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles) {
     definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
     selected.tea, selected.calendar, selected.textRank), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
-  return Object.freeze({prepared,
+  const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
+  if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
+  const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
+  return Object.freeze({prepared, ...(request === undefined ? {} : {request}),
     compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
     allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
     definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
@@ -341,6 +345,23 @@ export function effectRunStartCurrent(allowed, definition, at) {
   if (typeof at !== 'string') throw new TypeError('InvalidRunHostCurrentTime');
   const {value} = requireHandle(effectAllowedRuns, allowed);
   return owner.clientValuesHostEffectStartCurrent(value, requireHandle(definitions, definition), at);
+}
+
+/** Original Run/unit/window binding only. Native custody, current authority,
+ * waiting commit and Effect approval must be confirmed independently. */
+export function effectReviewCheckpointBinding(allowed, definition, wire) {
+  if (typeof wire !== 'string') throw new TypeError('InvalidRunHostCheckpointWire');
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const fields = checked(owner.clientValuesHostEffectCheckpointBinding(value,
+    requireHandle(definitions, definition), wire), 'RunHostEffectCheckpointBindingRejected');
+  if (!Array.isArray(fields) || fields.length !== 8 ||
+      fields.some(field => typeof field !== 'string') ||
+      [0, 4, 5, 6, 7].some(index => !/^sha256:[0-9a-f]{64}$/u.test(fields[index]))) {
+    throw new Error('InvalidRunHostCheckpointBinding');
+  }
+  return Object.freeze({checkpointCid: fields[0], checkpointWire: fields[1],
+    runId: fields[2], unitId: fields[3], runDefinitionCid: fields[4],
+    previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]});
 }
 
 /** Original Effect caller; capture is not a newly submitted input Artifact. */
