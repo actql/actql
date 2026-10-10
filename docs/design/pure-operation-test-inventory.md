@@ -49,7 +49,7 @@ be referenced normally; this does not complete conditional Result delivery.
 | degree, graph_bounds | src/graph_typing/diagnostics_test.mbt | src/query_integration/graph_host_custody_wbtest.mbt | scripts/graph-schema.mjs |
 | match_nodes, match_edges | src/graph_typing/match_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
 | traverse | src/graph_typing/traverse_test.mbt | src/pipeline_typing/graph_test.mbt | scripts/graph-schema.mjs |
-| shortest_path | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| shortest_path | src/graph_typing/shortest_test.mbt | src/query_integration/graph_shortest_wbtest.mbt | scripts/graph-schema.mjs |
 | reach | src/graph_typing/reach_test.mbt | src/query_integration/graph_reach_wbtest.mbt | scripts/graph-schema.mjs |
 | subgraph | src/pipeline_check_context/subgraph_execution_wbtest.mbt | src/query_integration/graph_subgraph_wbtest.mbt | scripts/graph-schema.mjs |
 | graphs_equal | src/graph_typing/equality_test.mbt | src/query_integration/graph_equal_wbtest.mbt | scripts/graph-schema.mjs |
@@ -58,7 +58,7 @@ be referenced normally; this does not complete conditional Result delivery.
 | union_graphs | src/graph_typing/union_test.mbt | src/query_integration/graph_union_wbtest.mbt | scripts/graph-schema.mjs |
 | subtract_graphs | src/graph_typing/subtraction_test.mbt | src/query_integration/graph_subtraction_wbtest.mbt | scripts/graph-schema.mjs |
 | graft_graph | src/graph_typing/graft_test.mbt | src/query_integration/graph_graft_wbtest.mbt | scripts/graph-schema.mjs |
-| mean_graphs | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| mean_graphs | src/query_program/graph_mean_source_test.mbt | src/query_integration/graph_mean_wbtest.mbt | scripts/graph-schema.mjs |
 | to_vectors | src/vector_typing/bridge_test.mbt | src/pipeline_typing/vector_projection_keys_test.mbt | scripts/vector-schema.mjs |
 | normalize_vectors, score_vectors | src/vector_typing/check_test.mbt | src/pipeline_typing/vector_test.mbt | scripts/vector-schema.mjs |
 | nearest | src/vector_typing/nearest_pair_test.mbt | src/pipeline_typing/nearest_output_keys_test.mbt | scripts/vector-schema.mjs |
