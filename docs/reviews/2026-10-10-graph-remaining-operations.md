@@ -134,3 +134,49 @@ checks pass 54/54 (run-1gooEr, focused-test-UvUPyk). These lightweight Node
 checks do not execute Reach through the real Host or prove package acceptance.
 The normal corpus pin includes the five new success and four refusal oracles;
 its digest is over independent fixture registration, not product output.
+
+## Current-main integration and caller evidence
+
+The current adopted main is
+`179c0e9df04dab7195370d26db87280b05944078`. It is merged normally through
+the graft parent. Conflicts in the authored public-query inventory and its
+test preserve both main additions and graft/Reach fixtures. The inventory
+hash is computed over authored inputs and oracles, never product output.
+
+At clean source `38933e710581125c4d55bf7c338e51a525e3ebff`:
+
+- JS Graph/Reach caller and kernel selection: 27/27, using
+  `node scripts/local-checks.mjs test moon -- --target js`
+  with the explicit files `src/pipeline_typing/graph_test.mbt`,
+  `src/pipeline_typing/graph_counts_test.mbt`, `src/graph_typing/reach_test.mbt`,
+  `src/pipeline_typing/reach_test.mbt`, `src/lowering_relation/reach_test.mbt`,
+  `src/query_program/graph_reach_source_test.mbt`,
+  `src/relation_results/graph_test.mbt` and
+  `src/query_integration/graph_reach_wbtest.mbt`.
+  Receipts: `run-mA3VrG`, `focused-test-QNpQNe`.
+- Node authored fixtures, copying, inventory and operation evidence: 49/49,
+  using `node scripts/local-checks.mjs test node --`
+  with `scripts/graph-reach-source-input.test.mjs`,
+  `scripts/public-query-profiles.test.mjs`,
+  `scripts/packed-graph-host-dependencies.test.mjs` and
+  `scripts/pure-operation-inventory.test.mjs`.
+  Receipts: `run-fkkTzV`, `focused-test-9JdVzS`.
+
+Related obsolete refusals are replaced by typed graft output checks and
+conservative structural-count propagation, and by a one-port Reach lowering
+check. Malformed Reach remains a typed source refusal without a partial Program.
+The Reach emitted identity oracle uses the existing `$json` wire envelope;
+the actual authored identity and its admission are unchanged. Failed compile,
+oracle and nonexistent-file selection receipts remain retained separately.
+
+The earlier clean Reach source
+`a259c55091c9a7078255563b2ce8e1797de45d11` passed the focused six-package
+`--target wasm --filter '*Reach*'` selection, 10/10
+(`run-d3fuCX`, `focused-test-TwqaOH`). That is not verification of the later
+main merge or evidence for Native execution.
+
+Actual public Host execution, pristine packed Local/HTTPS acceptance and
+fresh-process retained reads remain unexecuted. Runtime preparation has been
+refused before execution by the shared heavy lock; other owners' locks are
+not removed or bypassed. CI is not started. Lightweight authored-harness
+checks above are not substituted for those public delivery conditions.
