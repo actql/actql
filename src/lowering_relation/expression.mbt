@@ -52,6 +52,8 @@ pub(all) enum UnaryOperator {
   Sqrt
   Abs
   Sign
+  Round
+  Trunc
 } derive(Eq, Debug)
 
 ///|
@@ -201,6 +203,8 @@ fn expression_tag(
     | "sqrt"
     | "abs"
     | "sign"
+    | "round"
+    | "trunc"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -275,6 +279,8 @@ fn expression_children(
     | "sqrt"
     | "abs"
     | "sign"
+    | "round"
+    | "trunc"
     | "not"
     | "is_null"
     | "not_null"
@@ -844,6 +850,8 @@ fn lower_typed_expression_measured(
         "sqrt" => Unary(Sqrt, args[0])
         "abs" => Unary(Abs, args[0])
         "sign" => Unary(Sign, args[0])
+        "round" => Unary(Round, args[0])
+        "trunc" => Unary(Trunc, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])

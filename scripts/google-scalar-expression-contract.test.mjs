@@ -16,13 +16,13 @@ function bodies() {
   return [{schemas: {source, node}, laws: {}, grammar_sha256: ''},
     {artifact_schemas: {program: structuredClone(source)}, artifact_schema_cids: {}}];
 }
-const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" ;\n';
+const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" | "round" | "trunc" ;\n';
 
 test('GoogleSQL scalar schemas preserve exact arities, local references and original operators', () => {
   const [expression, protocol] = bodies();
   const original = structuredClone(expression.schemas);
   assert.deepEqual(updateGoogleScalarContracts(expression, protocol, grammar, true), {
-    starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1},
+    starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1},
   });
   for (const [kind, schema] of Object.entries(original)) {
     for (const shape of schema.oneOf) assert.ok(expression.schemas[kind].oneOf
@@ -34,6 +34,12 @@ test('GoogleSQL scalar schemas preserve exact arities, local references and orig
       items: {$ref: '#/$defs/source_expression'}});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body.items, {$ref: '#/$defs/machine_expression'});
+  }
+  for (const name of ['sign', 'round', 'trunc']) {
+    const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
+    assert.deepEqual(source.properties[name], {$ref: '#/$defs/source_expression'});
+    const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
+    assert.deepEqual(node.properties.body, {$ref: '#/$defs/machine_expression'});
   }
   assert.deepEqual(expression.laws, googleScalarLaws);
   const prepared = structuredClone([expression, protocol]);
@@ -50,6 +56,11 @@ test('GoogleSQL scalar verification rejects missing, duplicate, widened and stal
     expression => { expression.laws.strpos.signature = 'INT64 and BYTES'; },
     expression => { expression.schemas.source.oneOf.find(s => s.required[0] === 'strpos').properties.strpos.minItems = 1; },
     expression => { expression.laws.sign.value = 'negative zero'; },
+    expression => { expression.laws.round.value = 'ties to even'; },
+    expression => { expression.laws.trunc.value = 'floor'; },
+    expression => { expression.laws.round.signature = 'optional precision and rounding mode'; },
+    expression => { expression.schemas.source.oneOf.find(s => s.required[0] === 'round').properties.round = {type: 'array'}; },
+    expression => { expression.schemas.node.oneOf.find(s => s.properties.op.const === 'trunc').properties.body = {type: 'array'}; },
     expression => { expression.schemas.source.oneOf.find(s => s.required[0] === 'starts_with').properties.starts_with.maxItems = 3; },
     expression => { expression.schemas.node.oneOf.find(s => s.properties.op.const === 'sign').properties.body = {type: 'array'}; },
     expression => { expression.schemas.source.oneOf.push(structuredClone(expression.schemas.source.oneOf.find(s => s.required[0] === 'ends_with'))); },
@@ -96,9 +107,12 @@ test('STRPOS retains exact predecessor contract and expression preimages', () =>
     'sha256:c31ad8bc7f322320fff823ab05563daf582bf71c10d029d8ac766829a698bbee');
   assert.equal(cid(history.policy_candidates.body), history.policy_candidates.expected_cid);
   const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
-  const expression = read('spec/contracts/actql-expressions.json');
-  const protocol = read('spec/contracts/actql-protocol-schemas.json');
-  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Freeze the post-STRPOS side as well: a future operation must not mutate
+  // the meaning of this older transition by subtracting STRPOS from current.
+  const following = read('portability/corpus/historical/pre-round-trunc-contract-identities.json');
+  const adopted = Object.fromEntries(following.contracts.map(item => [item.id, item.body]));
+  const expression = adopted.expression_contract;
+  const program = adopted.program_schema;
   function withoutStrpos(value) {
     if (Array.isArray(value)) return value.map(withoutStrpos);
     if (value === null || typeof value !== 'object') return value;
@@ -139,4 +153,74 @@ test('STRPOS retains exact predecessor contract and expression preimages', () =>
   }
   assert.equal(history.ordered_fragment.expected_aoa_node_cid,
     cid(history.ordered_fragment.graph_step));
+});
+
+
+test('ROUND/TRUNC preserve exact predecessor bodies and extend only closed unary schemas', () => {
+  const read = path => JSON.parse(readFileSync(path, 'utf8'));
+  const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
+    : value !== null && typeof value === 'object'
+      ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+      : JSON.stringify(value);
+  const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+  const history = read('portability/corpus/historical/pre-round-trunc-contract-identities.json');
+  assert.equal(history.source_revision, '3900058027b0095b6851161aa4e1c65aa1ef754f');
+  assert.equal(cid(history), 'sha256:aa79e13fe0d2a33dac97853cb52270b29d6964fe96ae4d18841a3dcecc06f792');
+  const expected = {
+    "expression_contract": "sha256:8c6821fcf336dbefcf1c8ae3b848fb3d827e6c79ed078e6104efeea6092d3546",
+    "program_schema": "sha256:64e8361cab632650d7b58e38a5535db6a02b19c179adb44eb0b08e48ed5541d3",
+    "pipeline_registry": "sha256:2a3eb0f605415ab27321177d3c4629b7bd33928d74b4cd5d206d38bdc696305e",
+    "ordered_derive_contract": "sha256:300bbcc3909a60302795f5f2061716c0381aca8175962be4e59ccd15ac9c3057",
+    "fragment_execution_contract": "sha256:4f933b8f3d7eb70d875dbb38defeac428a00641d941eae1083c6d9457549be0a",
+    "check_environment_contract": "sha256:b64696a6cef4054a71a780827bccb3b9a1bb6af4c8f51b7a0b7ad38fbe9c7a60",
+    "aoa_contract": "sha256:691c103b8cbb9f8a388a6b89ba86bd8e7d9568e5b4371600307c92e6f46e5975"
+};
+  assert.deepEqual(history.contracts.map(item => item.id).sort(), Object.keys(expected).sort());
+  for (const item of history.contracts) {
+    assert.equal(item.cid, expected[item.id]);
+    assert.equal(cid(item.body), item.cid);
+  }
+  const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
+  const expression = read('spec/contracts/actql-expressions.json');
+  const protocol = read('spec/contracts/actql-protocol-schemas.json');
+  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  function withoutRounding(value) {
+    if (Array.isArray(value)) return value.map(withoutRounding);
+    if (value === null || typeof value !== 'object') return value;
+    const result = Object.fromEntries(Object.entries(value).map(([key, item]) => [key, withoutRounding(item)]));
+    if (result.oneOf) result.oneOf = result.oneOf.filter(item =>
+      !(item.required?.length === 1 && ['round', 'trunc'].includes(item.required[0])) &&
+      !['round', 'trunc'].includes(item.properties?.op?.const));
+    return result;
+  }
+  const predecessor = withoutRounding(expression);
+  delete predecessor.laws.round;
+  delete predecessor.laws.trunc;
+  predecessor.grammar_sha256 = earlier.expression_contract.grammar_sha256;
+  assert.deepEqual(predecessor, earlier.expression_contract);
+  assert.deepEqual(withoutRounding(program), earlier.program_schema);
+  assert.notEqual(cid(expression), expected.expression_contract);
+  assert.notEqual(cid(program), expected.program_schema);
+  for (const entry of history.expression_fragments.cases) {
+    assert.equal(canonical(entry.body), entry.canonical);
+    assert.equal(cid(entry.body), entry.cid);
+    assert.equal(Buffer.byteLength(entry.canonical), entry.bytes);
+  }
+  for (const entry of history.ordered_fragment.preimages) {
+    assert.equal(canonical(history.ordered_fragment[entry.id]), entry.canonical);
+    assert.equal(cid(history.ordered_fragment[entry.id]), entry.cid);
+  }
+  assert.equal(cid(history.policy_candidates.body), history.policy_candidates.expected_cid);
+  const preimages = read('portability/corpus/historical/pre-round-trunc-preimages.json');
+  assert.equal(preimages.source_revision, history.source_revision);
+  assert.equal(preimages.expression_contract_cid, expected.expression_contract);
+  assert.equal(cid(preimages), 'sha256:2ea2fc7b8e97246d5e62a2ae99feecf3f9c09095a2dbf50b371e7e8979279d32');
+  assert.equal(preimages.sources.length, 17);
+  assert.equal(new Set(preimages.sources.map(entry => entry.source)).size, 17);
+  for (const entry of preimages.sources) assert.equal(cid(entry.body), entry.cid, entry.source);
+  assert.equal(preimages.identity_envelopes.length, 21);
+  for (const entry of preimages.identity_envelopes) {
+    assert.equal(cid(entry.envelope), entry.expected_cid, entry.name);
+    assert.equal(canonical(entry.envelope), entry.canonical, entry.name);
+  }
 });
