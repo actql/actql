@@ -276,7 +276,7 @@ pub fn Journal::record_effect_ledger_response(
     "\n" +
     response.status_code.to_string() +
     "\n" +
-    @sha.hex(response.body),
+    effect_response_body_digest(response.body),
   )
   let bytes = Bytes::from_array(response.body.to_array())
   match self.begin_mutation(true) {
@@ -403,7 +403,7 @@ pub fn Journal::effect_ledger_response(
           status < 100 ||
           status > 599 ||
           status.to_string() != parts[1] ||
-          @sha.hex(bytes.body) != parts[2] {
+          effect_response_body_digest(bytes.body) != parts[2] {
           return Err(StateCollision)
         }
         Ok(
@@ -496,52 +496,7 @@ pub fn Journal::record_effect_row_receipt(
       Ok(value) => value
       Err(_) => return Err(StateCollision)
     }
-    let history : Array[@effect.EffectLedgerEntry] = []
-    let mut entry = current
-    for _ in 0..<limits.max_nodes {
-      let immutable = ledger_storage(
-        self.database
-        .read(
-          "site_effect_ledger_entry",
-          @effect.effect_ledger_entry_cid(entry),
-        )
-        .map_err(issue => Physical(issue)),
-      )
-      if immutable.revision != 0L ||
-        immutable.body != @utf8.encode(@effect.effect_ledger_entry_wire(entry)) {
-        return Err(StateCollision)
-      }
-      history.push(entry)
-      match entry.prior_entry_cid {
-        None => break
-        Some(cid) => {
-          let prior = ledger_storage(
-            self.database
-            .read("site_effect_ledger_entry", cid)
-            .map_err(issue => Physical(issue)),
-          )
-          let prior_wire = @utf8.decode(prior.body) catch {
-            _ => return Err(StateCollision)
-          }
-          entry = match
-            @effect.admit_effect_ledger_entry(
-              prior_wire,
-              limits.max_wire_bytes,
-              limits.max_nodes,
-              limits.max_depth,
-            ) {
-            Ok(value) if @effect.effect_ledger_entry_cid(value) == cid => value
-            _ => return Err(StateCollision)
-          }
-        }
-      }
-    }
-    if history[history.length() - 1].prior_entry_cid is Some(_) {
-      return Err(StateCollision)
-    }
-    let ordered = Array::makei(history.length(), i => {
-      history[history.length() - 1 - i]
-    })
+    let ordered = ledger_storage(self.effect_ledger_history(current, limits))
     let terminal = match
       @effect.issue_effect_row_receipt_terminal_entry(
         preview,
