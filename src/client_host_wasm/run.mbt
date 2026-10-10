@@ -20,6 +20,7 @@ priv struct StoredRun {
   configuration : Int
   preparation : Int
   mut invoked : Bool
+  mut restoration : Int?
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
 }
 
@@ -118,6 +119,7 @@ pub fn reserve_run(
     configuration,
     preparation,
     invoked: false,
+    restoration: None,
     outcome: None,
   }
   value.next_handle += 1
@@ -135,6 +137,9 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
     value.preparations.get(record.preparation) is Some(preparation) &&
     preparation.outcome is Some(Ok(input)) else {
     return -2
+  }
+  if record.restoration is Some(_) {
+    return -3
   }
   if record.outcome is Some(_) {
     return 0
@@ -183,6 +188,72 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
       run_id,
       created_at,
       valid_until,
+    ),
+  )
+  0
+}
+
+///|
+/// Restore the original request and codec-retained Run under current installed
+/// authorization. This does not reserve a durable dispatch or start a task.
+#export_name("actql_run_restore")
+pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.runs.get(handle) is Some(record) &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    value.preparations.get(record.preparation) is Some(preparation) &&
+    preparation.outcome is Some(Ok(input)) &&
+    value.restorations.get(materials) is Some(restoration) &&
+    restoration.outcome is Some(Ok(restored)) &&
+    restoration.expected_definition_cid is Some(definition_cid) else {
+    return -2
+  }
+  if (record.restoration is Some(previous) && previous != materials) ||
+    (record.invoked && record.restoration is None) {
+    return -3
+  }
+  if record.outcome is Some(_) {
+    return 0
+  }
+  if record.invoked {
+    return -33
+  }
+  record.restoration = Some(materials)
+  record.invoked = true
+  guard @buffers.buffer_wire(value.pool, record.slot) is Some(bytes) else {
+    return -5
+  }
+  let request_wire = @utf8.decode(bytes) catch { _ => return -12 }
+  guard @host.admit_client_request_identity_record_wire(request_wire)
+    is Ok(retained_request) else {
+    return -31
+  }
+  let permit = match
+    @authorization.bind_dispatch_authorization(
+      configuration.account,
+      configuration.tuple,
+      @authorization.Activation,
+      @host.prepared_client_identity(@preparation.local_prepared_program(input)).program_definition_cid,
+      configuration.context_cid,
+    ) {
+    Ok(permit) => permit
+    Err(_) => {
+      record.outcome = Some(Err(@local_run.AuthorizationMismatch))
+      return 0
+    }
+  }
+  record.outcome = Some(
+    @local_run.restore_source_free_local_run_from_materials(
+      input,
+      restored,
+      definition_cid,
+      retained_request,
+      configuration.authority_scope_cid,
+      permit,
+      configuration.account,
+      configuration.tuple,
+      configuration.context_cid,
+      configuration.policy_cid,
     ),
   )
   0

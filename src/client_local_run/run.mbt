@@ -3,6 +3,7 @@
 /// adapter holds no Run state and performs no physical or durable operation.
 pub struct LocalRunPlan {
   input : @input.LocalPreparedInput
+  prepared : @host.PreparedClientProgram
   request : @host.ClientRequestIdentity
   compilation : @host.ClientTaskCompilation
   admission : @publication.RunPublicationAdmission
@@ -154,6 +155,7 @@ pub fn prepare_source_free_local_run(
   }
   Ok({
     input,
+    prepared,
     request,
     compilation,
     admission: @host.client_compiled_run_admission(compiled),
@@ -167,6 +169,14 @@ pub fn prepare_source_free_local_run(
 ///|
 pub fn local_run_request(plan : LocalRunPlan) -> @host.ClientRequestIdentity {
   plan.request
+}
+
+///|
+/// The compilation-retained execution Owner is distinct from fresh authored
+/// input provenance after restoration. Do not replace it with an equivalent
+/// freshly checked object: physical binding belongs to the original codec.
+pub fn local_run_prepared(plan : LocalRunPlan) -> @host.PreparedClientProgram {
+  plan.prepared
 }
 
 ///|
@@ -203,7 +213,7 @@ pub fn export_local_run_materials(
   bindings_wire : String?,
 ) -> Result[String, LocalRunIssue] {
   @host.issue_client_task_run_materials(
-    @input.local_prepared_program(plan.input),
+    plan.prepared,
     plan.compilation,
     plan.admission,
     plan.definition,
@@ -257,13 +267,7 @@ pub fn prepare_local_run_start(
     current.account_id() == plan.account_id &&
     tuple == plan.tuple &&
     context_cid == plan.execution_context_cid &&
-    authorized_input(
-      @input.local_prepared_program(plan.input),
-      permit,
-      current,
-      tuple,
-      context_cid,
-    ),
+    authorized_input(plan.prepared, permit, current, tuple, context_cid),
   ).map_err(fn(issue) { Start(issue) })
 }
 
@@ -291,13 +295,7 @@ pub fn prepare_local_run_physical_start(
     current.account_id() == plan.account_id &&
     tuple == plan.tuple &&
     context_cid == plan.execution_context_cid &&
-    authorized_input(
-      @input.local_prepared_program(plan.input),
-      permit,
-      current,
-      tuple,
-      context_cid,
-    ),
+    authorized_input(plan.prepared, permit, current, tuple, context_cid),
     cancellation_requested~,
     pre_start_failure_confirmed~,
   ).map_err(fn(issue) { Start(issue) })

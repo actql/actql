@@ -34,14 +34,29 @@ let compute_program : String =
 ///|
 test "the existing managed task Owners execute multiple tasks from Program and AQL" {
   for
-    original in [
-      @input.Program(compute_program),
-      @input.Aql(
-        "DATA seed = SELECT 1 AS n; FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
+    (original, restore) in [
+      (@input.Program(compute_program), false),
+      (@input.Program(compute_program), true),
+      (
+        @input.Aql(
+          "DATA seed = SELECT 1 AS n; FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
+        ),
+        false,
+      ),
+      (
+        @input.Aql(
+          "DATA seed = SELECT 1 AS n; FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
+        ),
+        true,
       ),
     ] {
     let input = prepared(original)
-    let plan = plan(input, "original-run")
+    let original_plan = plan(input, "original-run")
+    let plan = if restore {
+      restore_fixture(prepared(original), original_plan).unwrap()
+    } else {
+      original_plan
+    }
     let host = compute_host(plan)
     let run = local_compute_run(host)
     assert_true(@strategy.captured_task_activation_required(run))

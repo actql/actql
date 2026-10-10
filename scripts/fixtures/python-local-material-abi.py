@@ -78,8 +78,22 @@ try:
         assert core._call('material', 'restored', restored) == -33
         assert core._call('material', 'restore', restored) == 0
         assert core._call('material', 'restored', restored) == 0
+        restored_run = core._call('run', 'reserve', configuration, preparation, copy(records[2]))
+        assert restored_run > 0
+        assert core._call('run', 'restore', restored_run, restored) == 0
+        assert core._call('run', 'prepared', restored_run) == 0
+        assert core._call('run', 'restore', restored_run, restored) == 0
+        assert core._call('run', 'prepare', restored_run) == -3
+        assert core._call('run', 'restore', run, restored) == -3
+        identity = core.reserve_material(restored_run, 3, cleanup=lambda: cleaned[0])
+        core.produce_material(identity)
+        assert core.read_material(identity) == records[3]
+        cleaned[0] = True
+        assert core.close_material(identity)
+        cleaned[0] = False
         assert core._call('material', 'close_restoration', restored) == -9
         stopped[0] = True
+        assert core._call('run', 'close', restored_run) == 0
         assert core._call('material', 'close_restoration', restored) == 0
         stopped[0] = False
         foreign = core._call('material', 'reserve_restoration', copy({

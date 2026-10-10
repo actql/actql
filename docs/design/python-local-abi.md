@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 2; this private ABI
+before opening the instance. `actql_host_abi_version` returns 3; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -121,7 +121,7 @@ no bindings and grants no Run admission, execution or Result access.
 Run admission, checked task progress, publication, cancellation eligibility and
 durable recovery remain MoonBit Owner responsibilities. Python provides physical
 callbacks and persistence, not a second Run or recovery state machine. This
-transfer facade provides no execution or recovery operation.
+transfer facade provides no task dispatch or durable recovery start.
 
 ## Checked task Host
 
@@ -229,5 +229,32 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. ABI 1 modules are refused by the ABI 2 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 3 bridge;
 no compatibility adapter or alternate runtime route is retained.
+
+## Original execution Owner restoration
+
+`restore_source_free_local_run` retains the material codec's original checked
+Owner, task compilation, admission and definition. It does not issue a new Run
+definition or refresh its lifetime. Fresh preparation of the saved authored
+input supplies provenance separately; its identity and checking environment
+must match the retained execution Owner. An equivalent fresh checked object
+cannot replace the exact Owner retained by the compilation. Compute setup and
+activation therefore consume `local_run_prepared`, while authored diagnostics
+retain the separate original input.
+
+Restoration checks the current subject-bound authorization, original request
+relation, authority scope, execution context and Host policy through existing
+Owners. The typed-material overload checks physical compilation binding even
+when callers assemble the public material fields themselves. Neither overload
+changes durable reservation, physical-start, completed-task or publication facts.
+
+The private `actql_run_restore` entry consumes an already readmitted material
+handle and a Run handle reserved against the saved request record. It does not
+decode and compile the materials a second time. Its installed configuration
+supplies the current Account Owner, tuple, context, policy and authority scope.
+A handle selects compilation or restoration once; another operation or material
+handle cannot replace a completed or interrupted invocation. The material loan
+remains live until dependent Run handles close. This is plan restoration only;
+original process recovery still requires durable completed-output, start,
+publication and cleanup observations from their existing Owners.
