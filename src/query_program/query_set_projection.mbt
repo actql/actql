@@ -47,9 +47,49 @@ fn privatize_positional_duplicate_columns(
 }
 
 ///|
-// Anonymous aggregate outputs retain the evaluated aggregate's input meaning.
-// They are physical set-operand fields, never authored SELECT aliases.
-fn anonymous_set_aggregate_slot(
+fn duplicate_projection_alias(
+  projections : Array[@query.Projection],
+  name : String,
+) -> Bool {
+  let mut found = false
+  for projection in projections {
+    if projection_alias(projection)
+      .map(output => ascii_upper(output.value) == ascii_upper(name))
+      .unwrap_or(false) {
+      if found {
+        return true
+      }
+      found = true
+    }
+  }
+  false
+}
+
+///|
+// Duplicate SELECT aliases cannot supply a HAVING/QUALIFY receiver. A longer
+// qualified input prefix keeps its existing meaning; do not flatten it to an
+// unqualified output alias merely because its first token has the same name.
+fn reject_duplicate_projection_references(
+  projections : Array[@query.Projection],
+  references : Array[Array[@query.NamePart]],
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> Unit raise Abort {
+  for path in references {
+    if duplicate_projection_alias(projections, path[0].value) {
+      let qualified = order_reference_identity(path, resolve)
+        .map(identity => identity.1 > 1)
+        .unwrap_or(false)
+      if !qualified {
+        raise Abort(AmbiguousColumn)
+      }
+    }
+  }
+}
+
+///|
+// Physical set aggregate outputs retain each evaluated call's input meaning.
+// Neither anonymous nor repeated output aliases identify the call by themselves.
+fn positional_set_aggregate_slot(
   call : @query.AggregateCall,
   outputs : Array[(@query.AggregateCall, String)],
   scope : JoinChainScope,
