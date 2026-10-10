@@ -116,41 +116,6 @@ fn retained_effect_review_retention_store(
     authorization_context_cid: retained_compute_cid("a"),
     environment_binding_cid: retained_compute_cid("b"),
   }
-  assert_true(retention.original_completion_evidence(
-    consumer, foreign_request, materials.run_definition, () => true, 65536,
-  ) is Err(Unavailable))
-  assert_true(retention.original_completion_evidence(
-    consumer, request, foreign_run, () => true, 65536,
-  ) is Err(Unavailable))
-  assert_true(retention.original_completion_evidence(
-    consumer, request, materials.run_definition, () => false, 65536,
-  ) is Err(EvidenceDenied))
-  assert_true(retention.original_completion_evidence(
-    consumer, request, materials.run_definition, () => true, 1,
-  ) is Err(ProjectionTooLarge))
-  let completion_reads = Ref(0)
-  assert_true(retention.original_completion_evidence(
-    consumer, request, materials.run_definition,
-    () => {completion_reads.val += 1; completion_reads.val < 2}, 65536,
-  ) is Err(EvidenceDenied))
-  assert_eq(completion_reads.val, 2)
-  let completion_before = consumer.usage()
-  let completion = retention.original_completion_evidence(
-    consumer, request, materials.run_definition, () => true, 65536,
-  ).unwrap()
-  assert_eq(completion.checkpoint_cid, persisted.artifact.checkpoint_cid)
-  assert_eq(@publication.publication_contract_identity(completion.run_definition),
-    @publication.publication_contract_identity(materials.run_definition))
-  assert_eq(@publication.publication_contract_identity(completion.invocation),
-    @publication.publication_contract_identity(invocation))
-  assert_eq(@publication.publication_contract_identity(completion.computation_receipt),
-    @publication.publication_contract_identity(result.receipt))
-  assert_eq(@publication.publication_contract_identity(completion.result_manifest),
-    @publication.publication_contract_identity(result.manifest))
-  assert_eq(@publication.effect_preview_run_identity(completion.preview),
-    @publication.publication_contract_identity(materials.run_definition))
-  assert_eq(consumer.usage().reserved_retention_bytes,
-    completion_before.reserved_retention_bytes)
   if original_work is Some((work, journal)) {
     guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
       fail("original Local review Run missing before persistence")
@@ -345,6 +310,41 @@ fn retained_effect_review_retention_store(
     )
     is Err(Unavailable),
   )
+  assert_true(retention.original_completion_evidence(
+    consumer, foreign_request, materials.run_definition, () => true, 65536,
+  ) is Err(Unavailable))
+  assert_true(retention.original_completion_evidence(
+    consumer, request, foreign_run, () => true, 65536,
+  ) is Err(Unavailable))
+  assert_true(retention.original_completion_evidence(
+    consumer, request, materials.run_definition, () => false, 65536,
+  ) is Err(EvidenceDenied))
+  assert_true(retention.original_completion_evidence(
+    consumer, request, materials.run_definition, () => true, 1,
+  ) is Err(ProjectionTooLarge))
+  let completion_reads = Ref(0)
+  assert_true(retention.original_completion_evidence(
+    consumer, request, materials.run_definition,
+    () => {completion_reads.val += 1; completion_reads.val < 2}, 65536,
+  ) is Err(EvidenceDenied))
+  assert_eq(completion_reads.val, 2)
+  let completion_before = consumer.usage()
+  let completion = retention.original_completion_evidence(
+    consumer, request, materials.run_definition, () => true, 65536,
+  ).unwrap()
+  assert_eq(completion.checkpoint_cid, persisted.artifact.checkpoint_cid)
+  assert_eq(@publication.publication_contract_identity(completion.run_definition),
+    @publication.publication_contract_identity(materials.run_definition))
+  assert_eq(@publication.publication_contract_identity(completion.invocation),
+    @publication.publication_contract_identity(invocation))
+  assert_eq(@publication.publication_contract_identity(completion.computation_receipt),
+    @publication.publication_contract_identity(result.receipt))
+  assert_eq(@publication.publication_contract_identity(completion.result_manifest),
+    @publication.publication_contract_identity(result.manifest))
+  assert_eq(@publication.effect_preview_run_identity(completion.preview),
+    @publication.publication_contract_identity(materials.run_definition))
+  assert_eq(consumer.usage().reserved_retention_bytes,
+    completion_before.reserved_retention_bytes)
   if original_work is Some((work, journal)) {
     guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
       fail("original Local review Run missing")
