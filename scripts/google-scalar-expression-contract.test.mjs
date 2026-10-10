@@ -16,26 +16,26 @@ function bodies() {
   return [{schemas: {source, node}, laws: {}, grammar_sha256: ''},
     {artifact_schemas: {program: structuredClone(source)}, artifact_schema_cids: {}}];
 }
-const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" ;\n';
+const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_divide" | "safe_negate" ;\n';
 
 test('GoogleSQL scalar schemas preserve exact arities, local references and original operators', () => {
   const [expression, protocol] = bodies();
   const original = structuredClone(expression.schemas);
   assert.deepEqual(updateGoogleScalarContracts(expression, protocol, grammar, true), {
-    starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1}, trim: {source: 2, node: 1}, ltrim: {source: 2, node: 1}, rtrim: {source: 2, node: 1},
+    starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1}, trim: {source: 2, node: 1}, ltrim: {source: 2, node: 1}, rtrim: {source: 2, node: 1}, safe_add: {source: 2, node: 1}, safe_subtract: {source: 2, node: 1}, safe_multiply: {source: 2, node: 1}, safe_divide: {source: 2, node: 1}, safe_negate: {source: 2, node: 1},
   });
   for (const [kind, schema] of Object.entries(original)) {
     for (const shape of schema.oneOf) assert.ok(expression.schemas[kind].oneOf
       .some(candidate => JSON.stringify(candidate) === JSON.stringify(shape)));
   }
-  for (const name of ['starts_with', 'ends_with', 'strpos']) {
+  for (const name of ['starts_with', 'ends_with', 'strpos', 'safe_add', 'safe_subtract', 'safe_multiply', 'safe_divide']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {type: 'array', minItems: 2, maxItems: 2,
       items: {$ref: '#/$defs/source_expression'}});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body.items, {$ref: '#/$defs/machine_expression'});
   }
-  for (const name of ['sign', 'round', 'trunc']) {
+  for (const name of ['sign', 'round', 'trunc', 'safe_negate']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {$ref: '#/$defs/source_expression'});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
@@ -474,9 +474,10 @@ test('explicit trim sets preserve exact unary predecessor bodies and close pair 
     assert.equal(cid(item.body), item.cid);
   }
   const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
-  const expression = read('spec/contracts/actql-expressions.json');
-  const protocol = read('spec/contracts/actql-protocol-schemas.json');
-  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Freeze this transition at its adopted successor, independently of later scalar extensions.
+  const adopted = Object.fromEntries(read('portability/corpus/historical/pre-substring-contract-identities.json').contracts.map(item => [item.id, item.body]));
+  const expression = adopted.expression_contract;
+  const program = adopted.program_schema;
   const trimNames = ['trim', 'ltrim', 'rtrim'];
   function checkExtension(before, current) {
     if (Array.isArray(before)) {
@@ -509,12 +510,12 @@ test('explicit trim sets preserve exact unary predecessor bodies and close pair 
   }
   assert.notEqual(cid(expression), expected.expression_contract);
   assert.notEqual(cid(program), expected.program_schema);
-  const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const scalar = adopted.scalar_law_manifest;
   const expectedScalar = structuredClone(earlier.scalar_law_manifest);
   Object.assign(expectedScalar.unicode, {trim_character_set: 'unicode-code-point-membership',
     trim_empty_character_set: 'preserve-value'});
   assert.deepEqual(scalar, expectedScalar);
-  const aoa = read('spec/contracts/actql-aoa.json');
+  const aoa = adopted.aoa_contract;
   assert.equal(aoa.expression_contract_cid, cid(expression));
   assert.equal(aoa.rela_scalar_law_manifest_cid, cid(scalar));
   for (const entry of history.expression_fragments.cases) {
