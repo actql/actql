@@ -9,6 +9,8 @@ const ordered = v => Array.isArray(v) ? v.map(ordered) : v && typeof v === 'obje
   ? Object.fromEntries(Object.keys(v).sort().map(k => [k, ordered(v[k])])) : v;
 export const independentCid = v => 'sha256:' + createHash('sha256')
   .update(JSON.stringify(ordered(v))).digest('hex');
+// The expression Catalog inherits the pinned text-time base. Its source/envelope
+// roles do not follow the separate current production profile schemas.
 const selections = [
   [
     "spec/grammar/actql-timestamp-pattern-ast-0.1.schema.json",
@@ -109,17 +111,15 @@ const selections = [
     ]
   ],
   [
-    "spec/contracts/actql-production-profile-schemas.json",
+    "spec/dependencies/actql-text-time-base.json",
     [
-      "schemas",
-      "text_time_expression"
+      "source_schema"
     ]
   ],
   [
-    "spec/contracts/actql-production-profile-schemas.json",
+    "spec/dependencies/actql-text-time-base.json",
     [
-      "schemas",
-      "text_time_evaluation_envelope"
+      "evaluation_envelope_schema"
     ]
   ],
   [

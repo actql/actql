@@ -118,7 +118,14 @@ fn flatten(
           _ => ["value"]
         }
         for name in names {
-          children.push((part(body, name), Form))
+          if tag == "substring" && name == "length" {
+            let obj = decoded(@decode.open_object(body), body)
+            if @decode.lookup(obj, name) is Some(length) {
+              children.push((length, Form))
+            }
+          } else {
+            children.push((part(body, name), Form))
+          }
         }
       }
       "case" => {
@@ -170,6 +177,7 @@ fn flatten(
       | "sign"
       | "round"
       | "trunc"
+      | "safe_negate"
       | "floor"
       | "lower"
       | "upper"

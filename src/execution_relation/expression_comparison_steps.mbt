@@ -66,6 +66,10 @@ fn advance_binary_comparison(
     | Subtract
     | Multiply
     | Divide
+    | SafeDivide
+    | SafeAdd
+    | SafeSubtract
+    | SafeMultiply
     | Modulo
     | In
     | NotIn
