@@ -122,3 +122,60 @@ for (const [name, tail] of [
   ['label-conditional-predicate', "node_rows(label: 'Person') |> WHERE q IS NOT NULL |> SELECT key"],
 ]) graphRowSourceRefusals.push({name: `graph-row-${name}`, format: 'aql-text',
   text: (name === 'wrong-kind' ? edgeData + edgeMapping : selectedData + selectedMapping) + 'FROM g |> ' + tail});
+
+// A Graph Bridge establishes a Relation before ordinal set alignment. Neither
+// the bridge nor the anonymous scalar expression adds a public source name.
+const setFields = ['value'];
+const setResults = rows => ({values: {rows, columns: [number('value', true)]}});
+const nodeSetRows = [{value: null}, {value: null}, {value: 7}, {value: 8}];
+const edgeSetRows = [{value: 10}, {value: 11}, {value: 11}, {value: 12}];
+const setControl = (edges = false) => program('fixture.graph_rows.positional_set', [
+  ...(edges ? [
+    {values: {schema: {node_key: {type: 'number', nullable: false}}, rows: [{node_key: 1}]}, as: 'n'},
+    {values: {schema: Object.fromEntries(['edge_key', 'part', 'src_key', 'dst_key']
+      .map(name => [name, {type: 'number', nullable: false}])), rows: [
+      {edge_key: 11, part: 7, src_key: 1, dst_key: 1}, {edge_key: 10, part: 7, src_key: 1, dst_key: 1}]}, as: 'e'},
+    {graph: {version: 'actql-graph-constructor/0.1', nodes: [{name: 'N', from: 'n', key: ['node_key'],
+      labels: [{name: 'Node', properties: {mode: 'no_properties'}}]}], edges: [{name: 'E', from: 'e', key: ['part', 'edge_key'],
+      source: {definition: 'N', key: ['src_key']}, target: {definition: 'N', key: ['dst_key']},
+      labels: [{name: 'R', properties: {mode: 'no_properties'}}]}]}, as: 'g'},
+  ] : [
+    {values: {schema: {node_key: {type: 'number', nullable: false}, p: {type: 'number', nullable: true}},
+      rows: [{node_key: 2, p: 7}, {node_key: 1, p: null}]}, as: 'n'},
+    {graph: {version: 'actql-graph-constructor/0.1', nodes: [nodeDefinition], edges: []}, as: 'g'},
+  ]),
+  {from: edges ? 'e' : 'n', select: [{value: edges ? 'edge_key' : 'p'}], as: 'left'},
+  {from: 'g', [edges ? 'edge_rows' : 'node_rows']: {definition: edges ? 'E' : 'N'}},
+  {derive: {next: {add: [{field: edges ? 'edge_key' : 'p'}, {literal: 1}]}}},
+  {select: [{value: 'next'}], as: 'right'},
+  {from: 'left', append: {with: 'right'}},
+  {sort: [{field: 'value', dir: 'asc', nulls: 'first'}], as: 'selected'},
+], setFields, 'values');
+const nodeSetHead = 'DATA combined = FROM n |> SELECT p AS value |> UNION ALL ';
+const nodeSetOperand = "(FROM g |> node_rows(definition: 'N') |> SELECT p + 1)";
+const setTail = '; FROM combined |> ORDER BY value |> RESULT values';
+const edgeSetHead = 'DATA combined = FROM e |> SELECT edge_key AS value |> UNION ALL ';
+const edgeSetOperand = "(FROM g |> edge_rows(definition: 'E') |> SELECT edge_key + 1)";
+for (const [name, text, rows, extra] of [
+  ['node-set-json-control', setControl(), nodeSetRows, {format: 'json'}],
+  ['node-set-named', nodeSource + nodeSetHead + nodeSetOperand.replace('p + 1)', 'p + 1 AS other)') + setTail, nodeSetRows],
+  ['node-set-anonymous', nodeSource + nodeSetHead + nodeSetOperand + setTail, nodeSetRows],
+  ['node-set-unselected', nodeSource + nodeSetHead + nodeSetOperand.replace("definition: 'N'", '') + setTail, nodeSetRows],
+  ['node-set-head', nodeSource + "FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1) |> ORDER BY value", nodeSetRows, {results: {answer: {rows: nodeSetRows, columns: [number('value', true)]}}}],
+  ['node-set-data-head', nodeSource + "DATA combined = FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1)" + setTail, nodeSetRows],
+  ['edge-set-json-control', setControl(true), edgeSetRows, {format: 'json'}],
+  ['edge-set-named', edgeData + edgeMapping + edgeSetHead + edgeSetOperand.replace('edge_key + 1)', 'edge_key + 1 AS other)') + setTail, edgeSetRows],
+  ['edge-set-anonymous', edgeData + edgeMapping + edgeSetHead + edgeSetOperand + setTail, edgeSetRows],
+  ['node-set-empty', 'DATA n = SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; ' + nodeMapping
+    + nodeSetHead + nodeSetOperand + setTail, []],
+]) graphRowSourceSuccesses.push({name: 'graph-row-' + name, format: 'aql-text', text,
+  sourceReadCount: 0, results: setResults(rows), ...extra,
+  ...(name.startsWith('edge-set') ? {results: {values: {rows, columns: [number('value')]}}} : {})});
+graphRowSourceRefusals.push(
+  {name: 'graph-row-set-anonymous-by-name', format: 'aql-text',
+    text: nodeSource + nodeSetHead.replace('UNION ALL', 'UNION ALL BY NAME') + nodeSetOperand + setTail,
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'graph-row-set-anonymous-private-field', format: 'aql-text',
+    text: nodeSource + nodeSetHead + nodeSetOperand + '; FROM combined |> ORDER BY aql_set_anonymous_4 |> RESULT values',
+    expectedCode: 'ClientProgramInvalidInput'},
+);
