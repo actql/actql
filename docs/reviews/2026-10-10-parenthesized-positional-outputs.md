@@ -1,9 +1,11 @@
 # Parenthesized positional operand output context
 
 This frontend connection repair follows #1271 at
-`a054de80639807149a6d454b5c59b68dfb0a747e`. The parent is an unmerged
-stack dependency; final destination is main. This branch normally adopts
-main `8d187fd23` before the repair. No dependency-branch merge is requested.
+`a054de80639807149a6d454b5c59b68dfb0a747e`. The parent is now merged into main and verified as an ancestor of adopted
+main `bb2be575ca74f522d7dfceedd47d7bce2f956dbf`. No unmerged dependency
+remains; base and final destination are main. The author fix is
+`15ba72eb48a2bc1664f7b0dbab89535d3c404c59`; the main integration preserves
+its source and independent expected rows while adopting current resource pins.
 
 ## Fixed meaning and pre-repair evidence
 
