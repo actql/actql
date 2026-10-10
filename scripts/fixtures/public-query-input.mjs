@@ -273,6 +273,45 @@ export const queryCompositionSuccesses = [
     expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
 
 ];
+// Independently authored unaliased table-query controls. Source aliases remain
+// optional syntax; current columns, row scopes and explicit result order do not.
+const optionalNumber = (name,nullable=false) => ({name,contract:{type:'number',nullable}});
+const optionalCase = (name,text,expected,columns,extra={}) => ({name:'derived-optional-'+name,
+ format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const optionalNullProgram={"version":"actql/0.1","id":"fixture.optional_derived_alias","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true}},"rows":[{"id":1},{"id":null},{"id":2},{"id":1}]},"as":"rows"},{"from":"rows","filter":{"not":{"is_null":{"field":"id"}}}},{"sort":[{"field":"id","dir":"desc","nulls":"first"}]},{"take":3},{"select":["id"],"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const optionalRangeHead="FROM (SELECT 1 AS x,20 AS y UNION ALL SELECT 2,10) base |> AS r |> SET x=x+10";
+queryCompositionSuccesses.push(
+ optionalCase('range-snapshot-json-control',JSON.stringify({"version":"actql/0.1","id":"fixture.optional_range_snapshot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"rows"},{"from":"rows","derive":{"current":{"add":[{"field":"x"},{"literal":10}]}}},{"select":[{"original":"x"},"current","y"]},{"sort":[{"field":"original","dir":"asc","nulls":"first"}],"as":"out"}],"results":{"rows":{"from":"out","fields":["original","current","y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}),[{original:1,current:11,y:20},{original:2,current:12,y:10}],[optionalNumber('original'),optionalNumber('current'),optionalNumber('y')],{format:'json'}),
+ optionalCase('null-duplicate-json-control',JSON.stringify(optionalNullProgram),
+  [{id:2},{id:1},{id:1}],[optionalNumber('id',true)],{format:'json'}),
+ optionalCase('null-duplicate-set-source',"SELECT id FROM (SELECT 1 AS id UNION ALL SELECT CAST(NULL AS FLOAT64) UNION ALL SELECT 2 UNION ALL SELECT 1) WHERE id IS NOT NULL ORDER BY id DESC NULLS FIRST LIMIT 3",
+  [{id:2},{id:1},{id:1}],[optionalNumber('id',true)]),
+ optionalCase('identity-star',"SELECT * FROM (SELECT 1 AS id,'x' AS label)",[{id:1,label:'x'}],
+  [optionalNumber('id'),{name:'label',contract:{type:'string',nullable:false,max_utf8_bytes:1}}]),
+ optionalCase('range-snapshot',"SELECT r.x AS original,x AS current,y FROM ("+optionalRangeHead+") ORDER BY original",
+  [{original:1,current:11,y:20},{original:2,current:12,y:10}],
+  [optionalNumber('original'),optionalNumber('current'),optionalNumber('y')]),
+ optionalCase('range-through-parentheses',"SELECT r.x AS original FROM ((FROM (SELECT 1 AS x UNION ALL SELECT 2) base |> AS r)) ORDER BY original",
+  [{original:1},{original:2}],[optionalNumber('original')]),
+ optionalCase('explicit-alias-replaces-ranges',"SELECT chosen.x AS current,chosen.y FROM ("+optionalRangeHead+") chosen ORDER BY current",
+  [{current:11,y:20},{current:12,y:10}],[optionalNumber('current'),optionalNumber('y')]),
+ optionalCase('scalar-value-table',"SELECT element AS value FROM (FROM UNNEST([1,CAST(NULL AS FLOAT64),2,1]) AS element) ORDER BY value DESC NULLS FIRST",
+  [{value:null},{value:2},{value:1},{value:1}],[optionalNumber('value',true)]),
+ optionalCase('left-and-right-join-sources',"SELECT lefts.id,right_value FROM (SELECT 1 AS id UNION ALL SELECT 2) lefts JOIN (SELECT 1 AS key,100 AS right_value) ON lefts.id=key MAX_OUTPUT_ROWS 10 ORDER BY lefts.id",
+  [{id:1,right_value:100}],[optionalNumber('id'),optionalNumber('right_value')]),
+ optionalCase('pipe-query-head',"FROM (SELECT 1 AS id UNION ALL SELECT 2) |> WHERE id>1 |> SELECT id |> ORDER BY id",
+  [{id:2}],[optionalNumber('id')],{format:'aql-text'}),
+ optionalCase('captured-null',"SELECT amount,id FROM (FROM records |> WHERE amount IS NULL |> SELECT id,amount) ORDER BY id",
+  [{amount:null,id:1}],[optionalNumber('amount',true),optionalNumber('id')],
+  {sourceReadCount:undefined,sourceReadSessionCount:1}),
+ optionalCase('captured-range-snapshot',"SELECT id,r.amount AS original,amount AS current FROM (FROM records |> AS r |> SET amount=99) ORDER BY id",
+  [{id:1,original:null,current:99},{id:2,original:20,current:99},{id:3,original:30,current:99},{id:3,original:30,current:99}],
+  [optionalNumber('id'),optionalNumber('original',true),optionalNumber('current')],
+  {sourceReadCount:undefined,sourceReadSessionCount:1}),
+ optionalCase('closed-set-fields',"SELECT id FROM (SELECT 1 AS id UNION ALL BY NAME SELECT 2 AS id) ORDER BY id",
+  [{id:1},{id:2}],[optionalNumber('id')]),
+);
+
 export const queryCompositionRefusals = [
   {name: 'nested-cte-octal-range', format: 'sql',
     text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
@@ -313,6 +352,16 @@ export const queryCompositionRefusals = [
     text: '(SELECT id FROM records;)'},
 
 ];
+queryCompositionRefusals.push(...[
+ ['unregistered-qualifier','SELECT chosen.id FROM (SELECT 1 AS id)'],
+ ['projected-old-range','SELECT r.x FROM (FROM (SELECT 1 AS x) base |> AS r |> SELECT x)'],
+ ['explicit-alias-old-range','SELECT r.x FROM ('+optionalRangeHead+') chosen'],
+ ['set-old-range','SELECT before.id FROM (SELECT 1 AS id UNION ALL SELECT 2)'],
+ ['private-producer','SELECT aql_query_source_0.id FROM (SELECT 1 AS id)'],
+ ['ambiguous-column','SELECT id FROM (SELECT 1 AS id) CROSS JOIN (SELECT 2 AS id) MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'derived-optional-refusal-'+name,format:'sql',text,
+ expectedCode:'ClientProgramInvalidInput'})));
+
 export const querySuccesses = [
   {name: 'sql', format: 'sql',
     text: 'SELECT id FROM records WHERE amount >= @minimum ORDER BY id',

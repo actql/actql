@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:f2bf87c10285fe83d42ef8f5f8dd4071b1d21269186acf8abfd335572996f413';
+  const currentExpected = 'sha256:baaa80c2d0c6053f42eb44fc476fd99ec29e42fcfd2035233c6f8e2c12dea26b';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -477,8 +477,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     expression_contract_cid: 'sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd',
     expression_text_grammar_sha256: '12dfcd8853b43a66946036e8c9cc7bdf092b8cf2d911062fec57a9614f66285b',
     expression_text_rules_sha256: 'af98f75d2a1b4199171f72c3a88c36378a87b9be25955c9f112b4cfe56527313',
-    query_text_grammar_sha256: 'd97d7f12e2761aa9477dac7774af1d5a99bc97727cb7806dbcee94c82590e10a',
-    query_text_rules_sha256: '4a7a95194435c497c2b6dd9278374059cd84ca9275c3ffb718729125d48d0ab2'});
+    query_text_grammar_sha256: 'b4c3cb087b03a5a271bd10b1a90b5cf9a5bf843026fc727cca2f99a5ea9cfcd7',
+    query_text_rules_sha256: '81e9abcd3ffba3b760363175326e9ac1a6460b16b3404f07fef9edf32caeaa99'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
@@ -495,4 +495,12 @@ test('FROM PIVOT only changes source grammar and source-lowering rules',()=>{
  assert.deepEqual(commonAfter,commonBefore);
  assert.equal(cid({...commonBefore,query_text_grammar_sha256:bg,query_text_rules_sha256:br}),bc);
  assert.notEqual(ag,bg);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+test('optional table aliases change only source grammar/rules pins',()=>{
+ const before=read('scripts/fixtures/pre-optional-derived-alias-values-identities.json').grammar;
+ const after=read('spec/manifests/actql-grammar-0.1.json');
+ const {grammar_manifest_cid:bc,query_text_grammar_sha256:bg,query_text_rules_sha256:br,...commonBefore}=before;
+ const {grammar_manifest_cid:ac,query_text_grammar_sha256:ag,query_text_rules_sha256:ar,...commonAfter}=after;
+ assert.deepEqual(commonAfter,commonBefore);assert.notEqual(ag,bg);assert.notEqual(ar,br);assert.notEqual(ac,bc);
 });

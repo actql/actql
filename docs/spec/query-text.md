@@ -758,7 +758,7 @@ with the existing JOIN lowerer; final ORDER BY/LIMIT sees only the combined
 output. Input binding does not add another source read or materialization.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
-body, named FROM/JOIN subquery and parenthesized query operand use the same
+body, FROM/JOIN table subquery and parenthesized query operand use the same
 relational query composition: SELECT or FROM-starting Pipe, set expressions,
 optional ORDER BY/LIMIT, and a pure Pipe tail. Parentheses retain the inner
 query's scope and ORDER BY/LIMIT placement. A Pipe operator following a set
@@ -777,11 +777,21 @@ from published Source View path resolution. This is lexical producer binding,
 not SQL rewriting or repeated execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER and RESULT declarations are excluded from CTE bodies.
+A table subquery's alias is optional. An explicit alias replaces its input
+ranges with one range over the output; without an alias, surviving query ranges
+and value-table receivers are preserved using the existing private scope binding.
+A completed SELECT or set exposes only its current projected columns, so omission
+does not revive displaced aliases, hidden slots or removed inputs. Transparent
+query parentheses preserve that same scope; set operands still close their input
+ranges. Generated producer identifiers do not become authored range aliases.
+Subquery ordering is not an outer SQL order promise: keep explicit ORDER BY and
+LIMIT placement, and compare an unordered outer Relation as a multiset.
+
 Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
 
-Nonrecursive CTEs and named, noncorrelated FROM subqueries use checked producer
+Nonrecursive CTEs and noncorrelated FROM subqueries use checked producer
 references, so reusing a source does not imply another physical read.
 Standalone query assembly can retain a producer as a Stage Result. A CTE
 inside a DATA query body may instead reference an existing pipeline step;
