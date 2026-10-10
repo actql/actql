@@ -13,6 +13,7 @@ priv struct NativeClientCheckpointRecord {
   resume_intent_id : String?
   resume_intent : @checkpoint.ResumeIntentView?
   settlement_only : Bool
+  effect_ledger : Array[@effect.EffectLedgerEntry]
   binding : @checkpoint.ResumeBinding
 }
 
@@ -26,6 +27,7 @@ pub(all) enum NativeClientCheckpointIssue {
   State(@checkpoint.RunStateWireIssue)
   Signature(@effect_resolution.NativeResidentEffectResolutionIssue)
   Resume(@checkpoint.ResumeIssue)
+  Ledger(@effect.EffectLedgerIssue)
 }
 
 ///|
@@ -126,7 +128,8 @@ fn checkpoint_record_body(
   record : NativeClientCheckpointRecord,
 ) -> Result[String, NativeClientCheckpointIssue] {
   if record.declared_results.length() > 128 ||
-    record.unknown_effects.length() > 128 {
+    record.unknown_effects.length() > 128 ||
+    record.effect_ledger.length() > 128 {
     return Err(InvalidMaterial)
   }
   try {
@@ -144,6 +147,12 @@ fn checkpoint_record_body(
     @encode.end_array(writer)
     @encode.key(writer, "environment_binding_cid")
     @encode.string_value(writer, record.binding.environment_binding_cid)
+    @encode.key(writer, "effect_ledger")
+    @encode.begin_array(writer)
+    for entry in record.effect_ledger {
+      @encode.string_value(writer, @effect.effect_ledger_entry_wire(entry))
+    }
+    @encode.end_array(writer)
     for
       (key, value) in [
         ("resolution_cid", record.resolution_cid),
@@ -192,7 +201,7 @@ fn read_checkpoint_record(
     @decode.closed_object(cursor, [
       "version", "checkpoint", "declared_results", "unknown_effects", "state", "updated_at",
       "authorization_context_cid", "environment_binding_cid", "resolution_cid", "verified_wire",
-      "resume_intent_id", "resume_intent", "settlement_only",
+      "resume_intent_id", "resume_intent", "settlement_only", "effect_ledger",
     ])
     is Ok(object) &&
     epoch_text(object, "version") ==
@@ -205,7 +214,8 @@ fn read_checkpoint_record(
     epoch_text(object, "environment_binding_cid")
     is Some(environment_binding_cid) &&
     checkpoint_texts(object, "declared_results") is Some(declared_results) &&
-    checkpoint_texts(object, "unknown_effects") is Some(unknown_effects) else {
+    checkpoint_texts(object, "unknown_effects") is Some(unknown_effects) &&
+    checkpoint_texts(object, "effect_ledger") is Some(ledger_wires) else {
     return Err(InvalidMaterial)
   }
   let limits = native_checkpoint_limits()
@@ -312,6 +322,32 @@ fn read_checkpoint_record(
   if expected != Ok(state_wire) {
     return Err(InvalidMaterial)
   }
+  let effect_ledger : Array[@effect.EffectLedgerEntry] = []
+  for wire in ledger_wires {
+    let limits = native_client_effect_ledger_limits()
+    guard @effect.admit_effect_ledger_entry(
+        wire,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+      is Ok(entry) &&
+      entry.effect_preview_cid == artifact.checkpoint.required_artifact_cid else {
+      return Err(InvalidMaterial)
+    }
+    let prior = effect_ledger_head(
+      effect_ledger,
+      entry.logical_item_locator_cid,
+    )
+    if !@effect.effect_ledger_entry_follows(prior, entry) {
+      return Err(InvalidMaterial)
+    }
+    effect_ledger.push(entry)
+  }
+  if !effect_ledger.is_empty() &&
+    resume_intent.map(value => value.state) != Some(@checkpoint.ResumeClaimed) {
+    return Err(InvalidMaterial)
+  }
   let record : NativeClientCheckpointRecord = {
     artifact,
     declared_results,
@@ -323,6 +359,7 @@ fn read_checkpoint_record(
     resume_intent_id,
     resume_intent,
     settlement_only,
+    effect_ledger,
     binding: { authorization_context_cid, environment_binding_cid, },
   }
   guard checkpoint_cursor(@publication.publication_contract_json(definition))
@@ -442,6 +479,7 @@ pub fn NativeClientRunJournal::wait_checkpoint(
       resume_intent_id: None,
       resume_intent: None,
       settlement_only: false,
+      effect_ledger: [],
     }
     // Reject a projection which could not be safely restored before commit.
     let body = match checkpoint_record_body(checkpoint) {
@@ -451,7 +489,17 @@ pub fn NativeClientRunJournal::wait_checkpoint(
     if read_checkpoint_record(body, record.definition) is Err(_) {
       return Err(Checkpoint(InvalidMaterial))
     }
-    self.save({ ..record, checkpoint: Some(checkpoint), })
+    let next = { ..record, checkpoint: Some(checkpoint), }
+    match
+      self.database.insert(
+        "client_effect_custody",
+        @host.client_request_scope_cid(request),
+        effect_ledger_custody_body(next).unwrap(),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Physical(issue))
+    }
+    self.save(next)
   })
 }
 

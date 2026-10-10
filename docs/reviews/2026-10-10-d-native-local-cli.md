@@ -575,3 +575,48 @@ public CLI original-operation routing and separate-process acceptance remain
 unfinished. The prior actual Source fixture is a regression caller, not a new
 claim of public packed CLI completion. No Hosted CI or package publication was
 started.
+
+## Original Native Effect row custody connection
+
+Main `3900058027b0095b6851161aa4e1c65aa1ef754f` was merged normally in
+`2eed244d60440262c323f9f7ffccf0acb9952f65`. Existing source/history material
+was preserved; the main delta is the audited Append cleanup regression.
+
+The original Client Checkpoint now retains exact entries issued by the common
+Effect Ledger Owner. `record_effect_row_dispatch` checks the current original
+resume fence, original logical scope, checked Preview identity and immutable
+basis, then commits the prepared/dispatching chain with the original Run
+revision. Common recovery decisions return an existing possibly-sent/terminal
+entry without another dispatch claim. An expired claimant, cancellation or
+settlement-only resume cannot issue a new dispatch. Unknown commit outcomes
+return no handle and fence the original journal.
+
+An independent physical custody row binds the original Checkpoint, Run
+definition, request and ordered entry identities. Its CAS revision equals the
+number of non-prepared entries. The original Run row and witness advance in
+the same existing SQLite transaction. Startup and each mutation compare both;
+partial chain loss, missing/replaced witness and inconsistent witness revision
+are refused rather than repaired or treated as an unsent row. This is custody
+for the existing common Ledger, not a new Ledger or Recovery Owner.
+
+The opaque original dispatch handle can retain an unknown observation after
+cancellation/lease expiry. Repeated observation is idempotent; it cannot mark
+success, overwrite a terminal receipt or dispatch again. Current-authorized
+lookup never opens a Provider. The existing Run-row/SQLite byte limits remain
+unchanged; the private history is bounded to 128 entries and common chain
+validation. Capacity refusal rolls back the Run and witness together.
+
+Nine added Native cases cover duplicate/takeover refusal, durable unknown,
+authorization/fence/Preview/scope checks, commit loss, chain corruption,
+independent custody loss/rewrite and finite capacity refusal. Native caller
+typechecking/formatting and actual interface generation passed in `run-l7h0P5`;
+the earlier readonly-basis fixture compilation failure remains `run-hBM3uX`.
+Fixed-SHA Native runtime evidence is recorded separately.
+
+This is metadata custody, not proof of Provider I/O. The actual Native write
+owner must still bind the checked request and Preview, independently revalidate
+target/credential/current cancellation, reserve response/receipt capture before
+copy/send and confirm the exact durable dispatch immediately before I/O. Receipt
+classification, common Effect Set completion, cleanup retries, public CLI
+operations, separate-process restart and packed installation remain unfinished.
+No Site or transport dispatch identity is fabricated for Direct Local execution.

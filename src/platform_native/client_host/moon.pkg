@@ -11,6 +11,7 @@ import {
   "actql/actql/logical_request_scope" @scope,
   "actql/actql/run_publication" @publication,
   "actql/actql/checkpoint_runtime" @checkpoint,
+  "actql/actql/effect_application" @effect,
   "actql/actql/platform_native/salesforce_effect_preview" @effect_resolution,
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/remote_journal" @journal,

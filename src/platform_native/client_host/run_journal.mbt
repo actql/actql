@@ -185,6 +185,13 @@ fn read_run_record(
   if record.checkpoint is Some(_) && !physical_start_claimed {
     return Err(CustodyLost)
   }
+  if record.checkpoint is Some(checkpoint) &&
+    checkpoint.effect_ledger.any(entry => {
+      @effect.effect_ledger_entry_scope_cid(entry) !=
+      @host.client_request_scope_cid(request)
+    }) {
+    return Err(CustodyLost)
+  }
   match run_record_body(record) {
     Ok(body) if body == row.body => Ok(record)
     _ => Err(CustodyLost)
@@ -205,6 +212,10 @@ fn initialize_native_client_run_journal(
     _ => return Err(CustodyLost)
   }
   match database.scan_after("client_runs", "") {
+    Err(@sqlite.NotFound) => ()
+    _ => return Err(CustodyLost)
+  }
+  match database.scan_after("client_effect_custody", "") {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
@@ -249,6 +260,7 @@ fn run_journal_custody(
   let mut cursor = ""
   let mut observed = 0
   let definitions : Map[String, Bool] = Map([], capacity=max_records)
+  let checkpoint_scopes : Map[String, Bool] = Map([], capacity=max_records)
   while true {
     let row = match database.scan_after("client_runs", cursor) {
       Ok(value) => value
@@ -267,6 +279,13 @@ fn run_journal_custody(
     if row.key != @host.client_request_scope_cid(record.request) {
       return Err(CustodyLost)
     }
+    match confirm_effect_ledger_custody(database, record) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    if record.checkpoint is Some(_) {
+      checkpoint_scopes[row.key] = true
+    }
     let definition = @publication.publication_contract_identity(
       record.definition,
     )
@@ -277,6 +296,23 @@ fn run_journal_custody(
     cursor = row.key
   }
   if observed != count {
+    return Err(CustodyLost)
+  }
+  cursor = ""
+  let mut witnesses = 0
+  while true {
+    let row = match database.scan_after("client_effect_custody", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    witnesses += 1
+    if witnesses > observed || !checkpoint_scopes.contains(row.key) {
+      return Err(CustodyLost)
+    }
+    cursor = row.key
+  }
+  if witnesses != checkpoint_scopes.length() {
     return Err(CustodyLost)
   }
   Ok((count, retained.revision))
@@ -510,6 +546,19 @@ fn NativeClientRunJournal::save(
   self : NativeClientRunJournal,
   record : NativeClientRunRecord,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  match
+    self.database.read(
+      "client_runs",
+      @host.client_request_scope_cid(record.request),
+    ) {
+    Ok(current) if current.revision == record.revision => ()
+    Ok(_) => return Err(Physical(@sqlite.Collision))
+    Err(issue) => return Err(Physical(issue))
+  }
+  match confirm_effect_ledger_custody(self.database, record) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let body = match run_record_body(record) {
     Ok(value) => value
     Err(issue) => return Err(issue)
