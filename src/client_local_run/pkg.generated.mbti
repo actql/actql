@@ -34,6 +34,8 @@ pub fn local_run_definition_cid(LocalRunPlan) -> String
 
 pub fn local_run_material_limits() -> @run_publication_host.ClientValuesRunMaterialsLimits
 
+pub fn local_run_prepared(LocalRunPlan) -> @run_publication_host.PreparedClientProgram
+
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
 
 pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Bool, LocalRunIssue]
@@ -43,6 +45,10 @@ pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequest
 pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn restore_local_run_materials(String, String) -> Result[@run_publication_host.ClientTaskRunMaterials, LocalRunIssue]
+
+pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
 
@@ -83,6 +89,7 @@ pub(all) enum LocalRunIssue {
 
 pub struct LocalRunPlan {
   input : @client_local_preparation.LocalPreparedInput
+  prepared : @run_publication_host.PreparedClientProgram
   request : @run_publication_host.ClientRequestIdentity
   compilation : @run_publication_host.ClientTaskCompilation
   admission : @run_publication.RunPublicationAdmission

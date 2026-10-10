@@ -35,7 +35,7 @@ pub fn configure_source_free_local_compute(
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[LocalComputeHost, LocalComputeIssue] {
-  let prepared = @input.local_prepared_program(plan.input)
+  let prepared = local_run_prepared(plan)
   if !source_free_profile(prepared) {
     return Err(UnsupportedCapability)
   }
@@ -125,7 +125,7 @@ pub fn start_local_compute_task(
     tuple != plan.tuple ||
     context_cid != plan.execution_context_cid ||
     !authorized_input(
-      @input.local_prepared_program(plan.input),
+      local_run_prepared(plan),
       permit,
       current,
       tuple,

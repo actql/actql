@@ -4,6 +4,7 @@
 priv struct StoredRestoration {
   borrow : @buffers.BufferBorrow
   mut invoked : Bool
+  mut expected_definition_cid : String?
   mut outcome : Result[@host.ClientTaskRunMaterials, @local_run.LocalRunIssue]?
 }
 
@@ -25,7 +26,12 @@ pub fn reserve_restoration(nonce : Int64, input : Int) -> Int {
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  value.restorations[handle] = { borrow, invoked: false, outcome: None, }
+  value.restorations[handle] = {
+    borrow,
+    invoked: false,
+    expected_definition_cid: None,
+    outcome: None,
+  }
   value.next_handle += 1
   handle
 }
@@ -54,6 +60,7 @@ pub fn restore_material(nonce : Int64, handle : Int) -> Int {
     required_text(object, "expected_run_definition_cid") is Some(cid) else {
     return -31
   }
+  record.expected_definition_cid = Some(cid)
   record.outcome = Some(@local_run.restore_local_run_materials(wire, cid))
   0
 }
@@ -78,6 +85,9 @@ pub fn close_restoration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.restorations.get(handle) is Some(record) else {
     return -2
+  }
+  if value.runs.values().any(run => run.restoration == Some(handle)) {
+    return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
