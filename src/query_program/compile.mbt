@@ -363,6 +363,33 @@ fn qualify_cached_slot(
 }
 
 ///|
+// Classify only numeric literal atoms already folded by the expression
+// lowerer. A single postorder pass avoids rescanning nested signs during
+// subtree comparison. References, calls and arithmetic are never evaluated.
+fn comparison_numeric_atoms(
+  expression : @query.Expression,
+) -> Array[Result[Double?, @expression.Issue]] {
+  let atoms : Array[Result[Double?, @expression.Issue]] = []
+  for index in 0..<@query.expression_node_count(expression) {
+    let atom = match @query.expression_node(expression, index).unwrap().kind {
+      Number(text) => @expression.numeric_literal(text).map(value => Some(value))
+      Parenthesized(child) | Unary("+", child) => atoms[child]
+      Unary("-", child) =>
+        // Keep the existing source-literal rejection of negative zero,
+        // including a nested negation whose final mathematical value is zero.
+        match atoms[child] {
+          Ok(Some(value)) =>
+            if value == 0.0 { Err(@expression.InvalidNumber) } else { Ok(Some(-value)) }
+          other => other
+        }
+      _ => Ok(None)
+    }
+    atoms.push(atom)
+  }
+  atoms
+}
+
+///|
 // Compare semantic source trees, ignoring grouping parentheses and spans.
 // Indices are local to each expression owner and cannot be compared directly.
 fn same_expression(
@@ -376,6 +403,8 @@ fn same_expression(
     _,
   ) => None,
 ) -> Bool {
+  let left_atoms = comparison_numeric_atoms(left)
+  let right_atoms = comparison_numeric_atoms(right)
   let pending = [(@query.expression_root(left), @query.expression_root(right))]
   while pending.pop() is Some((a_index, b_index)) {
     if nodes(left, a_index, right, b_index) is Some(equal) {
@@ -383,6 +412,16 @@ fn same_expression(
         return false
       }
       continue
+    }
+    match (left_atoms[a_index], right_atoms[b_index]) {
+      (Ok(Some(a)), Ok(Some(b))) => {
+        if a != b {
+          return false
+        }
+        continue
+      }
+      (Err(_), _) | (_, Err(_)) => return false
+      _ => ()
     }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
