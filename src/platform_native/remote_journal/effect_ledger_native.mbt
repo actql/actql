@@ -276,7 +276,7 @@ pub fn Journal::record_effect_ledger_response(
     "\n" +
     response.status_code.to_string() +
     "\n" +
-    @sha.hex(response.body),
+    response.body_digest(),
   )
   let bytes = Bytes::from_array(response.body.to_array())
   match self.begin_mutation(true) {
@@ -399,20 +399,19 @@ pub fn Journal::effect_ledger_response(
         let status = @string.parse_int(parts[1]) catch {
           _ => return Err(StateCollision)
         }
+        let response : NativeEffectSavedResponse = {
+          credential_use_cid: parts[0],
+          status_code: status,
+          body: Bytes::from_array(bytes.body.to_array()),
+        }
         if !effect_response_cid_valid(parts[0]) ||
           status < 100 ||
           status > 599 ||
           status.to_string() != parts[1] ||
-          @sha.hex(bytes.body) != parts[2] {
+          response.body_digest() != parts[2] {
           return Err(StateCollision)
         }
-        Ok(
-          Some({
-            credential_use_cid: parts[0],
-            status_code: status,
-            body: Bytes::from_array(bytes.body.to_array()),
-          }),
-        )
+        Ok(Some(response))
       }
       (Err(issue), _) | (_, Err(issue)) if !(issue is @sqlite.NotFound) =>
         Err(Physical(issue))

@@ -112,6 +112,7 @@ pub(all) struct NativeEffectSavedResponse {
   status_code : Int
   body : Bytes
 }
+pub fn NativeEffectSavedResponse::body_digest(Self) -> String
 
 type NativeOutputFileCustody
 
