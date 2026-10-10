@@ -271,11 +271,11 @@ test('full corpus pins every authored occurrence independently of worker selecti
   assert.equal(pin.sourceBaseline, '486401df55f305a6692c1c0ec80b4abd0dcc55ea');
   // The graft registration adds five success, four refusal and one failure
   // oracle; Reach adds five success and four refusal oracles; Shortest adds
-  // five of each. No registration changes another family's expected rows.
-  assert.equal(pin.totalCases, 3356 + 10 + 9 + 10);
-  assert.deepEqual(pin.counts, {successes: 2126 + 5 + 5 + 5, refusals: 1183 + 4 + 4 + 5, executionFailures: 47 + 1});
+  // seven success and five refusal oracles. Other family rows are unchanged.
+  assert.equal(pin.totalCases, 3356 + 10 + 9 + 12);
+  assert.deepEqual(pin.counts, {successes: 2126 + 5 + 5 + 7, refusals: 1183 + 4 + 4 + 5, executionFailures: 47 + 1});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2073 + 5 + 5 + 5, executionFailures: 45 + 1, refusals: 1148 + 4 + 4 + 5}],
+    ['standard', {successes: 2073 + 5 + 5 + 7, executionFailures: 45 + 1, refusals: 1148 + 4 + 4 + 5}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],

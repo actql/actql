@@ -316,6 +316,13 @@ Node fixture/registration checks pass 40/40 (`run-YxDtaJ`,
 both pass their read-only freshness checks. Affected public interfaces were
 generated with pinned `moon info`, not hand-edited.
 
+The later authored Shortest fixture also includes weighted parallel edges and
+a zero-weight self-loop in independent JSON and AQL inputs. Its ordinary
+Relation continuation publishes hop_count=1 and total_cost=1. These two cases
+do not reuse the compiler or kernel as an oracle. The seven success and five
+refusal registrations pass 38/38 focused Node fixture/inventory tests
+(`run-4Lj2Ws`, `focused-test-41Cdmd`); they still await actual public execution.
+
 Public Host execution did not start: `run-xzpi3Q` was refused by G's shared
 heavy lock. No other owner's lock or process was changed. Current-kernel
 Wasm/Native, actual public retained/published rows, pristine packed packages,

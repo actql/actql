@@ -23,8 +23,16 @@ test('Shortest oracles preserve zero-hop, independent identities and all selecti
   assert.deepEqual(empty.results.paths.rows, []);
   assert.deepEqual(empty.results.paths.columns, machine.results.a.columns);
   const all = [...graphShortestSourceSuccesses, ...graphShortestSourceRefusals];
-  assert.equal(all.length, 10);
+  assert.equal(all.length, 12);
   assert.equal(new Set(all.map(x => x.name)).size, all.length);
+  const weighted = graphShortestSourceSuccesses.filter(x => x.name.includes('weighted-parallel'));
+  assert.equal(weighted.length, 2);
+  assert.deepEqual(weighted[0].results, weighted[1].results);
+  assert.deepEqual(weighted[0].results.paths.rows, [{hop_count: 1, total_cost: 1}]);
+  const weightedProgram = JSON.parse(weighted[0].text);
+  assert.deepEqual(weightedProgram.stages[0].steps[1].values.rows.map(x => x.edge_key), [11, 12, 10]);
+  assert.equal(weightedProgram.stages[0].steps[3].shortest_path.weight, 'w');
+  assert.ok(weighted[1].text.includes('WHERE hop_count > 0'));
 });
 
 test('Shortest packed profile includes external public transports and fresh-process rereads', async () => {
