@@ -96,6 +96,7 @@ class LocalCore:
         self._nonce = secrets.randbelow(2**63 - 1) + 1
         self._inputs: dict[int, _PhysicalInput] = {}
         self._loans: dict[int, _Input] = {}
+        self._released: set[int] = set()
         self._next_ticket = 1
         self._closed = False
         self._closing = False
@@ -183,6 +184,8 @@ class LocalCore:
         return value.payload[index]
 
     def _cleanup(self, ticket: int) -> int:
+        if ticket in self._released:
+            return 0
         value = self._inputs.get(ticket)
         if value is None:
             return 1
@@ -192,6 +195,9 @@ class LocalCore:
             return 1
         if not complete:
             return 1
+        # Keep the physical completion fact until Core confirms retirement.
+        # A trap after this callback must not repeat cleanup or lose custody.
+        self._released.add(ticket)
         del self._inputs[ticket]
         return 0
 
@@ -228,8 +234,7 @@ class LocalCore:
 
     def _owned(self, value: _Input) -> None:
         if (value.owner is not self._identity or
-                self._loans.get(value.ticket) is not value or
-                value.ticket not in self._inputs):
+                self._loans.get(value.ticket) is not value):
             raise ValueError('Foreign or released Local input')
 
     def fill_input(self, value: _Input, start: int, count: int) -> None:
@@ -249,6 +254,8 @@ class LocalCore:
             if code == -9:
                 return False
             self._check('close', code)
+            self._loans.pop(value.ticket)
+            self._released.discard(value.ticket)
             return True
 
     def close(self) -> bool:
@@ -271,3 +278,6 @@ class LocalCore:
                 value.close()
                 setattr(self, name, None)
         self._closed = True
+        self._inputs.clear()
+        self._loans.clear()
+        self._released.clear()

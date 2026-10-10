@@ -46,6 +46,10 @@ another instance cannot acquire custody. Python retains immutable bytes and
 measures their copy allowance before transfer. Only an explicit physical
 callback returning true acknowledges stop or cleanup; exceptions retain pending
 custody. Failed close keeps the same instance and its reservations for retry.
+The bridge retains a successful physical cleanup fact until Core acknowledges
+retirement. A trap between physical completion and its acknowledgement cannot
+repeat cleanup. Acknowledged input close discards its private loan and completion
+record; repeated transfers do not accumulate released descriptors.
 Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
 

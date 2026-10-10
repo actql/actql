@@ -91,6 +91,35 @@ finally:
         ready = True
         assert reentrant.close() is True
 
+# Stop the Wasm instruction stream after the physical callback succeeds.
+# Retrying the exact close acknowledges that saved fact without double cleanup.
+acknowledgement = LocalCore(module, digest=digest, transfer_capacity=65536)
+try:
+    physical_closes = 0
+    def close_then_interrupt():
+        global physical_closes
+        physical_closes += 1
+        acknowledgement._store.set_fuel(0)
+        return True
+    loan = acknowledgement.reserve_input(b'null', cleanup=close_then_interrupt,
+                                         stopped=lambda _: True)
+    try:
+        acknowledgement.close_input(loan)
+    except wasmtime.Trap:
+        pass
+    else:
+        raise AssertionError('Expected interrupted Core cleanup acknowledgement')
+    acknowledgement._store.set_fuel(100000000)
+    assert loan.ticket in acknowledgement._released
+    assert acknowledgement.close_input(loan) is True
+    assert physical_closes == 1
+    assert not acknowledgement._loans and not acknowledgement._released
+    assert acknowledgement.close() is True
+finally:
+    if not acknowledgement._closed:
+        acknowledgement._store.set_fuel(100000000)
+        assert acknowledgement.close() is True
+
 try:
     LocalCore(module, digest='0' * 64, transfer_capacity=65536)
 except ValueError:
@@ -103,4 +132,4 @@ print(json.dumps({'success': True, 'module_sha256': digest,
               'foreign_instance_refusal', 'copied_handle_refusal',
               'cleanup_exception_retention', 'same_instance_retry',
               'idempotent_final_close', 'real_transfer_trap_custody',
-              'callback_reentry_refusal']}))
+              'callback_reentry_refusal', 'lost_cleanup_acknowledgement']}))
