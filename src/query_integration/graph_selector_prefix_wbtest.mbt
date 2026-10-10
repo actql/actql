@@ -134,7 +134,7 @@ test "long literal and Relation selectors yield before output and retain borrowe
     }
     // One stop is inside identity admission, the next inside the first long
     // identity comparison. Neither has begun output-field preparation.
-    for prefix in [10, 40] {
+    for prefix in [10, if relation { 80 } else { 40 }] {
       let control = @bounded.control()
       let run = start(control)
       for index in 0..<prefix {

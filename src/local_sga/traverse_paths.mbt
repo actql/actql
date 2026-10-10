@@ -103,6 +103,7 @@ priv struct TraversePathsState {
   mut phase : TraversePathsPhase
   mut start_scan : Int
   mut start_recheck : @value.RecheckCursor?
+  mut start_input_rechecking : Bool
   mut start_identity : @value.CheckedValue?
   mut start_equality : @value.CompleteEquality?
   mut start_membership_node : Int
@@ -242,20 +243,12 @@ fn traverse_path_start_recheck(
       identity.bind(value => start(value.value))
     }
     RelationPathStarts(input, column) =>
-      @execution.producer_read_cell(input, index, column).bind(cell => {
-        match cell {
-          @execution.Null => start(@value.null_value())
-          @execution.Number(value) => @value.number_value(value).bind(start)
-          @execution.Boolean(value) => start(@value.boolean_value(value))
-          @execution.Text(value) =>
-            @value.start_recheck_runtime_text(
-              value,
-              contract,
-              state.value_limits,
-            )
-          @execution.Captured(value) => start(value)
-        }
-      })
+      @execution.start_producer_read_cell_recheck(
+        input,
+        index,
+        column,
+        state.value_limits,
+      )
     PredicatePathStarts =>
       graph_read_node_identity(state.source, index).bind(value => {
         start(value.value)
@@ -847,6 +840,12 @@ fn traverse_paths_step(
             )
           }
           state.start_recheck = Some(cursor)
+          state.start_input_rechecking = (if state.selecting_target {
+              state.targets.unwrap()
+            } else {
+              state.starts
+            })
+            is RelationPathStarts(_, _)
           state.phase = RecheckStartIdentity
         } else {
           state.start_scan = 0
@@ -883,6 +882,32 @@ fn traverse_paths_step(
               used,
             )
           @value.RecheckComplete(identity, _, _) => {
+            if state.start_input_rechecking {
+              // Preserve receiving-column admission before the Graph's
+              // nonnullable identity contract. Neither scan is synchronous.
+              if !reserve_traverse_start_identity(state, 2) {
+                return @bounded.Failed(
+                  TraversePathsWorkspaceLimit,
+                  progress,
+                  used,
+                )
+              }
+              guard @value.start_recheck_runtime_value(
+                  identity.value,
+                  @carrier.graph_identity(state.graph),
+                  state.value_limits,
+                )
+                is Some(next) else {
+                return @bounded.Failed(
+                  TraversePathsInputUnavailable,
+                  progress,
+                  used,
+                )
+              }
+              state.start_recheck = Some(next)
+              state.start_input_rechecking = false
+              continue
+            }
             state.start_recheck = None
             state.start_identity = Some(identity)
             reserve_traverse_start_identity(state, 1) |> ignore
@@ -2667,6 +2692,7 @@ fn start_traverse_paths_read(
     },
     start_scan: 0,
     start_recheck: None,
+    start_input_rechecking: false,
     start_identity: None,
     start_equality: None,
     start_membership_node: 0,
