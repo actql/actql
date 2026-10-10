@@ -144,6 +144,14 @@ pub fn coordinator_effect_checkpoint_report_admit(String, @remote_site_protocol.
 
 pub fn coordinator_effect_checkpoint_report_projection(@remote_site_protocol.RemoteEffectCheckpointReport) -> Array[String]
 
+pub fn coordinator_effect_current_query_prepare(@remote_site_protocol.RemoteEffectCheckpointReport, String, String, Int, Int, Int) -> Result[@remote_site_protocol.RemoteEffectCurrentQuery, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_effect_current_query_projection(@remote_site_protocol.RemoteEffectCurrentQuery) -> Array[String]
+
+pub fn coordinator_effect_current_reply_admit(@remote_site_protocol.RemoteEffectCurrentQuery, String, Int, Int, Int) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_effect_current_reply_projection(@remote_site_protocol.RemoteEffectCurrentReply) -> Array[String]
+
 pub fn coordinator_effect_resume_delivery_json(@remote_site_protocol.RemoteEffectCheckpointReport, String, Array[String], Array[String], Array[String], String, Int64, Int, Int, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_effect_resume_poll_json(@remote_site_protocol.RemoteEffectCheckpointReport, String, Array[String], Array[String], Array[String], String, Int64, Int, Int, Int) -> Result[String, @remote_site_protocol.DispatchIssue]

@@ -185,6 +185,55 @@ export const effectResumeDeliveries = Object.freeze({
   prepareJson: (...args) => prepareEffectResumeDeliveryJson(owner.coordinatorEffectResumeDeliveryJson, ...args),
   preparePollJson: (...args) => prepareEffectResumeDeliveryJson(owner.coordinatorEffectResumePollJson, ...args),
 });
+const effectCurrentQueries = new WeakMap(), effectCurrentReplies = new WeakMap();
+const effectCurrentValue = (values, handle) => {
+  const value = values.get(handle);
+  if (value === undefined) throw new TypeError('InvalidEffectCurrentHandle');
+  return value;
+};
+const effectCurrentLimits = supplied => {
+  if (supplied === null || typeof supplied !== 'object') throw new TypeError('InvalidEffectCurrentLimits');
+  const names = ['maxWireBytes', 'maxNodes', 'maxDepth'], values = names.map(name => supplied[name]);
+  if (!values.every((value, index) => Number.isSafeInteger(value) && value > 0 && value <= [65536, 4096, 32][index])) {
+    throw new TypeError('InvalidEffectCurrentLimits');
+  }
+  return values;
+};
+const effectCurrentText = value => {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 256 ||
+      new TextEncoder().encode(value).length > 256) throw new TypeError('InvalidEffectCurrentInput');
+  return value;
+};
+export const effectCurrentObservations = Object.freeze({
+  prepareQuery: (report, effectId, queryId, limits) => {
+    const bounds = effectCurrentLimits(limits);
+    const value = checked(owner.coordinatorEffectCurrentQueryPrepare(effectCheckpointValue(report),
+      effectCurrentText(effectId), effectCurrentText(queryId), ...bounds));
+    const handle = Object.freeze({}); effectCurrentQueries.set(handle, value); return handle;
+  },
+  queryJson: query => owner.coordinatorEffectCurrentQueryProjection(effectCurrentValue(effectCurrentQueries, query))[0],
+  queryFacts: query => {
+    const [, queryCid, reportCid, dispatchCid, checkpointCid, effectId, queryId] =
+      owner.coordinatorEffectCurrentQueryProjection(effectCurrentValue(effectCurrentQueries, query));
+    return Object.freeze({queryCid, reportCid, dispatchCid, checkpointCid, effectId, queryId});
+  },
+  admitReplyJson: (query, body, limits) => {
+    const bounds = effectCurrentLimits(limits);
+    if (typeof body !== 'string' || body.length > bounds[0] || new TextEncoder().encode(body).length > bounds[0]) {
+      throw new TypeError('InvalidEffectCurrentInput');
+    }
+    const value = checked(owner.coordinatorEffectCurrentReplyAdmit(effectCurrentValue(effectCurrentQueries, query), body, ...bounds));
+    const handle = Object.freeze({}); effectCurrentReplies.set(handle, {value, query}); return handle;
+  },
+  replyFacts: reply => {
+    const {value, query} = effectCurrentValue(effectCurrentReplies, reply);
+    const [, replyCid, head, action, saved] = owner.coordinatorEffectCurrentReplyProjection(value);
+    const facts = effectCurrentObservations.queryFacts(query), recoveryAction = Number(action);
+    return Object.freeze({...facts, replyCid, ledgerHeadCid: head === '' ? undefined : head,
+      recoveryAction, responseSaved: saved === 'true',
+      unknownEffects: Object.freeze(recoveryAction === 3 || recoveryAction === 4 ? [facts.effectId] : [])});
+  },
+});
 export const effectCheckpointReports = Object.freeze({
   admit: (body, request, limits) => {
     if (typeof body !== 'string' || limits === null || typeof limits !== 'object' ||
