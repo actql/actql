@@ -172,9 +172,17 @@ relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELE
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
+              | pivot_operator
               | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
+(* Initial Pipe PIVOT: one column aggregate and static String bucket values. *)
+pivot_operator = "PIVOT", "(", pivot_aggregate, "(", path, ")",
+                 [ [ "AS" ], identifier ], "FOR", path, "IN", "(",
+                 pivot_value, { ",", pivot_value }, ")", ")",
+                 [ [ "AS" ], identifier ] ;
+pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
+pivot_value = query_string, [ [ "AS" ], identifier ] ;
 unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
                    "(", identifier, "FOR", identifier, "IN", "(",
                    identifier, { ",", identifier }, ")", ")", [ source_alias ] ;

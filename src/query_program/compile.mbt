@@ -3021,6 +3021,28 @@ fn compile_steps(
         pipe_changed = true
         deferred = true
       }
+      Pivot(clause) => {
+        if pipe_value_table {
+          raise Abort(UnsupportedGrouping)
+        }
+        let (pivot, visible) = compile_pipe_pivot(
+          construction, clause, pipe_visible, pipe_columns, pipe_ranges,
+        )
+        entries.push(("pivot", pivot))
+        step_entries.push(entries)
+        pipe_visible = visible
+        pipe_columns = visible.copy()
+        active_fields = visible.map(pair => pair.1)
+        output = visible.map(pair => pair.0)
+        pipe_ranges = []
+        pipe_star_ranges = []
+        value_table_receivers = []
+        scalar_value_table_ranges = []
+        pipe_value_columns = []
+        pipe_rebound = true
+        pipe_changed = true
+        deferred = true
+      }
       Group(keys, projections, grouping_scope) => {
         let scoped = pipe_changed || pipe_rebound
         let input_visible = pipe_visible.copy()

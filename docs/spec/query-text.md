@@ -338,6 +338,42 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
+Pipe `PIVOT(aggregate(column) [AS prefix] FOR axis IN ('value' [AS name], ...))
+[AS range]` connects the selected
+[GoogleSQL PIVOT profile](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#pivot_pipe_operator)
+to the ordinary common `pivot` operation. This initial surface supports one
+SUM, AVG, COUNT, MIN or MAX of a current or range-qualified input column, a
+String axis and a nonempty list of static String bucket values. The current
+columns not consumed by the aggregate argument or axis become implicit group
+keys in their current order. Existing evaluated slots are reused, including
+SET/RENAME slots. The common checker owns key, aggregate, numeric, type and
+NULL evidence; no fill, cast, default ceiling or uniqueness is invented.
+
+PIVOT exposes the implicit group columns followed by pivot columns in authored
+IN order, even though the common operation stores generated columns in canonical
+order. An explicit bucket alias changes only the output name, not the compared
+String value. An aggregate prefix produces `prefix_bucket`. Name collisions
+are checked under existing case-insensitive column lookup. The result is a
+fresh ordinary Relation scope: previous ranges, the consumed aggregate column
+and axis are unavailable unless also produced as new output columns. The
+optional range binds only this result. The ordinary final projection retains
+the declared public column order and removes private fields.
+
+SUM/AVG/MIN/MAX ignore NULL input values and return typed NULL for an empty
+non-NULL bucket; COUNT(column) returns its non-NULL count, including zero for
+an empty bucket. Undeclared or NULL axis values create no declared bucket but
+retain their implicit index group. Empty input with no implicit keys has one
+global group; empty keyed input has no groups. These are existing common pivot
+rules, not frontend implementations of aggregation.
+
+FROM-suffix PIVOT, multiple aggregates, aggregate expressions/modifiers,
+COUNT(*), non-String axes and NULL bucket constants remain unimplemented
+surface coverage. The common requirement that bucket values also be admitted
+output field names, with unique values and no collision with physical index
+fields, is a recorded restriction of the existing contract. This does not
+claim that such forms are invalid GoogleSQL or completed standards alignment;
+unsupported forms are rejected rather than coerced, renamed as data or dropped.
+
 SQL `QUALIFY boolean_expression` filters the evaluated inline-window outputs
 after WHERE, grouping/HAVING and analytic computation, before final DISTINCT,
 ORDER and LIMIT/OFFSET. At least one window function must occur in SELECT or

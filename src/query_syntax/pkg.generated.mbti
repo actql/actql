@@ -396,6 +396,14 @@ pub(all) struct NearestClause {
   name : NamePart
 }
 
+pub(all) struct PivotClause {
+  function_name : String
+  argument : Array[NamePart]
+  column : Array[NamePart]
+  prefix : NamePart?
+  values : Array[(String, NamePart?)]
+}
+
 pub(all) struct Projection {
   expression : Expression?
   aggregate : AggregateCall?
@@ -435,6 +443,7 @@ pub(all) enum QueryOperation {
   Drop(Array[NamePart])
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
+  Pivot(PivotClause)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
   Qualify(Expression, Array[(NamePart, AggregateCall)])
