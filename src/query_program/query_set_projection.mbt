@@ -282,7 +282,7 @@ fn positional_set_aggregate_slot(
   outputs : Array[(@query.AggregateCall, String)],
   scope : JoinChainScope,
 ) -> String raise Abort {
-  let resolve = path => pipe_slot(path, scope.visible, scope.ranges)
+  let resolve = path => scope_expression_slot(path, scope)
   for (previous, slot) in outputs {
     if same_aggregate_call(previous, call, resolve, resolve) {
       return slot

@@ -1,3 +1,4 @@
+import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl} from './fixtures/public-query-input.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
@@ -86,4 +87,99 @@ test('FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh outp
  assert.deepEqual(cases.get('pipe-pivot-from-projected-identity').expected,
   [{twin:1,A:2},{twin:2,A:2}]);
  assert.equal(pipePivotRefusals.filter(item=>item.name.startsWith('pipe-pivot-refusal-from-')).length,6);
+});
+
+test('joined row fixtures distinguish row identity, null extension and ORDER receiver reuse',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const control=cases.get('joined-row-json-control');
+ const source=cases.get('joined-row-cross-null-duplicates');
+ assert.deepEqual(control.expected,source.expected);
+ assert.deepEqual(control.columns,source.columns);
+ assert.deepEqual(joinedRowControl.stages[0].steps[2].cross_join,
+  {with:'right',max_output_rows:10,select:{left_amount:'left.amount',left_id:'left.id',right_id:'right.id'}});
+ assert.deepEqual(source.expected.map(row=>row.left_row.id),[1,2,2]);
+ assert.deepEqual(cases.get('joined-row-range-column-collision').expected,[{row:{l:7,id:9}}]);
+ assert.deepEqual(cases.get('joined-row-left-null-extension').expected[0],
+  {left_row:{amount:null,id:1},right_row:{id:null,marker:null}});
+ assert.equal(cases.get('joined-row-left-null-extension').columns[1].contract.nullable,false);
+ assert.equal(cases.get('joined-row-right-null-extension').columns[0].contract.fields.id.nullable,true);
+ assert.ok(cases.get('joined-row-full-using').text.includes('ASSERT UNIQUE BY (id)'));
+ const alias=cases.get('joined-row-order-alias-not-input-reuse');
+ assert.deepEqual(alias.expected.map(row=>row.id),[1,2,2]);
+ assert.deepEqual([...alias.expected].sort((a,b)=>a.original-b.original).map(row=>row.id),[2,2,1]);
+ assert.equal(cases.get('joined-row-shared-acquired-cte').sourceReadSessionCount,1);
+ assert.equal(cases.get('joined-row-shared-acquired-cte').expected.length,6);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('joined-row-refusal-')).length,4);
+});
+
+
+test('optional table aliases preserve independent NULL/duplicate and range-value controls',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const source=cases.get('derived-optional-null-duplicate-set-source');
+ const control=cases.get('derived-optional-null-duplicate-json-control');
+ assert.deepEqual(source.expected,[{id:2},{id:1},{id:1}]);
+ assert.deepEqual(source.expected,control.expected);
+ assert.deepEqual(source.columns,control.columns);
+ assert.ok(source.text.includes('WHERE id IS NOT NULL'));
+ assert.ok(source.text.includes('DESC NULLS FIRST LIMIT 3'));
+ const ranged=cases.get('derived-optional-range-snapshot');
+ assert.deepEqual(ranged.expected,cases.get('derived-optional-range-snapshot-json-control').expected);
+ assert.deepEqual(ranged.expected,[{original:1,current:11,y:20},{original:2,current:12,y:10}]);
+ assert.deepEqual(cases.get('derived-optional-captured-range-snapshot').expected,
+  [{id:1,original:null,current:99},{id:2,original:20,current:99},{id:3,original:30,current:99},{id:3,original:30,current:99}]);
+ assert.equal(cases.get('derived-optional-captured-range-snapshot').sourceReadSessionCount,1);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('derived-optional-refusal-')).length,6);
+});
+
+
+test('derived value-table aliases retain scalar/object type and old-name refusal controls',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const scalar=cases.get('derived-value-scalar-receiver');
+ assert.deepEqual(scalar.expected,[{value:null},{value:2},{value:2}]);
+ assert.deepEqual(scalar.expected,cases.get('derived-value-scalar-json-control').expected);
+ assert.deepEqual(scalar.columns,[{name:'value',contract:{type:'number',nullable:true}}]);
+ const object=cases.get('derived-value-object-whole-and-property');
+ assert.deepEqual(object.expected,cases.get('derived-value-object-json-control').expected);
+ assert.equal(object.columns[0].contract.nullable,true);
+ assert.equal(object.columns[0].contract.additional_properties,false);
+ assert.equal(Object.hasOwn(object.parameterDeclarations.items.items,'additional_properties'),false);
+ assert.equal(Object.hasOwn(JSON.parse(cases.get('derived-value-object-json-control').text).params.items.items,'additional_properties'),false);
+ assert.equal(object.columns[0].contract.fields.id.nullable,false);
+ assert.equal(object.columns[1].contract.nullable,true);
+ assert.deepEqual(cases.get('derived-value-offset-row-columns').columns,
+ [{name:'value',contract:{type:'number',nullable:true}},{name:'position',contract:{type:'number',nullable:false}}]);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('derived-value-refusal-')).length,4);
+});
+
+
+
+test('ordinary row fixtures distinguish NULL fields, immutable bindings and rebound columns',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const source=cases.get('whole-row-offset-receiver'),control=cases.get('whole-row-json-control');
+ assert.deepEqual(source.expected,[{row:{element:2,position:0},value:2,position:0},{row:{element:null,position:1},value:null,position:1},{row:{element:2,position:2},value:2,position:2}]);
+ assert.deepEqual(source.expected,control.expected);assert.deepEqual(source.columns,control.columns);
+ assert.equal(source.columns[0].contract.nullable,false);assert.equal(source.columns[0].contract.fields.element.nullable,true);
+ assert.deepEqual(cases.get('whole-row-immutable-set').expected[1],{row:{element:null,position:1},value:11,position:1});
+ assert.deepEqual(cases.get('whole-row-rebound-set').expected[1],{row:{element:11,position:1},value:11,position:1});
+ assert.deepEqual(cases.get('whole-row-computed-order').expected.map(r=>r.row.position),[2,1,0]);
+ assert.deepEqual(cases.get('whole-row-range-priority').expected[1],{value:{element:null,position:1},position:1});
+ assert.equal(cases.get('whole-row-range-priority').columns[0].contract.nullable,false);
+ for(const name of ['implicit-output-name','immutable-set','rebound-set','drop-rename-rebind','range-priority','computed-order']) assert.equal(cases.get('whole-row-'+name).format,'aql-text');
+ assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('whole-row-')).length,9);
+ assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('whole-row-refusal-')).length,4);
+});
+
+
+
+test('range-shadow fixtures distinguish input ranges, ORDER aliases and NULL object columns',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(c=>[c.name,c]));
+ assert.deepEqual(cases.get('range-shadow-order-alias').expected,[{element:2},{element:1},{element:0}]);
+ assert.deepEqual(cases.get('range-shadow-set-removes-range').expected,[{value:10,position:0},{value:11,position:1},{value:12,position:2}]);
+ for(const name of ['object-column','null-object-column']) {
+  assert.deepEqual(cases.get('range-shadow-'+name).expected,[{value:90}]);
+  assert.deepEqual(cases.get('range-shadow-'+name).columns,cases.get('range-shadow-object-column-json-control').columns);
+ }
+ assert.deepEqual(cases.get('range-shadow-where-row').expected,[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}]);
+ assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('range-shadow-')).length,7);
+ assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('range-shadow-refusal-')).length,2);
 });

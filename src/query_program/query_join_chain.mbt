@@ -14,14 +14,20 @@ priv struct JoinChainScope {
 }
 
 ///|
-// Explicit range-property receivers need the shared expression binder. This
+// Whole rows and explicit range-property receivers need the shared binder. This
 // applicability check does not decide whether a same-named value or range wins;
 // the ordinary scope resolver retains that distinction.
-fn join_has_range_property(
+fn join_has_range_expression(
   expression : @query.Expression,
   ranges : Array[@query.NamePart],
 ) -> Bool {
   for index in 0..<@query.expression_node_count(expression) {
+    if @query.expression_node(expression, index).unwrap().kind
+      is Reference(path) &&
+      path.length() == 1 &&
+      ranges.any(name => same_name(name, path[0])) {
+      return true
+    }
     guard @query.expression_node(expression, index).unwrap().kind
       is Property(receiver, _) else {
       continue
@@ -42,7 +48,7 @@ fn join_has_range_property(
 }
 
 ///|
-// RIGHT/FULL JOIN, GROUP, star, DISTINCT, range properties and column edits
+// RIGHT/FULL JOIN, GROUP, star, DISTINCT, row expressions and column edits
 // need the shared row scope. Pipe DISTINCT compares the current JOIN row;
 // SELECT DISTINCT orders through its materialized output aliases.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
@@ -63,17 +69,9 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     // A pre-JOIN predicate is stored on its JOIN part, rather than among
     // continuation operations. CTE JOIN specialization does not bind explicit
     // range receivers; use the existing shared row scope for that shape.
-    if part.pre_join_filter is Some(predicate) {
-      for node in 0..<@query.expression_node_count(predicate) {
-        if @query.expression_node(predicate, node).unwrap().kind
-          is Property(receiver, _) &&
-          group_reference_parts(predicate, receiver) is Some((path, members)) &&
-          path.length() == 1 &&
-          members.is_empty() &&
-          same_name(path[0], query_range_name(query)) {
-          return true
-        }
-      }
+    if part.pre_join_filter is Some(predicate) &&
+      join_has_range_expression(predicate, [query_range_name(query)]) {
+      return true
     }
     let range = match part.source_alias {
       Some(name) => Some(name)
@@ -102,7 +100,9 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
       Some(Order(terms)) => terms.map(term => term.expression)
       _ => []
     }
-    if expressions.any(expression => join_has_range_property(expression, ranges)) {
+    if expressions.any(expression => {
+        join_has_range_expression(expression, ranges)
+      }) {
       return true
     }
     if @query.operation_at(query, index)
