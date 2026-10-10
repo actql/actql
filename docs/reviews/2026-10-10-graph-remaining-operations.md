@@ -922,3 +922,49 @@ dependency and inventory files, 47/47 (`run-dlJxp5`,
 `focused-test-3AKjRu`). Public execution of these adjusted controls and the
 formal external package cohort remain pending. These selected checks do not
 establish all four operations' public completion or hosted CI coverage.
+
+### Complete restart observer configuration
+
+At clean `ee031e54088a4bcbf978b8f75636eda064664f04`, the formal five-package
+producer passed. External Local and HTTPS each completed the exact 44-case
+inventory (27 successes, 16 refusals and one execution failure), with four
+retained operation cohorts per transport. The original independent rows and
+schemas passed. Receipt `run-X9Tqz2` nevertheless failed in fresh-process
+reading: `InstalledHostInitializationFailed` with typed
+`InvalidCheckpointReviewers`. The reader had supplied only a fault hook as an
+authorization installation. The separate packed Host and portable selections
+did not start. This is not a successful complete packed campaign.
+
+The narrow four-operation fixture now generates complete private Host/reviewer
+credentials before initial execution and retains that exact configuration for
+the fresh reader. Its explicitly installed synthetic-Site account authorizes
+only the local principal and that Site's write boundary; Source authorization
+is separate, with no Model/Effect permission or bypass added.
+The existing checkpoint owner still validates the configuration. Both initial
+transports require an observed physical start, proving the hook is live;
+fresh attach, original-submission replay/lookup and close must add no physical
+start, Compute completion or advance. Non-Graph cohort behavior is unchanged.
+
+The changed observer and transport selections passed 14/14 on the working tree
+based on `ee031e54` (`run-5zP15P`, `focused-test-CBev7q`), including serialized
+credential preservation and rejection of a missing
+observer configuration. The external consumer and portable checks remain
+pending until their own terminal receipts. Full Core and hosted CI did not run.
+
+The first clean observer build at `12ea85a2805fb74a7acb778a70578a8e809a539b`
+packed successfully, but preflight stopped at an old exact-source-shape
+assertion in `public-query-profiles.test.mjs` (`run-qMSMz4`). No installed
+execution started. The assertion now retains both capacity arguments and
+checks that observer credentials are exclusive to the explicit Graph cohort
+on both entrances. That file plus the observer selection passed 41/41
+(`run-k4NAts`, `focused-test-bbLJZR`). The failed receipt and artifact remain
+bound to their original source; neither is relabeled as the amended source.
+
+Clean `ea05ceb1fb11837a9e513ff28f829735076a22d7` passed preflight 50/50 but
+then refused the first Graph input with `ACTQL_E_ACCOUNT_CONFIG_INVALID`
+(`run-q16A4l`): a configured checkpoint installation also requires the existing
+ordinary Site account. The fixture now retains that scoped synthetic account
+alongside its keys for both initial execution and restart. This explicitly
+changes the acceptance setup; it does not exempt Run acceptance or alter
+product authorization. Its first failure remains preserved, not counted as
+Graph execution coverage.

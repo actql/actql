@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+import {createPrivateKey, createPublicKey} from 'node:crypto';
+import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
+  from './fixtures/retained-graph-observer.mjs';
 import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
   from './fixtures/graph-remaining-operation-inputs.mjs';
 import {graphGraftSourceSuccesses, graphGraftSourceRefusals,
@@ -85,8 +88,33 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   const reader = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
   assert.ok(reader.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
   assert.ok(reader.includes('cohort.samples.length >= 1 && cohort.samples.length <= 2'));
-  assert.ok(reader.includes("['physical_start_reserved', 'computed', 'local_compute_advanced']"));
+  assert.ok(reader.includes('observeRetainedGraphDispatch(cohort.authorization, physicalDispatches)'));
+  assert.ok(corpus.includes('saved.authorization = authorization'));
+  assert.ok(corpus.includes("physicalDispatches.includes('physical_start_reserved')"));
   assert.equal(reader.match(/authorization: replayAuthorization/g)?.length, 2,
     'both real Local and HTTPS Hosts observe the installed physical boundary');
   assert.ok(reader.includes('assert.equal(physicalDispatches.length, beforePhysical'));
+});
+
+test('retained Graph observer preserves complete scoped Site authorization', () => {
+  const original = createRetainedGraphAuthorization();
+  const saved = JSON.parse(JSON.stringify(original));
+  assert.equal(saved.accountConfig, undefined);
+  const account = JSON.parse(saved.accountConfiguration);
+  assert.equal(account.entries.length, 1);
+  assert.equal(account.entries[0].outcome, 'allow');
+  assert.deepEqual(account.entries[0].connection, {any_of: ['actql-remote-host']});
+  assert.deepEqual(account.entries[0].operation, {any_of: ['write']});
+  assert.equal(createPublicKey(createPrivateKey(saved.hostKey.privateKey)).asymmetricKeyType, 'ed25519');
+  assert.equal(createPublicKey(saved.reviewers[0].publicKey).asymmetricKeyType, 'ed25519');
+  const events = [];
+  const observed = observeRetainedGraphDispatch(saved, events);
+  assert.deepEqual(observed.hostKey, original.hostKey);
+  assert.deepEqual(observed.reviewers, original.reviewers);
+  assert.equal(observed.accountConfiguration, original.accountConfiguration);
+  for (const name of ['physical_start_reserved', 'computed', 'local_compute_advanced', 'cleanup']) {
+    observed.faultInjection(name);
+  }
+  assert.deepEqual(events, ['physical_start_reserved', 'computed', 'local_compute_advanced']);
+  assert.throws(() => observeRetainedGraphDispatch(undefined, events), /MissingRetainedGraphAuthorization/);
 });

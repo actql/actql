@@ -111,6 +111,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
   ['scripts/fixtures/graph-mean-source-input.mjs', 'graph-mean-source-input.mjs'],
   ['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs'],
+  ['scripts/fixtures/retained-graph-observer.mjs', 'retained-graph-observer.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],

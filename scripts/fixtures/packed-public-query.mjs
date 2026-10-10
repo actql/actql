@@ -54,6 +54,8 @@ import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
 import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
   from './graph-remaining-operation-inputs.mjs';
+import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
+  from './retained-graph-observer.mjs';
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -1058,13 +1060,16 @@ const recordString = mode => item => {
 };
 const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
 const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
-const recordCohort = (mode, directory, cohort) => {
+const recordCohort = (mode, directory, cohort, authorization) => {
   // Save independently authored boundary oracles for the existing fresh-process
   // public Client regression; it never imports or reruns the partition helper.
   const boundaryNames = new Set([cohort.successes[0]?.name,
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
-  if (graphRemainingOperationsOnly) saved.expectedSampleNames = [...boundaryNames];
+  if (graphRemainingOperationsOnly) {
+    saved.expectedSampleNames = [...boundaryNames];
+    saved.authorization = authorization;
+  }
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return item => {
     recordString(mode)(item);
@@ -1079,11 +1084,17 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
+  const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+  const physicalDispatches = [];
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
-      sourceProfilePath, hostCapacityPolicy}}, {requestPrefix: 'packed-local',
+      sourceProfilePath, hostCapacityPolicy,
+      ...(authorization === undefined ? {} : {
+        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)})}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
-    completedCase: recordCohort('local', directory, cohort), ...cohort});
+    completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
+  if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
+    'Initial Graph execution proves the actual dispatch hook is live');
   const acceptedRuns = observe(directory)().acceptedRuns;
   assert.equal(acceptedRuns, cohortRunCount(cohort));
   localAcceptedRuns += acceptedRuns;
@@ -1098,8 +1109,12 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
+    const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+    const physicalDispatches = [];
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
+      ...(authorization === undefined ? {} : {
+        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)}),
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1113,7 +1128,9 @@ let remoteAcceptedRuns = 0;
       if (index === 0) await exercisePublicCheck(options);
       await exercisePublicQueryInput(connect, options,
         {requestPrefix: 'packed-http', observe: observe(directory), prepareCase,
-          completedCase: recordCohort('remote', directory, cohort), ...cohort});
+          completedCase: recordCohort('remote', directory, cohort, authorization), ...cohort});
+      if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
+        'Initial Graph execution proves the actual dispatch hook is live');
       const acceptedRuns = observe(directory)().acceptedRuns;
       assert.equal(acceptedRuns, cohortRunCount(cohort));
       remoteAcceptedRuns += acceptedRuns;

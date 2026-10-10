@@ -180,7 +180,9 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
   assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
   assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
-  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy}'));
+  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
+  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
+    'observer credentials are limited to the explicit Graph cohort on both Hosts');
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 

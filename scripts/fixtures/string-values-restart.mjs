@@ -1,4 +1,5 @@
 import {decodeRetainedFixture} from './retained-fixture-values.mjs';
+import {observeRetainedGraphDispatch} from './retained-graph-observer.mjs';
 // Fresh process, installed packages only: restore published Results, without
 // submitting source or invoking a compiler to recreate missing data.
 import assert from 'node:assert/strict';
@@ -113,15 +114,12 @@ const completedRoots = [];
 // Count the real installed dispatch boundary, not only newly admitted Runs.
 // These private hooks do not change account configuration or Run identity.
 const physicalDispatches = [];
-const replayAuthorization = {faultInjection(name) {
-  if (['physical_start_reserved', 'computed', 'local_compute_advanced'].includes(name)) {
-    physicalDispatches.push(name);
-  }
-}};
 for (const cohort of cohorts) {
   if (mode !== undefined && cohort.mode !== mode) continue;
   worker?.check();
   const verifyNoPhysicalReplay = cohort.expectedSampleNames !== undefined;
+  const replayAuthorization = verifyNoPhysicalReplay
+    ? observeRetainedGraphDispatch(cohort.authorization, physicalDispatches) : undefined;
   const beforePhysical = physicalDispatches.length;
   if (cohort.mode === 'local') {
     await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
