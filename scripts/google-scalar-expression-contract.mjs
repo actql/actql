@@ -37,6 +37,12 @@ export const googleScalarLaws = {
     evaluation: 'Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. TRUNC introduces no secondary evaluation or value-domain failure for an admitted finite number.',
     identity: 'The closed source form is {trunc: expression}; the closed machine node is {op: trunc, body: expression_node}. Retain the TRUNC node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
+  trim: {
+    signature: 'Exactly one string operand; the result is string with the operand nullability. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload, optional character set or explicit collation is admitted.',
+    value: 'Remove the longest leading and trailing sequences of Unicode 16.0 White_Space code points: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Preserve the exact intervening Unicode scalar sequence without normalization, case folding or line-break conversion. Empty and all-whitespace strings produce the empty string. U+FEFF and U+200B are not White_Space and remain unchanged. NULL produces NULL.',
+    evaluation: 'Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.',
+    identity: 'The existing closed source form is {trim: expression}; the closed machine node is {op: trim, body: expression_node}. Retain the TRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning, including the historical ASCII-only rule.',
+  },
   sign: {
     signature: 'Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload or non-finite value is admitted.',
     value: 'Return exactly -1 for a negative finite number, canonical positive zero for either zero sign, and exactly 1 for a positive finite number. This includes subnormal and largest finite magnitudes. NULL produces NULL.',
@@ -44,7 +50,22 @@ export const googleScalarLaws = {
     identity: 'The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
 };
-const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', round: 'abs', trunc: 'abs'};
+const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', round: 'abs', trunc: 'abs'};
+
+// Unicode 16.0 PropList.txt White_Space, not host-language trim or regex \s.
+export const trimWhiteSpaceCodePoints = [
+  '0009..000D', '0020', '0085', '00A0', '1680', '2000..200A',
+  '2028', '2029', '202F', '205F', '3000',
+];
+export function updateTrimScalarLaw(scalar, write = false) {
+  assert.equal(scalar.unicode.data_version, '16.0', 'TRIM Unicode data version');
+  const expected = {trim: 'unicode-white-space',
+    trim_white_space_code_points: trimWhiteSpaceCodePoints};
+  if (write) Object.assign(scalar.unicode, structuredClone(expected));
+  else for (const [key, value] of Object.entries(expected)) {
+    assert.deepEqual(scalar.unicode[key], value, `stale TRIM scalar law ${key}`);
+  }
+}
 
 // Copy shapes, not semantics, and keep each embedding's local expression refs.
 function visit(value, write, counts) {
@@ -107,10 +128,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const paths = ['spec/contracts/actql-expressions.json', 'spec/contracts/actql-protocol-schemas.json'];
   const bodies = paths.map(path => JSON.parse(readFileSync(path, 'utf8')));
   const grammar = readFileSync(bodies[0].grammar, 'utf8');
+  const scalarPath = 'spec/dependencies/aoa-rela-scalar-laws.json';
+  const aoaPath = 'spec/contracts/actql-aoa.json';
+  const scalar = JSON.parse(readFileSync(scalarPath, 'utf8'));
+  const aoa = JSON.parse(readFileSync(aoaPath, 'utf8'));
   if (process.argv.includes('--write')) {
+    updateTrimScalarLaw(scalar, true);
+    aoa.rela_scalar_law_manifest_cid = machineCid(scalar);
+    writeFileSync(scalarPath, JSON.stringify(scalar, null, 2) + '\n');
+    writeFileSync(aoaPath, JSON.stringify(aoa, null, 2) + '\n');
     updateGoogleScalarContracts(...bodies, grammar, true);
     bodies.forEach((body, index) => writeFileSync(paths[index], JSON.stringify(body, null, 2) + '\n'));
   }
-  console.log('GoogleSQL STRING boundary/search and finite-number SIGN/ROUND/TRUNC contracts verified:',
+  updateTrimScalarLaw(scalar);
+  assert.equal(aoa.rela_scalar_law_manifest_cid, machineCid(scalar), 'TRIM scalar manifest pin');
+  console.log('GoogleSQL STRING boundary/search/TRIM and finite-number SIGN/ROUND/TRUNC contracts verified:',
     updateGoogleScalarContracts(...bodies, grammar));
 }
