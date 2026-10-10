@@ -9,6 +9,9 @@ from __future__ import annotations
 import ctypes as C
 from dataclasses import dataclass
 import hashlib
+import math
+import re
+import struct
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -85,6 +88,43 @@ class DuckDBTransferLimits:
             raise ValueError('Invalid DuckDB row capacity')
 
 
+@dataclass(frozen=True, slots=True)
+class DuckDBParameter:
+    """Existing Core physical scalar projection, never logical admission.
+
+    DOUBLE uses the existing sixteen lowercase hexadecimal IEEE-bit payload.
+    The initial physical binding profile supports BOOLEAN, DOUBLE and VARCHAR,
+    including their NULL projections. Other native bindings are not admitted.
+    """
+
+    type_id: str
+    value: bool | str | None
+
+
+def _parameter_call(parameter: DuckDBParameter,
+                    limits: DuckDBTransferLimits, remaining: int) -> tuple[str, tuple[Any, ...]]:
+    if (type(parameter) is not DuckDBParameter or type(parameter.type_id) is not str
+            or parameter.type_id not in (
+            'BOOLEAN', 'DOUBLE', 'VARCHAR')):
+        raise ValueError('Unsupported DuckDB physical parameter')
+    value = parameter.value
+    if value is None:
+        return 'null', ()
+    if parameter.type_id == 'BOOLEAN' and type(value) is bool:
+        return 'boolean', (value,)
+    if parameter.type_id == 'DOUBLE' and type(value) is str:
+        if not re.fullmatch('[0-9a-f]{16}', value):
+            raise ValueError('Invalid DuckDB physical number bits')
+        number, = struct.unpack('>d', bytes.fromhex(value))
+        if not math.isfinite(number):
+            raise ValueError('Nonfinite DuckDB physical parameter')
+        return 'double', (number,)
+    if parameter.type_id == 'VARCHAR' and type(value) is str:
+        text = _bounded_utf8(value, min(limits.max_cell_bytes, remaining))
+        return 'varchar_length', (text, len(text))
+    raise ValueError('Invalid DuckDB physical parameter payload')
+
+
 class DuckDBLibrary:
     """Explicit installed component, with no package discovery or download."""
 
@@ -112,6 +152,10 @@ class DuckDBLibrary:
             'interrupt': ([p], None),
             'prepare': ([p, C.c_char_p, pp], C.c_int),
             'nparams': ([p], C.c_uint64),
+            'bind_null': ([p, C.c_uint64], C.c_int),
+            'bind_boolean': ([p, C.c_uint64, C.c_bool], C.c_int),
+            'bind_double': ([p, C.c_uint64, C.c_double], C.c_int),
+            'bind_varchar_length': ([p, C.c_uint64, C.c_char_p, C.c_uint64], C.c_int),
             'destroy_prepare': ([pp], None),
             'execute_prepared_streaming': ([p, rp], C.c_int),
             'destroy_result': ([rp], None),
@@ -204,13 +248,23 @@ class DuckDBConnection:
         if self._config.value:
             self._api.duckdb_destroy_config(C.byref(self._config))
 
-    def prepare(self, checked_sql: str, limits: DuckDBTransferLimits) -> DuckDBStream:
+    def prepare(self, checked_sql: str, limits: DuckDBTransferLimits, *,
+                parameters: tuple[DuckDBParameter, ...] = ()) -> DuckDBStream:
         self._owned()
         if (type(checked_sql) is not str or not checked_sql or '\0' in checked_sql
                 or len(checked_sql) > 1_048_576
-                or type(limits) is not DuckDBTransferLimits):
+                or type(limits) is not DuckDBTransferLimits
+                or type(parameters) is not tuple or len(parameters) > 32):
             raise ValueError('Invalid checked DuckDB transfer')
         encoded_sql = _bounded_utf8(checked_sql, 1_048_576)
+        # Every bounded immutable projection is checked before native prepare.
+        bindings: list[tuple[str, tuple[Any, ...]]] = []
+        remaining = limits.max_row_bytes
+        for parameter in parameters:
+            name, arguments = _parameter_call(parameter, limits, remaining)
+            if name == 'varchar_length':
+                remaining -= len(arguments[0])
+            bindings.append((name, arguments))
         with self._io:
             if self._closing or self._closed or self._streams:
                 raise DuckDBPhysicalError('DuckDB connection is unavailable')
@@ -221,8 +275,12 @@ class DuckDBConnection:
                 if self._api.duckdb_prepare(self._connection,
                         encoded_sql, C.byref(stream._statement)) != 0:
                     raise DuckDBPhysicalError('DuckDB checked query preparation failed')
-                if self._api.duckdb_nparams(stream._statement) != 0:
-                    raise DuckDBPhysicalError('DuckDB query parameters are not bound')
+                if self._api.duckdb_nparams(stream._statement) != len(bindings):
+                    raise DuckDBPhysicalError('DuckDB query parameter count mismatch')
+                for index, (name, arguments) in enumerate(bindings, start=1):
+                    bind = getattr(self._api, 'duckdb_bind_' + name)
+                    if bind(stream._statement, index, *arguments) != 0:
+                        raise DuckDBPhysicalError('DuckDB physical parameter binding failed')
                 return stream
             except BaseException as error:
                 try:

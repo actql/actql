@@ -17,7 +17,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_duckdb import (  # noqa: E402
-    DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBTransferLimits,
+    DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBTransferLimits, DuckDBParameter,
 )
 
 parser = argparse.ArgumentParser()
@@ -79,6 +79,42 @@ class StandaloneDuckDBTests(unittest.TestCase):
             ['f', 'FLOAT', None, None], ['dec', 'DECIMAL', '5', '2'],
             ['huge', 'HUGEINT', None, None], ['uhuge', 'UHUGEINT', None, None],
         ])
+
+    def test_core_scalar_parameter_codec_preserves_bits_null_and_raw_text(self):
+        parameters = (DuckDBParameter('DOUBLE', '3ff8000000000000'),
+                      DuckDBParameter('DOUBLE', '8000000000000000'),
+                      DuckDBParameter('VARCHAR', 'é\r\n\0😀'),
+                      DuckDBParameter('BOOLEAN', True), DuckDBParameter('VARCHAR', None))
+        self.stream = self.connection.prepare(
+            'SELECT ?::DOUBLE AS n, ?::DOUBLE AS zero, ?::VARCHAR AS text, '
+            '?::BOOLEAN AS flag, ?::VARCHAR AS missing', DuckDBTransferLimits(),
+            parameters=parameters)
+        self.stream.execute()
+        destination = bytearray(256)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]),
+            b'[["3ff8000000000000"],["8000000000000000"],'
+            b'["e\xcc\x81\\u000d\\u000a\\u0000\xf0\x9f\x98\x80"],[true],[null]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+
+    def test_bound_metadata_names_select_exact_table_without_interpolation(self):
+        self.rows('CREATE TABLE "名/称~" AS SELECT 7::BIGINT AS n')
+        self.assertTrue(self.stream.close())
+        self.stream = self.connection.prepare(
+            'SELECT column_name FROM information_schema.columns '
+            'WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position',
+            DuckDBTransferLimits(), parameters=(DuckDBParameter('VARCHAR', 'main'),
+                                                DuckDBParameter('VARCHAR', '名/称~')))
+        self.stream.execute()
+        destination = bytearray(32)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]), b'[["n"]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+
+    def test_unbound_parameter_is_refused_before_execution(self):
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'count mismatch'):
+            self.connection.prepare('SELECT ?::DOUBLE AS n', DuckDBTransferLimits())
+        self.assertEqual(self.rows('SELECT 7::BIGINT AS n'), [b'["7"]'])
 
     def test_one_row_columns_preserve_native_values_and_empty_end(self):
         stream = self.query("SELECT i::BIGINT AS n, CASE WHEN i = 1 THEN NULL "
@@ -242,4 +278,4 @@ print(json.dumps({'source_sha': source, 'library': str(args.library),
     'python': sys.version, 'platform': platform.platform(),
     'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
     'public_local_acceptance': False, 'wheel_acceptance': False}))
-sys.exit(0 if result.wasSuccessful() and result.testsRun == 13 and not result.skipped else 1)
+sys.exit(0 if result.wasSuccessful() and result.testsRun == 16 and not result.skipped else 1)

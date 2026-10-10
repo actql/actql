@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 
 from actql_sdk._local_duckdb import (
     DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBStream,
-    DuckDBTransferLimits, _RowWriter, _bounded_utf8,
+    DuckDBTransferLimits, DuckDBParameter, _RowWriter, _bounded_utf8,
 )
 
 
@@ -172,6 +172,67 @@ class PhysicalDuckDBTests(unittest.TestCase):
         self.assertTrue(stream.close())
         self.assertTrue(stream._owner.close())
 
+    def parameter_connection(self, count=1):
+        owner = self.connection()
+        def prepare(connection, text, statement):
+            statement._obj.value = 19
+            return 0
+        owner._api.duckdb_prepare = Mock(side_effect=prepare)
+        owner._api.duckdb_nparams = Mock(return_value=count)
+        owner._api.duckdb_bind_null = Mock(return_value=0)
+        owner._api.duckdb_bind_boolean = Mock(return_value=0)
+        owner._api.duckdb_bind_double = Mock(return_value=0)
+        owner._api.duckdb_bind_varchar_length = Mock(return_value=0)
+        owner._api.duckdb_execute_prepared_streaming = Mock()
+        return owner
+
+    def test_parameter_payload_refusal_precedes_native_prepare_and_execute(self):
+        bad = [DuckDBParameter('DOUBLE', True), DuckDBParameter('DOUBLE', 'NaN'),
+               DuckDBParameter('DOUBLE', '7ff0000000000000'),
+               DuckDBParameter('DOUBLE', '7ff8000000000000'),
+               DuckDBParameter('BOOLEAN', 'true'), DuckDBParameter('VARCHAR', False),
+               DuckDBParameter('VARCHAR', '\ud800'), DuckDBParameter('DATE', '1')]
+        for parameter in bad:
+            owner = self.parameter_connection()
+            with self.subTest(parameter=parameter), self.assertRaises(ValueError):
+                owner.prepare('SELECT ?', DuckDBTransferLimits(), parameters=(parameter,))
+            owner._api.duckdb_prepare.assert_not_called()
+            owner._api.duckdb_execute_prepared_streaming.assert_not_called()
+            self.assertEqual(owner._streams, set())
+
+    def test_parameter_count_mismatch_does_not_execute_or_leave_success(self):
+        owner = self.parameter_connection(count=2)
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'count mismatch'):
+            owner.prepare('SELECT ?, ?', DuckDBTransferLimits(),
+                          parameters=(DuckDBParameter('VARCHAR', None),))
+        owner._api.duckdb_execute_prepared_streaming.assert_not_called()
+        owner._api.duckdb_bind_null.assert_not_called()
+        self.assertEqual(owner._streams, set())
+        owner._api.duckdb_destroy_prepare.assert_called_once()
+
+    def test_parameter_utf8_total_refusal_precedes_excess_copy(self):
+        owner = self.parameter_connection(count=2)
+        with patch('actql_sdk._local_duckdb._bounded_utf8', wraps=_bounded_utf8) as bounded:
+            with self.assertRaises(ValueError):
+                owner.prepare('SELECT ?, ?', DuckDBTransferLimits(max_cell_bytes=8, max_row_bytes=4),
+                    parameters=(DuckDBParameter('VARCHAR', 'e\u0301'), DuckDBParameter('VARCHAR', '😀')))
+            self.assertEqual(bounded.call_args.args, ('😀', 1))
+        owner._api.duckdb_prepare.assert_not_called()
+
+    def test_failed_binding_cleanup_retains_same_statement_for_retry(self):
+        owner = self.parameter_connection()
+        owner._api.duckdb_bind_double.return_value = 1
+        owner._api.duckdb_destroy_prepare.side_effect = [RuntimeError('cleanup failed'), None]
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'binding failed') as caught:
+            owner.prepare('SELECT ?', DuckDBTransferLimits(),
+                          parameters=(DuckDBParameter('DOUBLE', '8000000000000000'),))
+        stream = caught.exception.physical_cleanup
+        self.assertIn(stream, owner._streams)
+        self.assertEqual(stream._statement.value, 19)
+        owner._api.duckdb_execute_prepared_streaming.assert_not_called()
+        self.assertFalse(owner.close())
+        self.assertTrue(stream.close())
+        self.assertTrue(owner.close())
 
 
 if __name__ == '__main__':

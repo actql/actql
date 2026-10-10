@@ -106,14 +106,25 @@ one worker, disabled external access and extension loading, and no temporary
 spill. These physical settings alone are not an aggregate memory guarantee.
 
 SQL arrives from the existing checked acquisition Owner. The physical adapter
-does not parse, authorize or repair it. Current binding-free physical transfers
-refuse unbound parameters. Unsupported native types are rejected before rows
+does not parse, authorize or repair it. The private physical binding profile accepts the existing Core BOOLEAN,
+DOUBLE and VARCHAR projections, including explicit NULL. DOUBLE is transferred
+using the existing sixteen lowercase hexadecimal IEEE-bit payload; text uses
+length-aware binding and preserves Unicode, CR/LF and embedded NULL. DATE,
+TIMESTAMP and DECIMAL binding are not yet supported by this physical profile.
+These capabilities must be checked before product dispatch. Missing parameters
+are a count mismatch, not NULL or a default value. Unsupported native types are rejected before rows
 are fetched. Core remains responsible for pre-execution Capability admission.
 
 Row and metadata encoding writes only into a bounded, caller-reserved bytearray.
 Native VARCHAR length is inspected before any Python cell copy. JSON escaping
 cannot grow that buffer, numeric payloads follow the existing native codec,
-and raw Unicode, embedded NULL and line endings are preserved. A capacity
+and raw Unicode, embedded NULL and line endings are preserved. Parameter input
+is an immutable tuple of at most 32 scalar projections. Each text copy is
+counted in UTF-8 before allocation against both the cell ceiling and the
+remaining shared parameter-copy allowance (the row-byte ceiling). All payload
+checks precede native preparation; exact native arity and binding checks
+precede execution. The product reservation must account for simultaneous Core
+input, Python encoded parameters and DuckDB-owned parameter copies. A capacity
 failure does not deliver a partial row, claim EOF or authorize a repeated query.
 
 For the existing Native receipt decoder, `read_column_row` writes one-row
