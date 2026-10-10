@@ -84,12 +84,15 @@ artifact correspondence belong in the PR validation record.
   claim pre-I/O admission for that shape.
 - Hosted Cloud / Native Sheets execution, arbitrary queries, row-addressed
   writes and automatic OAuth refresh are outside this unit.
-- Real-service acceptance lacks an authorized spreadsheet/tab, credential
-  reference and operation scope. No Google service mutation has been performed.
+- The original external environment dependency was resolved on 2026-10-10.
+  Real read, approved two-row append and separate-process saved Result replay
+  passed; see the [fixed-artifact report](2026-10-10-sheets-real-service-acceptance.md).
+  Real write was exercised over HTTPS; Local write and uncertainty/cleanup
+  fault injection were exercised against the controlled service, not Google.
 - Hosted CI remains stopped. Local evidence is not CI success, Preview success
   or npm release readiness. Full Core, proof and performance campaigns are not
   local requirements for this adapter change.
 
 The detailed supported values, installation and public examples are in
-[Sheets](../connectors/sheets.md). Real-service acceptance is the remaining
-external condition, not permission to silently expand the service scope.
+[Sheets](../connectors/sheets.md). The real campaign's two-row permission is
+exhausted. Its completion is not permission to expand the service scope.

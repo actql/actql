@@ -1,9 +1,11 @@
-# Sheets real-service acceptance preparation
+# Sheets real-service acceptance and operator checklist
 
-This is a preparation checklist, not a completed Google acceptance report.
-The existing connector, common Effect owners and public Local/HTTPS fixture
-acceptance are retained. No new authentication service, approval path or
-secret store is required. CI remains stopped.
+Real Google read over public Local/HTTPS and approved append over public HTTPS
+passed on 2026-10-10, including separate-process approval, execution and saved
+Result replay. See the [fixed-artifact evidence](../reviews/2026-10-10-sheets-real-service-acceptance.md).
+The checklist below is for a new isolated campaign, not permission to repeat
+the completed campaign. No new authentication service, approval path or secret
+store is required. CI remains stopped.
 
 ## Environment the resource owner must supply
 
@@ -68,17 +70,15 @@ Booleans as their actual types. A1:C1 are optional headers and are not read.
 | 8 | Literal `error` | Formula `=1/0` | TRUE |
 | 9 | Literal `outside-range` | 99 | TRUE |
 
-The normal range is **A2:C7**, represented as zero-based, end-exclusive rows
-`[1,7)` and columns `[0,3)`. Columns are Text/nonnullable, Number/nullable,
+The normal range is **A2:C4**, represented as zero-based, end-exclusive rows
+`[1,4)` and columns `[0,3)`. Columns are Text/nonnullable, Number/nullable,
 Boolean/nullable. The independent expected Named Result is:
 
 ```json
 [
   {"text":"=literal","number":0,"flag":false},
   {"text":"e\u0301","number":7,"flag":true},
-  {"text":"e\u0301","number":7,"flag":true},
-  {"text":"","number":null,"flag":false},
-  {"text":"missing","number":null,"flag":null}
+  {"text":"e\u0301","number":7,"flag":true}
 ]
 ```
 
@@ -88,8 +88,14 @@ observed distinction and report the discrepancy before changing the contract
 or expectations. The codec uses calculated `effectiveValue`, not display text;
 see [CellData](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/cells#CellData).
 
-Two separate read-only installations additionally bind A7:C7 (empty Result)
-and A8:C8 (typed cell-error refusal, no Result). Use distinct profile,
+Separate read-only installations additionally bind A6:C7 (one row containing
+`"missing"`, NULL Number and NULL Boolean), A7:C7 (empty Result), A2:C7 (empty
+formula case), and A8:C8 (cell-error refusal, no Result). In this real campaign,
+Google returned A5's `userEnteredValue.formulaValue` but no `effectiveValue`.
+The existing codec refused `MissingEffectiveValue`; it did not infer empty
+Text or NULL. If another API response contains an actual empty `stringValue`,
+the codec retains it as Text. That latter case has controlled-service evidence,
+not real Google success evidence from this campaign. Use distinct profile,
 publication and state paths for each admitted range, not an in-place binding
 change to an existing Run. Row 9 and the header must never appear in the normal
 read. Codec exact/one-short evidence is already available; it is not proof of
@@ -105,9 +111,10 @@ The example's `credentialPrivateKeyPath` is the common local grant-signing key,
 stay private. Existing local key generation and account/reviewer installation
 are A's preparation work; the user need not invent those materials.
 
-Source/Effect profile formats and ordinary Programs already exist in the
-[public connector guide](sheets.md). A will connect those profiles to the
-current principal, configured reviewer and Host keys using the existing
+Source/Effect profile formats and ordinary Programs are in the
+[public connector guide](sheets.md). The executable
+[external operator example](../../examples/sheets/README.md) connects profiles
+to the current principal, configured reviewer and Host keys using existing
 authorization APIs. In particular, keep the account's append permission
 delegated for review, and explicitly allow read/metadata target revalidation.
 Installation does not grant authorization or human approval. Do not copy the
@@ -160,6 +167,7 @@ credentials or full journal bodies. Preserve original failure receipts.
 Stop before I/O if resource ownership, permitted range/write cap, current
 authorization or credential readiness is missing. Stop before further writes
 on uncertainty, a wrong target, unsupported values or exhausted permission.
-No real Google read/write, package publication, deployment, or CI restart has
-been performed by preparing this checklist. Completion still requires actual
-execution and third-party installation evidence on the selected release SHA.
+The completed campaign exhausted its two-row permission. The data and private
+custody remain retained; no deletion is authorized. A new campaign requires a
+new explicit resource-owner decision. Local RC installation does not imply
+npm publication, deployment, Preview or CI success.
