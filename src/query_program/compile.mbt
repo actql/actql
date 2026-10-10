@@ -404,7 +404,8 @@ fn same_expression(
         }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
-        if !same_path(x, y) || ax.length() != ay.length() {
+        if (!same_path(x, y) && !@expression.same_scalar_function(x, y)) ||
+          ax.length() != ay.length() {
           return false
         }
         for i in 0..<ax.length() {
@@ -426,7 +427,7 @@ fn same_expression(
         pending.push((child_a, child_b))
       }
       (Binary(x, left_a, right_a), Binary(y, left_b, right_b)) => {
-        if x != y {
+        if x != y && !@expression.same_binary_operator(x, y) {
           return false
         }
         pending.push((left_a, left_b))

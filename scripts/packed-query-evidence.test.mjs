@@ -311,3 +311,30 @@ test('child cwd outside Git retains the recorder repository source identity', t 
   assert.deepEqual(outcome.source, recorder.summary.source);
   assert.match(outcome.source.revision, /^[a-f0-9]{40}$/u);
 });
+
+
+test('Client packed reaches ownership controls through its normal driver before installation', () => {
+  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['client-packed'];
+  assert.equal(job['timeout-minutes'], 30);
+  const run = job.steps.find(step => step.id === 'packed-query').run;
+  assert.match(run, /node scripts\/test-packed-public-query\.mjs/u);
+  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const controls = driver.indexOf("'scripts/packed-query-transports.test.mjs'");
+  const packages = driver.indexOf("const packages = ['client-wire'");
+  assert.ok(controls >= 0 && packages > controls, 'the normal driver executes controls before package installation');
+  assert.ok(driver.includes("ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'"));
+});
+
+
+test('packed runtime children retain security Node options and inherited CA certificates', () => {
+  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const start = driver.indexOf("for (const name of ['NODE_PATH'");
+  const end = driver.indexOf('const exerciseInferSource =', start);
+  assert.ok(start >= 0 && end > start);
+  const removal = driver.slice(start, end);
+  assert.doesNotMatch(removal, /NODE_OPTIONS|NODE_EXTRA_CA_CERTS/u);
+  assert.ok(driver.includes('await readFile(resolve(environment.NODE_EXTRA_CA_CERTS))'));
+  assert.ok(driver.includes("await readFile(join(root, 'remote.crt'))"));
+  assert.ok(driver.includes('NODE_EXTRA_CA_CERTS: runtimeCaPath'));
+});

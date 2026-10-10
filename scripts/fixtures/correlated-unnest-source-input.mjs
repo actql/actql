@@ -101,8 +101,8 @@ export const correlatedUnnestSuccesses = [
     format: 'json', parameterDeclarations: undefined,
     expected: [{id: 1, element: 1, position: 0}, {id: 2, element: 2, position: 0}],
   }),
-  success('immutable-range', pipe.replace('|> CROSS', '|> SET items = [9] |> CROSS'), {format: 'aql-text'}),
-  success('current-column', pipe.replace('|> CROSS', '|> SET items = [9] |> CROSS').replace('UNNEST(p.items)', 'UNNEST(items)'),
+  success('immutable-range', pipe.replace('|> CROSS', '|> SELECT id, items |> AS p |> SET items = [9] |> CROSS'), {format: 'aql-text'}),
+  success('current-column', pipe.replace('|> CROSS', '|> SELECT id, items |> AS p |> SET items = [9] |> CROSS').replace('UNNEST(p.items)', 'UNNEST(items)'),
     // SET's literal [9] has nonnullable numeric elements; p.items retains its original nullable item contract.
     {format: 'aql-text', columns: [columns[0], {name: 'element', contract: number}, columns[2]],
       expected: [{id: 1, element: 9, position: 0}, {id: 2, element: 9, position: 0},
@@ -148,7 +148,7 @@ export const correlatedUnnestSuccesses = [
   success('inner-empty', innerSql, {parameters: {parents: []}, expected: []}),
   success('inner-immutable-json-control', JSON.stringify(innerCorrelatedUnnestImmutableProgram),
     {format: 'json', parameterDeclarations: undefined, expected: immutableInnerExpected}),
-  success('inner-immutable-parent', innerPipe.replace('|> JOIN', '|> SET id = 99 |> JOIN')
+  success('inner-immutable-parent', innerPipe.replace('|> JOIN', '|> SELECT id, items |> AS p |> SET id = 99 |> JOIN')
     .replace('SELECT p.id,', 'SELECT id,'),
     {format: 'aql-text', expected: immutableInnerExpected}),
   success('inner-data', 'DATA expanded = ' + innerPipe + '; FROM expanded |> RESULT answer',
