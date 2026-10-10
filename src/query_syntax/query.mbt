@@ -1423,7 +1423,7 @@ fn QueryParser::value_projection(
   } else {
     self.optional_output_alias()
   }
-  if (aggregate is Some(_) || analytic is Some(_)) && name is None {
+  if analytic is Some(_) && name is None {
     raise QueryAbort("Function output requires a name", self.peek().start)
   }
   {

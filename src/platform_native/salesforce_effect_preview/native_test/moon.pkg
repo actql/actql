@@ -1,0 +1,14 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/platform_native/salesforce_effect_preview" @preview,
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/platform_native/credential_resource" @resource,
+  "actql/actql/remote_credential" @credential,
+  "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/signature",
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+} for "test"
