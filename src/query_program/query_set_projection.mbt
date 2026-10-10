@@ -9,6 +9,7 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       Order(_)
       | Limit(_, _)
       | Where(_)
+      | Distinct
       | Set(_)
       | Drop(_)
       | Rename(_)
