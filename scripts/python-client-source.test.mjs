@@ -68,3 +68,27 @@ for(const facade of ['async','sync'])test(`wheel: ${facade} Source, explicit app
   const events=(await readFile(`${installation}.python-owner-events.jsonl`,'utf8')).trim().split('\n').map(JSON.parse);
   await writeFile(`${installation}.python-receipt.json`,JSON.stringify({phases,pids,queries:fixture.queries(),writes:fixture.writes().length,events},null,2)+'\n',{mode:0o600});
 });
+
+for(const facade of ['async','sync'])test(`wheel: ${facade} live waiting Run cancellation and conflict survive Host restart`,async t=>{
+  const fixture=await readComputeEffectInstallation(t),requestId=`python-cancel-${facade}`;
+  await fixture.embedded(requestId,fixture.program(),{transport:'https'});
+  const installation=join(fixture.root,`embedded-${requestId}.json`);
+  await chmod(installation,0o600);
+  const custody=join(fixture.root,`${requestId}.custody.json`),pids=[];
+  let host=await openHost(installation,t);pids.push(host.pid);
+  const consume=async phase=>assert.deepEqual(await python([
+    resolve('scripts/fixtures/python-client-source.py'),phase,facade,host.endpoint,installation,custody],fixture.root),
+    {phase,facade,success:true});
+  await consume('submit');
+  assert.equal(fixture.queries(),1);
+  assert.equal(fixture.writes().length,0);
+  await consume('cancel');
+  assert.equal(fixture.queries(),1);
+  assert.equal(fixture.writes().length,0,'Conflicted or cancelled Runs never write');
+  await host.close();host=await openHost(installation,t);pids.push(host.pid);
+  await consume('cancelled');
+  assert.equal(fixture.queries(),1,'Cancellation recovery does not reacquire Source');
+  assert.equal(fixture.writes().length,0,'Restart does not approve or send Effects');
+  assert.equal(new Set(pids).size,2);
+  await writeFile(`${installation}.python-cancel-receipt.json`,JSON.stringify({facade,pids,queries:1,writes:0},null,2)+'\n',{mode:0o600});
+});

@@ -53,6 +53,31 @@ def exercise(client):
             # The shared installation deliberately sets resumeAfterAnswer=False.
             # The next real Host startup owns continuation of the saved answer.
             return
+        elif phase == 'cancel':
+            before = yield run.status()
+            assert before['status'] == 'waiting_checkpoint'
+            conflict = yield run.cancel(cancel_id='future-revision',
+                expected_revision=before['control']['revision'] + 1, attempt_id='conflict-invocation')
+            assert conflict['kind'] == 'conflict'
+            assert conflict['reason'] == 'control_revision'
+            assert (yield run.status())['status'] == 'waiting_checkpoint'
+            accepted = yield run.cancel(cancel_id='waiting-run-cancel',
+                expected_revision=before['control']['revision'], attempt_id='cancel-invocation')
+            assert accepted['kind'] == 'accepted'
+            assert accepted['cancellation']['kind'] == 'accepted'
+            cancellation = accepted['cancellation']['cancelRef']
+            found = yield run.lookup_cancellation(cancellation)
+            assert found['kind'] == 'found'
+            assert found['cancellation'] == accepted['cancellation']
+            original['cancellation'] = dict(cancellation)
+            with custody.open('w') as output:
+                json.dump(original, output)
+            target = 'cancelled'
+        elif phase == 'cancelled':
+            found = yield run.lookup_cancellation(original['cancellation'])
+            assert found['kind'] == 'found'
+            assert dict(found['cancellation']['cancelRef']) == original['cancellation']
+            target = 'cancelled'
         else:
             assert phase == 'finish'
     deadline = time.monotonic() + 60
@@ -63,6 +88,9 @@ def exercise(client):
         assert state['status'] not in ('failed', 'cancelled', 'needs_reconciliation'), state['status']
         assert time.monotonic() < deadline, 'Source acceptance timed out'
         yield asyncio.sleep(.025) if facade == 'async' else time.sleep(.025)
+    if target == 'cancelled':
+        assert len((yield client.checkpoints())['items']) == 0
+        return
     if phase != 'submit':
         # Independent values from the three initial provider records and the
         # authored filter/concat, never a copy of a previous product reply.
