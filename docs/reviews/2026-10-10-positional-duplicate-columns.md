@@ -85,6 +85,32 @@ node scripts/local-checks.mjs test node --timeout-seconds 180 -- scripts/set-cor
 
 ## Pending public acceptance and broader boundaries
 
+### First pristine packed attempt and control correction
+
+Normal five-package production and independent digest validation passed on
+published SHA `c0cd08d77849d4035aaabd534a4a13c86e755dfa`, using
+`/private/tmp/actql-b-positional-duplicates-c0cd08d77-pack` and its manifest.
+The scoped public attempt `run-Gnh4V0` / receipt
+`worktrees/.codex-scratch/public-query-evidence-XsipCO` failed and is incomplete.
+Its existing 12 CORRESPONDING normal cases passed on each Local/HTTPS
+transport. The first new `positional-json-control` received a definitive
+Local `ClientProgramInvalidInput` before admission; the HTTPS sibling was
+cancelled, and the new text/refusal/JOIN cases were not certified.
+The receipt records no live child and no evidence errors; owned installations
+were removed by the ordinary harness. Logs/receipts and package manifests remain.
+
+The independent Values/sort control omitted the mandatory Values producer
+alias. It now declares `as: seed` and sorts `from: seed`; its rows,
+number/nullable contracts, column order and NULL sort rule are unchanged.
+A new ordinary-checker control and a Node producer-link assertion fix this
+obligation rather than excluding the case or changing the oracle. Focused JS
+passed 5/5 (`run-mgES6u`, `focused-test-saciVd`); Node fixture/inventory
+checks passed 39/39 (`run-IPhQcp`, `focused-test-24AeQ6`). The final authored
+inventory keeps 3,323 occurrences with corrected control digest
+`47aebed20da7c716bf9b7dbfae034cc42e2073f1d90061ed24bd28fc391eb4f2`.
+This is a fixture construction repair, not an executed frontend wrong result.
+Pristine public acceptance must be repeated for the corrected source revision.
+
 ### Current-main integration
 
 Normal merge `f86f5b9d07999ce3401c4a2b606918f0f36454e4` adopts main

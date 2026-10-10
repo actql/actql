@@ -17,6 +17,10 @@ test('CORRESPONDING matching has independent row, type, scope and multiplicity c
 });
 
 test('positional duplicate controls retain both values, types and scope', () => {
+  const control = JSON.parse(setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-json-control').text);
+  assert.equal(control.stages[0].steps[0].as, 'seed');
+  assert.equal(control.stages[0].steps[1].from, 'seed');
+  assert.deepEqual(control.stages[0].steps[0].values.rows, [{a: 0, b: 0}, {a: 1, b: null}]);
   const scalar = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-duplicate-aliases');
   assert.deepEqual(scalar.expected, [{a: 0, b: 0}, {a: 1, b: null}]);
   assert.deepEqual(scalar.columns.map(x => [x.name, x.contract.nullable]), [['a', false], ['b', true]]);

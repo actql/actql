@@ -83,8 +83,8 @@ const positionalColumns = [{name: 'a', contract: number},
 const positionalRows = [{a: 0, b: 0}, {a: 1, b: null}];
 const positionalProgram = {version: 'actql/0.1', id: 'fixture.positional_duplicates',
   stages: [{id: 'main', inputs: {}, steps: [
-    {values: {schema: {a: number, b: {...number, nullable: true}}, rows: positionalRows}},
-    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+    {values: {schema: {a: number, b: {...number, nullable: true}}, rows: positionalRows}, as: 'seed'},
+    {from: 'seed', sort: [{field: 'a', dir: 'asc', nulls: 'first'},
       {field: 'b', dir: 'asc', nulls: 'last'}], as: 'ordered'},
   ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
