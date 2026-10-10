@@ -192,19 +192,31 @@ test "ordinary aggregate nesting and nested windows remain typed syntax refusals
 }
 
 ///|
-test "aggregate window operands retain explicit frame and navigation offset restrictions" {
-  for
-    text in [
-      "SELECT SUM(SUM(t.y)) OVER (ORDER BY t.x) AS value FROM t GROUP BY t.x", "SELECT t.x, LAG(COUNT(*), t.x) OVER (ORDER BY t.x) AS value FROM t GROUP BY t.x",
-    ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        qualify_group_collision_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedAnalytic),
-      msg=text,
+test "aggregate window operands retain the explicit frame implementation boundary" {
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT SUM(SUM(t.y)) OVER (ORDER BY t.x) AS value FROM t GROUP BY t.x",
+        syntax_limits(),
+      ).unwrap(),
+      qualify_group_collision_context(),
+      construction_limits(),
     )
-  }
+    is Err(UnsupportedAnalytic),
+  )
+}
+
+///|
+test "aggregate window operands reject a grouped column as navigation offset" {
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT t.x, LAG(COUNT(*), t.x) OVER (ORDER BY t.x) AS value FROM t GROUP BY t.x",
+        syntax_limits(),
+      ).unwrap(),
+      qualify_group_collision_context(),
+      construction_limits(),
+    )
+    is Err(InvalidQuery),
+  )
 }

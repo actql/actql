@@ -173,6 +173,7 @@ fn acquisition_runtime_case(
         resident_native_effect_document,
         None,
         retained_compute_effect_limits(),
+        request=pair.0.request,
       ).unwrap()
     None =>
       @host.issue_client_task_run_materials(

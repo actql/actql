@@ -58,11 +58,12 @@ function selectAcquisition(inputs) {
 export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
-  sourceAccess, transportLimits, acquisitionPlanning, occurrence = {stage: 0, input: 0, task: 0}}) {
+  sourceAccess, transportLimits, acquisitionPlanning, requireImmediateReadAuthorization = false,
+  occurrence = {stage: 0, input: 0, task: 0}}) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
       typeof table !== 'string' || typeof registry !== 'string' ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
-      typeof ordered !== 'string' ||
+      typeof ordered !== 'string' || typeof requireImmediateReadAuthorization !== 'boolean' ||
       (preparedProgram === undefined) ===
         (preparedEffect === undefined)) {
     throw new TypeError('InvalidInstalledSourceConfiguration');
@@ -126,7 +127,10 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   const decision = await currentReadDecision(database, sourceAccess);
   if (decision.action === 'dispatch') {
     ({acquisition, broad, selection} = selectAcquisition(selectionInputs));
-  } else if (decision.action === 'deny') {
+  } else if (decision.action === 'deny' ||
+      requireImmediateReadAuthorization && decision.action === 'unsupported') {
+    // This requirement only stops pre-Run preparation when no later Host
+    // authorization owner exists. Actual reads still check current authority.
     throw new ExecutionAuthorizationError(decision);
   }
   // A delegated/held read has no execution authority yet. Its existing

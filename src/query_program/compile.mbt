@@ -64,6 +64,8 @@ pub(all) struct Limits {
 ///|
 pub(all) enum Issue {
   InvalidContext
+  // A proven authored semantic violation, distinct from a lowering gap.
+  InvalidQuery
   UnknownRelation
   // The existing relation resolver exhausted the admitted inputs for this
   // exact semantic path. This witness alone is not a Source absence proof.
@@ -1324,9 +1326,10 @@ fn group_key_expression(
   for projection in projections {
     match projection_alias(projection) {
       Some(name) if same_name(name, path[0]) => {
-        if matched is Some(_) ||
-          projection.aggregate is Some(_) ||
-          projection.analytic is Some(_) {
+        if matched is Some(_) {
+          raise Abort(InvalidQuery)
+        }
+        if projection.aggregate is Some(_) || projection.analytic is Some(_) {
           raise Abort(UnsupportedGrouping)
         }
         matched = projection.expression
@@ -3426,7 +3429,7 @@ fn compile_steps(
               ).any(column => !key_names.contains(column.1)) {
               // Excluded input columns are not projected; every retained star
               // value must still be grouped before aggregate slots are added.
-              raise Abort(UnsupportedGrouping)
+              raise Abort(InvalidQuery)
             }
           }
         }

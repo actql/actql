@@ -148,7 +148,7 @@ test "ORDER grouped subexpressions cannot restore dropped keys or an earlier sco
         group_property_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=source,
     )
   }

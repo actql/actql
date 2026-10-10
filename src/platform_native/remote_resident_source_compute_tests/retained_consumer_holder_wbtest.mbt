@@ -78,6 +78,7 @@ fn retained_consumer_holder_case(
         resident_native_effect_document,
         None,
         retained_compute_effect_limits(),
+        request=effect.request,
       ).unwrap()
     None =>
       @host.issue_client_task_run_materials(
@@ -155,6 +156,35 @@ fn retained_consumer_holder_case(
         ),
       ),
     )
+  }
+  if effect_materials is Some(effect) {
+    let changed = @host.prepare_client_effect_request_identity(
+      effect.prepared,
+      retained_compute_cid("c"),
+      "another-effect-caller",
+      @host.source_free_caller_input_intent_cid(),
+    ).unwrap()
+    let changed_wire = @host.issue_client_effect_run_materials(
+      effect.allowed,
+      effect.run_definition,
+      environment,
+      resident_effect_source_environment,
+      resident_native_effect_document,
+      None,
+      retained_compute_effect_limits(),
+      request=Some(changed),
+    ).unwrap()
+    let changed_poll = @remote.admit_remote_poll_dispatch_json(
+      @remote.remote_poll_dispatch_materials_json(
+        dispatch, binding, changed_wire,
+      ).unwrap(),
+    ).unwrap()
+    assert_true(
+      prepare(changed_poll, at)
+      is Err({ issue: EffectMaterials(Request(IdentityMismatch)), .. }),
+    )
+    assert_eq(@site.site_status(site), before)
+    assert_true(handoff.result() is Ok(_))
   }
   let owner = prepare(poll, at).unwrap()
   let duplicate = prepare(poll, at).unwrap()
