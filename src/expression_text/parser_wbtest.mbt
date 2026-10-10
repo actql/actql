@@ -448,7 +448,7 @@ test "long operator chains and argument lists do not consume nesting budget" {
 test "every scalar call uses its fixed positional mapping" {
   for
     name in [
-      "len", "sqrt", "floor", "lower", "upper", "trim", "negate", "nfkc", "case_fold",
+      "len", "sqrt", "floor", "lower", "upper", "negate", "nfkc", "case_fold",
     ] {
     assert_tree(name + "(x)", "{\"" + name + "\":{\"field\":\"x\"}}")
     assert_true(
@@ -458,6 +458,19 @@ test "every scalar call uses its fixed positional mapping" {
       parse(name + "(x,y)", test_limits())
       is Err({ kind: InvalidArguments, .. }),
     )
+  }
+  for name in ["trim", "ltrim", "rtrim"] {
+    assert_tree(name + "(x)", "{\"" + name + "\":{\"field\":\"x\"}}")
+    assert_tree(
+      name + "(x,y)",
+      "{\"" + name + "\":[{\"field\":\"x\"},{\"field\":\"y\"}]}",
+    )
+    for args in ["", "x,y,z"] {
+      assert_true(
+        parse(name + "(" + args + ")", test_limits())
+        is Err({ kind: InvalidArguments, .. }),
+      )
+    }
   }
   for name in ["contains", "safe_div", "nullif"] {
     assert_tree(

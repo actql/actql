@@ -35,11 +35,20 @@ test('GoogleSQL scalar schemas preserve exact arities, local references and orig
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body.items, {$ref: '#/$defs/machine_expression'});
   }
-  for (const name of ['sign', 'round', 'trunc', 'trim', 'ltrim', 'rtrim']) {
+  for (const name of ['sign', 'round', 'trunc']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {$ref: '#/$defs/source_expression'});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body, {$ref: '#/$defs/machine_expression'});
+  }
+  for (const name of ['trim', 'ltrim', 'rtrim']) {
+    for (const [kind, ref] of [['source', 'source_expression'], ['node', 'machine_expression']]) {
+      const shape = expression.schemas[kind].oneOf.find(s => kind === 'source'
+        ? s.required[0] === name : s.properties.op.const === name);
+      const body = shape.properties[kind === 'source' ? name : 'body'];
+      assert.deepEqual(body, {oneOf: [{$ref: '#/$defs/' + ref},
+        {type: 'array', minItems: 2, maxItems: 2, items: {$ref: '#/$defs/' + ref}}]});
+    }
   }
   assert.deepEqual(expression.laws, googleScalarLaws);
   const prepared = structuredClone([expression, protocol]);
@@ -58,7 +67,9 @@ test('GoogleSQL scalar verification rejects missing, duplicate, widened and stal
     expression => { expression.laws.sign.value = 'negative zero'; },
     expression => { expression.laws.ltrim.value = 'both ends'; },
     expression => { expression.laws.rtrim.value = 'leading end'; },
-    expression => { expression.laws.ltrim.signature = 'optional character set'; },
+    expression => { expression.laws.ltrim.signature = 'unary only'; },
+    expression => { expression.schemas.source.oneOf.find(s => s.required[0] === 'ltrim').properties.ltrim.oneOf[1].minItems = 1; },
+    expression => { expression.schemas.node.oneOf.find(s => s.properties.op.const === 'rtrim').properties.body.oneOf[1].maxItems = 3; },
     expression => { expression.schemas.source.oneOf.find(s => s.required[0] === 'ltrim').properties.ltrim = {type: 'array'}; },
     expression => { expression.schemas.node.oneOf.find(s => s.properties.op.const === 'rtrim').properties.body = {type: 'array'}; },
     expression => { expression.laws.trim.value = 'ascii-whitespace'; },
@@ -242,6 +253,8 @@ test('TRIM scalar owner pins the independent Unicode 16.0 White_Space set', () =
   assert.equal(scalar.unicode.trim, 'unicode-white-space');
   assert.equal(scalar.unicode.ltrim, 'unicode-white-space-leading');
   assert.equal(scalar.unicode.rtrim, 'unicode-white-space-trailing');
+  assert.equal(scalar.unicode.trim_character_set, 'unicode-code-point-membership');
+  assert.equal(scalar.unicode.trim_empty_character_set, 'preserve-value');
   const actual = scalar.unicode.trim_white_space_code_points.flatMap(range => {
     const [first, last = first] = range.split('..').map(point => parseInt(point, 16));
     return Array.from({length: last - first + 1}, (_, offset) => first + offset);
@@ -254,6 +267,8 @@ test('TRIM scalar owner pins the independent Unicode 16.0 White_Space set', () =
   updateTrimScalarLaw(scalar);
   for (const mutate of [
     body => { body.unicode.trim = 'ascii-whitespace'; },
+    body => { body.unicode.trim_character_set = 'substring'; },
+    body => { body.unicode.trim_empty_character_set = 'default-whitespace'; },
     body => { body.unicode.ltrim = 'unicode-white-space'; },
     body => { body.unicode.rtrim = 'unicode-white-space-leading'; },
     body => { body.unicode.trim_white_space_code_points.push('FEFF'); },
@@ -300,7 +315,7 @@ test('TRIM preserves exact predecessor bodies and existing unary schema shapes',
   const expression = adopted.expression_contract;
   const program = adopted.program_schema;
   const expectedCurrent = structuredClone(earlier.expression_contract);
-  expectedCurrent.laws.trim = googleScalarLaws.trim;
+  expectedCurrent.laws.trim = expression.laws.trim;
   assert.deepEqual(expression, expectedCurrent);
   assert.deepEqual(program, earlier.program_schema);
   assert.equal(cid(program), expected.program_schema);
@@ -362,13 +377,15 @@ test('LTRIM/RTRIM preserve exact predecessor bodies and admit only closed unary 
     assert.equal(cid(item.body), item.cid);
   }
   const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
-  const expression = read('spec/contracts/actql-expressions.json');
-  const protocol = read('spec/contracts/actql-protocol-schemas.json');
-  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Freeze this earlier unary transition against the captured pre-set bodies.
+  const following = read('portability/corpus/historical/pre-trim-set-contract-identities.json');
+  const adopted = Object.fromEntries(following.contracts.map(item => [item.id, item.body]));
+  const expression = adopted.expression_contract;
+  const program = adopted.program_schema;
   assert.equal(earlier.expression_contract.laws.ltrim, undefined);
   assert.equal(earlier.expression_contract.laws.rtrim, undefined);
   assert.deepEqual(expression.laws, {...earlier.expression_contract.laws,
-    ltrim: googleScalarLaws.ltrim, rtrim: googleScalarLaws.rtrim});
+    ltrim: expression.laws.ltrim, rtrim: expression.laws.rtrim});
   // Compare all retained cases directly with captured bodies; do not manufacture
   // a predecessor by deleting new operations from the installed contract.
   function checkExtension(before, current) {
@@ -398,12 +415,12 @@ test('LTRIM/RTRIM preserve exact predecessor bodies and admit only closed unary 
   checkExtension(earlier.program_schema, program);
   assert.notEqual(cid(program), expected.program_schema);
   assert.notEqual(cid(expression), expected.expression_contract);
-  const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const scalar = adopted.scalar_law_manifest;
   const expectedScalar = structuredClone(earlier.scalar_law_manifest);
   Object.assign(expectedScalar.unicode, {ltrim: 'unicode-white-space-leading', rtrim: 'unicode-white-space-trailing'});
   assert.deepEqual(scalar, expectedScalar);
   assert.notEqual(cid(scalar), expected.scalar_law_manifest);
-  const aoa = read('spec/contracts/actql-aoa.json');
+  const aoa = adopted.aoa_contract;
   assert.equal(aoa.expression_contract_cid, cid(expression));
   assert.equal(aoa.rela_scalar_law_manifest_cid, cid(scalar));
   assert.notEqual(cid(aoa), expected.aoa_contract);
@@ -421,6 +438,99 @@ test('LTRIM/RTRIM preserve exact predecessor bodies and admit only closed unary 
   assert.equal(preimages.source_revision, history.source_revision);
   assert.equal(preimages.expression_contract_cid, expected.expression_contract);
   assert.equal(cid(preimages), 'sha256:3970c78a03b05c891fa14f57b96d4d4cccfce7ba266541c1ff10780fb4dc2694');
+  assert.equal(preimages.sources.length, 17);
+  assert.equal(new Set(preimages.sources.map(entry => entry.source)).size, 17);
+  for (const entry of preimages.sources) assert.equal(cid(entry.body), entry.cid, entry.source);
+  assert.equal(preimages.identity_envelopes.length, 21);
+  for (const entry of preimages.identity_envelopes) {
+    assert.equal(canonical(entry.envelope), entry.canonical);
+    assert.equal(cid(entry.envelope), entry.expected_cid);
+  }
+});
+
+test('explicit trim sets preserve exact unary predecessor bodies and close pair schemas', () => {
+  const read = path => JSON.parse(readFileSync(path, 'utf8'));
+  const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
+    : value !== null && typeof value === 'object'
+      ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+      : JSON.stringify(value);
+  const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+  const history = read('portability/corpus/historical/pre-trim-set-contract-identities.json');
+  assert.equal(history.source_revision, '8834f50177180074f922103476037268e1535292');
+  assert.equal(cid(history), 'sha256:83b4542dbf7c00a2448e5d36c16dc46024ba284c1aef9e9fe6ef3d3bf56b09ad');
+  const expected = {
+    scalar_law_manifest: 'sha256:a99ee999ce67ba339026b263122e8d978d5ef09ef73b988a6f184aed10209acf',
+    expression_contract: 'sha256:bfb03b8ce1884b8fcd64023d210d9db69643cb884ae472282329c3988721d253',
+    program_schema: 'sha256:c10f6b440e853dd526cd9becc0b3e1e9964e5f21d976820b688ef675a8bc0699',
+    pipeline_registry: 'sha256:8b3f590906fcc6e11817799f939c03a96db92cbc27808154066a199cc2128288',
+    ordered_derive_contract: 'sha256:ad57394e489bb4ccef23cf81acd92a3742627e8c0a1afff80d722f16ea8ab8f2',
+    fragment_execution_contract: 'sha256:05246a04acef579f538e793b32054cbed1a753eca2769b91d6e1891314822f13',
+    check_environment_contract: 'sha256:1128bb813b66de1ba27c26e7335ee7455054fd76f5315af943098e3b56f4f69f',
+    aoa_contract: 'sha256:88c67a0d0406625c618c00b801c81e62a3a76dacd14b3e6832253d810bd47308',
+  };
+  assert.deepEqual(history.contracts.map(item => item.id).sort(), Object.keys(expected).sort());
+  for (const item of history.contracts) {
+    assert.equal(item.cid, expected[item.id]);
+    assert.equal(cid(item.body), item.cid);
+  }
+  const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
+  const expression = read('spec/contracts/actql-expressions.json');
+  const protocol = read('spec/contracts/actql-protocol-schemas.json');
+  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  const trimNames = ['trim', 'ltrim', 'rtrim'];
+  function checkExtension(before, current) {
+    if (Array.isArray(before)) {
+      assert.equal(current.length, before.length);
+      before.forEach((value, index) => checkExtension(value, current[index]));
+      return;
+    }
+    if (before === null || typeof before !== 'object') return assert.deepEqual(current, before);
+    assert.deepEqual(Object.keys(current).sort(), Object.keys(before).sort());
+    const name = before.properties?.op?.const ?? before.required?.[0];
+    if (trimNames.includes(name)) {
+      const key = before.properties.op ? 'body' : name;
+      assert.equal(current.additionalProperties, false);
+      assert.deepEqual(current.required, before.required);
+      assert.deepEqual(current.properties[key], {oneOf: [before.properties[key],
+        {type: 'array', minItems: 2, maxItems: 2, items: before.properties[key]}]});
+      if (before.properties.op) assert.deepEqual(current.properties.op, before.properties.op);
+      return;
+    }
+    for (const key of Object.keys(before)) checkExtension(before[key], current[key]);
+  }
+  checkExtension(earlier.expression_contract.schemas, expression.schemas);
+  checkExtension(earlier.program_schema, program);
+  for (const name of trimNames) {
+    assert.match(earlier.expression_contract.laws[name].signature, /Exactly one string operand/);
+    assert.deepEqual(expression.laws[name], googleScalarLaws[name]);
+  }
+  for (const [name, law] of Object.entries(earlier.expression_contract.laws)) {
+    if (!trimNames.includes(name)) assert.deepEqual(expression.laws[name], law);
+  }
+  assert.notEqual(cid(expression), expected.expression_contract);
+  assert.notEqual(cid(program), expected.program_schema);
+  const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const expectedScalar = structuredClone(earlier.scalar_law_manifest);
+  Object.assign(expectedScalar.unicode, {trim_character_set: 'unicode-code-point-membership',
+    trim_empty_character_set: 'preserve-value'});
+  assert.deepEqual(scalar, expectedScalar);
+  const aoa = read('spec/contracts/actql-aoa.json');
+  assert.equal(aoa.expression_contract_cid, cid(expression));
+  assert.equal(aoa.rela_scalar_law_manifest_cid, cid(scalar));
+  for (const entry of history.expression_fragments.cases) {
+    assert.equal(canonical(entry.body), entry.canonical);
+    assert.equal(cid(entry.body), entry.cid);
+    assert.equal(Buffer.byteLength(entry.canonical), entry.bytes);
+  }
+  for (const entry of history.ordered_fragment.preimages) {
+    assert.equal(canonical(history.ordered_fragment[entry.id]), entry.canonical);
+    assert.equal(cid(history.ordered_fragment[entry.id]), entry.cid);
+  }
+  assert.equal(cid(history.policy_candidates.body), history.policy_candidates.expected_cid);
+  const preimages = read('portability/corpus/historical/pre-trim-set-preimages.json');
+  assert.equal(preimages.source_revision, history.source_revision);
+  assert.equal(preimages.expression_contract_cid, expected.expression_contract);
+  assert.equal(cid(preimages), 'sha256:4cf660ab7a429c02451b1e0f29379858aedc5944d1d3ddcef1554f36d1462842');
   assert.equal(preimages.sources.length, 17);
   assert.equal(new Set(preimages.sources.map(entry => entry.source)).size, 17);
   for (const entry of preimages.sources) assert.equal(cid(entry.body), entry.cid, entry.source);

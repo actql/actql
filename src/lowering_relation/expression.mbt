@@ -67,6 +67,9 @@ pub(all) enum BinaryOperator {
   Divide
   Modulo
   Strpos
+  TrimSet
+  LTrimSet
+  RTrimSet
   StartsWith
   EndsWith
   Equal
@@ -278,12 +281,15 @@ fn expression_children(
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
+    "trim" | "ltrim" | "rtrim" =>
+      if @decode.array_length(body) is Some(_) {
+        @decode.elements(body).unwrap()
+      } else {
+        [body]
+      }
     "negate"
     | "upper"
     | "lower"
-    | "trim"
-    | "ltrim"
-    | "rtrim"
     | "floor"
     | "sqrt"
     | "abs"
@@ -855,9 +861,24 @@ fn lower_typed_expression_measured(
         "negate" => Unary(Negate, args[0])
         "upper" => Unary(Upper, args[0])
         "lower" => Unary(Lower, args[0])
-        "trim" => Unary(Trim, args[0])
-        "ltrim" => Unary(LTrim, args[0])
-        "rtrim" => Unary(RTrim, args[0])
+        "trim" =>
+          if args.length() == 1 {
+            Unary(Trim, args[0])
+          } else {
+            Binary(TrimSet, args[0], args[1])
+          }
+        "ltrim" =>
+          if args.length() == 1 {
+            Unary(LTrim, args[0])
+          } else {
+            Binary(LTrimSet, args[0], args[1])
+          }
+        "rtrim" =>
+          if args.length() == 1 {
+            Unary(RTrim, args[0])
+          } else {
+            Binary(RTrimSet, args[0], args[1])
+          }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
         "abs" => Unary(Abs, args[0])

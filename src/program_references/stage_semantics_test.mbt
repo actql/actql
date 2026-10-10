@@ -31,7 +31,7 @@ fn assert_stage_semantics(
   assert_eq(stage_semantics_index(value), index)
   assert_eq(
     stage_semantics_expression_contract(value),
-    "sha256:bfb03b8ce1884b8fcd64023d210d9db69643cb884ae472282329c3988721d253",
+    "sha256:fec9ffe5df68248b60591c4d61d4e01e55582a5dd23471831634773b07a8a2c6",
   )
   for invalid in [-1, 2, 2147483647] {
     assert_true(stage_semantics_at(usage, invalid) is None)
