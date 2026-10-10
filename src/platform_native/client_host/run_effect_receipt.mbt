@@ -122,7 +122,7 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
       Ok(None) => return Err(Checkpoint(NeedsOriginalContinuation))
       Err(issue) => return Err(issue)
     }
-    let bounds = native_checkpoint_limits()
+    let bounds = native_client_effect_ledger_limits()
     let receipt = match
       @publication.issue_effect_row_outcome_receipt(
         preview,
@@ -308,7 +308,7 @@ pub fn NativeClientRunJournal::effect_row_receipt(
       Err(issue) => return Err(issue)
       _ => return Err(CustodyLost)
     }
-    let bounds = native_checkpoint_limits()
+    let bounds = native_client_effect_ledger_limits()
     match
       @effect.issue_effect_row_receipt_terminal_entry(
         preview,
