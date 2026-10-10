@@ -25,6 +25,29 @@ const select = 'VAR_POP(amount + 1) AS population, VAR_SAMP(amount + 1) AS sampl
 const sql = `SELECT ${select} FROM records WHERE id > 0`;
 const success = (name, text, extra = {}) => ({name: 'statistical-aggregate-' + name,
   format: 'sql', text, sourceRows, expected, columns, sourceReadSessionCount: 1, ...extra});
+// Groups 1 and 4 both have sample variance 2. Group 2 has variance 8;
+// group 3 has no observations. DISTINCT removes the repeated 2, not NULL.
+const aliasRows = [{id: 2, amount: 4}, {id: 4, amount: 3},
+  {id: 1, amount: 1}, {id: 3, amount: null}, {id: 2, amount: 0},
+  {id: 1, amount: 3}, {id: 4, amount: 1}, {id: 0, amount: 99}];
+const aliasColumns = [{name: 'v', contract: number}];
+const aliasExpected = [{v: 2}, {v: 8}, {v: null}];
+// Authored directly from the common operation contract, without compiling SQL.
+export const statisticalAliasProgram = {version: 'actql/0.1',
+  id: 'fixture.statistical_alias', stages: [
+    {id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
+        {select: ['amount', 'id'], as: 'captured'}],
+      results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+    {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'records', group: {by: ['id'],
+        aggregates: {v: {fn: 'var_samp', field: 'amount'}}}},
+      {select: ['v']}, {distinct: ['v']},
+      {sort: [{field: 'v', dir: 'asc', nulls: 'last'}], as: 'statistics'}],
+      results: {rows: {from: 'statistics', fields: ['v']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const aliasSuccess = (name, text, extra = {}) => success(name, text,
+  {sourceRows: aliasRows, expected: aliasExpected, columns: aliasColumns, ...extra});
 export const statisticalAggregateSuccesses = [
   success('independent-json', JSON.stringify(statisticalAggregateProgram), {format: 'json'}),
   success('sql-null-exclusion', sql),
@@ -43,6 +66,14 @@ export const statisticalAggregateSuccesses = [
     {format: 'aql-text'}),
   success('sample-aliases', 'SELECT VARIANCE(amount) AS sample, STDDEV(amount) AS sample_sd FROM records WHERE id > 0',
     {expected: [{sample: 2, sample_sd: Math.SQRT2}], columns: columns.filter(x => x.name.startsWith('sample'))}),
+  aliasSuccess('alias-independent-json', JSON.stringify(statisticalAliasProgram), {format: 'json'}),
+  aliasSuccess('variance-order-sample', 'SELECT DISTINCT VARIANCE(amount) AS v FROM records WHERE id > 0 GROUP BY id ORDER BY VAR_SAMP(amount) NULLS LAST'),
+  aliasSuccess('sample-order-variance', 'SELECT DISTINCT VAR_SAMP(amount) AS v FROM records WHERE id > 0 GROUP BY id ORDER BY VARIANCE(records.amount) NULLS LAST'),
+  aliasSuccess('quoted-variance-order-sample', 'SELECT DISTINCT `vArIaNcE`(amount) AS v FROM records WHERE id > 0 GROUP BY id ORDER BY `VAR_SAMP`(amount) NULLS LAST'),
+  aliasSuccess('stddev-order-sample', 'SELECT DISTINCT STDDEV(amount) AS v FROM records WHERE id > 0 GROUP BY id ORDER BY STDDEV_SAMP(amount) NULLS LAST',
+    {expected: [{v: Math.SQRT2}, {v: 2 * Math.SQRT2}, {v: null}]}),
+  aliasSuccess('sample-order-stddev', 'SELECT DISTINCT STDDEV_SAMP(amount) AS v FROM records WHERE id > 0 GROUP BY id ORDER BY STDDEV(amount) NULLS LAST',
+    {expected: [{v: Math.SQRT2}, {v: 2 * Math.SQRT2}, {v: null}]}),
   success('duplicates', sql, {sourceRows: [{id: 1, amount: 1}, {id: 2, amount: 1},
     {id: 3, amount: 3}, {id: 4, amount: 3}, {id: 5, amount: null}],
     expected: [{population: 1, sample: 4 / 3, population_sd: 1, sample_sd: Math.sqrt(4 / 3)}]}),
@@ -77,8 +108,11 @@ export const statisticalAggregateRefusals = [
   'SELECT `VAR_POP`(*) AS v FROM records',
   "SELECT `VAR_POP`('not a number') AS v FROM records",
   'SELECT `COUNT`(DISTINCT *) AS n FROM records',
+  'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)',
+  'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)',
 ].map((text, index) => ({name: 'statistical-aggregate-refuse-' + index, format: 'sql', text,
-  ...(text === defaultAnalyticFrame ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
+  ...(text === defaultAnalyticFrame || text.startsWith('SELECT DISTINCT VARIANCE')
+    ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
 }));
 export const statisticalAggregateExecutionFailures = [{
   name: 'statistical-aggregate-demanded-error', format: 'sql',

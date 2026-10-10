@@ -8,6 +8,7 @@ pub(all) enum NativeRemoteClientIssue {
   HttpStatus(Int)
   InvalidUtf8
   OutputReportRefused(String)
+  EffectCheckpointRefused(String)
   NotAuthorized
   OutcomeUnknownPersistence(
     @journal.NativeRemoteJournalIssue,
