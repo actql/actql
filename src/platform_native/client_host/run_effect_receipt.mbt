@@ -31,6 +31,49 @@ fn read_client_effect_receipt(
 }
 
 ///|
+/// Semantic Preview identity intentionally excludes the Run. Bind the actual
+/// original Run and row before interpreting even an absent receipt. The common
+/// single-row and dispatch Owners validate the typed item/key/request binding.
+fn require_client_effect_receipt_binding(
+  record : NativeClientRunRecord,
+  dispatch : NativeClientEffectDispatchClaim,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  guard record.checkpoint is Some(checkpoint) &&
+    @publication.effect_preview_run_identity(preview) ==
+    @publication.publication_contract_identity(record.definition) &&
+    @publication.effect_preview_semantic_identity(preview) ==
+    checkpoint.artifact.checkpoint.required_artifact_cid &&
+    @publication.effect_preview_member_kind(preview, member_index) is Some(kind) &&
+    @publication.effect_preview_ordered_row_identity(
+      preview, member_index, row_index,
+    )
+    is Some(row) else {
+    return Err(Checkpoint(InvalidMaterial))
+  }
+  let scope = @host.client_request_logical_scope(record.request)
+  if @effect.admit_effect_single_row(
+      preview, member_index, row_index, kind, scope, row, locator, key,
+    )
+    is Err(_) ||
+    !@effect.effect_ledger_entry_admits_dispatch(
+      dispatch.dispatching,
+      scope,
+      locator,
+      key,
+      canonical_request_cid,
+    ) {
+    return Err(Checkpoint(InvalidMaterial))
+  }
+  Ok(())
+}
+
+///|
 /// Settle only a saved original response through the existing common row
 /// receipt and Ledger Owners. No Provider, resume claim or new attempt occurs.
 /// The receipt original and terminal history commit with the original Run's
@@ -64,9 +107,12 @@ pub fn NativeClientRunJournal::record_effect_row_receipt(
       Err(issue) => return Err(issue)
     }
     let checkpoint = record.checkpoint.unwrap()
-    if @publication.effect_preview_semantic_identity(preview) !=
-      checkpoint.artifact.checkpoint.required_artifact_cid {
-      return Err(Checkpoint(InvalidMaterial))
+    match
+      require_client_effect_receipt_binding(
+        record, dispatch, preview, member_index, row_index, locator, key, canonical_request_cid,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     let dispatch_cid = @effect.effect_ledger_entry_cid(dispatch.dispatching)
     let response = match
@@ -226,9 +272,12 @@ pub fn NativeClientRunJournal::effect_row_receipt(
       Err(issue) => return Err(issue)
     }
     let checkpoint = record.checkpoint.unwrap()
-    if @publication.effect_preview_semantic_identity(preview) !=
-      checkpoint.artifact.checkpoint.required_artifact_cid {
-      return Err(Checkpoint(InvalidMaterial))
+    match
+      require_client_effect_receipt_binding(
+        record, dispatch, preview, member_index, row_index, locator, key, canonical_request_cid,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     let history = checkpoint.effect_ledger.filter(entry => {
       entry.logical_item_locator_cid ==
