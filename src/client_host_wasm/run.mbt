@@ -22,6 +22,7 @@ priv struct StoredRun {
   mut invoked : Bool
   mut restoration : Int?
   mut physical_start_reserved : Bool
+  mut native_source_reserved : Bool
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
 }
 
@@ -122,6 +123,7 @@ pub fn reserve_run(
     invoked: false,
     restoration: None,
     physical_start_reserved: false,
+    native_source_reserved: false,
     outcome: None,
   }
   value.next_handle += 1

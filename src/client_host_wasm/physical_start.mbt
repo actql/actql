@@ -155,6 +155,9 @@ pub fn close_physical_start(nonce : Int64, handle : Int) -> Int {
     value.physical_starts.get(handle) is Some(record) else {
     return -2
   }
+  if value.native_attempts.values().any(attempt => attempt.start == handle) {
+    return -9
+  }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
     value.physical_starts.remove(handle) |> ignore

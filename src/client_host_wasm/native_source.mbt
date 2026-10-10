@@ -5,6 +5,7 @@ priv struct StoredNativeSourceConfiguration {
   run : Int
   borrow : @buffers.BufferBorrow
   mut invoked : Bool
+  mut attempt_reserved : Bool
   mut outcome : Result[
     @local_run.LocalNativeSourceConfiguration,
     @local_run.LocalNativeSourceIssue,
@@ -43,12 +44,16 @@ pub fn reserve_native_source_configuration(
   input : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.runs.get(run) is Some({ outcome: Some(Ok(_)), .. }) &&
+    value.runs.get(run) is Some(original) &&
+    original.outcome is Some(Ok(_)) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
   if value.next_handle == 2147483647 {
     return -4
+  }
+  if original.native_source_reserved {
+    return -3
   }
   let handle = value.next_handle
   let borrow = match
@@ -58,7 +63,14 @@ pub fn reserve_native_source_configuration(
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  value.native_sources[handle] = { run, borrow, invoked: false, outcome: None, }
+  value.native_sources[handle] = {
+    run,
+    borrow,
+    invoked: false,
+    attempt_reserved: false,
+    outcome: None,
+  }
+  original.native_source_reserved = true
   value.next_handle += 1
   handle
 }
@@ -150,6 +162,11 @@ pub fn close_native_source_configuration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_sources.get(handle) is Some(record) else {
     return -2
+  }
+  if value.native_attempts
+    .values()
+    .any(attempt => attempt.configuration == handle) {
+    return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {

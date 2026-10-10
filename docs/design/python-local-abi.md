@@ -59,8 +59,12 @@ Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
 
 All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
-and admitted before the physical callback runs. The three imports are
-`actql_host.input_byte`, `input_cleanup` and `reader_stop`. Bytes must be in
+and admitted before the physical callback runs. Input imports are
+`actql_host.input_byte`, `input_cleanup` and `reader_stop`. Native physical facts
+use distinct `native_settled`, `native_stopped` and `native_cleaned` imports.
+Only exact boolean true is acknowledged; unknown handles, exceptions and truthy
+values remain pending. Stop or cleanup does not imply a committed read view,
+and a committed view does not imply stop or cleanup. Bytes must be in
 0..255. Cleanup and stop return zero only when the corresponding physical fact
 has completed; nonzero retains custody. Adapters must convert physical failures
 to pending results rather than destroy the instance holding cleanup obligations.
@@ -263,7 +267,36 @@ again. Its borrow keeps both the original Run and input alive until physical
 stop acknowledgement. Configuration readiness performs no physical database
 operation, reserves no Native workspace, and grants no read or completion
 authority. Native invocation, both receipt streams and the exact settled
-read-view callback remain separate connection requirements.
+read-view callback remain separate from configuration readiness.
+
+One original Run handle reserves one Native configuration, and that
+configuration reserves one attempt, including after either closes. The private
+`reserve_attempt` entry retains the exact accepted original Run-start token and
+an immutable current-read-account/attempt-nonce loan before construction can
+trap. `start` delegates current read authorization and issuance to the existing
+Owners. Its settlement verifier accepts only its exact issued Native attempt
+and the trusted physical read-view fact for that private handle. Another
+attempt, a Run activation permit or a fabricated completion cannot substitute.
+
+`actql_source_accept` admits one closed physical event at a time under the
+current read account: kind 1 metadata (`rows`, `fields`, `columns`), kinds 2/3
+ValidationScan/NativeResult begin (`fields`), kind 4 chunk (`rows`, `columns`),
+kind 5 receipt finish, and kind 6 completion. All envelopes also contain
+`read_account`; fields/columns use the existing bounded physical codecs.
+Existing Native Owners enforce receipt order, schema, counts, values, limits
+and exact settlement. Malformed or refused events abort that attempt rather
+than allow a later valid chunk to hide the rejected input. An interrupted
+event leaves its invocation pending and its input borrow retained.
+
+`close_event` only retires the already evaluated input borrow after physical
+reader-stop acknowledgement; retry never evaluates that event again.
+`completed` reports Native receipt completion, not Run success or publication.
+Attempt close blocks further events, waits for actual physical stop, closes its
+Native Owner, and then waits separately for physical cleanup and both input
+borrow retirements. Failure retains the same handle and parent loans. Run,
+configuration and start-token release cannot bypass those obligations. The
+Host must still reserve aggregate workspace and durably record physical query
+invocations before using this connection for execution.
 
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting

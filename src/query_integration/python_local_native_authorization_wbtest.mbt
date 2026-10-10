@@ -192,6 +192,27 @@ test "Local Native acquisition requires separate current subject-bound read auth
     "connector://crm/main/r#v",
   )
   let account = python_native_account(Allow)
+  let owner_read = @local_run.authorize_local_native_source(
+    configuration, account,
+  ).unwrap()
+  assert_true(
+    @local_run.authorize_local_native_source(
+      configuration,
+      python_native_account(Deny),
+    )
+    is Err(AuthorizationMismatch),
+  )
+  assert_true(
+    @local_run.authorize_local_native_source(
+      configuration,
+      @authorization.admit_account_configuration({
+        account_id: "another-account",
+        entries: [],
+        bootstrap: None,
+      }).unwrap(),
+    )
+    is Err(AuthorizationMismatch),
+  )
   let context = "sha256:" + "d".repeat(64)
   let read = @authorization.bind_dispatch_authorization(
     account,
@@ -204,7 +225,7 @@ test "Local Native acquisition requires separate current subject-bound read auth
   let host = @local_run.start_local_native_source(
     configuration,
     start,
-    read,
+    owner_read,
     account,
     "python-native-authorized",
     attempt => observed.any(value => physical_equal(value, attempt)),

@@ -8,6 +8,15 @@ fn physical_input_cleanup(input : Int) -> Int = "actql_host" "input_cleanup"
 fn physical_reader_stop(input : Int, reader : Int) -> Int = "actql_host" "reader_stop"
 
 ///|
+fn physical_native_settled(handle : Int) -> Int = "actql_host" "native_settled"
+
+///|
+fn physical_native_stopped(handle : Int) -> Int = "actql_host" "native_stopped"
+
+///|
+fn physical_native_cleaned(handle : Int) -> Int = "actql_host" "native_cleaned"
+
+///|
 /// Private instance handles are never Client wire refs or execution authority.
 priv struct Instance {
   nonce : Int64
@@ -22,6 +31,7 @@ priv struct Instance {
   restorations : Map[Int, StoredRestoration]
   physical_starts : Map[Int, StoredPhysicalStart]
   native_sources : Map[Int, StoredNativeSourceConfiguration]
+  native_attempts : Map[Int, StoredNativeAttempt]
   mut next_handle : Int
 }
 
@@ -90,6 +100,7 @@ pub fn open(
         restorations: {},
         physical_starts: {},
         native_sources: {},
+        native_attempts: {},
         next_handle: 1,
       })
       0

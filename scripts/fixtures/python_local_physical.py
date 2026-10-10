@@ -26,11 +26,15 @@ class PhysicalFixture:
         for name, params, callback in (
             ('input_byte', [i32, i32], self.read),
             ('input_cleanup', [i32], self.cleanup),
-            ('reader_stop', [i32, i32], self.stop)):
+            ('reader_stop', [i32, i32], self.stop),
+            ('native_settled', [i32], self.unexpected_native),
+            ('native_stopped', [i32], self.unexpected_native),
+            ('native_cleaned', [i32], self.unexpected_native)):
             self.linker.define_func('actql_host', name,
                 wasmtime.FuncType(params, [i32]), callback)
         assert {(item.module, item.name) for item in self.module.imports} == {
-            ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop')}
+            ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop'),
+            ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned')}
         self.instance = self.linker.instantiate(self.store, self.module)
         self.exports = self.instance.exports(self.store)
         assert self.call('open', capacity, slots, 1048576) == 0
@@ -41,6 +45,9 @@ class PhysicalFixture:
     def read(self, ticket, index):
         self.reads += 1
         return 256 if self.invalid_byte else self.inputs[ticket][index]
+
+    def unexpected_native(self, handle):
+        raise AssertionError('This non-Native fixture cannot acknowledge Source physical facts')
 
     def cleanup(self, ticket):
         self.cleanups[ticket] = self.cleanups.get(ticket, 0) + 1

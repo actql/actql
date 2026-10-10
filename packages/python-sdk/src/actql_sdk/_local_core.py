@@ -103,11 +103,21 @@ _SOURCE_SIGNATURES = {
     'configure': ('i64 i32', 'i32'),
     'configured': ('i64 i32', 'i32'),
     'close_configuration': ('i64 i32', 'i32'),
+    'reserve_attempt': ('i64 i32 i32 i32', 'i32'),
+    'start': ('i64 i32', 'i32'),
+    'started': ('i64 i32', 'i32'),
+    'close_attempt': ('i64 i32', 'i32'),
+    'accept': ('i64 i32 i32 i32', 'i32'),
+    'completed': ('i64 i32', 'i32'),
+    'close_event': ('i64 i32', 'i32'),
 }
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
     'reader_stop': ('i32 i32', 'i32'),
+    'native_settled': ('i32', 'i32'),
+    'native_stopped': ('i32', 'i32'),
+    'native_cleaned': ('i32', 'i32'),
 }
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
@@ -142,6 +152,7 @@ class LocalCore:
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
         self._inputs: dict[int, _PhysicalInput] = {}
+        self._native_observers: dict[int, tuple[Callable[[], bool], Callable[[], bool], Callable[[], bool]]] = {}
         self._loans: dict[int, _Input | _Output] = {}
         self._released: set[int] = set()
         self._next_ticket = 1
@@ -196,7 +207,10 @@ class LocalCore:
             self._linker = wasmtime.Linker(self._engine)
             for name, callback in [('input_byte', self._read),
                                    ('input_cleanup', self._cleanup),
-                                   ('reader_stop', self._stopped)]:
+                                   ('reader_stop', self._stopped),
+                                   ('native_settled', self._native_settled),
+                                   ('native_stopped', self._native_stopped),
+                                   ('native_cleaned', self._native_cleaned)]:
                 params = [wasmtime.ValType.i32()
                           for _ in _IMPORT_SIGNATURES[name][0].split()]
                 self._linker.define_func('actql_host', name,
@@ -241,6 +255,25 @@ class LocalCore:
         if value is None or not 0 <= index < len(value.payload):
             return -1
         return value.payload[index]
+
+    def _native_settled(self, handle: int) -> int:
+        return self._native_fact(handle, 0)
+
+    def _native_stopped(self, handle: int) -> int:
+        return self._native_fact(handle, 1)
+
+    def _native_cleaned(self, handle: int) -> int:
+        return self._native_fact(handle, 2)
+
+    def _native_fact(self, handle: int, fact: int) -> int:
+        # Physical exceptions, truthy values and unknown handles are not facts.
+        observers = self._native_observers.get(handle)
+        if observers is None:
+            return 1
+        try:
+            return 0 if observers[fact]() is True else 1
+        except BaseException:
+            return 1
 
     def _cleanup(self, ticket: int) -> int:
         if ticket in self._released:
@@ -427,3 +460,4 @@ class LocalCore:
         self._inputs.clear()
         self._loans.clear()
         self._released.clear()
+        self._native_observers.clear()

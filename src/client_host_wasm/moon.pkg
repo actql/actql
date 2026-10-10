@@ -12,6 +12,9 @@ import {
   "actql/actql/program_check" @checked,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/decode_core" @decode,
+  "actql/actql/connectors/duckdb/host" @native_host,
+  "actql/actql/connectors/duckdb/acquisition" @native_acquisition,
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
   "moonbitlang/core/encoding/utf8",
 }
 
