@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/match-data-producer-source-input.mjs', 'match-data-producer-source-input.mjs'],
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
@@ -316,6 +317,9 @@ if (process.argv.includes('--graph-projection-property-only')) {
 }
 if (process.argv.includes('--graph-diagnostics-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY = '1';
+}
+if (process.argv.includes('--match-data-producer-only')) {
+  runtimeEnvironment.ACTQL_TEST_MATCH_DATA_PRODUCER_ONLY = '1';
 }
 if (process.argv.includes('--graph-match-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_MATCH_ONLY = '1';
@@ -656,7 +660,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--graph-relation-join-only
   '--qualify-only',
   '--named-window-only',
   '--analytic-offset-only',
-  '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
+  '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--match-data-producer-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
@@ -780,6 +784,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--dis
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only', '--limit-parameter-only', '--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--analytic-partition-property-only', '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--analytic-offset-only',
+  '--match-data-producer-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -810,6 +815,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--analytic-offset-only') ||
     process.argv.includes('--subgraph-only') ||
+    process.argv.includes('--match-data-producer-only') ||
     process.argv.includes('--graph-match-only') ||
     process.argv.includes('--join-property-only') ||
     process.argv.includes('--graph-diagnostics-only') ||
