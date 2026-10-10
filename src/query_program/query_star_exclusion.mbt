@@ -28,14 +28,7 @@ fn expanded_star_columns(
   // Positional operands may store duplicate named columns under separate
   // private slots. Exclusion uses their authored names and retains the slots.
   let authored_name = (name : String) => {
-    let mut authored = name
-    for mapping in authored_aliases {
-      if mapping.0 == name {
-        authored = mapping.1
-        break
-      }
-    }
-    authored
+    positional_authored_column_name(name, authored_aliases)
   }
   for excluded in projection.except_columns {
     if !columns.any(column => {

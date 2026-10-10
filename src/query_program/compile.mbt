@@ -2187,6 +2187,24 @@ fn compile_steps(
       sql_group_projection = false
     }
     if positional_projection is Some(projection) && i > projection {
+      if operation is Drop(names) {
+        for name in names {
+          if positional_private_fields.any(field => {
+              same_name(name, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
+      if operation is Set(assignments) {
+        for assignment in assignments {
+          if positional_private_fields.any(field => {
+              same_name(assignment.0, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+        }
+      }
       // EXCEPT/REPLACE address authored names, never the storage name of an
       // anonymous value. The ordinary star helper retains all other columns.
       if operation is Select(columns, _) {
@@ -2210,13 +2228,20 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
-        Select(columns, _) | OrderAnalytic(columns, _) =>
+        Set(assignments) => assignments.map(assignment => assignment.1)
+        Select(columns, _)
+        | Analytic(columns)
+        | AnalyticExpressions(columns, _)
+        | OrderAnalytic(columns, _) =>
           positional_projection_expressions(columns)
         _ => []
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is Set(_) ||
           operation is Select(_, _) ||
+          operation is Analytic(_) ||
+          operation is AnalyticExpressions(_, _) ||
           operation is OrderAnalytic(_, _) {
           pipe_slot(path, pipe_visible, pipe_ranges)
         } else if pipe_selected || pipe_changed || pipe_rebound {
@@ -2245,6 +2270,16 @@ fn compile_steps(
           pipe_columns.any(column => column.0 == mapping.0)
         })
       })
+      if operation is Set(assignments) {
+        for assignment in assignments {
+          if duplicate_projection_alias(
+              remaining_projections,
+              assignment.0.value,
+            ) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
+      }
       for expression in expressions {
         let references = join_reference_paths(expression)
         reject_duplicate_projection_references(
@@ -2941,6 +2976,35 @@ fn compile_steps(
         }
       }
       Drop(names) => {
+        // A positional DROP removes all occurrences of an authored name. Use
+        // the star-exclusion correspondence before ordinary physical removal.
+        let names = if positional_projection is Some(projection) &&
+          i > projection {
+          let physical : Array[@query.NamePart] = []
+          for name in names {
+            if names.filter(other => same_name(name, other)).length() != 1 {
+              raise Abort(DuplicateOutput)
+            }
+            let matches = pipe_columns.filter(column => {
+              same_name(name, {
+                value: positional_authored_column_name(
+                  column.0,
+                  positional_authored_aliases,
+                ),
+                quoted: false,
+              })
+            })
+            if matches.is_empty() {
+              raise Abort(UnknownColumn)
+            }
+            physical.append(
+              matches.map(column => { value: column.0, quoted: false, }),
+            )
+          }
+          physical
+        } else {
+          names
+        }
         // A structural DROP does not read values from retained columns. When
         // the current visible names already are the physical row slots, use
         // the existing operation rather than manufacturing a final SELECT
