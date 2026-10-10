@@ -58,17 +58,20 @@ const call = selection => "shortest_path(source: {from: seeds, id: 'element'}, "
 // the acyclic path. Publish an ordinary Relation continuation, not a private
 // helper's winner or a result synthesized from the execution output.
 const weightedValues = [
-  {schema: {node_key: number}, rows: [{node_key: 2}, {node_key: 1}]},
+  {schema: {node_key: number, seed: number}, rows: [{node_key: 2, seed: 2}, {node_key: 1, seed: 1}]},
   {schema: {edge_key: number, src: number, dst: number, w: number}, rows: [
     {edge_key: 11, src: 1, dst: 2, w: 2},
     {edge_key: 12, src: 1, dst: 1, w: 0},
     {edge_key: 10, src: 1, dst: 2, w: 1},
   ]},
 ];
-const weightedMapping = {...mapping, edges: [{name: 'E', from: 'e', key: ['edge_key'],
+const weightedMapping = {...mapping,
+  nodes: [{...node, labels: [{name: 'Node', properties: {mode: 'columns',
+    columns: [{from: 'seed', to: 'seed'}]}}]}],
+  edges: [{name: 'E', from: 'e', key: ['edge_key'],
   source: {definition: 'N', key: ['src']}, target: {definition: 'N', key: ['dst']},
   labels: [{name: 'R', properties: {mode: 'columns', columns: [{from: 'w', to: 'w'}]}}]}]};
-const weightedBody = {source: {where: 'node_key = 1'}, target: {where: 'node_key = 2'},
+const weightedBody = {source: {where: 'seed = 1'}, target: {where: 'seed = 2'},
   selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'};
 const weightedProgram = {version: 'actql/0.1', id: 'fixture.graph_shortest_weighted',
   stages: [{id: 'main', inputs: {}, steps: [
@@ -78,15 +81,15 @@ const weightedProgram = {version: 'actql/0.1', id: 'fixture.graph_shortest_weigh
     {select: ['hop_count', 'total_cost'], as: 'out'},
   ], results: {paths: {from: 'out', fields: ['hop_count', 'total_cost']}}}],
   results: {paths: {from: {stage: 'main', result: 'paths'}}}};
-const weightedSource = 'DATA n = SELECT 2 AS node_key UNION ALL SELECT 1 AS node_key; ' +
+const weightedSource = 'DATA n = SELECT 2 AS node_key, 2 AS seed UNION ALL SELECT 1 AS node_key, 1 AS seed; ' +
   'DATA e = SELECT 11 AS edge_key, 1 AS src, 2 AS dst, 2 AS w ' +
   'UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst, 0 AS w ' +
   'UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst, 1 AS w; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) ' +
+  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) ' +
   'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N ' +
   'DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (w))); ' +
-  "DATA paths = FROM g |> shortest_path(source: {where: 'node_key = 1'}, " +
-  "target: {where: 'node_key = 2'}, selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'); " +
+  "DATA paths = FROM g |> shortest_path(source: {where: 'seed = 1'}, " +
+  "target: {where: 'seed = 2'}, selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'); " +
   'FROM paths |> WHERE hop_count > 0 |> SELECT hop_count, total_cost |> RESULT paths';
 const weightedResult = {paths: {rows: [{hop_count: 1, total_cost: 1}],
   columns: ['hop_count', 'total_cost'].map(name => ({name, contract: number}))}};
