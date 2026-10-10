@@ -9,6 +9,8 @@ import {
 // Values
 pub const RESUME_REVALIDATION_FAILED_CODE : String = "ACTQL_E_RESUME_REVALIDATION_FAILED"
 
+pub fn admit_attested_effect_resolution(SealedCheckpoint, String, HostAuthentication, Array[ReviewerAuthority], WireLimits) -> Result[AttestedEffectResolution, ResolutionIssue]
+
 pub fn admit_checkpoint_resolution(SealedCheckpoint, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits, model_binding? : ModelCheckpointBinding) -> Result[AdmittedResolution, ResolutionIssue]
 
 pub fn admit_checkpoint_wire(String, WireLimits) -> Result[SealedCheckpoint, CheckpointIssue]
@@ -119,6 +121,13 @@ pub struct AdmittedResolution {
   decision : ResolutionDecision
   attestation_preimage : String
   // private fields
+}
+
+pub struct AttestedEffectResolution {
+  resolution : VerifiedResolution
+  host_key_id : String
+  signature : String
+  attestation_preimage : String
 }
 
 pub(all) enum CheckpointClosure {

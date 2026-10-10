@@ -120,7 +120,7 @@ fn retained_effect_review_retention_store(
   }
   println("native-original-review: persistence fault retries confirmed")
   let report = retention.persist(store).unwrap()
-  if review_work is Some(work) {
+  let resolution_fixture = if review_work is Some(work) {
     println("native-original-review: retaining journal report")
     let queued = work
       .persist_and_retain_report(
@@ -132,6 +132,9 @@ fn retained_effect_review_retention_store(
       @remote.remote_effect_checkpoint_report_json(queued),
       @remote.remote_effect_checkpoint_report_json(report),
     )
+    Some(retained_holder_admit_resolution(work, report))
+  } else {
+    None
   }
   let report_wire = @remote.remote_effect_checkpoint_report_json(report)
   let checkpoint = @remote.remote_effect_checkpoint_report_checkpoint(report)
@@ -184,7 +187,31 @@ fn retained_effect_review_retention_store(
       }
     })
     match review_work {
-      Some(work) => assert_true(work.retry_cleanup() is Err(Retention(_)))
+      Some(work) =>
+        if step == "effect-checkpoint-terminal-saved" {
+          let (wire, authentication, reviewers, keys) = resolution_fixture.unwrap()
+          // A reentrant trusted clock can begin retirement. Admission must
+          // recheck the actual holder after the callback, without dropping
+          // the pending original retention owner or returning capacity.
+          let cleanup_failed = Ref(false)
+          assert_true(
+            work.admit_resolution(
+              wire,
+              authentication,
+              reviewers,
+              keys,
+              () => true,
+              () => {
+                cleanup_failed.val = work.retry_cleanup() is Err(Retention(_))
+                "2026-10-10T00:01:00.000Z"
+              },
+            )
+            is Err(AuthorityDenied),
+          )
+          assert_true(cleanup_failed.val)
+        } else {
+          assert_true(work.retry_cleanup() is Err(Retention(_)))
+        }
       None => assert_true(retention.retry_cleanup() is Err(_))
     }
     // The adapter must retain its exact input context and public Result when

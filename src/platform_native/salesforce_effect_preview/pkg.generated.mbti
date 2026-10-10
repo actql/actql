@@ -19,6 +19,8 @@ import {
 }
 
 // Values
+pub fn admit_native_effect_resolution(@signature.Library, @checkpoint_runtime.SealedCheckpoint, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
+
 pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 
 pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
@@ -36,6 +38,11 @@ pub(all) struct NativeEffectDispatchKeyLimits {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+}
+
+pub(all) struct NativeEffectHostAuthority {
+  key_id : String
+  public_key_pem : String
 }
 
 pub(all) struct NativeResidentEffectPreview {
@@ -68,7 +75,17 @@ pub(all) enum NativeResidentEffectPreviewIssue {
   Plan(@remote_resident_host.ResidentEffectPreviewPlanIssue)
 }
 
+pub(all) enum NativeResidentEffectResolutionIssue {
+  Unavailable
+  AuthorityDenied
+  AttestationRejected
+  Signature(@signature.NativeSignatureIssue)
+  Resolution(@checkpoint_runtime.ResolutionIssue)
+  Retention(@remote_resident_host.ResidentEffectReviewRetentionIssue)
+}
+
 type NativeResidentEffectReview
+pub fn NativeResidentEffectReview::admit_resolution(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
 pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::dispatch_identity(Self) -> String
 pub fn NativeResidentEffectReview::observe(Self, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]

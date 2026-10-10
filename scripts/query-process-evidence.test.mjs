@@ -1,3 +1,4 @@
+import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 // Independent bounded mock executor and ownership model, not a product lowerer.
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -157,12 +158,7 @@ test('fixed record preimages match independent oracle and closed schema',()=>{
   }
   assert.equal(schema.additionalProperties,false);
 });
-const moon=['// Generated from independent process-evidence preimages; do not edit.',''];
-for(const [i,v] of vectors.entries()) moon.push('///|',`test "process evidence preimage ${i}" {`,
-  '  let input = @json.parse(',`    ${JSON.stringify(canonicalText(v.body))},`,'  )',
-  '  let value = @canonical_json.from_json(input, 10000, 100, 100000)',
-  '  assert_eq(', '    @canonical_json.cid_value(value, 100000, 10000, 100),',
-  `    ${JSON.stringify(v.cid)},`,'  )','}','');
+const moon = generateQueryEvidenceVectors('process', vectors);
 const moonPath='src/canonical_json/query_process_evidence.generated_test.mbt';
-if(process.argv.includes('--write')) writeFileSync(moonPath,moon.join('\n'));
-test('three-target preimages are current',()=>assert.equal(readFileSync(moonPath,'utf8'),moon.join('\n')));
+if(process.argv.includes('--write')) writeFileSync(moonPath,moon);
+test('three-target preimages are current',()=>assert.equal(readFileSync(moonPath,'utf8'),moon));
