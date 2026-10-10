@@ -1542,7 +1542,10 @@ test('installed dispatch owns original keyed acquisition through committed Store
 });
 
 for (const entrance of ['Local', 'HTTPS']) {
-test(`public ${entrance} keyed captured INFER uses the original Model root and Store bytes`, async t => {
+for (const verifyUnattestedRefusal of [false, true]) {
+test(verifyUnattestedRefusal
+  ? `public ${entrance} keyed captured INFER refuses unattested Request values before Source or Model I/O`
+  : `public ${entrance} keyed captured INFER uses the original Model root and Store bytes`, async t => {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'keyed-infer-public-', label: 'original keyed Content Model root'});
   const payload = Buffer.from('%PDF-1.7\nversion-fixed fixture\n');
@@ -1619,9 +1622,30 @@ test(`public ${entrance} keyed captured INFER uses the original Model root and S
       token: 'keyed-model', durability: 'durable'});
   }
   } catch (error) { assert.fail(inspect(error, {depth: 10, maxStringLength: 2000})); }
-  const run = await client.startSource(JSON.stringify(value.program), {format: 'json',
-    submissionRef: client.newSubmission({nonce: 'original-keyed-model'})}).catch(error =>
-    assert.fail(inspect({error, events}, {depth: 10, maxStringLength: 2000})));
+  const submission = client.startSource(JSON.stringify(value.program), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'original-keyed-model'})});
+  if (verifyUnattestedRefusal) {
+    // Keep the positive chain above as an unfinished acceptance obligation.
+    // This separate regression proves the existing fail-closed boundary; it
+    // must not convert the requested successful chain into a refusal pass.
+    await assert.rejects(submission, error => error.code === 'SubmissionPreparationFailed' &&
+      error.outcome?.problem?.code === 'ClientProgramUnsupported');
+    const admission = events.find(value => value.event === 'infer_preparation_rejected');
+    assert.equal(admission?.detail.boundary, 'model_admission');
+    assert.equal(admission?.detail.code, 'MoonBitHostFailure');
+    // The pinned primitive enum representation maps 2 to UnknownClassification.
+    assert.equal(admission?.detail.cause, 2);
+    assert.equal(value.listingRequests(), 0);
+    assert.equal(gets, 0);
+    assert.equal(calls, 0);
+    assert.equal(physicalIssue, undefined);
+    scratch.passed();
+    return;
+  }
+  const run = await submission.catch(error =>
+    assert.fail(inspect({error, events, listingRequests: value.listingRequests(),
+      contentRequests: gets, modelCalls: calls, physicalIssue},
+    {depth: 10, maxStringLength: 2000})));
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
   assert.equal(state.status, 'succeeded', inspect({state, events, physicalIssue}, {depth: 10}));
   const expected = [{name: 'invoice.pdf', outcome: 'ok', value: {reason: null, risk: 'high'}}];
@@ -1637,6 +1661,7 @@ test(`public ${entrance} keyed captured INFER uses the original Model root and S
   }
   scratch.passed();
 });
+}
 }
 
 test('keyed read preparation binds the original Program, port and exact declared response', async () => {
