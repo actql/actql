@@ -17,10 +17,12 @@ it neither accepts nor confirms cancellation of an actual Run.
 
 The acceptance fixture independently checks decomposed Unicode keys and values,
 CRLF, NULL, an absent field, repeated transfer ownership, pending callback
-cancellation, and each missing cancellation prerequisite. Callback cancellation
-happens before DuckDB opens a connection; this does not prove interruption of an
-active native query, durable Run restoration, admission, or complete accounting
-of live Core allocations. Those are explicit subsequent ABI/Host work.
+cancellation, and each missing cancellation prerequisite. Pending callback cancellation
+happens before DuckDB opens a connection. A separate bounded native experiment
+interrupts an active DuckDB worker, waits for its actual completion, and only
+then closes the connection. This proves a physical adapter primitive, not
+cancellation or restoration of an admitted Run. Durable admission and complete
+accounting of live Core allocations remain subsequent ABI/Host work.
 
 The existing `client_values_host_abi` is a JS-only foreign library using opaque
 JS-owned values. Compiling portable Core packages does not make that Client ABI
