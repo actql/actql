@@ -259,6 +259,13 @@ fn local_client_publication_context(
   guard journal.lookup(request, true) is Ok(@client.Retained(original_run)) else {
     fail("original published Run missing")
   }
+  assert_true(journal.cancel_operation(
+    request, intent.namespace_id, "wrong-publication-namespace",
+    @client.native_client_run_record_revision(original_run).to_int(), () => true,
+    @client.install_native_client_cancellation_publication(
+      store, "foreign-publication-namespace", 1000000, 100000, 100,
+    ).unwrap(),
+  ) is Err(@client.ChangedIntent))
   let terminal = journal
     .cancel_operation(
       request,
