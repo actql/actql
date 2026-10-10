@@ -48,6 +48,8 @@ test "statistical DISTINCT ORDER aliases reuse one independently checked aggrega
 }
 
 ///|
+// DISTINCT cannot restore an unselected input expression. The adopted
+// semantic refusal is InvalidQuery, rather than an unimplemented ORDER path.
 test "statistical aliases do not reuse different arguments functions filters or slots" {
   for
     text in [
@@ -63,7 +65,7 @@ test "statistical aliases do not reuse different arguments functions filters or 
         values_context(),
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=text,
     )
   }
