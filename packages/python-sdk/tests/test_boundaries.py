@@ -333,7 +333,9 @@ class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
         transport = Transport(lambda request: httpx.Response(200, json={'unknown': 'invalid profile'}))
         with self.assertRaises(ClientError) as error:
             await AsyncClient.connect('https://host.invalid/', 'token', transport=transport)
-        self.assertEqual(error.exception.code, 'ClientCleanupFailed')
+        self.assertEqual(error.exception.code, 'ClientConnectionCleanupFailed')
+        self.assertEqual(error.exception.original_error.code, 'InvalidHostProfile')
+        self.assertEqual(error.exception.cleanup_error.code, 'ClientCleanupFailed')
         cleanup = error.exception.cleanup_client
         with self.assertRaises(ClientError):
             cleanup.new_submission()
@@ -402,3 +404,53 @@ class SyncBoundaryTests(unittest.TestCase):
             with run.result('answer').rows() as rows:
                 self.assertEqual(list(rows), [{'n': 1}])
         self.assertEqual(requests, ['connect', 'submit-intent', 'read'])
+
+
+class ConnectionCleanupTests(unittest.TestCase):
+    def test_failed_async_negotiation_retains_cleanup_client(self):
+        async def exercise():
+            class Transport(httpx.MockTransport):
+                closes = 0
+                async def aclose(self):
+                    self.closes += 1
+                    if self.closes == 1:
+                        raise OSError('transient close failure')
+            requests = []
+            def reply(request):
+                requests.append(request.url.path)
+                return httpx.Response(200, json={})
+            transport = Transport(reply)
+            with self.assertRaises(ClientError) as caught:
+                await AsyncClient.connect('https://host.invalid/', 'token', transport=transport)
+            failure = caught.exception
+            self.assertEqual(failure.code, 'ClientConnectionCleanupFailed')
+            self.assertEqual(failure.original_error.code, 'InvalidHostProfile')
+            self.assertEqual(failure.cleanup_error.code, 'ClientCleanupFailed')
+            await failure.cleanup_client.aclose()
+            await failure.cleanup_client.aclose()
+            self.assertEqual(transport.closes, 2)
+            self.assertEqual(requests, ['/actql/client/0.1/connect'])
+        asyncio.run(exercise())
+
+    def test_failed_sync_negotiation_keeps_its_runner_for_cleanup(self):
+        class Transport(httpx.MockTransport):
+            closes = 0
+            async def aclose(self):
+                self.closes += 1
+                if self.closes == 1:
+                    raise OSError('transient close failure')
+        requests = []
+        def reply(request):
+            requests.append(request.url.path)
+            return httpx.Response(200, json={})
+        transport = Transport(reply)
+        with self.assertRaises(ClientError) as caught:
+            Client.connect('https://host.invalid/', 'token', transport=transport)
+        failure = caught.exception
+        self.assertEqual(failure.code, 'ClientConnectionCleanupFailed')
+        self.assertEqual(failure.original_error.code, 'InvalidHostProfile')
+        self.assertIsInstance(failure.cleanup_client, Client)
+        failure.cleanup_client.close()
+        failure.cleanup_client.close()
+        self.assertEqual(transport.closes, 2)
+        self.assertEqual(requests, ['/actql/client/0.1/connect'])

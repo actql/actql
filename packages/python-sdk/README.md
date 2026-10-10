@@ -42,6 +42,12 @@ call `run.cancel()` to request cancellation. Keep the original submission and
 cancellation references for lookup after response loss. A `not_found` lookup
 grants no permission to retry a write.
 
+If connection negotiation fails and physical cleanup also fails, the
+`ClientConnectionCleanupFailed` error retains `original_error`, `cleanup_error`,
+and `cleanup_client`. Explicitly retry `cleanup_client.aclose()` for async or
+`cleanup_client.close()` for sync. This closes the original transport; it does
+not reconnect, resubmit, or cancel a Run. A successful retry is idempotent.
+
 Use `async with result.rows() as reader` or `with result.rows() as reader` when
 streaming, especially when stopping early. Each reader retains one `attempt_id`;
 `delivery_attempt()` looks up that attempt without opening another read. A stream

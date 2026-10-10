@@ -20,6 +20,8 @@ class ClientError(Exception):
     signed: tuple[Mapping[str, Any], ...] | None
     attempt_id: str | None
     rows_yielded: int | None
+    original_error: BaseException | None
+    cleanup_error: BaseException | None
     def __init__(self, code: str, **facts: Any) -> None: ...
 
 class Observation(Mapping[str, Any], Generic[_T]):

@@ -12,5 +12,7 @@ class ClientError(Exception):
         self.signed = None
         self.attempt_id = None
         self.rows_yielded = None
+        self.original_error = None
+        self.cleanup_error = None
         for key, value in facts.items():
             setattr(self, key, value)

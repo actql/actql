@@ -24,9 +24,10 @@ class Client:
         try:
             client = runner.run(AsyncClient.connect(endpoint, token, **options))
         except BaseException as failure:
-            cleanup = getattr(failure, 'cleanup_client', None)
-            if isinstance(cleanup, AsyncClient):
-                failure.cleanup_client = cls(runner, cleanup)
+            cleanup_client = getattr(failure, 'cleanup_client', None)
+            if isinstance(failure, ClientError) and isinstance(cleanup_client, AsyncClient):
+                # The unfinished async cleanup still needs its original loop.
+                failure.cleanup_client = cls(runner, cleanup_client)
             else:
                 runner.close()
             raise
