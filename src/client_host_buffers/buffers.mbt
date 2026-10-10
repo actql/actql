@@ -79,6 +79,24 @@ pub fn open_pool(
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
   }
+  open_pool_on_ledger(ledger, total_bytes, max_slots, max_wire_bytes)
+}
+
+///|
+/// Compose transfers with the Host's existing root Ledger. Workspace and other
+/// pools compete for that same allowance; this pool settles only its own lease.
+pub fn open_pool_on_ledger(
+  ledger : @resources.Ledger,
+  total_bytes : Int64,
+  max_slots : Int,
+  max_wire_bytes : Int,
+) -> Result[BufferPool, BufferIssue] {
+  if total_bytes <= 0L ||
+    max_slots < 1 ||
+    max_slots > 1024 ||
+    max_wire_bytes < 1 {
+    return Err(InvalidLimits)
+  }
   let capacity = match @resources.reserve_shared_capacity(ledger, total_bytes) {
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))

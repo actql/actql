@@ -95,6 +95,16 @@ objects, DuckDB workspace or aggregate Local execution. A product Host must
 reserve and account for those resources using their existing Owners before
 claiming an aggregate execution bound.
 
+`open_pool_on_ledger` composes the existing transfer pool with an installed
+Host root Ledger. Its shared reservation competes with the same root's
+workspace and other pools before transfer allocation. Closing the pool settles
+only that pool's lease; it cannot return another workspace reservation or hide
+another pool's cleanup. Failed cleanup retains the same root reservation and
+allocation, including when independently valid concurrent pools exhaust the
+aggregate allowance. Standalone `open_pool` uses the same implementation with
+its own bounded Ledger. This composition hook does not establish that all
+product components are already connected to the root.
+
 ## Physical DuckDB boundary
 
 The private Python adapter loads an explicitly installed standalone DuckDB C
