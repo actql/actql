@@ -194,7 +194,7 @@ test "Local bounded append filter chain retains two consumers" {
 }
 
 ///|
-test "ordinary append filter chain reserves both live children" {
+test "ordinary append filter chain retains both outputs with one scratch envelope" {
   let (run, issuer) = captured_graph_fixture(
     local_values_append_chain=true,
     local_values_append_variant="imported_filter",
@@ -221,7 +221,9 @@ test "ordinary append filter chain reserves both live children" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  let mut children = 0L
+  let mut retained_children = 0L
+  let mut peak_scratch = 0L
+  let mut summed_scratch = 0L
   for index in 0..<2 {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
@@ -230,15 +232,29 @@ test "ordinary append filter chain reserves both live children" {
       limits.local_execution,
       limits.guards,
     ).unwrap()
-    children += child.retained_bytes + child.execution_bytes
+    retained_children += child.retained_bytes
+    peak_scratch = Int64::max(peak_scratch, child.execution_bytes)
+    summed_scratch += child.execution_bytes
   }
-  // Both private completions coexist until reverse-order chain cleanup.
-  // Each live child also owns the existing 256-byte handle allowance.
-  // Input selection and common producer-read preparation each retain one
-  // additional 256-byte metadata handle, independently of the child handles.
-  assert_true(children > base.execution_bytes)
+  // Both private output generations stay held for their downstream consumers.
+  // Audited Append cleanup retires its scratch before the next child starts;
+  // the separate built-in chain lifetime fixtures observe that ordering and
+  // retain cleanup responsibility on false/error, retry and cancellation.
+  // Keep both child handle allowances and the two preparation metadata handles.
+  // These are reservation envelopes, not a measured physical-memory bound.
+  assert_true(retained_children > 0L)
+  assert_true(peak_scratch < summed_scratch)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
-  assert_eq(capacity.execution_bytes, children + 512L + 512L)
+  assert_eq(
+    capacity.execution_bytes,
+    Int64::max(
+      base.execution_bytes,
+      retained_children + peak_scratch + 512L + 512L,
+    ),
+  )
+  assert_true(
+    capacity.execution_bytes < retained_children + summed_scratch + 512L + 512L,
+  )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)
 }

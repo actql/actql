@@ -64,6 +64,8 @@ pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Resu
 
 pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaCall, Diagnostic]
 
+pub fn positional_output(Query) -> Bool
+
 pub fn query_document(Query) -> @frontend_source_map.Document
 
 pub fn query_source(Query) -> Tokens
