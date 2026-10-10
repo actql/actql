@@ -25,6 +25,7 @@ fn retained_consumer_holder_case(
   output_unavailable? : Bool = false,
   effect_materials? : @host.ClientEffectRunMaterials? = None,
   effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
+  provider? : Bool = false,
 ) -> Unit raise {
   // Every completed resident consumer has durable file custody. Chain cases
   // additionally make the original Source path unavailable to later tasks.
@@ -69,17 +70,20 @@ fn retained_consumer_holder_case(
     fail("expected checked tasks")
   }
   let wire = match effect_materials {
-    Some(effect) =>
-      @host.issue_client_effect_run_materials(
-        effect.allowed,
-        effect.run_definition,
-        environment,
-        resident_effect_source_environment,
-        resident_native_effect_document,
-        None,
-        retained_compute_effect_limits(),
-        request=effect.request,
+    Some(_) => {
+      let original_dispatch = @host.client_retained_input_producer_dispatch(
+        @host.client_retained_task_input_producer(input),
+      )
+      let original_envelope = producer_journal
+        .dispatch_envelope(
+          @remote.dispatch_request_attempt_identity(original_dispatch).unwrap(),
+        )
+        .unwrap()
+        .unwrap()
+      @remote.remote_poll_dispatch_run_materials(
+        @remote.admit_remote_poll_dispatch_json(original_envelope).unwrap(),
       ).unwrap()
+    }
     None =>
       @host.issue_client_task_run_materials(
         materials.prepared,
@@ -158,6 +162,20 @@ fn retained_consumer_holder_case(
     )
   }
   if effect_materials is Some(effect) {
+    let (effect_environment, effect_environment_cid, effect_document) = if provider {
+      resident_provider_environment()
+    } else {
+      (
+        resident_effect_source_environment, "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+        resident_native_effect_document,
+      )
+    }
+    let effect_environment_owner = @host.admit_client_check_environment(
+      effect_environment,
+      effect_environment_cid,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ).unwrap()
     let changed = @host.prepare_client_effect_request_identity(
       effect.prepared,
       retained_compute_cid("c"),
@@ -167,9 +185,9 @@ fn retained_consumer_holder_case(
     let changed_wire = @host.issue_client_effect_run_materials(
       effect.allowed,
       effect.run_definition,
-      environment,
-      resident_effect_source_environment,
-      resident_native_effect_document,
+      effect_environment_owner,
+      effect_environment,
+      effect_document,
       None,
       retained_compute_effect_limits(),
       request=Some(changed),
@@ -528,7 +546,9 @@ fn retained_consumer_holder_case(
         duplicate.effect_computation(journal).unwrap(),
       ),
     )
-    retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
+    if !provider {
+      retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
+    }
     retained_holder_effect_transfer_capture(
       owner,
       journal,
@@ -536,6 +556,9 @@ fn retained_consumer_holder_case(
       producer_journal,
       input,
       site,
+      provider~,
+      root_path~,
+      name~,
     )
     assert_eq(entries.val, 1)
     assert_eq(borrows.val, 1)
@@ -837,7 +860,8 @@ fn retained_consumer_holder_case(
     assert_eq(facts.row_count, 1)
     assert_eq(
       facts.result_schema_cid,
-      "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+      "sha256:" +
+      @sha.hex(@utf8.encode(retained_effect_expected_schema(provider))),
     )
   }
   // A live Result reader prevents output-file cleanup. Its independent file
@@ -877,7 +901,10 @@ fn retained_consumer_holder_case(
     assert_eq(@utf8.decode(Bytes::from_array(bytes)), expected_rows)
     assert_eq("sha256:" + @sha.hex(Bytes::from_array(bytes)), expected_content)
   } else {
-    assert_eq(@utf8.decode(Bytes::from_array(bytes)), "[{\"id\":3}]")
+    assert_eq(
+      @utf8.decode(Bytes::from_array(bytes)),
+      retained_effect_expected_rows(provider),
+    )
   }
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())

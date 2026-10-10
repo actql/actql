@@ -128,7 +128,7 @@ fn retained_effect_preview_store(
   guard first is Err({ issue: Store(Closed), custody: Some(custody), }) else {
     fail("Preview persistence acknowledgement must be lost after the commit")
   }
-  let (_, original_request) = retained_compute_effect_materials(provider=true)
+  let original_request = consumer.request_for_effect_review(inputs).unwrap()
   let review_limits : @checkpoint.WireLimits = {
     max_wire_bytes: 262144,
     max_nodes: 10000,

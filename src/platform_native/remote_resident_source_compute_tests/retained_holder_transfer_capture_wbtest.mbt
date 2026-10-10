@@ -1,7 +1,8 @@
 ///|
 /// Join separately admitted producer/consumer Runtime owners through the actual
 /// receiver holding. Equal original materials are not shared object handles.
-/// No provider Preview, approval, write or public Effect Result is simulated.
+/// The optional Provider branch observes real HTTPS rows and retains the
+/// original review Checkpoint. Approval, write and Cloud commit are separate.
 fn retained_holder_effect_transfer_capture(
   holder : @resident.ResidentRetainedConsumer,
   journal : @dispatch_journal.Journal,
@@ -9,6 +10,9 @@ fn retained_holder_effect_transfer_capture(
   producer_journal : @dispatch_journal.Journal,
   input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
+  provider? : Bool = false,
+  root_path? : String = "",
+  name? : String = "",
 ) -> Unit raise {
   let source_owner = producer.source_for_capture(producer_journal).unwrap()
   let sender_materials = producer
@@ -338,7 +342,7 @@ fn retained_holder_effect_transfer_capture(
     .unwrap()
   assert_eq(
     result.output.result_schema_wire().unwrap(),
-    "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+    retained_effect_expected_schema(provider),
   )
   assert_eq(result.output.row_count().unwrap(), 1)
   let read = result.output.replay().unwrap()
@@ -347,7 +351,7 @@ fn retained_holder_effect_transfer_capture(
     rows.write_string(chunk)
   }
   rows.write_string(read.finish().unwrap())
-  assert_eq(rows.to_string(), "[{\"id\":3}]")
+  assert_eq(rows.to_string(), retained_effect_expected_rows(provider))
   @publication.validate_run_publication_chain(
     materials.run_definition,
     invocation,
@@ -359,6 +363,24 @@ fn retained_holder_effect_transfer_capture(
     64,
   ).unwrap()
   |> ignore
+  if provider {
+    retained_holder_provider_review(
+      consumer,
+      source_owner,
+      materials,
+      inputs,
+      producer.executed.request,
+      original_run_invocation,
+      original_observation_set,
+      dependency,
+      receiver,
+      imported,
+      root_index,
+      result,
+      root_path,
+      name,
+    )
+  }
   result.output.cancel()
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   assert_true(consumer.request_for_effect_review(inputs) is None)
