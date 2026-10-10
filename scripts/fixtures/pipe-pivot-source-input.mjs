@@ -151,7 +151,7 @@ pipePivotSuccesses.push(
   success('from-left-join-padding',joinedFromHead+"SELECT p.product,p.marker,s.A FROM products p LEFT JOIN sales PIVOT(SUM(amount) FOR axis IN('A')) s ON p.product=s.product MAX_OUTPUT_ROWS 10 ORDER BY p.product",
     [{product:1,marker:100,A:5},{product:2,marker:200,A:null}],joinedFromColumns),
   success('from-shared-source', "WITH sales AS (SELECT 'kale' AS product,amount AS sales,CASE WHEN id<3 THEN 'Q1' ELSE 'Q2' END AS quarter FROM records WHERE id>0) SELECT product,first,second FROM sales PIVOT(COUNT(sales) FOR quarter IN('Q1' AS first,'Q2' AS second)) WHERE first>0 ORDER BY product",
-    [{product:'kale',first:3,second:1}], [string('product',4),number('first',false),number('second',false)],{sourceReadCount:1,sourceReadSessionCount:1,
+    [{product:'kale',first:3,second:1}], [string('product',4),number('first',false),number('second',false)],{sourceReadCount:2,sourceReadSessionCount:1,
       sourceRows:[{id:2,amount:10},{id:1,amount:20},{id:3,amount:null},
         {id:4,amount:40},{id:2,amount:10},{id:0,amount:99}]}),
 );
@@ -184,7 +184,7 @@ export const fromPivotAcquiredProgram={version:'actql/0.1',id:'fixture.from_pivo
   results:{answer:{from:{stage:'main',result:'rows'}}}};
 pipePivotSuccesses.push(success('from-shared-source-json-control',JSON.stringify(fromPivotAcquiredProgram),
   [{product:'kale',first:3,second:1}], [string('product',4),number('first',false),number('second',false)],
-  {format:'json',sourceReadCount:1,sourceReadSessionCount:1,sourceRows:acquiredFromRows}));
+  {format:'json',sourceReadCount:2,sourceReadSessionCount:1,sourceRows:acquiredFromRows}));
 
 // Projected columns remain distinct even when their source values coincide.
 const projectedIdentityControl={"version":"actql/0.1","id":"fixture.pivot_projection_identity","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false},"twin":{"type":"number","nullable":false},"axis":{"type":"string","nullable":false}},"rows":[{"value":1,"twin":1,"axis":"A"},{"value":1,"twin":1,"axis":"A"},{"value":2,"twin":2,"axis":"A"}]},"as":"rows"},{"from":"rows","pivot":{"index":["twin"],"column":"axis","value":"value","values":["A"],"aggregate":"sum"}},{"sort":[{"field":"twin","dir":"asc","nulls":"first"}],"as":"out"}],"results":{"rows":{"from":"out","fields":["twin","A"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};

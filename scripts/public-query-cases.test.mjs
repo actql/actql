@@ -55,6 +55,8 @@ test('FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh outp
  assert.deepEqual(source.expected,[{product:'kale',first:3,second:1}]);
  assert.deepEqual(source.expected,control.expected);
  assert.deepEqual(source.columns,control.columns);
+ assert.equal(source.sourceReadSessionCount,1);assert.equal(control.sourceReadSessionCount,1);
+ assert.equal(source.sourceReadCount,2);assert.equal(control.sourceReadCount,2);
  assert.deepEqual(fromPivotAcquiredProgram.stages[0].steps[0].filter,
   {gt:[{field:'id'},{literal:0}]});
  assert.ok(cases.get('pipe-pivot-from-left-join-padding').text.includes('MAX_OUTPUT_ROWS 10'));

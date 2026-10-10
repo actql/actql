@@ -151,3 +151,29 @@ unminified-diagnostic}-fc52b3998.json. The frontend now preserves its authored
 projection instead of introducing that unimplemented empty consumer. This
 common JSON coverage obligation is not silently marked fixed by the frontend
 optimization change. No Owner implementation is duplicated here.
+
+## Acquisition counter granularity correction
+
+At 0fb593f34229f1a25e65b0efa0a28046f9e3436e the normal five-package gate
+run-Y8Rb4z passes the formerly failing empty-global case on both transports,
+then empty-keyed, both JOIN sides and LEFT padding. It stops at the new acquired
+case's incorrectly authored physical-scan=1 expectation: two actual SQL commands
+share session=1. Source/JSON rows, schema and subsequent cases are not declared
+passed until the complete rerun. Receipt/logs retained at
+/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-35Y4Wx.
+
+This differs from reacquisition. Existing public harness comments and source
+adapter already distinguish validation_scan/native_result row receipts in one
+private withSourceAcquisition connection. docs/spec/execution.md requirements
+query-process-evidence.native/host-adapter/access-accounting require full scan
+validation before filtering and separately account exported validation rows and
+query rows. Existing duckdb_native_capture_wbtest.mbt independently names both
+receipts. Native numeric WHERE id>0 is this selected profile; neither Source
+scope nor execution implementation changes.
+
+Correct only the newly authored counter metadata: require exactly two physical
+scans and exactly one acquisition session in both source and its independent
+JSON control. Expected rows first=3/second=1, predicate, limits, schema and repeat
+request no-extra-I/O checks remain unchanged. Preserve the failed expectation
+and rationale here. This is derived from the existing two-receipt contract, not
+an increase to allowable Source acquisitions or a deletion of the I/O check.
