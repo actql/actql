@@ -411,6 +411,18 @@ class DuckDBStream:
             return writer.position
 
     def read_row(self, destination: bytearray) -> int | None:
+        """One native row; consumes exactly the same stream as column receipts."""
+        return self._read_one(destination, columnar=False)
+
+    def read_column_row(self, destination: bytearray) -> int | None:
+        """One-row column vectors for the existing Core native receipt codec.
+
+        No intermediate row, parsed value or transposed copy is retained. The
+        Core receipt Owner still validates types, schema, counts and completion.
+        """
+        return self._read_one(destination, columnar=True)
+
+    def _read_one(self, destination: bytearray, *, columnar: bool) -> int | None:
         self._owned()
         writer = _RowWriter(destination, self._limits.max_row_bytes)
         with self._owner._io:
@@ -441,7 +453,11 @@ class DuckDBStream:
                 for column, kind in enumerate(self._types):
                     if column:
                         writer.put(b',')
+                    if columnar:
+                        writer.put(b'[')
                     self._cell(writer, column, kind)
+                    if columnar:
+                        writer.put(b']')
                 writer.put(b']')
                 self._row += 1
                 self._read_rows += 1

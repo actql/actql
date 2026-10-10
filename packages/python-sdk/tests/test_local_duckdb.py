@@ -136,6 +136,43 @@ class PhysicalDuckDBTests(unittest.TestCase):
         self.assertTrue(stream._result_created)
         self.assertTrue(stream.close())
 
+    def test_column_framing_uses_same_native_row_and_no_transposed_copy(self):
+        stream = self.stream()
+        stream._executed = True
+        stream._chunk.value = 1
+        stream._chunk_rows = 2
+        stream._types = (5, 17)
+        def cell(writer, column, kind):
+            writer.put(b'"7"' if column == 0 else b'null')
+        stream._cell = cell
+        destination = bytearray(32)
+        count = stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]), b'[["7"],[null]]')
+        self.assertEqual(stream._read_rows, 1)
+        count = stream.read_row(destination)
+        self.assertEqual(bytes(destination[:count]), b'["7",null]')
+        self.assertEqual(stream._read_rows, 2)
+        self.assertEqual(stream._row, 2)
+
+    def test_column_capacity_failure_retains_stream_without_row_retry(self):
+        stream = self.stream()
+        stream._executed = True
+        stream._chunk.value = 17
+        stream._chunk_rows = 1
+        stream._types = (5,)
+        stream._cell = lambda writer, column, kind: writer.put(b'"7"')
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'row capacity'):
+            stream.read_column_row(bytearray(6))
+        self.assertTrue(stream._failed)
+        self.assertEqual(stream._read_rows, 0)
+        self.assertEqual(stream._chunk.value, 17)
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'cannot read'):
+            stream.read_row(bytearray(32))
+        self.assertFalse(stream._owner.close())
+        self.assertTrue(stream.close())
+        self.assertTrue(stream._owner.close())
+
+
 
 if __name__ == '__main__':
     unittest.main()

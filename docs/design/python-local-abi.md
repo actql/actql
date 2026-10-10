@@ -116,6 +116,14 @@ cannot grow that buffer, numeric payloads follow the existing native codec,
 and raw Unicode, embedded NULL and line endings are preserved. A capacity
 failure does not deliver a partial row, claim EOF or authorize a repeated query.
 
+For the existing Native receipt decoder, `read_column_row` writes one-row
+column vectors directly into that same reserved buffer. For example, native
+row `["7",null]` becomes `[["7"],[null]]` with a claimed row count of one.
+No intermediate parsed row or transposed copy is retained. Both framing
+methods consume the same native cursor and share its row and byte ceilings.
+The existing Core receiver validates column shape, counts, schema, values and
+cumulative limits; the physical encoding does not certify a Source receipt.
+
 Statement, result, chunk and logical-type handles belong to the exact physical
 connection and stream. Copied handles are refused. Interrupt delivery is not
 physical-stop acknowledgement or a Run cancellation result. While native I/O

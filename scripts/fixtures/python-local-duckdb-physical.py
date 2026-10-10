@@ -80,6 +80,30 @@ class StandaloneDuckDBTests(unittest.TestCase):
             ['huge', 'HUGEINT', None, None], ['uhuge', 'UHUGEINT', None, None],
         ])
 
+    def test_one_row_columns_preserve_native_values_and_empty_end(self):
+        stream = self.query("SELECT i::BIGINT AS n, CASE WHEN i = 1 THEN NULL "
+            "ELSE 'é' || chr(13) || chr(10) || '😀' END AS text "
+            "FROM range(3) t(i) ORDER BY i", max_rows=3)
+        destination = bytearray(128)
+        fixed = [b'[["0"],["e\xcc\x81\\u000d\\u000a\xf0\x9f\x98\x80"]]',
+                 b'[["1"],[null]]',
+                 b'[["2"],["e\xcc\x81\\u000d\\u000a\xf0\x9f\x98\x80"]]']
+        actual = []
+        while (count := stream.read_column_row(destination)) is not None:
+            actual.append(bytes(destination[:count]))
+        self.assertEqual(actual, fixed)
+        self.assertIsNone(stream.read_row(destination))
+
+    def test_column_framing_overflow_never_delivers_or_retries_partial_row(self):
+        stream = self.query('SELECT 7::BIGINT AS n', max_row_bytes=6)
+        destination = bytearray(6)
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'row capacity'):
+            stream.read_column_row(destination)
+        self.assertEqual(len(destination), 6)
+        self.assertFalse(self.connection.close())
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'cannot read'):
+            stream.read_row(bytearray(6))
+
     def test_empty_is_end_without_a_fabricated_row(self):
         self.assertEqual(self.rows('SELECT 1 AS n WHERE FALSE', max_rows=0), [])
 
