@@ -775,7 +775,7 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
-      @argparse.Command("check", options=[
+      @argparse.Command("check", flags=[@argparse.FlagArg("json")], options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("format", required=true),
         @argparse.OptionArg("parameters-file"),

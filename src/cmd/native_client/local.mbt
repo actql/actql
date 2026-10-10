@@ -165,6 +165,17 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     EffectComputation(value) =>
       (@run_host.prepared_client_effect_identity(value), true)
   }
+  if !child.flags.get("json").unwrap_or(false) {
+    return "Local Program prepared; no Run has been admitted.\n" +
+      "Program: " +
+      identity.program_definition_cid +
+      "\n" +
+      "Parameters: " +
+      identity.parameter_values_cid +
+      "\n" +
+      "Effectful: " +
+      effectful.to_string()
+  }
   encode_request_json(
     Json::object(
       Map([

@@ -69,7 +69,7 @@ must carry transaction-uncertainty fencing across its other services.
 | Program/SQL preparation | Common frontend/checker; actual Native candidate ingress | Complete diagnostic projection and configured Source context |
 | Actual DuckDB Source | Native read-only binding, acquisition/capture and strategy APIs | Configure/admit the operator's actual Source; run the user Program through ordinary dispatch |
 | Named Result | Native formal publication Store and current-authorized bounded Result access | Connect the admitted CLI Run and real Source output, then separate-process delivery/recovery |
-| Submission/Run | Portable identity/start/cancel Owners; new physical binding/start adapter | Fresh-format inspection before writer open, namespace/custody bootstrap, receipt/outcome journal and public operation routing |
+| Submission/Run | Portable identity/start/cancel Owners; new physical binding/start adapter; shared non-destructive SQLite inspection | Trusted namespace/custody bootstrap, receipt/outcome journal and public operation routing |
 | Effect | Native Preview, encrypted capture/continuation/Checkpoint custody; portable Effect Ledger and Checkpoint Owners | Native physical claim/head/history/outcome adapter, resolution/resume transaction, selected fixture apply/reconcile and process restart |
 | Distribution | Existing fixed Native binary/artifact/npm wrapping | Fresh artifact from a clean fixed implementation HEAD; outside-repository install and full Local lifecycle acceptance |
 
@@ -142,3 +142,168 @@ performed. GitHub's API rejected the existing local credentials with HTTP 401;
 Draft PR creation and remote workflow-state confirmation are therefore pending.
 The workflow/protection/authentication settings were not modified, and no push
 was used to trigger CI while that stop could not be confirmed.
+
+## Current-main integration and pending physical regression
+
+Main `0c6538b53f63a3c8a42770092e16035103749e9e` was merged normally as
+`90bc8cbcdc8733000c6fcaf183b7d4027d9ca451`. This includes the existing signed
+Native resident Effect Resolution admission from #1239, including current
+authority checks after the clock callback. That API admits a Resolution; it
+does not itself claim dispatch, apply an Effect or prove cleanup. It will be
+reused rather than replaced.
+
+The following work is uncommitted on that integration HEAD:
+
+- Local preparation is human-readable by default; `--json` selects its existing
+  machine report. Neither presentation claims that a Run was admitted.
+- Client custody inspection reuses the existing pinned SQLite/WAL-copy and
+  retry-only cleanup owner. Missing files remain physical absence, not proof of
+  a fresh Host. Epoch and Run custody are read through their existing bounded
+  decoders; missing or inconsistent records are not repaired.
+- The new inspection entry bounds the combined DB/WAL bytes before creating
+  scratch files, separately from the record-read bound. Its capacity refusal
+  is typed, not classified from an error message. Existing Coordinator callers
+  retain their former copy behavior and common format checks.
+- Epoch and Run adapters share transaction-uncertainty fencing through their
+  original SQLite physical handle. Rewrapping the same handle cannot bypass
+  the fence. Rollback and checked close remain available for cleanup; neither
+  removes the fence. Reopening still requires the original durable custody and
+  start facts, and never treats an unknown outcome as non-execution.
+
+The new independent cases cover read-only copies, absence, concurrent source
+generation change, semantic refusal plus retryable cleanup, copy-capacity
+refusal, lost/corrupt Client custody, and both before-commit failure and
+after-commit reply loss across the Epoch/Run adapters. They are not yet claimed
+as executed regressions.
+
+Scoped Native `moon check`, shared-package `moon info --target js,wasm,native`,
+C `clang -fsyntax-only -Wall -Wextra`, Node test-script syntax and formatting
+passed for these working-tree changes. Evidence is in
+`_build/local-checks/attempts/run-IbyoIi`, `run-4s2tDN` and `run-YrRK5V`.
+The first inspection typecheck failure, `run-YJltAl`, was a test-only misspelling
+of `DatabaseClosed`; it was corrected without changing the product error.
+
+The bounded matching-target execution request selects only seven inspection
+cases, `src/platform_native/client_host`, the affected Native CLI build and
+`scripts/test-native-local-cli.test.mjs`. It was refused before starting by
+another owner's shared heavy lock (`run-d3JX6I`; earlier requests
+`run-cf84hm` and `run-XF9eHU` were likewise not executed). There is no current
+artifact or runtime-success claim for this integration HEAD. The clean
+`ab5a23fbb6a1bf5c070f1b0aaf4cd52a2196932a` internal 17-test result remains
+historical evidence and is not transferred to the new main merge or edits.
+
+The three earlier implementation commits were published only to the unattached
+branch `feat/native-local-cli-ab5a23fbb6a1`; that branch publication is distinct
+from a PR event, Hosted CI execution or package publication. This main merge
+and the changes above have not been pushed.
+
+Actual acquisition can reuse `open_resident_source_compute` with a checked
+single-Source linear Program: its documented boundary is physical acquisition/
+Compute ownership, not remote dispatch authority. The caller must already have
+durable admission, current Source authority and an exclusive start claim.
+`execute_task`, `prepare_result_export` and retryable `close` keep the existing
+Native strategy/resource owners. Named Result publication and authorized
+delivery remain the separate existing Native services. No alternate engine or
+remote Coordinator is required by this physical composition boundary.
+
+Trusted Local configuration adoption remains an explicit undecided bootstrap
+boundary in `docs/design/oss-host-authorization.md`. The pending proposal is
+operator adoption into private user-owned Host state; project discovery alone
+must not install grants or signer keys. Inspection is useful independently of
+that decision and does not choose an adoption policy. Source execution,
+durable public operations, Effect application/recovery and fresh external
+installation are still required for the assignment's completion.
+
+## Original-Run Source connection
+
+The Native Client adapter now connects to the existing Source/Compute owner
+through `open_native_client_source_work`. It checks the original compiled Run
+binding, persists the common reservation and exclusive physical-start claim,
+and rechecks current authority at each durable boundary. A repeated claimed
+Run returns `NeedsOriginalReconciliation`, including after SQLite reopen;
+there is no constructor replay or replacement Run. Cancellation accepted by
+the final authority callback is read again before acquisition. Task readiness,
+execution, Result export and failed-close responsibility stay with the existing
+physical owners.
+
+The existing Source owner exposes its same structural support predicate so
+this connection can refuse unsupported legal graphs before claiming work.
+This is the current single-Source linear profile, not a new language rule or
+completion of every Native operation. The trusted CLI factory must still
+authenticate Submission custody, retain the original selected installation
+context, supply current authority and commit public Run outcomes. These are
+not delegated to the raw physical adapter or inferred from its close result.
+
+`local_client_source_wbtest.mbt` reuses the existing actual DuckDB fixture and
+one unmodified Source/filter/select-to-Compute Program. Its independent result
+is `[{"id":3}]`, one non-NULL numeric `id` column. Its declared retention and
+execution envelopes are each 512 MiB. It checks the existing reader pin keeps
+cleanup pending, then confirmed close returns reservations and held bytes;
+closing twice produces only one cleanup completion. Repeat construction cannot
+acquire/compute again. Counts refer to acquisition/consumer Owner boundaries,
+not a claim that validation and execution use only one physical SQL query.
+
+The test-owned initial issuance row is explicit; no production fresh bootstrap
+or Submission receipt is fabricated. This is internal Native execution
+connection acceptance, not public CLI ingress/delivery, process restart or
+packed acceptance. The actual Source test and three start-guard counterexamples
+are added but have not run yet. Scoped Native checks passed in
+`run-W0VDk6`, `run-UfVi5s` and `run-s9p5Hy`; the shared support interface was
+generated on JS/Wasm/Native without divergence.
+
+The matching-target request is retained as
+`/private/tmp/actql-d-native-local-targeted-check.mjs`. It uses the existing
+bounded/nonzero wrappers and shared heavy lock, the system SQLite/OpenSSL
+libraries, and the read-only borrowed DuckDB 1.5.5-r.4 library matching this
+checkout's pinned dependency. The latest request was refused before starting
+by G's heavy lock (`run-z6F0b6`). No runtime result has been transferred from a
+prior SHA or inferred from the successful typechecks.
+
+## Scoped runtime follow-up
+
+The Source connection also retains the actual acquisition's opaque capture and
+checked requirement. `source_publication_observation` uses the existing
+captured-relation identity, logical-input issuer and DuckDB Source Evidence
+issuer; it does not create a substitute observation. The Client adapter binds
+this evidence and the original acquisition interval to its compiled Run using
+`issue_client_compiled_task_invocation`. Repeating evidence acquisition keeps
+the same invocation identity and does not query the Source. Current authority
+is checked before and after issuance; closed captures remain unavailable.
+Source Policy is taken from the original checked requirement and is not
+supplied as an override. This produces publication ingredients, not a public
+index, Result grant or successful Run receipt.
+
+The acquisition/consumer observer is guarded after caller callbacks, including
+callbacks that accept cancellation. Cleanup notifications still remain usable
+after authority loss or cancellation, with the existing owner retaining any
+unrecorded completion. The timestamp callback runs before the final physical
+start guard, never between that guard and acquisition.
+
+`run-9kn9jM` passed scoped Native typechecks and actual shared interface
+generation on JS/Wasm/Native. `run-73cTTG`, at base
+`90bc8cbcdc8733000c6fcaf183b7d4027d9ca451` with these uncommitted source changes,
+executed and passed the following matching-target selections:
+
+- Seven shared SQLite inspection/cleanup cases (`focused-test-IJnzWg`).
+- All nineteen Native Client Host cases (`focused-test-qw8XfM`), including
+  custody, cross-adapter transaction fencing and original-Run start guards.
+- One actual DuckDB Source connection acceptance (`focused-test-cJJAi2`),
+  including the independent row/schema/column expectation, exact Source
+  Policy/authority binding, repeat invocation identity, authority loss,
+  closed-capture refusal and confirmed one-time resource cleanup.
+
+The complete gate is **not** a pass: its 240-second aggregate budget expired
+eight seconds into the subsequent Native CLI build. The three completed test
+commands are independently successful (27 tests); updated binary/CLI ingress
+was not executed. A separate build-plus-ingress request was refused before
+starting by the shared heavy lock (`run-LnIqCM`). Earlier lock refusals
+`run-z6F0b6` and `run-ZVb0CK` remain non-execution evidence. No current fixed-SHA
+or packed completion is claimed by these working-tree results.
+
+The libraries were system SQLite, OpenSSL at
+`/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib`, and the read-only borrowed
+DuckDB 1.5.5-r.4 library matching the pinned Node dependency. The test root is
+`/private/tmp/actql-d-local-physical-Pk794S`; the runner and command summaries
+above preserve the exact environment/arguments. Public CLI `run`, durable
+Submission/bootstrap, Named Result commit/read, separate-process recovery,
+Effect execution and external package installation remain unfinished.

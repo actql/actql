@@ -24,7 +24,11 @@ after(() => scratch.passed());
 function check(file, format = 'json', options = [], global = [], configuration = 'actql.config.json') {
   const args = ['--mode', 'local', '--config-root', scratch.path,
     '--config-file', configuration, ...global, 'check', '--program-file', file,
-    '--format', format, ...options];
+    '--format', format, '--json', ...options];
+  return runNative(args);
+}
+
+function runNative(args) {
   const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
   const result = spawnSync(launcher ? process.execPath : executable,
     launcher ? [launcher, ...args] : args,
@@ -102,4 +106,13 @@ test('Native Local refuses duplicate configuration fields', async () => {
   const result = check('values.json', 'json', [], [], 'duplicate.json');
   assert.equal(result.status, 1);
   assert.equal(result.stdout, '');
+});
+
+test('Native Local human preparation output does not claim Run acceptance', () => {
+  const result = runNative(['--mode', 'local', '--config-root', scratch.path,
+    '--config-file', 'actql.config.json', 'check', '--program-file', 'values.json', '--format', 'json']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^Local Program prepared; no Run has been admitted\.\n/u);
+  assert.match(result.stdout, /Effectful: false\n$/u);
+  assert.equal(result.stdout.includes('"id"'), false);
 });
