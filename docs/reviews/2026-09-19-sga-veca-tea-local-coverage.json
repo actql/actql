@@ -87,7 +87,7 @@
       "match_nodes": "partial",
       "match_edges": "partial",
       "traverse": "partial",
-      "shortest_path": "blocked",
+      "shortest_path": "partial",
       "components": "partial",
       "reach": "partial",
       "graph_bounds": "partial",
@@ -99,7 +99,7 @@
       "subgraph": "partial",
       "graphs_equal": "partial",
       "apply_graph_delta": "partial",
-      "mean_graphs": "blocked",
+      "mean_graphs": "partial",
       "graph": "partial",
       "node_rows": "partial",
       "edge_rows": "partial"
@@ -1127,9 +1127,9 @@
         "weighted/unweighted",
         "ties"
       ],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Current typed selectors, bounded shortest execution, provider and AQL admission have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them.",
       "completed_layers": [
         "contract"
       ],
@@ -2722,9 +2722,9 @@
         "null exclude/zero/fail",
         "repeated inputs"
       ],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Current explicit-list typed admission, exact bounded fold, configured provider and AQL generator have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them.",
       "completed_layers": [
         "contract"
       ],

@@ -109,6 +109,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-graft-source-input.mjs', 'graph-graft-source-input.mjs'],
   ['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs'],
   ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
+  ['scripts/fixtures/graph-mean-source-input.mjs', 'graph-mean-source-input.mjs'],
+  ['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs'],
+  ['scripts/fixtures/retained-graph-observer.mjs', 'retained-graph-observer.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
@@ -215,7 +218,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
 await mkdir(join(root, 'fixtures'));
 for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
   'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs', 'fixtures/graph-reach-source-input.mjs',
-  'fixtures/graph-shortest-source-input.mjs']) {
+  'fixtures/graph-shortest-source-input.mjs', 'fixtures/graph-mean-source-input.mjs',
+  'fixtures/graph-graft-source-input.mjs', 'fixtures/graph-union-source-input.mjs']) {
   await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
 }
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
@@ -382,6 +386,12 @@ if (process.argv.includes('--graph-shortest-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_SHORTEST_ONLY = '1';
   // Reuse the existing narrow Graph transport profile and retained rereads.
   runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_ONLY = '1';
+}
+if (process.argv.includes('--graph-mean-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_MEAN_ONLY = '1';
+}
+if (process.argv.includes('--graph-remaining-operations-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY = '1';
 }
 if (process.argv.includes('--min-max-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_MIN_MAX_DISTINCT_ONLY = '1';
@@ -687,6 +697,8 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--graph-diagnostics-only',
   '--graph-reach-only',
   '--graph-shortest-only',
+  '--graph-mean-only',
+  '--graph-remaining-operations-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
   '--graph-property-predicate-only',
@@ -782,6 +794,8 @@ async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
   }
 }
 if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only') ||
+    process.argv.includes('--graph-mean-only') ||
+    process.argv.includes('--graph-remaining-operations-only') ||
     process.argv.includes('--graph-shortest-only')) {
   // The Local and HTTPS producers have exited. Read the original retained
   // Graph-derived Results in new processes; no String fixture was selected.

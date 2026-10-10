@@ -168,6 +168,8 @@ fn union_definition(
   strategies : Map[String, UnionPropertyStrategy],
   seen : Map[String, Bool],
   b : Budget,
+  nullable_numbers? : Map[String, Bool] = Map([]),
+  common_roles? : Bool = false,
 ) -> (@carrier.GraphNodeDefinition, Array[UnionField]) raise Stop {
   spend(b, source, 1)
   let name = @carrier.graph_element_definition_name(left)
@@ -180,13 +182,17 @@ fn union_definition(
   }
   let key_contracts = []
   let key_columns = []
+  let mut same_key_columns = true
   for index in 0..<keys {
     spend(b, source, 1)
     let first = @carrier.graph_element_definition_key_column_at(left, index)
     let second = @carrier.graph_element_definition_key_column_at(right, index)
     if first.map(@carrier.graph_name_identity) !=
       second.map(@carrier.graph_name_identity) {
-      fail(source, IncompatibleGraphDomains)
+      if !common_roles {
+        fail(source, IncompatibleGraphDomains)
+      }
+      same_key_columns = false
     }
     if first is Some(name) {
       key_columns.push(name)
@@ -203,6 +209,9 @@ fn union_definition(
       fail(source, UnionKeyIdentityMismatch(name, index))
     }
     key_contracts.push(joined)
+  }
+  if !same_key_columns {
+    key_columns.clear()
   }
   let left_properties = @carrier.graph_element_definition_properties(left)
   let right_properties = @carrier.graph_element_definition_properties(right)
@@ -247,6 +256,12 @@ fn union_definition(
         if !(joined.shape is @contract.Number) {
           fail(source, IncompatiblePropertyStrategy(name))
         }
+    }
+    if nullable_numbers.contains(key) {
+      if !(joined.shape is @contract.Number) {
+        fail(source, IncompatiblePropertyStrategy(name))
+      }
+      joined = @contract.with_nullability(joined, true)
     }
     fields.push((field.name, Some(joined)))
     alignment.push({ left: index, right: other, strategy, })
@@ -329,13 +344,18 @@ fn union_graph_definition(
 }
 
 ///|
-fn union_fold(
+/// Align identity, property extents and label exposure only. This type-level
+/// operation does not execute a union or a pairwise numerical reduction.
+fn align_graph_domains(
   source : @decode.Cursor,
   left : @carrier.Carrier,
   right : @carrier.Carrier,
   node_strategies : Map[String, UnionPropertyStrategy],
   edge_strategies : Map[String, UnionPropertyStrategy],
   b : Budget,
+  nullable_nodes? : Map[String, Bool] = Map([]),
+  nullable_edges? : Map[String, Bool] = Map([]),
+  common_roles? : Bool = false,
 ) -> UnionFold raise Stop {
   let first = union_graph_definition(source, left)
   let second = union_graph_definition(source, right)
@@ -373,7 +393,14 @@ fn union_fold(
       fail(source, IncompatibleGraphDomains)
     }
     let (output, fields) = union_definition(
-      source, definition, candidate, node_strategies, seen_nodes, b,
+      source,
+      definition,
+      candidate,
+      node_strategies,
+      seen_nodes,
+      b,
+      nullable_numbers=nullable_nodes,
+      common_roles~,
     )
     node_definitions.push(output)
     node_alignment.push({ right: other, fields, })
@@ -416,6 +443,8 @@ fn union_fold(
       edge_strategies,
       seen_edges,
       b,
+      nullable_numbers=nullable_edges,
+      common_roles~,
     )
     edge_definitions.push(
       @carrier.graph_edge_definition(output, src, dst).unwrap(),
@@ -553,7 +582,7 @@ fn check_structural_composition(
     let mut output = inputs[0]
     for index in 1..<inputs.length() {
       spend(b, peers[index - 1], 1)
-      let fold = union_fold(
+      let fold = align_graph_domains(
         peers[index - 1],
         output,
         inputs[index],

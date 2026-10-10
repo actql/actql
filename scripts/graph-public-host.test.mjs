@@ -14,6 +14,8 @@ import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/graph
 import {subtractionScenario} from './fixtures/graph-subtraction.mjs';
 import {graphReachSourceSuccesses} from './fixtures/graph-reach-source-input.mjs';
 import {graphShortestSourceSuccesses} from './fixtures/graph-shortest-source-input.mjs';
+import {graphMeanSourceOracles} from './fixtures/graph-mean-source-input.mjs';
+import {graphGraftSourceSuccesses} from './fixtures/graph-graft-source-input.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -53,7 +55,6 @@ const coverage = JSON.parse(await readFile(new URL(packed
   : '../docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', import.meta.url), 'utf8'));
 const unsupported = coverage.operations.filter(entry =>
   coverage.current_graph_profile.classification[entry.operation] === 'blocked');
-assert(unsupported.length > 0);
 assert(unsupported.every(entry => entry.status === 'blocked'));
 const scratch = new URL(packed ? './state/' : '../_build/graph-public-host/', import.meta.url);
 await mkdir(scratch, {recursive:true});
@@ -475,7 +476,7 @@ function deltaApplicationScenario(projection, failure) {
 }
 
 // The shared registration retains scientific names and drives packed selection.
-for (const {mode,profile,name} of graphPublicHostCases) {
+for (const {mode,profile,name,partition} of graphPublicHostCases) {
   test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
@@ -483,6 +484,11 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     const relationSnapshots = new Map();
     const snapshotWaiters = new Map();
     const physicalSteps = [];
+    let cancellationTask;
+    let cancellationBarrier;
+    let releaseCancellation;
+    // Never leave a fixture-held physical execution blocking Host close.
+    t.after(() => releaseCancellation?.resolve());
     const keys = generateKeyPairSync('ed25519');
     const authorization = {accountConfiguration:canonicalText({
       version:'actql-execution-account-config/0.1',account_id:'graph-test-owner',
@@ -496,8 +502,13 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       observe(name, detail) {
         if (name === 'dispatch_failed') t.diagnostic(`Dispatch failure: ${detail.code}`);
       },
-      faultInjection(name, detail) {
+      async faultInjection(name, detail) {
       physicalSteps.push(name);
+      if (name === 'local_compute_advanced' && detail.task === cancellationTask) {
+        assert.ok(BigInt(detail.work) > 0n);
+        cancellationBarrier.resolve(detail);
+        await releaseCancellation.promise;
+      }
       if (name === 'computed') {
         snapshots.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
         relationSnapshots.set(detail.ref.runDefinitionCid, detail.relationSnapshots);
@@ -540,11 +551,84 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
-    if (profile === 'graph-reach' || profile === 'graph-shortest') {
-      const samples = profile === 'graph-reach' ? graphReachSourceSuccesses : graphShortestSourceSuccesses;
+    async function assertOperationCancellation(sample, task) {
+      // The existing driver emits this awaited hook only after positive work
+      // from an incomplete bounded advance. Cancel the operation task itself,
+      // not a preceding VALUES/constructor or already published completion.
+      const document = JSON.parse(sample.text);
+      document.id += '-cancel-operation';
+      const text = JSON.stringify(document);
+      const options = {format: 'json', submissionRef: client.newSubmission({
+        nonce: `${document.id}-${mode}`,
+      })};
+      cancellationTask = task;
+      cancellationBarrier = Promise.withResolvers();
+      releaseCancellation = Promise.withResolvers();
+      const starts = () => physicalSteps.filter(name => name === 'physical_start_reserved').length;
+      const completed = () => physicalSteps.filter(name => name === 'computed').length;
+      const startsBefore = starts();
+      const completedBefore = completed();
+      const cancelled = await client.startSource(text, options);
+      try {
+        const observation = await Promise.race([
+          cancellationBarrier.promise,
+          cancelled.wait({signal: AbortSignal.timeout(15_000)}).then(state => {
+            throw new Error(`Graph operation settled before its cancellation barrier: ${JSON.stringify(state)}`);
+          }),
+        ]);
+        assert.equal(observation.task, cancellationTask);
+        assert.equal(starts(), startsBefore + 1);
+        await cancelled.cancel();
+        const pending = await cancelled.status();
+        assert.equal(pending.control.cancellation_requested, true);
+        assert.notEqual(pending.control.physical_stop, 'confirmed');
+        assert.notEqual(pending.status, 'cancelled');
+        assert.equal(completed(), completedBefore);
+        assert.equal(snapshots.has(cancelled.ref.runDefinitionCid), false);
+      } finally {
+        cancellationTask = undefined;
+        releaseCancellation.resolve();
+      }
+      const stopped = await cancelled.wait({signal: AbortSignal.timeout(15_000)});
+      assert.equal(stopped.status, 'cancelled', JSON.stringify(stopped));
+      assert.equal(stopped.control.physical_stop, 'confirmed');
+      for (const name of Object.keys(sample.results)) {
+        assert.equal(stopped.result_availability[name].state, 'unavailable');
+        await assert.rejects(cancelled.result(name).all());
+      }
+      const advanced = physicalSteps.filter(name => name === 'local_compute_advanced').length;
+      const repeated = await client.startSource(text, options);
+      assert.deepEqual(repeated.ref, cancelled.ref);
+      assert.equal((await repeated.status()).status, 'cancelled');
+      assert.equal(starts(), startsBefore + 1);
+      assert.equal(completed(), completedBefore);
+      assert.equal(physicalSteps.filter(name => name === 'local_compute_advanced').length, advanced);
+      assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+    }
+    if (['graph-reach', 'graph-shortest', 'graph-mean'].includes(profile)) {
+      const samples = profile === 'graph-reach' ? graphReachSourceSuccesses
+        : profile === 'graph-shortest' ? graphShortestSourceSuccesses
+          : partition === 'basic' ? graphMeanSourceOracles.slice(0, 4)
+            : graphMeanSourceOracles.slice(4);
       for (const sample of samples) {
         const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
-        const run = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        let run;
+        try {
+          run = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        } catch (error) {
+          let checked;
+          try {
+            checked = await client.check(sample.format === 'json' ? JSON.parse(sample.text) : sample.text,
+              {kind: sample.format === 'json' ? 'program' : 'text', scope: 'bound_input',
+                ...(sample.format === 'json' ? {} : {format: sample.format}), parameters: null,
+                signal: AbortSignal.timeout(5_000)});
+          } catch (checkError) { checked = {kind: 'unavailable', code: checkError.code}; }
+          t.diagnostic(`${sample.name} rejected: ${JSON.stringify({
+            problem: getSubmissionOutcome(error)?.problem, kind: checked.kind,
+            diagnostics: checked.report?.diagnostics, code: checked.code,
+          })}`);
+          throw error;
+        }
         const state = await run.wait();
         assert.equal(state.status, 'succeeded', JSON.stringify(state));
         // Result publication is durable before the physical completion hook.
@@ -576,7 +660,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.equal(physicalCount(), completedCount, 'Result reads and same intent must not repeat Compute');
         const retained = relationSnapshots.get(run.ref.runDefinitionCid) ?? [];
         if (Object.values(sample.results).some(result => result.rows.length > 0)) {
-          assert.ok(retained.length > 0, 'Graph query must traverse the retained Relation Store');
+          assert.ok(retained.length > 0, `${sample.name}: Graph query must traverse the retained Relation Store`);
         }
         for (const receipt of retained) {
           assert.equal(receipt.restored, true);
@@ -584,6 +668,19 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           assert.equal(receipt.temporaryBodyReclaimed, true);
         }
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+        t.diagnostic(`Completed authored Graph fixture: ${sample.name}`);
+      }
+      // Observe the operation itself, not its small constructor or zero-hop
+      // control, which may finish without yielding. These authored controls
+      // retain their independent success expectations above.
+      if (profile !== 'graph-mean' || partition === 'asymmetric') {
+        const cancellationSample = profile === 'graph-reach'
+          ? graphReachSourceSuccesses.find(sample => sample.name === 'graph-reach-json-connected-out')
+          : profile === 'graph-shortest'
+            ? graphShortestSourceSuccesses.find(sample => sample.name === 'graph-shortest-json-weighted-parallel-edges')
+            : graphMeanSourceOracles[0];
+        assert.ok(cancellationSample, 'the operation-specific cancellation control must exist');
+        await assertOperationCancellation(cancellationSample, 3);
       }
       return;
     }
@@ -703,6 +800,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       const submissionRef = client.newSubmission({nonce: requestId});
       await assertRejectedSubmission(client, canonicalText(document), submissionRef, 'ClientProgramInvalidInput');
       assert.deepEqual(physicalSteps.slice(before),[]);
+      if (graft) await assertOperationCancellation(graphGraftSourceSuccesses[0], 3);
       return;
     }
     if (profile === 'delta-diff') {

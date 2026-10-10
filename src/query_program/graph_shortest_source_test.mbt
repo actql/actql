@@ -30,6 +30,7 @@ test "Shortest public checking refuses invalid hops selectors direction and weig
     body in [
       "source: {where: 'true'}, target: {where: 'true'}, selection: 'each_pair', direction: 'out', max_hops: 0",
       "source: {where: 'missing = 1'}, target: {where: 'true'}, selection: 'each_pair', direction: 'out', max_hops: 1",
+      "source: {where: 'node_key = 1'}, target: {where: 'true'}, selection: 'each_pair', direction: 'out', max_hops: 1",
       "source: {where: 'true'}, target: {where: 'true'}, direction: 'out', max_hops: 1",
       "source: {where: 'true'}, target: {where: 'true'}, selection: 'each_pair', direction: 'wrong', max_hops: 1",
       "source: {where: 'true'}, target: {where: 'true'}, selection: 'each_pair', direction: 'out', max_hops: 1, weight: 'missing'",

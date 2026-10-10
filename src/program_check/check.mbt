@@ -116,6 +116,7 @@ fn check_supported_source(
               | "graph_diff"
               | "union_graphs"
               | "graft_graph"
+              | "mean_graphs"
               | "subtract_graphs"
               | "components"
               | "to_vectors"

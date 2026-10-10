@@ -9,6 +9,28 @@ fn object_name_contract(name : String) -> @contract.Contract {
 }
 
 ///|
+test "runtime recheck frame accounting admits growth before a poll" {
+  let name = String::make(130, 'x')
+  let cursor = start_recheck_runtime_value(
+    object_value([(name, Number(1.0))]).unwrap(),
+    object_name_contract(name),
+    { max_nodes: 2, max_depth: 1, max_text_bytes: 130, },
+  ).unwrap()
+  let mut peak = 0
+  for _ in 0..<8 {
+    let before = recheck_pending_frames(cursor)
+    peak = Int::max(peak, before)
+    ignore(advance_recheck_runtime_value(cursor))
+    assert_true(recheck_pending_frames(cursor) <= before + 1)
+    assert_eq(recheck_pending_frames(cursor), cursor.stack.length())
+  }
+  assert_eq(peak, 2)
+  assert_eq(recheck_pending_frames(cursor), 0)
+  cancel_recheck_runtime_value(cursor)
+  assert_eq(recheck_pending_frames(cursor), 0)
+}
+
+///|
 test "typed Object name recheck steps before visiting the child" {
   let name = String::make(130, 'x')
   let contract = object_name_contract(name)

@@ -182,7 +182,9 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
   assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
   assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
-  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy}'));
+  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
+  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
+    'observer credentials are limited to the explicit Graph cohort on both Hosts');
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 
@@ -271,10 +273,10 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, 'ce027a937cf780f617d5ed98bb4d56ecbb010877');
-  assert.equal(pin.totalCases, 3583 + 19);
-  assert.deepEqual(pin.counts, {successes: 2256 + 12, refusals: 1279 + 7, executionFailures: 48});
+  assert.equal(pin.totalCases, 3596 + 19);
+  assert.deepEqual(pin.counts, {successes: 2266 + 12, refusals: 1282 + 7, executionFailures: 48});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2203 + 12, executionFailures: 46, refusals: 1244 + 7}],
+    ['standard', {successes: 2213 + 12, executionFailures: 46, refusals: 1247 + 7}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
