@@ -107,9 +107,12 @@ def decode_json(raw):
         number = int(text)
         if abs(number) <= SAFE_INTEGER:
             return number
-        # Opaque values use binary64; never silently round an integer lexeme.
+        # Binary64's shortest JSON spelling can differ from its exact integer
+        # value (for example 2**63). Accept that canonical spelling, while
+        # retaining rejection of other integer lexemes that would be rounded.
         represented = float(number)
-        if not math.isfinite(represented) or int(represented) != number:
+        if (not math.isfinite(represented) or int(represented) != number
+                and rfc8785.dumps(represented) != text.encode('ascii')):
             raise ClientError('InvalidHostResponse')
         return represented
     try:
