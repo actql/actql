@@ -980,7 +980,8 @@ fn prepare_target_source_policy(
             })
             1
           }
-          @pipeline.GraphUnion(inputs~, ..) => {
+          @pipeline.GraphUnion(inputs~, ..)
+          | @pipeline.GraphMean(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,

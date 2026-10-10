@@ -182,7 +182,9 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
   assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
   assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
-  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy}'));
+  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
+  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
+    'observer credentials are limited to the explicit Graph cohort on both Hosts');
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 
@@ -271,10 +273,11 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, 'ce027a937cf780f617d5ed98bb4d56ecbb010877');
-  assert.equal(pin.totalCases, 3552 + 10 + 9 + 12);
-  assert.deepEqual(pin.counts, {successes: 2239 + 5 + 5 + 7, refusals: 1266 + 4 + 4 + 5, executionFailures: 47 + 1});
+  // Main's authored corpus plus Graft10, Reach13, Shortest12 and Mean9.
+  assert.equal(pin.totalCases, 3552 + 10 + 13 + 12 + 9);
+  assert.deepEqual(pin.counts, {successes: 2239 + 5 + 9 + 7 + 6, refusals: 1266 + 4 + 4 + 5 + 3, executionFailures: 47 + 1});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2186 + 5 + 5 + 7, executionFailures: 45 + 1, refusals: 1231 + 4 + 4 + 5}],
+    ['standard', {successes: 2186 + 5 + 9 + 7 + 6, executionFailures: 45 + 1, refusals: 1231 + 4 + 4 + 5 + 3}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],

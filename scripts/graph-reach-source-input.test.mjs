@@ -18,7 +18,7 @@ test('Reach public oracles retain independent depth zero, two consumers and empt
     assert.deepEqual(sample.results.reached.columns.map(x => x.name), ['start_id', 'node_id', 'depth']);
   }
   const all = [...graphReachSourceSuccesses, ...graphReachSourceRefusals];
-  assert.equal(all.length, 9);
+  assert.equal(all.length, 13);
   assert.equal(new Set(all.map(x => x.name)).size, all.length);
 });
 
@@ -34,5 +34,30 @@ test('Reach narrow packed selection uses public transports and fresh-process ret
   assert.ok(driver.includes("['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs']"));
   const narrow = driver.slice(driver.indexOf('const narrowPublicQuery ='), driver.indexOf('.includes(flag));'));
   assert.ok(narrow.includes("'--graph-reach-only'"));
-  assert.match(driver, /if \(process\.argv\.includes\('--graph-graft-only'\) \|\| process\.argv\.includes\('--graph-reach-only'\) \|\|\s+process\.argv\.includes\('--graph-shortest-only'\)\) \{[^]*?exerciseRetainedQueryRestart\(\{ACTQL_TEST_RETAINED_COHORT_ONLY: '1'\}\)/u);
+  const restart = driver.match(/if \((process\.argv\.includes\('--graph-graft-only'\)[^]*?)\) \{\s*\/\/ The Local and HTTPS producers have exited\.[^]*?exerciseRetainedQueryRestart\(\{ACTQL_TEST_RETAINED_COHORT_ONLY: '1'\}\)/u)?.[1];
+  assert.ok(restart, 'the retained cohort reader must run after the producers exit');
+  for (const family of ['graft', 'reach', 'shortest', 'mean']) {
+    assert.ok(restart.includes(`process.argv.includes('--graph-${family}-only')`));
+  }
+});
+
+test('Reach connected expectations distinguish direction, minimum depth and edge multiplicity', () => {
+  const samples = graphReachSourceSuccesses.filter(sample => sample.name.includes('-connected-'));
+  assert.equal(samples.length, 4);
+  const out = samples.find(sample => sample.name === 'graph-reach-json-connected-out');
+  const input = JSON.parse(out.text);
+  assert.deepEqual(input.stages[0].steps[1].values.rows.map(row => [row.src, row.dst]),
+    [[2, 3], [1, 1], [1, 2], [1, 2]]);
+  assert.deepEqual(out.results.reached.rows.map(row => [row.node_id.$json.key[0], row.depth]),
+    [[1, 0], [2, 1], [3, 2]]);
+  const incoming = samples.find(sample => sample.name === 'graph-reach-json-connected-in');
+  assert.deepEqual(incoming.results.reached.rows, [out.results.reached.rows[0]]);
+  for (const direction of ['out', 'in']) {
+    const machine = samples.find(sample => sample.name === 'graph-reach-json-connected-' + direction);
+    const source = samples.find(sample => sample.name === 'graph-reach-aql-connected-' + direction);
+    assert.deepEqual(source.results.reached.rows, machine.results.reached.rows.map(({depth}) => ({depth})));
+    assert.ok(source.text.includes('LABEL Node PROPERTIES (seed)'));
+    assert.ok(source.text.includes("where: 'seed = 1'"));
+    assert.ok(source.text.includes('FROM UNNEST([3, 2, 1]) node_key'));
+  }
 });

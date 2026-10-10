@@ -51,12 +51,15 @@ test('packed Graph Host families have disjoint complete Local and HTTPS selectio
     'graph-traversal-modes','graph-traversal-selectors','presence-filter',
     'presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct',
     'presence-whole-distinct','presence-group','delta-application',
-    'delta-relation-composition','delta-diff','graph-union','graph-graft','graph-reach','graph-shortest','graph-subtraction'];
-  assert.equal(graphPublicHostCases.length, 42);
-  assert.equal(new Set(graphPublicHostCases.map(item => item.name)).size, 42);
+    'delta-relation-composition','delta-diff','graph-union','graph-graft','graph-reach',
+    'graph-shortest','graph-mean','graph-subtraction'];
+  assert.equal(graphPublicHostCases.length, 46);
+  assert.equal(new Set(graphPublicHostCases.map(item => item.name)).size, 46);
   for (const mode of ['local','remote']) {
     assert.deepEqual(graphPublicHostCases.filter(item => item.mode === mode)
-      .map(item => item.profile).sort(), [...profiles].sort());
+      .map(item => item.profile).sort(), [...profiles, 'graph-mean'].sort());
+    assert.deepEqual(graphPublicHostCases.filter(item => item.mode === mode && item.profile === 'graph-mean')
+      .map(item => item.partition), ['basic', 'asymmetric']);
   }
   for (const {name} of graphPublicHostCases) {
     const pattern = new RegExp(graphPublicHostPattern(name), 'u');
@@ -65,6 +68,22 @@ test('packed Graph Host families have disjoint complete Local and HTTPS selectio
   }
   const punctuated = 'Graph (A+B) [key] $snapshot';
   assert.ok(new RegExp(graphPublicHostPattern(punctuated), 'u').test(punctuated));
+});
+
+test('finite Mean partitions retain every authored normal oracle once', async () => {
+  const {graphMeanSourceOracles} = await import('./fixtures/graph-mean-source-input.mjs');
+  assert.equal(graphMeanSourceOracles.length, 6);
+  const groups = [graphMeanSourceOracles.slice(0, 4), graphMeanSourceOracles.slice(4)];
+  assert.deepEqual(groups.map(group => group.length), [4, 2]);
+  assert.deepEqual(groups.flat().map(sample => sample.name),
+    graphMeanSourceOracles.map(sample => sample.name));
+  const body = await readFile(new URL('./graph-public-host.test.mjs', import.meta.url), 'utf8');
+  assert.ok(body.includes("test(name, {timeout:60_000}"));
+  assert.ok(body.includes("partition === 'basic' ? graphMeanSourceOracles.slice(0, 4)"));
+  assert.ok(body.includes('graphMeanSourceOracles.slice(4)'));
+  for (const sample of ['graph-reach-json-connected-out', 'graph-shortest-json-weighted-parallel-edges']) {
+    assert.ok(body.includes(sample), 'cancellation uses a positive-work operation, not the constructor');
+  }
 });
 
 

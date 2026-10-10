@@ -143,7 +143,7 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
   const source = read(path).toString();
   let remaining = source.replace('      | @lower.GraphConstructionStep(_)\n',
     '      | @lower.PropertyGraphConstructionStep(_)\n');
-  for (const operation of ['GraphUnionStep', 'GraphSubtractionStep']) {
+  for (const operation of ['GraphUnionStep', 'GraphSubtractionStep', 'GraphMeanStep']) {
     const branch = `      | @lower.${operation}(_)\n`;
     assert.equal(remaining.split(branch).length, 2, `Missing or duplicated ${operation} exclusion`);
     remaining = remaining.replace(branch, '');
@@ -152,6 +152,22 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
     'Composition changed a GeneratedSequence field, constructor, callback or unrelated execution path');
   // This exact delta check does not refresh the older recipe's source pins or
   // certify the inherited main changes. Those original checks stay mandatory.
+});
+
+test('Mean exclusion preserves the complete integrated construction source and byte model', () => {
+  const path = 'src/execution_relation/generated_sequence.mbt';
+  const before = historical(path, 'ba0779ad8551bb06476c275cc74cebeef4463751').toString();
+  assert.equal(hash(before), '7e71c827d4004e769a22891f97dba162e7854a87f45e081dcb9a5c50bbbc460a');
+  const source = read(path).toString();
+  const branch = '      | @lower.GraphMeanStep(_)\n';
+  assert.equal(source.split(branch).length, 2, 'Mean is one reviewed false-branch alternative');
+  assert.equal(source.replace(branch, ''), before,
+    'Mean changed construction, records, callbacks, captures, arrays or unrelated paths');
+  const bound = providerConstructionBound(read);
+  assert.equal(bound.bytes, 2344);
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+  assert.equal(bound.completeParentUpper, false);
+  assert.equal(bound.completePipelineUpper, false);
 });
 
 test('receiving metadata cursors leave the actual provider factory byte-identical', () => {

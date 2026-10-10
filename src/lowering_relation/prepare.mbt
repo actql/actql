@@ -68,6 +68,7 @@ pub enum Payload {
   GraphNormalizeValue(@graph.CheckedNormalize)
   GraphDeltaValue(@graph.CheckedDelta)
   GraphUnionValue(@graph.CheckedUnion)
+  GraphMeanValue(@graph.CheckedMean)
   GraphSubtractionValue(@graph.CheckedSubtraction)
   GraphComponentsRows(@graph.CheckedComponents)
   GraphSubgraphValue(@graph.CheckedSubgraph)
@@ -233,6 +234,7 @@ pub fn operation(value : PreparedNode) -> String {
       } else {
         "SGA.union_structural"
       }
+    GraphMeanValue(_) => "SGA.mean_structural"
     GraphSubtractionValue(_) => "SGA.diff_structural"
     GraphDeltaValue(value) =>
       match @graph.delta_operation(value) {
@@ -320,6 +322,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
     GraphDelta(checked~, ..) => Some(GraphDeltaValue(checked))
     GraphUnion(checked~, ..) => Some(GraphUnionValue(checked))
+    GraphMean(checked~, ..) => Some(GraphMeanValue(checked))
     GraphSubtraction(checked~, ..) => Some(GraphSubtractionValue(checked))
     GraphComponents(value) => Some(GraphComponentsRows(value))
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
@@ -458,6 +461,11 @@ pub fn prepare(
             "union_graphs"
           },
           @graph.union_input_count(value),
+        )
+      GraphMeanValue(value) =>
+        (
+          "mean_graphs",
+          @graph.mean_sample_count(@graph.checked_mean_options(value)),
         )
       GraphSubtractionValue(_) => ("subtract_graphs", 2)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
@@ -709,6 +717,7 @@ pub fn prepare(
       GraphNormalizeValue(_) => None
       GraphDeltaValue(_) => None
       GraphUnionValue(_) => None
+      GraphMeanValue(_) => None
       GraphSubtractionValue(_) => None
       GraphTraverseRows(_) => None
       GraphConstructionValue(_) => None
