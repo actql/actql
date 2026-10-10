@@ -56,7 +56,7 @@ function steps(source) {
   return [{name: 'fixture', command: process.execPath, args: ['-e', source]}];
 }
 function start(f, options = {}, extraEnv = {}) {
-  const config = {root: f.root, heavy: true, timeoutSeconds: 10, graceSeconds: 0.2,
+  const config = {root: f.root, heavy: true, timeoutSeconds: 10, graceSeconds: cancellationGraceSeconds,
     steps: steps('console.log("fixture ran")'), ...options};
   const script = `import {runLocalCheck} from ${JSON.stringify(guard)};
     process.exitCode = await runLocalCheck(${JSON.stringify(config)});`;
@@ -472,6 +472,7 @@ test('failed fixtures retain actual evidence and reap owned callers; successful 
     import {existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
     import {tmpdir} from 'node:os'; import {join} from 'node:path'; import test from 'node:test';
     const guard = ${JSON.stringify(guard)};
+    const cancellationGraceSeconds = ${cancellationGraceSeconds};
     const sleep = ${sleep.toString()};
     ${[fixture, steps, start, until].map(fn => fn.toString()).join('\n')}
     const paths = {};
@@ -714,29 +715,54 @@ test('failure preserves exit status and logs, without retry, then releases locks
   assert.deepEqual(locks(f), []);
 });
 
+// Hold the admitted command until the competing caller has finished. A fixed
+// sleep can end before a slow caller reaches admission and cannot prove a race.
+function heldSteps(marker, release) {
+  return steps(`const fs = require('fs');
+    fs.writeFileSync(${JSON.stringify(marker)}, 'x');
+    const timer = setInterval(() => {
+      if (fs.existsSync(${JSON.stringify(release)})) clearInterval(timer);
+    }, 10);`);
+}
+
 test('same-worktree race admits one command; a different heavy worktree is refused', async t => {
-  const f = fixture(t), marker = join(f.root, 'started');
-  const first = start(f, {steps: steps(`require('fs').writeFileSync(${JSON.stringify(marker)}, 'x'); setTimeout(()=>{}, 450)`)});
+  const f = fixture(t), marker = join(f.root, 'started'), release = join(f.root, 'release');
+  const first = start(f, {steps: heldSteps(marker, release)});
   await until(() => existsSync(marker));
-  const same = start(f, {}, {TMPDIR: join(f.directory, 'different-temp')});
-  const otherRoot = join(f.directory, 'other'); mkdirSync(otherRoot);
-  const other = start(f, {root: otherRoot});
-  for (const result of await Promise.all([same.done, other.done])) {
-    assert.equal(result.code, 1);
-    assert.match(result.stderr, /lock busy/u);
-    assert.doesNotMatch(result.stdout, /fixture ran/u);
+  let admitted;
+  try {
+    const same = start(f, {}, {TMPDIR: join(f.directory, 'different-temp')});
+    const otherRoot = join(f.directory, 'other'); mkdirSync(otherRoot);
+    const other = start(f, {root: otherRoot});
+    for (const result of await Promise.all([same.done, other.done])) {
+      assert.equal(result.code, 1);
+      assert.match(result.stderr, /lock busy/u);
+      assert.doesNotMatch(result.stdout, /fixture ran/u);
+    }
+    assert.equal(locks(f).length, 2, 'original command still holds both locks');
+  } finally {
+    writeFileSync(release, 'x');
+    admitted = await first.done;
   }
-  assert.equal((await first.done).code, 0);
+  assert.equal(admitted.code, 0, admitted.stderr);
   assert.deepEqual(locks(f), []);
 });
 
 test('focused work in another worktree does not take the heavy lock', async t => {
-  const f = fixture(t), marker = join(f.root, 'started');
-  const first = start(f, {steps: steps(`require('fs').writeFileSync(${JSON.stringify(marker)}, 'x'); setTimeout(()=>{}, 350)`)});
+  const f = fixture(t), marker = join(f.root, 'started'), release = join(f.root, 'release');
+  const first = start(f, {steps: heldSteps(marker, release)});
   await until(() => existsSync(marker));
-  const otherRoot = join(f.directory, 'other'); mkdirSync(otherRoot);
-  assert.equal((await start(f, {root: otherRoot, heavy: false}).done).code, 0);
-  assert.equal((await first.done).code, 0);
+  let admitted;
+  try {
+    const otherRoot = join(f.directory, 'other'); mkdirSync(otherRoot);
+    assert.equal((await start(f, {root: otherRoot, heavy: false}).done).code, 0);
+    assert.equal(locks(f).length, 2, 'focused work finishes while the original heavy custody remains');
+  } finally {
+    writeFileSync(release, 'x');
+    admitted = await first.done;
+  }
+  assert.equal(admitted.code, 0, admitted.stderr);
+  assert.deepEqual(locks(f), []);
 });
 
 test('timeout stops inherited descendants and leaves an unrelated process alive', async t => {
@@ -747,7 +773,7 @@ test('timeout stops inherited descendants and leaves an unrelated process alive'
     const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit'});
     require('fs').writeFileSync(${JSON.stringify(pids)},JSON.stringify([process.pid,c.pid]));
     console.log('before timeout');setInterval(()=>{},1000);`;
-  const result = await start(f, {timeoutSeconds: 0.25, steps: steps(source)}).done;
+  const result = await start(f, {timeoutSeconds: cancellationTimeoutSeconds, steps: steps(source)}).done;
   assert.equal(result.code, 124, result.stderr);
   for (const pid of JSON.parse(readFileSync(pids))) assert.equal(Boolean(live(pid)), false);
   assert.ok(live(unrelated.pid));
@@ -975,7 +1001,7 @@ for (const [exitCode, error] of [[0, true], [7, true], [0, false]]) {
         syncBuiltinESMExports();
       }`);
     const source = `const child = require('child_process').spawn(process.execPath,
-      ['-e', "process.send('ready'); setTimeout(()=>{},3000)"],
+      ['-e', "process.send('ready'); setInterval(()=>{},1000)"],
       {stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
       child.once('message', () => {
         require('fs').writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
@@ -983,7 +1009,7 @@ for (const [exitCode, error] of [[0, true], [7, true], [0, false]]) {
       });`;
     // A drain fault still cancels a real inherited-pipe descendant. Allow the
     // same bounded normal-cancellation grace as the other lifecycle fixtures.
-    const result = await start(f, {timeoutSeconds: 0.7, graceSeconds: cancellationGraceSeconds,
+    const result = await start(f, {timeoutSeconds: cancellationTimeoutSeconds, graceSeconds: cancellationGraceSeconds,
       steps: steps(source)}, {NODE_OPTIONS: `--import=${preload}`}).done;
     assert.equal(result.code, exitCode || (error ? 1 : 124), result.stderr);
     const record = summary(attempts(f)[0]);
