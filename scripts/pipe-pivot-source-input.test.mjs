@@ -34,8 +34,8 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
     cases.get('pipe-pivot-anonymous-count-identity-source').expected);
   assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').columns,
     cases.get('pipe-pivot-anonymous-count-identity-source').columns);
-  assert.equal(pipePivotSuccesses.length, 24);
-  assert.equal(pipePivotRefusals.length, 16);
+  assert.equal(pipePivotSuccesses.length, 37);
+  assert.equal(pipePivotRefusals.length, 22);
   assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 40);
 });
 
