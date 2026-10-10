@@ -82,6 +82,8 @@ pub fn operation_profile_requirement(
     TraverseRequirement(o) =>
       match o {
         ResolveGraphTraversalProfile => Some(GraphProfile)
+        ShortestRequirement(ResolveShortestProfile) => Some(GraphProfile)
+        ShortestRequirement(_) => None
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | FilterTraversalLabels
