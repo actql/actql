@@ -311,6 +311,49 @@ test "Native original Effect captures its real acquired producer and local impor
   let mut acquisitions = 0
   let mut computations = 0
   let mut authorized = true
+  let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+  let original_bound = @host.bind_client_effect_compiled_run(
+    prepared, allowed, definition,
+  ).unwrap()
+  let original_materials : @host.ClientEffectRunMaterials = {
+    prepared,
+    compilation: allowed.compilation,
+    allowed,
+    run_definition: definition,
+    request: Some(request),
+  }
+  let other_definition = @host.issue_client_effect_run_definition(
+    allowed, "native-client-effect-fixture", "foreign-review-materials-run", "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  for
+    foreign_materials in [
+      { ..original_materials, run_definition: other_definition, },
+      { ..original_materials, request: None, },
+    ] {
+    let refused = @resident.open_resident_effect_source_compute(
+      original_bound,
+      configuration,
+      name,
+      materials=foreign_materials,
+      observe=event => {
+        match event {
+          @resident.AcquisitionEntered => acquisitions += 1
+          @resident.ConsumerEntered(_) => computations += 1
+          _ => ()
+        }
+        true
+      },
+    )
+    guard refused is Err((@resident.ForeignEffectMaterials, pending)) else {
+      fail("foreign Local review materials must be refused before acquisition")
+    }
+    assert_true(
+      @output.retry_native_remote_standard_input_failure_cleanup(pending),
+    )
+  }
+  assert_eq(acquisitions, 0)
+  assert_eq(computations, 0)
   let work = @client.open_native_client_effect_source_work(
     journal,
     request,
@@ -450,6 +493,13 @@ test "Native original Effect captures its real acquired producer and local impor
     .unwrap()
   let facts = capture.facts().unwrap()
   assert_eq(facts.materials.request, Some(request))
+  // Review must retain the accepted request, not require a Remote receiver.
+  assert_eq(owner.request_for_effect_review(facts.inputs), Some(request))
+  let review_materials = owner.effect_materials_for_capture().unwrap()
+  assert_true(
+    physical_equal(review_materials.prepared, facts.materials.prepared),
+  )
+  assert_eq(review_materials.request, Some(request))
   assert_eq(
     @publication.publication_contract_identity(facts.materials.run_definition),
     @publication.publication_contract_identity(definition),
@@ -489,7 +539,9 @@ test "Native original Effect captures its real acquired producer and local impor
   assert_false(work.close())
   assert_true(capture.close())
   assert_true(capture.close())
+  assert_true(owner.request_for_effect_review(facts.inputs) is None)
   assert_true(work.close())
+  assert_true(owner.effect_materials_for_capture() is None)
   assert_eq(acquisitions, 1)
   assert_eq(computations, 1)
   assert_eq(work.usage().held_bytes, 0L)

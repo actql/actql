@@ -21,6 +21,7 @@ pub(all) enum ResidentSourceComputeIssue {
   Unavailable
   Source(ResidentSourceIssue)
   EffectRun(@host.ClientEffectCompiledRunIssue)
+  ForeignEffectMaterials
   EffectInput(@host.ClientEffectRetainedInputIssue)
   Acquisition(@duckdb_native.NativeReadOnlySourceIssue)
   Execution(@duckdb_native.NativeAcquisitionFailure)
@@ -219,19 +220,24 @@ pub fn open_resident_source_compute(
     occurrence,
     observe,
     None,
+    None,
   )
 }
 
 ///|
 /// Acquire and compute the original bound Effect Run using the same Native
 /// owners. The caller still needs current Source authority and an exclusive
-/// start claim. This creates no approval and performs no Effect write.
+/// start claim. Optional review materials bind the Host's retained request to
+/// this exact checked Run before acquisition. Original request acceptance and
+/// current authorization remain the Host's responsibility. This creates no
+/// approval and performs no Effect write.
 pub fn open_resident_effect_source_compute(
   run : @host.PreparedClientEffectRun,
   configuration : ResidentSourceComputeConfiguration,
   occurrence : String,
   observe? : (ResidentSourceComputeEvent) -> Bool,
   acquisition_limits? : @duckdb_host.NativeHostLimits,
+  materials? : @host.ClientEffectRunMaterials,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -242,6 +248,7 @@ pub fn open_resident_effect_source_compute(
     occurrence,
     observe,
     acquisition_limits,
+    materials.map(value => (value, run)),
   )
 }
 
@@ -252,6 +259,10 @@ fn open_resident_source_compute_owned(
   occurrence : String,
   observe : ((ResidentSourceComputeEvent) -> Bool)?,
   acquisition_limits : @duckdb_host.NativeHostLimits?,
+  effect_materials : (
+    @host.ClientEffectRunMaterials,
+    @host.PreparedClientEffectRun,
+  )?,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -267,6 +278,17 @@ fn open_resident_source_compute_owned(
     )
   }
   let graph = resident_source_owner_graph(prepared)
+  if effect_materials is Some((materials, bound)) {
+    if !resident_original_effect_materials_match(materials, bound) ||
+      @host.bind_client_effect_compiled_run(
+        materials.prepared,
+        materials.allowed,
+        materials.run_definition,
+      )
+      is Err(_) {
+      return reject(ForeignEffectMaterials, () => true)
+    }
+  }
   if !resident_source_owner_supported(prepared) {
     return reject(UnsupportedGraph, () => true)
   }
@@ -381,6 +403,7 @@ fn open_resident_source_compute_owned(
       close_source,
       observe,
       acquired_source=Some({ requirement, capture, }),
+      effect_materials~,
       effect_source=match prepared {
         Pure(_) => None
         Effect(bound) =>
@@ -492,7 +515,7 @@ pub fn ResidentSourceCompute::effect_run(
 }
 
 ///|
-/// The retained consumer uses its own original admitted materials for capture.
+/// The physical computation uses its own original admitted materials for capture.
 /// This is preparation context, not completion, current approval or permission
 /// to reopen a Source. Stopped or invalid destination custody is not returned.
 pub fn ResidentSourceCompute::effect_materials_for_capture(
@@ -501,7 +524,6 @@ pub fn ResidentSourceCompute::effect_materials_for_capture(
   guard !self.stopping &&
     self.effect_run is Some(run) &&
     self.effect_materials is Some((materials, bound)) &&
-    self.effect_retained is Some(retained) &&
     physical_equal(
       @host.prepared_client_effect_run_computation(bound),
       materials.prepared,
@@ -509,16 +531,57 @@ pub fn ResidentSourceCompute::effect_materials_for_capture(
     @strategy.captured_effect_run_matches_checked(
       run,
       @host.prepared_client_effect_run_graph(bound),
-    ) &&
-    @output.validate_native_remote_retained_task_input_borrow(
-      retained.input,
-      retained.material,
-      retained.current,
-    )
-    is Ok(_) else {
+    ) else {
+    return None
+  }
+  let original_current = match self.effect_retained {
+    Some(retained) =>
+      @output.validate_native_remote_retained_task_input_borrow(
+        retained.input,
+        retained.material,
+        retained.current,
+      )
+      is Ok(_)
+    None =>
+      !self.source_closed.val &&
+      self.effect_source is Some(original) &&
+      physical_equal(original.bound, bound) &&
+      resident_original_effect_materials_match(materials, bound)
+  }
+  if !original_current {
     return None
   }
   Some(materials)
+}
+
+///|
+/// Validate optional Local review context before physical Source acquisition.
+/// The bound Run is authoritative; rebinding equal Program bytes cannot replace
+/// its checked owner or Run Definition. The Host retains original acceptance;
+/// this check validates the supplied request's checked scope, not its journal.
+fn resident_original_effect_materials_match(
+  materials : @host.ClientEffectRunMaterials,
+  bound : @host.PreparedClientEffectRun,
+) -> Bool {
+  guard materials.request is Some(request) &&
+    physical_equal(
+      materials.prepared,
+      @host.prepared_client_effect_run_computation(bound),
+    ) &&
+    physical_equal(materials.compilation, materials.allowed.compilation) &&
+    @host.prepared_client_effect_request_scope(materials.prepared, request)
+    is Ok(_) &&
+    @publication.publication_contract_identity(materials.run_definition) ==
+    @publication.publication_contract_identity(
+      @checked.effect_program_run_definition(
+        @strategy.checked_effect_run_owner(
+          @host.prepared_client_effect_run_graph(bound),
+        ),
+      ),
+    ) else {
+    return false
+  }
+  true
 }
 
 ///|

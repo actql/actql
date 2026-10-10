@@ -100,6 +100,13 @@ pub fn open_native_client_effect_source_work(
       bound,
       configuration,
       occurrence,
+      materials={
+        prepared,
+        compilation: allowed.compilation,
+        allowed,
+        run_definition: definition,
+        request: Some(request),
+      },
       observe=native_client_work_observer(
         journal,
         request,

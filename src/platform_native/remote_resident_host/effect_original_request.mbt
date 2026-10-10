@@ -20,7 +20,7 @@ pub fn ResidentEffectProducerExecuted::request_for_capture(
 }
 
 ///|
-/// The consumer must still possess its current exact receiver borrow. This
+/// The computation must still possess its exact acquired input or receiver borrow. This
 /// record is identity only; current Provider observe/approve/write authority
 /// remains independently required by the existing credential/Effect Owners.
 pub fn ResidentSourceCompute::request_for_effect_review(
@@ -28,17 +28,20 @@ pub fn ResidentSourceCompute::request_for_effect_review(
   inputs : @strategy.CapturedEffectInputs,
 ) -> @host.ClientRequestIdentity? {
   guard self.resident_effect_inputs_current(inputs) &&
-    self.effect_retained is Some(retained) &&
     self.effect_materials_for_capture() is Some(materials) else {
     return None
   }
-  match
-    @host.client_effect_run_materials_request_for_dispatch(
-      materials,
-      retained.dispatch,
-    ) {
-    Ok(Some(request)) => Some(request)
-    _ => None
+  match self.effect_retained {
+    Some(retained) =>
+      match
+        @host.client_effect_run_materials_request_for_dispatch(
+          materials,
+          retained.dispatch,
+        ) {
+        Ok(Some(request)) => Some(request)
+        _ => None
+      }
+    None => materials.request
   }
 }
 
