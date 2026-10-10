@@ -351,9 +351,27 @@ fn resident_provider_observe(
   assert_true(observe("target-a", 0, "save") is Err(InvalidLimits))
   assert_true(observe("target-a", 1, "another-effect") is Err(ForeignMapping))
   assert_eq(access_count.val, 0)
+  let reentrant_checked = Ref(false)
+  let reentrant_refused = Ref(false)
+  let reentrant_access_unchanged = Ref(false)
   let outcome = match review {
-    Some(work) => work.observe(access("target-a"))
+    Some(work) =>
+      work.observe((index, request) => {
+        let before = access_count.val
+        reentrant_checked.val = true
+        reentrant_refused.val = work.observe(
+            access("reentrant-must-not-be-used"),
+          )
+          is Err(Proposal(Unavailable))
+        reentrant_access_unchanged.val = access_count.val == before
+        access("target-a")(index, request)
+      })
     None => observe("target-a", 1, "save")
+  }
+  if review is Some(_) {
+    assert_true(reentrant_checked.val)
+    assert_true(reentrant_refused.val)
+    assert_true(reentrant_access_unchanged.val)
   }
   let mut facts : ResidentProviderFacts? = None
   if deny_provider {
