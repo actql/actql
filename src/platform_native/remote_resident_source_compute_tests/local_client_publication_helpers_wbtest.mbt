@@ -662,6 +662,8 @@ fn local_client_read_result_sink(
       fail("actual Source Result access: AccessDenied")
     Err(@access.ResultUnavailable) =>
       fail("actual Source Result access: ResultUnavailable")
+    Err(@access.LookupUnavailable) =>
+      fail("actual Source Result access: LookupUnavailable")
     Err(@access.Publication(issue)) =>
       fail(
         "actual Source Result access publication: " + @debug.to_string(issue),

@@ -7,11 +7,13 @@ import {
 }
 
 // Values
-pub fn install_native_result_access_authority((NativeResultAccessRequest) -> Bool, (NativeResultReadFacts) -> NativeResultReadAdmission?, (NativeResultDeliveryAuthorization) -> Bool) -> NativeResultAccessAuthority
+pub fn install_native_result_access_authority((NativeResultAccessRequest) -> Bool, (NativeResultReadFacts) -> NativeResultReadAdmission?, (NativeResultDeliveryAuthorization) -> Bool, authorize_lookup? : ((@run_publication.DeliveryAttemptLookupScope) -> Bool)?) -> NativeResultAccessAuthority
 
 pub fn install_native_result_access_service(@publication_store.Store, NativeResultAccessAuthority, () -> String, Int, Int, Int, Int, Int) -> Result[NativeResultAccessService, NativeResultAccessIssue]
 
 pub fn install_native_result_sink(NativeResultAccessSession, Int, Int, (Bytes) -> NativeResultSinkWrite, () -> Bool) -> Result[NativeResultSink, NativeResultSinkIssue]
+
+pub fn lookup_native_result_delivery_attempt(NativeResultAccessService, @run_publication.DeliveryAttemptLookupScope) -> Result[@publication_store.NativeResultDeliveryLookup?, NativeResultAccessIssue]
 
 pub fn open_native_result_access(NativeResultAccessService, NativeResultAccessRequest) -> Result[NativeResultAccessSession, NativeResultAccessIssue]
 
@@ -25,6 +27,7 @@ pub(all) enum NativeResultAccessIssue {
   InvalidProgress
   AccessDenied
   ResultUnavailable
+  LookupUnavailable
   Store(@publication_store.NativePublicationStoreIssue)
   Publication(@run_publication.DeliveryIssuanceIssue)
 }

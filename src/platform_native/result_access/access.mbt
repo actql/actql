@@ -4,6 +4,7 @@ pub(all) enum NativeResultAccessIssue {
   InvalidProgress
   AccessDenied
   ResultUnavailable
+  LookupUnavailable
   Store(@store.NativePublicationStoreIssue)
   Publication(@publication.DeliveryIssuanceIssue)
 }
@@ -56,6 +57,7 @@ struct NativeResultAccessAuthority {
   authorize_request : (NativeResultAccessRequest) -> Bool
   admit_read : (NativeResultReadFacts) -> NativeResultReadAdmission?
   authorize_delivery : (NativeResultDeliveryAuthorization) -> Bool
+  authorize_lookup : ((@publication.DeliveryAttemptLookupScope) -> Bool)?
 }
 
 ///|
@@ -146,8 +148,9 @@ pub fn install_native_result_access_authority(
   authorize_request : (NativeResultAccessRequest) -> Bool,
   admit_read : (NativeResultReadFacts) -> NativeResultReadAdmission?,
   authorize_delivery : (NativeResultDeliveryAuthorization) -> Bool,
+  authorize_lookup? : ((@publication.DeliveryAttemptLookupScope) -> Bool)? = None,
 ) -> NativeResultAccessAuthority {
-  { authorize_request, admit_read, authorize_delivery, }
+  { authorize_request, admit_read, authorize_delivery, authorize_lookup, }
 }
 
 ///|

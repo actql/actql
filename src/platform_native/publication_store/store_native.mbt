@@ -3108,42 +3108,45 @@ pub fn ResultDelivery::close(
 }
 
 ///|
-/// Reconcile the latest durable terminal or unresolved fact for one delivery
-/// occurrence after a process restart. This does not authorize a new delivery
-/// or imply that its source material remains available.
-pub fn Store::inspect_result_delivery(
-  self : Store,
+fn read_result_delivery_attempt(
+  store : Store,
   attempt_id : String,
-) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
-  if self.closed {
-    return Err(Closed)
-  }
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
   let mapped = match
-    self.database.read("delivery_attempt", delivery_attempt_key(attempt_id)) {
+    store.database.read("delivery_attempt", delivery_attempt_key(attempt_id)) {
     Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Database(issue))
   }
   let attempt_cid = @utf8.decode(mapped.body) catch {
     _ => return Err(StateCollision)
   }
-  let attempt = match
-    load_publication_contract(self, "delivery_attempt", attempt_cid) {
+  load_publication_contract(store, "delivery_attempt", attempt_cid).map(value => {
+    Some(value)
+  })
+}
+
+///|
+fn read_result_delivery_records(
+  store : Store,
+  attempt : @publication.PublicationContract,
+) -> Result[
+  (@publication.PublicationContract?, @publication.PublicationContract?),
+  NativePublicationStoreIssue,
+] {
+  let attempt_cid = @publication.publication_contract_identity(attempt)
+  let head = match store.database.read("delivery_record_head", attempt_cid) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let head = match self.database.read("delivery_record_head", attempt_cid) {
-    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok((None, None))
     Err(issue) => return Err(Database(issue))
   }
-  let record_wire = @utf8.decode(head.body) catch {
-    _ => return Err(StateCollision)
-  }
+  let wire = @utf8.decode(head.body) catch { _ => return Err(StateCollision) }
   let record = match
     @publication.admit_publication_contract(
       "delivery_record",
-      record_wire,
-      self.max_record_bytes,
-      self.max_record_bytes,
+      wire,
+      store.max_record_bytes,
+      store.max_record_bytes,
       64,
     ) {
     Ok(value) => value
@@ -3157,10 +3160,10 @@ pub fn Store::inspect_result_delivery(
   if projection.delivery_attempt_cid != attempt_cid {
     return Err(StateCollision)
   }
-  match projection.result_delivery_receipt_cid {
-    Some(receipt_cid) => {
+  let receipt = match projection.result_delivery_receipt_cid {
+    Some(cid) => {
       let receipt = match
-        load_publication_contract(self, "result_delivery_receipt", receipt_cid) {
+        load_publication_contract(store, "result_delivery_receipt", cid) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -3170,14 +3173,85 @@ pub fn Store::inspect_result_delivery(
             attempt, receipt, record,
           ),
         ) {
-        Ok(_) => ()
+        Ok(_) => Some(receipt)
         Err(issue) => return Err(issue)
       }
     }
-    None => ()
+    None => None
+  }
+  Ok((Some(record), receipt))
+}
+
+///|
+/// Metadata only, under the caller's separately established current authority.
+/// Missing attempt mapping and retained attempt without a record are distinct.
+/// Expired/deleted payload is never opened, and no grant use is claimed here.
+/// These immutable references and a latest record are not an atomic snapshot.
+pub fn Store::lookup_result_delivery(
+  self : Store,
+  scope : @publication.DeliveryAttemptLookupScope,
+) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let attempt = match read_result_delivery_attempt(self, scope.attempt_id) {
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  let grant_cid = match
+    delivery_issuance(@publication.delivery_attempt_read_grant_cid(attempt)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let grant = match
+    load_publication_contract(self, "result_read_grant", grant_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    delivery_issuance(
+      @publication.delivery_attempt_lookup_matches_scope(attempt, grant, scope),
+    ) {
+    Ok(true) => ()
+    Ok(false) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  let (record, receipt) = match read_result_delivery_records(self, attempt) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(Some({ attempt, record, host_release_receipt: receipt, }))
+}
+
+///|
+/// Reconcile the latest durable terminal or unresolved fact for one delivery
+/// occurrence after a process restart. This does not authorize a new delivery
+/// or imply that its source material remains available.
+pub fn Store::inspect_result_delivery(
+  self : Store,
+  attempt_id : String,
+) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let attempt = match read_result_delivery_attempt(self, attempt_id) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(Database(@sqlite.NotFound))
+    Err(issue) => return Err(issue)
+  }
+  let (record, _) = match read_result_delivery_records(self, attempt) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard record is Some(record) else { return Err(Database(@sqlite.NotFound)) }
+  let projection = match
+    delivery_issuance(@publication.project_delivery_record(record)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   Ok({
-    delivery_attempt_cid: attempt_cid,
+    delivery_attempt_cid: @publication.publication_contract_identity(attempt),
     delivery_record_cid: @publication.publication_contract_identity(record),
     state: projection.state,
     confirmed_bytes: projection.confirmed_byte_count,

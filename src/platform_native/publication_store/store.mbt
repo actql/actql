@@ -96,6 +96,16 @@ pub(all) struct NativeResultDeliveryStatus {
 }
 
 ///|
+/// Retained immutable attempt plus optional latest facts. No record means
+/// unresolved delivery, not permission to reopen or resend. The Store does
+/// not grant disclosure authority; the Result access service supplies it.
+pub(all) struct NativeResultDeliveryLookup {
+  attempt : @publication.PublicationContract
+  record : @publication.PublicationContract?
+  host_release_receipt : @publication.PublicationContract?
+}
+
+///|
 pub(all) struct NativePublicationCommit {
   public_index_entry_cid : String
   committed : Bool

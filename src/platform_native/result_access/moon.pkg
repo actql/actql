@@ -16,3 +16,11 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 } for "wbtest"
+
+options(
+  targets: {
+    "access_native_wbtest.mbt": [ "native" ],
+    "sink_native_wbtest.mbt": [ "native" ],
+    "lookup_native_wbtest.mbt": [ "native" ],
+  },
+)

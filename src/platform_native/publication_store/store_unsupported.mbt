@@ -386,6 +386,14 @@ pub fn Store::inspect_result_delivery(
 }
 
 ///|
+pub fn Store::lookup_result_delivery(
+  _self : Store,
+  _scope : @publication.DeliveryAttemptLookupScope,
+) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::reclaim_payload(
   _self : Store,
   _material_generation_cid : String,

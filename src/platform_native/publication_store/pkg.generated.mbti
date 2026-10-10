@@ -139,6 +139,12 @@ pub(all) struct NativeResultDeliveryFailure {
   state : String
 }
 
+pub(all) struct NativeResultDeliveryLookup {
+  attempt : @run_publication.PublicationContract
+  record : @run_publication.PublicationContract?
+  host_release_receipt : @run_publication.PublicationContract?
+}
+
 pub(all) struct NativeResultDeliveryStatus {
   delivery_attempt_cid : String
   delivery_record_cid : String
@@ -194,6 +200,7 @@ pub fn Store::custody_location(Self) -> Result[(String, UInt64, UInt64), NativeP
 pub fn Store::inspect_committed_publication(Self, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract?, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
+pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
 pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]

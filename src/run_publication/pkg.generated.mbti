@@ -186,6 +186,10 @@ pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], Strin
 
 pub fn computation_evidence_check_fixture_phase(ComputationEvidenceCheck) -> String
 
+pub fn delivery_attempt_lookup_matches_scope(PublicationContract, PublicationContract, DeliveryAttemptLookupScope) -> Result[Bool, DeliveryIssuanceIssue]
+
+pub fn delivery_attempt_read_grant_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn delivery_failure_terminal_action_code(DeliveryFailureTerminalAction) -> Int
 
 pub fn delivery_failure_terminal_state(DeliveryFailureTerminalAction) -> String
@@ -873,6 +877,16 @@ type ComputationEvidenceCheck
 pub fn ComputationEvidenceCheck::advance(Self, Int) -> Result[(Bool, Int), RunEvidenceChainIssue]
 pub fn ComputationEvidenceCheck::cancel(Self) -> Unit
 pub fn ComputationEvidenceCheck::finish(Self) -> Result[Unit, RunEvidenceChainIssue]
+
+pub(all) struct DeliveryAttemptLookupScope {
+  namespace_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  principal_id : String
+  purpose : String
+  result_name : String
+  attempt_id : String
+} derive(Eq, @debug.Debug)
 
 pub(all) enum DeliveryFailureTerminalAction {
   DeliveryAppendFailed

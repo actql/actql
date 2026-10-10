@@ -1412,6 +1412,88 @@ test "native formal delivery durably binds attempt receipt and success" {
 }
 
 ///|
+test "native lookup keeps retained admission without a streaming record unresolved" {
+  guard native_payload_fixture("partial-delivery-admission", 256L)
+    is Some((store, authority, _)) else {
+    abort("Native delivery lookup requires its actual SQLite Store")
+  }
+  let token = "partial-delivery-" + @env.now().to_string()
+  let fixture = native_commit_fixture(store, authority, token)
+  commit_native_fixture(store, fixture).unwrap() |> ignore
+  let grant = @publication.issue_result_read_grant(
+    fixture.index,
+    fixture.manifest,
+    ["answer"],
+    ["jsonl"],
+    "principal",
+    "download",
+    native_payload_cid(token + "-ceiling"),
+    64,
+    1,
+    "2026-09-21T00:00:00.000Z",
+    native_payload_cid(token + "-authorization"),
+    native_payload_cid(token + "-egress"),
+    65536,
+    512,
+    16,
+  ).unwrap()
+  let attempt_id = token + "-original-opening"
+  let attempt = @publication.issue_delivery_attempt(
+    fixture.index,
+    fixture.manifest,
+    grant,
+    "answer",
+    "jsonl",
+    attempt_id,
+    "2026-09-20T01:00:00.000Z",
+    65536,
+    512,
+    16,
+  ).unwrap()
+  // Persist the actual admission substeps, then stop before the next Owner
+  // substep writes its initial record. No acceptance/terminal receipt is faked.
+  put_publication_contract(store, grant).unwrap()
+  put_publication_contract(store, attempt).unwrap()
+  assert_true(
+    claim_result_read_grant_use(store, grant, attempt, 65536, 512, 16).unwrap(),
+  )
+  claim_delivery_attempt(store, attempt_id, attempt).unwrap()
+  let grant_cid = @publication.publication_contract_identity(grant)
+  let before = store.database
+    .read("result_read_grant_usage", grant_cid)
+    .unwrap()
+  let scope : @publication.DeliveryAttemptLookupScope = {
+    namespace_id: "namespace_id",
+    authority_scope_cid: fixture.authority_scope_cid,
+    run_definition_cid: @publication.publication_contract_identity(
+      fixture.run_definition,
+    ),
+    principal_id: "principal",
+    purpose: "download",
+    result_name: "answer",
+    attempt_id,
+  }
+  for _ in 0..<2 {
+    guard store.lookup_result_delivery(scope) is Ok(Some(value)) else {
+      fail("durable original admission is not absence")
+    }
+    assert_eq(
+      @publication.publication_contract_identity(value.attempt),
+      @publication.publication_contract_identity(attempt),
+    )
+    assert_true(value.record is None)
+    assert_true(value.host_release_receipt is None)
+  }
+  let after = store.database.read("result_read_grant_usage", grant_cid).unwrap()
+  assert_eq(after.body, before.body)
+  assert_eq(after.revision, before.revision)
+  assert_true(
+    store.inspect_result_delivery(attempt_id) is Err(Database(@sqlite.NotFound)),
+  )
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "native delivery limit failure keeps its reader until explicit close" {
   guard native_payload_fixture("delivery-limit", 128L)
     is Some((store, authority, _)) else {
