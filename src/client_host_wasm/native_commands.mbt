@@ -40,6 +40,9 @@ pub fn reserve_native_command(
     value.next_handle == 2147483647 ||
     value.copies.values().any(pair => pair.1 == physical_ticket) ||
     value.workspaces.values().any(pair => pair.0 == physical_ticket) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_ticket) ||
     value.native_commands
     .values()
     .any(command => command.physical_ticket == physical_ticket) {

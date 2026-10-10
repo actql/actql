@@ -11,6 +11,7 @@ pub fn reserve_workspace(nonce : Int64, ticket : Int, bytes : Int64) -> Int {
     value.workspaces.length() >= value.workspace_slots ||
     value.workspaces.values().any(pair => pair.0 == ticket) ||
     value.copies.values().any(pair => pair.1 == ticket) ||
+    value.result_chunks.values().any(chunk => chunk.physical_ticket == ticket) ||
     value.native_commands
     .values()
     .any(command => command.physical_ticket == ticket) {

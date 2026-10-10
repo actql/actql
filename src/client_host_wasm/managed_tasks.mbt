@@ -244,6 +244,9 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     value.tasks.get(handle) is Some(record) else {
     return -2
   }
+  if value.result_exports.values().any(result => result.task == handle) {
+    return -9
+  }
   if value.tasks
     .values()
     .any(other => {

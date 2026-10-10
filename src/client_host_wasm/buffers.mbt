@@ -41,6 +41,8 @@ priv struct Instance {
   native_commands : Map[Int, StoredNativeCommand]
   computes : Map[Int, StoredNativeCompute]
   tasks : Map[Int, StoredManagedTask]
+  result_exports : Map[Int, StoredResultExport]
+  result_chunks : Map[Int, StoredResultChunk]
   mut next_handle : Int
 }
 
@@ -145,6 +147,8 @@ pub fn open(
         native_commands: {},
         computes: {},
         tasks: {},
+        result_exports: {},
+        result_chunks: {},
         next_handle: 1,
       })
       0
@@ -167,6 +171,12 @@ pub fn reserve(
   if physical_input <= 0 ||
     value.next_handle == 2147483647 ||
     value.copies.values().any(pair => pair.1 == physical_input) ||
+    value.native_commands
+    .values()
+    .any(command => command.physical_ticket == physical_input) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_input) ||
     value.workspaces.values().any(pair => pair.0 == physical_input) {
     return -3
   }
@@ -321,6 +331,8 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.native_commands.clear()
     value.computes.clear()
     value.tasks.clear()
+    value.result_exports.clear()
+    value.result_chunks.clear()
   }
   result
 }

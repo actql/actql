@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 9; this private ABI
+before opening the instance. `actql_host_abi_version` returns 10; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 9 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 10 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -641,3 +641,38 @@ retire while another retained task refers to its output. Failure or an
 interrupted invocation keeps the original handle; the bridge neither replaces
 the invocation nor manufactures completion. Result publication, durable
 recovery and the ordinary Client facade remain separate connections.
+
+## Checked Result export custody
+
+Private ABI 10 adds Result preparation and bounded physical chunk loans. A
+reservation selects the checked Named Result occurrence from the same captured
+Compute graph and accepts only its exact live completed task. Python cannot
+replace the producer with a schema-equivalent output. The existing managed
+publication bridge re-admits original retained rows, and the existing captured
+Result transformation Owner holds the Result pin through preparation and its
+transfer to the export. Input feeding and transformation advance with explicit
+positive quanta.
+
+The private profile limits each payload batch to 65,536 bytes, total export
+wire to 1,000,000 bytes and rows to 100,000. Existing value, schema, mapping,
+ordering and workspace limits remain separate enforced obligations. These
+ceilings do not override a checked Program or its root capacity. They are not
+a guarantee that every Python, Wasmtime or native allocation is already covered
+by the product memory budget.
+
+Each chunk obtains its existing buffer reservation before advancing the export
+or allocating a Python destination. Only one issued chunk can remain live per
+export. Repeating production of a known chunk reads its retained decision;
+neither an acknowledgement loss nor another Python copy advances the exporter.
+Capacity refusal still returns cleanup custody. A pending close seals the chunk
+against production and retains that original handle for cleanup retry. Physical
+ticket uniqueness applies across inputs, workspaces, Native commands, materials
+and Result chunks, including refused output reservations.
+
+The final marker comes only from the export Owner's successful finish. It is
+neither durable publication nor Run success. Closing an export waits for its
+physical chunks and releases only its existing Result pin/bridge; closing its
+parent task waits for retained exports. Public read authorization, durable
+publication/replay, original Run admission and the ordinary Python Client
+connection remain additional boundaries. This ABI grants no public Result
+access and performs no Run cancellation or automatic execution/replay.

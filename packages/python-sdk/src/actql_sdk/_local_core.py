@@ -69,6 +69,18 @@ class _Task:
     handle: int
 
 
+@dataclass(frozen=True, slots=True, eq=False)
+class _ResultExport:
+    owner: object
+    handle: int
+
+
+@dataclass(frozen=True, slots=True)
+class LocalResultProgress:
+    ready: bool
+    work: int
+
+
 @dataclass(frozen=True, slots=True)
 class LocalTaskProgress:
     complete: bool
@@ -188,6 +200,21 @@ _COMPUTE_SIGNATURES = {
     'configured': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_RESULT_SIGNATURES = {
+    'reserve': ('i64 i32 i32', 'i32'),
+    'start': ('i64 i32', 'i32'),
+    'feed': ('i64 i32 i32', 'i32'),
+    'inputs_ready': ('i64 i32', 'i32'),
+    'advance': ('i64 i32 i32', 'i32'),
+    'progress': ('i64 i32 i32', 'i32'),
+    'finish_preparation': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+    'reserve_chunk': ('i64 i32 i32 i64', 'i32'),
+    'produce_chunk': ('i64 i32', 'i32'),
+    'chunk_length': ('i64 i32', 'i32'),
+    'chunk_final': ('i64 i32', 'i32'),
+    'close_chunk': ('i64 i32', 'i32'),
+}
 _WORKSPACE_SIGNATURES = {
     'reserve': ('i64 i32 i64', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -237,6 +264,7 @@ class LocalCore:
         self._nonce = secrets.randbelow(2**63 - 1) + 1
         self._inputs: dict[int, _PhysicalInput] = {}
         self._task_loans: dict[int, _Task] = {}
+        self._result_loans: dict[int, _ResultExport] = {}
         self._compute_loans: dict[int, _Compute] = {}
         self._native_loans: dict[int, _NativeAttempt] = {}
         self._native_observers: dict[int, tuple[Callable[[], bool], Callable[[], bool], Callable[[], bool]]] = {}
@@ -283,6 +311,8 @@ class LocalCore:
                              for name, value in _COMPUTE_SIGNATURES.items()})
             expected.update({'actql_task_' + name: value
                              for name, value in _TASK_SIGNATURES.items()})
+            expected.update({'actql_result_' + name: value
+                             for name, value in _RESULT_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -310,7 +340,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 9:
+            if self._exports['actql_host_abi_version'](self._store) != 10:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -718,6 +748,104 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
+    def _owned_result(self, value: _ResultExport) -> None:
+        if (type(value) is not _ResultExport or value.owner is not self._identity
+                or self._result_loans.get(value.handle) is not value):
+            raise ValueError('Foreign or released Local Result export')
+
+    def reserve_result_export(self, task: _Task, index: int) -> _ResultExport:
+        with self._lock:
+            self._owned_task(task)
+            if self._closing or type(index) is not int or not 0 <= index <= 2**31 - 1:
+                raise ValueError('Invalid Local Named Result selection')
+            handle = self._call('result', 'reserve', task.handle, index)
+            if handle <= 0:
+                raise LocalCoreError('reserve_result', handle)
+            result = _ResultExport(self._identity, handle)
+            self._result_loans[handle] = result
+            return result
+
+    def _result_operation(self, result: _ResultExport, operation: str, *arguments: int) -> None:
+        self._owned_result(result)
+        if self._closing:
+            raise RuntimeError('Local Core is closing')
+        self._check(operation, self._call('result', operation, result.handle, *arguments))
+
+    def start_result_export(self, result: _ResultExport) -> None:
+        with self._lock:
+            self._result_operation(result, 'start')
+
+    def feed_result_export(self, result: _ResultExport, quantum: int) -> bool:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local Result quantum')
+        with self._lock:
+            self._result_operation(result, 'feed', quantum)
+            code = self._call('result', 'inputs_ready', result.handle)
+            if code == -7:
+                return False
+            self._check('result_inputs_ready', code)
+            return True
+
+    def advance_result_export(self, result: _ResultExport, quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local Result quantum')
+        with self._lock:
+            self._result_operation(result, 'advance', quantum)
+            ready = self._call('result', 'progress', result.handle, 0)
+            work = self._call('result', 'progress', result.handle, 1)
+            if ready not in (0, 1) or work < 0:
+                raise LocalCoreError('result_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def finish_result_export_preparation(self, result: _ResultExport) -> None:
+        with self._lock:
+            self._result_operation(result, 'finish_preparation')
+
+    def reserve_result_chunk(self, result: _ResultExport, *, cleanup: Callable[[], bool]) -> _Output:
+        with self._lock:
+            self._owned_result(result)
+            if self._closing or not callable(cleanup):
+                raise ValueError('Invalid Local Result chunk custody')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'result')))
+            handle = self._call('result', 'reserve_chunk', result.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_result_chunk', handle)
+            chunk = _Output(self._identity, ticket, handle, limit, 'result')
+            self._loans[ticket] = chunk
+            return chunk
+
+    def produce_result_chunk(self, chunk: _Output) -> None:
+        self._produce_output(chunk, 'result', 'produce_chunk')
+
+    def read_result_chunk(self, chunk: _Output) -> tuple[bytes, bool]:
+        with self._lock:
+            wire = self._read_output(chunk, 'result', 'chunk_length')
+            final = self._call('result', 'chunk_final', chunk.handle)
+            if final not in (0, 1):
+                raise LocalCoreError('result_chunk_final', final)
+            return wire, final == 1
+
+    def close_result_chunk(self, chunk: _Output) -> bool:
+        return self._close_output(chunk, 'result', 'close_chunk')
+
+    def close_result_export(self, result: _ResultExport) -> bool:
+        with self._lock:
+            self._owned_result(result)
+            code = self._call('result', 'close', result.handle)
+            if code == -9:
+                return False
+            self._check('close_result', code)
+            del self._result_loans[result.handle]
+            return True
+
     def produce_material(self, value: _Output) -> None:
         self._produce_output(value, 'material', 'produce')
 
@@ -830,3 +958,4 @@ class LocalCore:
         self._native_loans.clear()
         self._compute_loans.clear()
         self._task_loans.clear()
+        self._result_loans.clear()
