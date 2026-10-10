@@ -1,16 +1,27 @@
 ///|
-// ORDER, LIMIT and ordinary WHERE preserve the final SELECT's columns.
-// A later projection/edit has a distinct language scope, not this role.
+// ORDER/LIMIT, WHERE and a star preserve anonymous positional columns.
+// Named exclusions change the width without naming retained anonymous values.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
+  let mut projection : Int? = None
   while index >= 0 {
     match @query.operation_at(query, index).unwrap() {
       Order(_) | Limit(_, _) | Where(_) => index -= 1
-      Select(_, _) => return Some(index)
-      _ => return None
+      Select(projections, _) => {
+        projection = Some(index)
+        if projections.length() == 1 &&
+          projections[0].star == Some("*") &&
+          projections[0].expression is None &&
+          projections[0].replacements.is_empty() {
+          index -= 1
+        } else {
+          return projection
+        }
+      }
+      _ => return projection
     }
   }
-  None
+  projection
 }
 
 ///|
@@ -43,6 +54,7 @@ fn privatize_positional_duplicate_columns(
   bindings : Array[(String, String)],
   selected : Array[@builder.Node],
   physical : Array[String],
+  authored_aliases? : Array[(String, String)]? = None,
 ) -> Array[String] raise Abort {
   let private_fields : Array[String] = []
   let counts : Map[String, Int] = Map([])
@@ -56,6 +68,9 @@ fn privatize_positional_duplicate_columns(
       let name = pipe_physical_name(reserved, "aql_set_duplicate_")
       reserved.push(name)
       let source = bindings[index].1
+      if authored_aliases is Some(aliases) {
+        aliases.push((name, names[index]))
+      }
       names[index] = name
       private_fields.push(name)
       bindings[index] = (name, source)

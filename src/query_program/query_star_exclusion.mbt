@@ -5,6 +5,7 @@ fn expanded_star_columns(
   projection : @query.Projection,
   visible : Array[(String, String)],
   ranges? : Array[(@query.NamePart, Array[(String, String)])] = [],
+  authored_aliases? : Array[(String, String)] = [],
 ) -> Array[(String, String)] raise Abort {
   let columns = match projection.expression {
     None => visible
@@ -24,16 +25,28 @@ fn expanded_star_columns(
       matches[0].1
     }
   }
+  // Positional operands may store duplicate named columns under separate
+  // private slots. Exclusion uses their authored names and retains the slots.
+  let authored_name = (name : String) => {
+    let mut authored = name
+    for mapping in authored_aliases {
+      if mapping.0 == name {
+        authored = mapping.1
+        break
+      }
+    }
+    authored
+  }
   for excluded in projection.except_columns {
     if !columns.any(column => {
-        same_name(excluded, { value: column.0, quoted: false, })
+        same_name(excluded, { value: authored_name(column.0), quoted: false, })
       }) {
       raise Abort(UnknownColumn)
     }
   }
   columns.filter(column => {
     !projection.except_columns.any(excluded => {
-      same_name(excluded, { value: column.0, quoted: false, })
+      same_name(excluded, { value: authored_name(column.0), quoted: false, })
     })
   })
 }
