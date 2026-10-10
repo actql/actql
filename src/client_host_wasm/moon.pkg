@@ -5,6 +5,8 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/client_host_buffers" @buffers,
   "actql/actql/client_local_preparation" @preparation,
+  "actql/actql/client_local_run" @local_run,
+  "actql/actql/execution_authorization" @authorization,
   "actql/actql/run_publication_host" @host,
   "actql/actql/program_check" @checked,
   "actql/actql/physical_strategy" @strategy,
