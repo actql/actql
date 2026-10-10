@@ -21,8 +21,21 @@ fn lower_pipe_unpivot(
     }) {
     raise Abort(DuplicateOutput)
   }
-  let physical = columns.map(column => column.1)
-  let mapped = columns
+  // Rebind only when a selected field has a private/renamed physical slot.
+  // The ordinary projection copies evaluated values; it adds no label value
+  // or expression evaluation to each expanded output row.
+  let rebind = clause.columns.any(name => {
+    columns.any(column => {
+      same_name(name, { value: column.0, quoted: false, }) &&
+      column.0 != column.1
+    })
+  })
+  let mapped = if rebind {
+    columns.map(column => (column.0, column.0))
+  } else {
+    columns
+  }
+  let physical = mapped.map(column => column.1)
   let selected : Array[(String, String)] = []
   for name in clause.columns {
     let matching = mapped.filter(column => {
@@ -41,14 +54,6 @@ fn lower_pipe_unpivot(
   physical.push(name_slot)
   let value_slot = pipe_physical_name(physical, "aql_unpivot_value_")
   physical.push(value_slot)
-  let translated = selected.any(column => column.0 != column.1)
-  let label_slot = if translated {
-    let slot = pipe_physical_name(physical, "aql_unpivot_label_")
-    physical.push(slot)
-    slot
-  } else {
-    name_slot
-  }
   let steps : Array[Array[(String, @builder.Node)]] = [
     [
       (
@@ -70,34 +75,17 @@ fn lower_pipe_unpivot(
       ),
     ],
   ]
-  // Names returned by common UNPIVOT denote physical source fields. Translate
-  // only those labels; do not expose or normalize their internal slot names.
-  let mut label = construction.object([
-    ("literal", construction.text(selected[selected.length() - 1].0)),
-  ])
-  for index = selected.length() - 2; index >= 0; index = index - 1 {
-    let column = selected[index]
-    label = construction.object([
+  if rebind {
+    steps.insert(0, [
       (
-        "if",
-        construction.array([
-          construction.object([
-            (
-              "eq",
-              construction.array([
-                construction.object([("field", construction.text(name_slot))]),
-                construction.object([("literal", construction.text(column.1))]),
-              ]),
-            ),
-          ]),
-          construction.object([("literal", construction.text(column.0))]),
-          label,
-        ]),
+        "select",
+        construction.array(
+          columns.map(column => {
+            construction.object([(column.0, construction.text(column.1))])
+          }),
+        ),
       ),
     ])
-  }
-  if translated {
-    steps.push([("derive", construction.object([(label_slot, label)]))])
   }
   if !clause.include_nulls {
     steps.push([
@@ -120,16 +108,7 @@ fn lower_pipe_unpivot(
   let visible = keep +
     [
       (clause.value_column.value, value_slot),
-      (clause.name_column.value, label_slot),
+      (clause.name_column.value, name_slot),
     ]
-  (
-    steps,
-    visible,
-    keep.map(column => column.1) +
-    (if translated {
-      [name_slot, value_slot, label_slot]
-    } else {
-      [name_slot, value_slot]
-    }),
-  )
+  (steps, visible, keep.map(column => column.1) + [name_slot, value_slot])
 }

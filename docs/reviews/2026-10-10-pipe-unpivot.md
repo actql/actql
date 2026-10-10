@@ -23,10 +23,11 @@ The two independently known rows are `{amount:7,column_name:"x"}` and
 ## Connection and ownership
 
 The parser retains a single-value UNPIVOT clause. The lowering helper reuses
-current evaluated fields, calls common `unpivot`, and translates physical field
-labels only when they differ from resolved public column names. Fresh generated
-fields avoid collisions with kept physical fields; a redundant input-copy
-projection is not required. Default/explicit EXCLUDE NULLS adds an ordinary `IS NOT NULL` filter.
+current evaluated fields and calls common `unpivot`. When a selected field has
+a private or renamed slot, one ordinary SELECT first binds evaluated values to
+their current public column names. Common UNPIVOT then generates the correct
+labels directly, without a second per-row string value. Fresh generated fields
+avoid collisions with kept fields; unchanged names require no copy projection. Default/explicit EXCLUDE NULLS adds an ordinary `IS NOT NULL` filter.
 The public scope contains unmentioned fields in input order, followed by value
 and name columns. Prior ranges and consumed columns cannot be revived.
 The existing Pipe JOIN input classifier recognizes this fresh projected scope.
@@ -109,9 +110,12 @@ labels to undo that copying. A diagnostic JSON Program removing those two
 redundant operations succeeded with the same standard Host and unchanged
 limits, returning the independently expected three rows. Evidence:
 `run-MUyg16` / `focused-test-B6Mz4D`. That hand-edited diagnostic is not a
-source acceptance substitute. The actual lowerer now reuses the already
-evaluated input slots and emits label translation only for a real logical /
-physical name difference (such as SET or RENAME). The independently authored
+source acceptance substitute. The lowerer first reused already evaluated input slots, but a second diagnostic
+(`run-MN8ti9` / `focused-test-ofcyGT`) showed that the SET/RENAME label-derived
+string column still exceeded the same execution limit. The final lowering uses
+one ordinary SELECT only for a real logical / physical name difference; it
+reuses evaluated values under their current column names and lets UNPIVOT
+generate labels directly. No label-translation expression is emitted. The independently authored
 complete Program expectation was revised for this minimal lowering; expected
 rows, NULLs, multiplicity, sort and resource limits are unchanged.
 
@@ -121,3 +125,21 @@ parser/lowerer/scope/JOIN selection now passes 18/18:
 `run-OT9QIj` / `focused-test-e5ymmB`. Fresh normal five-package production and
 source-to-Named-Result Local / HTTPS acceptance after this correction remain
 required; the diagnostic JSON success does not satisfy that obligation.
+
+## Main integration and final focused selection
+
+Main `4634a65cb625596391d611159deab0de09cd93cd` was normally merged. Its
+BETWEEN, Graph rows JOIN, traversal JOIN and semantic refusal cases remain
+registered alongside this branch's seven normal and six refusal cases. Four
+conflicts were limited to the packed selection flags and independent authored
+inventory / count assertions; no common Owner or workflow was replaced.
+The data-only inventory enumerator now records 3,226 cases (2,041 successes,
+1,139 refusals, 46 execution failures). This is registration coverage, not
+execution coverage.
+
+The integrated Node selection passes 53/53 (`run-kwNpKz` /
+`focused-test-2Jn72s`). The final evaluated-slot/rebinding implementation passes
+18/18 focused JS tests (`run-OwlaEv` / `focused-test-Tn72HZ`). Compilation
+manifest, normative metadata, spec-family and all 384 canonical identities
+pass their read-only checks. These results still do not replace the pending
+fresh-packed source acceptance.

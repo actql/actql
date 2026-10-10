@@ -164,13 +164,11 @@ test "UNPIVOT reads current slots and removes consumed columns and old ranges" {
     construction_limits(),
   ).unwrap()
   let wire = semantic(actual)
-  assert_true(wire.contains("\"columns\":[\"aql_pipe_set_2\",\"y\"]"))
-  assert_true(wire.contains("\"literal\":\"january\""))
+  assert_true(wire.contains("\"columns\":[\"x\",\"january\"]"))
   assert_true(
-    wire.contains(
-      "\"aql_unpivot_label_4\":{\"if\":[{\"eq\":[{\"field\":\"aql_unpivot_name_2\"},{\"literal\":\"aql_pipe_set_2\"}]},{\"literal\":\"x\"},{\"literal\":\"january\"}]}",
-    ),
+    wire.contains("\"select\":[{\"x\":\"aql_pipe_set_2\"},{\"january\":\"y\"}]"),
   )
+  assert_false(wire.contains("aql_unpivot_label_"))
   assert_true(
     @check.check_parsed(actual, check_environment(), None, check_limits())
     is Checked(_),
