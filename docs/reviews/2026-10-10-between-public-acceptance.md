@@ -94,3 +94,21 @@ literal-or-parameter `InRight` restriction. SAFE_DIVIDE likewise cannot be wired
 by a spelling alias: common `safe_div` has no executable lowering, and its
 zero-divisor rule alone is not the GoogleSQL error-to-NULL contract. Those
 boundaries remain separate from this completed BETWEEN connection.
+
+## Integration review
+
+Integrated main 749d6e4b6e49b51381cac9c77f96cece1f5e1e56 with a normal
+merge. Preserved previous selectors and registered all 17 authored BETWEEN
+cases. The independent inventory now contains 3,182 cases; no product
+output was used as an expected result.
+
+Focused integration checks: MoonBit JS 9/9 (run-SmTuEJ), Node 33/33
+(run-vgR9aq), manifest freshness and syntax checks passed. The first Node
+run found an outdated inventory baseline assertion; corrected it and
+repeated the same selection successfully.
+
+Inspected original packed receipt public-query-evidence-YAzwCk at
+ a71a76fad72b665926945de169cdd7a49962c365: clean source, ten completed
+commands with exit status zero. This is original-SHA Local/HTTPS evidence,
+not a new packed campaign at the integration SHA. CI, full Core and
+additional targets were not run.
