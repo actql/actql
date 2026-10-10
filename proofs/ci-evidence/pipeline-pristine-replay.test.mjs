@@ -6,14 +6,13 @@ import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {hash, gitTree} from './inputs.mjs';
 import {pipelinePristineSourcePaths, checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
-import {snapshotFromGit, checkIsolatedInputs, imageRuntime} from './isolated-runtime.mjs';
-import {validatePristineReport, pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
+import {checkIsolatedInputs, imageRuntime} from './isolated-runtime.mjs';
+import {pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {join} from 'node:path';
 import {payload} from '../relation-pipeline/fixture.mjs';
-import {validatePipelinePristineOriginal, checkPipelinePristineResult} from './isolated-pipeline-results.mjs';
 import {checkIsolatedExecutionResult} from './isolated-execution.mjs';
-import {verifyPristineTamperRefusals} from './local-isolated-acceptance.mjs';
+import {historicalPipelineFixture} from './historical-pipeline-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const bytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-07-pipeline-pristine-normal-346f9274c.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
@@ -21,10 +20,11 @@ assert.equal(hash(bytes), '8623af4522c4e1d1394eb5511194404c2b668b9bce5d9919c36a2
 const original = JSON.parse(bytes);
 const tree = gitTree(root, '346f9274cccb5d617d48c99ad1efc4576cad29e2');
 tree.prefetch(pipelinePristineSourcePaths(tree));
-const source = snapshotFromGit(tree, 'pipeline-pristine');
+const consumer = await historicalPipelineFixture(root, tree.revision);
+const source = consumer.snapshotFromGit(tree, 'pipeline-pristine');
 
 test('four captured real pristine JS executions retain original source, compiled fixtures, inputs, logs and independent values', () => {
-  assert(validatePipelinePristineOriginal(original.report, source, original.files));
+  assert(consumer.validatePipelinePristineOriginal(original.report, source, original.files));
   assert.equal(original.report.units, 4); assert.equal(original.report.reuseAuthorized, false);
 });
 
@@ -34,8 +34,8 @@ test('re-sealed requested Program cannot replace the Program actually observed b
   files[run.inputPath] = payload(run.cases, true); run.inputDigest = hash(files[run.inputPath]);
   execution.digest = hash(JSON.stringify(run)); files[execution.path] = `${JSON.stringify(run, null, 2)}\n`;
   // Demonstrate why semantic/log agreement alone is insufficient for input binding.
-  assert(validatePristineReport(report, source, files));
-  assert.throws(() => validatePipelinePristineOriginal(report, source, files), /Requested pipeline Program/u);
+  assert(consumer.validatePristineReport(report, source, files));
+  assert.throws(() => consumer.validatePipelinePristineOriginal(report, source, files), /Requested pipeline Program/u);
 });
 
 for (const [name, alter] of [
@@ -46,14 +46,14 @@ for (const [name, alter] of [
   ['false reuse permit', r => r.report.reuseAuthorized = true],
 ]) test(`the real original rejects ${name}`, () => {
   const changed = structuredClone(original); alter(changed);
-  assert.throws(() => validatePipelinePristineOriginal(changed.report, source, changed.files));
+  assert.throws(() => consumer.validatePipelinePristineOriginal(changed.report, source, changed.files));
 });
 
 
 test('captured real output tampering changes a value even when the first independent minimum is empty', () => {
   assert.deepEqual(original.report.observations[0].observed.wireRows, []);
   const pristine = structuredClone(original);
-  assert.deepEqual(verifyPristineTamperRefusals(pristine), ['missing-receipt', 'wrong-target', 'changed-source',
+  assert.deepEqual(consumer.verifyPristineTamperRefusals(pristine), ['missing-receipt', 'wrong-target', 'changed-source',
     'changed-log', 'changed-input', 'changed-value', 'reuse-promotion']);
   assert.deepEqual(pristine, original, 'Refusal experiments must not rewrite their original');
 });
@@ -63,7 +63,8 @@ const imageBytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/
 assert.equal(hash(imageBytes), 'bd87e6234f3620945f04a1d7a2af5d595b92b319e8b547643d163aa61ccc468a');
 const imageOriginal = JSON.parse(imageBytes), imageRevision = 'f2a191b51fd6ecd7b70486c6e8fa33204fa8964e';
 const imageTree = gitTree(root, imageRevision); imageTree.prefetch(pipelinePristineSourcePaths(imageTree));
-const imageSource = snapshotFromGit(imageTree, 'pipeline-pristine');
+const imageConsumer = await historicalPipelineFixture(root, imageRevision);
+const imageSource = imageConsumer.snapshotFromGit(imageTree, 'pipeline-pristine');
 const normalImageBytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-08-pipeline-pristine-normal-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
 assert.equal(hash(normalImageBytes), '0a81ea5af7e6c061696c486a3615262a512d67d8edd3c3d9d9c1e304bbbef68f');
 const pairedNormal = JSON.parse(normalImageBytes);
@@ -74,11 +75,11 @@ function consumeImage(record) {
   const {prepared, answer} = record;
   assert.equal(record.manifestDigest, hash(JSON.stringify(prepared.manifest)));
   assert.equal(answer.owner, prepared.owner);
-  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree: imageTree, local: true, profile: record.profile});
+  imageConsumer.checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree: imageTree, local: true, profile: record.profile});
   checkLocalImageDefinition({image: answer.imageDefinition, imageId: answer.imageId, owner: answer.owner, profile: record.profile});
   assert.equal(encode(answer.arguments), encode(localIsolatedRunArguments({imageId: answer.imageId,
     owner: answer.owner, cidFile: join(prepared.context, 'container.id'), profile: record.profile})));
-  return checkPipelinePristineResult({payload: answer.payload, manifest: prepared.manifest, before: imageSource});
+  return imageConsumer.checkPipelinePristineResult({payload: answer.payload, manifest: prepared.manifest, before: imageSource});
 }
 
 test('the actual immutable pipeline image original passes source, runtime, entrypoint and strong original receipt checks', () => {
@@ -88,22 +89,23 @@ test('the actual immutable pipeline image original passes source, runtime, entry
   const paths = new Set(imageOriginal.answer.payload.root.entries.map(entry => entry.path));
   for (const path of isolatedCoreBuildMetadata) assert(!paths.has(`runtime/moonbit/${path}`));
 });
-test('the executor awaits its registered pristine scientific consumer and propagates rejection', async () => {
+test('historical pristine acceptance stays separate from the current executor and rejects tampering', async () => {
   const inputs = {profile: 'pipeline-pristine', payload: imageOriginal.answer.payload,
     manifest: imageOriginal.prepared.manifest, before: imageSource};
-  assert(await checkIsolatedExecutionResult(inputs));
+  assert(imageConsumer.checkPipelinePristineResult(inputs));
+  await assert.rejects(checkIsolatedExecutionResult(inputs), /Compiled|fixture|strictly equal/u);
   const payload = structuredClone(inputs.payload); payload.sourcePreserved = false;
-  await assert.rejects(checkIsolatedExecutionResult({...inputs, payload}));
+  assert.throws(() => imageConsumer.checkPipelinePristineResult({...inputs, payload}));
   await assert.rejects(checkIsolatedExecutionResult({...inputs, profile: 'session'}));
 });
 
 test('the two real fresh phases agree without discarding schema, work, identity, NULL, rows or order', () => {
-  assert(validatePipelinePristineOriginal(pairedNormal.report, imageSource, pairedNormal.files));
+  assert(imageConsumer.validatePipelinePristineOriginal(pairedNormal.report, imageSource, pairedNormal.files));
   const science = pristineScientificObservation(imageOriginal.answer.payload.report);
   assert.deepEqual(science, pristineScientificObservation(pairedNormal.report));
   assert.equal(hash(JSON.stringify(science)), imageOriginal.comparison.scientificDigest);
   assert.equal(imageOriginal.comparison.matched, true);
-  assert.deepEqual(verifyPristineTamperRefusals(imageOriginal.answer.payload), imageOriginal.comparison.rejected);
+  assert.deepEqual(imageConsumer.verifyPristineTamperRefusals(imageOriginal.answer.payload), imageOriginal.comparison.rejected);
 });
 
 test('a local pipeline image never enters Session or Actions admission and cannot promote reuse', () => {
@@ -121,4 +123,8 @@ for (const path of isolatedCoreBuildMetadata) test(`the real pipeline cohort rej
   altered.prepared.runtime = imageRuntime(altered.prepared.manifest, {local: true, profile: 'pipeline-pristine'});
   assert.throws(() => checkIsolatedInputs({runtime: altered.prepared.runtime, manifest: altered.prepared.manifest,
     tree: imageTree, local: true, profile: 'pipeline-pristine'}), /core build metadata must be absent/u);
+});
+
+test('historical replay refuses caller-selected revisions', async () => {
+  await assert.rejects(historicalPipelineFixture(root, '0'.repeat(40)), /Unregistered historical pipeline revision/u);
 });

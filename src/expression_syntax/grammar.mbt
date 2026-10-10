@@ -58,6 +58,8 @@ fn expression_role(
     | "sqrt"
     | "abs"
     | "sign"
+    | "round"
+    | "trunc"
     | "floor"
     | "lower"
     | "upper"

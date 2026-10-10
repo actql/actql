@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 50);
-  assert.equal(setCorrespondingRefusals.length, 26);
+  assert.equal(setCorrespondingSuccesses.length, 75);
+  assert.equal(setCorrespondingRefusals.length, 40);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -143,7 +143,7 @@ test('parenthesized operands preserve independent ordinal values and private sco
 });
 
 test('positional inner ORDER LIMIT has independent values and opposite alias controls', () => {
-  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-limited-'));
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-limited-') && !x.name.includes('-filtered-'));
   assert.equal(normals.length, 9);
   const find = suffix => normals.find(x => x.name.endsWith('-' + suffix));
   assert.deepEqual(find('source-scalar').expected, [{a: -2}, {a: 0}]);
@@ -165,5 +165,79 @@ test('positional inner ORDER LIMIT has independent values and opposite alias con
   assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-limited-'));
   assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional star fixtures preserve values nullable schema DISTINCT and scope', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-star-'));
+  assert.equal(normals.length, 9);
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.deepEqual(find('source-scalar').expected, [{a: -2}, {a: -1}, {a: 0}]);
+  assert.deepEqual(find('distinct').sourceRows.map(x => x.id), [2, 2, 1]);
+  assert.deepEqual(find('distinct').expected, find('source-scalar').expected);
+  assert.deepEqual(find('repeated-star-limit').expected, [{a: -1}, {a: 0}]);
+  assert.deepEqual(find('window').expected, [{a: 0}, {a: 2}]);
+  assert.deepEqual(find('aggregate').columns.map(x => [x.name, x.contract.nullable]), [['a', true], ['b', false]]);
+  assert.deepEqual(find('nullable').expected, [{a: -10}, {a: 0}, {a: null}]);
+  assert.equal(find('nullable').columns[0].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.deepEqual(find('typed-empty').columns, [{name: 'a', contract: {type: 'number', nullable: false}}]);
+  const steps = positionalStarProgram.stages[0].steps;
+  assert.deepEqual(steps[1].derive, {neg: {negate: {field: 'x'}}});
+  assert.deepEqual(steps.slice(2, 5).map(x => x.select), [['neg'], ['neg'], [{a: 'neg'}]]);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-star-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('postprojection filters retain only current names and stay before append', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.includes('-limited-filtered-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 7);
+  for (const name of ['json-control', 'false', 'null-predicate']) {
+    assert.deepEqual(find(name).expected, [{a: 0}]);
+  }
+  assert.deepEqual(find('true').expected, [{a: -2}, {a: -1}, {a: 0}]);
+  assert.deepEqual(find('kept-alias').expected, [{a: 0, b: 0}, {a: 1, b: -1}]);
+  for (const name of ['window', 'duplicate-ordinal']) {
+    assert.deepEqual(find(name).expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+    assert.ok(find(name).text.includes('WHERE TRUE |> ORDER BY 1 DESC |> LIMIT 1)'));
+  }
+  assert.ok(find('kept-alias').text.includes('SELECT id AS kept, -id |> WHERE kept = 1'));
+  assert.ok(find('null-predicate').text.includes('WHERE CAST(NULL AS BOOL)'));
+  assert.deepEqual(positionalFilterProgram.stages[0].steps[2].select, [{a: 'neg'}]);
+  assert.deepEqual(positionalFilterProgram.stages[0].steps[3], {filter: {literal: false}, as: 'right'});
+  assert.deepEqual(positionalFilterProgram.stages[0].steps[5], {from: 'left', append: {with: 'right'}});
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-filtered-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional exclusions use authored names without exposing anonymous slots', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-exclusion-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 9);
+  assert.deepEqual(find('source-scalar').expected, [{a: -2}, {a: -1}, {a: 0}]);
+  assert.deepEqual(find('duplicate-aliases').expected, [{a: 0}, {a: 11}, {a: 12}]);
+  assert.ok(find('duplicate-aliases').text.includes('id AS v, -id AS `V`, id + 10'));
+  assert.deepEqual(find('quoted-repeated-limit').expected, [{a: -1}, {a: 0}]);
+  assert.deepEqual(find('analytic').expected, [{a: 0}, {a: 2}]);
+  assert.deepEqual(find('distinct').sourceRows.map(x => x.id), [2, 2, 1]);
+  assert.deepEqual(find('distinct').expected, find('source-scalar').expected);
+  assert.deepEqual(find('nullable').expected, [{a: -10}, {a: 0}, {a: null}]);
+  assert.equal(find('nullable').columns[0].contract.nullable, true);
+  assert.equal(find('global').columns[0].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.equal(find('typed-empty').columns[0].contract.nullable, false);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const steps = positionalExclusionProgram.stages[0].steps;
+  assert.deepEqual(steps[1].derive, {neg: {negate: {field: 'x'}}});
+  assert.deepEqual(steps.slice(2, 5).map(x => x.select), [[{kept: 'x'}, 'neg'], ['neg'], [{a: 'neg'}]]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-exclusion-'));
+  assert.equal(refusals.length, 6);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });

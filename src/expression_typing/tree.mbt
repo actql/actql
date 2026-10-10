@@ -160,6 +160,8 @@ fn flatten(
       | "sqrt"
       | "abs"
       | "sign"
+      | "round"
+      | "trunc"
       | "floor"
       | "lower"
       | "upper"
