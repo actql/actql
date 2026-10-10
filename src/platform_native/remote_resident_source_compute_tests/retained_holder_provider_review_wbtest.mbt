@@ -164,6 +164,7 @@ fn retained_holder_provider_review(
     public_result,
     provider=true,
     checkpoint_custody=true,
+    review_retention=true,
     private_preview=Some(
       (
         preview.wire,

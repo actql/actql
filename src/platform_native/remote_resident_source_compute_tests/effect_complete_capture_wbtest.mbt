@@ -20,6 +20,7 @@ fn retained_effect_complete_capture(
   provider? : Bool = false,
   private_preview? : (String, String)? = None,
   checkpoint_custody? : Bool = false,
+  review_retention? : Bool = false,
 ) -> Unit raise {
   let capture = (material, proofs, sources) => {
     consumer.capture_effect_run(
@@ -95,19 +96,35 @@ fn retained_effect_complete_capture(
     @publication.publication_contract_identity(retried),
     @publication.publication_contract_identity(captured),
   )
-  retained_effect_capture_store(
-    consumer,
-    materials,
-    inputs,
-    result,
-    invocation,
-    preview,
-    captured,
-    @publication.captured_effect_source_store_authority_cid(source),
-    provider~,
-    private_preview~,
-    checkpoint_custody~,
-  )
+  if review_retention {
+    let (wire, authoring_cid) = private_preview.unwrap()
+    retained_effect_review_retention_store(
+      consumer,
+      materials,
+      inputs,
+      result,
+      invocation,
+      preview,
+      captured,
+      @publication.captured_effect_source_store_authority_cid(source),
+      wire,
+      authoring_cid,
+    )
+  } else {
+    retained_effect_capture_store(
+      consumer,
+      materials,
+      inputs,
+      result,
+      invocation,
+      preview,
+      captured,
+      @publication.captured_effect_source_store_authority_cid(source),
+      provider~,
+      private_preview~,
+      checkpoint_custody~,
+    )
+  }
   println(
     "retained-effect-capture: complete original Run issued with actual public rows and checked plan",
   )
