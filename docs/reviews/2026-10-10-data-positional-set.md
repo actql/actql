@@ -131,3 +131,34 @@ This final evidence-recording commit changes this document only. The public
 execution proof remains attributed to `e4fcc52a...`, not silently relabeled
 as the later submitted HEAD. Full Core/Native/Wasm, the full packed corpus and
 hosted CI remain unexecuted for this unit.
+
+## Main integration after submission
+
+Main `ab69cd06a94b1c5a998521435e61c9f201a5c9a9` was normally merged as
+`c99e79bb2211e4eb4026e8a0839c9939eb3adaea`, preserving #1237 aggregate
+support and #1238's current Native/query boundaries. Only the independent
+inventory pin and its explicit count/baseline assertions conflicted. Both
+fixture families are retained: 3,297 occurrences, 2,085 successes, 47 execution
+failures and 1,165 refusals. The data-only registration digest is
+`4cd010bdc76ebe2c465217df9c5b80c0188a6a2e5eb559644d27da1177a2c063`.
+No workflow, existing history declaration, independent row oracle or ceiling
+was removed or weakened.
+
+At that clean merge SHA, targeted Node fixture/profile checks passed 42/42
+(`run-lR5MGe`, `focused-test-szig1J`) and JS DATA/set/CTE/alignment callers
+passed 14/14 (`run-bypdCO`, `focused-test-E2IoXu`). The same commands above
+were used; the Node selection additionally includes
+`scripts/pipe-pivot-source-input.test.mjs` to check main's retained fixtures.
+
+An exact-SHA normal-pack/Relation-DATA public gate was requested using
+`/private/tmp/actql-b-data-positional-integrated-packed.mjs`, with an explicit
+60-second slot wait. Another verified owner's active gate retained the shared
+slot. The wrapper exited 75 without starting either producer or consumer.
+Thus the integration SHA has no five-package/public execution proof yet. The
+13/13 Local/HTTPS proof remains attributed to prior `e4fcc52a...`; it is not
+reinterpreted as integration success. The Draft remains incomplete pending
+that integration acceptance and actual submitted-HEAD hosted CI.
+
+Aggregate normal support is now integrated in main via #1237. The separately
+reproduced anonymous aggregate HAVING scope fix is #1241; it is not duplicated
+here. The wider goal and other explicitly listed coverage remain active.
