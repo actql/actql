@@ -25,6 +25,8 @@ pub(all) enum NativeClientRunJournalIssue {
   SubmissionEpochRejected(@scope.SubmissionEpochValidity)
   UnsupportedPreparation
   Checkpoint(NativeClientCheckpointIssue)
+  CancellationIdentity(@host.ClientCancellationIdentityIssue)
+  CancellationOperation(@host.ClientCancellationOperationIssue)
 }
 
 ///|
@@ -222,11 +224,16 @@ fn initialize_native_client_run_journal(
   for
     table in [
       "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
+      "client_cancellations", "client_cancel_custody",
     ] {
     match database.scan_after(table, "") {
       Err(@sqlite.NotFound) => ()
       _ => return Err(CustodyLost)
     }
+  }
+  match database.insert("client_cancel_custody", "issued", b"0") {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
   }
   database
   .insert("client_run_custody", "issued", b"0")
@@ -392,6 +399,10 @@ fn run_journal_custody(
   }
   if receipt_count != receipts.length() {
     return Err(CustodyLost)
+  }
+  match cancellation_custody(database, max_records) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   Ok((count, retained.revision))
 }
