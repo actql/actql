@@ -2210,13 +2210,18 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
-        Select(columns, _) | OrderAnalytic(columns, _) =>
+        Select(columns, _)
+        | Analytic(columns)
+        | AnalyticExpressions(columns, _)
+        | OrderAnalytic(columns, _) =>
           positional_projection_expressions(columns)
         _ => []
       }
       let resolve_input = path => {
         if operation is Where(_) ||
           operation is Select(_, _) ||
+          operation is Analytic(_) ||
+          operation is AnalyticExpressions(_, _) ||
           operation is OrderAnalytic(_, _) {
           pipe_slot(path, pipe_visible, pipe_ranges)
         } else if pipe_selected || pipe_changed || pipe_rebound {

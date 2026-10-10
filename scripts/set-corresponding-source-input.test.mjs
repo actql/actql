@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 85);
-  assert.equal(setCorrespondingRefusals.length, 48);
+  assert.equal(setCorrespondingSuccesses.length, 91);
+  assert.equal(setCorrespondingRefusals.length, 51);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -17,7 +17,7 @@ test('CORRESPONDING matching has independent row, type, scope and multiplicity c
 });
 
 test('positional windows retain opposing order keys and different functions', () => {
-  const windows = setCorrespondingSuccesses.filter(x => x.name.includes('-window-'));
+  const windows = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-window-'));
   assert.equal(windows.length, 6);
   const source = windows.find(x => x.name.endsWith('-source-orders'));
   assert.equal(source.sourceReadSessionCount, 1);
@@ -268,5 +268,25 @@ test('positional replacement preserves snapshots anonymous values and column typ
   assert.deepEqual(steps.slice(4, 6).map(x => x.select), [[{kept: 'changed'}, 'neg'], [{a: 'kept'}, {b: 'neg'}]]);
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-replacement-'));
   assert.equal(refusals.length, 8);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('window replacement uses current names with opposing keys and retained anonymous values', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-analytic-replacement-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 6);
+  assert.deepEqual(find('source').expected, [{a: 0, b: 0}, {a: 1, b: -2}, {a: 2, b: -1}]);
+  assert.deepEqual(find('expression').expected, [{a: 0, b: 0}, {a: 6, b: -2}, {a: 7, b: -1}]);
+  assert.deepEqual(find('named-window-filter').expected, [{a: 0, b: 0}, {a: 2, b: -1}]);
+  assert.deepEqual(find('opposing-windows').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: 2, c: -2}, {a: 2, b: 1, c: -1}]);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.ok(normals.every(x => x.columns.every(column => column.contract.type === 'number' && !column.contract.nullable)));
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  assert.deepEqual(positionalWindowReplacementProgram.stages[0].steps[3].analytic,
+    {partition_by: [], order_by: [{field: 'kept', dir: 'desc', nulls: 'last'}], functions: {rank: {fn: 'row_number'}}});
+  assert.deepEqual(positionalWindowReplacementProgram.stages[0].steps[4].select, [{a: 'rank'}, {b: 'neg'}]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-analytic-replacement-'));
+  assert.equal(refusals.length, 3);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });

@@ -300,6 +300,7 @@ setCorrespondingRefusals.push(
     expectedCode: 'ClientProgramInvalidInput'},
 );
 
+
 // Independent input x=1,2: ORDER x DESC LIMIT 1 chooses x=2, whereas ORDER
 // on the evaluated -x DESC chooses x=1. LIMIT/OFFSET stay inside the operand.
 export const positionalOrderLimitProgram = {version: 'actql/0.1', id: 'fixture.positional_order_limit',
@@ -564,4 +565,49 @@ setCorrespondingRefusals.push(
   {name: 'set-corresponding-refuse-replacement-old-range', format: 'sql',
     text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
       + '|> SELECT * REPLACE (old.id AS kept)) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+);
+
+// Window replacement reads the current named input and retains the anonymous
+// value. The JSON control uses existing analytic/projection operations only.
+export const positionalWindowReplacementProgram = {version: 'actql/0.1', id: 'fixture.positional_window_replacement',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'x'}}}},
+    {select: [{kept: 'x'}, 'neg']},
+    {analytic: {partition_by: [], order_by: [{field: 'kept', dir: 'desc', nulls: 'last'}], functions: {rank: {fn: 'row_number'}}}},
+    {select: [{a: 'rank'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const windowReplacement = (name, text, extra = {}) => success('positional-analytic-replacement-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 1, b: -2}, {a: 2, b: -1}], ...extra});
+const windowReplacementHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> SELECT * REPLACE (';
+setCorrespondingSuccesses.push(
+  windowReplacement('json-control', JSON.stringify(positionalWindowReplacementProgram), {format: 'json', sourceReadSessionCount: 0}),
+  windowReplacement('source', windowReplacementHead + 'ROW_NUMBER() OVER (ORDER BY kept DESC) AS kept)) ORDER BY a, b'),
+  windowReplacement('expression', windowReplacementHead + 'ROW_NUMBER() OVER (ORDER BY kept DESC) + 5 AS kept)) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 6, b: -2}, {a: 7, b: -1}]}),
+  windowReplacement('named-window-filter', windowReplacementHead + 'ROW_NUMBER() OVER w AS `KEPT`) WINDOW w AS (ORDER BY kept DESC) '
+    + '|> SELECT * |> WHERE kept > 1) ORDER BY a, b', {expected: [{a: 0, b: 0}, {a: 2, b: -1}]}),
+  windowReplacement('opposing-windows', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> SELECT * REPLACE '
+    + '(ROW_NUMBER() OVER (ORDER BY first DESC) AS first, ROW_NUMBER() OVER (ORDER BY second) AS second)) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: 2, c: -2}, {a: 2, b: 1, c: -1}]}),
+  windowReplacement('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY kept DESC) AS kept)) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  {name: 'set-corresponding-refuse-analytic-replacement-private', format: 'sql',
+    text: windowReplacementHead + 'ROW_NUMBER() OVER (ORDER BY aql_set_anonymous_4) AS kept)) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-analytic-replacement-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY old.id) AS kept)) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-analytic-replacement-ambiguous', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS kept '
+      + '|> SELECT * REPLACE (ROW_NUMBER() OVER (ORDER BY v) AS kept)) ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput'},
 );
