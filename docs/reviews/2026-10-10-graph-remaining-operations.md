@@ -224,8 +224,6 @@ refused before execution by the shared heavy lock; other owners' locks are
 not removed or bypassed. CI is not started. Lightweight authored-harness
 checks above are not substituted for those public delivery conditions.
 
-## Shortest execution and public-source checkpoint
-
 ## Typed Mean profile checkpoint
 
 The mean branch depends on the still-unpublished Graph integration above.
@@ -257,6 +255,42 @@ exact support/property cursor, resolved cumulative meters, provider, AQL and
 public retained acceptance remain to connect. The existing public refusal is
 kept until an execution owner can discharge those duties. No success evidence
 or complete-four-operation claim is registered for this preparatory change.
+
+### Mean field reduction preparation
+
+The private `mean_property` cursor now consumes each ordered sample explicitly.
+It uses the existing exact binary64 owner for products, accumulation and final
+rounding, and the complete value-equality/recheck cursors for exact-equal and
+output admission. Absence denotes the entire entity, while an observed NULL
+follows its independently selected policy. Zero weights do not contribute;
+repeated occurrences are not deduplicated. No input array is copied or scanned
+inside cursor preparation. Borrowed inputs remain valid after cleanup.
+
+Independent field fixtures cover the four normative 6/NULL/absent examples,
+repeated and zero-weight samples, zero denominator, null failure, overflowing
+binary64 products with finite exact output, and the non-pairwise three-sample
+mean. A long exact-equal Text remains in its shared cursor over 128 quantum-1
+advances; cleanup releases its private roots without changing input values.
+Composed and decomposed Unicode are not treated as the same raw value.
+
+Field control work is cumulative across supplied samples: three folds, final
+conversion, one recheck node and terminal transition require exactly six.
+Five fails with `MeanPropertyWorkLimit` at quantum 1, 7 and 64. This is explicitly
+**not** an exact-arithmetic-work or whole-Graph capacity proof. The exact owner
+has a finite coefficient bit ceiling, but its synchronous BigInt primitives
+still need the operation's resolved work/storage envelope and cancellation
+integration. No provider or public acceptance is claimed by this field cursor.
+
+On working source based on
+`d5d3656842b3b04b7eaa5a0f857f805a467e901f`, the focused JS selection passes
+16/16 (`run-WdUPn5`, `focused-test-RRRLGS`):
+`node scripts/local-checks.mjs test moon -- --target js src/local_sga/mean_property_wbtest.mbt src/graph_typing/mean_profile_test.mbt src/exact_binary64`.
+The two changed test files pass 9/9 each on Wasm and Native under
+`run-6cWqt9` (Native `focused-test-gYCVXo`) with the same command and explicit
+matching target. These receipts retain the actual dirty-source identity;
+they are not CI or clean-HEAD public execution evidence.
+
+## Shortest execution and public-source checkpoint
 
 Implementation commit: `0d44b99bf07ddc2ac625972265bfdc859dfb8549`.
 Branch: `feat/graph-shortest-integration`, depending on the unpublished
