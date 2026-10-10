@@ -21,7 +21,13 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-current-value').expected, [{product: 'kale', present: 99}]);
   assert.equal(cases.get('pipe-pivot-duplicate-null-json-control').columns[0].contract.max_utf8_bytes, undefined);
   assert.equal(cases.get('pipe-pivot-min-missing-authored-order').columns[0].contract.max_utf8_bytes, Buffer.byteLength('kale', 'utf8'));
-  assert.equal(pipePivotRefusals.find(input => input.name.endsWith('anonymous-set-operands')).expectedCode, 'ClientProgramImplementationLimit');
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-set-operands').expected,
+    [{product: 'kale', second: 0, first: 2}]);
+  assert.deepEqual(cases.get('pipe-pivot-anonymous-set-operands').columns,
+    cases.get('pipe-pivot-duplicate-null-source').columns);
+  assert.equal(pipePivotRefusals.some(input => input.name.endsWith('anonymous-set-operands')), false);
+  assert.equal(pipePivotSuccesses.length, 9);
+  assert.equal(pipePivotRefusals.length, 8);
   assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 17);
 });
 

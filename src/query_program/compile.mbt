@@ -1930,6 +1930,7 @@ fn compile_steps(
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
   prefix_context? : Context? = None,
+  positional_set_output? : Bool = false,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -4822,7 +4823,13 @@ fn compile_steps(
                   }
                 }
               }
-              let name = projection_output_name(projection)
+              let name = if positional_set_output &&
+                i == @query.operation_count(query) - 1 &&
+                projection_alias(projection) is None {
+                anonymous_set_projection_name(projections, physical, names)
+              } else {
+                projection_output_name(projection)
+              }
               names.push(name)
               bindings.push((name, source))
               expressions.push(
@@ -5034,16 +5041,22 @@ fn compile_steps(
               // after GROUP retains only its evaluated key. This naming
               // snapshot does not authorize reading the original receiver:
               // grouped expression lowering below still owns value access.
-              let name = output_name(
-                projection,
-                query,
-                input,
-                if sql_group_projection {
-                  sql_group_input_columns.map(entry => entry.0)
-                } else {
-                  select_fields
-                },
-              )
+              let name = if positional_set_output &&
+                i == @query.operation_count(query) - 1 &&
+                projection_alias(projection) is None {
+                anonymous_set_projection_name(projections, active_fields, names)
+              } else {
+                output_name(
+                  projection,
+                  query,
+                  input,
+                  if sql_group_projection {
+                    sql_group_input_columns.map(entry => entry.0)
+                  } else {
+                    select_fields
+                  },
+                )
+              }
               names.push(name)
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
@@ -7407,6 +7420,8 @@ fn compile_set_stages(
       term_name,
       parameter_declarations=context.parameter_declarations,
       prefix_context=Some(context),
+      positional_set_output=index > 0 &&
+        !@query.set_part_at(query, index - 1).unwrap().by_name,
     )
     let term_steps : Array[@builder.Node] = []
     for step in body {
