@@ -91,8 +91,7 @@ test "grouped navigation offsets preserve literal bounds and refuse computation"
   }
   for
     value in [
-      "(9007199254740992)", "(1.5)", "(-1)", "(amount)", "(@p + 1)", "(1 + 1)", "(NULL)",
-      "('2')",
+      "(9007199254740992)", "(1.5)", "(NULL)", "('2')", "(-0)", "(+1)", "(-(1))",
     ] {
     assert_true(
       compile(
@@ -110,6 +109,85 @@ test "grouped navigation offsets preserve literal bounds and refuse computation"
       )
       is Err(UnsupportedAnalytic),
       msg=value,
+    )
+  }
+}
+
+///|
+test "navigation offsets reject nonliteral forms and proven negative integers as invalid query" {
+  // These source shapes violate the literal/whole-parameter contract without
+  // executing an expression or relying on the public preparation projection.
+  for function in ["LAG", "LEAD"] {
+    for
+      value in [
+        "id", "(id)", "((amount))", "1 + 1", "(1 + 1)", "(@p + 1)", "-1", "(-1)",
+        "-2", "(-9007199254740991)",
+      ] {
+      assert_true(
+        compile(
+          @query.parse_query(
+            "SELECT " +
+            function +
+            "(amount, " +
+            value +
+            ") OVER (ORDER BY id) AS adjacent FROM orders",
+            syntax_limits(),
+          ).unwrap(),
+          {
+            ..values_context(),
+            parameter_declarations: Some(number_parameter_declarations()),
+          },
+          construction_limits(),
+        )
+        is Err(InvalidQuery),
+        msg=function + ": " + value,
+      )
+    }
+  }
+}
+
+///|
+test "negative offset classification retains the expression work limit" {
+  let limits = { ..construction_limits(), max_expression_work: 8, }
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT LAG(amount, -1) OVER (ORDER BY id) AS adjacent FROM orders",
+        syntax_limits(),
+      ).unwrap(),
+      values_context(),
+      limits,
+    )
+    is Err(InvalidQuery),
+  )
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT LAG(amount, -1111111111111) OVER (ORDER BY id) AS adjacent FROM orders",
+        syntax_limits(),
+      ).unwrap(),
+      values_context(),
+      limits,
+    )
+    is Err(Expression({ issue: WorkLimit, origin: Some(_), })),
+  )
+}
+
+///|
+test "navigation offset input violations do not reclassify unsupported window signatures" {
+  for
+    text in [
+      "SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS adjacent FROM orders", "SELECT COUNTIF(amount > 10) OVER (ORDER BY id) AS n FROM orders",
+      "SELECT LAG(amount, 1, 0) OVER (ORDER BY id) AS adjacent FROM orders",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        values_context(),
+        construction_limits(),
+      )
+      is Err(UnsupportedAnalytic),
+      msg=text,
     )
   }
 }

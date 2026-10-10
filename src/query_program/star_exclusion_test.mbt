@@ -70,6 +70,6 @@ test "star exclusions reject unknown current names and ungrouped retained column
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedGrouping),
+    is Err(InvalidQuery),
   )
 }

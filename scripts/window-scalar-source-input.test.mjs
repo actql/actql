@@ -127,9 +127,12 @@ test('grouped window operands have independent Programs, NULLs and opposing scop
     'aggregate-operand-pipe-implicit-group']) {
     assert.equal(windowScalarRefusals.find(item => item.name.endsWith(name)).expectedCode, 'ClientProgramInvalidInput');
   }
-  for (const name of ['aggregate-operand-missing-frame', 'aggregate-operand-row-offset']) {
-    assert.equal(windowScalarRefusals.find(item => item.name.endsWith(name)).expectedCode, 'ClientProgramImplementationLimit');
-  }
+  assert.equal(windowScalarRefusals.find(item => item.name.endsWith('aggregate-operand-missing-frame')).expectedCode,
+    'ClientProgramImplementationLimit');
+  const rowOffset = windowScalarRefusals.find(item => item.name === 'window-scalar-refuse-aggregate-operand-row-offset');
+  assert.equal(rowOffset.text,
+    'SELECT amount, LAG(COUNT(*), amount) OVER (ORDER BY amount) AS n FROM records GROUP BY amount');
+  assert.equal(rowOffset.expectedCode, 'ClientProgramInvalidInput');
 });
 
 test('window operands retain independent ordering, NULL, keys and scope controls', () => {

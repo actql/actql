@@ -73,7 +73,7 @@ test "range stars never revive hidden renamed or projected aliases" {
       join_order_context(),
       construction_limits(),
     )
-    is Err(UnsupportedGrouping),
+    is Err(InvalidQuery),
   )
   assert_true(
     compile(

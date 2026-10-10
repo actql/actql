@@ -85,4 +85,4 @@ export const distinctOrderMemberRefusals = [
   'SELECT DISTINCT payload.score AS score FROM objects AS payload ORDER BY (payload).score + 1',
   'SELECT DISTINCT payload.score + 1 AS score FROM objects ORDER BY payload.score + 2',
 ].map((query, index) => ({...success('unselected-' + index, query),
-  expectedCode: 'ClientProgramImplementationLimit'}));
+  expectedCode: 'ClientProgramInvalidInput'}));

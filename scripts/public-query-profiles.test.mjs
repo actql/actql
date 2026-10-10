@@ -1,3 +1,4 @@
+import './unnest-source-input.test.mjs';
 import {encodeRetainedFixture, decodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -13,6 +14,12 @@ import {aggregatePropertySuccesses, aggregatePropertyRefusals}
   from './fixtures/aggregate-property-source-input.mjs';
 import {joinPropertySuccesses, joinPropertyRefusals}
   from './fixtures/join-property-source-input.mjs';
+
+import {unnestRefusals} from './fixtures/unnest-source-input.mjs';
+import {windowScalarRefusals} from './fixtures/window-scalar-source-input.mjs';
+import {groupSelectScopeRefusals} from './fixtures/group-select-scope-source-input.mjs';
+import {distinctOrderRefusals} from './fixtures/distinct-order-source-input.mjs';
+import {distinctOrderMemberRefusals} from './fixtures/distinct-order-member-source-input.mjs';
 
 const inputs = {successes: [...analyticOrderSuccesses, ...analyticPropertySuccesses],
   refusals: [...analyticOrderRefusals, ...analyticPropertyRefusals],
@@ -177,6 +184,54 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 
+// This independent Carrier refusal policy runs in ordinary packed preflight.
+import './graph-invalid-carrier-source-input.test.mjs';
+
+
+test('semantic refusal fixtures retain 21 exact invalid-input policies', () => {
+  const refusals = [...unnestRefusals, ...windowScalarRefusals, ...joinPropertyRefusals,
+    ...groupSelectScopeRefusals, ...distinctOrderRefusals, ...distinctOrderMemberRefusals];
+  // These names are independently authored from the scope and offset contracts.
+  // The normal packed preflight checks them without running the product lowerer.
+  const invalid = [
+    'unnest-refusal-ordinal-outside-actual-columns',
+    'unnest-refusal-ordinal-without-offset',
+    'unnest-refusal-ordinal-after-drop',
+    'window-scalar-refuse-aggregate-operand-row-offset',
+    'join-property-invalid-4',
+    'group-select-scope-numeric-distinct-unselected',
+    'distinct-order-unselected-0',
+    'distinct-order-unselected-1',
+    'distinct-order-unselected-2',
+    'distinct-order-join-unselected-0',
+    'distinct-order-join-unselected-1',
+    'distinct-order-join-unselected-2',
+    'order-receiver-unselected-0',
+    'order-receiver-unselected-1',
+    'order-receiver-unselected-2',
+    'order-receiver-unselected-3',
+    'distinct-order-member-unselected-0',
+    'distinct-order-member-unselected-1',
+    'distinct-order-member-unselected-2',
+    'distinct-order-member-unselected-3',
+    'distinct-order-member-unselected-4',
+  ];
+  assert.equal(invalid.length, 21);
+  assert.equal(new Set(invalid).size, 21);
+  for (const name of invalid) {
+    const matches = refusals.filter(value => value.name === name);
+    assert.equal(matches.length, 1, name);
+    assert.equal(matches[0].expectedCode, 'ClientProgramInvalidInput', name);
+  }
+  assert.equal(windowScalarRefusals.find(value => value.name ===
+    'window-scalar-refuse-aggregate-operand-missing-frame').expectedCode,
+  'ClientProgramImplementationLimit', 'the valid missing-frame connection remains unsupported');
+  const unsafe = groupSelectScopeRefusals.find(value => value.name ===
+    'group-select-scope-numeric-unsafe-integer');
+  assert.equal(Object.hasOwn(unsafe, 'expectedCode'), false,
+    'the unrelated unsafe-integer refusal policy remains unchanged');
+});
+
 // Independent fixed vectors for persisted authored inputs/oracles. These do not
 // use observed product rows, the cohort partition helper or generated expected wire.
 test('retained fixture transport preserves explicit undefined and literal tag-shaped values', () => {
@@ -213,20 +268,18 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
-  assert.equal(pin.sourceBaseline, 'ba3e6352203ebfbf809c8d712a9f83dac3505f67');
-  assert.equal(pin.registrationBaseline, '738aa1fae3f6b0ae3929fbeba5c5a41a801fd811');
-  // The three authored Graph/JOIN cohorts add 36 successes, 20 refusals and three execution failures.
-  assert.equal(pin.totalCases, 3050);
-  assert.deepEqual(pin.counts, {successes: 1927, refusals: 1080, executionFailures: 43});
+  assert.equal(pin.sourceBaseline, 'adaec575a13ab9dc4407cdeb10c131d8e4b13bf5');
+  assert.equal(pin.totalCases, 3241);
+  assert.deepEqual(pin.counts, {successes: 2052, refusals: 1142, executionFailures: 47});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 1874, executionFailures: 41, refusals: 1045}],
+    ['standard', {successes: 1999, executionFailures: 45, refusals: 1107}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
   ]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [24, 39]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [25, 40]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 43]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 44]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();

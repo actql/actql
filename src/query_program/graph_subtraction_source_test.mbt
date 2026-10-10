@@ -47,15 +47,16 @@ test "Graph subtraction enforces binary peers and retained Graph scope" {
       graph_union_prefix() + suffix,
       syntax_limits(),
     ).unwrap()
-    assert_true(
-      compile_query_script(
-        query,
-        { ..fixture_context(), inputs: [], },
-        construction_limits(),
-      )
-      is Err(UnsupportedGraph),
-      msg=suffix,
+    let actual = compile_query_script(
+      query,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
     )
+    if suffix.has_prefix("FROM g |> node_rows()") {
+      assert_true(actual is Err(InvalidQuery), msg=suffix)
+    } else {
+      assert_true(actual is Err(UnsupportedGraph), msg=suffix)
+    }
   }
   for
     suffix in [

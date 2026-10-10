@@ -145,7 +145,7 @@ export const windowScalarRefusals = [
     text: 'FROM records |> SELECT LAG(COUNT(*)) OVER (ORDER BY id) AS n'},
   {name: 'aggregate-operand-missing-frame', expectedCode: 'ClientProgramImplementationLimit',
     text: 'SELECT SUM(SUM(id)) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
-  {name: 'aggregate-operand-row-offset', expectedCode: 'ClientProgramImplementationLimit',
+  {name: 'aggregate-operand-row-offset', expectedCode: 'ClientProgramInvalidInput',
     text: 'SELECT amount, LAG(COUNT(*), amount) OVER (ORDER BY amount) AS n FROM records GROUP BY amount'},
 ].map(item => ({format: 'sql', ...item, name: 'window-scalar-refuse-' + item.name}));
 export const windowScalarExecutionFailures = [{name: 'window-scalar-demanded-error', format: 'sql',

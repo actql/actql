@@ -135,7 +135,7 @@ test "implicit object fields do not extend the ORDER ordinal column count" {
         },
         construction_limits(),
       )
-      is Err(UnsupportedOrdering),
+      is Err(InvalidQuery),
       msg=source,
     )
   }

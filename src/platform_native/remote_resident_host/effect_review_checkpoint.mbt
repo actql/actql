@@ -10,6 +10,7 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
   Encoding
   Keys(@effect.EffectPreviewRecoveryKeysIssue)
   Checkpoint(@checkpoint.CheckpointIssue)
+  RunBinding(@host.ClientEffectCheckpointBindingIssue)
 }
 
 ///|
@@ -18,6 +19,10 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
 /// a resume permit. The caller must retain both evidence holdings and persist
 /// these exact bytes before the existing Run owner can commit waiting.
 pub struct ResidentEffectReviewCheckpoint {
+  source_owner : ResidentSourceCompute
+  capture_owner : ResidentEffectCaptureCustody
+  preview_owner : ResidentEffectPreviewCustody
+  store_authority : String
   checkpoint : @checkpoint.SealedCheckpoint
   continuation_wire : String
   review_wire : String
@@ -256,8 +261,30 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     Ok(value) => value
     Err(issue) => return Err(Checkpoint(issue))
   }
+  // The same common Run/unit binding is consumed by the Cloud adapter.
+  // Genuine capture and paired Store custody still have their own owners.
+  match
+    @host.admit_client_effect_review_checkpoint_binding(
+      materials.allowed,
+      materials.run_definition,
+      sealed_checkpoint.wire,
+      limits,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(RunBinding(issue))
+  }
   if !self.resident_effect_inputs_current(inputs) {
     return Err(Unavailable)
   }
-  Ok({ checkpoint: sealed_checkpoint, continuation_wire, review_wire, })
+  Ok({
+    source_owner: self,
+    capture_owner: capture,
+    preview_owner: preview,
+    store_authority: @publication.effect_capture_holding_authority(
+      capture.binding,
+    ),
+    checkpoint: sealed_checkpoint,
+    continuation_wire,
+    review_wire,
+  })
 }

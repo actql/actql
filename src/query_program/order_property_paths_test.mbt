@@ -146,7 +146,7 @@ test "SQL ORDER property paths preserve output scope and common type checks" {
       order_property_context(),
       construction_limits(),
     ) {
-    Err(UnsupportedOrdering) => ()
+    Err(InvalidQuery) => ()
     _ => fail("DISTINCT removed the input object")
   }
   for

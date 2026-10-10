@@ -299,6 +299,12 @@ fn retained_compute_effect_materials(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   let limits = retained_compute_effect_limits()
+  let caller = @host.prepare_client_effect_request_identity(
+    prepared,
+    retained_compute_cid("c"),
+    "original-effect-caller",
+    @host.source_free_caller_input_intent_cid(),
+  ).unwrap()
   let wire = @host.issue_client_effect_run_materials(
     allowed,
     definition,
@@ -307,6 +313,7 @@ fn retained_compute_effect_materials(
     document,
     None,
     limits,
+    request=Some(caller),
   ).unwrap()
   let materials = @host.admit_client_effect_run_materials(
     wire,
@@ -325,12 +332,7 @@ fn retained_compute_effect_materials(
     },
     limits,
   ).unwrap()
-  let caller = @host.prepare_client_effect_request_identity(
-    materials.prepared,
-    retained_compute_cid("c"),
-    "original-effect-caller",
-    @host.source_free_caller_input_intent_cid(),
-  ).unwrap()
+  assert_eq(materials.request, Some(caller))
   (materials, caller)
 }
 
@@ -344,6 +346,7 @@ fn retained_compute_case(
   probe_proposals? : Bool = false,
   provider? : Bool = false,
   deny_provider? : Bool = false,
+  checkpoint_custody? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -997,6 +1000,7 @@ fn retained_compute_case(
         output,
         stop_custodies,
         provider=Some(facts),
+        checkpoint_custody~,
       )
       provider_artifact_bound.val = true
     }
@@ -1291,4 +1295,14 @@ test "Native retained consumer proposals reach actual Provider target reads with
 ///|
 test "Native retained consumer Provider observation refuses lost current permission without releasing custody" {
   retained_compute_case(false, effect=true, provider=true, deny_provider=true)
+}
+
+///|
+test "Native Checkpoint custody retains the original confirmed Effect review before waiting" {
+  retained_compute_case(
+    false,
+    effect=true,
+    provider=true,
+    checkpoint_custody=true,
+  )
 }

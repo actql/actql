@@ -27,6 +27,7 @@ import {
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
+  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "moonbitlang/core/argparse",
@@ -37,4 +38,5 @@ import {
 
 import {
   "actql/actql/physical_manifest" @output_manifest,
+  "moonbitlang/core/encoding/utf8",
 } for "wbtest"
