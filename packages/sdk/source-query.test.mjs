@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {mkdir, copyFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from '../../scripts/packed-client-packages.mjs';
 import {connect, getSubmissionInput, getSubmissionOutcome, explainSubmission, RequestHeld} from './index.mjs';
 
 const cid = x => `sha256:${x.repeat(64)}`;
@@ -241,14 +246,43 @@ test('an ignored rejected query produces one ordinary unhandled rejection', () =
   assert.equal(child.status, 0, child.stderr);
 });
 
-test('short-query public types preserve Result and low-level Execution roles', () => {
+test('short-query public types preserve Result and low-level Execution roles', async () => {
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const scratch = await createOwnedScratch({parent: tmpdir(),
+    prefix: 'actql-short-query-types-', label: 'packed short-query public types'});
+  const artifacts = join(scratch.path, 'artifacts');
+  const application = join(scratch.path, 'application');
+  await mkdir(artifacts);
+  await mkdir(application);
+  const environment = {...process.env, npm_config_cache: packedNpmCache(scratch.path)};
+  delete environment.NODE_PATH;
+  const run = (command, args, cwd, timeout = 30000) => {
+    const result = spawnSync(command, args, {cwd, env: environment,
+      encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
+    assert.equal(result.error, undefined, result.error?.message);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  };
+  for (const name of CLIENT_PACKAGES) {
+    await packedClientPackage({repository, name, destination: artifacts,
+      pack: () => run('npm', ['pack', '--json', '--pack-destination', artifacts],
+        join(repository, 'packages', name), 180000)});
+  }
+  run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit',
+    '--no-fund', '--no-save', ...CLIENT_PACKAGES.map(name =>
+      join(artifacts, `actql-${name}-0.0.0-development.tgz`))], application);
+  const fixture = join(application, 'source-query.typecheck.mts');
+  await copyFile(new URL('./source-query.typecheck.mts', import.meta.url), fixture);
   const result = spawnSync(process.execPath, [
     fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url)),
     '--strict', '--target', 'ES2022', '--module', 'NodeNext',
     '--moduleResolution', 'NodeNext', '--noEmit',
-    fileURLToPath(new URL('./source-query.typecheck.mts', import.meta.url)),
-  ], {encoding: 'utf8', timeout: 30000});
+    fixture,
+  ], {cwd: application, env: environment, encoding: 'utf8', timeout: 30000});
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.signal, null);
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  scratch.passed();
 });
 
 test('a throwing query-option accessor rejects without transport or reevaluation', async t => {

@@ -21,6 +21,7 @@ fn positional_whole_range_star(
       | Limit(_, _)
       | Where(_)
       | Distinct
+      | AssertUnique(_)
       | Set(_)
       | Drop(_)
       | Rename(_)
@@ -47,12 +48,14 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Limit(_, _)
       | Where(_)
       | Distinct
+      | AssertUnique(_)
       | Set(_)
       | Drop(_)
       | Rename(_)
       | Extend(_)
       | Alias(_)
       | Unpivot(_)
+      | Pivot(_)
       | UnnestSource(_, _, _)
       | Analytic(_)
       | AnalyticExpressions(_, _)

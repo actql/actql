@@ -19,9 +19,9 @@ dispatch-only client and nonresident agent refuse the new operation rather
 than executing it. This change does not install a fabricated review Owner or
 complete authenticated Cloud query delivery and reply acceptance.
 
-This PR depends on OSS #1337's current-query/reply API. Its final merge target
-is main; after #1337 reaches main, integrate main normally and retarget this
-PR. OSS #1340 separately supplies original checked member selection. Cloud
+OSS #1337's current-query/reply API is merged. This branch normally integrates
+main `eefdda1a85c4e033d6dcefcc774095949cc97262`; its final merge target and
+review base are main. OSS #1340 separately supplies original checked member selection. Cloud
 must formally adopt the merged source with matching packages and Native binary
 before reporting production acceptance.
 

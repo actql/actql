@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {ClientError, RequestHeld, connectInProcess, connect} from './index.mjs';
-import {submissionEpoch, originalSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, submissionAttempt} from './submission-fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = Object.freeze({namespaceId: 'local', authorityScopeCid: cid('a'),
@@ -38,7 +38,7 @@ async function fixture(t, submit = held) {
       calls.push({operation, body, signal});
       signal?.throwIfAborted();
       if (operation === 'connect') return profile;
-      if (operation === 'submit-intent') return submissionReply(submit, body);
+      if (operation === 'submit-intent') return submissionAttempt(body, submissionReply(submit, body));
       if (denial) throw denial;
       if (operation === 'lookup-request') return reply;
       if (operation === 'lookup-submission') return submissionReply(reply, body);

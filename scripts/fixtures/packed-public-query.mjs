@@ -83,7 +83,7 @@ import {selectAggregateExpressionSuccesses, selectAggregateExpressionRefusals, s
 import {havingAggregateSuccesses, havingAggregateRefusals, havingAggregateExecutionFailures}
   from './having-aggregate-source-input.mjs';
 import {setByNameListSuccesses, setByNameListRefusals} from './set-by-name-list-source-input.mjs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals} from './set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingExecutionFailures} from './set-corresponding-source-input.mjs';
 import {setJoinSuccesses, setJoinRefusals} from './set-join-source-input.mjs';
 import {setInnerByNameSuccesses, setInnerByNameRefusals} from './set-inner-by-name-source-input.mjs';
 import {shortRowsSuccesses, shortRowsRefusals} from './short-rows-source-input.mjs';
@@ -384,7 +384,7 @@ const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : characterLengthOnly ? {successes: characterLengthSuccesses, refusals: characterLengthRefusals}
   : selectAllOnly ? {successes: selectAllSuccesses, refusals: selectAllRefusals} : starExclusionOnly ? {successes: starExclusionSuccesses, refusals: starExclusionRefusals} : typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals} : analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses, refusals: analyticPartitionExpressionRefusals, executionFailures: analyticPartitionExpressionExecutionFailures} : graphSubtractionOnly ? {successes: graphSubtractionSourceSuccesses, refusals: graphSubtractionSourceRefusals, executionFailures: graphSubtractionSourceExecutionFailures} : graphGraftOnly ? {successes: graphGraftSourceSuccesses, refusals: graphGraftSourceRefusals, executionFailures: graphGraftSourceExecutionFailures} : graphUnionOnly ? {successes: graphUnionSourceSuccesses, refusals: graphUnionSourceRefusals, executionFailures: graphUnionSourceExecutionFailures} : statisticalAggregateOnly ? {successes: statisticalAggregateSuccesses, refusals: statisticalAggregateRefusals, executionFailures: statisticalAggregateExecutionFailures} : limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals} : havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses, refusals: havingObjectPropertyRefusals, executionFailures: havingObjectPropertyExecutionFailures}
   : analyticPartitionPropertyOnly ? {successes: analyticPartitionPropertySuccesses, refusals: analyticPartitionPropertyRefusals}
-  : setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}
+  : setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals], executionFailures: setCorrespondingExecutionFailures}
   : setInnerByNameOnly ? {successes: setInnerByNameSuccesses, refusals: setInnerByNameRefusals}
   : setByNameListOnly ? {successes: setByNameListSuccesses, refusals: setByNameListRefusals}
   : shortRowsOnly ? {successes: shortRowsSuccesses, refusals: shortRowsRefusals}
@@ -610,6 +610,7 @@ if (!scopeOnly) {
   scopeInputs.executionFailures.push(...aggregatePropertyOrderExecutionFailures);
   scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses);
   scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals);
+  scopeInputs.executionFailures.push(...setCorrespondingExecutionFailures);
   scopeInputs.successes.push(...setInnerByNameSuccesses);
   scopeInputs.refusals.push(...setInnerByNameRefusals);
   scopeInputs.successes.push(...setByNameListSuccesses);
