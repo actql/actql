@@ -290,3 +290,11 @@ pub fn client_effect_local_invocation_matches(
   )
   @checked.unit_definition_cid(program, unit) == Some(value.unit_definition_cid)
 }
+
+///|
+/// Read the already-issued Unit identity; this does not reconstruct custody.
+pub fn client_effect_local_invocation_unit_definition_cid(
+  value : ClientEffectLocalInvocation,
+) -> String {
+  value.unit_definition_cid
+}

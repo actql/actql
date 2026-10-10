@@ -2,6 +2,7 @@ supported_targets = "native"
 
 import {
   "actql/actql/checkpoint_runtime" @checkpoint,
+  "actql/actql/effect_application" @effect,
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "actql/actql/canonical_json" @canonical,
