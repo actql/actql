@@ -284,6 +284,8 @@ fn resident_provider_observe(
         resource_origin: scope.resource_origin,
         operation: scope.operation,
         path: "/services/data/v66.0/sobjects/ActQL_Test_Record__c/001000000000001",
+        verb: @http.Get,
+        max_request_bytes: 0,
         secret_path: retained_runtime_required_env(
           "ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT",
         ) +

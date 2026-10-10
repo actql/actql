@@ -1,9 +1,9 @@
 ///|
 fn native_retained_test_root() -> String? {
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT")
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT")
   if root is None &&
     @env.get_env_var("ACTQL_REQUIRE_NATIVE_RETAINED_TEST") == Some("1") {
-    abort("native retained task test requires a physical Store root")
+    abort("native retained task test requires a private physical file root")
   }
   root
 }
