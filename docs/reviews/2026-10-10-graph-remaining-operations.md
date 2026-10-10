@@ -382,3 +382,21 @@ The earlier checker-only Wasm/Native evidence is not promoted to these claims.
 Mean still lacks its checked finite-list execution connection; its exact
 weighted semantics must not be replaced by pairwise union means. All four
 operations remain delivery-incomplete, and CI remains disabled.
+
+### Current main source-caller integration
+
+Normal merge `9b2a7179fac22258afa00bb4654ae0749af0bc6b` adopts main
+`9a6b103d28364b2d1a7aab6e6eadcba79ee2495d`. The only conflicts are
+the authored public fixture inventory metadata and its count assertions.
+Main's positional/parenthesized query oracles and the 31 new Graft/Reach/
+Shortest occurrences are all retained. The combined 3409 registrations are
+3378 current-main cases plus 10 Graft, 9 Reach and 12 Shortest cases. Only
+registration metadata is recalculated; independent expected results are not
+generated from product output.
+
+At that clean SHA, explicit JS selections for the three public Graph source
+test files pass 6/6. The two affected Node fixture-registration files pass
+44/44. Guard receipt `run-7MyqMh` and focused receipts
+`focused-test-452IAp` / `focused-test-DrU51b` retain the source SHA and exact
+commands. No runtime preparation, packed/public Host acceptance, Wasm/Native
+rerun or CI is included in this integration check.
