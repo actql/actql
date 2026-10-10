@@ -70,6 +70,7 @@ fn client_issue_code(issue : @client.NativeRemoteClientIssue) -> String {
     @client.HttpStatus(value) => "http-status-" + value.to_string()
     @client.InvalidUtf8 => "invalid-utf8"
     @client.OutputReportRefused(reason) => "output-report-" + reason
+    @client.EffectCheckpointRefused(reason) => "effect-checkpoint-" + reason
     @client.NotAuthorized => "not-authorized"
     @client.OutcomeUnknownPersistence(_, primary) =>
       "outcome-unknown-" + client_issue_code(primary)

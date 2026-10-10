@@ -43,6 +43,44 @@ fn retained_holder_context_review(
   )
   assert_eq(source.usage().held_bytes, source_usage.held_bytes)
   assert_eq(consumer.usage().held_bytes, consumer_usage.held_bytes)
+  let invocation = producer
+    .invocation_for_capture(producer_journal, 65536, 4096, 64)
+    .unwrap()
+  // A failed Result capture owns only this connection's private pins/export.
+  // Prepare it before the independent successful context to respect the
+  // existing Named Result export pin ceiling; no limit is raised here.
+  let rejected_context = prepare(1, 0, 4, 10000).unwrap()
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_review_from_context(
+      holder,
+      journal,
+      rejected_context,
+      invocation.0,
+      [],
+      [],
+      retained_holder_review_policy(
+        holder,
+        rejected_context.facts(journal).unwrap().inputs,
+        invocation.1,
+      ),
+    )
+    is Err(
+      {
+        issue: Result(
+          Receipt(ReceiptIssuanceWrongContract("normalization_journal"))
+        ),
+        pending: None,
+      }
+    ),
+  )
+  assert_true(rejected_context.facts(journal) is None)
+  assert_true(rejected_context.close())
+  assert_eq(source.usage().held_bytes, source_usage.held_bytes)
+  assert_eq(consumer.usage().held_bytes, consumer_usage.held_bytes)
+  assert_eq(
+    consumer.usage().reserved_retention_bytes,
+    consumer_usage.reserved_retention_bytes,
+  )
   let context = prepare(1, 0, 4, 10000).unwrap()
   let facts = context.facts(journal).unwrap()
   let materials = consumer.effect_materials_for_capture().unwrap()
@@ -55,9 +93,6 @@ fn retained_holder_context_review(
     @host.client_effect_imported_relation_bodies(facts.imported).length(),
     1,
   )
-  let invocation = producer
-    .invocation_for_capture(producer_journal, 65536, 4096, 64)
-    .unwrap()
   assert_eq(
     @publication.publication_contract_identity(facts.producer.invocation),
     @publication.publication_contract_identity(invocation.1),
@@ -78,21 +113,6 @@ fn retained_holder_context_review(
     4096,
     64,
   ).unwrap()
-  let result = context
-    .capture_result(journal, normalization, [], [], 65536, 4096, 64)
-    .unwrap()
-  assert_eq(
-    result.output.result_schema_wire().unwrap(),
-    retained_effect_expected_schema(true),
-  )
-  assert_eq(result.output.row_count().unwrap(), 1)
-  let read = result.output.replay().unwrap()
-  let rows = StringBuilder()
-  while read.next().unwrap() is Some(chunk) {
-    rows.write_string(chunk)
-  }
-  rows.write_string(read.finish().unwrap())
-  assert_eq(rows.to_string(), retained_effect_expected_rows(true))
   retained_holder_provider_review(
     holder,
     journal,
@@ -107,11 +127,12 @@ fn retained_holder_context_review(
     facts.receiver,
     facts.imported,
     facts.root_index,
-    result,
     root_path,
     name,
+    context,
+    normalization,
+    () => prepare(1, 0, 4, 10000),
   )
-  result.output.cancel()
   assert_true(context.close())
   assert_true(context.close())
   assert_true(context.facts(journal) is None)

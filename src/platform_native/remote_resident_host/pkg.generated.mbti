@@ -361,6 +361,8 @@ type ResidentEffectReviewInputContext
 pub fn ResidentEffectReviewInputContext::capture_result(Self, @remote_journal.Journal, @run_publication.RunEvidenceValue, Array[String], Array[String], Int, Int, Int) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue]
 pub fn ResidentEffectReviewInputContext::close(Self) -> Bool
 pub fn ResidentEffectReviewInputContext::facts(Self, @remote_journal.Journal) -> ResidentEffectReviewInputFacts?
+pub fn ResidentEffectReviewInputContext::matches_holder(Self, ResidentRetainedConsumer, @remote_journal.Journal) -> Bool
+pub fn ResidentEffectReviewInputContext::retention_matches(Self, @run_publication.PublicationContract) -> Bool
 
 pub(all) struct ResidentEffectReviewInputFacts {
   materials : @run_publication_host.ClientEffectRunMaterials

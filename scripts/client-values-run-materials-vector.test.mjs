@@ -1004,8 +1004,15 @@ test('baseline preimages and changed normative pins independently determine the 
     preScalarBatch.program_identity), beforeMatchData.run_preimages);
   assert.equal(beforeMatchData.run_preimages.run.run_definition_cid,
     'sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf');
+  const beforePipePivot = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-pivot-grammar.json', 'utf8'));
+  const {grammar_manifest_cid: beforePivotCid, ...beforePivotBody} = beforePipePivot.grammar;
+  assert.equal(cid(beforePivotBody), beforePivotCid);
+  assert.deepEqual(vector(beforePivotCid, preScalarBatch.aoa_contract_cid, preScalarBatch.values_dependencies,
+    preScalarBatch.barrier_contract_manifest_cid, preScalarBatch.program_identity), beforePipePivot.run_preimages);
+  assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
+    'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:0aa9cc3f565d01640cc297e3fa81d6f3ac08f533105e12fb79e563cd33e10dd2');
+    'sha256:8c894c1e9c88f1c67e3f4d4a8d922c9692307dd541d916dd0c375d5a39d600ce');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1098,6 +1105,11 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(cid(requestIntent), "sha256:06c395317305287186205ece65cc63f0b650b4d1414ee3339882a28810560501");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
+  const beforeUnpivot = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-unpivot-grammar.json', 'utf8'));
+  assert.deepEqual(vector(beforeUnpivot.grammar.grammar_manifest_cid, preScalarBatch.aoa_contract_cid,
+    preScalarBatch.values_dependencies, preScalarBatch.barrier_contract_manifest_cid,
+    preScalarBatch.program_identity), beforeUnpivot.run_preimages);
+  assert.equal(beforeUnpivot.run_preimages.run.run_definition_cid, 'sha256:0af1a043d6f8054e2c51c595c929fea4442f08a259924f738e4c25dd2fe6f3a4');
   // Preserve the preceding complete grammar-bound Run. This AS correction
   // changes the compiler rules pin, never the Values Unit or Result Plan.
   const beforeAs = JSON.parse(readFileSync('scripts/fixtures/pre-value-table-as-grammar.json', 'utf8'));
@@ -1117,7 +1129,7 @@ test('current contract inputs independently determine the Values Run and consumi
     preScalarBatch.program_identity), beforeDouble.run_preimages);
   assert.equal(beforeDouble.run_preimages.run.run_definition_cid,
     'sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf');
-  assert.equal(current.run.run_definition_cid, "sha256:0aa9cc3f565d01640cc297e3fa81d6f3ac08f533105e12fb79e563cd33e10dd2");
+  assert.equal(current.run.run_definition_cid, "sha256:8c894c1e9c88f1c67e3f4d4a8d922c9692307dd541d916dd0c375d5a39d600ce");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
@@ -1773,4 +1785,33 @@ test('submitted ABS parent retains its original complete Values Run preimage', (
     dependencies, 'sha256:8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818',
     identity).run.run_definition_cid,
     'sha256:ba3a4a4c7d3a5cdb37d678ea03a7f1cb0d75fb4706fc4af96329f1860f1d0f66');
+});
+
+
+test('both UNPIVOT integration parents retain independently hashed Run preimages', () => {
+  for (const [name, expected] of [
+    ['submitted-pipe-unpivot-grammar', 'sha256:21c1a9c072fbea368aae263f5aea6a2fdddc5bf0b549cfbdaa7a2ebbc29f1b20'],
+    ['pre-integrated-pipe-unpivot-grammar', 'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f'],
+  ]) {
+    const frozen = JSON.parse(readFileSync(`scripts/fixtures/${name}.json`, 'utf8'));
+    const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+    assert.equal(cid(body), grammarCid);
+    assert.deepEqual(vector(grammarCid, preScalarBatch.aoa_contract_cid, preScalarBatch.values_dependencies,
+      preScalarBatch.barrier_contract_manifest_cid, preScalarBatch.program_identity), frozen.run_preimages);
+    assert.equal(frozen.run_preimages.run.run_definition_cid, expected);
+  }
+});
+
+test('both PIVOT integration parents retain independently hashed Run preimages', () => {
+  for (const [name, expected] of [
+    ['submitted-pipe-pivot-grammar', 'sha256:d848446acc09f209842f19258f701c4e9dc887701936e7165a8b371557bce227'],
+    ['pre-integrated-pipe-pivot-grammar', 'sha256:75109d09c4ab325eb4078950126e1f1458d0df05a90ae0e2bf4c4c8999c1efd8'],
+  ]) {
+    const frozen = JSON.parse(readFileSync(`scripts/fixtures/${name}.json`, 'utf8'));
+    const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+    assert.equal(cid(body), grammarCid);
+    assert.deepEqual(vector(grammarCid, preScalarBatch.aoa_contract_cid, preScalarBatch.values_dependencies,
+      preScalarBatch.barrier_contract_manifest_cid, preScalarBatch.program_identity), frozen.run_preimages);
+    assert.equal(frozen.run_preimages.run.run_definition_cid, expected);
+  }
 });

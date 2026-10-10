@@ -183,7 +183,14 @@ fn retained_effect_review_retention_store(
         store.close().unwrap() |> ignore
       }
     })
-    assert_true(retention.retry_cleanup() is Err(_))
+    match review_work {
+      Some(work) => assert_true(work.retry_cleanup() is Err(Retention(_)))
+      None => assert_true(retention.retry_cleanup() is Err(_))
+    }
+    // The adapter must retain its exact input context and public Result when
+    // any existing retirement owner is unconfirmed. No capacity is returned.
+    assert_eq(consumer.request_for_effect_review(inputs), materials.request)
+    assert_true(result.output.result_schema_wire() is Ok(_))
     assert_true(lost.val)
     assert_true(pending.val > baseline)
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)

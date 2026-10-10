@@ -104,10 +104,7 @@ fn append_resolved_range_expression(
   max_work : Int,
 ) -> @builder.Node raise Abort {
   let (lowered, slots, remaining) = bind_range_property_expression(
-    expression,
-    resolve,
-    value_name_exists,
-    max_work,
+    expression, resolve, value_name_exists, max_work,
   )
   match
     @expression.append_with_properties(
