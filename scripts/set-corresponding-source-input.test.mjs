@@ -26,9 +26,12 @@ test('positional duplicate controls retain both values, types and scope', () => 
   assert.deepEqual(scalar.columns.map(x => [x.name, x.contract.nullable]), [['a', false], ['b', true]]);
   assert.equal(scalar.sourceReadSessionCount, 0);
   const scoped = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-scoped-current-and-original');
+  assert.equal(scoped.format, 'aql-text');
   assert.deepEqual(scoped.expected, [{a: 0, b: 0}, {a: 1, b: 2}]);
   assert.ok(scoped.text.includes('original.x AS x, x AS `X`'));
-  assert.deepEqual(setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-typed-empty').expected, []);
+  const empty = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-typed-empty');
+  assert.equal(empty.format, 'aql-text');
+  assert.deepEqual(empty.expected, []);
   const shared = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-shared-source');
   assert.equal(shared.sourceReadSessionCount, 1);
   assert.deepEqual(shared.expected.slice(-2), [{a: 3, b: 30}, {a: 3, b: 30}]);

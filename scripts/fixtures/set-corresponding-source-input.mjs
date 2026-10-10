@@ -98,11 +98,11 @@ setCorrespondingSuccesses.push(
   positional('scoped-current-and-original', 'DATA n = SELECT 1 AS x; '
     + 'FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original '
     + '|> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b',
-    {expected: [{a: 0, b: 0}, {a: 1, b: 2}],
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 2}],
       columns: [{name: 'a', contract: number}, {name: 'b', contract: number}]}),
   positional('typed-empty', 'DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE '
     + 'UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; '
-    + 'FROM e |> ORDER BY a, b', {expected: []}),
+    + 'FROM e |> ORDER BY a, b', {format: 'aql-text', expected: []}),
   positional('shared-source', 'SELECT 0 AS a, 0 AS b UNION ALL '
     + 'SELECT id AS repeated, amount AS repeated FROM records WHERE id > 0 ORDER BY a, b NULLS LAST',
     {sourceRows, sourceReadSessionCount: 1,
