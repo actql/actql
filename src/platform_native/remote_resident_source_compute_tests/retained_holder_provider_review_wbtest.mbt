@@ -356,7 +356,7 @@ fn retained_holder_provider_review(
       max_depth: 64,
     })
     .unwrap()
-  assert_true(saved.1 is None)
+  assert_eq(saved.1, Some(@remote.RemoteEffectCheckpointReply::Accepted))
   assert_eq(
     @remote.dispatch_request_identity(
       @remote.remote_effect_checkpoint_report_dispatch(saved.0),
