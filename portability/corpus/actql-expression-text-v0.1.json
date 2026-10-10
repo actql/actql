@@ -213,7 +213,17 @@
     {"source":"round(negate(1))","tree":{"round":{"negate":{"literal":1}}}},
     {"source":"trunc(negate(1))","tree":{"trunc":{"negate":{"literal":1}}}},
     {"source":"round(NULL)","tree":{"round":{"literal":null}}},
-    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}}
+    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}},
+    {"source":"ltrim(s)","tree":{"ltrim":{"field":"s"}}},
+    {"source":"ltrim($p)","tree":{"ltrim":{"$param":"p"}}},
+    {"source":"ltrim(NULL)","tree":{"ltrim":{"literal":null}}},
+    {"source":"ltrim(' 😀é ')","tree":{"ltrim":{"literal":" 😀é "}}},
+    {"source":"ltrim('')","tree":{"ltrim":{"literal":""}}},
+    {"source":"rtrim(s)","tree":{"rtrim":{"field":"s"}}},
+    {"source":"rtrim($p)","tree":{"rtrim":{"$param":"p"}}},
+    {"source":"rtrim(NULL)","tree":{"rtrim":{"literal":null}}},
+    {"source":"rtrim(' 😀é ')","tree":{"rtrim":{"literal":" 😀é "}}},
+    {"source":"rtrim('')","tree":{"rtrim":{"literal":""}}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -264,6 +274,14 @@
     "round()",
     "trunc()",
     "round(x,y)",
-    "trunc(x,y)"
+    "trunc(x,y)",
+    "ltrim()",
+    "ltrim(s,' ')",
+    "ltrim(s,' ',s)",
+    "LTRIM(s)",
+    "rtrim()",
+    "rtrim(s,' ')",
+    "rtrim(s,' ',s)",
+    "RTRIM(s)"
   ]
 }
