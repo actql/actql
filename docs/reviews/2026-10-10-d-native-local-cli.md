@@ -457,7 +457,20 @@ grant, not CLI ingress, public current read authorization, or proof that both
 Host and execution processes stopped and recovered.
 
 Scoped Native caller typechecking and actual shared JS/Wasm/Native interface
-generation passed in `run-R7qz5p`. The new actual Native runtime checks are still
-pending: shared heavy-lock refusals `run-cthfSJ`, `run-96ShHR` and `run-QTTkUa`
-ran no tests. No release artifact, external installation, packed acceptance or
-Hosted CI success is asserted for this working-tree connection.
+generation passed in `run-R7qz5p`. Shared heavy-lock refusals `run-cthfSJ`,
+`run-96ShHR`, `run-QTTkUa` and `run-3kmlLV` ran no tests.
+
+At fixed SHA `e98e258a78241c6a62d29970fb77bff3159fb87c`, `run-PBaRvN`
+passed 34 Native Client Host and seven shared SQLite cases, then refused the
+actual Source Result delivery. The new fixture had passed contract parsing's
+depth 100 into the durable row-framing owner, whose admitted maximum is 64.
+The diagnostic-only follow-up `run-zA0Oe4` reported the typed
+`DurableRowFrameInvalidLimits` in its one failed Source case. The fixture now
+uses a separate finite delivery depth of 16; no Owner check, expected Result,
+row/byte limit or execution capacity was relaxed. Both failed logs and original
+fixture stores are retained. The typed delivery refusal is included in future
+test failure messages instead of an uninformative unwrap panic.
+
+Final clean-SHA runtime verification remains to be recorded separately. No
+release artifact, external installation, packed acceptance or Hosted CI success
+is asserted by this internal connection record.

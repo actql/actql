@@ -258,8 +258,8 @@ fn local_client_read_committed_result(
   let binding = @publication.project_durable_result_binding_read(
     resolved.binding,
   ).unwrap()
-  let delivery = store
-    .begin_result_delivery(
+  let delivery = match
+    store.begin_result_delivery(
       resolved.public_index_entry,
       resolved.result_manifest,
       grant,
@@ -276,10 +276,22 @@ fn local_client_read_committed_result(
       128,
       1000000,
       100000,
-      100,
+      16,
       128L,
-    )
-    .unwrap()
+    ) {
+    Ok(value) => value
+    Err(@store.DeliveryIssuance(issue)) =>
+      fail("original Result delivery binding: " + @debug.to_string(issue))
+    Err(@store.Delivery(issue)) =>
+      fail("original Result serializer: " + @debug.to_string(issue))
+    Err(@store.RowFrame(issue)) =>
+      fail("original Result row framing: " + @debug.to_string(issue))
+    Err(@store.DeliveryLimit) =>
+      fail("original Result delivery admission limit")
+    Err(@store.StateCollision) =>
+      fail("original Result delivery custody collision")
+    Err(_) => fail("original Result delivery physical owner refusal")
+  }
   let bytes : Array[Byte] = []
   while true {
     let chunk = delivery.next(3, "2026-10-10T00:00:06.000Z").unwrap()
