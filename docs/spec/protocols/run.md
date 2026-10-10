@@ -12,6 +12,7 @@ normative_dependencies: [actql.execution, actql.protocol.contracts, actql.protoc
 <!-- normative-import: actql.execution actql/0.1 -->
 <!-- normative-import: actql.protocol.contracts actql/0.1 -->
 <!-- normative-import: actql.protocol.artifacts actql/0.1 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_resume_delivery sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5 -->
 
 This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, apply-receipt, reconciliation-receipt. It does not define other owners' wire protocols or a particular Host implementation. Cross-owner links outside the declared dependencies are informative navigation to protocol bindings or conformance evidence; they do not import those documents' requirements. Narrow machine contracts remain authoritative for their explicitly referenced values and envelopes.
 

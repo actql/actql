@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "bb3f3420458049d2f57ffdc9178fd9f5a09936df3689d051eb75ce38886d4b85",
+  "grammar_sha256": "67418602980bb27d554de713c792af7c6fb5ee76ba01f6c42b076142cdb7ec5a",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2341,6 +2341,30 @@
               ],
               "properties": {
                 "abs": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rtrim"
+              ],
+              "properties": {
+                "rtrim": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ltrim"
+              ],
+              "properties": {
+                "ltrim": {
                   "$ref": "#/$defs/expression"
                 }
               }
@@ -7759,6 +7783,38 @@
               "properties": {
                 "op": {
                   "const": "abs"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "rtrim"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "ltrim"
                 },
                 "body": {
                   "$ref": "#/$defs/expression"
@@ -19129,6 +19185,30 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "rtrim"
+              ],
+              "properties": {
+                "rtrim": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ltrim"
+              ],
+              "properties": {
+                "ltrim": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "trunc"
               ],
               "properties": {
@@ -23641,6 +23721,38 @@
               "properties": {
                 "op": {
                   "const": "abs"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "rtrim"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "ltrim"
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
@@ -31041,6 +31153,30 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "rtrim"
+              ],
+              "properties": {
+                "rtrim": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ltrim"
+              ],
+              "properties": {
+                "ltrim": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "trunc"
               ],
               "properties": {
@@ -35568,6 +35704,38 @@
               ],
               "properties": {
                 "op": {
+                  "const": "rtrim"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "ltrim"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "trunc"
                 },
                 "body": {
@@ -39448,6 +39616,18 @@
       "value": "Remove the longest leading and trailing sequences of Unicode 16.0 White_Space code points: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Preserve the exact intervening Unicode scalar sequence without normalization, case folding or line-break conversion. Empty and all-whitespace strings produce the empty string. U+FEFF and U+200B are not White_Space and remain unchanged. NULL produces NULL.",
       "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.",
       "identity": "The existing closed source form is {trim: expression}; the closed machine node is {op: trim, body: expression_node}. Retain the TRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning, including the historical ASCII-only rule."
+    },
+    "ltrim": {
+      "signature": "Exactly one string operand; the result is string with the operand nullability. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload, optional character set or explicit collation is admitted.",
+      "value": "Remove only the longest leading sequence of Unicode 16.0 White_Space code points: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Preserve the exact remaining Unicode scalar sequence, including trailing whitespace and interior whitespace, without normalization, case folding or line-break conversion. Empty and all-whitespace strings produce the empty string. U+FEFF, U+200B and U+180E are not White_Space and remain unchanged. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.",
+      "identity": "The closed source form is {ltrim: expression}; the closed machine node is {op: ltrim, body: expression_node}. Retain the LTRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning and do not acquire this operation."
+    },
+    "rtrim": {
+      "signature": "Exactly one string operand; the result is string with the operand nullability. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload, optional character set or explicit collation is admitted.",
+      "value": "Remove only the longest trailing sequence of Unicode 16.0 White_Space code points: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Preserve the exact remaining Unicode scalar sequence, including leading whitespace and interior whitespace, without normalization, case folding or line-break conversion. Empty and all-whitespace strings produce the empty string. U+FEFF, U+200B and U+180E are not White_Space and remain unchanged. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.",
+      "identity": "The closed source form is {rtrim: expression}; the closed machine node is {op: rtrim, body: expression_node}. Retain the RTRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning and do not acquire this operation."
     }
   },
   "regex_ast_contract": {

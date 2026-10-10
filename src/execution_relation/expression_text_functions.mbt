@@ -17,7 +17,14 @@ priv enum TextFunctionKind {
   TextUpper
   TextLower
   TextTrim
+  TextLTrim
+  TextRTrim
 } derive(Eq)
+
+///|
+fn is_trim_text_function(kind : TextFunctionKind) -> Bool {
+  kind == TextTrim || kind == TextLTrim || kind == TextRTrim
+}
 
 ///|
 priv struct TextFunctionState {
@@ -146,9 +153,17 @@ fn start_text_function(
     preceding_cased: false,
     probing_sigma: false,
     probe_position: 0,
-    trim_scanning: kind == TextTrim,
-    trim_start: input.length(),
-    trim_end: input.length(),
+    trim_scanning: is_trim_text_function(kind),
+    trim_start: if kind == TextRTrim {
+      0
+    } else {
+      input.length()
+    },
+    trim_end: if kind == TextRTrim {
+      0
+    } else {
+      input.length()
+    },
   })
 }
 
@@ -253,11 +268,15 @@ fn advance_text_function(
       is Some((scalar, next, _, _)) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
+    // The opposite boundary stays at the original edge for a one-sided trim.
+    // A full cooperative scan validates every scalar without allocating a copy.
     if !trim_white_space(scalar) {
-      if state.trim_start == state.input.length() {
+      if state.kind != TextRTrim && state.trim_start == state.input.length() {
         state.trim_start = state.position
       }
-      state.trim_end = next
+      if state.kind != TextLTrim {
+        state.trim_end = next
+      }
     }
     state.position = next
     return Ok(None)
@@ -334,7 +353,7 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  let end = if state.kind == TextTrim {
+  let end = if is_trim_text_function(state.kind) {
     state.trim_end
   } else {
     state.input.length()
@@ -364,7 +383,11 @@ fn advance_text_function(
     state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
-    state.position = if state.kind == TextTrim { state.trim_start } else { 0 }
+    state.position = if is_trim_text_function(state.kind) {
+      state.trim_start
+    } else {
+      0
+    }
     state.matched = 0
     state.preceding_cased = false
     state.probing_sigma = false
@@ -412,7 +435,7 @@ fn advance_text_function(
     }
     return Ok(None)
   }
-  if state.kind == TextTrim {
+  if is_trim_text_function(state.kind) {
     state.position = match
       append_text_function_scalar(state, state.input, state.position) {
       Ok(next) => next

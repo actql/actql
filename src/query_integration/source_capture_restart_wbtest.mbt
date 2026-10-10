@@ -15,6 +15,7 @@ fn[T] source_restart_ok(
           Content(MetadataLimit) => "source content metadata limit"
           Content(_) => "source content admission failure"
           Capture(_) => "source capture port failure"
+          Original(_) => "source original capture failure"
           Readmission(_) => "source retained readmission failure"
           Import(_) => "source representation import failure"
           Export(_) => "source export failure"

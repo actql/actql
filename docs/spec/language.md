@@ -1821,7 +1821,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
 - `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `sqrt`, `abs`, `sign`, `round`, `trunc`, and `floor`;
 - the authoring-only string `template` form;
-- `lower`, `upper`, `trim`, and literal `replace`;
+- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
 - explicit `to_number`, `to_string`, `to_boolean`, and `to_timestamp`;
 - `to_decimal`, `try_decimal`, `quantize`, and `decimal_divide`; and
@@ -1951,6 +1951,7 @@ atomic, not null, except where the named function explicitly specifies it.
 | `len` | S → N | Unicode scalar count | RelA |
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S → S | Unary Unicode 16.0 White_Space at both ends; exact interior and operand nullability preserved | RelA |
+| `ltrim`, `rtrim` | S → S | Unary Unicode 16.0 White_Space at the leading or trailing end respectively; exact remaining scalars and operand nullability preserved | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
 | `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
@@ -2032,8 +2033,27 @@ demand, first-failure precedence, cancellation and logical charges remain in
 force. Physical scanning, output sizing and construction remain bounded and
 cancellable. The authored TRIM node and its child remain in canonical lowering,
 even for an unchanged value. This selects the unary GoogleSQL STRING behavior;
-the optional character set, BYTES, explicit collation, LTRIM and RTRIM are
-outside this operation's admitted signature.
+the optional character set, BYTES and explicit collation are outside this
+operation's admitted signature.
+
+<!-- requirement-block: scalar-expressions.side-trim scalar-expressions.side-trim-preservation scalar-expressions.side-trim-budgets -->
+`ltrim(value)` and `rtrim(value)` MUST each take exactly one string and remove
+only the longest leading or trailing sequence, respectively, of the same pinned
+Unicode 16.0 `White_Space` set as `trim`. They MUST preserve the exact remaining
+Unicode scalar sequence, including whitespace at the opposite end, interior
+whitespace, combining sequences and line breaks. U+FEFF, U+200B and U+180E are
+not members of this set. No normalization, case folding, line-break conversion
+or host-dependent whitespace rule is applied. Empty and all-whitespace inputs
+produce the empty string; null produces null. Operand nullability is preserved,
+and untyped NULL takes the unique string signature. Each sole child evaluates
+exactly once when demanded; child failures, enclosing lazy demand, first-failure
+precedence, cancellation and existing logical charges remain in force. Physical
+scanning, exact output sizing and construction MUST remain bounded and
+cancellable. Each authored node and its child remain in canonical lowering even
+when the value is unchanged. The closed common source forms are
+`{ltrim: expression}` and `{rtrim: expression}`. Optional character sets, BYTES,
+implicit conversions and explicit collation are excluded. Earlier expression
+and scalar-law CIDs retain their previous meaning.
 
 <!-- requirement-block: scalar-expressions.strpos -->
 `strpos(value, subvalue)` MUST take exactly two strings and return the first exact
@@ -2132,7 +2152,7 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `to_number(x)`, `to_string(x)`, `to_boolean(x)`, `to_timestamp(x)` | explicit conversion |
 | `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `strpos(value, subvalue)`, `safe_div(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
 | `concat(x, ...)`, `concat_strict(x, ...)`, `coalesce(x, ...)`, `if(condition, then_value, else_value)` | corresponding scalar function or conditional tree |
@@ -10133,7 +10153,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:b97b038e38e55dfdf27bac0c7b4f97f9a41b9c0d77082dc41b9f28babd9addef
+../../spec/contracts/actql-aoa.json# sha256:76fd1a5e0a7528271f1d72135dd7585de6c6a8399cc0e87d8537e7cd5ffd5354
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2
@@ -10142,13 +10162,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:c25d8196e4f1078d7738ed48ae1fd28aa12990d047d84701482656fe40a5fa96
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5b8d50d30191fa09eb81ae9f41b5b697dc53d8a0332ac261d964af3b68604eac
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:0d8577623059b00e50a97801cee87821d60fe0e73bce0828f7ebc9197dc1a06d
+../../spec/contracts/actql-expressions.json# sha256:c4fbe92195097a77090bbb10e8eb6544c3a14b533c88595649c954cf71067c41
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:c672d7e160a5274024eecd2c03a41ceeadd2ec51a1b63d9758234c2db3b835d6
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:ba5960c8f6ee53f7dab3dffa96ee40d7248d87b97e5b5a9fc083557e5411c1ac
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:fbadee9f54819744ef09ba91a5b8743ccaa10edb7d1242ab680a05df67a84d87
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:0ad0f5a9a855eef222a192b20683d043b2ad3ee6d78dc0091b44e4ad346de3c3
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:4c36832742b903fda272365ef189d57c209cdc73973a9e022827d39c3f3c19a2
+../../spec/contracts/actql-expressions.json#/laws sha256:ded219a559732ee2ada1ea0d4c3953fb09ce194f1ba51e6b6c1dbf81de50b4cb
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:5e1a04672fad57a8184ee0e1ded72f409346079da7c713540a89fa73eb0be873
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:f138357baa8fba1070ddead91b336a8765cc1d51bb97143ccf197882ec08b45f
 ```
 
 <!-- stage-contract-pins:start -->

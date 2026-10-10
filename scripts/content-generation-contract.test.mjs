@@ -14,7 +14,7 @@ test('Content migration changes the ordered derive pin only through its exact co
     : Array.isArray(value) ? `[${value.map(canonical).join(',')}]`
       : `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
   const hash = value => createHash('sha256').update(canonical(value)).digest('hex');
-  assert.equal(hash(body), "cfeea75627dbb1de44c93e57790dc82aa6e884fc078d1d4dcb25282605f1de21");
+  assert.equal(hash(body), "6670d022d636287aff383c6a500cd60f2545749f0853515f4d5781b24ac24066");
   const before = structuredClone(body);
   const originalDependencies = {
     expression_contract: 'bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d',
