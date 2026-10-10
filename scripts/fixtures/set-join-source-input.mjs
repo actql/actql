@@ -52,3 +52,48 @@ export const setJoinRefusals = [
   {name: 'unsupported-join-key', expectedCode: 'ClientProgramImplementationLimit',
     text: left.replace('l.id = r.id', 'l.id > r.id') + ' UNION ALL ' + right + order},
 ].map(item => ({format: 'sql', expectedCode: 'ClientProgramInvalidInput', ...item, name: 'set-join-refuse-' + item.name}));
+
+// Positional right operands do not need public aliases for their expressions.
+// JOIN id=2 multiplies to four rows; id sums become four, and nullable amount
+// plus zero must remain NULL for id=3 rather than become numeric zero.
+const anonymousRight = 'SELECT l.id + r.id, r.amount + 0 FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 WHERE l.id >= 2';
+const anonymousExpected = [{id: 1, amount: 10}, {id: 4, amount: 20},
+  {id: 4, amount: 20}, {id: 4, amount: 20}, {id: 4, amount: 20}, {id: 6, amount: null}];
+const anonymousProgram = {version: 'actql/0.1', id: 'fixture.set_join_anonymous',
+  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{from: 'remote', filter: {literal: true}},
+      {select: ['amount', 'id'], as: 'captured'}],
+    results: {source: {from: 'captured', fields: ['amount', 'id']}}},
+  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
+    steps: [{from: 'records', filter: {eq: [{field: 'id'}, {literal: 1}]}},
+      {join: {with: 'records', kind: 'inner', on: [{left: 'id', right: 'id'}],
+        max_output_rows: 10, select: {id: 'left.id', amount: 'right.amount'}}, as: 'left'},
+      {from: 'records', filter: {gte: [{field: 'id'}, {literal: 2}]}},
+      {join: {with: 'records', kind: 'inner', on: [{left: 'id', right: 'id'}],
+        max_output_rows: 10, select: {left_id: 'left.id', right_id: 'right.id', amount: 'right.amount'}}},
+      {derive: {id: {add: [{field: 'left_id'}, {field: 'right_id'}]},
+        next_amount: {add: [{field: 'amount'}, {literal: 0}]}}},
+      {select: ['id', {amount: 'next_amount'}], as: 'sums'},
+      {from: 'left', append: {with: 'sums'}},
+      {sort: [{field: 'amount', dir: 'asc', nulls: 'last'}, {field: 'id', dir: 'asc', nulls: 'first'}]},
+      {select: ['id', 'amount'], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['id', 'amount']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+setJoinSuccesses.push(
+  success('anonymous-json-control', JSON.stringify(anonymousProgram), {format: 'json', expected: anonymousExpected}),
+  success('anonymous-named-control', left + ' UNION ALL '
+    + anonymousRight.replace('l.id + r.id, r.amount + 0', 'l.id + r.id AS id, r.amount + 0 AS amount') + order,
+    {expected: anonymousExpected}),
+  success('anonymous-positional', left + ' UNION ALL ' + anonymousRight + order, {expected: anonymousExpected}),
+  success('anonymous-cte-output', 'WITH combined AS (' + left + ' UNION ALL ' + anonymousRight
+    + ') SELECT id, amount FROM combined' + order, {expected: anonymousExpected}),
+  success('anonymous-typed-empty', left + ' UNION ALL ' + anonymousRight + order, {sourceRows: [], expected: []}),
+);
+setJoinRefusals.push(
+  {name: 'set-join-refuse-anonymous-by-name', format: 'sql',
+    text: left + ' UNION ALL BY NAME ' + anonymousRight + order,
+    expectedCode: 'ClientProgramImplementationLimit'},
+  {name: 'set-join-refuse-anonymous-private-field', format: 'sql',
+    text: left + ' UNION ALL ' + anonymousRight + ' ORDER BY aql_chain_column_2',
+    expectedCode: 'ClientProgramInvalidInput'},
+);

@@ -61,6 +61,7 @@ pub(all) enum BinaryOperator {
   Multiply
   Divide
   Modulo
+  Strpos
   StartsWith
   EndsWith
   Equal
@@ -211,6 +212,7 @@ fn expression_tag(
     | "multiply"
     | "divide"
     | "modulo"
+    | "strpos"
     | "starts_with"
     | "ends_with"
     | "eq"
@@ -855,6 +857,7 @@ fn lower_typed_expression_measured(
         "multiply" => Binary(Multiply, args[0], args[1])
         "divide" => Binary(Divide, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
+        "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])

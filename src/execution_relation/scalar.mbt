@@ -277,9 +277,9 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
-    // Text predicates run through the retained, bounded comparison cursor.
+    // Text operations run through their retained, bounded cursor.
     // This scalar fallback handles only its NULL and invalid-domain cases.
-    StartsWith | EndsWith =>
+    Strpos | StartsWith | EndsWith =>
       if left is Null || right is Null {
         Ok(Null)
       } else {
@@ -335,6 +335,7 @@ pub fn binary(
         | NullIf
         | In
         | NotIn
+        | Strpos
         | StartsWith
         | EndsWith => Err(InvalidOperand)
       }
@@ -395,6 +396,7 @@ fn binary_comparison_result(
     | Modulo
     | In
     | NotIn
+    | Strpos
     | StartsWith
     | EndsWith => Err(InvalidOperand)
   }
