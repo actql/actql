@@ -43,6 +43,18 @@ export const googleScalarLaws = {
     evaluation: 'Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.',
     identity: 'The existing closed source form is {trim: expression}; the closed machine node is {op: trim, body: expression_node}. Retain the TRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning, including the historical ASCII-only rule.',
   },
+  ltrim: {
+    signature: "Exactly one string operand; the result is string with the operand nullability. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload, optional character set or explicit collation is admitted.",
+    value: "Remove only the longest leading sequence of Unicode 16.0 White_Space code points: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Preserve the exact remaining Unicode scalar sequence, including trailing whitespace and interior whitespace, without normalization, case folding or line-break conversion. Empty and all-whitespace strings produce the empty string. U+FEFF, U+200B and U+180E are not White_Space and remain unchanged. NULL produces NULL.",
+    evaluation: "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.",
+    identity: "The closed source form is {ltrim: expression}; the closed machine node is {op: ltrim, body: expression_node}. Retain the LTRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning and do not acquire this operation.",
+  },
+  rtrim: {
+    signature: "Exactly one string operand; the result is string with the operand nullability. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload, optional character set or explicit collation is admitted.",
+    value: "Remove only the longest trailing sequence of Unicode 16.0 White_Space code points: U+0009..U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F, U+205F and U+3000. Preserve the exact remaining Unicode scalar sequence, including leading whitespace and interior whitespace, without normalization, case folding or line-break conversion. Empty and all-whitespace strings produce the empty string. U+FEFF, U+200B and U+180E are not White_Space and remain unchanged. NULL produces NULL.",
+    evaluation: "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Trimming preserves logical operand charges; physical scanning, exact output sizing and construction remain bounded and cancellable.",
+    identity: "The closed source form is {rtrim: expression}; the closed machine node is {op: rtrim, body: expression_node}. Retain the RTRIM node and its child in canonical lowering, even when the value is unchanged. Earlier expression and scalar-law contract CIDs retain their earlier meaning and do not acquire this operation.",
+  },
   sign: {
     signature: 'Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload or non-finite value is admitted.',
     value: 'Return exactly -1 for a negative finite number, canonical positive zero for either zero sign, and exactly 1 for a positive finite number. This includes subnormal and largest finite magnitudes. NULL produces NULL.',
@@ -50,7 +62,7 @@ export const googleScalarLaws = {
     identity: 'The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
 };
-const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', round: 'abs', trunc: 'abs'};
+const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', ltrim: 'abs', rtrim: 'abs', round: 'abs', trunc: 'abs'};
 
 // Unicode 16.0 PropList.txt White_Space, not host-language trim or regex \s.
 export const trimWhiteSpaceCodePoints = [
@@ -60,6 +72,7 @@ export const trimWhiteSpaceCodePoints = [
 export function updateTrimScalarLaw(scalar, write = false) {
   assert.equal(scalar.unicode.data_version, '16.0', 'TRIM Unicode data version');
   const expected = {trim: 'unicode-white-space',
+    ltrim: 'unicode-white-space-leading', rtrim: 'unicode-white-space-trailing',
     trim_white_space_code_points: trimWhiteSpaceCodePoints};
   if (write) Object.assign(scalar.unicode, structuredClone(expected));
   else for (const [key, value] of Object.entries(expected)) {
@@ -142,6 +155,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
   updateTrimScalarLaw(scalar);
   assert.equal(aoa.rela_scalar_law_manifest_cid, machineCid(scalar), 'TRIM scalar manifest pin');
-  console.log('GoogleSQL STRING boundary/search/TRIM and finite-number SIGN/ROUND/TRUNC contracts verified:',
+  console.log('GoogleSQL STRING boundary/search/TRIM/LTRIM/RTRIM and finite-number SIGN/ROUND/TRUNC contracts verified:',
     updateGoogleScalarContracts(...bodies, grammar));
 }

@@ -89,7 +89,9 @@
       "202F",
       "205F",
       "3000"
-    ]
+    ],
+    "ltrim": "unicode-white-space-leading",
+    "rtrim": "unicode-white-space-trailing"
   },
   "conversion_truth_table": {
     "to_number": {

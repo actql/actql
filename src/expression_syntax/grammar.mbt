@@ -64,6 +64,8 @@ fn expression_role(
     | "lower"
     | "upper"
     | "trim"
+    | "ltrim"
+    | "rtrim"
     | "nfkc"
     | "case_fold" => Expr
     "add"

@@ -49,6 +49,8 @@ pub(all) enum UnaryOperator {
   Upper
   Lower
   Trim
+  LTrim
+  RTrim
   Floor
   Sqrt
   Abs
@@ -201,6 +203,8 @@ fn expression_tag(
     | "upper"
     | "lower"
     | "trim"
+    | "ltrim"
+    | "rtrim"
     | "floor"
     | "sqrt"
     | "abs"
@@ -278,6 +282,8 @@ fn expression_children(
     | "upper"
     | "lower"
     | "trim"
+    | "ltrim"
+    | "rtrim"
     | "floor"
     | "sqrt"
     | "abs"
@@ -850,6 +856,8 @@ fn lower_typed_expression_measured(
         "upper" => Unary(Upper, args[0])
         "lower" => Unary(Lower, args[0])
         "trim" => Unary(Trim, args[0])
+        "ltrim" => Unary(LTrim, args[0])
+        "rtrim" => Unary(RTrim, args[0])
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
         "abs" => Unary(Abs, args[0])

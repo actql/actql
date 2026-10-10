@@ -1016,7 +1016,9 @@ fn advance_expression_frame_impl(
             if op == @lower.Length ||
               op == @lower.Upper ||
               op == @lower.Lower ||
-              op == @lower.Trim {
+              op == @lower.Trim ||
+              op == @lower.LTrim ||
+              op == @lower.RTrim {
               let state = match
                 start_text_function(
                   expr,
@@ -1028,6 +1030,10 @@ fn advance_expression_frame_impl(
                     TextUpper
                   } else if op == @lower.Lower {
                     TextLower
+                  } else if op == @lower.LTrim {
+                    TextLTrim
+                  } else if op == @lower.RTrim {
+                    TextRTrim
                   } else {
                     TextTrim
                   },
