@@ -2411,9 +2411,7 @@ export function inspectTaskProgress(prepared, compilation, admission, definition
     admission, definition, authority, durableWires));
 }
 
-/** Prepare a checked task claim. The Host must commit it before any send. */
-export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
-  authority, durableWires, requested, retained, claim) {
+function validateTaskPhysicalStartClaim(claim) {
   const keys = ['taskKey', 'dispatchCid', 'definitionCid', 'reserved',
     'unstarted', 'authorized', 'cancelled', 'failed'];
   if (claim === null || typeof claim !== 'object' || Array.isArray(claim) ||
@@ -2423,6 +2421,12 @@ export function prepareTaskPhysicalStart(prepared, compilation, admission, defin
         .some(value => typeof value !== 'boolean')) {
     throw new TypeError('InvalidRunHostTaskStart');
   }
+}
+
+/** Prepare a checked task claim. The Host must commit it before any send. */
+export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
+  authority, durableWires, requested, retained, claim) {
+  validateTaskPhysicalStartClaim(claim);
   const progress = admittedTaskProgress(prepared, compilation, admission, definition,
     authority, durableWires);
   return checked(owner.clientValuesHostPrepareRemoteTaskPhysicalStart(
@@ -2430,6 +2434,46 @@ export function prepareTaskPhysicalStart(prepared, compilation, admission, defin
     requireHandle(requests, retained), claim.definitionCid, claim.reserved,
     claim.unstarted, claim.authorized, claim.cancelled, claim.failed),
   'RunHostTaskStartRejected');
+}
+
+function admittedEffectTaskProgress(allowed, definition, authority, durableWires) {
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
+      durableWires.some(wire => typeof wire !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskProgress');
+  }
+  return checked(owner.clientValuesHostInspectEffectTaskProgress(value,
+    requireHandle(definitions, definition), authority, durableWires),
+  'RunHostEffectTaskProgressRejected');
+}
+
+/** Computation/output facts only: this is not Effect or Run completion. */
+export function inspectEffectTaskProgress(allowed, definition, authority, durableWires) {
+  const value = admittedEffectTaskProgress(allowed, definition, authority, durableWires);
+  const scopes = owner.clientValuesHostEffectTaskProgressScopes(value);
+  const next = owner.clientValuesHostEffectTaskProgressNext(value);
+  return Object.freeze({
+    nextTask: next < 0 ? undefined : next,
+    computationComplete: owner.clientValuesHostEffectTaskProgressComputationComplete(value),
+    taskCleanupComplete: owner.clientValuesHostEffectTaskProgressTaskCleanupComplete(value),
+    resultTasks: Object.freeze(owner.clientValuesHostEffectTaskProgressResultTasks(value)),
+    tasks: Object.freeze(owner.clientValuesHostEffectTaskProgressFields(value).map((row, index) =>
+      Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
+        cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
+        executionScope: Object.freeze(scopes[index])}))),
+  });
+}
+
+/** Prepare the existing saved task claim; no Effect approval or physical apply. */
+export function prepareEffectTaskPhysicalStart(allowed, definition, authority, durableWires,
+  requested, retained, claim) {
+  validateTaskPhysicalStartClaim(claim);
+  const value = admittedEffectTaskProgress(allowed, definition, authority, durableWires);
+  return checked(owner.clientValuesHostPrepareEffectTaskPhysicalStart(value,
+    claim.taskKey, claim.dispatchCid, requireHandle(requests, requested),
+    requireHandle(requests, retained), claim.definitionCid, claim.reserved,
+    claim.unstarted, claim.authorized, claim.cancelled, claim.failed),
+  'RunHostEffectTaskStartRejected');
 }
 
 /** Project the unpublished whole Run without committing, starting or releasing it. */

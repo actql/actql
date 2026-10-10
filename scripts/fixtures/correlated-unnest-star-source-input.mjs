@@ -81,9 +81,9 @@ export const correlatedUnnestStarSuccesses = [
   object('empty-parents', objectSql, {parameters: {parents: []}, expected: []}),
   object('empty-arrays', objectSql,
     {parameters: {parents: [{id: 1, items: []}, {id: 2, items: null}]}, expected: []}),
-  object('immutable-range', objectPipe.replace('|> CROSS', '|> SET items = [9] |> CROSS'),
+  object('immutable-range', objectPipe.replace('|> CROSS', '|> SELECT id, items |> AS p |> SET items = [9] |> CROSS'),
     {format: 'aql-text'}),
-  object('current-column', 'FROM UNNEST(@parents) p |> SET items = [9] '
+  object('current-column', 'FROM UNNEST(@parents) p |> SELECT id, items |> AS p |> SET items = [9] '
     + '|> CROSS JOIN UNNEST(items) e WITH OFFSET position |> SELECT * |> ORDER BY id, position', {
     format: 'aql-text', columns: [{name: 'id', contract: number},
       {name: 'items', contract: {type: 'array', nullable: false, max_items: 1, items: number}},
