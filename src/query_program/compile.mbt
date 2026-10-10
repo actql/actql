@@ -1992,6 +1992,14 @@ fn compile_steps(
           positional_destination_names.push(clause.value_column)
           positional_destination_names.push(clause.name_column)
         }
+        Some(Pivot(clause)) =>
+          for entry in clause.values {
+            let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
+            let name = clause.prefix
+              .map(prefix => prefix.value + "_" + suffix)
+              .unwrap_or(suffix)
+            positional_destination_names.push({ value: name, quoted: false, })
+          }
         Some(UnnestSource(_, element, offset)) => {
           positional_destination_names.push(element)
           if offset is Some(name) {
@@ -2277,6 +2285,8 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is AssertUnique(_) ||
+          operation is Pivot(_) ||
           operation is UnnestSource(_, _, _) ||
           operation is Set(_) ||
           operation is Extend(_) ||
@@ -2355,8 +2365,12 @@ fn compile_steps(
           }
         }
       }
-      for expression in expressions {
-        let references = join_reference_paths(expression)
+      // Expressions and assertion key paths share the same authored scope.
+      // This validates references only; the assertion's type/key checks and
+      // execution remain with its existing lowering and common Owner.
+      let check_references = fn(
+        references : Array[Array[@query.NamePart]],
+      ) -> Unit raise Abort {
         reject_duplicate_projection_references(
           remaining_projections, references, resolve_input,
         )
@@ -2390,6 +2404,15 @@ fn compile_steps(
             raise Abort(UnknownColumn)
           }
         }
+      }
+      for expression in expressions {
+        check_references(join_reference_paths(expression))
+      }
+      if operation is AssertUnique(keys) {
+        check_references(keys)
+      }
+      if operation is Pivot(clause) {
+        check_references([clause.argument, clause.column])
       }
     }
     let entries : Array[(String, @builder.Node)] = []
@@ -3371,7 +3394,12 @@ fn compile_steps(
           raise Abort(UnsupportedGrouping)
         }
         let (pivot, visible) = compile_pipe_pivot(
-          construction, clause, pipe_visible, pipe_columns, pipe_ranges,
+          construction,
+          clause,
+          pipe_visible,
+          pipe_columns,
+          pipe_ranges,
+          authored_aliases=positional_authored_aliases,
         )
         entries.push(("pivot", pivot))
         step_entries.push(entries)

@@ -79,6 +79,23 @@ export const bundleRetention: Readonly<{
 export type Journal = {readonly [ownerHandle]: 'journal'};
 export type DispatchRequest = {readonly [ownerHandle]: 'dispatch-request'};
 export type EffectCheckpointReport = {readonly [ownerHandle]: 'effect-checkpoint-report'};
+export type EffectCurrentQuery = {readonly [ownerHandle]: 'effect-current-query'};
+export type EffectCurrentReply = {readonly [ownerHandle]: 'effect-current-reply'};
+/** Correlation only. Authenticate the current Site and its exact outstanding
+ * challenge using trusted Owners; historical replies grant no current permit. */
+export const effectCurrentObservations: Readonly<{
+  prepareQuery(report: EffectCheckpointReport, effectId: string, queryId: string,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): EffectCurrentQuery;
+  queryJson(query: EffectCurrentQuery): string;
+  queryFacts(query: EffectCurrentQuery): Readonly<{queryCid: string; reportCid: string;
+    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string}>;
+  admitReplyJson(query: EffectCurrentQuery, body: string,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): EffectCurrentReply;
+  replyFacts(reply: EffectCurrentReply): Readonly<{queryCid: string; reportCid: string;
+    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string; replyCid: string;
+    ledgerHeadCid?: string; recoveryAction: number; responseSaved: boolean;
+    unknownEffects: readonly string[]}>;
+}>;
 export type EffectCheckpointRefusal = 'authorization_denied' | 'scope_mismatch' | 'report_conflict';
 export type EffectCheckpointReply = Readonly<{kind: 'accepted'} |
   {kind: 'refused'; reason: EffectCheckpointRefusal}>;

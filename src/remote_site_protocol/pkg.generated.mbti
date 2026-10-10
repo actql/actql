@@ -33,6 +33,10 @@ pub fn admit_remote_effect_checkpoint_reply_json(String, RemoteEffectCheckpointR
 
 pub fn admit_remote_effect_checkpoint_report_json(String, DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn admit_remote_effect_current_query_json(String, RemoteEffectCheckpointReport, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentQuery, DispatchIssue]
+
+pub fn admit_remote_effect_current_reply_json(RemoteEffectCurrentQuery, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentReply, DispatchIssue]
+
 pub fn admit_remote_effect_resume_delivery_json(String, RemoteEffectCheckpointReport, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
 
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
@@ -381,6 +385,10 @@ pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudg
 
 pub fn prepare_remote_effect_checkpoint_report(DispatchRequest, @checkpoint_runtime.PersistedCheckpoint, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn prepare_remote_effect_current_query(RemoteEffectCheckpointReport, String, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentQuery, DispatchIssue]
+
+pub fn prepare_remote_effect_current_reply(RemoteEffectCurrentQuery, String?, Int, Bool, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentReply, DispatchIssue]
+
 pub fn prepare_remote_effect_resume_delivery(RemoteEffectCheckpointReport, @checkpoint_runtime.VerifiedResolution, @checkpoint_runtime.ResumeClaim, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
 
 pub fn prepare_remote_input_binding(String, Int) -> Result[RemoteInputBinding, DispatchIssue]
@@ -464,6 +472,24 @@ pub fn remote_effect_checkpoint_report_dispatch(RemoteEffectCheckpointReport) ->
 pub fn remote_effect_checkpoint_report_identity(RemoteEffectCheckpointReport) -> String
 
 pub fn remote_effect_checkpoint_report_json(RemoteEffectCheckpointReport) -> String
+
+pub fn remote_effect_current_query_effect_id(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_id(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_identity(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_json(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_report(RemoteEffectCurrentQuery) -> RemoteEffectCheckpointReport
+
+pub fn remote_effect_current_reply_facts(RemoteEffectCurrentReply) -> (String?, Int, Bool)
+
+pub fn remote_effect_current_reply_identity(RemoteEffectCurrentReply) -> String
+
+pub fn remote_effect_current_reply_json(RemoteEffectCurrentReply) -> String
+
+pub fn remote_effect_current_reply_query(RemoteEffectCurrentReply) -> RemoteEffectCurrentQuery
 
 pub fn remote_effect_resume_delivery_claim(RemoteEffectResumeDelivery) -> @checkpoint_runtime.ResumeClaim
 
@@ -872,6 +898,10 @@ pub(all) enum RemoteEffectCheckpointReply {
 } derive(Eq, @debug.Debug)
 
 type RemoteEffectCheckpointReport
+
+type RemoteEffectCurrentQuery
+
+type RemoteEffectCurrentReply
 
 type RemoteEffectResumeDelivery
 

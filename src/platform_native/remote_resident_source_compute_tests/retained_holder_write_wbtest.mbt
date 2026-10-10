@@ -128,6 +128,65 @@ fn retained_holder_write_row(
     assert_true(receive(foreign) is Err(ForeignRequest))
   }
   assert_true(work.restore_row_custody(limits.ledger) is Ok(None))
+  assert_true(
+    work.observe_effect_custody(() => false, limits.ledger)
+    is Err(EvidenceDenied),
+  )
+  let before_send_observation = work
+    .observe_effect_custody(() => true, limits.ledger)
+    .unwrap()
+  assert_eq(
+    before_send_observation.report_cid,
+    @remote.remote_effect_checkpoint_report_identity(report),
+  )
+  assert_eq(before_send_observation.ledger_head_cid, None)
+  assert_eq(before_send_observation.unknown_effects(), [])
+  assert_false(before_send_observation.response_saved)
+  let current_query = @remote.prepare_remote_effect_current_query(
+    report,
+    before_send_observation.effect_id,
+    "native-current-before-send",
+    limits.ledger,
+  ).unwrap()
+  assert_true(
+    work.answer_effect_current(current_query, () => false, limits.ledger)
+    is Err(EvidenceDenied),
+  )
+  let before_reply = work
+    .answer_effect_current(current_query, () => true, limits.ledger)
+    .unwrap()
+  assert_eq(
+    @remote.remote_effect_current_reply_facts(
+      @remote.admit_remote_effect_current_reply_json(
+        current_query,
+        @remote.remote_effect_current_reply_json(before_reply),
+        limits.ledger,
+      ).unwrap(),
+    ),
+    (None, 0, false),
+  )
+  let foreign_member_query = @remote.prepare_remote_effect_current_query(
+    report,
+    "foreign-effect-member",
+    "native-current-foreign",
+    limits.ledger,
+  ).unwrap()
+  assert_true(
+    work.answer_effect_current(foreign_member_query, () => true, limits.ledger)
+    is Err(Row(ForeignRequest)),
+  )
+  let observation_reads = Ref(0)
+  assert_true(
+    work.observe_effect_custody(
+      () => {
+        observation_reads.val += 1
+        observation_reads.val == 1
+      },
+      limits.ledger,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(observation_reads.val, 2)
   let row = prepare().unwrap()
   assert_true(physical_equal(row, prepare().unwrap()))
   // A cached delivered row cannot be borrowed through the older unfenced
@@ -294,6 +353,42 @@ fn retained_holder_write_row(
   allowed.val = false
   current_resume.val = { ..observed, settlement_only: true, }
   let restored = work.restore_row_custody(limits.ledger).unwrap().unwrap()
+  let pending_observation = work
+    .observe_effect_custody(() => true, limits.ledger)
+    .unwrap()
+  assert_eq(
+    pending_observation.ledger_head_cid,
+    Some(@effect.effect_ledger_entry_cid(restored.head)),
+  )
+  assert_eq(pending_observation.unknown_effects(), [
+    pending_observation.effect_id,
+  ])
+  let caller_copy = pending_observation.unknown_effects()
+  caller_copy.clear()
+  assert_eq(pending_observation.unknown_effects(), [
+    pending_observation.effect_id,
+  ])
+  assert_true(pending_observation.response_saved)
+  let pending_query = @remote.prepare_remote_effect_current_query(
+    report,
+    pending_observation.effect_id,
+    "native-current-pending",
+    limits.ledger,
+  ).unwrap()
+  let pending_reply = work
+    .answer_effect_current(pending_query, () => true, limits.ledger)
+    .unwrap()
+  let pending_body = @remote.remote_effect_current_reply_json(pending_reply)
+  assert_eq(
+    @remote.remote_effect_current_reply_facts(
+      @remote.admit_remote_effect_current_reply_json(
+        pending_query,
+        pending_body,
+        limits.ledger,
+      ).unwrap(),
+    ),
+    (pending_observation.ledger_head_cid, 3, true),
+  )
   assert_eq(@effect.effect_ledger_entry_cid(restored.dispatching.unwrap()), cid)
   assert_eq(restored.response.unwrap().status_code, 204)
   assert_eq(restored.response.unwrap().credential_use_cid, observed_use.use_cid)
@@ -338,6 +433,42 @@ fn retained_holder_write_row(
   mark("terminal-settlement-end")
   assert_eq(row.retry_response_custody().unwrap(), false)
   assert_true(terminal.state is @effect.Applied)
+  let terminal_observation = work
+    .observe_effect_custody(() => true, limits.ledger)
+    .unwrap()
+  assert_eq(
+    terminal_observation.ledger_head_cid,
+    Some(@effect.effect_ledger_entry_cid(terminal)),
+  )
+  assert_eq(terminal_observation.unknown_effects(), [])
+  assert_true(terminal_observation.response_saved)
+  let terminal_query = @remote.prepare_remote_effect_current_query(
+    report,
+    terminal_observation.effect_id,
+    "native-current-terminal",
+    limits.ledger,
+  ).unwrap()
+  assert_true(
+    @remote.admit_remote_effect_current_reply_json(
+      terminal_query,
+      pending_body,
+      limits.ledger,
+    )
+    is Err(InvalidDispatch),
+  )
+  let terminal_reply = work
+    .answer_effect_current(terminal_query, () => true, limits.ledger)
+    .unwrap()
+  assert_eq(
+    @remote.remote_effect_current_reply_facts(
+      @remote.admit_remote_effect_current_reply_json(
+        terminal_query,
+        @remote.remote_effect_current_reply_json(terminal_reply),
+        limits.ledger,
+      ).unwrap(),
+    ),
+    (terminal_observation.ledger_head_cid, 5, true),
+  )
   assert_eq(
     @publication.effect_row_outcome_receipt_terminal_state(receipt),
     Some("applied"),
