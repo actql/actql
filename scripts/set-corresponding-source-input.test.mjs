@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram, positionalUnpivotCollisionProgram, positionalAssertProgram, setCorrespondingExecutionFailures} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram, positionalUnpivotCollisionProgram, positionalAssertProgram, positionalPivotProgram, setCorrespondingExecutionFailures} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 187);
-  assert.equal(setCorrespondingRefusals.length, 126);
+  assert.equal(setCorrespondingSuccesses.length, 196);
+  assert.equal(setCorrespondingRefusals.length, 133);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -556,4 +556,30 @@ test('positional ASSERT retains values and validates explicit current/range keys
   const packed = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(packed.includes('executionFailures: setCorrespondingExecutionFailures'));
   assert.ok(packed.includes('scopeInputs.executionFailures.push(...setCorrespondingExecutionFailures)'));
+});
+
+
+test('positional PIVOT keeps anonymous group keys, immutable receivers and authored bucket order', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-pivot-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-group'));
+  assert.deepEqual(source.expected, [{a: -20, b: 2}, {a: -10, b: 4}, {a: 0, b: 0}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: true}},
+    {name: 'b', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-aggregate-current-key')).expected,
+    [{a: 0, b: 0, c: 0}, {a: 7, b: -20, c: 2}, {a: 7, b: -10, c: 4}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-current-aggregate')).expected,
+    [{a: -20, b: 7}, {a: -10, b: 14}, {a: 0, b: 0}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-bucket-declaration-order')).expected,
+    [{a: -20, b: 0, c: 1}, {a: -10, b: 0, c: 2}, {a: 0, b: 0, c: 0}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-nullable-group-key')).expected,
+    [{a: 0, b: 0}, {a: null, b: 1}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty-keyed')).expected, []);
+  assert.deepEqual(positionalPivotProgram.stages[0].steps[3].pivot,
+    {index: ['neg'], column: 'axis', value: 'amount', values: ['A'], aggregate: 'sum'});
+  assert.deepEqual(positionalPivotProgram.stages[0].steps[4].select, [{a: 'neg'}, {b: 'A'}]);
+  assert.deepEqual(positionalPivotProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-pivot-'));
+  assert.equal(refusals.length, 7);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
