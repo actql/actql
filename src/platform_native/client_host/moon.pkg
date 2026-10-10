@@ -14,6 +14,8 @@ import {
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_resident_host" @resident,
   "actql/actql/platform_native/remote_standard_host" @remote_output,
+  "actql/actql/platform_native/run_publication" @native_publication,
+  "actql/actql/platform_native/publication_store",
   "actql/actql/physical_resources" @resources,
   "actql/actql/platform_native/signature" @crypto,
   "actql/actql/encode_core" @encode,

@@ -32,6 +32,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/query_planning" @planning,
   "actql/actql/platform_native/publication_store",
+  "actql/actql/platform_native/run_publication" @native_publication,
   "actql/actql/platform_native/remote_standard_host" @output,
   "actql/actql/platform_native/remote_transfer_client" @transfer_client,
   "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,

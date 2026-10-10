@@ -424,3 +424,40 @@ This is working-tree evidence based on `cb1c524ce2fe309b27afc74bc88b470e017c2996
 not a clean-SHA or fresh release artifact claim. Shared-lock refusal
 `run-oEr5dg` remains unexecuted. Historical clean-SHA and debug binary evidence
 are not transferred to this new integration.
+
+## Source Result publication and retained delivery connection
+
+The next connection starts from the original retained Native Source/Compute
+owner. Actual Root Result outputs are converted in checked Result order and
+passed to the existing captured-run publication owner. Callers cannot replace
+the original Run, checked plan, observed logical input or Source Data Policy.
+Effect Runs and runs with INFER evidence requirements are not published by
+silently omitting their obligations from an Effect-free receipt.
+
+The publication service installed for this work requires both current Host
+publication authorization and the original Run/start/cancellation guard. It
+checks the guard again after the authorization callback. This connection does
+not issue a read grant or project a successful Run. The final public lifecycle
+adapter still needs the common cancellation/publication commitment boundary;
+these separate journal and Store calls are not claimed to be one transaction.
+
+The actual DuckDB fixture retains its independent row `{"id":3}`, non-null
+number schema, `id` field order and 512 MiB execution envelope. It adds exact
+Run/plan/input/Policy substitution refusals, callback-time authorization loss,
+private preparation before publication, authorization checks at commitment,
+and formal chunk confirmation plus a durable delivery receipt. JSONL bytes are
+independently expected to be `{"id":3}\n`, with nine confirmed bytes.
+
+Temporary Compute export pins delay cleanup. Once released, the original
+Source/Compute reservations return to zero and cleanup occurs once. Named
+Result retention remains separately reserved. Closing/reopening the existing
+Store allows a new delivery attempt without Source acquisition or Compute
+execution. This is an internal Native connection fixture with a test-Host read
+grant, not CLI ingress, public current read authorization, or proof that both
+Host and execution processes stopped and recovered.
+
+Scoped Native caller typechecking and actual shared JS/Wasm/Native interface
+generation passed in `run-R7qz5p`. The new actual Native runtime checks are still
+pending: shared heavy-lock refusals `run-cthfSJ`, `run-96ShHR` and `run-QTTkUa`
+ran no tests. No release artifact, external installation, packed acceptance or
+Hosted CI success is asserted for this working-tree connection.

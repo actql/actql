@@ -1,5 +1,6 @@
 // Internal Native connection acceptance using the existing actual acquisition
-// fixture. This is not CLI ingress, public delivery or a restart acceptance.
+// and publication/delivery owners. Store reopen is not a separate-process
+// restart, and this fixture is not public CLI ingress or read authorization.
 
 ///|
 test "Native Client original Run reaches actual Source Compute Result export and cleanup" {
@@ -169,6 +170,22 @@ test "Native Client original Run reaches actual Source Compute Result export and
     output.result_schema_wire().unwrap(),
     "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
   )
+  let store_name = name + "-publication"
+  root.create_directory(store_name).unwrap() |> ignore
+  let store_root = root_path + "/" + store_name
+  let store = local_client_publication_context(
+    work,
+    compiled,
+    definition,
+    request,
+    original.1,
+    sqlite,
+    store_root,
+    value => permitted = value,
+  )
+  local_client_read_committed_result(
+    store, definition, request, "original-read",
+  )
   assert_false(work.close())
   assert_eq(cleanups, 0)
   output.cancel()
@@ -186,6 +203,22 @@ test "Native Client original Run reaches actual Source Compute Result export and
   assert_eq(usage.reserved_transfer_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
+  // Temporary Compute holds are gone; the Named Result has independent
+  // durable retention and can be reread without reopening Source or Compute.
+  assert_true(store.capacity_usage().unwrap().reserved_bytes > 0L)
+  assert_true(store.close().unwrap())
+  let store = @store.open_store(
+    sqlite,
+    store_root,
+    local_client_publication_cid("native-client-original-store"),
+    128L,
+    8L,
+    1000000L,
+  ).unwrap()
+  local_client_read_committed_result(
+    store, definition, request, "new-read-after-reopen",
+  )
+  assert_true(store.close().unwrap())
   // Repetition keeps the original Run and cannot acquire/compute again. These
   // facts do not mark an unpublished Run as succeeded or a cancellation done.
   assert_true(
@@ -204,6 +237,7 @@ test "Native Client original Run reaches actual Source Compute Result export and
   )
   assert_eq(acquisitions, 1)
   assert_eq(consumers, 1)
+  assert_eq(cleanups, 1)
   database.close_checked().unwrap()
   resident_compute_reclaim(root, name)
 }
