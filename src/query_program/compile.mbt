@@ -363,6 +363,33 @@ fn qualify_cached_slot(
 }
 
 ///|
+// Classify only numeric literal atoms already folded by the expression
+// lowerer. A single postorder pass avoids rescanning nested signs during
+// subtree comparison. References, calls and arithmetic are never evaluated.
+fn comparison_numeric_atoms(
+  expression : @query.Expression,
+) -> Array[Result[Double?, @expression.Issue]] {
+  let atoms : Array[Result[Double?, @expression.Issue]] = []
+  for index in 0..<@query.expression_node_count(expression) {
+    let atom = match @query.expression_node(expression, index).unwrap().kind {
+      Number(text) => @expression.numeric_literal(text).map(value => Some(value))
+      Parenthesized(child) | Unary("+", child) => atoms[child]
+      Unary("-", child) =>
+        // Keep the existing source-literal rejection of negative zero,
+        // including a nested negation whose final mathematical value is zero.
+        match atoms[child] {
+          Ok(Some(value)) =>
+            if value == 0.0 { Err(@expression.InvalidNumber) } else { Ok(Some(-value)) }
+          other => other
+        }
+      _ => Ok(None)
+    }
+    atoms.push(atom)
+  }
+  atoms
+}
+
+///|
 // Compare semantic source trees, ignoring grouping parentheses and spans.
 // Indices are local to each expression owner and cannot be compared directly.
 fn same_expression(
@@ -376,6 +403,8 @@ fn same_expression(
     _,
   ) => None,
 ) -> Bool {
+  let left_atoms = comparison_numeric_atoms(left)
+  let right_atoms = comparison_numeric_atoms(right)
   let pending = [(@query.expression_root(left), @query.expression_root(right))]
   while pending.pop() is Some((a_index, b_index)) {
     if nodes(left, a_index, right, b_index) is Some(equal) {
@@ -384,8 +413,55 @@ fn same_expression(
       }
       continue
     }
+    match (left_atoms[a_index], right_atoms[b_index]) {
+      (Ok(Some(a)), Ok(Some(b))) => {
+        if a != b {
+          return false
+        }
+        continue
+      }
+      (Err(_), _) | (_, Err(_)) => return false
+      _ => ()
+    }
     let a = @query.expression_node(left, a_index).unwrap().kind
     let b = @query.expression_node(right, b_index).unwrap().kind
+    if two_operand_coalesce_shape(left, a_index) is Some(a_items) &&
+      two_operand_coalesce_shape(right, b_index) is Some(b_items) {
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
+    if negated_is_predicate_shape(left, a_index) is Some((a_name, a_items)) &&
+      negated_is_predicate_shape(right, b_index) is Some((b_name, b_items)) {
+      if a_name != b_name || a_items.length() != b_items.length() {
+        return false
+      }
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
+    if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
+      literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
+      if a_name != b_name || a_items.length() != b_items.length() {
+        return false
+      }
+      pending.push((a_value, b_value))
+      for index in 0..<a_items.length() {
+        pending.push((a_items[index], b_items[index]))
+      }
+      continue
+    }
+    if strict_concat_pair(a) is Some((a_left, a_right)) &&
+      strict_concat_pair(b) is Some((b_left, b_right)) {
+      // These two spellings already lower to the same ordered two-operand
+      // concat_strict node. Keep clause-aware receiver checks on each child;
+      // neither a legacy CONCAT nor a differently shaped call is equivalent.
+      pending.push((a_left, b_left))
+      pending.push((a_right, b_right))
+      continue
+    }
     match (a, b) {
       (Parenthesized(child), _) => pending.push((child, b_index))
       (_, Parenthesized(child)) => pending.push((a_index, child))
@@ -402,7 +478,8 @@ fn same_expression(
         }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
-        if !same_path(x, y) || ax.length() != ay.length() {
+        if (!same_path(x, y) && !@expression.same_scalar_function(x, y)) ||
+          ax.length() != ay.length() {
           return false
         }
         for i in 0..<ax.length() {
@@ -424,7 +501,7 @@ fn same_expression(
         pending.push((child_a, child_b))
       }
       (Binary(x, left_a, right_a), Binary(y, left_b, right_b)) => {
-        if x != y {
+        if x != y && !@expression.same_binary_operator(x, y) {
           return false
         }
         pending.push((left_a, left_b))
@@ -1156,13 +1233,38 @@ fn order_aggregate_calls(
 }
 
 ///|
+// Public aliases and lowering share this closed operation-name mapping.
+// COUNTIF's DISTINCT rewrite remains a separate argument/filter contract.
+fn aggregate_common_function(name : String) -> String? {
+  match name {
+    "COUNT" => Some("count")
+    "COUNTIF" => Some("count_if")
+    "SUM" => Some("sum")
+    "AVG" => Some("avg")
+    "MIN" => Some("min")
+    "MAX" => Some("max")
+    "VAR_POP" => Some("var_pop")
+    "VAR_SAMP" | "VARIANCE" => Some("var_samp")
+    "STDDEV_POP" => Some("stddev_pop")
+    "STDDEV_SAMP" | "STDDEV" => Some("stddev_samp")
+    "ARRAY_AGG" => Some("array_agg")
+    "STRING_AGG" => Some("string_agg")
+    _ => None
+  }
+}
+
+///|
 fn same_aggregate_call(
   left : @query.AggregateCall,
   right : @query.AggregateCall,
   left_resolve : (Array[@query.NamePart]) -> String?,
   right_resolve : (Array[@query.NamePart]) -> String?,
 ) -> Bool {
-  if left.function_name != right.function_name ||
+  guard aggregate_common_function(left.function_name) is Some(left_function) &&
+    aggregate_common_function(right.function_name) is Some(right_function) else {
+    return false
+  }
+  if left_function != right_function ||
     left.distinct != right.distinct ||
     left.delimiter != right.delimiter ||
     left.order_by.length() != right.order_by.length() {
@@ -1245,20 +1347,9 @@ fn lower_aggregate_resolved(
   let conditional_count = call.function_name == "COUNTIF" &&
     call.distinct &&
     !analytic
-  let name = match call.function_name {
-    "COUNT" => "count"
-    "COUNTIF" => if conditional_count { "count" } else { "count_if" }
-    "SUM" => "sum"
-    "AVG" => "avg"
-    "MIN" => "min"
-    "MAX" => "max"
-    "VAR_POP" => "var_pop"
-    "VAR_SAMP" | "VARIANCE" => "var_samp"
-    "STDDEV_POP" => "stddev_pop"
-    "STDDEV_SAMP" | "STDDEV" => "stddev_samp"
-    "ARRAY_AGG" => "array_agg"
-    "STRING_AGG" => "string_agg"
-    _ => raise Abort(UnsupportedAggregate)
+  let name = match aggregate_common_function(call.function_name) {
+    Some(name) => if conditional_count { "count" } else { name }
+    None => raise Abort(UnsupportedAggregate)
   }
   let entries : Array[(String, @builder.Node)] = [
     ("fn", construction.text(name)),
@@ -2413,7 +2504,8 @@ fn compile_steps(
               predicate,
               private_expression_columns(
                 unnest_expression_columns(
-                  pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                  pipe_visible, value_table_receivers, scalar_value_table_ranges,
+                  pipe_columns,
                 ),
                 analytic_expression_bindings,
               ),
@@ -2488,7 +2580,8 @@ fn compile_steps(
                   projection.expression.unwrap(),
                   private_expression_columns(
                     unnest_expression_columns(
-                      snapshot, value_table_receivers, scalar_value_table_ranges, input_columns,
+                      snapshot, value_table_receivers, scalar_value_table_ranges,
+                      input_columns,
                     ),
                     analytic_expression_bindings,
                   ),
@@ -3094,17 +3187,22 @@ fn compile_steps(
             // Pipe AGGREGATE retains its separate named-output contract.
             let mut reused = false
             for (previous, _) in grouped_keys {
-              for charge in [
-                1, @query.expression_node_count(previous),
-                @query.expression_node_count(expression),
-              ] {
+              for
+                charge in [
+                  1,
+                  @query.expression_node_count(previous),
+                  @query.expression_node_count(expression),
+                ] {
                 if charge > key_reuse_work {
-                  raise Abort(Expression({
-                    issue: @expression.WorkLimit,
-                    origin: @query.expression_origin(
-                      expression, @query.expression_root(expression),
-                    ),
-                  }))
+                  raise Abort(
+                    Expression({
+                      issue: @expression.WorkLimit,
+                      origin: @query.expression_origin(
+                        expression,
+                        @query.expression_root(expression),
+                      ),
+                    }),
+                  )
                 }
                 key_reuse_work -= charge
               }
@@ -3141,7 +3239,9 @@ fn compile_steps(
               }
             _ => None
           }
-          if sql_group_projection && direct is Some(field) && key_names.contains(field) {
+          if sql_group_projection &&
+            direct is Some(field) &&
+            key_names.contains(field) {
             // A prior expanded-star ordinal has no expression tree, but its
             // checked physical field still proves this direct key's identity.
             grouped_keys.push((expression, field))
@@ -3205,6 +3305,27 @@ fn compile_steps(
           )
           by.push(construction.text(name))
           grouped_keys.push((expression, name))
+          if sql_group_projection {
+            // GROUP retains the complete numeric operation. Its operand has
+            // the same value only after that key passes ordinary admission;
+            // SELECT/HAVING/ORDER may then reuse the evaluated key slot.
+            let charge = 1 + @query.expression_node_count(expression)
+            if charge > key_reuse_work {
+              raise Abort(
+                Expression({
+                  issue: @expression.WorkLimit,
+                  origin: @query.expression_origin(
+                    expression,
+                    @query.expression_root(expression),
+                  ),
+                }),
+              )
+            }
+            key_reuse_work -= charge
+            if group_unary_plus_operand(expression) is Some(operand) {
+              grouped_keys.push((operand, name))
+            }
+          }
         }
         if sql_group_projection {
           // Record only SELECT trees proven to mean the same evaluated key.
@@ -5205,7 +5326,8 @@ fn compile_steps(
                           resolve([name]) is Some(_) ||
                           pipe_name_exists(
                             unnest_expression_columns(
-                              pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+                              pipe_visible, value_table_receivers, scalar_value_table_ranges,
+                              pipe_columns,
                             ),
                             name,
                           )

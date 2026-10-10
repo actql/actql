@@ -2,8 +2,8 @@
 test "QUALIFY recognizes decoded quoted names in the existing window table" {
   for
     call in [
-      "`ROW_NUMBER`()", "`rAnK`()", "`DENSE_RANK`()", "`LAG`(x, 1)", "`LEAD`(x, 1)",
-      "`FIRST_VALUE`(x)", "`LAST_VALUE`(x)", "`\\x52OW_NUMBER`()",
+      "`ROW_NUMBER`()", "`rAnK`()", "`RAN\\u212A`()", "`DENSE_RANK`()", "`LAG`(x, 1)",
+      "`LEAD`(x, 1)", "`FIRST_VALUE`(x)", "`LAST_VALUE`(x)", "`\\x52OW_NUMBER`()",
     ] {
     let query = parse_query(
       "SELECT x FROM t QUALIFY " +

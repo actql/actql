@@ -434,7 +434,8 @@ fn ExpressionParser::path(
     self.spend()
     match part.value {
       Word(value) => names.push({ value, quoted: false, })
-      QuotedName(value) => names.push({ value, quoted: true, })
+      QuotedName(value) =>
+        names.push({ value: self.source.identifier(value), quoted: true, })
       _ => raise ExpressionAbort("Expected identifier", part.start)
     }
     if self.peek().value != Symbol(46) ||
@@ -544,7 +545,7 @@ fn ExpressionParser::expression(
                       match upper_ascii(word) {
                         "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
                         "STRING" => ArrayElementType::String
-                        "FLOAT64" => ArrayElementType::Number
+                        "FLOAT64" | "DOUBLE" => ArrayElementType::Number
                         "TIMESTAMP" => ArrayElementType::Timestamp
                         "JSON" => ArrayElementType::Json
                         _ =>
@@ -590,7 +591,11 @@ fn ExpressionParser::expression(
           }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>
-            result = self.add(ParameterReference(name), t.start, t.end)
+            result = self.add(
+              ParameterReference(self.source.identifier(name)),
+              t.start,
+              t.end,
+            )
           Word(name) if upper_ascii(name) == "NULL" =>
             result = self.add(Null, t.start, t.end)
           Word(name) if upper_ascii(name) == "TRUE" ||
@@ -676,7 +681,8 @@ fn ExpressionParser::expression(
           let property_token = self.advance()
           let name = match property_token.value {
             Word(value) => { value, quoted: false, }
-            QuotedName(value) => { value, quoted: true, }
+            QuotedName(value) =>
+              { value: self.source.identifier(value), quoted: true, }
             _ =>
               raise ExpressionAbort(
                 "Expected property name",
@@ -903,7 +909,7 @@ fn ExpressionParser::expression(
             match upper_ascii(word) {
               "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
-              "FLOAT64" => CastType::Number
+              "FLOAT64" | "DOUBLE" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp
               "DECIMAL" => {
                 let open = self.advance()

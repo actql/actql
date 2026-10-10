@@ -94,7 +94,7 @@ export const graphEdgePredicateRefusals = [
   {name: 'graph-edge-predicate-invalid-static-presence', format: 'aql-text',
     text: heterogeneousData + heterogeneousMapping + query('-[WHERE weight > 10]->'),
     parameterDeclarations: declarations, parameters},
-  {name: 'graph-edge-predicate-invalid-named-binding', format: 'aql-text',
+  {name: 'graph-edge-predicate-invalid-named-binding', expectedCode: 'ClientProgramImplementationLimit', format: 'aql-text',
     text: data + mapping() + query('-[edge:R WHERE edge.weight > 10]->'),
     parameterDeclarations: declarations, parameters},
 ];

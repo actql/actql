@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
-import {dirname, join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readmeQuickstart} from './readme-quickstart.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
@@ -28,7 +28,7 @@ function run(command, args, cwd = root, env = environment,
 }
 console.log(`Packed public-query evidence: ${directory}`);
 console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
-  'scripts/public-query-profiles.test.mjs'],
+  'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs'],
   repository).trimEnd());
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
@@ -44,6 +44,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
+  ['scripts/fixtures/negated-predicate-reuse-source-input.mjs', 'negated-predicate-reuse-source-input.mjs'],
+  ['scripts/fixtures/membership-expression-reuse-source-input.mjs', 'membership-expression-reuse-source-input.mjs'],
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
@@ -108,14 +110,18 @@ for (const [source, destination] of [
   ['scripts/fixtures/aggregate-conditional-order-source-input.mjs', 'aggregate-conditional-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
+  ['scripts/fixtures/scalar-alias-group-source-input.mjs', 'scalar-alias-group-source-input.mjs'],
+  ['scripts/fixtures/group-comparison-source-input.mjs', 'group-comparison-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+    ['scripts/fixtures/concat-expression-reuse-source-input.mjs', 'concat-expression-reuse-source-input.mjs'],
   ['scripts/fixtures/distinct-order-member-source-input.mjs', 'distinct-order-member-source-input.mjs'],
   ['scripts/fixtures/sqrt-source-input.mjs', 'sqrt-source-input.mjs'],
   ['scripts/fixtures/ceiling-source-input.mjs', 'ceiling-source-input.mjs'],
   ['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs'],
   ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
+  ['scripts/fixtures/ifnull-coalesce-reuse-source-input.mjs', 'ifnull-coalesce-reuse-source-input.mjs'],
   ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
@@ -150,11 +156,17 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/source-graph-member-input.mjs', 'source-graph-member-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
+  ['scripts/fixtures/retained-fixture-values.mjs', 'retained-fixture-values.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
   ['scripts/fixtures/model-provider-binding-fixture.mjs', 'model-provider-binding-fixture.mjs'],
   ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
   ['scripts/fixtures/packed-infer-source.mjs', 'packed-infer-source.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
+  ['scripts/fixtures/packed-query-transports.mjs', 'packed-query-transports.mjs'],
+  ['scripts/fixtures/public-query-inventory.json', 'public-query-inventory.json'],
+  ['scripts/fixtures/packed-query-worker.mjs', 'packed-query-worker.mjs'],
+  ['scripts/fixtures/packed-query-restart-transports.mjs', 'packed-query-restart-transports.mjs'],
+  ['scripts/fixtures/packed-query-transport-owner.mjs', 'packed-query-transport-owner.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
   ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
   ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
@@ -215,9 +227,17 @@ auditPackedPackages(root, packages);
 run('npm', ['ls', '--omit=dev', '--all']);
 await writeFile(join(root, 'query.aql'), quickstart.program);
 await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
+let runtimeCaPath = join(root, 'remote.crt');
+if (environment.NODE_EXTRA_CA_CERTS) {
+  runtimeCaPath = join(root, 'remote-ca-bundle.crt');
+  await writeFile(runtimeCaPath, Buffer.concat([
+    await readFile(resolve(environment.NODE_EXTRA_CA_CERTS)), Buffer.from('\n'),
+    await readFile(join(root, 'remote.crt')), Buffer.from('\n'),
+  ]));
+}
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
-  NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+  NODE_EXTRA_CA_CERTS: runtimeCaPath};
 if (process.argv.includes('--countif-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_COUNTIF_DISTINCT_ONLY = '1';
 }
@@ -271,6 +291,9 @@ if (process.argv.includes('--graph-property-predicate-only')) {
 }
 if (process.argv.includes('--grouped-in-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
+}
+if (process.argv.includes('--concat-expression-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_CONCAT_REUSE_ONLY = '1';
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
@@ -367,6 +390,12 @@ if (process.argv.includes('--analytic-string-agg-only')) {
 }
 if (process.argv.includes('--analytic-countif-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1';
+}
+if (process.argv.includes('--negated-predicate-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY = '1';
+}
+if (process.argv.includes('--membership-expression-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_MEMBERSHIP_REUSE_ONLY = '1';
 }
 if (process.argv.includes('--in-unnest-literal-array-only')) {
   runtimeEnvironment.ACTQL_TEST_IN_UNNEST_LITERAL_ARRAY_ONLY = '1';
@@ -515,6 +544,9 @@ if (process.argv.includes('--computed-object-property-only')) {
 if (process.argv.includes('--having-projection-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_PROJECTION_ONLY = '1';
 }
+if (process.argv.includes('--ifnull-coalesce-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_IFNULL_COALESCE_REUSE_ONLY = '1';
+}
 if (process.argv.includes('--ifnull-only')) {
   runtimeEnvironment.ACTQL_TEST_IFNULL_ONLY = '1';
 }
@@ -530,7 +562,7 @@ if (process.argv.includes('--infer-refusal-only')) {
 if (process.argv.includes('--two-source-only')) {
   runtimeEnvironment.ACTQL_TEST_TWO_SOURCE_ONLY = '1';
 }
-for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
+for (const name of ['NODE_PATH', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
 }
@@ -598,7 +630,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -617,14 +649,39 @@ const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-a
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
+async function retainTransportReports(names, succeeded, primary, indexName) {
+  const availability = [];
+  let evidenceFailure;
+  const failed = (name, error) => {
+    if (primary === undefined) evidenceFailure ??= error;
+    else (primary.transportEvidenceErrors ??= []).push({name, code: error.code});
+  };
+  for (const name of names) {
+    try {
+      await writeFile(join(directory, name), await readFile(join(root, name)));
+      availability.push({name, available: true});
+    } catch (error) {
+      if (error.code !== 'ENOENT' || succeeded) failed(name, error);
+      availability.push({name, available: false, error: error.code});
+    }
+  }
+  try {
+    await writeFile(join(directory, indexName), JSON.stringify({succeeded, availability}, null, 2) + '\n');
+  } catch (error) { failed(indexName, error); }
+  if (evidenceFailure !== undefined) throw evidenceFailure;
+}
+let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
-    const output = run(process.execPath, ['acceptance.mjs'], root,
-      runtimeEnvironment, 900_000);
+    acceptanceStarted = true;
+    const output = run(process.execPath, ['packed-query-transports.mjs'], root,
+      {...runtimeEnvironment, ACTQL_TEST_QUERY_DEADLINE: String(Date.now() + 900_000),
+        ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, 900_000);
+    acceptanceSucceeded = true;
     console.log(output.trimEnd());
     // Reuse this exact installation and its producer artifact. Source INFER
     // is a separate authored corpus; narrow non-INFER selections stay narrow.
@@ -640,7 +697,16 @@ try {
     console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
       runtimeEnvironment, 180_000).trimEnd());
   }
+} catch (error) {
+  packedFailure = error;
+  throw error;
 } finally {
+  if (acceptanceStarted) {
+    const reports = ['transport-processes.json',
+      ...(process.argv.includes('--two-source-only') ? [] :
+        ['transport-completion.local.json', 'transport-completion.remote.json'])];
+    await retainTransportReports(reports, acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
+  }
   try {
     await writeFile(join(directory, 'two-source-example.json'),
       await readFile(join(root, 'two-source-example-report.json')));
@@ -657,6 +723,8 @@ try {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 if (process.argv.includes('--source-graph-member-only')) return;
+if (process.argv.includes('--negated-predicate-reuse-only')) return;
+if (process.argv.includes('--membership-expression-reuse-only')) return;
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
 if (process.argv.includes('--correlated-unnest-only')) return;
@@ -685,7 +753,7 @@ if (process.argv.includes('--min-max-distinct-only')) return;
 if (process.argv.includes('--countif-distinct-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--distinct-aggregate-order-only') || process.argv.includes('--analytic-distinct-frame-only') || process.argv.includes('--set-corresponding-only') || process.argv.includes('--set-inner-by-name-only') || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
-    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only')) return;
+    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-coalesce-reuse-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
@@ -700,11 +768,20 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
-  console.log(run(process.execPath, ['string-values-restart.mjs'], root,
-    runtimeEnvironment, 120000).trimEnd());
+  let restartSucceeded = false, restartFailure;
+  try {
+    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
+      {...runtimeEnvironment, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120000).trimEnd());
+    restartSucceeded = true;
+  } catch (error) { restartFailure = error; throw error; }
+  finally {
+    await retainTransportReports(['transport-restart-processes.json',
+      'transport-restart.local.json', 'transport-restart.remote.json'],
+    restartSucceeded, restartFailure, 'transport-restart-evidence-index.json');
+  }
 }
 if (process.argv.includes('--select-all-only') || process.argv.includes('--typed-json-literal-only') || process.argv.includes('--limit-parameter-only') || process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
@@ -734,6 +811,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--grouped-implicit-property-names-only') ||
     process.argv.includes('--group-having-implicit-aliases-only') ||
     process.argv.includes('--distinct-order-only') ||
+    process.argv.includes('--concat-expression-reuse-only') ||
     process.argv.includes('--implicit-property-only') ||
     process.argv.includes('--computed-object-property-only') ||
   process.argv.includes('--source-free-only') ||

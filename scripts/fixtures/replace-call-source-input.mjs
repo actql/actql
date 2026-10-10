@@ -68,7 +68,8 @@ export const replaceCallRefusals = [
   "SELECT REPLACE(@missing, 'a', 'b') AS value",
   "SELECT ACTQL.REPLACE('a', 'b', 'c') AS value",
   "SELECT REPLACE(JSON '\"abc\"', 'a', 'b') AS value",
-].map((text, index) => ({name: 'replace-call-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'replace-call-refuse-' + index, format: 'sql', text,
+  ...([3, 5].includes(index) ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
 export const replaceCallExecutionFailures = [{name: 'replace-call-demanded-failure', format: 'sql',
   text: "SELECT REPLACE(CAST(1 / 0 AS STRING), 'x', 'y') AS value",
   resultNames: ['answer'], sourceReadSessionCount: 0}];
