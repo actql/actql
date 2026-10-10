@@ -267,7 +267,11 @@ setCorrespondingSuccesses.push(
     {expected: [...windowRows, {a: 3, b: 4}]}),
   parenthesized('anonymous-aggregate', parenthesizedInput + 'SELECT 0 AS a, 0 AS b '
     + 'UNION ALL ((SELECT SUM(x), COUNT(x) FROM r)) ORDER BY a, b',
-    {expected: [{a: 0, b: 0}, {a: 3, b: 2}]}),
+    // SUM has a nullable result even for a nonnullable argument: an empty
+    // global group returns NULL. COUNT remains nonnullable; UNION joins both.
+    {expected: [{a: 0, b: 0}, {a: 3, b: 2}],
+      columns: [{name: 'a', contract: {...number, nullable: true}},
+        {name: 'b', contract: number}]}),
   parenthesized('anonymous-scalars', parenthesizedInput + 'SELECT 0 AS a, 0 AS b '
     + 'UNION ALL (SELECT x + 10, -x FROM r) ORDER BY a, b',
     {expected: [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]}),

@@ -121,8 +121,11 @@ test('CORRESPONDING matching participates in both normal and narrow packed accep
 test('parenthesized operands preserve independent ordinal values and private scopes', () => {
   const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-parenthesized-'));
   assert.equal(normals.length, 6);
-  for (const f of normals) assert.deepEqual(f.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+  for (const f of normals.filter(x => !x.name.endsWith('anonymous-aggregate'))) assert.deepEqual(f.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
     {name: 'b', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(normals.find(x => x.name.endsWith('anonymous-aggregate')).columns,
+    [{name: 'a', contract: {type: 'number', nullable: true}},
+      {name: 'b', contract: {type: 'number', nullable: false}}]);
   const nested = normals.find(x => x.name.endsWith('nested-set'));
   assert.deepEqual(nested.expected, [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}, {a: 3, b: 4}]);
   const scoped = normals.find(x => x.name.endsWith('scoped-windows'));

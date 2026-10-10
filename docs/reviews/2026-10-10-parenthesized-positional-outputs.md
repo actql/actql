@@ -73,7 +73,7 @@ Scoped inventory: 82 cases per transport, 54 normal and 28 refusals.
 
 Authored registration: 3,365 occurrences, 2,132 normal, 1,186 refusal and
 47 execution failures. Historical baseline ce027a937 remains unchanged.
-Inventory digest: 66ce0d43b2b94b7692c399d68af988affd930dc8d545b1b39cf9d3ceee4c5d5f.
+Inventory digest: bd1cb3d71f607d8164a245c9f6d5262e66d524461c71adab6c5e8563a9650ecd.
 This pin enumerates authored data; it does not generate result expectations.
 
 ## Actual verification and open coverage
@@ -91,3 +91,35 @@ full public corpus, hosted CI and deployment are not established here.
 Parenthesized output followed by additional transformed continuations remains
 a distinct connection obligation; no blanket anonymous-export permission was
 added to make it pass.
+
+## First submitted-HEAD public attempt and fixture correction
+
+Clean HEAD `7646f9991e068450c99c533152cd5d822b6fb7b9` passed normal
+five-package production and independent manifest/revision/SHA-256 verification.
+Guard `run-SI2flH` then failed at the existing scoped consumer's column-contract
+assertion, with both transport workers terminal and no live children. Receipt:
+`worktrees/.codex-scratch/public-query-evidence-VULnqE`, including
+`010.stdout.log`, `010.stderr.log` and `summary.json`. The original scoped
+parenthesized window source and nested DATA set passed on both Local and HTTPS
+before the anonymous aggregate case stopped the campaign. Later normal and
+refusal cases are not established by this failed attempt.
+
+The anonymous aggregate fixture incorrectly declared SUM(x) nonnullable.
+[The common group contract](../spec/language.md#group)
+requires SUM to return NULL when no non-NULL input exists; COUNT remains
+nonnullable. The independently pinned relation-typing Group vector also
+requires nullable SUM for a nonnullable argument. The positional set's joined
+contract therefore has nullable a and nonnullable b, even though these
+particular rows are (0,0), (3,2). Correct only that authored column expectation
+and its data-inventory digest. Source, rows, ordering, budgets and product
+implementation are unchanged; do not replace SUM with COALESCE or infer its
+contract from the observed nonempty rows. The revised final-HEAD campaign will
+be recorded separately and must still complete every registered obligation.
+
+The corrected fixture and normal/scoped inventory passed selected Node checks
+43/43 (`run-NY5JSW`, `focused-test-djNQAa`). No MoonBit/product input changed
+in this correction. The saved ORDER/LIMIT anonymous-output audit is a separate
+future connection: at product source 7646f9991e, two text forms refuse
+UnsupportedProjection while an independently authored ordinary JSON control
+passes its checker (1/3, `run-kfqL1e`, `focused-test-EtcAqy`). It is not an
+executed wrong-result claim or a case silently removed from this cohort.
