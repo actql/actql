@@ -37,12 +37,13 @@ test "Graph graft source does not admit union lists merge policies or Relation p
 
 ///|
 test "Graph graft malformed binary arguments are input violations not support gaps" {
-  for suffix in [
-    "FROM g |> graft_graph(with: [g]) |> node_rows()",
-    "FROM g |> graft_graph(with: g, merge: {}) |> node_rows()",
-  ] {
+  for
+    suffix in [
+      "FROM g |> graft_graph(with: [g]) |> node_rows()", "FROM g |> graft_graph(with: g, merge: {}) |> node_rows()",
+    ] {
     assert_true(
-      classified_graph_source(graph_union_prefix() + suffix) is Err(InvalidQuery),
+      classified_graph_source(graph_union_prefix() + suffix)
+      is Err(InvalidQuery),
       msg=suffix,
     )
   }
