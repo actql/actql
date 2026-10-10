@@ -110,6 +110,8 @@ struct NativeResidentEffectReview {
     String,
     @checkpoint.WireLimits,
   )?
+  mut approved_row : NativeResidentEffectApprovedRow?
+  mut effect_pending : Bool
   mut retiring : Bool
   mut closed : Bool
 }
@@ -333,6 +335,8 @@ pub fn prepare_native_resident_effect_review(
     captured: None,
     retention: None,
     retention_configuration: None,
+    approved_row: None,
+    effect_pending: false,
     retiring: false,
     closed: false,
   })
@@ -762,6 +766,9 @@ pub fn NativeResidentEffectReview::retry_cleanup(
 ) -> Result[Bool, NativeResidentEffectReviewIssue] {
   if self.closed {
     return Ok(false)
+  }
+  if self.effect_pending {
+    return Err(Unavailable)
   }
   self.retiring = true
   if self.retention is Some(retention) {

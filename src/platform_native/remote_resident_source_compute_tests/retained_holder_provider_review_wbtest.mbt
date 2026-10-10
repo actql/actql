@@ -345,6 +345,9 @@ fn retained_holder_provider_review(
     complete.preview.wire,
     @publication.run_evidence_value_identity(complete.preview.authoring),
     review_work=Some(work),
+    original_journal_path=Some(
+      root_path + "/" + name + ".runtime/execution.sqlite3",
+    ),
   )
   let saved = journal
     .effect_checkpoint_report(dispatch, {
