@@ -7,7 +7,8 @@ fn negated_is_predicate_shape(
   index : Int,
 ) -> (String, Array[Int])? {
   let mut current = index
-  let explicit = match @query.expression_node(expression, current).unwrap().kind {
+  let explicit = match
+    @query.expression_node(expression, current).unwrap().kind {
     Unary("NOT", child) => {
       current = child
       while @query.expression_node(expression, current).unwrap().kind

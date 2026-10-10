@@ -374,14 +374,19 @@ fn comparison_numeric_atoms(
   let atoms : Array[Result[Double?, @expression.Issue]] = []
   for index in 0..<@query.expression_node_count(expression) {
     let atom = match @query.expression_node(expression, index).unwrap().kind {
-      Number(text) => @expression.numeric_literal(text).map(value => Some(value))
+      Number(text) =>
+        @expression.numeric_literal(text).map(value => Some(value))
       Parenthesized(child) | Unary("+", child) => atoms[child]
       Unary("-", child) =>
         // Keep the existing source-literal rejection of negative zero,
         // including a nested negation whose final mathematical value is zero.
         match atoms[child] {
           Ok(Some(value)) =>
-            if value == 0.0 { Err(@expression.InvalidNumber) } else { Ok(Some(-value)) }
+            if value == 0.0 {
+              Err(@expression.InvalidNumber)
+            } else {
+              Ok(Some(-value))
+            }
           other => other
         }
       _ => Ok(None)
@@ -444,8 +449,10 @@ fn same_expression(
       }
       continue
     }
-    if literal_membership_shape(left, a_index) is Some((a_name, a_value, a_items)) &&
-      literal_membership_shape(right, b_index) is Some((b_name, b_value, b_items)) {
+    if literal_membership_shape(left, a_index)
+      is Some((a_name, a_value, a_items)) &&
+      literal_membership_shape(right, b_index)
+      is Some((b_name, b_value, b_items)) {
       if a_name != b_name || a_items.length() != b_items.length() {
         return false
       }
