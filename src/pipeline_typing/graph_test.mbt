@@ -420,17 +420,17 @@ test "current Graph graft preserves independent definition and property contract
   assert_eq(@carrier.graph_element_definition_name(node), "N")
   assert_eq(@carrier.graph_element_definition_labels(node), ["Node"])
   assert_eq(@carrier.graph_element_definition_key_count(node), 1)
-  assert_eq(
-    @carrier.graph_element_definition_key_at(node, 0),
-    Some(@contract.primitive(NumberType, nullable=false)),
-  )
+  let key = @carrier.graph_element_definition_key_at(node, 0).unwrap()
+  assert_true(key.shape is @contract.Number)
+  assert_false(key.nullable)
   assert_true(
     @carrier.lookup(
       @carrier.graph_element_definition_properties(node),
       Unqualified("active"),
     )
     is Present({ contract: Some(c), .. }) &&
-    c == @contract.primitive(BooleanType, nullable=true),
+    c.shape is @contract.Boolean &&
+    c.nullable,
   )
   let edge = @carrier.graph_edge_at(profile, 0).unwrap()
   assert_eq(@carrier.graph_edge_endpoints(edge), ("N", "N"))
