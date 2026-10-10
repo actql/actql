@@ -219,3 +219,6 @@ spreadsheet/tab, secret reference and operation scope are supplied. Synthetic
 HTTPS success is not Google service success. No CI, deploy or npm publication
 is implied by a local receipt. See the
 [owner and acceptance map](../reviews/2026-10-09-sheets-public-connector.md).
+The [real-service preparation checklist](sheets-real-service-acceptance.md)
+provides a nonsecret Site example, independent read cells and a proposed
+two-row append permission boundary. It is preparation, not completed acceptance.
