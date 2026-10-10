@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from actql_sdk._local_core import LocalCore, _PhysicalInput
+from actql_sdk._local_core import LocalCore, LocalCoreResources, _PhysicalInput
 
 
 class LocalImportTests(unittest.TestCase):
@@ -32,7 +32,8 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
 
     def test_invalid_artifact_rejected_before_optional_engine_import(self):
         with self.assertRaisesRegex(ValueError, 'artifact or capacity'):
-            LocalCore(b'not a module', digest='0' * 64, transfer_capacity=65536)
+            LocalCore(b'not a module', digest='0' * 64, transfer_capacity=65536,
+                      resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536))
 
     def test_scalar_budgets_rejected_before_optional_engine_import(self):
         module = b'installed module'
@@ -48,7 +49,27 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
             for settings in cases:
                 with self.subTest(settings=settings):
                     with self.assertRaisesRegex(ValueError, 'artifact or capacity'):
-                        LocalCore(module, digest=digest, **settings)
+                        LocalCore(module, digest=digest,
+                                  resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536),
+                                  **settings)
+
+    def test_invalid_root_limits_rejected_before_optional_engine_import(self):
+        module = b'installed module'
+        digest = hashlib.sha256(module).hexdigest()
+        cases = (
+            LocalCoreResources(0, 1, 0, 0, 0, 16 * 1024 * 1024 + 65536),
+            LocalCoreResources(False, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536),
+            LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65535),
+            LocalCoreResources(0, 8, 0, -1, 0, 16 * 1024 * 1024 + 65536),
+            LocalCoreResources(0, 8, 0, 0, 0, 2**63),
+        )
+        with patch('actql_sdk._local_core.import_module',
+                   side_effect=AssertionError('Invalid root reached Wasmtime')):
+            for resources in cases:
+                with self.subTest(resources=resources):
+                    with self.assertRaises(ValueError):
+                        LocalCore(module, digest=digest, transfer_capacity=65536,
+                                  resources=resources)
 
     def test_physical_cleanup_fact_survives_missing_core_acknowledgement(self):
         core = LocalCore.__new__(LocalCore)

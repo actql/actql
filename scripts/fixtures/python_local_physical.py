@@ -37,7 +37,8 @@ class PhysicalFixture:
             ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned')}
         self.instance = self.linker.instantiate(self.store, self.module)
         self.exports = self.instance.exports(self.store)
-        assert self.call('open', capacity, slots, 1048576) == 0
+        assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
+                              32000000, 200000000, 16 * 1024 * 1024 + capacity) == 0
 
     def call(self, name, *args):
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)

@@ -7,14 +7,14 @@ import sys
 import wasmtime
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/python-sdk/src'))
-from actql_sdk._local_core import LocalCore
+from actql_sdk._local_core import LocalCore, LocalCoreResources
 
 
 module = Path(sys.argv[1]).read_bytes()
 digest = hashlib.sha256(module).hexdigest()
 payload = '{"e\u0301/~😀":"line\\r\\n😀","nullable":null}'.encode('utf-8')
-core = LocalCore(module, digest=digest, transfer_capacity=65536)
-other = LocalCore(module, digest=digest, transfer_capacity=65536)
+core = LocalCore(module, digest=digest, transfer_capacity=65536, resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536))
+other = LocalCore(module, digest=digest, transfer_capacity=65536, resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536))
 ready = False
 attempts = 0
 
@@ -52,7 +52,7 @@ assert attempts == 3
 assert other.close() is True
 
 # A real trap during transfer retains the handle issued before allocation.
-trapped = LocalCore(module, digest=digest, transfer_capacity=262144)
+trapped = LocalCore(module, digest=digest, transfer_capacity=262144, resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 262144))
 try:
     ready = False
     large = b'"' + b'x' * 65534 + b'"'
@@ -88,7 +88,7 @@ finally:
         assert trapped.close() is True
 
 # The physical callback cannot recursively mutate the live Wasm instance.
-reentrant = LocalCore(module, digest=digest, transfer_capacity=65536)
+reentrant = LocalCore(module, digest=digest, transfer_capacity=65536, resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536))
 try:
     ready = False
     loan = reentrant.reserve_input(b'null',
@@ -104,7 +104,7 @@ finally:
 
 # Stop the Wasm instruction stream after the physical callback succeeds.
 # Retrying the exact close acknowledges that saved fact without double cleanup.
-acknowledgement = LocalCore(module, digest=digest, transfer_capacity=65536)
+acknowledgement = LocalCore(module, digest=digest, transfer_capacity=65536, resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536))
 try:
     physical_closes = 0
     def close_then_interrupt():
@@ -132,7 +132,7 @@ finally:
         assert acknowledgement.close() is True
 
 try:
-    LocalCore(module, digest='0' * 64, transfer_capacity=65536)
+    LocalCore(module, digest='0' * 64, transfer_capacity=65536, resources=LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536))
 except ValueError:
     pass
 else:

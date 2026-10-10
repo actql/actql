@@ -5,6 +5,7 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/source_value" @source,
   "actql/actql/client_host_buffers" @buffers,
+  "actql/actql/physical_resources" @resources,
   "actql/actql/client_local_preparation" @preparation,
   "actql/actql/client_local_run" @local_run,
   "actql/actql/execution_authorization" @authorization,

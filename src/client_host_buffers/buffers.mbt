@@ -482,3 +482,13 @@ pub fn close_pool(pool : BufferPool) -> Result[Unit, BufferIssue] {
   pool.settled = true
   Ok(())
 }
+
+///|
+/// This pool's live reservation, independent of other root Ledger holdings.
+pub fn buffer_pool_reserved(pool : BufferPool) -> Int64 {
+  if pool.settled {
+    0L
+  } else {
+    @resources.shared_capacity_usage(pool.capacity).capacity
+  }
+}

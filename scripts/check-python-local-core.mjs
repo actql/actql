@@ -51,6 +51,9 @@ if(process.argv.includes('--build-and-consume')){
   const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
   assert.equal(physical.success,true);
   assert.equal(physical.module_sha256,digest);
+  const workspace=JSON.parse(run(python,['scripts/fixtures/python-local-workspace-abi.py',module]));
+  assert.equal(workspace.success,true);
+  assert.equal(workspace.module_sha256,digest);
   const sourceEnvironment=JSON.parse(run(python,['scripts/fixtures/python-local-source-environment-abi.py',module]));
   assert.equal(sourceEnvironment.success,true);
   assert.equal(sourceEnvironment.module_sha256,digest);
@@ -61,7 +64,7 @@ if(process.argv.includes('--build-and-consume')){
   assert.equal(materials.success,true);
   assert.equal(materials.module_sha256,digest);
   const record={source_sha:source,module,module_sha256:digest,
-    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,source_environment:sourceEnvironment,run_preparation:runPreparation,materials};
+    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,workspace,source_environment:sourceEnvironment,run_preparation:runPreparation,materials};
   try {
     await writeFile(join(receipt,'receipt.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
   } catch (error) {

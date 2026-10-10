@@ -18,6 +18,8 @@ pub fn buffer_output_limit(BufferPool, BufferSlot) -> Int?
 
 pub fn buffer_pool_ledger_usage(BufferPool) -> @physical_resources.LedgerUsage
 
+pub fn buffer_pool_reserved(BufferPool) -> Int64
+
 pub fn buffer_pool_usage(BufferPool) -> @physical_resources.SharedCapacityUsage
 
 pub fn buffer_serial(BufferSlot) -> Int

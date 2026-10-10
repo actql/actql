@@ -28,6 +28,33 @@ class LocalCoreInitializationError(RuntimeError):
         super().__init__('Local Core initialization failed with cleanup pending')
 
 
+@dataclass(frozen=True, slots=True)
+class LocalCoreResources:
+    """Trusted installed Host limits, independent of instruction fuel."""
+
+    planning_work: int
+    attempts: int
+    holdings: int
+    transfer_bytes: int
+    retained_bytes: int
+    execution_bytes: int
+
+    def valid(self) -> bool:
+        return (all(type(value) is int and 0 <= value <= 2**31 - 1
+                    for value in (self.planning_work, self.attempts, self.holdings))
+                and self.attempts >= 2
+                and all(type(value) is int and 0 <= value <= 2**63 - 1
+                        for value in (self.transfer_bytes, self.retained_bytes,
+                                      self.execution_bytes)))
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class _Workspace:
+    owner: object
+    ticket: int
+    handle: int
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class _Input:
     owner: object
@@ -60,7 +87,7 @@ class _Output:
 
 # This is the private in-process ABI, independent of Client wire versions.
 _BUFFER_SIGNATURES = {
-    'open': ('i64 i64 i32 i32', 'i32'),
+    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'fill': ('i64 i32 i32 i32', 'i32'),
     'seal': ('i64 i32', 'i32'),
@@ -122,6 +149,11 @@ _SOURCE_SIGNATURES = {
     'command_length': ('i64 i32', 'i32'),
     'close_command': ('i64 i32', 'i32'),
 }
+_WORKSPACE_SIGNATURES = {
+    'reserve': ('i64 i32 i64', 'i32'),
+    'close': ('i64 i32', 'i32'),
+    'root_reserved': ('i64', 'i64'),
+}
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
@@ -146,13 +178,15 @@ class LocalCore:
     allowance and its other holdings in the existing shared capacity Owner.
     """
 
-    def __init__(self, module: bytes, *, digest: str, transfer_capacity: int,
+    def __init__(self, module: bytes, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
                  slots: int = 32, fuel: int = 100_000_000) -> None:
         if (type(module) is not bytes or hashlib.sha256(module).hexdigest() != digest
                 or type(transfer_capacity) is not int
                 or not 0 < transfer_capacity <= 2**63 - 1
                 or type(slots) is not int or not 1 <= slots <= 1024
-                or type(fuel) is not int or not 0 < fuel <= 2**64 - 1):
+                or type(fuel) is not int or not 0 < fuel <= 2**64 - 1
+                or type(resources) is not LocalCoreResources or not resources.valid()
+                or transfer_capacity > resources.execution_bytes - _MEMORY_LIMIT):
             raise ValueError('Invalid installed Local Core artifact or capacity')
         # Remote-only imports never import or initialize the optional engine.
         try:
@@ -165,7 +199,7 @@ class LocalCore:
         self._inputs: dict[int, _PhysicalInput] = {}
         self._native_loans: dict[int, _NativeAttempt] = {}
         self._native_observers: dict[int, tuple[Callable[[], bool], Callable[[], bool], Callable[[], bool]]] = {}
-        self._loans: dict[int, _Input | _Output] = {}
+        self._loans: dict[int, _Input | _Output | _Workspace] = {}
         self._released: set[int] = set()
         self._next_ticket = 1
         self._closed = False
@@ -202,6 +236,8 @@ class LocalCore:
                              for name, value in _MATERIAL_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
                              for name, value in _SOURCE_SIGNATURES.items()})
+            expected.update({'actql_workspace_' + name: value
+                             for name, value in _WORKSPACE_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -229,10 +265,13 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 6:
+            if self._exports['actql_host_abi_version'](self._store) != 7:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
-                                        slots, 1_048_576))
+                                        slots, 1_048_576, resources.planning_work,
+                                        resources.attempts, resources.holdings,
+                                        resources.transfer_bytes, resources.retained_bytes,
+                                        resources.execution_bytes))
         except BaseException as error:
             self._retired = True
             self._closing = True
@@ -341,8 +380,8 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
-    def _owned(self, value: _Input | _Output) -> None:
-        if (type(value) not in (_Input, _Output) or
+    def _owned(self, value: _Input | _Output | _Workspace) -> None:
+        if (type(value) not in (_Input, _Output, _Workspace) or
                 value.owner is not self._identity or
                 self._loans.get(value.ticket) is not value):
             raise ValueError('Foreign or released Local input')
@@ -356,6 +395,39 @@ class LocalCore:
         self._owned(value)
         if type(value) is not _Input:
             raise ValueError('Local transfer requires an input loan')
+
+    def reserve_workspace(self, bytes: int, *, stopped: Callable[[], bool],
+                          cleanup: Callable[[], bool]) -> _Workspace:
+        """Reserve before physical allocation; this loan permits no Run I/O."""
+        with self._lock:
+            if (self._closing or type(bytes) is not int or not 0 < bytes <= 2**63 - 1
+                    or not callable(stopped) or not callable(cleanup)):
+                raise ValueError('Invalid Local physical workspace reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: stopped())
+            handle = self._call('workspace', 'reserve', ticket, bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_workspace', handle)
+            value = _Workspace(self._identity, ticket, handle)
+            self._loans[ticket] = value
+            return value
+
+    def close_workspace(self, value: _Workspace) -> bool:
+        with self._lock:
+            self._owned(value)
+            if type(value) is not _Workspace:
+                raise ValueError('Local workspace requires its exact loan')
+            code = self._call('workspace', 'close', value.handle)
+            if code == -9:
+                return False
+            self._check('close_workspace', code)
+            self._loans.pop(value.ticket)
+            self._released.discard(value.ticket)
+            return True
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:

@@ -21,7 +21,7 @@ does not check a Program or admit a Run.
 
 An allocation is retired before cleanup. Readers must acknowledge physical stop
 before their exact borrow is returned. Failed stop or cleanup retains the same
-handle and allocation for retry. The root reservation is settled only after all
+handle and allocation for retry. The pool's reservation is settled only after all
 allocations are released. Closing a pool blocks further admission immediately.
 
 ## Instance-private Wasm facade
@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 6; this private ABI
+before opening the instance. `actql_host_abi_version` returns 7; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 4 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 7 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -515,7 +515,7 @@ publication and cleanup observations from their existing Owners.
 
 ## Installed Source publication
 
-The private ABI 4 `actql_program_install_source_environment` takes one
+The private `actql_program_install_source_environment` takes one
 pre-reserved, closed Host configuration with `environment` and `publication`
 strings. The original canonical environment is admitted by the existing Check
 Environment Owner. `client_source_publication` contains the same publication
@@ -541,3 +541,36 @@ reservation, transfer production, Native start and receipt feed are refused
 before further I/O. Explicit retirement of an existing loan remains possible.
 This barrier does not assert that a trapped Core retired its resources, refill
 instruction fuel, retry the interrupted operation or dispose a pending Run.
+
+## Installed Host root capacity
+
+Private ABI 7 requires explicit trusted Host resource limits when opening the
+instance. The existing Ledger reserves the fixed 16 MiB linear-memory allowance
+and the configured transfer pool. Physical workspace loans reserve against
+that exact Ledger; concurrent workspace and transfer allowances cannot each
+spend the same remaining capacity. The scalar configuration is range-checked
+before optional engine import and admitted again by the existing Core Ledger.
+The instruction fuel policy is independent and unchanged.
+
+`actql_workspace_reserve` registers a pre-I/O workspace loan and
+`actql_workspace_close` retires that same loan after separate physical-stop
+and cleanup callbacks. A workspace ticket cannot also select a transfer or
+command output. Python keeps the issued identity-bearing loan; copied, foreign
+and cross-family loans fail before I/O. Rejected reservation removes the
+unissued Python registration, while a trap retains it and closes admission.
+
+`actql_buffer_reserved` reports that pool's live lease; the new
+`actql_workspace_root_reserved` reports all live execution-resource reservations
+on the shared root. Pool close releases only the pool and waits for workspace
+retirement before acknowledging Host retirement. The fixed Wasm lease is marked
+cleanup pending and remains reserved while the Store is still alive. Physical
+Store/Linker/Module/Engine disposal belongs to the same Python bridge and keeps
+failed handles for retry. No logical operation reports that live Wasm memory
+has already been returned.
+
+Bootstrap loads the bounded installed module before its own in-module Ledger
+can run; it starts no Run or Source I/O. This connection does not yet establish
+full product accounting for Wasmtime compilation/code memory, Python metadata,
+parsed command values, SQLite cache or DuckDB workspace. The installed assembly
+must bind the remaining physical limits and reservations before advertising an
+aggregate runtime guarantee.
