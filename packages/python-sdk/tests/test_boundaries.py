@@ -215,6 +215,11 @@ class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
     async def test_check_and_sync_loop_rejection_do_not_send(self):
         with self.assertRaises(ClientError):
             self.client.check({}, kind='program', scope='template_only', parameters=None)
+        for options in [{'format': None}, {'parameter_declarations': None}]:
+            with self.assertRaises(ClientError):
+                self.client.check({}, kind='program', scope='template_only', **options)
+        with self.assertRaises(ClientError):
+            self.client.check('SELECT 1 AS n', kind='text', scope='bound_input', format='sql', parameter_declarations=None)
         with self.assertRaises(ClientError) as error:
             Client.connect('https://host.invalid/', 'token', transport=httpx.MockTransport(lambda request: self.fail('Unexpected I/O')))
         self.assertEqual(error.exception.code, 'SyncClientInRunningEventLoop')

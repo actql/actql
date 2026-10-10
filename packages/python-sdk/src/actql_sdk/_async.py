@@ -16,6 +16,7 @@ from ._diagnostics import bind_check, retain_submission_check
 from ._checkpoints import capture_signer, signed_answer, review_bytes_match_cid
 
 _submission_inputs = weakref.WeakKeyDictionary()
+_MISSING = object()
 
 
 def get_submission_input(result):
@@ -167,15 +168,17 @@ class AsyncClient:
             raise ClientError('SubmissionEpochUnavailable' if epoch is None else 'InvalidSubmissionReference')
         return freeze(ref)
 
-    def check(self, input, *, kind, scope, format=None, parameter_declarations=None, **options):
+    def check(self, input, *, kind, scope, format=_MISSING, parameter_declarations=_MISSING, **options):
         if set(options) - {'parameters'} or kind not in ('text', 'program') or scope not in ('template_only', 'bound_input'):
             raise ClientError('InvalidCheckRequest')
         if scope == 'template_only' and 'parameters' in options:
             raise ClientError('InvalidCheckRequest')
-        if kind == 'program' and (format is not None or parameter_declarations is not None):
+        if kind == 'program' and (format is not _MISSING or parameter_declarations is not _MISSING):
+            raise ClientError('InvalidCheckRequest')
+        if kind == 'text' and format is _MISSING:
             raise ClientError('InvalidCheckRequest')
         item = input if kind == 'program' else {'text': input, 'format': format}
-        if kind == 'text' and parameter_declarations is not None:
+        if kind == 'text' and parameter_declarations is not _MISSING:
             item['parameterDeclarations'] = parameter_declarations
         body = {'kind': kind, 'scope': scope, 'input': item}
         if scope == 'bound_input':
@@ -191,9 +194,9 @@ class AsyncClient:
     def start(self, program, *, submission_ref, parameters=None, attempt_id=None):
         return self._prepare_start('program', program, submission_ref, parameters, attempt_id)
 
-    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=None, attempt_id=None):
+    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=_MISSING, attempt_id=None):
         item = {'text': text, 'format': format}
-        if parameter_declarations is not None:
+        if parameter_declarations is not _MISSING:
             item['parameterDeclarations'] = parameter_declarations
         return self._prepare_start('aql', item, submission_ref, parameters, attempt_id)
 
