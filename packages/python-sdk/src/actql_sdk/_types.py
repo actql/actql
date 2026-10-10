@@ -170,11 +170,11 @@ SubmissionLookup5 = TypedDict("SubmissionLookup5", {"kind": Required["Literal[\"
 
 SubmissionLookup = SubmissionLookup0 | SubmissionLookup1 | SubmissionLookup2 | SubmissionLookup3 | SubmissionLookup4 | SubmissionLookup5
 
-CancellationRef = TypedDict("CancellationRef", {"namespaceId": Required["str"], "authorityScopeCid": Required["str"], "runDefinitionCid": Required["str"]}, total=False)
+CancellationRefField = TypedDict("CancellationRefField", {"namespaceId": Required["str"], "authorityScopeCid": Required["str"], "runDefinitionCid": Required["str"]}, total=False)
 
 CancellationCancelRef = TypedDict("CancellationCancelRef", {"namespaceId": Required["str"], "authorityScopeCid": Required["str"], "runDefinitionCid": Required["str"], "cancelId": Required["str"], "expectedRevision": Required["int"]}, total=False)
 
-Cancellation = TypedDict("Cancellation", {"ref": Required["CancellationRef"], "kind": Required["Literal[\"accepted\", \"already_requested\", \"already_terminal\"]"], "revision": Required["int"], "cancelRef": Required["CancellationCancelRef"]}, total=False)
+Cancellation = TypedDict("Cancellation", {"ref": Required["CancellationRefField"], "kind": Required["Literal[\"accepted\", \"already_requested\", \"already_terminal\"]"], "revision": Required["int"], "cancelRef": Required["CancellationCancelRef"]}, total=False)
 
 RunRef = TypedDict("RunRef", {"namespaceId": Required["str"], "authorityScopeCid": Required["str"], "runDefinitionCid": Required["str"]}, total=False)
 
