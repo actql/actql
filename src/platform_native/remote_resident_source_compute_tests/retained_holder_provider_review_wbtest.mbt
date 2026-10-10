@@ -152,7 +152,22 @@ fn retained_holder_provider_review(
     Err(Dependency(_)) => abort("original review: dependency capture refused")
     Err(Manifest(_)) => abort("original review: manifest refused")
     Err(Inventory(_)) => abort("original review: inventory refused")
-    Err(Capture(_)) => abort("original review: Captured Run refused")
+    Err(Capture(Context(ForeignInput))) =>
+      abort("original review: Captured Run foreign context")
+    Err(Capture(Context(Plan(_)))) =>
+      abort("original review: Captured Run plan refused")
+    Err(Capture(Context(Proof(_)))) =>
+      abort("original review: Captured Run proof refused")
+    Err(Capture(Context(Encoding))) =>
+      abort("original review: Captured Run encoding refused")
+    Err(Capture(Capture(CaptureIssuanceEncoding))) =>
+      abort("original review: Captured Run issuance budget or encoding")
+    Err(Capture(Capture(CaptureIssuanceInventoryMismatch(_)))) =>
+      abort("original review: Captured Run inventory mismatch")
+    Err(Capture(Capture(_))) =>
+      abort("original review: Captured Run issuance refused")
+    Err(Capture(Unavailable)) =>
+      abort("original review: Captured Run unavailable")
     Err(_) => abort("original review: completion unavailable")
   }
   println("native-original-review: captured completion confirmed")
