@@ -981,8 +981,10 @@ for (const [exitCode, error] of [[0, true], [7, true], [0, false]]) {
         require('fs').writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
         child.disconnect(); child.unref(); console.log('before drain failure'); process.exit(${exitCode});
       });`;
-    const result = await start(f, {timeoutSeconds: 0.7, steps: steps(source)},
-      {NODE_OPTIONS: `--import=${preload}`}).done;
+    // A drain fault still cancels a real inherited-pipe descendant. Allow the
+    // same bounded normal-cancellation grace as the other lifecycle fixtures.
+    const result = await start(f, {timeoutSeconds: 0.7, graceSeconds: cancellationGraceSeconds,
+      steps: steps(source)}, {NODE_OPTIONS: `--import=${preload}`}).done;
     assert.equal(result.code, exitCode || (error ? 1 : 124), result.stderr);
     const record = summary(attempts(f)[0]);
     assert.equal(record.exitCode, result.code);
