@@ -45,7 +45,6 @@ test "SGA script rejects unknown references unconnected consumers and extra inpu
     suffix in [
       "DATA normalized = FROM g |> normalize_graph(with: 'g'); FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id",
       "DATA normalized = FROM g |> normalize_graph(extra: true); FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id",
-      "DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id",
       "DATA normalized = FROM g |> normalize_graph() |> SELECT id; FROM normalized |> SELECT id",
       "FROM n |> normalize_graph() |> SELECT id",
     ] {
@@ -64,6 +63,21 @@ test "SGA script rejects unknown references unconnected consumers and extra inpu
       msg=suffix,
     )
   }
+  // The original mean fixture is malformed independently of its unconnected
+  // source consumer: weights, support and properties are all required.
+  let incomplete_mean = @query.parse_query_script(
+    prefix +
+    "DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile_query_script(
+      incomplete_mean,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(InvalidQuery),
+  )
   let unknown = @query.parse_query_script(
     prefix +
     "DATA normalized = FROM later |> normalize_graph(); FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id",
