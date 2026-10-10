@@ -89,7 +89,7 @@ def structured_checks(client):
 
 def authored_executions(client):
     program = authoring_program()
-    program['params'] = {}
+    del program['params']
     program['stages'][0]['steps'][1]['derive']['n'] = 'id + 1'
     run = yield client.start(program,
         submission_ref=client.new_submission(nonce='python-program-' + facade))
