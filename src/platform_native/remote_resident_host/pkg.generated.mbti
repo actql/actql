@@ -317,6 +317,7 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
   Encoding
   Keys(@effect_application.EffectPreviewRecoveryKeysIssue)
   Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  RunBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
 }
 
 pub(all) enum ResidentEffectRunCaptureIssue {
