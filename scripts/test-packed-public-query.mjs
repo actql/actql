@@ -113,6 +113,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+    ['scripts/fixtures/concat-expression-reuse-source-input.mjs', 'concat-expression-reuse-source-input.mjs'],
   ['scripts/fixtures/distinct-order-member-source-input.mjs', 'distinct-order-member-source-input.mjs'],
   ['scripts/fixtures/sqrt-source-input.mjs', 'sqrt-source-input.mjs'],
   ['scripts/fixtures/ceiling-source-input.mjs', 'ceiling-source-input.mjs'],
@@ -287,6 +288,9 @@ if (process.argv.includes('--graph-property-predicate-only')) {
 }
 if (process.argv.includes('--grouped-in-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
+}
+if (process.argv.includes('--concat-expression-reuse-only')) {
+  runtimeEnvironment.ACTQL_TEST_CONCAT_REUSE_ONLY = '1';
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
@@ -633,7 +637,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--abs-only', '--distinct-a
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
@@ -750,7 +754,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   let restartSucceeded = false, restartFailure;
@@ -793,6 +797,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--grouped-implicit-property-names-only') ||
     process.argv.includes('--group-having-implicit-aliases-only') ||
     process.argv.includes('--distinct-order-only') ||
+    process.argv.includes('--concat-expression-reuse-only') ||
     process.argv.includes('--implicit-property-only') ||
     process.argv.includes('--computed-object-property-only') ||
   process.argv.includes('--source-free-only') ||
