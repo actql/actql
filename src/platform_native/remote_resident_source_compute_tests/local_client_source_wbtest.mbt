@@ -6,6 +6,7 @@
 fn local_client_source_publication_case(
   race : Bool,
   cancel_before_start? : Bool = false,
+  delivery_handoff? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Source acceptance requires its actual DuckDB fixture")
@@ -14,7 +15,11 @@ fn local_client_source_publication_case(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
   ).unwrap()
   let library = @duckdb.load_library(library_path).unwrap()
-  let name = "native-client-source-" + @env.now().to_string() + ".duckdb"
+  let name = if delivery_handoff {
+    "native-client-source-delivery-process.duckdb"
+  } else {
+    "native-client-source-" + @env.now().to_string() + ".duckdb"
+  }
   let path = root_path + "/" + name
   let root = @filesystem.open_root(root_path).unwrap()
   resident_compute_database(library, path)
@@ -442,6 +447,46 @@ fn local_client_source_publication_case(
   assert_eq(acquisitions, 1)
   assert_eq(consumers, 1)
   assert_eq(cleanups, 1)
+  if delivery_handoff {
+    let status = initial_store.inspect_result_delivery(
+      "native-cli-sink-after-reopen",
+    )
+    // The original Store was closed. Reopen its exact adopted file only to
+    // collect already-issued reference facts; never create replacement data.
+    assert_true(status is Err(@store.Closed))
+    let retained_store = @store.open_store(
+      sqlite,
+      store_root,
+      local_client_publication_cid("native-client-original-store"),
+      128L,
+      8L,
+      1000000L,
+    ).unwrap()
+    let status = retained_store
+      .inspect_result_delivery("native-cli-sink-after-reopen")
+      .unwrap()
+    for
+      (key, value) in [
+        (
+          "submission",
+          @client.native_client_submission_reference_wire(reference),
+        ),
+        ("scope", scope),
+        ("run", @publication.publication_contract_identity(definition)),
+        ("attempt", status.delivery_attempt_cid),
+        ("record", status.delivery_record_cid),
+        ("receipt", status.result_delivery_receipt_cid.unwrap()),
+        ("acquisitions", acquisitions.to_string()),
+        ("consumers", consumers.to_string()),
+        ("cleanups", cleanups.to_string()),
+      ] {
+      database
+      .insert("test_source_delivery_reference", key, @utf8.encode(value))
+      .unwrap()
+      |> ignore
+    }
+    assert_true(retained_store.close().unwrap())
+  }
   database.close_checked().unwrap()
   resident_compute_reclaim(root, name)
 }
