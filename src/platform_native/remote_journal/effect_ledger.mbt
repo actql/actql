@@ -9,6 +9,9 @@ pub(all) struct NativeEffectSavedResponse {
 
 ///|
 /// Original Store-owned row facts. These confer no send or cleanup permission.
+/// Only the Native journal can construct custody. Other targets retain the
+/// read-only interface and return UnsupportedTarget rather than fabricate it.
+#warnings("-struct_never_constructed")
 pub struct NativeEffectRowCustody {
   head : @effect.EffectLedgerEntry
   dispatching : @effect.EffectLedgerEntry?
