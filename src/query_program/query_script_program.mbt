@@ -44,6 +44,7 @@ fn lower_script_relation(
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
+  positional_set_output? : Bool = false,
 ) -> Input raise Abort {
   let (known, graphs) = if @query.cte_count(query) == 0 {
     (known, graphs)
@@ -103,6 +104,7 @@ fn lower_script_relation(
     retained~,
     carry_ranges~,
     graphs~,
+    positional_set_output~,
   )
 }
 
@@ -120,6 +122,7 @@ fn lower_script_relation_term(
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
+  positional_set_output? : Bool = false,
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     guard script_graph_input(query, graphs) is Some(graph) else {
@@ -220,6 +223,7 @@ fn lower_script_relation_term(
     preserved_scope=preserved,
     prefix_steps=steps.copy(),
     prefix_context=Some(context),
+    positional_set_output~,
   )
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
