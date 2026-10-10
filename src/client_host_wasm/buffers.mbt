@@ -39,6 +39,7 @@ priv struct Instance {
   native_sources : Map[Int, StoredNativeSourceConfiguration]
   native_attempts : Map[Int, StoredNativeAttempt]
   native_commands : Map[Int, StoredNativeCommand]
+  computes : Map[Int, StoredNativeCompute]
   mut next_handle : Int
 }
 
@@ -141,6 +142,7 @@ pub fn open(
         native_sources: {},
         native_attempts: {},
         native_commands: {},
+        computes: {},
         next_handle: 1,
       })
       0
@@ -315,6 +317,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.native_sources.clear()
     value.native_attempts.clear()
     value.native_commands.clear()
+    value.computes.clear()
   }
   result
 }

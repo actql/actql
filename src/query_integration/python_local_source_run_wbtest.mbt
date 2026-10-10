@@ -307,6 +307,7 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   let run = @local_run.local_compute_run(host)
   assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
   assert_true(@strategy.captured_task_activation_required(run))
+  assert_true(@strategy.captured_task_retirement_pending(run))
   let operations = @local_run.start_local_compute_task(
       host,
       compute_start,
@@ -437,6 +438,10 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   assert_true((operations.cleanup_refresh)())
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
+  assert_true(@strategy.captured_task_retirement_pending(run))
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  assert_true(!@strategy.captured_task_retirement_pending(run))
   assert_eq(
     @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
     128L,

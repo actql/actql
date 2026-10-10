@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 7; this private ABI
+before opening the instance. `actql_host_abi_version` returns 8; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 7 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 8 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -544,7 +544,7 @@ instruction fuel, retry the interrupted operation or dispose a pending Run.
 
 ## Installed Host root capacity
 
-Private ABI 7 requires explicit trusted Host resource limits when opening the
+The installed Host requires explicit trusted Host resource limits when opening the
 instance. The existing Ledger reserves the fixed 16 MiB linear-memory allowance
 and the configured transfer pool. Physical workspace loans reserve against
 that exact Ledger; concurrent workspace and transfer allowances cannot each
@@ -594,3 +594,27 @@ before calling this physical assembly. Its configured workspace envelope and
 DuckDB buffer-manager memory limit are distinct. This connection does not claim
 that the buffer-manager setting limits every DuckDB allocation, or that all
 Python/native runtime memory is already covered by the product Root budget.
+
+## Exact Native capture into Compute
+
+Private ABI 8 adds `actql_compute_reserve/configure/configured/close`. Reservation
+borrows the immutable configuration before evaluation and is issued only once
+for the exact completed Native attempt. It does not activate a task. The closed
+configuration carries current `read_account`, `registry`, `values`, optional
+`fragment` and optional `ordered` bodies; explicit NULL is not an omitted body.
+
+Configuration rechecks the existing read Account Owner, asks the Native Owner
+for the exact retained capture, and configures existing captured Compute on the
+same root Ledger. It binds the original accepted `LocalRunPhysicalStart`; no
+fresh physically-unstarted assertion or replacement Run start is manufactured.
+The Host reference is retained before start binding. Interrupted construction
+keeps its pending record, input borrow and Native parent rather than declaring
+cleanup safe or silently invoking construction again.
+
+Native attempt closure waits for its Compute children. Compute retirement stops
+new work, closes each existing result port and refreshes the existing task
+Owner. `captured_task_retirement_pending` observes tracked task/result records
+and pins, independent of other root workspace reservations. It excludes
+caller-owned Source captures and resident-environment responsibilities, which
+remain with their existing Owners. The sealed Local profile preserves those
+boundaries. Configuration/readiness is not dispatch, publication or success.

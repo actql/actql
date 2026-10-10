@@ -8,6 +8,7 @@ priv struct StoredNativeAttempt {
   mut invoked : Bool
   mut closing : Bool
   mut event_pending : Bool
+  mut compute_reserved : Bool
   mut event_borrow : @buffers.BufferBorrow?
   mut failed : Bool
   mut observation : @native_acquisition.DuckDBNativeObservation?
@@ -57,6 +58,7 @@ pub fn reserve_native_attempt(
     invoked: false,
     closing: false,
     event_pending: false,
+    compute_reserved: false,
     event_borrow: None,
     failed: false,
     observation: None,
@@ -167,7 +169,8 @@ pub fn close_native_attempt(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
-  if value.native_commands.values().any(command => command.attempt == handle) {
+  if value.native_commands.values().any(command => command.attempt == handle) ||
+    value.computes.values().any(compute => compute.attempt == handle) {
     return -9
   }
   if physical_native_stopped(handle) != 0 {

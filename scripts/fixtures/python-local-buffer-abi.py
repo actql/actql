@@ -21,6 +21,11 @@ try:
     assert left.call('reserved') == 256
     assert right.exports['actql_buffer_byte'](right.store, left.nonce, handle, 0) == -1
     assert right.reads == 0
+    # Completion cannot be synthesized from arbitrary transport handles.
+    assert left.exports['actql_compute_reserve'](left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_compute_configure'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_compute_close'](left.store, left.nonce, handle) == -2
+    assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4
     assert left.call('fill', handle, 0, 1) == -5
@@ -64,4 +69,4 @@ finally:
 
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
     'cases': ['exact_values', 'instance_identity', 'aggregate_capacity',
-              'borrow_retirement', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))
+              'borrow_retirement', 'uncompleted_source_compute_refusal', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))

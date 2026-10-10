@@ -326,6 +326,8 @@ pub fn captured_task_join_output_limit(CapturedDAG, Int, Int) -> Int64?
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
 
+pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
+
 pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
 
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?

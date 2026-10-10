@@ -64,6 +64,12 @@ class _Input:
 
 
 @dataclass(frozen=True, slots=True, eq=False)
+class _Compute:
+    owner: object
+    handle: int
+
+
+@dataclass(frozen=True, slots=True, eq=False)
 class _NativeAttempt:
     owner: object
     handle: int
@@ -149,6 +155,12 @@ _SOURCE_SIGNATURES = {
     'command_length': ('i64 i32', 'i32'),
     'close_command': ('i64 i32', 'i32'),
 }
+_COMPUTE_SIGNATURES = {
+    'reserve': ('i64 i32 i32', 'i32'),
+    'configure': ('i64 i32', 'i32'),
+    'configured': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _WORKSPACE_SIGNATURES = {
     'reserve': ('i64 i32 i64', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -197,6 +209,7 @@ class LocalCore:
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
         self._inputs: dict[int, _PhysicalInput] = {}
+        self._compute_loans: dict[int, _Compute] = {}
         self._native_loans: dict[int, _NativeAttempt] = {}
         self._native_observers: dict[int, tuple[Callable[[], bool], Callable[[], bool], Callable[[], bool]]] = {}
         self._loans: dict[int, _Input | _Output | _Workspace] = {}
@@ -238,6 +251,8 @@ class LocalCore:
                              for name, value in _SOURCE_SIGNATURES.items()})
             expected.update({'actql_workspace_' + name: value
                              for name, value in _WORKSPACE_SIGNATURES.items()})
+            expected.update({'actql_compute_' + name: value
+                             for name, value in _COMPUTE_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -265,7 +280,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 7:
+            if self._exports['actql_host_abi_version'](self._store) != 8:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -537,6 +552,44 @@ class LocalCore:
             del self._native_observers[value.handle]
             return True
 
+    def _owned_compute(self, value: _Compute) -> None:
+        if (type(value) is not _Compute or value.owner is not self._identity
+                or self._compute_loans.get(value.handle) is not value):
+            raise ValueError('Foreign or released Local Compute configuration')
+
+    def reserve_native_compute(self, attempt: _NativeAttempt, input: _Input) -> _Compute:
+        """Issue custody before configuring the exact completed Native capture."""
+        with self._lock:
+            self._owned_native(attempt)
+            self._owned_input(input)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            handle = self._call('compute', 'reserve', attempt.handle, input.handle)
+            if handle <= 0:
+                raise LocalCoreError('reserve_native_compute', handle)
+            value = _Compute(self._identity, handle)
+            self._compute_loans[handle] = value
+            return value
+
+    def configure_native_compute(self, value: _Compute) -> None:
+        """Configuration is not task activation, Run success or publication."""
+        with self._lock:
+            self._owned_compute(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('configure_native_compute', self._call('compute', 'configure', value.handle))
+            self._check('native_compute_configured', self._call('compute', 'configured', value.handle))
+
+    def close_native_compute(self, value: _Compute) -> bool:
+        with self._lock:
+            self._owned_compute(value)
+            code = self._call('compute', 'close', value.handle)
+            if code == -9:
+                return False
+            self._check('close_native_compute', code)
+            del self._compute_loans[value.handle]
+            return True
+
     def reserve_native_command(self, attempt: _NativeAttempt, kind: int, account: _Input, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Borrow current authority and reserve one Core-issued command copy.
@@ -678,3 +731,4 @@ class LocalCore:
         self._released.clear()
         self._native_observers.clear()
         self._native_loans.clear()
+        self._compute_loans.clear()
