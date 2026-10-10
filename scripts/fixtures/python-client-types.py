@@ -1,5 +1,23 @@
 """Type-check only; these examples must never dispatch during verification."""
-from actql_sdk import AsyncClient, Client, JSONValue
+from actql_sdk import AsyncClient, Client, ClientError, JSONValue
+
+
+async def original_operation_lookup(client: AsyncClient, error: ClientError) -> None:
+    if error.code == 'SubmissionUnknown' and error.submission_ref is not None:
+        await client.lookup_submission(error.submission_ref)
+    if error.cleanup_client is not None:
+        if isinstance(error.cleanup_client, AsyncClient):
+            await error.cleanup_client.aclose()
+        else:
+            error.cleanup_client.close()
+
+
+def rejected_check_call_shapes(client: Client) -> None:
+    # Strict mypy also rejects an unused ignore, so broadening the public
+    # overloads to accept these invalid requests fails this consumer check.
+    client.check({}, kind='program')  # type: ignore[call-overload]
+    client.check({}, kind='program', scope='template_only', parameters={})  # type: ignore[call-overload]
+    client.check('SELECT 1 AS n', kind='text', scope='bound_input')  # type: ignore[call-overload]
 
 
 async def async_example(endpoint: str, token: str) -> list[dict[str, JSONValue]]:
