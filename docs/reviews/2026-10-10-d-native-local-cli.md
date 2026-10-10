@@ -620,3 +620,34 @@ copy/send and confirm the exact durable dispatch immediately before I/O. Receipt
 classification, common Effect Set completion, cleanup retries, public CLI
 operations, separate-process restart and packed installation remain unfinished.
 No Site or transport dispatch identity is fabricated for Direct Local execution.
+
+## Reopened original row observation custody
+
+`restore_effect_row_observation` reconstructs only an already retained original
+possibly-sent attempt. It checks current Run disclosure, the original logical
+scope and independent custody, then selects the unique common dispatching entry
+by locator and exact attempt sequence. An array position or newer lease cannot
+replace this identity. The opaque restored handle can record an unknown
+observation after cancellation or approval expiry; it cannot send, issue a new
+attempt, classify success or release resources. Missing rows return no handle
+and no evidence of non-execution. Missing, inconsistent or modified custody is
+refused rather than recreated.
+
+The independent reopen cases retain attempt 1 and the original entry CID, refuse
+the earlier process-local handle, denied disclosure and a foreign Run/scope,
+and check that lookup/restore do not advance the Run revision. Repeated unknown
+observation after reopen is idempotent even with retained cancellation.
+
+Native typechecking, the actual CLI consuming package, formatting and generated
+Native API passed in `run-4YmA8H`. The earlier bounded runtime runner for
+`999cfdd3b1b0d17db5d51112aeb2950566c22dd6` exhausted its ten-minute wait for
+the shared heavy lock and started no tests. This is unexecuted coverage, not a
+product failure or success. Fixed-candidate runtime evidence is recorded
+separately; historical passed results are not transferred to this candidate.
+
+Actual Direct Local Provider request construction/send, reserved exact-response
+custody, receipt application, common Effect Set completion, public CLI routing
+and separate-process acceptance remain unfinished. Existing Resident write APIs
+require actual Site/DispatchRequest/credential bindings and cannot serve as a
+Direct Local fallback with fabricated identities. The trusted Local bootstrap
+decision remains pending; no ambient grants or replacement state are installed.

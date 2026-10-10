@@ -238,6 +238,89 @@ test "Native unknown observation remains durable and idempotent after cancellati
     ),
     4,
   )
+  assert_true(
+    journal.record_effect_row_unknown(dispatch)
+    is Err(Checkpoint(InvalidMaterial)),
+  )
+  guard journal.restore_effect_row_observation(request, locator, () => true)
+    is Ok(Some(observation)) else {
+    fail("original observation custody missing")
+  }
+  assert_eq(
+    @effect.effect_ledger_entry_cid(observation.dispatching),
+    @effect.effect_ledger_entry_cid(dispatch.dispatching),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(before_retry)) else {
+    fail("Run missing")
+  }
+  let repeated = journal.record_effect_row_unknown(observation).unwrap()
+  assert_eq(repeated.cid, restored.cid)
+  guard journal.lookup(request, true) is Ok(Retained(after_retry)) else {
+    fail("Run missing")
+  }
+  assert_eq(after_retry.revision, before_retry.revision)
+  assert_true(after_retry.cancellation_requested)
+  reopened.close_checked().unwrap()
+}
+
+///|
+test "Native reopened original dispatch restores observation without approval or a new send" {
+  let database = epoch_test_database("client-row-observation-reopen")
+  let (journal, request, _) = resume_test_approved(database)
+  let claim = effect_row_test_claim(journal, request)
+  let (locator, key, basis) = effect_row_test_binding(request)
+  assert_true(
+    journal.restore_effect_row_observation(request, locator, () => true)
+    is Ok(None),
+  )
+  guard journal.record_effect_row_dispatch(
+      claim,
+      locator,
+      key,
+      basis,
+      () => true,
+      () => 1001L,
+    )
+    is Ok(DispatchRecorded(sent)) else {
+    fail("original dispatch missing")
+  }
+  let original_cid = sent.dispatching.cid
+  database.close_checked().unwrap()
+  let reopened = epoch_test_database("client-row-observation-reopen")
+  let journal = open_native_client_run_journal(reopened, 8).unwrap()
+  assert_true(
+    journal.restore_effect_row_observation(request, locator, () => false)
+    is Err(AuthorizationDenied),
+  )
+  let (other, _, _, _) = journal_test_run("other-request", "other-run")
+  let (foreign, _, _) = effect_row_test_binding(other)
+  assert_true(
+    journal.restore_effect_row_observation(request, foreign, () => true)
+    is Err(Checkpoint(InvalidMaterial)),
+  )
+  assert_true(
+    journal.restore_effect_row_observation(other, foreign, () => true)
+    is Err(CustodyLost),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(before)) else {
+    fail("Run missing")
+  }
+  guard journal.restore_effect_row_observation(request, locator, () => true)
+    is Ok(Some(observation)) else {
+    fail("original observation custody missing")
+  }
+  assert_eq(observation.dispatching.cid, original_cid)
+  assert_eq(observation.dispatching.attempt_sequence, 1L)
+  guard journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("Run missing")
+  }
+  assert_eq(after.revision, before.revision)
+  assert_eq(after.checkpoint.unwrap().effect_ledger.length(), 2)
+  assert_false(journal.claim_physical_start(request, true).unwrap())
+  let unknown = journal.record_effect_row_unknown(observation).unwrap()
+  assert_eq(@effect.effect_ledger_entry_state_code(unknown), 5)
+  assert_eq(unknown.attempt_sequence, 1L)
+  assert_eq(unknown.prior_entry_cid, Some(original_cid))
   reopened.close_checked().unwrap()
 }
 
@@ -509,6 +592,10 @@ test "Native missing or rewritten row history is refused against independent ori
       |> ignore
     }
     assert_true(journal.lookup(request, true) is Err(CustodyLost))
+    assert_true(
+      journal.restore_effect_row_observation(request, locator, () => true)
+      is Err(CustodyLost),
+    )
     assert_true(
       journal.record_effect_row_dispatch(
         claim,

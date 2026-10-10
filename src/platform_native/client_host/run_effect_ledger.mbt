@@ -347,3 +347,61 @@ pub fn NativeClientRunJournal::lookup_effect_row(
     )
   })
 }
+
+///|
+/// Restore observation custody for the exact original possibly-sent attempt.
+/// A retained row is not a fresh dispatch claim. Current Run disclosure is
+/// required; current write approval and lease ownership confer no additional
+/// rights here. The restored handle can retain unknown observations, not send.
+pub fn NativeClientRunJournal::restore_effect_row_observation(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  locator : @effect.LogicalItemLocator,
+  current : () -> Bool,
+) -> Result[NativeClientEffectDispatchClaim?, NativeClientRunJournalIssue] {
+  if !current() {
+    return Err(AuthorizationDenied)
+  }
+  self.transaction(() => {
+    let record = match self.retained(request) {
+      Ok(Some(value)) => value
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    if locator.logical_request_scope_cid !=
+      @host.client_request_scope_cid(request) {
+      return Err(Checkpoint(InvalidMaterial))
+    }
+    guard record.checkpoint is Some(checkpoint) &&
+      checkpoint.resolution_cid is Some(resolution_cid) else {
+      return Err(CustodyLost)
+    }
+    let locator_cid = @effect.logical_item_locator_cid(locator)
+    guard effect_ledger_head(checkpoint.effect_ledger, locator_cid)
+      is Some(head) else {
+      // Missing head grants neither sending nor evidence of non-execution.
+      return Ok(None)
+    }
+    let state = @effect.effect_ledger_entry_state_code(head)
+    if state != 1 && state != 5 {
+      return Err(Checkpoint(InvalidMaterial))
+    }
+    let original = checkpoint.effect_ledger.filter(entry => {
+      @effect.effect_ledger_entry_locator_cid(entry) == locator_cid &&
+      entry.attempt_sequence == head.attempt_sequence &&
+      @effect.effect_ledger_entry_state_code(entry) == 1
+    })
+    if original.length() != 1 {
+      return Err(CustodyLost)
+    }
+    Ok(
+      Some({
+        journal: self,
+        request,
+        checkpoint_cid: checkpoint.artifact.checkpoint_cid,
+        resolution_cid,
+        dispatching: original[0],
+      }),
+    )
+  })
+}
