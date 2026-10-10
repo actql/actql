@@ -47,7 +47,7 @@ priv enum TraversePathsPhase {
   BuildEdgeIds
   FinalizePathValue
   CommitRow
-  CommitShortestRow
+  CommitBoundedRow
   Finish
   SelectShortestPath
   LocateShortestWinner
@@ -128,7 +128,7 @@ priv struct TraversePathsState {
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
-  mut shortest_values : Array[@value.Value]
+  mut row_values : Array[@value.Value]
   mut output_row : @execution.AdmittedOutputRowCursor?
   mut value_items : @value.ArrayBuilder?
   mut value_item : Int
@@ -679,11 +679,16 @@ fn traverse_node_value(
 }
 
 ///|
-fn charge_shortest_control_work(
+fn traverse_uses_output_cursor(state : TraversePathsState) -> Bool {
+  state.shortest is Some(_) || @lower.graph_traverse_is_reach(state.prepared)
+}
+
+///|
+fn charge_traverse_control_work(
   state : TraversePathsState,
   current : Int,
 ) -> Bool {
-  if state.shortest is None {
+  if !traverse_uses_output_cursor(state) {
     return true
   }
   let spent = state.control_work_limit - state.control_work_remaining + current
@@ -1630,33 +1635,55 @@ fn traverse_paths_step(
             }
             _ => {
               used += 1
-              if state.shortest is Some(_) {
-                guard traverse_output_path(state) is Some(path) else {
-                  return @bounded.Failed(
-                    TraversePathsInputUnavailable,
-                    progress,
-                    used,
-                  )
-                }
-                let value = match field.name {
-                  @schema.Unqualified("source_id") =>
-                    graph_read_node_identity(state.source, path.nodes[0]).map(value => {
-                      value.value
-                    })
-                  @schema.Unqualified("target_id") =>
-                    graph_read_node_identity(
-                      state.source,
-                      path.nodes.last().unwrap(),
-                    ).map(value => value.value)
-                  @schema.Unqualified("hop_count") =>
-                    @value.number_value(path.edges.length().to_double())
-                  @schema.Unqualified("total_cost") =>
-                    match path.cost {
-                      Some(FiniteShortestCost(cost)) =>
-                        @value.number_value(cost)
-                      _ => None
-                    }
-                  _ => None
+              if traverse_uses_output_cursor(state) {
+                let value = if state.emit_nodes {
+                  match field.name {
+                    @schema.Unqualified("start_id") =>
+                      state.start_nodes
+                      .get(state.start_scan - 1)
+                      .bind(node => graph_read_node_identity(state.source, node))
+                      .map(value => value.value)
+                    @schema.Unqualified("node_id") =>
+                      state.node_order
+                      .get(state.emit_index)
+                      .bind(node => graph_read_node_identity(state.source, node))
+                      .map(value => value.value)
+                    @schema.Unqualified("depth") =>
+                      state.node_order
+                      .get(state.emit_index)
+                      .bind(node => state.node_depths.get(node))
+                      .bind(depth => @value.number_value(depth.to_double()))
+                    _ => None
+                  }
+                } else {
+                  guard traverse_output_path(state) is Some(path) else {
+                    return @bounded.Failed(
+                      TraversePathsInputUnavailable,
+                      progress,
+                      used,
+                    )
+                  }
+                  match field.name {
+                    @schema.Unqualified("source_id") =>
+                      graph_read_node_identity(state.source, path.nodes[0]).map(value => {
+                          value.value
+                        },
+                      )
+                    @schema.Unqualified("target_id") =>
+                      graph_read_node_identity(
+                        state.source,
+                        path.nodes.last().unwrap(),
+                      ).map(value => value.value)
+                    @schema.Unqualified("hop_count") =>
+                      @value.number_value(path.edges.length().to_double())
+                    @schema.Unqualified("total_cost") =>
+                      match path.cost {
+                        Some(FiniteShortestCost(cost)) =>
+                          @value.number_value(cost)
+                        _ => None
+                      }
+                    _ => None
+                  }
                 }
                 guard value is Some(value) else {
                   return @bounded.Failed(
@@ -1665,7 +1692,7 @@ fn traverse_paths_step(
                     used,
                   )
                 }
-                state.shortest_values.push(value)
+                state.row_values.push(value)
                 state.column += 1
                 continue
               }
@@ -1737,7 +1764,7 @@ fn traverse_paths_step(
         if state.shortest is Some(_) {
           // Keep raw immutable material private. The existing row cursor
           // performs both nested contract admission and logical measurement.
-          state.shortest_values.push(array)
+          state.row_values.push(array)
         } else {
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
             @value.recheck_runtime_value(
@@ -1761,21 +1788,21 @@ fn traverse_paths_step(
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
         }
-        if state.shortest is Some(_) {
+        if traverse_uses_output_cursor(state) {
           // The shared row cursor exclusively owns the output while yielding.
           // Charge control before acquiring it and after it releases that lock;
           // never give a later row a fresh operation-wide work budget.
-          if !charge_shortest_control_work(state, used) {
+          if !charge_traverse_control_work(state, used) {
             return @bounded.Failed(TraversePathsWorkLimit, progress, used)
           }
           let remaining = state.max_workspace_slots - state.workspace_slots
           match
             @execution.start_admitted_output_row(output, remaining, column => {
-              state.shortest_values.get(column)
+              state.row_values.get(column)
             }) {
             Ok(row) => {
               state.output_row = Some(row)
-              state.phase = CommitShortestRow
+              state.phase = CommitBoundedRow
             }
             Err(@execution.OutputRowWorkspace) =>
               return @bounded.Failed(
@@ -1802,7 +1829,7 @@ fn traverse_paths_step(
             return @bounded.Failed(TraversePathsOutput(issue), progress, used)
         }
       }
-      CommitShortestRow => {
+      CommitBoundedRow => {
         used += 1
         guard state.output_row is Some(row) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
@@ -1814,16 +1841,16 @@ fn traverse_paths_step(
           Ok(true) => {
             @execution.cleanup_admitted_output_row(row) |> ignore
             state.output_row = None
-            if !charge_shortest_control_work(state, used) {
+            if !charge_traverse_control_work(state, used) {
               return @bounded.Failed(TraversePathsWorkLimit, progress, used)
             }
             state.workspace_slots -= state.row_value_slots
             state.row_value_slots = 0
-            state.shortest_values = []
+            state.row_values = []
             state.emitted += 1
             state.emit_index += 1
             progress += 1
-            state.phase = EmitPath
+            state.phase = if state.emit_nodes { EmitNode } else { EmitPath }
           }
           Err(@execution.OutputRowWorkspace) =>
             return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
@@ -2038,7 +2065,7 @@ fn traverse_paths_step(
       }
       Finish => {
         used += 1
-        if !charge_shortest_control_work(state, used) {
+        if !charge_traverse_control_work(state, used) {
           return @bounded.Failed(TraversePathsWorkLimit, progress, used)
         }
         guard state.output is Some(output) else {
@@ -2096,7 +2123,7 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
   state.node_depths.clear()
   state.node_order.clear()
   state.values.clear()
-  state.shortest_values.clear()
+  state.row_values.clear()
   state.value_items = None
   state.predicate_input.clear()
   state.predicate_slots = 0
@@ -2115,7 +2142,7 @@ fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
     state.node_depths.length() +
     state.node_order.length() +
     state.values.length() +
-    state.shortest_values.length() +
+    state.row_values.length() +
     traverse_paths_state_workspace_usage(state).0 -
     state.workspace_slots +
     state.predicate_slots
@@ -2456,7 +2483,7 @@ fn start_traverse_paths_read(
     emit_index: 0,
     column: 0,
     values: [],
-    shortest_values: [],
+    row_values: [],
     output_row: None,
     value_items: None,
     value_item: 0,

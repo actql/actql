@@ -338,10 +338,18 @@ test "Reach independently counts exact work workspace and every pending handoff 
   // Both directions scan each self-loop twice. The outgoing occurrence
   // charges one seed membership check; traversal_neighbor rejects the
   // duplicate incoming self-loop before that check (from == to).
-  // This ceiling also permits typed value admission; it is not measured.
-  // Live slots: start index (1), depth index (1), seed path (2), endpoint (1).
-  let exact_work = 3 + 1 + 1 + 3 + 1 + 1 + (2 + 1) * edge_count
-  let exact_workspace = 1 + 1 + 2 + 1
+  // Three row reads, two complete two-component identity rechecks (32 each),
+  // a number recheck, three terminal polls, and charge setup. Logical charge
+  // polls are three names/values, two identity trees (24 each), and commit.
+  let row_control = 3 + 2 * 32 + 1 + 3 + 1 + (6 + 2 * 24 + 1)
+  let control_work = 3 + 1 + 1 + 3 + 1 + 1 + (2 + 1) * edge_count + row_control
+  // Retained row: row wrapper + one number + two 11-node identities. Text
+  // is each identity's fixed 50 bytes and 71-byte domain plus output names.
+  let output_work = 1 + 1 + 2 * 11 + 2 * (50 + 71) + (5 + 7 + 8)
+  let exact_work = control_work + output_work
+  // Seed scanning peaks at five slots. It is released before row emission,
+  // leaving start/depth/endpoint indices (3), row buffer (4), frames (3).
+  let exact_workspace = 3 + 4 + 3
   let preparation = task_test_completion(owner)
   let start = fn(control, work, workspace) {
     @local_sga.start_traverse_view(
@@ -365,7 +373,7 @@ test "Reach independently counts exact work workspace and every pending handoff 
     let finished = finish_traverse(active, quantum~, spent_work=Some(spent))
     assert_eq(finished.map(_ => true), Ok(true))
     let output = finished.unwrap()
-    assert_eq(spent.val, exact_work.to_int64())
+    assert_eq(spent.val, control_work.to_int64())
     assert_eq(@execution.completed_row_count(output), 1)
     assert_eq(
       @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
@@ -396,7 +404,7 @@ test "Reach independently counts exact work workspace and every pending handoff 
       assert_true(@graphs.producer_read_available(input))
     }
   }
-  for prefix in 0..<exact_work {
+  for prefix in 0..<control_work {
     let control = @bounded.control()
     let active = start(control, exact_work, exact_workspace)
     for index in 0..<prefix {

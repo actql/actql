@@ -43,6 +43,57 @@ All four operations remain delivery-incomplete until their vertical acceptance
 and resource/lifetime evidence are recorded. Submitting a component PR does not
 finish this assignment.
 
+## Current delivery checkpoint
+
+Draft PR #1284 contains Graft, Reach and Shortest integration; Mean is a
+separate private continuation. The historical checkpoints below retain their
+original SHAs, commands and receipts. Three private commit messages were
+wrapped before publication with trees and mapped parents unchanged; no test
+receipt is rewritten to the replacement SHA.
+
+Latest adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
+Integration commit: `33118a87b303011999d81b8d33a6efc9c2fd42ab`.
+JS source callers pass 8/8, authored Node fixtures pass 38/38, and Node Host
+and Workers generation checks pass on the merged tree before the merge commit
+(`run-7LYft9`, `focused-test-fLaoge`, `focused-test-3KyU1u`). Those working-tree
+receipts are not relabelled as clean-HEAD verification.
+
+Public Host/packed Local and HTTPS execution is still pending the occupied
+shared heavy slot. Registered public oracles and copied dependencies are not
+execution evidence. CI remains intentionally disabled. This Draft is not a
+completed delivery or a request to merge.
+
+### Reach output admission and combined work
+
+Reach now joins Shortest on the existing stepped admitted-output row cursor.
+Its borrowed identity values no longer pass through synchronous whole-value
+rechecking and output measurement during row emission. Control and retained
+value charges use one cumulative output-owner ceiling, without resetting per
+row. TRAIL's existing output behavior is unchanged by this scoped connection.
+
+For the independent two-component-identity/self-loop fixture, the original
+310 control ticks are supplemented by 72 shared recheck and 55 charge polls.
+The retained row has 24 nodes and 262 Text/name bytes. Total work is therefore
+437 + 286 = 723. Peak row workspace is three retained selection/depth/endpoint
+slots, four temporary row slots and three shared measurement frames: ten.
+Exact and one-short retain specific work/workspace causes at quantum 1, 7 and
+64. Cancellation covers all 437 pre-completion quantum-1 prefixes, including
+the exclusive output cursor, and keeps input custody through stopped cleanup.
+
+The Reach and Shortest kernel selections pass JS 6/6 on working source
+(`run-EVLyPH`, `focused-test-zIZO8W`), using
+`node scripts/local-checks.mjs test moon -- --target js src/query_integration/graph_reach_wbtest.mbt src/query_integration/graph_shortest_wbtest.mbt`.
+Selector rechecking/membership and predicate input admission still require
+their separate bounded-prefix audit. This row change alone does not establish
+boundedness of every path through the operation or public packed acceptance.
+
+The same two kernel files pass 6/6 each on Wasm and Native with matching
+`--target` selections (`run-clrMS4`, `focused-test-tIqOl7`,
+`focused-test-fGIEHP`). These are bounded local checks on the changed working
+tree, not hosted CI results. Both targets retain the independently decomposed
+723 total-work and ten-slot workspace boundary, rather than substituting
+successful measured usage for the expected limits.
+
 ## Graft implementation checkpoint
 
 The checked composition retains an immutable graft discriminant. Lowering emits
