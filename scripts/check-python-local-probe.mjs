@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdir,mkdtemp,readFile,readdir,writeFile} from 'node:fs/promises';
+import {copyFile,mkdir,mkdtemp,readFile,readdir,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join,resolve} from 'node:path';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
@@ -48,6 +48,7 @@ if(process.argv.includes('--build-and-consume')){
   const payload=join(fixture,'package/src/actql_local_probe');
   await writeFile(join(payload,'core.wasm'),wasm);
   await writeFile(join(payload,'artifact.json'),JSON.stringify(identity,null,2)+'\n');
+  await copyFile(join(root,'LICENSE'),join(fixture,'package/LICENSE'));
   const artifacts=join(scratch,'artifacts',source.slice(0,9));
   await mkdir(artifacts,{recursive:true});
   run(python,['-m','build','--wheel','--no-isolation','--outdir',artifacts,join(fixture,'package')],root);

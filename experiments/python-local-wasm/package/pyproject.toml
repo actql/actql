@@ -5,6 +5,8 @@ build-backend = "setuptools.build_meta"
 name = "actql-local-wasm-probe"
 version = "0.0.0.dev0"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = ["wasmtime==38.0.0", "duckdb==1.4.1"]
 [tool.setuptools.package-data]
 actql_local_probe = ["core.wasm", "artifact.json"]
