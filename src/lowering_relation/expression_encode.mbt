@@ -170,6 +170,8 @@ fn emit_frames(
                   Sqrt => "sqrt"
                   Abs => "abs"
                   Sign => "sign"
+                  Round => "round"
+                  Trunc => "trunc"
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"

@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "767948d07a472205a702821bad11b336a6bb1eea343e185f1ccf1db0d78dd01e",
+  "grammar_sha256": "bb3f3420458049d2f57ffdc9178fd9f5a09936df3689d051eb75ce38886d4b85",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2341,6 +2341,30 @@
               ],
               "properties": {
                 "abs": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trunc"
+              ],
+              "properties": {
+                "trunc": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round"
+              ],
+              "properties": {
+                "round": {
                   "$ref": "#/$defs/expression"
                 }
               }
@@ -7735,6 +7759,38 @@
               "properties": {
                 "op": {
                   "const": "abs"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "trunc"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "round"
                 },
                 "body": {
                   "$ref": "#/$defs/expression"
@@ -19073,6 +19129,30 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "trunc"
+              ],
+              "properties": {
+                "trunc": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round"
+              ],
+              "properties": {
+                "round": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "sign"
               ],
               "properties": {
@@ -23561,6 +23641,38 @@
               "properties": {
                 "op": {
                   "const": "abs"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "trunc"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "round"
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
@@ -30929,6 +31041,30 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "trunc"
+              ],
+              "properties": {
+                "trunc": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "round"
+              ],
+              "properties": {
+                "round": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "sign"
               ],
               "properties": {
@@ -35432,6 +35568,38 @@
               ],
               "properties": {
                 "op": {
+                  "const": "trunc"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "round"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "sign"
                 },
                 "body": {
@@ -39262,6 +39430,18 @@
       "value": "Return the 1-based Unicode scalar position of the first exact occurrence of the second string in the first, or canonical positive zero when absent. An empty second string returns 1 for every non-null first string, including the empty string. Count Unicode scalars, not UTF-8 bytes, UTF-16 code units or grapheme clusters. Default binary comparison preserves retained values without normalization, case folding, trimming or locale rules. Either NULL operand produces NULL. Positions are exact integer values in the existing bounded string domain, represented by ActQL finite binary64 number rather than the GoogleSQL INT64 type.",
       "evaluation": "Evaluate the value and then the subvalue once each when demanded, including both children when the first produces NULL. Apply strict NULL only after both evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Matching preserves logical operand charges; physical search work remains bounded and cancellable.",
       "identity": "The closed source form is {strpos: [value, subvalue]}; the machine node is {op: strpos, body: [value_node, subvalue_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "round": {
+      "signature": "Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload, non-finite value, precision argument or rounding-mode argument is admitted.",
+      "value": "Return the nearest integer, rounding exact halfway cases away from zero. Preserve already integral numbers, including the largest finite magnitudes. Use the existing ActQL arithmetic canonical positive zero rule. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. ROUND introduces no secondary evaluation or value-domain failure for an admitted finite number.",
+      "identity": "The closed source form is {round: expression}; the closed machine node is {op: round, body: expression_node}. Retain the ROUND node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "trunc": {
+      "signature": "Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload, non-finite value, precision argument or rounding-mode argument is admitted.",
+      "value": "Return the integer obtained by discarding the fractional part toward zero. Preserve already integral numbers, including the largest finite magnitudes. Use the existing ActQL arithmetic canonical positive zero rule. NULL produces NULL.",
+      "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. TRUNC introduces no secondary evaluation or value-domain failure for an admitted finite number.",
+      "identity": "The closed source form is {trunc: expression}; the closed machine node is {op: trunc, body: expression_node}. Retain the TRUNC node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
     }
   },
   "regex_ast_contract": {

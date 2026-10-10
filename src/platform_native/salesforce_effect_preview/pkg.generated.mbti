@@ -113,6 +113,7 @@ pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal
 pub fn NativeResidentEffectReview::restore_row_custody(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::result_capture(Self) -> @remote_resident_host.ResidentEffectResultCapture?
 pub fn NativeResidentEffectReview::retry_cleanup(Self) -> Result[Bool, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::review_projection(Self, () -> Bool, Int) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::settle_saved_row(Self, NativeResidentEffectWriteLimits) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::target_uses(Self) -> Array[NativeSalesforceTargetAccess]
 
