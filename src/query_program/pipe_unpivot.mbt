@@ -1,6 +1,6 @@
 ///|
-// Input field copies preserve evaluated values. Their unique physical names
-// prevent generated columns from overwriting kept columns with the same name.
+// Reuse evaluated input fields. Generated columns use unique physical names
+// to avoid overwriting kept columns with the same public name.
 // Common UNPIVOT owns expansion, typing, key evidence and capacity validation.
 fn lower_pipe_unpivot(
   construction : Construction,
@@ -21,15 +21,8 @@ fn lower_pipe_unpivot(
     }) {
     raise Abort(DuplicateOutput)
   }
-  let physical : Array[String] = []
-  let projected : Array[@builder.Node] = []
-  let mapped : Array[(String, String)] = []
-  for column in columns {
-    let slot = pipe_physical_name(physical, "aql_unpivot_input_")
-    physical.push(slot)
-    mapped.push((column.0, slot))
-    projected.push(construction.object([(slot, construction.text(column.1))]))
-  }
+  let physical = columns.map(column => column.1)
+  let mapped = columns
   let selected : Array[(String, String)] = []
   for name in clause.columns {
     let matching = mapped.filter(column => {
@@ -48,10 +41,15 @@ fn lower_pipe_unpivot(
   physical.push(name_slot)
   let value_slot = pipe_physical_name(physical, "aql_unpivot_value_")
   physical.push(value_slot)
-  let label_slot = pipe_physical_name(physical, "aql_unpivot_label_")
-  physical.push(label_slot)
+  let translated = selected.any(column => column.0 != column.1)
+  let label_slot = if translated {
+    let slot = pipe_physical_name(physical, "aql_unpivot_label_")
+    physical.push(slot)
+    slot
+  } else {
+    name_slot
+  }
   let steps : Array[Array[(String, @builder.Node)]] = [
-    [("select", construction.array(projected))],
     [
       (
         "unpivot",
@@ -98,7 +96,9 @@ fn lower_pipe_unpivot(
       ),
     ])
   }
-  steps.push([("derive", construction.object([(label_slot, label)]))])
+  if translated {
+    steps.push([("derive", construction.object([(label_slot, label)]))])
+  }
   if !clause.include_nulls {
     steps.push([
       (
@@ -125,6 +125,11 @@ fn lower_pipe_unpivot(
   (
     steps,
     visible,
-    keep.map(column => column.1) + [name_slot, value_slot, label_slot],
+    keep.map(column => column.1) +
+    (if translated {
+      [name_slot, value_slot, label_slot]
+    } else {
+      [name_slot, value_slot]
+    }),
   )
 }

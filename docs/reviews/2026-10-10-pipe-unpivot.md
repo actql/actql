@@ -22,10 +22,11 @@ The two independently known rows are `{amount:7,column_name:"x"}` and
 
 ## Connection and ownership
 
-The parser retains a single-value UNPIVOT clause. A new lowering helper copies
-current evaluated fields into uniquely named internal fields, calls common
-`unpivot`, and translates its physical field labels to resolved public column
-names. Default/explicit EXCLUDE NULLS adds an ordinary `IS NOT NULL` filter.
+The parser retains a single-value UNPIVOT clause. The lowering helper reuses
+current evaluated fields, calls common `unpivot`, and translates physical field
+labels only when they differ from resolved public column names. Fresh generated
+fields avoid collisions with kept physical fields; a redundant input-copy
+projection is not required. Default/explicit EXCLUDE NULLS adds an ordinary `IS NOT NULL` filter.
 The public scope contains unmentioned fields in input order, followed by value
 and name columns. Prior ranges and consumed columns cannot be revived.
 The existing Pipe JOIN input classifier recognizes this fresh projected scope.
@@ -47,7 +48,7 @@ language restrictions. PIVOT remains a separate unconnected operation.
 authored generated Program, a simpler checked JSON control, default filtering,
 SET/RENAME slot preservation and exact scope/name refusals. The focused JS
 selection includes the directly affected existing Pipe scope/JOIN tests.
-After the connection, 17/17 tests passed:
+After the initial connection, 17/17 tests passed:
 `_build/local-checks/attempts/run-AqRgJs` and
 `_build/focused-evidence/focused-test-a6Xf1L`.
 
@@ -56,8 +57,8 @@ independent JSON controls and source cases retain duplicates, SQL NULL,
 nullable empty schemas, changed current slots, labels and declared field order.
 Both full public registration and `--pipe-unpivot-only` use those same cases.
 The normal runner checks Named Result rows and descriptions, resend/reread and
-zero admission/provider I/O on preparation refusals. These public executions
-are not yet claimed successful by this record.
+zero admission/provider I/O on preparation refusals. The public source executions
+are not yet claimed successful by this record. See the failure boundary below.
 
 The changed query grammar/rules change the grammar-bound Run identity.
 The independent vector retains the complete preceding grammar/Run preimages
@@ -81,3 +82,42 @@ Normal clean-HEAD five-package production and packed Local/authenticated HTTPS
 must complete before this unit can claim public execution. Full Core,
 Wasm/Native execution, full packed campaigns and submitted-HEAD CI are not
 claimed by the focused checks. The wider frontend migration remains incomplete.
+
+## Initial public failure and focused correction
+
+Clean revision `56a12d9f9ac68c37cdd2940761b749523d363f66` produced all five
+normal packages in `/private/tmp/actql-b-pipe-unpivot-56a12d9f9-pack`; its
+manifest revision and all five tarball SHA-256 digests were independently
+verified. The scoped public run (`run-7xdf7R`) passed both independent JSON
+controls on Local and authenticated HTTPS. The first source case,
+`pipe-unpivot-default`, then failed after admission. The remaining source and
+refusal cases were not reached. Public evidence is retained in
+`../.codex-scratch/public-query-evidence-ChaAfs/summary.json` (relative to this
+worktree's parent directory), with `010.stdout.log` / `010.stderr.log`.
+
+The terminal `ACTQL_E_UNPUBLISHED_RUN` is not the root cause. A single-case
+standard-Host diagnostic observed
+`NodeHostFailure.LocalManagedStart(LocalDispatchIssue.Execution(RunIssue.Physical(ExecutionLimit)))`.
+Evidence: `run-gsBppD` / `focused-test-szVSrb`. These repository-runtime
+diagnostics are not fresh-packed execution evidence. No common Owner was
+modified; Node's debugger inspected the caught exception without changing
+product code. The diagnostic Stores remain in `/private/tmp/actql-b-unpivot-diagnostic-store-*`
+and must not be treated as disposable successful acceptance environments.
+
+The initial lowering copied every current field to fresh slots, then derived
+labels to undo that copying. A diagnostic JSON Program removing those two
+redundant operations succeeded with the same standard Host and unchanged
+limits, returning the independently expected three rows. Evidence:
+`run-MUyg16` / `focused-test-B6Mz4D`. That hand-edited diagnostic is not a
+source acceptance substitute. The actual lowerer now reuses the already
+evaluated input slots and emits label translation only for a real logical /
+physical name difference (such as SET or RENAME). The independently authored
+complete Program expectation was revised for this minimal lowering; expected
+rows, NULLs, multiplicity, sort and resource limits are unchanged.
+
+A new parameter-array regression checks the normal checker and absence of
+redundant copy / label slots in the unchanged default source. The focused
+parser/lowerer/scope/JOIN selection now passes 18/18:
+`run-OT9QIj` / `focused-test-e5ymmB`. Fresh normal five-package production and
+source-to-Named-Result Local / HTTPS acceptance after this correction remain
+required; the diagnostic JSON success does not satisfy that obligation.

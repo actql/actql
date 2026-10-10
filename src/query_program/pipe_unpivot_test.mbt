@@ -16,6 +16,56 @@ test "Pipe UNPIVOT has an independent checked common Program control" {
 }
 
 ///|
+test "UNPIVOT parameter input remains a checked ordinary Program" {
+  let declarations = @parameters.read_declarations(
+    Some(
+      unnest_value_cursor(
+        (
+          #|{"rows":{"type":"array","nullable":false,"max_items":3,"items":{"type":"object","nullable":false,"fields":{"id":{"type":"number","nullable":false},"jan":{"type":"number","nullable":true},"feb":{"type":"number","nullable":true}}}}}
+        ),
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let actual = compile(
+    @query.parse_query(
+      "FROM UNNEST(@rows) AS item |> SELECT item.id AS id, item.jan AS jan, item.feb AS feb |> UNPIVOT(amount FOR month IN (jan,feb)) |> ORDER BY id, month",
+      syntax_limits(),
+    ).unwrap(),
+    {
+      ..fixture_context(),
+      inputs: [],
+      parameter_declarations: Some(declarations),
+    },
+    construction_limits(),
+  ).unwrap()
+  assert_false(semantic(actual).contains("aql_unpivot_input_"))
+  assert_false(semantic(actual).contains("aql_unpivot_label_"))
+  match
+    @check.check_parsed(
+      actual,
+      check_environment(),
+      Some(
+        unnest_value_cursor(
+          (
+            #|{"rows":[{"id":2,"jan":7,"feb":null},{"id":1,"jan":null,"feb":5},{"id":2,"jan":7,"feb":null}]}
+          ),
+        ),
+      ),
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("parameter Values are closed")
+  }
+}
+
+///|
 test "Pipe UNPIVOT connects the existing operation without rewriting its input" {
   let actual = compile(
     @query.parse_query(
@@ -36,7 +86,7 @@ test "Pipe UNPIVOT connects the existing operation without rewriting its input" 
 test "Pipe UNPIVOT has a complete independently authored lowering and output order" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":7,"y":9}]},"as":"pair"},{"from":"pair","select":[{"aql_unpivot_input_0":"x"},{"aql_unpivot_input_1":"y"}]},{"unpivot":{"columns":["aql_unpivot_input_0","aql_unpivot_input_1"],"keep":[],"name_column":"aql_unpivot_name_2","value_column":"aql_unpivot_value_3"}},{"derive":{"aql_unpivot_label_4":{"if":[{"eq":[{"field":"aql_unpivot_name_2"},{"literal":"aql_unpivot_input_0"}]},{"literal":"x"},{"literal":"y"}]}}},{"select":[{"amount":"aql_unpivot_value_3"},{"column_name":"aql_unpivot_label_4"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["amount","column_name"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":7,"y":9}]},"as":"pair"},{"from":"pair","unpivot":{"columns":["x","y"],"keep":[],"name_column":"aql_unpivot_name_2","value_column":"aql_unpivot_value_3"}},{"select":[{"amount":"aql_unpivot_value_3"},{"column_name":"aql_unpivot_name_2"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["amount","column_name"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -114,9 +164,13 @@ test "UNPIVOT reads current slots and removes consumed columns and old ranges" {
     construction_limits(),
   ).unwrap()
   let wire = semantic(actual)
-  assert_true(wire.contains("{\"aql_unpivot_input_0\":\"aql_pipe_set_2\"}"))
+  assert_true(wire.contains("\"columns\":[\"aql_pipe_set_2\",\"y\"]"))
   assert_true(wire.contains("\"literal\":\"january\""))
-  assert_false(wire.contains("\"literal\":\"aql_pipe_set_2\""))
+  assert_true(
+    wire.contains(
+      "\"aql_unpivot_label_4\":{\"if\":[{\"eq\":[{\"field\":\"aql_unpivot_name_2\"},{\"literal\":\"aql_pipe_set_2\"}]},{\"literal\":\"x\"},{\"literal\":\"january\"}]}",
+    ),
+  )
   assert_true(
     @check.check_parsed(actual, check_environment(), None, check_limits())
     is Checked(_),
