@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {graphRelationJoinSuccesses, graphRelationJoinRefusals, graphRelationJoinExecutionFailures} from './fixtures/graph-relation-join-source-input.mjs';
+import {graphDifferenceSourceSuccesses} from './fixtures/graph-difference-source-input.mjs';
 
 test('independent Graph Relation controls retain operation arguments, types, JOIN bounds and full Delta values', () => {
   const cases = new Map(graphRelationJoinSuccesses.map(item => [item.name, item]));
@@ -16,14 +17,19 @@ test('independent Graph Relation controls retain operation arguments, types, JOI
   }
   for (const format of ['json', 'aql-text']) {
     const fixture = cases.get('graph-relation-join-graph_diff-' + format);
-    const delta = fixture.expected[0].value;
+    const value = fixture.expected[0].value;
+    assert.deepEqual(Object.keys(value), ['$json']);
+    const delta = value.$json;
+    const original = graphDifferenceSourceSuccesses.find(item => item.name ===
+      'graph-difference-' + (format === 'json' ? 'json-parallel-unchanged' : 'terminal-self'));
+    assert.deepEqual(delta, original.results.changes.rows[0].delta);
     assert.equal(delta.version, 'actql-graph-delta/0.1');
     assert.equal(delta.base_graph_cid, delta.target_graph_cid);
     for (const key of ['graph_contract_cid', 'base_graph_cid', 'target_graph_cid'])
       assert.match(delta[key], /^sha256:[0-9a-f]{64}$/u);
     assert.deepEqual(delta.nodes, {add: [], remove: [], update: []});
     assert.deepEqual(delta.edges, {add: [], remove: [], update: []});
-    assert.deepEqual(fixture.expected[1].value, delta);
+    assert.deepEqual(fixture.expected[1].value, {$json: delta});
     assert.deepEqual(fixture.expected.map(row => row.tag), [10, 20]);
   }
   assert.deepEqual(cases.get('graph-relation-join-empty-match').expected, []);

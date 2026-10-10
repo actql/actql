@@ -168,3 +168,19 @@ successful checking, as does standalone equality followed by ORDER/LIMIT.
 Contextual and sort refusal controls remain unchanged. Public fixture rows,
 column contracts, JOIN bounds and the original failure reproduction are
 preserved. Fresh public execution is recorded separately when completed.
+
+## Integration public-boundary review
+
+At 29c054b3d2ab76f0eac27af2ef1e25f42113db52, a normal five-package
+producer succeeded. The focused packed run passed ordered graphs_equal
+JOIN for both Local and HTTPS, then exposed a Delta fixture encoding
+error: expected omitted the public JSON value envelope. The complete
+authored Delta body and CIDs are retained, now wrapped in `$json`, as in
+the existing public JSON controls. A regression compares the entire body
+to the independent predecessor fixture; no product output supplies it.
+
+The failed receipt is preserved at public-query-evidence-buzo0T under
+/private/tmp/.codex-scratch (run-W89DJJ). Both transport children are
+terminal. After this fixture correction, the focused Node fixture and
+inventory tests passed 38/38 (run-L4qNLy). Public rerun is still pending;
+this partial run is not full packed acceptance or CI success.
