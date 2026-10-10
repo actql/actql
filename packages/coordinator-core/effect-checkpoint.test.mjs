@@ -95,6 +95,9 @@ test('portable resume delivery uses the original common Owner and fixed independ
   const original = report();
   const before = reports.facts(original);
   assert.equal(resumeDelivery(original), resume.delivery.canonical);
+  // Common Resolution admission owns JSON framing; no value normalizer is added.
+  assert.equal(resumeDelivery(original, {wire: resume.delivery.body.resolution_wire + ' '}),
+    resume.delivery.canonical);
   assert.deepEqual(reports.facts(original), before);
   assert.equal(reports.acceptedJson(original), vector('reply').canonical);
   // Generation is delivery fencing metadata, never a new Run or attempt.
@@ -107,7 +110,7 @@ test('portable resume delivery rejects forged original and foreign approval meta
   for (const fake of [{}, {...original}, request(), null]) {
     assert.throws(() => resumeDelivery(fake), {message: 'InvalidEffectCheckpointReport'});
   }
-  assert.throws(() => resumeDelivery(original, {wire: resume.delivery.body.resolution_wire + ' '}), rejected);
+  assert.throws(() => resumeDelivery(original, {wire: '{'}), rejected);
   assert.throws(() => resumeDelivery(original, {reviewers: []}), rejected);
   for (const authentication of [{...resume.authentication, reviewer_id: 'other'},
     {...resume.authentication, key_id: 'other'},
