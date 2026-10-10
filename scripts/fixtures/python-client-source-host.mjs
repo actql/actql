@@ -26,9 +26,16 @@ const server=createServer({key:readFileSync(installation.hostTls.keyPath),cert},
     response.end=()=>{response.destroy();return response;};
   }else if(fault==='read-prefix'&&operation==='read'){
     const write=response.write.bind(response);
-    const prefix=value=>Buffer.from(value??'').filter(byte=>byte!==0x1e);
-    response.write=(value,...args)=>write(prefix(value),...args);
-    response.end=value=>{if(value!==undefined)write(prefix(value));setTimeout(()=>response.destroy(),50);return response;};
+    response.write=(value,...args)=>{
+      if(Buffer.from(value).includes(0x1e)){
+        // Fail before the Host receives sink-completion confirmation. Let
+        // the prior confirmed row reach the Client before reporting failure.
+        const callback=args.find(value=>typeof value==='function');
+        setTimeout(()=>callback(new Error('InjectedCompletionWriteLoss')),50);
+        return false;
+      }
+      return write(value,...args);
+    };
   }else if(fault==='status-extra-field'&&operation==='status'){
     const end=response.end.bind(response);
     response.end=value=>end(JSON.stringify({...JSON.parse(value.toString()),unexpected:true}));
