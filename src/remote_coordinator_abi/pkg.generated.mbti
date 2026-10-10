@@ -144,6 +144,8 @@ pub fn coordinator_effect_checkpoint_report_admit(String, @remote_site_protocol.
 
 pub fn coordinator_effect_checkpoint_report_projection(@remote_site_protocol.RemoteEffectCheckpointReport) -> Array[String]
 
+pub fn coordinator_effect_resume_delivery_json(@remote_site_protocol.RemoteEffectCheckpointReport, String, Array[String], Array[String], Array[String], String, Int64, Int, Int, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_exact_retransmission_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest) -> Bool
 
 pub fn coordinator_initial_delivery_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool, Bool) -> Result[Bool, @remote_site_protocol.DispatchIssue]

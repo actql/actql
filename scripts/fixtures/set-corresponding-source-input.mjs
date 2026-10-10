@@ -717,3 +717,227 @@ setCorrespondingRefusals.push(
     text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, amount AS removed '
       + '|> DROP removed |> ORDER BY v) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
 );
+
+// RENAME changes authored lookup, retaining values and their ordinal positions.
+// This ordinary JSON control is authored independently of text lowering.
+export const positionalRenameProgram = {version: 'actql/0.1', id: 'fixture.positional_rename',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number}, rows: [{id: 2}, {id: 1}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'id'}}}},
+    {select: [{kept: 'id'}, 'neg']},
+    {select: [{renamed: 'kept'}, 'neg']},
+    {select: [{a: 'renamed'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const positionalRename = (name, text, extra = {}) => success('positional-pipe-rename-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 1, b: -1}, {a: 2, b: -2}], ...extra});
+const positionalRenameHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> RENAME ';
+setCorrespondingSuccesses.push(
+  positionalRename('json-control', JSON.stringify(positionalRenameProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalRename('source', positionalRenameHead + 'kept AS renamed) ORDER BY a, b'),
+  // WHERE and ORDER must use renamed -id, not the original positive input id.
+  positionalRename('current-expression-limit', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT -id AS kept, id + 10 |> RENAME kept AS id |> WHERE id < 0 |> ORDER BY -id |> LIMIT 1) ORDER BY a, b',
+    {expected: [{a: -1, b: 11}, {a: 0, b: 0}]}),
+  positionalRename('quoted-chain', positionalRenameHead + '`KEPT` AS first |> RENAME first AS result '
+    + '|> WHERE result > 1) ORDER BY a, b', {expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  positionalRename('introduced-duplicates', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS kept, amount AS other, -id |> RENAME other AS kept |> ORDER BY 2 DESC |> LIMIT 1) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 2, b: 20, c: -2}]}),
+  positionalRename('private-shaped-anonymous-destination', positionalRenameHead + 'kept AS `AQL_SET_ANONYMOUS_4` '
+    + '|> WHERE aql_set_anonymous_4 > 1) ORDER BY a, b', {expected: [{a: 0, b: 0}, {a: 2, b: -2}]}),
+  positionalRename('private-shaped-duplicate-destination', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> RENAME kept AS `AQL_SET_DUPLICATE_5` '
+    + '|> WHERE aql_set_duplicate_5 > 11) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]}),
+  positionalRename('introduced-duplicates-drop', 'SELECT 0 AS a UNION ALL (FROM records '
+    + '|> SELECT id AS first, amount AS second, -id |> RENAME first AS kept, second AS kept |> DROP kept) ORDER BY a',
+    {columns: [{name: 'a', contract: number}], expected: [{a: -2}, {a: -1}, {a: 0}]}),
+  positionalRename('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> RENAME kept AS renamed) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: null}]}),
+  positionalRename('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> RENAME kept AS renamed) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4 AS next', '`AQL_SET_ANONYMOUS_4` AS next', 'kept AS first, `KEPT` AS second'].map((value, index) => ({
+    name: 'set-corresponding-refuse-pipe-rename-target-' + index, format: 'sql',
+    text: positionalRenameHead + value + ') ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-rename-original-duplicate', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+      + '|> RENAME v AS changed) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  ...['WHERE kept > 0', 'RENAME kept AS changed'].map((tail, index) => ({
+    name: 'set-corresponding-refuse-pipe-rename-introduced-duplicate-' + index, format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS kept, amount AS other, -id '
+      + '|> RENAME other AS kept |> ' + tail + ') ORDER BY a, b, c', expectedCode: 'ClientProgramInvalidInput',
+  })),
+  {name: 'set-corresponding-refuse-pipe-rename-removed', format: 'sql',
+    text: positionalRenameHead + 'kept AS renamed |> WHERE kept > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-rename-old-range', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> AS old |> SELECT id AS kept, -id '
+      + '|> RENAME kept AS renamed |> WHERE old.id > 0) ORDER BY a, b', expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-rename-anonymous-private-value', format: 'sql',
+    text: positionalRenameHead + 'kept AS aql_set_anonymous_4 |> WHERE aql_set_anonymous_5 > 0) ORDER BY a, b',
+    expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'set-corresponding-refuse-pipe-rename-duplicate-private-value', format: 'sql',
+    text: 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+      + '|> RENAME kept AS aql_set_duplicate_5 |> WHERE aql_set_duplicate_6 > 0) ORDER BY a, b, c',
+    expectedCode: 'ClientProgramInvalidInput'},
+);
+
+
+// Pure Pipe tails retain ordinal values; only authored names qualify a range.
+export const positionalExtendProgram = {version: 'actql/0.1', id: 'fixture.positional_extend',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number}, rows: [{id: 2}, {id: 1}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'id'}}}},
+    {select: [{kept: 'id'}, 'neg']},
+    {derive: {extra: {add: [{field: 'kept'}, {literal: 10}]}}},
+    {select: [{a: 'kept'}, {b: 'neg'}, {c: 'extra'}], as: 'right'},
+    {values: {schema: {a: number, b: number, c: number}, rows: [{a: 0, b: 0, c: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'},
+      {field: 'c', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b', 'c']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const positionalAsProgram = {version: 'actql/0.1', id: 'fixture.positional_as',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number}, rows: [{id: 2}, {id: 1}]}, as: 'input'},
+    {from: 'input', derive: {neg: {negate: {field: 'id'}}}},
+    {select: [{kept: 'id'}, 'neg']},
+    {filter: {gt: [{field: 'kept'}, {literal: 1}]}},
+    {select: [{a: 'kept'}, {b: 'neg'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'}, {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const pureTailColumns = [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}];
+const pureTail = (name, text, extra = {}) => success('positional-pure-tail-' + name, text,
+  {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], columns: pureTailColumns,
+    expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 11}, {a: 2, b: -2, c: 12}], ...extra});
+const asTail = (name, text, extra = {}) => pureTail(name, text,
+  {columns: pureTailColumns.slice(0, 2), expected: [{a: 0, b: 0}, {a: 2, b: -2}], ...extra});
+const pureExtendHead = 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS kept, -id |> EXTEND ';
+const pureAsHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id |> AS ';
+setCorrespondingSuccesses.push(
+  pureTail('extend-json-control', JSON.stringify(positionalExtendProgram), {format: 'json', sourceReadSessionCount: 0}),
+  asTail('as-json-control', JSON.stringify(positionalAsProgram), {format: 'json', sourceReadSessionCount: 0}),
+  pureTail('extend-source', pureExtendHead + 'kept + 10 AS extra) ORDER BY a, b, c'),
+  asTail('as-source', pureAsHead + 'r |> WHERE r.kept > 1) ORDER BY a, b', {format: 'aql-text'}),
+  // Current kept is negative. Original positive id would remove these rows.
+  pureTail('extend-current-parameter-limit', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT -id AS kept, id + 10 |> EXTEND kept + @bump AS extra |> WHERE kept < 0 '
+    + '|> ORDER BY -kept |> LIMIT 1) ORDER BY a, b, c',
+    {parameterDeclarations: {bump: number}, parameters: {bump: 10}, expected: [{a: -1, b: 11, c: 9}, {a: 0, b: 0, c: 0}]}),
+  pureTail('extend-siblings', 'SELECT 0 AS a, 0 AS b, 0 AS c, 0 AS d UNION ALL (FROM records '
+    + '|> SELECT id AS kept, -id |> EXTEND kept + 1 AS first, kept + 10 AS second) ORDER BY a, b, c, d',
+    {columns: [...pureTailColumns, {name: 'd', contract: number}],
+      expected: [{a: 0, b: 0, c: 0, d: 0}, {a: 1, b: -1, c: 2, d: 11}, {a: 2, b: -2, c: 3, d: 12}]}),
+  pureTail('extend-private-shaped-anonymous-destination', pureExtendHead + 'kept + 10 AS `AQL_SET_ANONYMOUS_4` '
+    + '|> AS r |> WHERE r.aql_set_anonymous_4 > 11) ORDER BY a, b, c',
+    {expected: [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]}),
+  pureTail('extend-private-shaped-duplicate-destination', 'SELECT 0 AS a, 0 AS b, 0 AS c, 0 AS d UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> EXTEND kept + 1 AS `AQL_SET_DUPLICATE_5` '
+    + '|> AS r |> WHERE r.aql_set_duplicate_5 > 12) ORDER BY a, b, c, d',
+    {columns: [...pureTailColumns, {name: 'd', contract: number}], expected: [{a: 0, b: 0, c: 0, d: 0}, {a: 2, b: -2, c: 12, d: 13}]}),
+  asTail('as-immutable-set', pureAsHead + 'r |> SET kept = kept + 10 |> WHERE r.kept = 2) ORDER BY a, b',
+    {expected: [{a: 0, b: 0}, {a: 12, b: -2}]}),
+  asTail('as-quoted-rebind', pureAsHead + '`First` |> AS `Second` |> WHERE second.kept > 1) ORDER BY a, b'),
+  asTail('as-private-shaped-authored-column', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS aql_set_anonymous_4, -id |> AS r |> WHERE r.aql_set_anonymous_4 > 1) ORDER BY a, b'),
+  pureTail('extend-window', pureExtendHead + 'ROW_NUMBER() OVER (ORDER BY kept DESC) AS rank) ORDER BY a, b, c',
+    {expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 2}, {a: 2, b: -2, c: 1}]}),
+  pureTail('nullable', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> EXTEND kept + 10 AS extra |> AS r |> WHERE r.kept > 0) ORDER BY a, b NULLS LAST, c',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [pureTailColumns[0], {name: 'b', contract: {...number, nullable: true}}, pureTailColumns[2]],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 11}, {a: 2, b: null, c: 12}]}),
+  pureTail('typed-empty', 'SELECT 0 AS a, 0 AS b, 0 AS c WHERE FALSE UNION ALL (FROM records '
+    + '|> SELECT id AS kept, -id |> EXTEND kept + 10 AS extra |> AS r) ORDER BY a, b, c', {sourceRows: [], expected: []}),
+);
+const refusePureTail = (name, text) => ({name: 'set-corresponding-refuse-pure-tail-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  ...['aql_set_anonymous_4 + 1 AS extra', '`AQL_SET_ANONYMOUS_4` + 1 AS extra'].map((value, index) =>
+    refusePureTail('extend-private-' + index, pureExtendHead + value + ') ORDER BY a, b, c')),
+  refusePureTail('extend-ambiguous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V` |> EXTEND v + 1 AS extra) ORDER BY a, b, c'),
+  refusePureTail('extend-duplicate-destination', pureExtendHead + 'kept + 1 AS kept) ORDER BY a, b, c'),
+  refusePureTail('extend-sibling', 'SELECT 0 AS a, 0 AS b, 0 AS c, 0 AS d UNION ALL (FROM records '
+    + '|> SELECT id AS kept, -id |> EXTEND kept + 1 AS first, first + 1 AS second) ORDER BY a, b, c, d'),
+  refusePureTail('extend-dropped-input', pureExtendHead + 'id + 1 AS extra) ORDER BY a, b, c'),
+  refusePureTail('as-displaced', pureAsHead + 'first |> AS second |> WHERE first.kept > 0) ORDER BY a, b'),
+  refusePureTail('as-dropped-input', pureAsHead + 'r |> WHERE r.id > 0) ORDER BY a, b'),
+  ...['aql_set_anonymous_4', '`AQL_SET_ANONYMOUS_4`'].map((name, index) =>
+    refusePureTail('as-private-' + index, pureAsHead + 'r |> WHERE r.' + name + ' > 0) ORDER BY a, b')),
+  refusePureTail('reserved-anonymous-private', pureExtendHead + 'kept + 10 AS aql_set_anonymous_4 '
+    + '|> AS r |> WHERE r.aql_set_anonymous_5 > 0) ORDER BY a, b, c'),
+  refusePureTail('reserved-duplicate-private', 'SELECT 0 AS a, 0 AS b, 0 AS c, 0 AS d UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept |> EXTEND kept + 1 AS aql_set_duplicate_5 '
+    + '|> AS r |> WHERE r.aql_set_duplicate_6 > 0) ORDER BY a, b, c, d'),
+  ...['WHERE r.v > 0', 'EXTEND r.v + 1 AS extra |> DROP extra'].map((tail, index) =>
+    refusePureTail('as-ambiguous-' + index, 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+      + '|> SELECT id AS v, -id AS `V` |> AS r |> ' + tail + ') ORDER BY a, b')),
+  refusePureTail('undeclared-parameter', pureExtendHead + 'kept + @missing AS extra) ORDER BY a, b, c'),
+);
+
+// A hidden ORDER window consumes the current projected snapshot, not discarded input.
+export const positionalOrderWindowProgram = {"version":"actql/0.1","id":"fixture.positional_order_window","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[{"x":1},{"x":2}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"x"}}}},{"select":[{"kept":"x"},"neg"]},{"analytic":{"partition_by":[],"order_by":[{"field":"kept","dir":"desc","nulls":"last"}],"functions":{"position":{"fn":"row_number"}}}},{"sort":[{"field":"position","dir":"asc","nulls":"first"}]},{"take":{"count":1,"offset":0}},{"select":[{"a":"kept"},{"b":"neg"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const orderWindow = (name, text, extra = {}) => success('positional-order-window-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}],
+    columns: [{name: 'a', contract: number}, {name: 'b', contract: number}],
+    expected: [{a: 0, b: 0}, {a: 2, b: -2}], ...extra});
+const positionalOrderHead = 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -id ';
+setCorrespondingSuccesses.push(
+  orderWindow('json-control', JSON.stringify(positionalOrderWindowProgram), {format: 'json', sourceReadSessionCount: 0}),
+  orderWindow('source', positionalOrderHead + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b'),
+  orderWindow('immutable-range', positionalOrderHead + '|> AS r |> SET kept = -kept '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY r.kept DESC) |> LIMIT 1) ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: -2, b: -2}, {a: 0, b: 0}]}),
+  orderWindow('scalar-parameter-offset', positionalOrderHead
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept) + @shift DESC |> LIMIT 1 OFFSET 1) ORDER BY a, b',
+    {sourceRows: [{id: 3, amount: 30}, {id: 1, amount: 10}, {id: 2, amount: 20}],
+      parameterDeclarations: {shift: number}, parameters: {shift: 10}}),
+  orderWindow('duplicate-authored-columns', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -id AS `V`, id + 10 AS kept '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b, c',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]}),
+  orderWindow('private-shaped-authored-column', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records '
+    + '|> SELECT id AS aql_order_window_0, -id '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY aql_order_window_0 DESC) |> LIMIT 1) ORDER BY a, b'),
+  orderWindow('nullable', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS kept, -amount '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b NULLS LAST',
+    {sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
+      columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0}, {a: 2, b: null}]}),
+  orderWindow('typed-empty', 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (FROM records |> SELECT id AS kept, -id '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept DESC) |> LIMIT 1) ORDER BY a, b', {sourceRows: [], expected: []}),
+);
+const refuseOrderWindow = (name, text) => ({name: 'set-corresponding-refuse-order-window-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refuseOrderWindow('private-anonymous', positionalOrderHead
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY aql_set_anonymous_4) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('dropped-input', positionalOrderHead
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY id) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('ambiguous', 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS v, -id AS `V` '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY v) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('displaced-range', positionalOrderHead + '|> AS before |> AS current '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY before.kept) |> LIMIT 1) ORDER BY a, b'),
+  refuseOrderWindow('private-window', positionalOrderHead + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY kept) '
+    + '|> WHERE aql_order_window_0 > 0) ORDER BY a, b'),
+  refuseOrderWindow('qualified-private-anonymous', positionalOrderHead + '|> AS r '
+    + '|> ORDER BY ROW_NUMBER() OVER (ORDER BY r.aql_set_anonymous_4) |> LIMIT 1) ORDER BY a, b'),
+);

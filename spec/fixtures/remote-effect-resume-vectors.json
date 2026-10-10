@@ -1,0 +1,189 @@
+{
+  "version": "actql-remote-effect-resume-vectors/0.1",
+  "scope": "Independent canonical inputs and syntax-only signature fixtures. No cryptographic authorization, current claim, Native execution or Cloud acceptance.",
+  "checkpoint": {
+    "checkpoint_id": "review-1",
+    "continuation_state_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "created_at": "2026-10-10T00:00:00.000Z",
+    "expires_at": "2099-01-01T00:00:00.000Z",
+    "human_summary": "Review the original write",
+    "kind": "effect_set",
+    "phase": "commit",
+    "reason_code": "effect_review_required",
+    "required_artifact": {
+      "artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "artifact_type": "effect_set_preview"
+    },
+    "requirements": [
+      "effect_scope_approved"
+    ],
+    "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "run_id": "run-1",
+    "subject": {
+      "continuation": "resume_unit",
+      "kind": "run_unit",
+      "run_id": "run-1",
+      "unit_id": "compute"
+    },
+    "version": "actql-execution-checkpoint/0.1",
+    "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d"
+  },
+  "dispatch": {
+    "budget_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "connector_registration": "local",
+    "connector_revision": "local/1",
+    "coordinator_authority": "coordinator-a",
+    "dispatch_id": "consumer-a",
+    "evidence_issuer_capability_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "grant_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "input_binding_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "obligations_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "runtime_bundle_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "site_generation": 1,
+    "site_key": "site-a",
+    "strategy_revision": "strategy/1",
+    "task_attempt": 1,
+    "task_key": "task-a",
+    "version": "actql-remote-dispatch-request/0.1"
+  },
+  "report": {
+    "checkpoint_wire": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"checkpoint_id\":\"review-1\",\"continuation_state_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"created_at\":\"2026-10-10T00:00:00.000Z\",\"expires_at\":\"2099-01-01T00:00:00.000Z\",\"human_summary\":\"Review the original write\",\"kind\":\"effect_set\",\"phase\":\"commit\",\"reason_code\":\"effect_review_required\",\"required_artifact\":{\"artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"artifact_type\":\"effect_set_preview\"},\"requirements\":[\"effect_scope_approved\"],\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"run_id\":\"run-1\",\"subject\":{\"continuation\":\"resume_unit\",\"kind\":\"run_unit\",\"run_id\":\"run-1\",\"unit_id\":\"compute\"},\"version\":\"actql-execution-checkpoint/0.1\"}",
+    "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+    "version": "actql-remote-effect-checkpoint-report/0.1"
+  },
+  "approval_evidence": {
+    "version": "actql-checkpoint-approval-evidence/0.1",
+    "kind": "effect_set",
+    "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+    "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "compatibility_approval": {
+      "version": "actql-approval-attestation/0.1",
+      "effect_preview_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "approver": "alice",
+      "approved_at": "2026-10-10T00:01:00.000Z",
+      "authority_scope_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "claims": [
+        "effect_scope_approved"
+      ],
+      "proof": {
+        "scheme": "ed25519-v1",
+        "key_id": "reviewer-key",
+        "signature": "c2lnbmF0dXJl"
+      },
+      "attestation_cid": "sha256:58c346e2d95c3ea04430a14d5691a157244726df76a0250de4492bb89f463432"
+    }
+  },
+  "resolution": {
+    "version": "actql-checkpoint-resolution/0.1",
+    "resolution_id": "resolution-1",
+    "checkpoint_id": "review-1",
+    "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+    "decision": "approved",
+    "actor": "alice",
+    "decided_at": "2026-10-10T00:01:00.000Z",
+    "required_artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "approval_evidence_cid": "sha256:0fbdaa8a8c8406c0d81643b6fa4d7beb13dff23badd14e50d2e67c8e51bd1a05",
+    "run_id": "run-1",
+    "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "proof": {
+      "scheme": "ed25519-v1",
+      "key_id": "reviewer-key",
+      "signature": "c2lnbmF0dXJl"
+    },
+    "resolution_cid": "sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19"
+  },
+  "verified_resolution": {
+    "version": "actql-verified-checkpoint-resolution/0.1",
+    "resolution": {
+      "version": "actql-checkpoint-resolution/0.1",
+      "resolution_id": "resolution-1",
+      "checkpoint_id": "review-1",
+      "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+      "decision": "approved",
+      "actor": "alice",
+      "decided_at": "2026-10-10T00:01:00.000Z",
+      "required_artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "approval_evidence_cid": "sha256:0fbdaa8a8c8406c0d81643b6fa4d7beb13dff23badd14e50d2e67c8e51bd1a05",
+      "run_id": "run-1",
+      "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "proof": {
+        "scheme": "ed25519-v1",
+        "key_id": "reviewer-key",
+        "signature": "c2lnbmF0dXJl"
+      },
+      "resolution_cid": "sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19"
+    },
+    "authorization_evidence": {
+      "version": "actql-checkpoint-resolution-authorization-evidence/0.1",
+      "resolution_cid": "sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19",
+      "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+      "authority_context_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "key_id": "reviewer-key"
+    },
+    "authorization_evidence_cid": "sha256:f5a58b6577470b015c38a75a8d01297e8b96604a108298b7996269ec2edbc918",
+    "verified_by_policy_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "verified_reviewer_id": "alice",
+    "authorization_context_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "requirements": [
+      "effect_scope_approved"
+    ],
+    "verified_at": "2026-10-10T00:01:01.000Z",
+    "approval_evidence": {
+      "version": "actql-checkpoint-approval-evidence/0.1",
+      "kind": "effect_set",
+      "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+      "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "compatibility_approval": {
+        "version": "actql-approval-attestation/0.1",
+        "effect_preview_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "approver": "alice",
+        "approved_at": "2026-10-10T00:01:00.000Z",
+        "authority_scope_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "claims": [
+          "effect_scope_approved"
+        ],
+        "proof": {
+          "scheme": "ed25519-v1",
+          "key_id": "reviewer-key",
+          "signature": "c2lnbmF0dXJl"
+        },
+        "attestation_cid": "sha256:58c346e2d95c3ea04430a14d5691a157244726df76a0250de4492bb89f463432"
+      }
+    },
+    "host_attestation": {
+      "scheme": "ed25519-v1",
+      "host_key_id": "host-key",
+      "signature": "aG9zdA=="
+    },
+    "verified_resolution_cid": "sha256:9b9a8d9d6fc76b0254d4708b1d71cb130ad4a9ba6bda2beca4bf26695482ab6b"
+  },
+  "authentication": {
+    "key_id": "reviewer-key",
+    "reviewer_id": "alice",
+    "expected_authority_scope_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "authority_context_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "policy_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "proof_preimage": "sha256:2a9315c85cc2de44e2e9c6a8230f285b34fb25328317ed63d2ffa0aff7b0a17a"
+  },
+  "delivery": {
+    "body": {
+      "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+      "claimant": "original-coordinator",
+      "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+      "generation": "1",
+      "report_cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+      "resolution_cid": "sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19",
+      "resolution_wire": "{\"approval_evidence\":{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"compatibility_approval\":{\"approved_at\":\"2026-10-10T00:01:00.000Z\",\"approver\":\"alice\",\"attestation_cid\":\"sha256:58c346e2d95c3ea04430a14d5691a157244726df76a0250de4492bb89f463432\",\"authority_scope_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"claims\":[\"effect_scope_approved\"],\"effect_preview_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"proof\":{\"key_id\":\"reviewer-key\",\"scheme\":\"ed25519-v1\",\"signature\":\"c2lnbmF0dXJl\"},\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-approval-attestation/0.1\"},\"kind\":\"effect_set\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-checkpoint-approval-evidence/0.1\"},\"authorization_context_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"authorization_evidence\":{\"authority_context_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"key_id\":\"reviewer-key\",\"resolution_cid\":\"sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19\",\"version\":\"actql-checkpoint-resolution-authorization-evidence/0.1\"},\"authorization_evidence_cid\":\"sha256:f5a58b6577470b015c38a75a8d01297e8b96604a108298b7996269ec2edbc918\",\"host_attestation\":{\"host_key_id\":\"host-key\",\"scheme\":\"ed25519-v1\",\"signature\":\"aG9zdA==\"},\"requirements\":[\"effect_scope_approved\"],\"resolution\":{\"actor\":\"alice\",\"approval_evidence_cid\":\"sha256:0fbdaa8a8c8406c0d81643b6fa4d7beb13dff23badd14e50d2e67c8e51bd1a05\",\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"checkpoint_id\":\"review-1\",\"decided_at\":\"2026-10-10T00:01:00.000Z\",\"decision\":\"approved\",\"proof\":{\"key_id\":\"reviewer-key\",\"scheme\":\"ed25519-v1\",\"signature\":\"c2lnbmF0dXJl\"},\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"resolution_cid\":\"sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19\",\"resolution_id\":\"resolution-1\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"run_id\":\"run-1\",\"version\":\"actql-checkpoint-resolution/0.1\"},\"verified_at\":\"2026-10-10T00:01:01.000Z\",\"verified_by_policy_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"verified_resolution_cid\":\"sha256:9b9a8d9d6fc76b0254d4708b1d71cb130ad4a9ba6bda2beca4bf26695482ab6b\",\"verified_reviewer_id\":\"alice\",\"version\":\"actql-verified-checkpoint-resolution/0.1\"}",
+      "resume_intent_id": "sha256:14592585f30f30a822f36461bd2187dd8926f52ebea2e0a9e21f17b2924bbf73",
+      "version": "actql-remote-effect-resume-delivery/0.1"
+    },
+    "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"claimant\":\"original-coordinator\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"generation\":\"1\",\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"resolution_cid\":\"sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19\",\"resolution_wire\":\"{\\\"approval_evidence\\\":{\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"compatibility_approval\\\":{\\\"approved_at\\\":\\\"2026-10-10T00:01:00.000Z\\\",\\\"approver\\\":\\\"alice\\\",\\\"attestation_cid\\\":\\\"sha256:58c346e2d95c3ea04430a14d5691a157244726df76a0250de4492bb89f463432\\\",\\\"authority_scope_cid\\\":\\\"sha256:5555555555555555555555555555555555555555555555555555555555555555\\\",\\\"claims\\\":[\\\"effect_scope_approved\\\"],\\\"effect_preview_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"proof\\\":{\\\"key_id\\\":\\\"reviewer-key\\\",\\\"scheme\\\":\\\"ed25519-v1\\\",\\\"signature\\\":\\\"c2lnbmF0dXJl\\\"},\\\"review_projection_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"version\\\":\\\"actql-approval-attestation/0.1\\\"},\\\"kind\\\":\\\"effect_set\\\",\\\"review_projection_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"version\\\":\\\"actql-checkpoint-approval-evidence/0.1\\\"},\\\"authorization_context_cid\\\":\\\"sha256:6666666666666666666666666666666666666666666666666666666666666666\\\",\\\"authorization_evidence\\\":{\\\"authority_context_cid\\\":\\\"sha256:6666666666666666666666666666666666666666666666666666666666666666\\\",\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"key_id\\\":\\\"reviewer-key\\\",\\\"resolution_cid\\\":\\\"sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19\\\",\\\"version\\\":\\\"actql-checkpoint-resolution-authorization-evidence/0.1\\\"},\\\"authorization_evidence_cid\\\":\\\"sha256:f5a58b6577470b015c38a75a8d01297e8b96604a108298b7996269ec2edbc918\\\",\\\"host_attestation\\\":{\\\"host_key_id\\\":\\\"host-key\\\",\\\"scheme\\\":\\\"ed25519-v1\\\",\\\"signature\\\":\\\"aG9zdA==\\\"},\\\"requirements\\\":[\\\"effect_scope_approved\\\"],\\\"resolution\\\":{\\\"actor\\\":\\\"alice\\\",\\\"approval_evidence_cid\\\":\\\"sha256:0fbdaa8a8c8406c0d81643b6fa4d7beb13dff23badd14e50d2e67c8e51bd1a05\\\",\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"checkpoint_id\\\":\\\"review-1\\\",\\\"decided_at\\\":\\\"2026-10-10T00:01:00.000Z\\\",\\\"decision\\\":\\\"approved\\\",\\\"proof\\\":{\\\"key_id\\\":\\\"reviewer-key\\\",\\\"scheme\\\":\\\"ed25519-v1\\\",\\\"signature\\\":\\\"c2lnbmF0dXJl\\\"},\\\"required_artifact_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"resolution_cid\\\":\\\"sha256:19e9389ed7f0a966255f0d76aaec9718d2fc82aa4c41e2b762af2626e88e4f19\\\",\\\"resolution_id\\\":\\\"resolution-1\\\",\\\"review_projection_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"run_definition_cid\\\":\\\"sha256:0000000000000000000000000000000000000000000000000000000000000000\\\",\\\"run_id\\\":\\\"run-1\\\",\\\"version\\\":\\\"actql-checkpoint-resolution/0.1\\\"},\\\"verified_at\\\":\\\"2026-10-10T00:01:01.000Z\\\",\\\"verified_by_policy_cid\\\":\\\"sha256:7777777777777777777777777777777777777777777777777777777777777777\\\",\\\"verified_resolution_cid\\\":\\\"sha256:9b9a8d9d6fc76b0254d4708b1d71cb130ad4a9ba6bda2beca4bf26695482ab6b\\\",\\\"verified_reviewer_id\\\":\\\"alice\\\",\\\"version\\\":\\\"actql-verified-checkpoint-resolution/0.1\\\"}\",\"resume_intent_id\":\"sha256:14592585f30f30a822f36461bd2187dd8926f52ebea2e0a9e21f17b2924bbf73\",\"version\":\"actql-remote-effect-resume-delivery/0.1\"}",
+    "cid": "sha256:78b12e45aee6a5aa1d0d8e6659cd2ca129c3115e02e1f7a3df87d3851110730a"
+  }
+}
