@@ -21,7 +21,7 @@ fn graph_relation_join_cases() -> Array[(String, String, String, String)] {
 }
 
 ///|
-test "Ordered Graph Relation JOIN distinguishes existing common order gaps" {
+test "Ordered Graph Relation JOIN retains established singleton equality order" {
   let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 10 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
   for
     (operation, arguments, source_arguments, field) in graph_relation_join_cases() {
@@ -45,34 +45,10 @@ test "Ordered Graph Relation JOIN distinguishes existing common order gaps" {
         [],
         graph_rows_check_limits(),
       )
-      if operation == "graphs_equal" {
-        guard checked is Rejected(diagnostic) else {
-          fail(
-            "update the Graph equality order gap when the common owner is connected",
-          )
-        }
-        assert_true(
-          @check.diagnostic_cause(diagnostic)
-          is Source(
-            SourceView(
-              Program(
-                Program(
-                  Order(
-                    _,
-                    PipelineOrder({ kind: @pipeline.UnresolvedOrder, .. })
-                  )
-                )
-              )
-            )
-          ),
-          msg=operation,
-        )
-      } else {
-        match checked {
-          Checked(_) => ()
-          Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-          NeedsInputs(_) => fail("ordered control needs no external Source")
-        }
+      match checked {
+        Checked(_) => ()
+        Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+        NeedsInputs(_) => fail("ordered control needs no external Source")
       }
     }
   }

@@ -213,6 +213,9 @@ fn derive_logical_orders(
       | TextRank(..)
       | AsOfJoin(..) => true
       Pool(_) => true
+      // Equality completes exactly one Boolean row. Its singleton order is
+      // established by the operation, independently of either Graph's layout.
+      GraphEquality(..) => true
       GraphMatch(_)
       | GraphBounds(_)
       | GraphDegree(_)
