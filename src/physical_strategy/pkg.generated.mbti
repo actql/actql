@@ -492,6 +492,8 @@ pub fn graph_result_task(CheckedDAG, Int) -> Int?
 
 pub fn graph_source_free_inputs_complete(CheckedDAG) -> Bool
 
+pub fn graph_stage_operation_task(CheckedDAG, Int, Int) -> Int?
+
 pub fn graph_stage_target_task(CheckedDAG, Int, @pipeline_typing.Target) -> Int?
 
 pub fn graph_task_count(CheckedDAG) -> Int
@@ -538,7 +540,7 @@ pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn next_dependency_ready_task(CheckedDAG, (Int) -> Bool, first_task? : Int) -> Int?
 
-pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
+pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows], supplied_reads? : Array[(Int, Int, @execution_relation.SuppliedRelationRead)]) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
@@ -970,6 +972,7 @@ pub(all) enum CapturedEffectPlanVerifyIssue {
   Plan(CapturedEffectPlanIssue)
   Row(@stage_results.EffectPlanRowIssue)
   Changes(@stage_results.EffectPlanChangeIssue)
+  Command(@stage_results.EffectCommandRowIssue)
 }
 
 type CapturedEffectPreviewInputs
@@ -985,6 +988,7 @@ pub(all) enum CapturedEffectProposalIssue {
   Row(@stage_results.EffectPlanRowIssue)
   Changes(@stage_results.EffectPlanChangeIssue)
   Create(@stage_results.EffectCreateRowIssue)
+  Command(@stage_results.EffectCommandRowIssue)
   SelectorEncoding
 } derive(@debug.Debug)
 

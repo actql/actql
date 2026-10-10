@@ -497,10 +497,11 @@ pub fn compile_query_script(
       let input_name = pipe_physical_name(
         reserved, "aql_script_continuation_input_",
       )
-      let split = @query.effect_result_continuation(query, {
-        value: input_name,
-        quoted: true,
-      })
+      let split = @query.effect_result_continuation(
+        query,
+        { value: input_name, quoted: true, },
+        has_postlude=@query.command_effect_count(script) > 0,
+      )
       let current = split.map(pair => pair.0).unwrap_or(query)
       let retained : Array[RetainedResult] = []
       let graph_row_set = script_has_graph_rows(current) &&
@@ -640,6 +641,21 @@ pub fn compile_query_script(
             ),
           ),
         )
+      }
+      if split is None && @query.command_effect_count(script) > 0 {
+        let commands : Array[(String, @builder.Node)] = []
+        for index in 0..<@query.command_effect_count(script) {
+          commands.push(
+            lower_command_effect(
+              construction,
+              @query.command_effect_at(script, index).unwrap(),
+              stage_context.stage_result,
+              retained,
+              limits.max_expression_work,
+            ),
+          )
+        }
+        stage_entries.push(("effects", construction.object(commands)))
       }
       stages.push(construction.object(stage_entries))
       for

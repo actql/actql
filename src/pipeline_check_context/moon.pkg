@@ -1,6 +1,9 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_row_source_host" @row_host,
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
   "actql/actql/source_value" @source,
   "actql/actql/sha256" @fixture_sha,
 } for "wbtest"

@@ -187,7 +187,7 @@ pub fn resolve_nest_order(
             | Date
             | Timestamp
             | ResourceRef(..)
-            | ArtifactRef(..) => ()
+            | ContentRef(..) => ()
             _ => fail(field.source, UnresolvedOrder)
           }
           terms.push({

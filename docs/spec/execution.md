@@ -492,7 +492,7 @@ Successful retained upstream observations survive a downstream failure; failure
 does not authorize a replacement read.
 
 The closed machine contract is
-<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1 -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:355aaf391cdf44afc51dbb520117305db992fcfa51c0a5714192e82071d7b6c1 -->
 <!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/requirement sha256:b6506c5d7b23c83c1ddc311b3c7d6766a6f3f5e2de92747e1d03f949e5df1dc1 -->
 <!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/completed_observation sha256:ec44c31bc821c4e1a1f3eafa7e519cd1d4fc9ba9458149aaa3577b6053934715 -->
 [`actql-query-acquisition.json`](../../spec/contracts/actql-query-acquisition.json):
@@ -736,7 +736,7 @@ result test faulty output, not an additional admitted operation.
 
 #### Process-retained query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89 -->
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916 -->
 <!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json#/schemas/record sha256:758c9c4f1942890e73462776f3230400e7076c146af8eb3f7e39602715c7427e -->
 The initial process-evidence profile specializes the acquisition contract without
 changing its requirement or observation shapes. Its closed record schema is
@@ -877,7 +877,7 @@ failure rules. Validation ordering never supplies missing source-order evidence.
 
 #### Host-local two-receipt query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8 -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7 -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/receipt sha256:d3994a9a48aab18e3d0c75e2ef2d549c6c6227536313c3d66c53b543f2868b6a -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/record sha256:cd3c30fbe01c375642b42f7dac2391a5ea008d117a2489c8c646d78745f86334 -->
 <!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/completed_observation sha256:566fc1955ac77a2c074ddba0b8be22b75f18acdd6af8ca86e5f68443ab366af1 -->

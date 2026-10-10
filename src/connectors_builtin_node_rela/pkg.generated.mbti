@@ -3,9 +3,11 @@ package "actql/actql/connectors_builtin_node_rela"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/capacity_policy",
   "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/local",
   "actql/actql/connectors/local/table",
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
@@ -193,6 +195,8 @@ pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientPr
 
 pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]
 
+pub fn client_program_compiled_effect_program(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation) -> @run_publication_host.PreparedClientProgram?
+
 pub fn client_program_compiled_run_admission(@run_publication_host.ClientCompiledRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_compiled_run_authorization(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
@@ -359,6 +363,8 @@ pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport
 
 pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), @run_publication_host.ClientEffectMemberDescriptorIssue]
 
+pub fn client_program_effect_member_descriptor_issue_code(@run_publication_host.ClientEffectMemberDescriptorIssue) -> String
+
 pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_cancel(ClientEffectPlanCursor) -> Unit
@@ -390,6 +396,8 @@ pub fn client_program_effect_preparation_issue_code(ClientEffectProgramBridgeOut
 pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome) -> @run_publication_host.PreparedClientEffectComputation?
 
 pub fn client_program_effect_preparation_result_presence_field(ClientEffectProgramBridgeOutcome) -> String?
+
+pub fn client_program_effect_prepare_keyed_acquisition(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
 
 pub fn client_program_effect_prepare_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
@@ -474,6 +482,8 @@ pub fn client_program_imported_effect_relation_bodies(@run_publication_host.Clie
 pub fn client_program_imported_effect_scope_json(@run_publication_host.ClientEffectImportedEvidence) -> String
 
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
+
+pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
@@ -583,6 +593,12 @@ pub fn client_program_issue_unpublished_run_state(String, String, Array[String],
 
 pub fn client_program_issue_values_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
+pub fn client_program_keyed_acquisition_coordinates(@run_publication_host.ClientKeyedAcquisition) -> Array[Int]
+
+pub fn client_program_keyed_acquisition_matches_program(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn client_program_keyed_acquisition_source_evidence_facts(@run_publication_host.ClientKeyedAcquisition) -> Result[Array[String], String]
+
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
 pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy.CapturedEffectRunDAG
@@ -659,6 +675,10 @@ pub fn client_program_local_values_unit_source_json(@run_publication_host.Prepar
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
 
+pub fn client_program_open_captured_content_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?, @local.ManagedProvider) -> ClientLocalEffectHost?
+
+pub fn client_program_open_captured_family_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?, Array[@local.ManagedProvider]) -> ClientLocalEffectHost?
+
 pub fn client_program_open_captured_local_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
 
 pub fn client_program_open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
@@ -705,6 +725,8 @@ pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEn
 
 pub fn client_program_prepare_effect_free_with_parameters(String, String, @program_check.CheckEnvironment, String?) -> ClientProgramBridgeOutcome
 
+pub fn client_program_prepare_keyed_acquisition(@run_publication_host.PreparedClientProgram, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
+
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
@@ -726,6 +748,8 @@ pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedCl
 pub fn client_program_prepare_salesforce_declared_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
+pub fn client_program_prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
@@ -789,7 +813,9 @@ pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInp
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
-pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientDuckDBCaptureCapacity, () -> Bool) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
+pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
+
+pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
 
@@ -819,9 +845,15 @@ pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Byt
 
 pub fn client_program_row_source_accept_values(@client_row_source_host.RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
 
-pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int, Int) -> Result[Bool, @client_row_source_host.RowHostIssue]
+pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int, Int, @value_admission.ReferenceIssuer?) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_begin_listing_page(@client_row_source_host.RowRun, Bytes, Int64, @client_row_source_host.RowPageCharge?) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_begin_listing_request(@client_row_source_host.RowRun, String?, Int64) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_capture(@client_row_source_host.RowRun) -> Result[@client_row_source_host.RowSourceCapture, @client_row_source_host.RowHostIssue]
 
@@ -839,11 +871,17 @@ pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDec
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisition) -> Bool
+
 pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
 
-pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
+pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
+
+pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
+pub fn client_program_row_source_request_wire(@client_row_source_host.RowAcquisition) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
@@ -1035,13 +1073,13 @@ pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Byte
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
-pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
+pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation
 
 pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
 
 pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
 
-pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
+pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
 
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
@@ -1301,6 +1339,8 @@ pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_
 
 pub fn strategy_host_output_export_admit_captured_result_snapshot(StrategyHostOutputExport, Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
+pub fn strategy_host_output_export_advance(StrategyHostOutputExport, Int) -> (String?, Bool, Int, @run_publication_host.PublicationOutputExportIssue?)
+
 pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
@@ -1334,6 +1374,8 @@ pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -
 pub fn strategy_host_output_export_result_schema_wire(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_rows_complete(StrategyHostOutputExport) -> Bool raise NodeHostFailure
 
 pub fn strategy_host_output_export_schema_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
@@ -1491,7 +1533,7 @@ pub fn strategy_issue_durable_result_binding(@run_publication.PublicationContrac
 
 pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
-pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 

@@ -422,6 +422,7 @@ fn derive_row_counts(
       _ => None
     }
     let next = match step.operation {
+      Serialize(_) => Some(count(1L, true))
       Values(v) => Some(count(@values.row_count(v).to_int64(), true))
       TimeSeries(v) => @series.known_row_count(v).map(n => count(n, true))
       Calendar(v) =>

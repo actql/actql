@@ -76,6 +76,8 @@ pub(all) enum ModelExecutionIssue {
   InvalidProvider
   ItemLimit
   RequestIdentity
+  InputReferenceUnavailable
+  Content(ModelContentIssue)
   Provider(ModelProviderFailure)
   OutputValue
   OutputIdentity
@@ -310,6 +312,9 @@ fn advance_model(
   if state.work >= state.limits.max_work {
     return @bounded.Failed(WorkLimit, 0, 0)
   }
+  if state.phase is PreparePhysicalRequests {
+    return advance_model_physical_preflight(state, quantum)
+  }
   state.work += 1
   if state.phase is ReserveSlots {
     // Replay owns a read of an already checked observation. It must neither
@@ -334,7 +339,7 @@ fn advance_model(
           state.limits.max_request_bytes +
           state.limits.max_response_bytes +
           (if state.dispatch_admission is Some(_) || state.durable_calls {
-            81920L
+            81920L + model_attachment_evidence_bytes(state.task)
           } else {
             0L
           }),
@@ -360,9 +365,6 @@ fn advance_model(
   }
   if state.phase is PrepareRequests {
     return advance_model_request_preparation(state)
-  }
-  if state.phase is PreparePhysicalRequests {
-    return advance_model_physical_preflight(state)
   }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
     return complete_model_slots(state)
@@ -502,6 +504,10 @@ fn advance_model(
       Ok(_) => ()
     }
   }
+  if state.physical_plans.get(state.next_slot) is Some(plan) &&
+    !model_content_admissions_current(plan.attachments) {
+    return @bounded.Failed(InputReferenceUnavailable, 1, 1)
+  }
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
@@ -556,6 +562,12 @@ fn advance_model(
   // cancellation and is verified/persisted before physical cleanup completes.
   if state.stop_requested {
     return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+  }
+  // Entry observers may synchronously revoke the original Ref or physical
+  // holding. Keep the entered attempt uncertain, but do not invoke its port.
+  if state.physical_plans.get(state.next_slot) is Some(plan) &&
+    !model_content_admissions_current(plan.attachments) {
+    return @bounded.Failed(InputReferenceUnavailable, 1, 1)
   }
   state.observing_response = state.durable_calls
   // No observation is issued for denied, cancelled, restored, or missing-plan
@@ -707,6 +719,7 @@ fn start_model_owned(
   durable_calls? : Bool = false,
   send_mask? : Array[Bool]? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
+  let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
     @publication_host.client_infer_egress_matches_scope(admission, scope)) {
@@ -729,7 +742,7 @@ fn start_model_owned(
   }
   if (dispatch_admission is Some(_) || durable_calls) &&
     limits.max_request_bytes + limits.max_response_bytes >
-    9223372036854775807L - 81920L {
+    9223372036854775807L - 81920L - model_attachment_evidence_bytes(task) {
     return Err(InvalidLimits)
   }
   if call_scope is Some(scope) &&
@@ -744,7 +757,6 @@ fn start_model_owned(
     return Err(RequestIdentity)
   }
   let count = @relation.prepared_infer_rows_count(rows)
-  let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
   if source is Provider(provider) &&
     provider.provider_id != @environment.model_task_connector(task) {
     return Err(InvalidProvider)

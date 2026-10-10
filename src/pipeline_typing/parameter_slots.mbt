@@ -152,6 +152,13 @@ pub fn collect_parameter_slots(
     for step in 0..<pipeline.steps.length() {
       operand_tick(c)
       match pipeline.steps[step].operation {
+        Serialize(operation) => {
+          operand_tick(c)
+          let body = @decode.open_object(serialization_source(operation)).unwrap()
+          if @decode.lookup(body, "bounds") is Some(bounds) {
+            operand_fields(c, step, bounds, ["max_rows", "max_bytes"])
+          }
+        }
         Infer(operation) =>
           operand_fields(c, step, @evidence.infer_source(operation), [
             "max_items",

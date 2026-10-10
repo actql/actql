@@ -202,7 +202,10 @@ test "interval search preserves repeated producer roles and rejects other operat
   for i in 0..<2 {
     let bound = @capacity_program_step.interval_search_bound_at(v, i).unwrap()
     assert_true(
-      physical_equal(@capacity_program_step.target_rows_bound(bound), proof),
+      physical_equal(
+        @capacity_program_step.target_rows_bound(bound).unwrap(),
+        proof,
+      ),
     )
     assert_eq(
       @capacity_program_step.target_rows_target(bound),

@@ -10,6 +10,10 @@ import {
 // Values
 pub fn after_graph_calls(Query) -> Query
 
+pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
+
+pub fn command_effect_count(QueryScript) -> Int
+
 pub fn cte_at(Query, Int) -> CtePart?
 
 pub fn cte_count(Query) -> Int
@@ -18,7 +22,7 @@ pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?
 
 pub fn data_declaration_count(QueryScript) -> Int
 
-pub fn effect_result_continuation(Query, NamePart) -> (Query, Query)?
+pub fn effect_result_continuation(Query, NamePart, has_postlude? : Bool) -> (Query, Query)?
 
 pub fn expression_child(Expression, Int) -> Expression?
 
@@ -35,6 +39,8 @@ pub fn expression_root(Expression) -> Int
 pub fn expression_with_field_bindings(Expression, Array[(Int, NamePart)]) -> Expression?
 
 pub fn expression_work(Expression) -> Int
+
+pub fn file_list_selector(Query) -> FileListSelector?
 
 pub fn final_operation_at(Query, Int) -> QueryOperation?
 
@@ -158,6 +164,15 @@ pub(all) enum CastType {
   Decimal(Int, Int)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct CommandEffectClause {
+  name : NamePart
+  result : NamePart
+  result_alias : NamePart
+  target : Expression
+  contract : NamePart
+  input : Array[(NamePart, Expression)]
+}
+
 pub(all) struct CtePart {
   name : NamePart
   query : Query
@@ -214,6 +229,12 @@ pub struct ExpressionNode {
   kind : ExpressionKind
   start : Int
   end : Int
+}
+
+pub(all) enum FileListSelector {
+  AllFiles
+  ExactPaths(Expression)
+  Glob(Expression)
 }
 
 pub(all) enum FrameBoundary {
@@ -338,6 +359,7 @@ pub(all) struct JoinPart {
   kind : String
   relation : Array[NamePart]
   source_alias : NamePart?
+  file_listing : FileListSelector?
   on : Expression?
   using_columns : Array[NamePart]
   pre_join_filter : Expression?
@@ -437,6 +459,7 @@ pub(all) enum QueryOperation {
   Unpivot(UnpivotClause)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
+  Serialize(SerializeClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
   Where(Expression)
@@ -465,6 +488,13 @@ pub(all) enum Resource {
   LiteralBytes
   Work
 } derive(Eq, @debug.Debug)
+
+pub(all) struct SerializeClause {
+  format : String
+  order_by : Array[SortTerm]
+  preserve_order : Bool
+  options : Array[(NamePart, Expression)]
+}
 
 pub(all) struct SetPart {
   kind : String

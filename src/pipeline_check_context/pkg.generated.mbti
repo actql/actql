@@ -1410,6 +1410,7 @@ pub enum AuthoringPublicationIssue {
   MissingHostCeiling(String)
   RowTarget(Int, @capacity_program_step.TargetRowsIssue)
   RowMembership(Int, @capacity_graph_preflight.TargetMembershipIssue)
+  SourceInput(Int, @capacity_program_step.SourceInputRowsIssue)
 }
 
 type AuthoringPublicationSelection
@@ -2984,6 +2985,7 @@ pub enum PublicationClosureIssue {
   MissingStage(Int)
   RowTarget(Int, Int, @capacity_program_step.TargetRowsIssue)
   RowMembership(Int, Int, @capacity_graph_preflight.TargetMembershipIssue)
+  SourceInput(Int, Int, @capacity_program_step.SourceInputRowsIssue)
 }
 
 pub struct PublicationResolution {
@@ -3361,6 +3363,7 @@ pub enum SourceRowsIssue {
   InvalidClaim(Int, Int)
   MissingPositiveBound(Int, Int, @decode_core.Cursor)
   Target(Int, Int, @capacity_program_step.TargetRowsIssue)
+  SourceInput(Int, Int, @capacity_program_step.SourceInputRowsIssue)
 }
 
 pub enum SourceStateIssue {

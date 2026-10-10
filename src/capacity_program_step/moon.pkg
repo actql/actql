@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/check_environment" @environment,
   "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/capacity_sequence_limit" @sequence,
@@ -30,6 +31,10 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/client_row_source_host" @row_host,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/stage_syntax" @stage,
+  "moonbitlang/core/json",
   "actql/actql/decode_core" @decode,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_evidence" @evidence,

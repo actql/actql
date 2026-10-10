@@ -54,7 +54,7 @@ fn emit_client_effect_local_identity(
 }
 
 ///|
-/// Bind the authored member and its resolved Mapping to the same checked
+/// Bind the authored member and its resolved Mapping or Command to the same checked
 /// source pin, local Invocation, and completed local Result Artifact.
 pub fn issue_source_free_client_effect_local_identity(
   owner : PreparedClientEffectComputation,

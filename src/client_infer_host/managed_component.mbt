@@ -14,7 +14,8 @@ pub fn local_component(
     active.advancing ||
     !(active.phase is Input) ||
     active.work != 0L ||
-    active.local_component_bound {
+    active.local_component_bound ||
+    active.root_reservation is Some(_) {
     return Err(InvalidAdvance)
   }
   active.local_component_bound = true

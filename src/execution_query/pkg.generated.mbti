@@ -7,11 +7,16 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/pipeline_check_context",
+  "actql/actql/relation_schema",
   "actql/actql/sourceview_resolution",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits) -> Result[QueryReceipt, QuerySequenceIssue]
+
+pub fn advance_captured_file_locator(CapturedFileLocator) -> CapturedFileLocatorPoll
 
 pub fn append_captured_source_identity_scan(CapturedSourceIdentityScan, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Unit, CapturedSourceIdentityScanIssue]
 
@@ -20,6 +25,8 @@ pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepare
 pub fn bind_captured_source_operation(CapturedInputSource, @lowering_relation.BoundPrepared, Int, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
 
 pub fn bind_query_receipt(QuerySequence, @execution_relation.CapturedRows) -> Result[QueryReceipt, QuerySequenceIssue]
+
+pub fn cancel_captured_file_locator(CapturedFileLocator) -> Unit
 
 pub fn cancel_captured_source_identity_scan(CapturedSourceIdentityScan) -> Bool
 
@@ -61,6 +68,10 @@ pub fn finish_captured_source_identity_scan(CapturedSourceIdentityScan) -> Resul
 
 pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, retain_body_bytes? : Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
 
+pub fn keyed_response_input_schema(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @sourceview_resolution.KeyedRowRequest) -> Result[@relation_schema.Schema, KeyedInputRequestIssue]
+
+pub fn keyed_response_port_schema(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin) -> Result[@relation_schema.Schema, KeyedInputRequestIssue]
+
 pub fn prepare_captured_source_identity_scan(CapturedInputSource, Int, Int, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedSourceIdentityScan, CapturedSourceIdentityScanIssue]
 
 pub fn prepare_captured_source_relation_export(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedOutputExport, CapturedSourceIssue]
@@ -73,6 +84,8 @@ pub fn query_generated_sequence(QuerySequence) -> @execution_relation.GeneratedS
 
 pub fn query_program_matches(QuerySequence, @pipeline_check_context.ProgramSourceIdentity) -> Bool
 
+pub fn query_receipt_input_index(QuerySequence) -> Int
+
 pub fn query_receipt_matches(QueryReceipt, QuerySequence) -> Bool
 
 pub fn query_receipt_rows(QueryReceipt) -> @execution_relation.CapturedRows
@@ -83,11 +96,25 @@ pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.Query
 
 pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
 
+pub fn start_captured_file_locator(CapturedInputSource, @execution_relation.SuppliedRelationRead, @value_admission.ReferenceValue, String, Int) -> CapturedFileLocator?
+
+pub fn start_captured_keyed_request(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @execution_relation.CapturedRows, Int, @sourceview_resolution.RequestLimits) -> Result[(@sourceview_resolution.KeyedRowRequestCursor, Int), KeyedInputRequestIssue]
+
 pub fn start_captured_source_result_export(CapturedInputSource, @execution_relation.ManagedResultOccurrence, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_produced_keyed_request(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @execution_relation.ProducerRead, Int, @sourceview_resolution.RequestLimits) -> Result[(@sourceview_resolution.KeyedRowRequestCursor, Int), KeyedInputRequestIssue]
 
 // Errors
 
 // Types and methods
+type CapturedFileLocator
+
+pub enum CapturedFileLocatorPoll {
+  CapturedFileLocatorContinue
+  CapturedFileLocatorComplete(String)
+  CapturedFileLocatorFailed
+}
+
 type CapturedInputSource
 
 type CapturedSourceIdentityScan
@@ -120,6 +147,19 @@ pub struct CapturedSourceStatistics {
   rows : Int
   canonical_wire_bytes : Int
 }
+
+pub(all) enum KeyedInputRequestIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignPipeline
+  ForeignParameters
+  ForeignInput
+  UnsupportedInput
+  InvalidRow
+  MissingColumn(Int)
+  InvalidValue(Int)
+  Request(@sourceview_resolution.KeyedRowRequestIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum QueryGuardIssue {
   InvalidLimits

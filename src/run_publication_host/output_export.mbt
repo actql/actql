@@ -451,6 +451,52 @@ pub fn PublicationOutputExport::next(
 }
 
 ///|
+/// Yield within a row using the original canonical export cursor. The driver
+/// reserves this cursor's workspace before entry; this local ceiling is not a
+/// substitute for that physical reservation.
+pub fn PublicationOutputExport::advance(
+  self : PublicationOutputExport,
+  quantum : Int,
+) -> (
+  @execution.CompletedOutputExportAdvance?,
+  Int,
+  PublicationOutputExportIssue?,
+) {
+  if self.receipt is Some(_) {
+    return (None, 0, Some(InvalidState))
+  }
+  guard @execution.completed_output_export_workspace_slots(
+      self.replay_values,
+      self.replay_wire,
+    )
+    is Some(slots) else {
+    return (None, 0, Some(InvalidState))
+  }
+  let result = @execution.advance_completed_output_export(
+    self.stream,
+    quantum,
+    slots,
+  )
+  let used = @execution.completed_output_export_poll_steps(self.stream)
+  match result {
+    Ok(progress) => (Some(progress), used, None)
+    Err(issue) => (None, used, Some(Output(issue)))
+  }
+}
+
+///|
+pub fn PublicationOutputExport::rows_complete(
+  self : PublicationOutputExport,
+) -> Result[Bool, PublicationOutputExportIssue] {
+  if self.receipt is Some(_) {
+    return Err(InvalidState)
+  }
+  @execution.completed_output_export_rows_complete(self.stream).map_err(issue => {
+    Output(issue)
+  })
+}
+
+///|
 /// Finish the canonical traversal. The returned tail must still be accepted
 /// by durable storage before the receipt can be bound to a representation.
 pub fn PublicationOutputExport::finish(

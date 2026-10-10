@@ -124,6 +124,7 @@ fn check_supported_source(
               | "merge_rankings"
               | "text_rank"
               | "infer"
+              | "serialize"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }

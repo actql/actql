@@ -1,3 +1,14 @@
+/** Explicit finite keyed lookup policy. Omission leaves lookup unresolved. */
+export type HostLookupExecutionPolicy = Readonly<{
+  version: 'actql-lookup-execution-policy/0.1';
+  max_network_attempts_per_request: number;
+  max_request_bytes_per_attempt: number;
+  max_total_request_bytes: number;
+  max_total_response_bytes: number;
+  max_total_decoded_response_bytes: number;
+  max_total_duration_ms: number;
+}>;
+
 /** Complete existing capacity contract. Runtime admission enforces safe positive integers. */
 export type HostCapacityPolicy = Readonly<{
   max_graph_construction_input_rows?: number;

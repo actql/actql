@@ -1,10 +1,14 @@
 ///|
 /// Physical preparation performs no provider I/O. Each start, advance and
-/// cleanup callback must do one bounded unit of adapter work. The execution
-/// owner charges transitions and observes cancellation between these units.
+/// cleanup callback must do bounded adapter work. Each advance receives the
+/// remaining admitted quantum and reports its actual work, including byte
+/// validation. The execution owner charges that work even on a typed failure.
 /// A cursor retains its buffers until cleanup succeeds, including on refusal.
 pub(all) struct ModelRequestPreflight {
-  advance : () -> Result[ModelPhysicalRequestPlan?, ModelExecutionIssue]
+  advance : (Int) -> (
+    Result[ModelPhysicalRequestPlan?, ModelExecutionIssue],
+    Int,
+  )
   cleanup : () -> Bool
 }
 
@@ -18,6 +22,7 @@ pub struct ModelPhysicalRequestPlan {
   quantities : @resources.QuantityAmounts
   invoke : () -> Result[ModelResponse, ModelProviderFailure]
   evidence : ModelPhysicalRequestEvidence?
+  attachments : Array[ModelContentAdmission]
 }
 
 ///|
@@ -36,6 +41,7 @@ pub fn model_physical_request_plan(
   quantities : @resources.QuantityAmounts,
   invoke : () -> Result[ModelResponse, ModelProviderFailure],
   evidence? : ModelPhysicalRequestEvidence,
+  attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if wire_bytes < 0L ||
     wire_bytes > 9007199254740991L ||
@@ -50,6 +56,10 @@ pub fn model_physical_request_plan(
   if quantities.tokens <
     @environment.model_task_generation_config(request.task).max_output_tokens {
     return Err(InvalidLimits)
+  }
+  match model_content_admissions_match(request, attachments, wire_bytes) {
+    Err(issue) => return Err(Content(issue))
+    Ok(_) => ()
   }
   let mut retained_evidence = evidence
   if evidence is Some(original) {
@@ -91,7 +101,14 @@ pub fn model_physical_request_plan(
     }
   }
   // Optional capture exhaustion cannot reject or resend a normal Model call.
-  Ok({ request, wire_bytes, quantities, invoke, evidence: retained_evidence, })
+  Ok({
+    request,
+    wire_bytes,
+    quantities,
+    invoke,
+    evidence: retained_evidence,
+    attachments,
+  })
 }
 
 ///|
@@ -144,21 +161,29 @@ fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
 // until every physical plan has passed this common envelope/binding check.
 fn advance_model_physical_preflight(
   state : ModelState,
+  quantum : Int,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  let allowed = quantum.min(state.limits.max_work - state.work)
+  if allowed < 1 {
+    return @bounded.Failed(WorkLimit, 0, 0)
+  }
   guard state.physical_preflight is Some(start) else {
     return @bounded.Failed(InvalidProvider, 1, 1)
   }
   let index = state.physical_next_slot
   if index == state.requests.length() {
+    state.work += 1
     state.phase = DispatchSlot
     return @bounded.Continue(1, 1)
   }
   if !model_slot_send_eligible(state, index) {
+    state.work += 1
     state.physical_next_slot += 1
     return @bounded.Continue(1, 1)
   }
   let request = state.requests[index].request
   if state.physical_pending is None {
+    state.work += 1
     match start(request) {
       Err(issue) => return @bounded.Failed(issue, 1, 1)
       Ok(cursor) => {
@@ -168,32 +193,39 @@ fn advance_model_physical_preflight(
     }
     return @bounded.Continue(1, 1)
   }
-  match (state.physical_pending.unwrap().advance)() {
-    Err(issue) => @bounded.Failed(issue, 1, 1)
-    Ok(None) => @bounded.Continue(1, 1)
+  let (result, work) = (state.physical_pending.unwrap().advance)(allowed)
+  // Invalid reports do not grant another advance or a provider invocation.
+  // The existing bounded session retains the cursor for stop/cleanup.
+  if work < 1 || work > allowed {
+    return @bounded.Failed(InvalidProvider, 0, 0)
+  }
+  state.work += work
+  match result {
+    Err(issue) => @bounded.Failed(issue, 1, work)
+    Ok(None) => @bounded.Continue(1, work)
     Ok(Some(plan)) => {
       if !physical_equal(plan.request, request) {
-        return @bounded.Failed(RequestIdentity, 1, 1)
+        return @bounded.Failed(RequestIdentity, 1, work)
       }
       if plan.wire_bytes > state.limits.max_request_bytes {
-        return @bounded.Failed(RequestLimit, 1, 1)
+        return @bounded.Failed(RequestLimit, 1, work)
       }
       guard state.quantity_capacity is Some(capacity) else {
-        return @bounded.Failed(InvalidLimits, 1, 1)
+        return @bounded.Failed(InvalidLimits, 1, work)
       }
       if plan.quantities.tokens > capacity.per_attempt.tokens {
-        return @bounded.Failed(Ledger(@resources.TokenLimit), 1, 1)
+        return @bounded.Failed(Ledger(@resources.TokenLimit), 1, work)
       }
       if plan.quantities.cost_units > capacity.per_attempt.cost_units {
-        return @bounded.Failed(Ledger(@resources.CostLimit), 1, 1)
+        return @bounded.Failed(Ledger(@resources.CostLimit), 1, work)
       }
       if plan.quantities.duration_ms > capacity.per_attempt.duration_ms {
-        return @bounded.Failed(Ledger(@resources.DurationLimit), 1, 1)
+        return @bounded.Failed(Ledger(@resources.DurationLimit), 1, work)
       }
       state.physical_plans[index] = plan
       state.physical_pending = None
       state.physical_next_slot += 1
-      @bounded.Continue(1, 1)
+      @bounded.Continue(1, work)
     }
   }
 }

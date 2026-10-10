@@ -97,6 +97,7 @@ pub(all) enum QueryOperation {
   Unpivot(UnpivotClause)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
+  Serialize(SerializeClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
   Where(Expression)
@@ -202,6 +203,7 @@ pub(all) struct JoinPart {
   kind : String
   relation : Array[NamePart]
   source_alias : NamePart?
+  file_listing : FileListSelector?
   on : Expression?
   using_columns : Array[NamePart]
   pre_join_filter : Expression?
@@ -225,6 +227,7 @@ struct Query {
   ctes : Array[CtePart]
   relation : Array[NamePart]
   source_alias : NamePart?
+  file_listing : FileListSelector?
   graph : GraphQuery?
   joins : Array[JoinPart]
   operations : Array[QueryOperation]
@@ -459,6 +462,14 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           keys: clause.keys.map(path => path.copy()),
           inputs: clause.inputs.copy(),
           keep: clause.keep.map(item => { ..item, path: item.path.copy(), }),
+        }),
+      )
+    Serialize(clause) =>
+      Some(
+        Serialize({
+          ..clause,
+          order_by: clause.order_by.copy(),
+          options: clause.options.copy(),
         }),
       )
     Where(e) => Some(Where(e))
@@ -942,17 +953,20 @@ fn QueryParser::optional_source_alias(
 ///|
 fn QueryParser::query_source(
   self : QueryParser,
-) -> (Array[NamePart], NamePart?, Array[CtePart]) raise QueryAbort {
+) -> (Array[NamePart], NamePart?, Array[CtePart], FileListSelector?) raise QueryAbort {
+  if self.has("LIST_FILES") {
+    return self.file_listing_source()
+  }
   if self.peek().value != Symbol(40) {
     let (relation, source_alias) = self.source_name()
-    return (relation, source_alias, [])
+    return (relation, source_alias, [], None)
   }
   let bound = self.bind_query(self.parenthesized())
   let source_alias = match self.optional_source_alias() {
     Some(value) => value
     None => raise QueryAbort("Subquery requires an alias", self.peek().start)
   }
-  (bound.relation, Some(source_alias), bound.ctes)
+  (bound.relation, Some(source_alias), bound.ctes, None)
 }
 
 ///|
@@ -975,6 +989,7 @@ fn QueryParser::bind_query(
     ctes,
     relation: [generated],
     source_alias: None,
+    file_listing: None,
     graph: None,
     joins: [],
     operations: [],
@@ -1110,13 +1125,14 @@ fn QueryParser::join_part(
     "inner"
   }
   self.keyword("JOIN")
-  let (relation, source_alias, ctes) = self.query_source()
+  let (relation, source_alias, ctes, file_listing) = self.query_source()
   if kind == "cross" {
     return (
       {
         kind,
         relation,
         source_alias,
+        file_listing,
         on: None,
         using_columns: [],
         pre_join_filter: None,
@@ -1133,6 +1149,7 @@ fn QueryParser::join_part(
         kind,
         relation,
         source_alias,
+        file_listing,
         on: Some(self.expression()),
         using_columns: [],
         pre_join_filter: None,
@@ -1162,6 +1179,7 @@ fn QueryParser::join_part(
       kind,
       relation,
       source_alias,
+      file_listing,
       on: None,
       using_columns,
       pre_join_filter: None,
@@ -2028,20 +2046,23 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       replacements: [],
     })
   let operations : Array[QueryOperation] = []
-  let (initial_relation, initial_alias, initial_ctes) = if self.has("FROM") {
+  let (initial_relation, initial_alias, initial_ctes, initial_file_listing) = if self.has(
+      "FROM",
+    ) {
     self.keyword("FROM")
     if self.has("UNNEST") {
       operations.push(self.unnest_source())
-      ([], None, [])
+      ([], None, [], None)
     } else {
       self.query_source()
     }
   } else {
-    ([], None, [])
+    ([], None, [], None)
   }
   let mut relation = initial_relation
   let mut source_alias = initial_alias
   let mut ctes = initial_ctes
+  let mut file_listing = initial_file_listing
   let joins : Array[JoinPart] = []
   while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
     if self.starts_correlated_unnest() {
@@ -2060,6 +2081,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
           relation,
           source_alias,
           ctes,
+          file_listing,
           graph: None,
           joins: joins.copy(),
           operations: operations.copy(),
@@ -2074,6 +2096,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       relation = expanded.relation
       source_alias = expanded.source_alias
       ctes = expanded.ctes
+      file_listing = expanded.file_listing
       joins.clear()
       operations.clear()
     }
@@ -2223,6 +2246,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     ctes,
     relation,
     source_alias,
+    file_listing,
     graph: None,
     joins,
     operations: resolved,
@@ -2509,7 +2533,7 @@ fn QueryParser::pipe(
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
-  let (relation, source_alias, ctes) = if self.has("GRAPH") {
+  let (relation, source_alias, ctes, file_listing) = if self.has("GRAPH") {
     if cte_body && !graph_data_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
     }
@@ -2517,10 +2541,10 @@ fn QueryParser::pipe(
     let relation = self.path()
     let label_field = self.graph_labels()
     graph = Some({ label_field, pattern: None, })
-    (relation, None, [])
+    (relation, None, [], None)
   } else if self.has("UNNEST") {
     operations.push(self.unnest_source())
-    ([], None, [])
+    ([], None, [], None)
   } else {
     self.query_source()
   }
@@ -2532,6 +2556,7 @@ fn QueryParser::pipe(
       ctes,
       relation,
       source_alias,
+      file_listing,
       graph,
       joins: [],
       operations,
@@ -2554,6 +2579,7 @@ fn QueryParser::pipe_tail(
 ) -> Query raise QueryAbort {
   let relation = input.relation
   let source_alias = input.source_alias
+  let file_listing = input.file_listing
   let ctes = input.ctes.copy()
   let mut graph = input.graph
   let joins = input.joins.copy()
@@ -2593,6 +2619,7 @@ fn QueryParser::pipe_tail(
         ctes,
         relation,
         source_alias,
+        file_listing,
         graph,
         joins,
         operations,
@@ -2616,6 +2643,7 @@ fn QueryParser::pipe_tail(
         ctes,
         relation,
         source_alias,
+        file_listing,
         graph,
         joins,
         operations,
@@ -3114,6 +3142,8 @@ fn QueryParser::pipe_tail(
         )
       }
       operations.push(Infer(self.infer_clause()))
+    } else if self.has("SERIALIZE") {
+      operations.push(Serialize(self.serialize_clause()))
     } else if self.has("NEAREST") {
       operations.push(Nearest(self.nearest_clause()))
     } else if self.has("KEEP") {
@@ -3138,6 +3168,7 @@ fn QueryParser::pipe_tail(
     ctes,
     relation,
     source_alias,
+    file_listing,
     graph,
     joins,
     operations,
@@ -3379,8 +3410,9 @@ fn QueryParser::table_create_clause(
 pub fn effect_result_continuation(
   query : Query,
   input : NamePart,
+  has_postlude? : Bool = false,
 ) -> (Query, Query)? {
-  if (query.effect is None && query.table_effect is None) ||
+  if (!has_postlude && query.effect is None && query.table_effect is None) ||
     !query.sets.is_empty() ||
     !query.final_operations.is_empty() {
     return None
@@ -3400,6 +3432,7 @@ pub fn effect_result_continuation(
           ..query,
           relation: [input],
           source_alias: None,
+          file_listing: None,
           graph: None,
           joins: [],
           ctes: [],

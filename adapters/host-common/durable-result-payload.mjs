@@ -188,6 +188,7 @@ export async function storeCompletedResultPublicationPayload(
   publication,
   signal,
   beginResult,
+  readBatch,
 ) {
   if (!validStore(store) ||
       typeof store.createPreparedObjectWriter !== 'function' ||
@@ -251,6 +252,7 @@ export async function storeCompletedResultPublicationPayload(
       }, publication.limits),
     true,
     publication.runDefinition.identity,
+    readBatch,
   );
 }
 
@@ -264,6 +266,7 @@ async function storeCompletedPayload(
   issuePhysicalEvidence,
   preparePhysical = false,
   schemaRunDefinitionCid,
+  readBatch,
 ) {
   signal?.throwIfAborted();
   let exportHandle;
@@ -279,7 +282,9 @@ async function storeCompletedPayload(
       : store.createObjectWriter(limits.maxWireBytes);
     for (;;) {
       signal?.throwIfAborted();
-      const part = control.next(exportHandle);
+      const part = readBatch === undefined
+        ? control.next(exportHandle)
+        : await readBatch(exportHandle, signal);
       if (part === undefined) break;
       if (typeof part !== 'string') fail('InvalidDurableResultPayloadBatch');
       if (part.length !== 0) await writer.append(part);

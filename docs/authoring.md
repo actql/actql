@@ -143,7 +143,7 @@ inputs:
 ```
 
 Metadata, content, and binary are separate views. Select a content view when
-you need an `artifact_ref`; metadata never upgrades itself to content.
+you need an `content_ref`; metadata never upgrades itself to content.
 
 Use `meta` on Program, Input, Parameter, Binding, Step, Result, or Effect
 declarations, as specified by [Authoring Context](spec/language.md#authoring-context).
@@ -278,8 +278,8 @@ Optional production-integration profiles:
 ```text
 actql-text-time/0.1  split/substring/UTF-8 truncation/UTC/portable-regex/NFKC/case-fold/try-timestamp
 actql-lookup/0.1     internal bounded acquisition for a checked external join
-actql-artifact/0.1   ordered Relation -> captured ArtifactRef Relation
-ArtifactRef input   typed external SourceView join -> ordinary Relation
+actql-content/0.1   ordered Relation -> captured ContentRef Relation
+ContentRef input   typed external SourceView join -> ordinary Relation
 ```
 
 Authors declare an ordinary join against a keyed SourceView input:
@@ -374,7 +374,7 @@ branches with `filter`. Do not silently discard rejected rows.
 | Successful optional external acquisition finds no row | Follow its SourceView cardinality contract and authored join kind |
 | External acquisition timeout, authentication failure, or response-schema mismatch | Preserve the acquisition-barrier failure |
 | Infer refusal, truncation, or response-schema mismatch | Preserve the typed non-success outcome; explicit strict mode fails the operation |
-| ArtifactRef fails live admission before external provider access | Preserve the acquisition-barrier failure; provider calls remain zero |
+| ContentRef fails live admission before external provider access | Preserve the acquisition-barrier failure; provider calls remain zero |
 | Engine defect | Fail the Run |
 | Effect fails or has unknown outcome | Preserve the Effect Receipt; reconcile the durable Run or use a later Run Graph continuation |
 

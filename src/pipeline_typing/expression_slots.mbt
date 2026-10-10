@@ -287,6 +287,7 @@ pub fn collect_expression_slots(
         // These checked forms retain scalar/cell operands or field selectors,
         // not general Expression roots. Do not use a catch-all here.
         Join(..)
+        | Serialize(_)
         | Append(..)
         | Nest(..)
         | Set(..)

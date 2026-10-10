@@ -19,6 +19,9 @@ fn join_requires_input_binding(
     return false
   }
   let part = @query.join_part_at(query, 0).unwrap()
+  if part.file_listing is Some(_) {
+    return true
+  }
   let right = selected_relation(part.relation, context)
   right.source is GeneratedValues(_)
 }
@@ -53,6 +56,10 @@ fn lower_script_join_relation(
   preserved_scope? : Array[JoinChainScope]? = None,
   positional_set_output? : Bool = false,
 ) -> Input raise Abort {
+  // Keep right Source declarations at their actual JOIN occurrence. A
+  // correlated Source cannot be captured independently before left keys
+  // exist. Direct right Sources are still admitted by the common acquisition
+  // owner; this changes neither their Request nor the JOIN's expression scope.
   if @query.join_part_count(query) < 1 {
     raise Abort(UnsupportedJoin)
   }
@@ -75,9 +82,15 @@ fn lower_script_join_relation(
     let inputs = [(selected, left.name)]
     for index in 0..<@query.join_part_count(query) {
       let part = @query.join_part_at(query, index).unwrap()
-      let selected = selected_relation(part.relation, scoped)
+      let selected = selected_join_input(query, part, scoped, limits)
       let bound = bind_script_input(
-        construction, selected, context, sources, steps, reserved,
+        construction,
+        selected,
+        context,
+        sources,
+        steps,
+        reserved,
+        capture=false,
       )
       inputs.push((selected, bound.name))
     }
@@ -107,14 +120,44 @@ fn lower_script_join_relation(
   let part = @query.join_part_at(query, 0).unwrap()
   let scoped = { ..context, inputs: known, }
   let left = selected_input(query, scoped, limits)
-  let right = selected_relation(part.relation, scoped)
+  let right = selected_join_input(query, part, scoped, limits)
   let left_fields = columns(left)
   let right_fields = columns(right)
+  // A single installed JOIN keeps both Source ports in the same original
+  // Stage, as the standalone SQL lowering does. Its leading WHERE and full
+  // projection are the existing Direct capture prefix, not another Source
+  // Stage. Shared/already-bound script producers retain their prior boundary.
+  // LIST_FILES adds its Request identity to the lowered binding name; sharing
+  // is counted against the original published Source name, not that suffix.
+  let original_left = selected_relation(@query.relation(query), scoped)
+  let capture_left = context.captured_stage is Some(_) &&
+    sources.unshared.contains(original_left.name) &&
+    !sources.bound.contains(left.name) &&
+    left.source is Captured(left_declaration) &&
+    right.source is Captured(right_declaration) &&
+    @wire.open_object(left_declaration) is Ok(left_object) &&
+    @wire.open_object(right_declaration) is Ok(right_object) &&
+    @wire.lookup(left_object, "connector") is Some(_) &&
+    @wire.lookup(left_object, "resource") is Some(_) &&
+    @wire.lookup(right_object, "connector") is Some(_) &&
+    @wire.lookup(right_object, "resource") is Some(_)
   let bound_left = bind_script_input(
-    construction, left, context, sources, steps, reserved,
+    construction,
+    left,
+    context,
+    sources,
+    steps,
+    reserved,
+    capture=!capture_left,
   )
   let bound_right = bind_script_input(
-    construction, right, context, sources, steps, reserved,
+    construction,
+    right,
+    context,
+    sources,
+    steps,
+    reserved,
+    capture=false,
   )
   let bindings = script_join_bindings(reserved)
   let (body, fields, from) = compile_join_steps(
@@ -129,6 +172,7 @@ fn lower_script_join_relation(
     left_from=bound_left.name,
     right_from=bound_right.name,
     step_bindings=bindings,
+    capture_left~,
   )
   steps.append(body)
   {

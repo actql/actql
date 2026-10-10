@@ -15,7 +15,7 @@ test('compiler selects exact values execution and wire interpretation bodies', (
   const implementation = readFileSync('src/pipeline_check_context/core_contracts.mbt', 'utf8').replace(/\s+/g, ' ');
   const shared = readFileSync('src/pipeline_check_context/core_contract_shared.mbt', 'utf8').replace(/\s+/g, ' ');
   const execution = aoa.execution_contracts['REL.values'];
-  const executionCid = 'sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b';
+  const executionCid = 'sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7';
   const wire = read('spec/contracts/actql-bound-values-wire-law.json');
   const wireCid = 'sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f';
   verifyIdentity(execution, executionCid);
@@ -27,7 +27,7 @@ test('compiler selects exact values execution and wire interpretation bodies', (
     canonical_value_contract: {
       path: 'spec/contracts/actql-protocol-schemas.json',
       pointer: '/schemas/canonical_value_contract',
-      cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551',
+      cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947',
     },
   });
   verifyIdentity(protocol.schemas.canonical_value_contract,

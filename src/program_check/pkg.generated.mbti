@@ -327,9 +327,11 @@ pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_c
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
+pub fn keyed_input_proof_acquired(KeyedInputProof) -> ReidentifiedSourceInput?
+
 pub fn keyed_input_proof_at(CheckedProgram, Int) -> KeyedInputProof?
 
-pub fn keyed_input_proof_bound(KeyedInputProof) -> ReidentifiedStep
+pub fn keyed_input_proof_bound(KeyedInputProof) -> ReidentifiedStep?
 
 pub fn keyed_input_proof_count(CheckedProgram) -> Int
 
@@ -382,6 +384,8 @@ pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironm
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
+
+pub fn prepare_serialization_output_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
 
@@ -514,6 +518,14 @@ pub fn publication_rows(PublicationExecution) -> @capacity_witness.LimitClaim
 pub fn publication_selection(PublicationExecution) -> @pipeline_check_context.PublicationRowLimit
 
 pub fn publication_source_policy(PublicationExecution) -> PublicationSourcePolicy?
+
+pub fn reidentified_source_input_original(ReidentifiedSourceInput) -> @capacity_program_step.SourceInputRows
+
+pub fn reidentified_source_input_reference(ReidentifiedSourceInput) -> String
+
+pub fn reidentified_source_input_rows(ReidentifiedSourceInput) -> @capacity_witness.LimitClaim
+
+pub fn reidentified_source_input_unit(ReidentifiedSourceInput) -> String
 
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
@@ -1261,6 +1273,8 @@ pub struct PublicationSourcePolicy {
 }
 
 type ReidentifiedGraphInput
+
+type ReidentifiedSourceInput
 
 type ReidentifiedStep
 

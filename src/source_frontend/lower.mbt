@@ -275,6 +275,17 @@ pub fn parse_query(
   format : Format,
   source_path? : String = "<source>",
 ) -> Result[@syntax.Query, Issue] {
+  parse_selected_query_script(document, format, source_path~).map(script => {
+    @syntax.script_query(script)
+  })
+}
+
+///|
+fn parse_selected_query_script(
+  document : String,
+  format : Format,
+  source_path? : String = "<source>",
+) -> Result[@syntax.QueryScript, Issue] {
   match format {
     Text | Sql => ()
     Json | Yaml => return Err(InvalidFormat)
@@ -294,7 +305,7 @@ pub fn parse_query(
       Err(issue) => return Err(QuerySyntax(issue))
     }
   }
-  match @syntax.parse_query(document, syntax_limits(), source_path~) {
+  match @syntax.parse_query_script(document, syntax_limits(), source_path~) {
     Ok(value) => Ok(value)
     Err(issue) => Err(QuerySyntax(issue))
   }
@@ -313,17 +324,11 @@ pub fn lower(
   match format {
     Json => Ok({ document, format: @program.Json, program: None, })
     Yaml => Ok({ document, format: @program.Yaml, program: None, })
-    Text => {
-      match
-        @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
-        Ok(true) => ()
-        Ok(false) => return Err(WrongQueryForm)
-        Err(issue) => return Err(QuerySyntax(issue))
-      }
+    Text | Sql => {
       let script = match
-        @syntax.parse_query_script(document, syntax_limits(), source_path~) {
+        parse_selected_query_script(document, format, source_path~) {
         Ok(value) => value
-        Err(issue) => return Err(QuerySyntax(issue))
+        Err(issue) => return Err(issue)
       }
       guard context is Some(context) else { return Err(MissingQueryContext) }
       // DATA constructors lower to the sole definition-keyed Program owner.
@@ -333,7 +338,8 @@ pub fn lower(
         @syntax.graph_query(@syntax.script_query(script)) is Some(_) {
         return Err(QueryLowering(@query.UnsupportedGraph))
       }
-      let program = if @syntax.data_declaration_count(script) > 0 {
+      let program = if @syntax.data_declaration_count(script) > 0 ||
+        @syntax.command_effect_count(script) > 0 {
         match
           @query.compile_query_script(
             script,
@@ -355,22 +361,6 @@ pub fn lower(
           Ok(value) => value
           Err(issue) => return Err(QueryLowering(issue))
         }
-      }
-      emit(program)
-    }
-    Sql => {
-      let parsed = match parse_query(document, format, source_path~) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      guard context is Some(context) else { return Err(MissingQueryContext) }
-      if @syntax.graph_query(parsed) is Some(_) {
-        return Err(QueryLowering(@query.UnsupportedGraph))
-      }
-      let program = match
-        @query.compile(parsed, context, query_limits(), table_writes~) {
-        Ok(value) => value
-        Err(issue) => return Err(QueryLowering(issue))
       }
       emit(program)
     }

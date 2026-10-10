@@ -85,6 +85,7 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
           }
         Window(_) | WindowGroup(_) => WindowResult
         Infer(_)
+        | Serialize(_)
         | Join(..)
         | Append(..)
         | Nest(..)

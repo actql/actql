@@ -20,7 +20,72 @@ struct QueryScript {
   source : Tokens
   declarations : Array[DataDeclaration]
   query : Query
+  commands : Array[CommandEffectClause]
   work : Int
+}
+
+///|
+pub(all) struct CommandEffectClause {
+  name : NamePart
+  result : NamePart
+  result_alias : NamePart
+  target : Expression
+  contract : NamePart
+  input : Array[(NamePart, Expression)]
+}
+
+///|
+pub fn command_effect_count(script : QueryScript) -> Int {
+  script.commands.length()
+}
+
+///|
+pub fn command_effect_at(
+  script : QueryScript,
+  index : Int,
+) -> CommandEffectClause? {
+  script.commands
+  .get(index)
+  .map(clause => { ..clause, input: clause.input.copy(), })
+}
+
+///|
+fn QueryParser::command_effect_clause(
+  self : QueryParser,
+) -> CommandEffectClause raise QueryAbort {
+  self.node()
+  self.keyword("EFFECT")
+  let name = self.name()
+  self.keyword("COMMAND")
+  self.keyword("FROM")
+  self.keyword("RESULT")
+  let result = self.name()
+  self.keyword("AS")
+  let result_alias = self.name()
+  self.keyword("TARGET")
+  let target = self.expression()
+  self.keyword("CONTRACT")
+  let contract = self.name()
+  self.keyword("INPUT")
+  self.symbol(40)
+  let input : Array[(NamePart, Expression)] = []
+  if self.peek().value != Symbol(41) {
+    while true {
+      self.node()
+      let field = self.name()
+      if input.any(entry => same_cte_name(entry.0, field)) {
+        raise QueryAbort("Duplicate COMMAND input field", self.peek().start)
+      }
+      self.symbol(61)
+      input.push((field, self.expression()))
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+  }
+  self.symbol(41)
+  { name, result, result_alias, target, contract, input, }
 }
 
 ///|
@@ -108,8 +173,30 @@ pub fn parse_query_script(
       declarations.push({ name, value, start, end, })
     }
     let query = parser.query()
+    let commands : Array[CommandEffectClause] = []
+    if parser.peek().value == Symbol(59) {
+      ignore(parser.advance())
+      while parser.has("EFFECT") {
+        if query.effect is Some(_) || query.table_effect is Some(_) {
+          raise QueryAbort(
+            "Conflicting terminal Effect declarations",
+            parser.peek().start,
+          )
+        }
+        let at = parser.peek().start
+        let clause = parser.command_effect_clause()
+        if commands.any(previous => same_cte_name(previous.name, clause.name)) {
+          raise QueryAbort("Duplicate Effect name", at)
+        }
+        commands.push(clause)
+        parser.symbol(59)
+      }
+      if parser.peek().value == Symbol(59) {
+        raise QueryAbort("Expected end of one query", parser.peek().start)
+      }
+    }
     parser.end()
-    Ok({ source, declarations, query, work: parser.work, })
+    Ok({ source, declarations, query, commands, work: parser.work, })
   } catch {
     QueryExpression(error) => Err(error)
     QueryAbort(message, at) =>
@@ -125,5 +212,11 @@ pub fn parse_query_script(
 ///|
 // Preserve the original parsed query and source owner, without reparsing text.
 pub fn single_query_script(query : Query) -> QueryScript {
-  { source: query.source, declarations: [], query, work: query.work, }
+  {
+    source: query.source,
+    declarations: [],
+    query,
+    commands: [],
+    work: query.work,
+  }
 }

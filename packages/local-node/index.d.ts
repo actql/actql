@@ -1,7 +1,7 @@
 import type {Client} from '@actql/sdk';
-import type {HostCapacityPolicy} from './host-policy.js';
+import type {HostCapacityPolicy, HostLookupExecutionPolicy} from './host-policy.js';
 import type {HostObservationConnection} from './observation.js';
-export type {HostCapacityPolicy} from './host-policy.js';
+export type {HostCapacityPolicy, HostLookupExecutionPolicy} from './host-policy.js';
 
 declare const installedConnectorTableBrand: unique symbol;
 /** An admitted, process-local table of trusted Host installation loaders. */
@@ -57,6 +57,7 @@ export type HostInstallation = Readonly<{
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;
   hostCapacityPolicy?: HostCapacityPolicy;
+  hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   resolveSourceSecret?: (...args: any[]) => any;
   resolveEffectSecret?: (...args: any[]) => any;
   authorization?: Readonly<Record<string, unknown>>;
@@ -81,4 +82,4 @@ export declare function connect(options: Readonly<{
 export declare function publishSource(options?: Pick<HostInstallation,
   'directory' | 'sourceProfilePath' | 'resolveSourceSecret' | 'connectorTable'> & {signal?: AbortSignal}): Promise<unknown>;
 export declare function publishEffect(options?: Pick<HostInstallation,
-  'directory' | 'effectProfilePath' | 'resolveEffectSecret' | 'hostCapacityPolicy' | 'connectorTable'> & {signal?: AbortSignal}): Promise<unknown>;
+  'directory' | 'effectProfilePath' | 'resolveEffectSecret' | 'hostCapacityPolicy' | 'hostLookupExecutionPolicy' | 'connectorTable'> & {signal?: AbortSignal}): Promise<unknown>;

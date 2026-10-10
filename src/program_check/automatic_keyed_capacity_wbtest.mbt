@@ -76,7 +76,9 @@ test "standard keyed acquisition derives unpublished left input bounds" {
   let proof = keyed_input_proof_at(program, 0).unwrap()
   assert_eq(
     @wire.value(
-      @wire.program_proof_witness(proof_claim(keyed_input_proof_bound(proof))),
+      @wire.program_proof_witness(
+        proof_claim(keyed_input_proof_bound(proof).unwrap()),
+      ),
     ),
     2L,
   )

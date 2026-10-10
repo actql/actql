@@ -16,7 +16,7 @@
     "implicit_stringification": false,
     "implicit_cid_substitution": false
   },
-  "expression_contract_cid": "sha256:a6d2c257b61167db55ca87f4985e89c2c098b33ef0123bf6639878972fa081e8",
+  "expression_contract_cid": "sha256:c25d8196e4f1078d7738ed48ae1fd28aa12990d047d84701482656fe40a5fa96",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
   "rela_scalar_law_manifest_cid": "sha256:aa70f420d765ab707a5ec0607d58e0a4104022ca8113866bd7d18447dedde2f6",
@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:d6d977099973c73d06e5fe3ed05485d8578fdb1fe687df7c4fb73ae73ad0596e",
+  "pipeline_registry_cid": "sha256:a1c0ba6b958ce85d59c916b9694c598a783670a564947c97c03dd8e8cfc54138",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -106,7 +106,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
+        "cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7"
       }
     },
     "REL.except_rows": {
@@ -299,7 +299,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:a1a1640463d683e11617125767018e6832b19b13e6cb342c1e09f9cf6cc8b488"
+        "cid": "sha256:7f1219d7f29c9b60cbec774156e33863f3ef9f86bc1bbce8c6ca51b0c9b16bde"
       }
     },
     "REL.derive": {
@@ -311,7 +311,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:ee8b9636da689912be14f1e47a655e40b19be72c480c8ad4084a630fbd844c75"
+          "cid": "sha256:cfeea75627dbb1de44c93e57790dc82aa6e884fc078d1d4dcb25282605f1de21"
         }
       }
     },
@@ -323,7 +323,7 @@
       "output": "graph",
       "execution_contract": {
         "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
-        "cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210"
+        "cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282"
       }
     }
   },
@@ -341,7 +341,7 @@
         "canonical_value_contract": {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/schemas/canonical_value_contract",
-          "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+          "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
         }
       },
       "params_schema": {
@@ -1344,12 +1344,12 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:a6d2c257b61167db55ca87f4985e89c2c098b33ef0123bf6639878972fa081e8"
+          "cid": "sha256:c25d8196e4f1078d7738ed48ae1fd28aa12990d047d84701482656fe40a5fa96"
         },
         "fragment_schema": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/fragment",
-          "cid": "sha256:12ed75dd9face4baf35036bdca1149b98ddcfb7b3bc41601255ae535670ebbbe"
+          "cid": "sha256:0ad0f5a9a855eef222a192b20683d043b2ad3ee6d78dc0091b44e4ad346de3c3"
         }
       },
       "params_schema": {
@@ -1391,17 +1391,17 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:a6d2c257b61167db55ca87f4985e89c2c098b33ef0123bf6639878972fa081e8"
+          "cid": "sha256:c25d8196e4f1078d7738ed48ae1fd28aa12990d047d84701482656fe40a5fa96"
         },
         "expression_node": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression_node",
-          "cid": "sha256:8ed3d05144d03864c617fdcd6161b241c2dfe29c8eed7bbc5ecba05861ebdab6"
+          "cid": "sha256:0d8577623059b00e50a97801cee87821d60fe0e73bce0828f7ebc9197dc1a06d"
         },
         "source_expression": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression",
-          "cid": "sha256:568e7f5d17ca2814d8d65cc81f3facd059575c52c1f21eda2d292c216927b9d9"
+          "cid": "sha256:5b8d50d30191fa09eb81ae9f41b5b697dc53d8a0332ac261d964af3b68604eac"
         },
         "derive_binding": {
           "file": "spec/contracts/actql-stage-contracts.json",
@@ -1411,7 +1411,7 @@
         "value_contract": {
           "file": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/schemas/canonical_value_contract",
-          "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+          "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
         }
       },
       "schemas": {
@@ -2521,7 +2521,7 @@
                   ],
                   "properties": {
                     "type": {
-                      "const": "artifact_ref"
+                      "const": "content_ref"
                     },
                     "nullable": {
                       "type": "boolean"
@@ -3528,7 +3528,7 @@
                   ],
                   "properties": {
                     "type": {
-                      "const": "artifact_ref"
+                      "const": "content_ref"
                     },
                     "nullable": {
                       "type": "boolean"
@@ -3597,7 +3597,7 @@
         "canonical_value_contract": {
           "file": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/schemas/canonical_value_contract",
-          "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+          "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
         }
       },
       "params_schema": {
@@ -4810,7 +4810,7 @@
                 ],
                 "properties": {
                   "type": {
-                    "const": "artifact_ref"
+                    "const": "content_ref"
                   },
                   "nullable": {
                     "type": "boolean"

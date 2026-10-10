@@ -227,7 +227,7 @@ not claim uninterrupted Compute or indefinite Result retention. Local-owned
 embedded Hybrid is not yet installed and reports `LocalHybridUnavailable`.
 
 
-## Explicit Host capacity policy
+## Explicit Host capacity and lookup policies
 
 Embedded Local accepts `installation.hostCapacityPolicy`; the Remote Host
 factory accepts `hostCapacityPolicy`. Supply the complete existing
@@ -244,6 +244,19 @@ scope. An explicit selection is bound into installation identity and the
 Host-issued authority scope used by request journals and Run references. Its
 policy CID covers the effective checker-consumed capacity body, including
 built-in defaults for omitted optional graph limits.
+
+Keyed SourceView JOIN also requires explicit finite lookup ceilings. Supply
+`installation.hostLookupExecutionPolicy` for Embedded Local, or
+`hostLookupExecutionPolicy` for the Remote Host factory and `publishEffect`.
+This is the complete registered `actql-lookup-execution-policy/0.1` component:
+network attempts per request, request bytes per attempt, total request bytes,
+total response bytes, total decoded response bytes and total duration. Omission
+leaves lookup unresolved; a Connector cannot add defaults or override the Host.
+The detached selection is bound into installation identity and authority scope.
+Changing it cannot reuse another scope's submission or approval. These ceilings
+do not grant Source access; read authority remains independently checked for
+the selected Source, physical target and original resource/version request.
+
 Every connection reports the existing opaque authority scope in `scopeRef`,
 including the default policy. This distinguishes state roots and principals
 as well as explicit policy selections, without changing historical Run or

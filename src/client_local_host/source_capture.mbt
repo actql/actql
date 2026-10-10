@@ -28,6 +28,7 @@ pub(all) enum ClientSourceCaptureIssue {
   Readmission(@execution.TrustedOutputIssue)
   Import(@execution.CompletedImportIssue)
   Physical(@resources.LedgerIssue)
+  Original(@row_source_host.RowOriginalCaptureIssue)
 }
 
 ///|
@@ -312,6 +313,7 @@ pub fn restore_client_source_capture(
   descriptor_wire : String,
   supplied_rows : Array[String],
   custody_available : () -> Bool,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[ClientSourceCapture, ClientSourceCaptureIssue] {
   let descriptor = match
     read_client_source_capture_descriptor(descriptor_wire) {
@@ -358,6 +360,7 @@ pub fn restore_client_source_capture(
         reader,
         row,
         source_capture_decode(),
+        reference_issuer?,
       ) {
       Ok(_) => ()
       Err(issue) => {
@@ -417,6 +420,7 @@ pub fn restore_client_source_capture(
         importing,
         row,
         source_capture_decode(),
+        reference_issuer?,
       ) {
       Ok(_) => ()
       Err(issue) => {
@@ -475,6 +479,8 @@ struct ClientAccountedSourceCapture {
   ledger : @resources.Ledger
   holding : @resources.Holding
   closed : Ref[Bool]
+  mut close_requested : Bool
+  mut original : @row_source_host.RowRestoredOriginalInput?
   mut dag : (@strategy.CapturedDAG, Int)?
 }
 
@@ -487,13 +493,17 @@ pub fn restore_accounted_client_source_capture(
   descriptor_wire : String,
   rows : Array[String],
   ledger : @resources.Ledger,
-  capacity : ClientDuckDBCaptureCapacity,
+  capacity : ClientInstalledCaptureCapacity,
   custody_available : () -> Bool,
+  reference_issuer? : @admitted.ReferenceIssuer,
+  original_input? : (String, String, Array[String])? = None,
 ) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue] {
-  if !client_duckdb_capture_capacity_matches_requirement(capacity, requirement) {
+  if @planning.query_requirement_cid(capacity.requirement) !=
+    @planning.query_requirement_cid(requirement) ||
+    (original_input is Some(_) && !capacity.original_input) {
     return Err(BindingMismatch)
   }
-  let quantities = client_duckdb_capture_capacity_values(capacity)
+  let quantities = installed_capture_capacity_values(capacity)
   let reservation = match
     @resources.reserve_attempt(ledger, 0L, quantities[0], quantities[1]) {
     Ok(value) => value
@@ -501,8 +511,14 @@ pub fn restore_accounted_client_source_capture(
   }
   let capture = match
     restore_client_source_capture(
-      requirement, saved_requirement_cid, expected_binding, saved_binding, descriptor_wire,
-      rows, custody_available,
+      requirement,
+      saved_requirement_cid,
+      expected_binding,
+      saved_binding,
+      descriptor_wire,
+      rows,
+      custody_available,
+      reference_issuer?,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -510,11 +526,36 @@ pub fn restore_accounted_client_source_capture(
       return Err(issue)
     }
   }
+  let original = match original_input {
+    None => None
+    Some((schema_cid, rows_cid, original_rows)) =>
+      match
+        @row_source_host.restore_row_original_read(
+          requirement,
+          schema_cid,
+          rows_cid,
+          original_rows,
+          () => client_source_capture_source(capture) is Some(_),
+          reference_issuer?,
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => {
+          close_client_source_capture(capture) |> ignore
+          @resources.settle_reservation(ledger, reservation) |> ignore
+          return Err(Original(issue))
+        }
+      }
+  }
   let holding = match
     @resources.retain_allocation(ledger, reservation, quantities[0]) {
     Ok(value) => value
     Err(issue) => {
       close_client_source_capture(capture) |> ignore
+      if original is Some(value) {
+        while !@row_source_host.close_restored_row_original_input(value, 64) {
+
+        }
+      }
       @resources.settle_reservation(ledger, reservation) |> ignore
       return Err(Physical(issue))
     }
@@ -523,18 +564,32 @@ pub fn restore_accounted_client_source_capture(
     Ok(_) => ()
     Err(issue) => {
       close_client_source_capture(capture) |> ignore
+      if original is Some(value) {
+        while !@row_source_host.close_restored_row_original_input(value, 64) {
+
+        }
+      }
       @resources.release_allocation(ledger, holding) |> ignore
       return Err(Physical(issue))
     }
   }
-  Ok({ capture, ledger, holding, closed: Ref(false), dag: None, })
+  Ok({
+    capture,
+    ledger,
+    holding,
+    closed: Ref(false),
+    close_requested: false,
+    original,
+    dag: None,
+  })
 }
 
 ///|
 pub fn accounted_client_source_capture_source(
   value : ClientAccountedSourceCapture,
 ) -> @query.CapturedInputSource? {
-  if value.closed.val ||
+  if value.close_requested ||
+    value.closed.val ||
     !@resources.holding_available(value.ledger, value.holding) {
     None
   } else {
@@ -543,12 +598,26 @@ pub fn accounted_client_source_capture_source(
 }
 
 ///|
+/// This read is backed by the existing receiving Source allocation. It cannot
+/// outlive that Source or be restored under another uncharged private owner.
+pub fn accounted_client_source_original_read(
+  value : ClientAccountedSourceCapture,
+) -> @execution.SuppliedRelationRead? {
+  guard accounted_client_source_capture_source(value) is Some(_) &&
+    value.original is Some(original) else {
+    return None
+  }
+  @row_source_host.restored_row_original_read(original)
+}
+
+///|
 pub fn retain_accounted_client_source_capture_task(
   value : ClientAccountedSourceCapture,
   dag : @strategy.CapturedDAG,
   task : Int,
 ) -> Result[Unit, ClientSourceCaptureIssue] {
-  guard !value.closed.val &&
+  guard !value.close_requested &&
+    !value.closed.val &&
     value.dag is None &&
     accounted_client_source_capture_source(value) is Some(source) &&
     @strategy.captured_task_source_matches(dag, task, source) else {
@@ -585,10 +654,20 @@ pub fn accounted_client_source_capture_cleanup_pending(
 ///|
 pub fn close_accounted_client_source_capture(
   value : ClientAccountedSourceCapture,
+  quantum? : Int = 64,
 ) -> Bool {
-  if !value.closed.val {
-    value.closed.val = true
+  if !value.close_requested {
+    value.close_requested = true
     close_client_source_capture(value.capture) |> ignore
+  }
+  if !value.closed.val {
+    if value.original is Some(original) {
+      if !@row_source_host.close_restored_row_original_input(original, quantum) {
+        return false
+      }
+      value.original = None
+    }
+    value.closed.val = true
     match value.dag {
       Some((dag, task)) => @strategy.close_captured_task_output(dag, task)
       None =>

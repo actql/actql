@@ -10,8 +10,9 @@ export function preparePrivatePublicationHolding(store, binding) {
       typeof store.commitPhysicalHolding !== 'function' ||
       !binding || !['effect_preview', 'effect_capture', 'model_capture_bundle',
         'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
-        'model_attempt_outcome', 'model_dispatch_authority', 'observation_set',
-        'run_invocation', 'source_evidence']
+        'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission', 'observation_set',
+        'run_invocation', 'source_evidence', 'content_input_artifact',
+        'content_evidence', 'content_generation']
         .includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
       typeof binding.holdingCid !== 'string' ||

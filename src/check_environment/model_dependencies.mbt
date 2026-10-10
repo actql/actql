@@ -3,6 +3,7 @@ pub(all) enum ModelDependencyKind {
   ModelPrompt
   ModelRetryPolicy
   ModelBackoff
+  ModelMediaInput(String)
 } derive(Eq, Debug)
 
 ///|
@@ -23,7 +24,15 @@ pub(all) enum ModelDependencyIssue {
   Missing(ModelDependencyKind)
   Body(ModelDependencyKind, ModelTaskIssue)
   UnsupportedPolicy(ModelDependencyKind)
+  MediaRole(String, ModelMediaRoleIssue)
 }
+
+///|
+pub(all) enum ModelMediaRoleIssue {
+  UnknownRole
+  UnsupportedShape
+  MediaTypeMismatch
+} derive(Eq, Debug)
 
 ///|
 /// Bound to the exact checked execution contract. No permission or provider
@@ -33,6 +42,7 @@ pub struct SingleAttemptModelDependencies {
   prompt : ModelDependency
   retry : ModelDependency
   backoff : ModelDependency
+  media : Array[ModelDependency]
 }
 
 ///|
@@ -103,6 +113,7 @@ pub fn read_model_dependency(
       ModelPrompt => ("actql-model-prompt/0.1", "payload")
       ModelRetryPolicy => ("actql-model-retry-policy/0.1", "retryable_failures")
       ModelBackoff => ("actql-model-backoff/0.1", "delays_ms")
+      ModelMediaInput(_) => ("actql-model-media-input/0.1", "payload")
     }
     let object = model_task_object(root, ["version", field, "self_cid"], budget)
     if model_task_string(object, "version", root, budget) != version {
@@ -136,6 +147,10 @@ pub fn read_model_dependency(
     }
     let count = match kind {
       ModelPrompt => 0
+      ModelMediaInput(_) => {
+        read_model_media_payload(value, budget)
+        0
+      }
       ModelRetryPolicy | ModelBackoff => {
         let count = match @decode.array_length(value) {
           Some(value) => value
@@ -163,7 +178,7 @@ pub fn read_model_dependency(
               if model_task_integer(item, false, budget) < 0L {
                 model_task_fail(InvalidBody, item)
               }
-            ModelPrompt => ()
+            ModelPrompt | ModelMediaInput(_) => ()
           }
         }
         count
@@ -173,10 +188,9 @@ pub fn read_model_dependency(
       kind,
       source: root,
       cid,
-      payload: if kind == ModelPrompt {
-        Some(value)
-      } else {
-        None
+      payload: match kind {
+        ModelPrompt | ModelMediaInput(_) => Some(value)
+        ModelRetryPolicy | ModelBackoff => None
       },
       count,
       bytes: size,
@@ -190,7 +204,8 @@ pub fn read_model_dependency(
 
 ///|
 /// Resolve references from the checked owners, never caller-selected expected
-/// hashes. The installed envelope applies cumulatively to all three bodies.
+/// hashes. The installed envelope applies cumulatively to scalar and media
+/// dependencies; a reference alone cannot stand in for an admitted body.
 pub fn read_single_attempt_model_dependencies(
   execution : ModelExecutionContract,
   prompt : Bytes?,
@@ -198,11 +213,28 @@ pub fn read_single_attempt_model_dependencies(
   backoff : Bytes?,
   limits : Limits,
   max_work : Int,
+  media? : Array[(String, Bytes)] = [],
 ) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue] {
   let task = model_execution_task(execution)
   let mut remaining_bytes = limits.max_bytes
   let mut remaining_nodes = limits.max_nodes
   let mut remaining_work = max_work
+  if media.length() > limits.max_members ||
+    model_execution_media_count(execution) > limits.max_members {
+    return Err(Body(ModelPrompt, { kind: BodyLimit, source: None, }))
+  }
+  let supplied : Map[String, Bytes] = Map([])
+  for (role, bytes) in media {
+    let kind = ModelMediaInput(role)
+    if role.length() >= remaining_work {
+      return Err(Body(kind, { kind: WorkLimit, source: None, }))
+    }
+    remaining_work -= role.length() + 1
+    if supplied.contains(role) {
+      return Err(Body(kind, { kind: InvalidBody, source: None, }))
+    }
+    supplied[role] = bytes
+  }
   let admitted = []
   for
     (kind, bytes, expected) in [
@@ -227,6 +259,40 @@ pub fn read_single_attempt_model_dependencies(
     remaining_work -= value.work
     admitted.push(value)
   }
+  let media_dependencies = []
+  for index in 0..<model_execution_media_count(execution) {
+    let (role, expected) = model_execution_media_at(execution, index).unwrap()
+    let kind = ModelMediaInput(role)
+    guard supplied.get(role) is Some(bytes) else { return Err(Missing(kind)) }
+    let value = match
+      read_model_dependency(
+        kind,
+        bytes,
+        expected,
+        { ..limits, max_bytes: remaining_bytes, max_nodes: remaining_nodes, },
+        remaining_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Body(kind, issue))
+    }
+    remaining_bytes -= value.bytes
+    remaining_nodes -= value.nodes
+    remaining_work -= value.work
+    media_dependencies.push(value)
+  }
+  if media.length() != media_dependencies.length() {
+    return Err(Body(ModelPrompt, { kind: InvalidBody, source: None, }))
+  }
+  match
+    validate_model_media_roles(
+      model_task_input(task),
+      media_dependencies,
+      limits,
+      remaining_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // Validate every body before reporting a supported-profile limitation.
   for value in admitted {
     if value.kind != ModelPrompt && value.count != 0 {
@@ -238,7 +304,218 @@ pub fn read_single_attempt_model_dependencies(
     prompt: admitted[0],
     retry: admitted[1],
     backoff: admitted[2],
+    media: media_dependencies,
   })
+}
+
+///|
+// Match installed media to declarations, never sampled inputs. Nullable or
+// empty input does not waive a Content role's dependency. Traversal is bounded
+// by the same installed admission envelope; it does not inspect byte contents.
+fn validate_model_media_roles(
+  input : @value_contract.Contract,
+  dependencies : Array[ModelDependency],
+  limits : Limits,
+  max_work : Int,
+) -> Result[Unit, ModelDependencyIssue] {
+  guard input.shape is @value_contract.Object(fields) else {
+    return Err(
+      Body(ModelPrompt, { kind: InvalidObjectContract, source: None, }),
+    )
+  }
+  let mut remaining = max_work
+  let roles : Map[String, ModelDependency] = Map([])
+  for dependency in dependencies {
+    guard dependency.kind is ModelMediaInput(role) else {
+      return Err(Body(dependency.kind, { kind: InvalidBody, source: None, }))
+    }
+    if role.length() >= remaining {
+      return Err(Body(dependency.kind, { kind: WorkLimit, source: None, }))
+    }
+    remaining -= role.length() + 1
+    roles[role] = dependency
+  }
+  let mut nodes = limits.max_nodes
+  for index in 0..<@value_contract.field_count(fields) {
+    let field = @value_contract.field_at(fields, index).unwrap()
+    let kind = ModelMediaInput(field.name)
+    if field.name.length() >= remaining {
+      return Err(Body(kind, { kind: WorkLimit, source: None, }))
+    }
+    remaining -= field.name.length() + 1
+    // Only direct Content or bounded homogeneous Content arrays are media
+    // roles. Nested Content is not silently treated as an ordinary scalar.
+    let media_type : String?? = match field.contract.shape {
+      @value_contract.ContentRef(media_type~) => Some(media_type)
+      @value_contract.Array(item, max_items=Some(_)) =>
+        match item.shape {
+          @value_contract.ContentRef(media_type~) => Some(media_type)
+          _ => None
+        }
+      _ => None
+    }
+    let stack = [field.contract]
+    let mut contains_content = false
+    while !stack.is_empty() {
+      if remaining <= 0 || nodes <= 0 {
+        return Err(
+          Body(kind, {
+            kind: if remaining <= 0 {
+              WorkLimit
+            } else {
+              BodyLimit
+            },
+            source: None,
+          }),
+        )
+      }
+      remaining -= 1
+      nodes -= 1
+      let current = stack.pop().unwrap()
+      match current.shape {
+        @value_contract.ContentRef(_) => contains_content = true
+        @value_contract.Array(item, ..) => stack.push(item)
+        @value_contract.Object(nested) => {
+          let count = @value_contract.field_count(nested)
+          let names = @value_contract.field_name_bytes(nested)
+          if names > remaining || count > nodes - stack.length() {
+            return Err(
+              Body(kind, {
+                kind: if names > remaining {
+                  WorkLimit
+                } else {
+                  BodyLimit
+                },
+                source: None,
+              }),
+            )
+          }
+          remaining -= names
+          for index in 0..<count {
+            stack.push(
+              @value_contract.field_at(nested, index).unwrap().contract,
+            )
+          }
+        }
+        _ => ()
+      }
+    }
+    if contains_content && media_type is None {
+      return Err(MediaRole(field.name, UnsupportedShape))
+    }
+    match media_type {
+      Some(expected) => {
+        guard roles.get(field.name) is Some(dependency) else {
+          return Err(Missing(kind))
+        }
+        let payload = dependency.payload.unwrap()
+        let actual = @decode.text(
+          @decode.lookup(@decode.open_object(payload).unwrap(), "media_type").unwrap(),
+        ).unwrap()
+        let comparison_work = actual.length() +
+          expected.map(value => value.length()).unwrap_or(0)
+        if comparison_work > remaining {
+          return Err(Body(kind, { kind: WorkLimit, source: None, }))
+        }
+        remaining -= comparison_work
+        if expected is Some(expected) && actual != expected {
+          return Err(MediaRole(field.name, MediaTypeMismatch))
+        }
+        roles.remove(field.name)
+      }
+      None =>
+        if roles.contains(field.name) {
+          return Err(MediaRole(field.name, UnsupportedShape))
+        }
+    }
+  }
+  for (role, _) in roles {
+    return Err(MediaRole(role, UnknownRole))
+  }
+  Ok(())
+}
+
+///|
+// The media body is an explicit transport envelope, not Ref issuance, byte
+// validation or current egress authorization. Those facts belong to the
+// physical preflight and its attachment evidence. No absent ceiling/default
+// expands this installed profile; page/frame bounds are explicitly nullable.
+fn read_model_media_payload(
+  source : @decode.Cursor,
+  budget : ModelTaskBudget,
+) -> Unit raise ModelTaskStop {
+  let object = model_task_object(
+    source,
+    [
+      "media_type", "max_bytes", "max_pages", "max_frames", "complete", "transfer_method",
+      "classifications", "regions", "egress_scope_cid",
+    ],
+    budget,
+  )
+  let media = model_task_string(object, "media_type", source, budget)
+  // Reuse ContentRef's nonempty checked media descriptor. Do not introduce a
+  // second MIME spelling grammar in the Model dependency owner.
+  if media.is_empty() {
+    model_task_fail(InvalidBody, source)
+  }
+  ignore(
+    model_task_integer(
+      model_task_required(object, "max_bytes", source),
+      true,
+      budget,
+    ),
+  )
+  for name in ["max_pages", "max_frames"] {
+    let value = match @decode.lookup(object, name) {
+      Some(value) => value
+      None => model_task_fail(InvalidBody, source)
+    }
+    if !@decode.is_null(value) {
+      ignore(model_task_integer(value, true, budget))
+    }
+  }
+  let complete = model_task_required(object, "complete", source)
+  if @decode.boolean(complete) != Ok(true) ||
+    model_task_string(object, "transfer_method", source, budget) !=
+    "inline_bytes" {
+    // The first integrated profile transfers exact complete stored bytes.
+    // Truncated input and URL/upload transports are not implicitly admitted.
+    model_task_fail(InvalidBody, source)
+  }
+  ignore(model_task_cid(object, "egress_scope_cid", source, budget))
+  for name in ["classifications", "regions"] {
+    let values = model_task_required(object, name, source)
+    let count = match @decode.array_length(values) {
+      Some(count) => count
+      None => model_task_fail(InvalidBody, values)
+    }
+    if count < 1 {
+      model_task_fail(InvalidBody, values)
+    }
+    model_task_charge(budget, count, values)
+    let seen : Map[String, Bool] = Map([])
+    for index in 0..<count {
+      let value = @decode.element_at(values, index).unwrap()
+      let text = model_task_text(value, budget)
+      if text.is_empty() || seen.contains(text) {
+        model_task_fail(InvalidBody, value)
+      }
+      seen[text] = true
+    }
+  }
+}
+
+///|
+pub fn single_attempt_model_media(
+  value : SingleAttemptModelDependencies,
+  role : String,
+) -> ModelDependency? {
+  for dependency in value.media {
+    if dependency.kind is ModelMediaInput(name) && name == role {
+      return Some(dependency)
+    }
+  }
+  None
 }
 
 ///|

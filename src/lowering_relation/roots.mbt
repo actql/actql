@@ -192,7 +192,9 @@ pub fn prepare_kernel_roots(
     | VectorStep(_)
     | EventStep(_)
     | CarrierProjectionStep(_)
-    | InferBoundary(_) => return Err(NotExpressionKernel)
+    | InferBoundary(_)
+    | SerializationBoundary(_)
+    | CompletedProducerBoundary(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
@@ -265,7 +267,9 @@ fn prepare_root_range(
       | VectorStep(_)
       | EventStep(_)
       | CarrierProjectionStep(_)
-      | InferBoundary(_) => continue
+      | InferBoundary(_)
+      | SerializationBoundary(_)
+      | CompletedProducerBoundary(_) => continue
       SequenceMatchStep(sequence_match) => {
         for index in 0..<sequence_match.predicates.length() {
           let pointer = "/pattern/" + index.to_string() + "/where"

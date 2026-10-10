@@ -13,6 +13,9 @@ import {
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
   "actql/actql/value_contract" @contract,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/sha256" @sha,
 }
 
 import {

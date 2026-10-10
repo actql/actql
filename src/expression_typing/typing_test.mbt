@@ -396,7 +396,7 @@ test "constructor capability checks recurse through arrays and objects" {
     "null", "ForbiddenConstructorValue",
   )
   assert_rejected(
-    "{\"empty_array\":{\"items\":{\"type\":\"artifact_ref\",\"nullable\":false}}}",
+    "{\"empty_array\":{\"items\":{\"type\":\"content_ref\",\"nullable\":false}}}",
     "{}", "null", "ForbiddenConstructorValue",
   )
   assert_type(

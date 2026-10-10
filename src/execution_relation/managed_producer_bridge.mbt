@@ -52,8 +52,7 @@ fn managed_schema_reference_free(
     }
     remaining -= 1
     match contract.shape {
-      @contract.ResourceRef(..) | @contract.ArtifactRef(..) =>
-        return Some(false)
+      @contract.ResourceRef(..) | @contract.ContentRef(..) => return Some(false)
       @contract.Array(item, ..) => pending.push(item)
       @contract.Object(fields) =>
         for index in 0..<@contract.field_count(fields) {

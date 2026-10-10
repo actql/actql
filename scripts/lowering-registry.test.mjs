@@ -18,7 +18,7 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:d6d977099973c73d06e5fe3ed05485d8578fdb1fe687df7c4fb73ae73ad0596e');
+    "sha256:a1c0ba6b958ce85d59c916b9694c598a783670a564947c97c03dd8e8cfc54138");
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
@@ -41,7 +41,7 @@ test('current registry and historical preimages keep distinct identities', () =>
   const primitive = structuredClone(previous);
   assert.equal(
     cid(contract.execution_contracts['REL.derive.ordered']),
-    'sha256:ee8b9636da689912be14f1e47a655e40b19be72c480c8ad4084a630fbd844c75',
+    "sha256:cfeea75627dbb1de44c93e57790dc82aa6e884fc078d1d4dcb25282605f1de21",
   );
   delete primitive['REL.derive'].execution_extensions;
   delete primitive['REL.except_rows'];
@@ -93,7 +93,7 @@ test('preparation handlers use pinned relation signatures', () => {
       assert.deepEqual(signature.execution_contract, {
         file: 'spec/contracts/actql-aoa.json',
         pointer: '/execution_contracts/REL.values',
-        cid: 'sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b',
+        cid: 'sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7',
       });
       assert.equal(cid(contract.execution_contracts[op]), signature.execution_contract.cid);
     }

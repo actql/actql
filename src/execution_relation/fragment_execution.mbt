@@ -39,6 +39,8 @@ fn attach_fragment_budgets(
     }
     match @lower.sequence_step(sequence, i).unwrap() {
       @lower.InferBoundary(_) => ()
+      @lower.SerializationBoundary(_) => ()
+      @lower.CompletedProducerBoundary(_) => ()
       @lower.ValuesStep(_) => ()
       @lower.TimeSeriesStep(_) => ()
       @lower.WindowStep(_) => ()

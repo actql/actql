@@ -550,7 +550,7 @@ fn check_impl(
       | "node_rows"
       | "edge_rows"
       | "window_events" => None
-      "infer" => None
+      "infer" | "serialize" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -614,7 +614,8 @@ fn check_impl(
       key != "sort" &&
       key != "take" &&
       key != "distinct" &&
-      key != "group" {
+      key != "group" &&
+      key != "serialize" {
       if carrier(input, inputs, steps) is @carrier.Relation(rows) {
         if !@carrier.all_fields_required(rows) {
           fail(
@@ -623,6 +624,30 @@ fn check_impl(
           )
         }
       }
+    }
+    if key == "serialize" {
+      let checked = check_serialization(
+        b,
+        operation_body,
+        schema(operation_body, input, inputs, steps, allow_conditional=true),
+        parameters,
+      )
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Serialize(checked),
+        output: @carrier.relation(@carrier.typed_rows(checked.output)),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "infer" {
       if binding_name is None {
@@ -2272,6 +2297,7 @@ fn check_impl(
           entries
         }
         Unary(_)
+        | Serialize(_)
         | Infer(_)
         | Window(_)
         | WindowGroup(_)
@@ -2327,7 +2353,7 @@ fn check_impl(
   )
   spend(b, source, produced_inputs.length())
   let input_orders = imported_orders(produced_inputs)
-  let (logical_orders, lag_orders, analytic_orders) = derive_logical_orders(
+  let (logical_orders, lag_orders, analytic_orders, serialization_completions) = derive_logical_orders(
     b, steps, keyed_inputs, keyed_steps, input_orders, join_evidence,
   )
   {
@@ -2335,6 +2361,7 @@ fn check_impl(
     input_contracts,
     produced_inputs,
     logical_orders,
+    serialization_completions,
     lag_orders,
     analytic_orders,
     graph_counts,

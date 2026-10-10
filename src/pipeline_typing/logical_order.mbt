@@ -108,10 +108,12 @@ fn derive_logical_orders(
   Array[LogicalOrder?],
   Array[SortCompletion?],
   Array[AnalyticPositionOrder?],
+  Array[SortCompletion?],
 ) raise Stop {
   let out : Array[LogicalOrder?] = []
   let lag_orders : Array[SortCompletion?] = []
   let analytic_orders : Array[AnalyticPositionOrder?] = []
+  let serialization_completions : Array[SortCompletion?] = []
   for i in 0..<steps.length() {
     let step = steps[i]
     spend(b, step.source, 1)
@@ -123,6 +125,23 @@ fn derive_logical_orders(
             op,
             step.input.bind(t => key_at(t, input_keys, step_keys)),
           )
+        _ => None
+      },
+    )
+    // Input-order completion belongs to the serialization barrier, never the
+    // one-row output. Its key fields do not exist in the output schema.
+    serialization_completions.push(
+      match step.operation {
+        Serialize(checked) => {
+          spend(b, step.source, 1)
+          checked.sort.bind(sort => {
+            complete_sort(
+              b,
+              sort,
+              step.input.bind(t => key_at(t, input_keys, step_keys)),
+            )
+          })
+        }
         _ => None
       },
     )
@@ -206,6 +225,7 @@ fn derive_logical_orders(
       // Model completion order is irrelevant. The acquisition owner must emit
       // captured outcomes in canonical typed key order.
       Infer(_)
+      | Serialize(_)
       | Values(_)
       | TimeSeries(_)
       | Nearest(..)
@@ -335,7 +355,7 @@ fn derive_logical_orders(
       },
     )
   }
-  (out, lag_orders, analytic_orders)
+  (out, lag_orders, analytic_orders, serialization_completions)
 }
 
 ///|

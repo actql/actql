@@ -6,13 +6,13 @@
   "schema_cids": {
     "lookup_source": "sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c",
     "lookup_barrier": "sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a",
-    "lookup_evidence": "sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596",
-    "artifact_source": "sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632",
-    "artifact_barrier": "sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd",
-    "artifact_evidence": "sha256:702409a249ef4617394564dc251f2a361a5da1494d220fe16e14d7563153349e",
+    "lookup_evidence": "sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5",
+    "content_source": "sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68",
+    "content_barrier": "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5",
+    "content_evidence": "sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695",
     "text_time_expression": "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
     "text_time_evaluation_envelope": "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
-    "text_time_evaluation_barrier": "sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237",
+    "text_time_evaluation_barrier": "sha256:e99e818cc0ef2cd730d3e609e051e899ed051230fccc906d060db18074906b24",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -611,7 +611,7 @@
         "version",
         "barrier_cid",
         "input_relation_artifact_cid",
-        "input_artifact_ref_cids",
+        "input_content_ref_cids",
         "request_input_data_policy_cids",
         "effective_request_data_policy_cid",
         "effective_output_data_policy_cid",
@@ -640,7 +640,7 @@
           "type": "string",
           "pattern": "^sha256:[a-f0-9]{64}$"
         },
-        "input_artifact_ref_cids": {
+        "input_content_ref_cids": {
           "type": "array",
           "uniqueItems": true,
           "items": {
@@ -782,18 +782,15 @@
         }
       }
     },
-    "artifact_source": {
+    "content_source": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$id": "https://smooth.dev/schemas/actql-artifact-source-0.1.json",
+      "$id": "https://smooth.dev/schemas/actql-content-source-0.1.json",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "format",
         "fields",
-        "order_by",
-        "encoding",
-        "line_ending",
-        "logical_name"
+        "name"
       ],
       "properties": {
         "format": {
@@ -826,68 +823,167 @@
             }
           }
         },
+        "preserve_order": {
+          "const": true
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "header": {
+          "type": "boolean"
+        },
+        "null_marker": {
+          "enum": [
+            "",
+            "\\N"
+          ]
+        },
+        "field_delimiter": {
+          "enum": [
+            ",",
+            ";"
+          ],
+          "default": ","
+        },
         "encoding": {
           "enum": [
             "utf-8",
-            "utf-8-bom"
-          ]
+            "utf-8-bom",
+            "UTF-8",
+            "UTF-8-BOM"
+          ],
+          "default": "utf-8"
         },
         "line_ending": {
           "enum": [
             "lf",
-            "crlf"
-          ]
-        },
-        "csv": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "header",
-            "delimiter",
-            "null"
+            "crlf",
+            "LF",
+            "CRLF"
           ],
-          "properties": {
-            "header": {
-              "type": "boolean"
-            },
-            "delimiter": {
-              "enum": [
-                ",",
-                ";"
-              ]
-            },
-            "null": {
-              "enum": [
-                "",
-                "\\N"
-              ]
-            }
-          }
-        },
-        "logical_name": {
-          "type": "string",
-          "minLength": 1
+          "default": "lf"
         },
         "bounds": {
           "type": "object",
-          "minProperties": 1,
           "additionalProperties": false,
+          "minProperties": 1,
           "properties": {
             "max_rows": {
-              "type": "integer",
-              "minimum": 1
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$param"
+                  ],
+                  "properties": {
+                    "$param": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    }
+                  }
+                }
+              ]
             },
             "max_bytes": {
-              "type": "integer",
-              "minimum": 1
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$param"
+                  ],
+                  "properties": {
+                    "$param": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "order_by"
+          ],
+          "not": {
+            "required": [
+              "preserve_order"
+            ]
+          }
+        },
+        {
+          "required": [
+            "preserve_order"
+          ],
+          "not": {
+            "required": [
+              "order_by"
+            ]
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "csv"
+              }
+            },
+            "required": [
+              "format"
+            ]
+          },
+          "then": {
+            "required": [
+              "header",
+              "null_marker"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "header"
+                  ]
+                },
+                {
+                  "required": [
+                    "null_marker"
+                  ]
+                },
+                {
+                  "required": [
+                    "field_delimiter"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
-    "artifact_barrier": {
+    "content_barrier": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$id": "https://smooth.dev/schemas/actql-artifact-barrier-0.1.json",
+      "$id": "https://smooth.dev/schemas/actql-content-barrier-0.1.json",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -903,7 +999,7 @@
       ],
       "properties": {
         "version": {
-          "const": "actql-artifact-barrier/0.1"
+          "const": "actql-content-barrier/0.1"
         },
         "barrier_id": {
           "type": "string",
@@ -919,16 +1015,15 @@
         },
         "serialization": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$id": "https://smooth.dev/schemas/actql-artifact-serialization-0.1.json",
+          "$id": "https://smooth.dev/schemas/actql-content-serialization-0.1.json",
           "type": "object",
           "additionalProperties": false,
           "required": [
             "format",
             "fields",
-            "order_by",
+            "name",
             "encoding",
             "line_ending",
-            "logical_name",
             "bounds"
           ],
           "properties": {
@@ -962,6 +1057,29 @@
                 }
               }
             },
+            "preserve_order": {
+              "const": true
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000]+$"
+            },
+            "header": {
+              "type": "boolean"
+            },
+            "null_marker": {
+              "enum": [
+                "",
+                "\\N"
+              ]
+            },
+            "field_delimiter": {
+              "enum": [
+                ",",
+                ";"
+              ]
+            },
             "encoding": {
               "enum": [
                 "utf-8",
@@ -974,40 +1092,6 @@
                 "crlf"
               ]
             },
-            "csv": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "header",
-                "delimiter",
-                "quote",
-                "null"
-              ],
-              "properties": {
-                "header": {
-                  "type": "boolean"
-                },
-                "delimiter": {
-                  "enum": [
-                    ",",
-                    ";"
-                  ]
-                },
-                "quote": {
-                  "const": "\""
-                },
-                "null": {
-                  "enum": [
-                    "",
-                    "\\N"
-                  ]
-                }
-              }
-            },
-            "logical_name": {
-              "type": "string",
-              "minLength": 1
-            },
             "bounds": {
               "type": "object",
               "additionalProperties": false,
@@ -1018,15 +1102,81 @@
               "properties": {
                 "max_rows": {
                   "type": "integer",
-                  "minimum": 1
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "max_bytes": {
                   "type": "integer",
-                  "minimum": 1
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 }
               }
             }
-          }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "order_by"
+              ],
+              "not": {
+                "required": [
+                  "preserve_order"
+                ]
+              }
+            },
+            {
+              "required": [
+                "preserve_order"
+              ],
+              "not": {
+                "required": [
+                  "order_by"
+                ]
+              }
+            }
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "format": {
+                    "const": "csv"
+                  }
+                },
+                "required": [
+                  "format"
+                ]
+              },
+              "then": {
+                "required": [
+                  "header",
+                  "null_marker",
+                  "field_delimiter"
+                ]
+              },
+              "else": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "header"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "null_marker"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "field_delimiter"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
         },
         "serialization_contract_cid": {
           "type": "string",
@@ -1051,9 +1201,9 @@
         }
       }
     },
-    "artifact_evidence": {
+    "content_evidence": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "$id": "https://smooth.dev/schemas/actql-artifact-derivation-evidence-0.1.json",
+      "$id": "https://smooth.dev/schemas/actql-content-derivation-evidence-0.1.json",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1061,18 +1211,18 @@
         "barrier_cid",
         "barrier_input_artifact_cid",
         "content_cid",
-        "artifact_ref_cid",
-        "artifact_issuer_evidence_cid",
+        "content_ref_cid",
+        "content_issuer_evidence_cid",
         "row_count",
         "byte_count",
         "media_type",
-        "logical_name",
+        "name",
         "effective_data_policy_cid",
         "evidence_cid"
       ],
       "properties": {
         "version": {
-          "const": "actql-artifact-derivation-evidence/0.1"
+          "const": "actql-content-derivation-evidence/0.1"
         },
         "barrier_cid": {
           "type": "string",
@@ -1086,11 +1236,11 @@
           "type": "string",
           "pattern": "^sha256:[a-f0-9]{64}$"
         },
-        "artifact_ref_cid": {
+        "content_ref_cid": {
           "type": "string",
           "pattern": "^sha256:[a-f0-9]{64}$"
         },
-        "artifact_issuer_evidence_cid": {
+        "content_issuer_evidence_cid": {
           "type": "string",
           "pattern": "^sha256:[a-f0-9]{64}$"
         },
@@ -1106,10 +1256,6 @@
           "type": "string",
           "minLength": 1
         },
-        "logical_name": {
-          "type": "string",
-          "minLength": 1
-        },
         "effective_data_policy_cid": {
           "type": "string",
           "pattern": "^sha256:[a-f0-9]{64}$"
@@ -1117,6 +1263,10 @@
         "evidence_cid": {
           "type": "string",
           "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -3328,7 +3478,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -7063,5 +7213,5 @@
       }
     }
   },
-  "registry_cid": "sha256:abb3d0a2e0c6ba074eaa52c47f3f47dc984572979641212dc41cf5548dea3b7e"
+  "registry_cid": "sha256:3acfe168b4dc09c33231e228c089dbd48a62ef7faff833eddf0a740088fa89c2"
 }

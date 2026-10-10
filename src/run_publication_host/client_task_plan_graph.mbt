@@ -152,6 +152,7 @@ fn issue_client_task_plan_graph(
   effect_roots : Array[(String, Int)],
   infer? : ClientInferPlanGraph? = None,
   infers? : Array[ClientInferPlanGraph] = [],
+  serialization? : ClientSerializationTaskComponent? = None,
 ) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
@@ -185,6 +186,16 @@ fn issue_client_task_plan_graph(
     Some(component) => [component]
     None => infers
   }
+  if serialization is Some(component) &&
+    (
+      !components.is_empty() ||
+      !physical_equal(component.serialization.owner, value) ||
+      !effects ||
+      component.serialization.task < 0 ||
+      component.serialization.task >= count
+    ) {
+    return Err(UnsupportedGraph)
+  }
   let by_task : Map[Int, ClientInferPlanGraph] = Map([])
   for component in components {
     if !physical_equal(value, component.owner) ||
@@ -197,8 +208,13 @@ fn issue_client_task_plan_graph(
   }
   for task in 0..<count {
     let selected = by_task.get(task)
+    let content = match serialization {
+      Some(component) if component.serialization.task == task => Some(component)
+      _ => None
+    }
     let fragment = match selected {
       Some(infer) if task == infer.task => infer.output
+      _ if content is Some(component) => component.output
       _ =>
         match
           issue_prepared_client_task_fragment(
@@ -209,7 +225,12 @@ fn issue_client_task_plan_graph(
         }
     }
     let input = match selected {
-      Some(infer) if task == infer.task => infer.input
+      Some(infer) if task == infer.task =>
+        match infer.serialization {
+          Some(component) => component.input
+          None => infer.input
+        }
+      _ if content is Some(component) => component.input
       _ => fragment
     }
     guard parse_plan_identity_value(
@@ -250,6 +271,31 @@ fn issue_client_task_plan_graph(
           model_edges.push(edge)
         }
       }
+      _ if content is Some(component) => {
+        guard parse_plan_identity_value(
+            component.graph.wire,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(component_graph) &&
+          @canonical.object_field(component_graph, "nodes")
+          is Some(@canonical.Array(component_nodes)) &&
+          @canonical.object_field(component_graph, "data_edges")
+          is Some(@canonical.Array(component_edges)) &&
+          @canonical.object_field(component_graph, "root_refs")
+          is Some(@canonical.Array(component_roots)) &&
+          @canonical.array_values(component_roots).is_empty() &&
+          component.graph.transformations.is_empty() else {
+          return Err(UnsupportedGraph)
+        }
+        for component_node in @canonical.array_values(component_nodes) {
+          nodes.push(component_node)
+        }
+        for edge in @canonical.array_values(component_edges) {
+          model_edges.push(edge)
+        }
+      }
       _ => nodes.push(node)
     }
   }
@@ -260,16 +306,36 @@ fn issue_client_task_plan_graph(
       fragments.get(task) is Some(fragment) else {
       return Err(UnsupportedGraph)
     }
+    // A declared intermediate Content Result belongs to its authentic barrier,
+    // not to the later task terminal. Reuse that checked producer; do not run
+    // generation again or reconstruct its five fields from the final consumer.
+    let content_result = match serialization {
+      Some(component) if component.serialization.task == task =>
+        match @strategy.graph_result_occurrence(graph, result) {
+          Some(occurrence) if @results.port_target(
+              @execution.managed_result_occurrence_port(occurrence),
+            ) ==
+            @pipeline.Step(component.serialization.step) =>
+            Some(component.serialization)
+          _ => None
+        }
+      _ => None
+    }
+    let producer = match content_result {
+      Some(content) => content.output
+      None => fragment
+    }
     let parts = match
       issue_client_result_plan_parts(
         value,
         result,
-        fragment.node_id,
-        fragment.output_port,
-        fragment.output_contract_cid,
+        producer.node_id,
+        producer.output_port,
+        producer.output_contract_cid,
         max_wire_bytes,
         max_nodes,
         max_depth,
+        serialization_output=content_result.map(content => content.barrier),
       ) {
       Ok(parts) => parts
       Err(issue) => return Err(Root(issue))
@@ -335,6 +401,24 @@ fn issue_client_task_plan_graph(
       @encode.string_value(writer, input_name)
       @encode.end_object(writer)
       @encode.end_object(writer)
+      if serialization is Some(component) &&
+        component.serialization.task == consumer {
+        for (name, node_id, port, cid) in component.external_ports {
+          if name != input_name {
+            continue
+          }
+          if cid != source.output_contract_cid {
+            return Err(ContractMismatch)
+          }
+          guard client_serialization_plan_edge(
+              source, node_id, port, max_wire_bytes, max_nodes, max_depth,
+            )
+            is Some(extra) else {
+            return Err(Encoding)
+          }
+          @canonical.emit_value(extra, writer)
+        }
+      }
     }
     for edge in model_edges {
       @canonical.emit_value(edge, writer)

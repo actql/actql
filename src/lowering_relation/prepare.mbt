@@ -31,6 +31,7 @@ struct PreparedNode {
 /// not a second semantic IR, and must not be passed to an execution engine.
 pub enum Payload {
   Infer(@infer.CheckedInfer)
+  Serialize(@pipeline.CheckedSerialization)
   Values(@values.CheckedValues)
   TimeSeriesValue(@series.CheckedSeries)
   RowWindow(@window.CheckedWindow)
@@ -172,6 +173,7 @@ pub fn input_id(value : Prepared, index : Int) -> String? {
 pub fn operation(value : PreparedNode) -> String {
   match value.payload {
     Infer(_) => "MODEL.infer"
+    Serialize(_) => "Content.serialize"
     Values(_) => "REL.values"
     TimeSeriesValue(_) => "TEA.time_series"
     RowWindow(value) =>
@@ -272,6 +274,8 @@ pub fn operation(value : PreparedNode) -> String {
 ///|
 fn classify(op : @pipeline.CheckedOperation) -> Payload? {
   match op {
+    // Retain the checked barrier. It has no pure AoA Compute encoding.
+    Serialize(value) => Some(Serialize(value))
     Infer(value) => Some(Infer(value))
     Values(v) => Some(Values(v))
     TimeSeries(v) => Some(TimeSeriesValue(v))
@@ -405,6 +409,7 @@ pub fn prepare(
     }
     let (preferred, arity) = match payload {
       Infer(_) => ("infer", 1)
+      Serialize(_) => ("serialize", 1)
       Values(_) => ("values", 0)
       TimeSeriesValue(_) => ("time_series", 0)
       RowWindow(_) => ("window", 1)
@@ -596,7 +601,7 @@ pub fn prepare(
       work += added_nodes + added_references
     }
     let projection_id = match payload {
-      Infer(_) => None
+      Infer(_) | Serialize(_) => None
       InnerJoin(_) => {
         if expansions >= limits.max_nodes - count - inputs ||
           references >= limits.max_references ||

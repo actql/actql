@@ -178,7 +178,7 @@ fn decode(
               ["dimensions"]
             }
           "resource_ref" => ["resource_kind"]
-          "artifact_ref" => ["media_type"]
+          "content_ref" => ["media_type"]
           _ => invalid(type_cursor, UnknownType(kind))
         }
         let allowed = ["type", "nullable"]
@@ -231,8 +231,8 @@ fn decode(
             ResourceRef(
               resource_kind=text(required(view, "resource_kind"), budget),
             )
-          "artifact_ref" =>
-            ArtifactRef(
+          "content_ref" =>
+            ContentRef(
               media_type=match @decode.lookup(view, "media_type") {
                 None => None
                 Some(c) => Some(text(c, budget))

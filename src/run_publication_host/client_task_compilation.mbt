@@ -7,6 +7,7 @@ pub struct ClientTaskCompilation {
   result_names : Array[String]
   infer : ClientInferPlanGraph?
   infers : Array[ClientInferPlanGraph]
+  serialization : ClientSerializationPlanGraph?
 }
 
 ///|
@@ -18,6 +19,7 @@ pub(all) enum ClientTaskCompilationIssue {
   CompiledPlan(@publication.PublicationContractIssue)
   Encoding
   ForeignInferOwner
+  ForeignSerializationOwner
 }
 
 ///|
@@ -112,6 +114,7 @@ fn finish_client_task_compilation(
   max_depth : Int,
   infer? : ClientInferPlanGraph? = None,
   infers? : Array[ClientInferPlanGraph] = [],
+  serialization? : ClientSerializationPlanGraph? = None,
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
   guard parse_plan_identity_value(
       graph.wire,
@@ -126,6 +129,51 @@ fn finish_client_task_compilation(
     // The model acquisition is not an AoA operation. The complete mixed
     // graph, Result transformations and barrier are bound by the Executable
     // Plan; the pure input computation retains its own AoA identity.
+    Some(value) if value.serialization is Some(_) => {
+      // Bind every pure component, rather than naming just the immediate
+      // Model input as the entire computation. Content and Model barriers
+      // are outside AoA and remain bound by the complete Executable Plan.
+      guard @canonical.object_field(graph_value, "nodes")
+        is Some(@canonical.Array(nodes)) else {
+        return Err(Encoding)
+      }
+      let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+        _ => return Err(Encoding)
+      }
+      try {
+        @encode.begin_array(writer)
+        for node in @canonical.array_values(nodes) {
+          if @canonical.object_field(node, "kind")
+            is Some(@canonical.String("aoa_fragment")) {
+            guard @canonical.object_field(node, "node_id")
+              is Some(@canonical.String(node_id)) &&
+              @canonical.object_field(node, "logical_cid")
+              is Some(@canonical.String(logical_cid)) else {
+              return Err(Encoding)
+            }
+            @encode.begin_object(writer)
+            @encode.key(writer, "node_id")
+            @encode.string_value(writer, node_id)
+            @encode.key(writer, "logical_cid")
+            @encode.string_value(writer, logical_cid)
+            @encode.end_object(writer)
+          }
+        }
+        @encode.end_array(writer)
+        guard parse_plan_identity_value(
+            @encode.finish(writer),
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(components) else {
+          return Err(Encoding)
+        }
+        @canonical.cid_value(components, max_wire_bytes, max_nodes, max_depth)
+      } catch {
+        _ => return Err(Encoding)
+      }
+    }
     Some(value) => value.input_fragment_cid
     None if !infers.is_empty() => {
       // A Model barrier is outside AoA. Bind every pure input prefix in the
@@ -159,6 +207,7 @@ fn finish_client_task_compilation(
         _ => return Err(Encoding)
       }
     }
+    None if serialization is Some(component) => component.input.logical_cid
     None =>
       @canonical.cid_value(graph_value, max_wire_bytes, max_nodes, max_depth) catch {
         _ => return Err(Encoding)
@@ -207,6 +256,7 @@ fn finish_client_task_compilation(
     result_names,
     infer,
     infers: retained,
+    serialization,
   })
 }
 
@@ -224,4 +274,13 @@ pub fn client_task_compilation_infer(
   value : ClientTaskCompilation,
 ) -> ClientInferPlanGraph? {
   value.infer
+}
+
+///|
+/// Retain the original Content barrier through Run admission. A decoded Plan
+/// or a matching CID cannot substitute for the checked compilation owner.
+pub fn client_task_compilation_serialization(
+  value : ClientTaskCompilation,
+) -> ClientSerializationPlanGraph? {
+  value.serialization
 }

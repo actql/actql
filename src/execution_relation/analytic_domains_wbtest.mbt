@@ -131,7 +131,7 @@ test "analytic partitions every key domain including owned references" {
       "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false," +
+      "{\"type\":\"content_ref\",\"nullable\":false," +
       "\"media_type\":\"application/json\"}",
       "",
       "artifact",
@@ -270,7 +270,7 @@ test "analytic navigation and frame values preserve every value domain" {
       "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true," +
+      "{\"type\":\"content_ref\",\"nullable\":true," +
       "\"media_type\":\"application/json\"}",
       "",
       "artifact",
@@ -428,7 +428,7 @@ test "analytic first and last aggregates preserve every value domain" {
       "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true," +
+      "{\"type\":\"content_ref\",\"nullable\":true," +
       "\"media_type\":\"application/json\"}",
       "",
       "artifact",

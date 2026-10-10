@@ -320,6 +320,8 @@ pub fn local_managed_sequence_supported(
       @lower.EventStep(_) => false
       @lower.CarrierProjectionStep(_) => false
       @lower.InferBoundary(_) => false
+      @lower.SerializationBoundary(_) => false
+      @lower.CompletedProducerBoundary(_) => false
     }
   })
 }

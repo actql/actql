@@ -13,7 +13,7 @@ test "proof graph conversion rejects a foreign Unit without spending caller budg
   ).unwrap()
   let bound = @step_bounds.target_rows_bound(
     @capacity.target_membership_rows(candidate.membership),
-  )
+  ).unwrap()
   let (_, _, _, _, other) = remote_construction_fixture(budget)
   assert_eq(units[0].definition_cid, other[0].definition_cid)
   let before = IdentityBudget::{ ..budget, }
@@ -65,7 +65,7 @@ test "Unit output proof uses independently fixed source preimage" {
   ).unwrap()
   let bound = @step_bounds.target_rows_bound(
     @capacity.target_membership_rows(candidate.membership),
-  )
+  ).unwrap()
   let synthetic = { ..units[0], definition_cid: "sha256:" + "0".repeat(64), }
   let location = unit_operation_source(
     synthetic,

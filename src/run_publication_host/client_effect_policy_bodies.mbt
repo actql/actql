@@ -13,7 +13,42 @@ pub fn prepared_client_effect_publication_policy_bodies(
   let program = @checked.effect_program_static_checked_computation(
     prepared_client_effect_computation_candidate(value),
   )
-  let mut remaining = Int::min(max_bytes, 16777216)
+  checked_client_publication_policy_bodies(
+    program, cid, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// The same checked publication policy closure for an Effect-free Program.
+/// Sources and their response restrictions are retained, never replaced with
+/// the Host's unknown-provenance source-free policy.
+pub fn prepared_client_publication_policy_bodies(
+  value : PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
+  guard prepared_client_publication_data_policy_cid(value) is Some(cid) else {
+    return Err(MissingDependency)
+  }
+  checked_client_publication_policy_bodies(
+    @strategy.graph_program(value.graph),
+    cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn checked_client_publication_policy_bodies(
+  program : @checked.CheckedProgram,
+  cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
+  let remaining = Int::min(max_bytes, 16777216)
   let mut work = Int::min(max_nodes, 4096)
   let count = @checked.unit_count(program)
   if count > work {
@@ -38,6 +73,24 @@ pub fn prepared_client_effect_publication_policy_bodies(
     }
   }
   guard selected is Some(policy) else { return Err(MissingDependency) }
+  checked_client_source_policy_bodies(
+    policy, remaining, max_nodes, max_depth, work,
+  )
+}
+
+///|
+/// Preserve the exact selected policy and its response-policy originals for
+/// both Result publication and an intermediate Content barrier. This neither
+/// selects the final Result's policy for bytes nor grants external I/O.
+fn checked_client_source_policy_bodies(
+  policy : @checked.PublicationSourcePolicy,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : Int,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
+  let cid = policy.cid
+  let mut remaining = Int::min(max_bytes, 16777216)
   let bodies : Array[(String, String, String)] = []
   let seen : Map[String, Bool] = Map([])
   fn retain(

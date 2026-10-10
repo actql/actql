@@ -30,7 +30,7 @@ fn preflight(
         }
       }
       @contract.ResourceRef(resource_kind~) => charge(b, s, resource_kind)
-      @contract.ArtifactRef(media_type=Some(media)) => charge(b, s, media)
+      @contract.ContentRef(media_type=Some(media)) => charge(b, s, media)
       _ => ()
     }
   }

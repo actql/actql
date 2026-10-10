@@ -11,6 +11,11 @@ const expressionContractCid =
   'sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d';
 const corpusUrl = new URL(
   '../portability/corpus/effect-literal-key-identities.json', import.meta.url);
+// ABS changed the governing expression contract on main. Keep the preceding
+// fixed corpus intact; current runtime checks derive new preimages below from
+// the independently authored envelopes, never from runtime identities.
+const currentExpressionContractCid =
+  'sha256:9bb1823e6638e1aba9f57d94323ef2877ad02f391149d37920f138404f8ac842';
 
 // Test/oracle only. JSON keys sort by their exact UTF-16 code units. Writing
 // each field directly also avoids JavaScript's numeric-key re-enumeration.
@@ -131,6 +136,32 @@ export function checkEffectLiteralKeyVectors(corpus = JSON.parse(
       `${key}: distinct exact literal payloads must retain distinct identities`);
   }
   return corpus.cases.length;
+}
+
+export function currentEffectLiteralKeyVectors(corpus = JSON.parse(
+  readFileSync(corpusUrl, 'utf8')), expression = JSON.parse(readFileSync(new URL(
+    '../spec/contracts/actql-expressions.json', import.meta.url), 'utf8'))) {
+  checkEffectLiteralKeyVectors(corpus);
+  assert.equal(hash(exactDataJson(expression)), currentExpressionContractCid,
+    'review the current expression dependency instead of silently following a new pin');
+  return corpus.cases.map(c => {
+    const stage = structuredClone(c.stage_envelope);
+    stage.expression_contract_cid = currentExpressionContractCid;
+    const stagePreimage = exactDataJson(stage);
+    const stageCid = hash(stagePreimage);
+    const program = structuredClone(c.program_envelope);
+    program.expression_contract_cid = currentExpressionContractCid;
+    program.program_template.stages[0].stage_semantics_cid = stageCid;
+    const programPreimage = exactDataJson(program);
+    const programCid = hash(programPreimage);
+    const definition = {...c.definition_envelope, program_semantics_cid: programCid};
+    const definitionPreimage = exactDataJson(definition);
+    return {...c, stage_envelope: stage, stage_preimage: stagePreimage,
+      expected_stage_cid: stageCid, program_envelope: program,
+      program_preimage: programPreimage, expected_program_cid: programCid,
+      definition_envelope: definition, definition_preimage: definitionPreimage,
+      expected_definition_cid: hash(definitionPreimage)};
+  });
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

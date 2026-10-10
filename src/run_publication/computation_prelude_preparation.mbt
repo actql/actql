@@ -411,6 +411,10 @@ fn ComputationPreludePreparation::step(
           return Err(EvidenceReferenceMismatch("external_observation_evidence"))
         }
         match kind {
+          "content_generation" =>
+            // The bounded Content child validates the entire ordered inventory
+            // and embedded proof closure after the context hash is checked.
+            self.phase = External(index + 1, source, matches)
           "source_lookup" => {
             let valid = match
               @json.array_at(self.source_cids.unwrap(), source) {

@@ -325,7 +325,7 @@ test "durable source bridge keeps original observation binding and charged DAG c
       @client_local_host.client_source_capture_export_descriptor(exported),
       @client_local_host.client_source_capture_export_rows(exported),
       ledger,
-      capacity,
+      @client_local_host.installed_pending_duckdb_capture_capacity(capacity),
       fn() { true },
     ),
   )

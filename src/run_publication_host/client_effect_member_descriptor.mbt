@@ -6,8 +6,10 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
 } derive(Debug)
 
 ///|
-/// Resolve one authored Effect and its selected Mapping from the same checked
-/// Program owner. Physical observations and current authority remain separate.
+/// Resolve one authored Effect and its selected contract from the same checked
+/// Program owner. For Command, the target is its checked ResourceRef kind and
+/// the reference/CID name its Command Contract, never a synthetic Mapping.
+/// Physical observations and current authority remain separate.
 pub fn client_effect_member_descriptor(
   owner : PreparedClientEffectComputation,
   stage_index : Int,
@@ -41,6 +43,40 @@ pub fn client_effect_member_descriptor(
   }
   let header = @syntax.effect_header_at(headers, header_index).unwrap()
   let effects = @checked.effect_program_static_effects(candidate)
+  if @syntax.effect_header_kind(header) == "command" {
+    let commands = @stage_results.effect_static_candidate_command_inputs(
+      effects,
+    )
+    for index in 0..<@stage_results.effect_command_input_count(commands) {
+      if remaining == 0 {
+        return Err(WorkLimit)
+      }
+      remaining -= 1
+      let input = @stage_results.effect_command_input_at(commands, index).unwrap()
+      let target = @stage_results.effect_command_input_target(input)
+      let selected = @stage_results.effect_result_binding_header(
+        @stage_results.effect_command_target_effect(target),
+      )
+      if @syntax.effect_header_stage(selected) == stage_index &&
+        @syntax.effect_header_id(selected) == effect_id {
+        let contract = @stage_results.effect_command_target_contract(target)
+        return Ok(
+          (
+            header_index,
+            effect_id,
+            "command",
+            @environment.command_target_resource_kind(contract),
+            @environment.command_target_id(contract),
+            @environment.command_target_cid(contract),
+            @syntax.effect_header_source_result(header),
+            @syntax.effect_header_failure_policy(header),
+            None,
+          ),
+        )
+      }
+    }
+    return Err(InvalidMember)
+  }
   let shapes = @stage_results.effect_mapping_rules_shapes(
     @stage_results.effect_static_candidate_mapping_rules(effects),
   )

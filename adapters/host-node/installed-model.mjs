@@ -165,6 +165,16 @@ export function readInstalledModelDependencies(moon, execution, installation) {
   const references = moon.clientProgramInferDependencyReferences(execution);
   const bodies = new Map((installation.dependencyBodies ?? [])
     .map(entry => [entry.cid, entry.bodyWire]));
+  const media = moon.clientProgramInferMediaDependencyReferences(execution);
+  if (media.length !== 0) {
+    // Preserve the checked role-to-CID relation. Missing bodies are reported
+    // by the common dependency owner; another role or a provider callback
+    // cannot manufacture admission from a symbolic contract reference.
+    return checked(moon.clientProgramReadInferModelDependenciesWithMedia(execution,
+      bodies.get(references._0), bodies.get(references._1), bodies.get(references._2),
+      media.filter(entry => bodies.has(entry._1)).map(entry =>
+        ({_0: entry._0, _1: bodies.get(entry._1)}))));
+  }
   return checked(moon.clientProgramReadInferModelDependencies(execution,
     bodies.get(references._0), bodies.get(references._1),
     bodies.get(references._2)));

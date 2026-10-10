@@ -230,6 +230,7 @@ pub fn operation_profile_requirement(
         | BindTolerance(_, ..) => None
       }
     RelationRequirement(_)
+    | SerializationInputOrder
     | SequenceRowsRequirement(_)
     | AppendRequirement(_)
     | NestRequirement(_)

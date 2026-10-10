@@ -38,6 +38,30 @@ fn multi_source_prepared(document : String) -> PreparedClientProgram raise {
 }
 
 ///|
+test "operation selection is not completion or borrowed output authority" {
+  let prepared = multi_source_prepared(multi_source_program)
+  let graph = prepared.graph
+  // Stage 0 is an acquired filter/select sequence. Its filter exists, but is
+  // not the completed output handed to the following computation.
+  assert_eq(@strategy.graph_stage_operation_task(graph, 0, 0), Some(0))
+  assert_eq(
+    @strategy.graph_stage_target_task(graph, 0, @pipeline.Step(0)),
+    None,
+  )
+  // Stage 2's JOIN is inside an ordinary Relation sequence followed by sort
+  // and Result projection. Resolving its owner does not publish an early JOIN.
+  assert_eq(@strategy.graph_stage_operation_task(graph, 2, 0), Some(2))
+  assert_eq(
+    @strategy.graph_stage_target_task(graph, 2, @pipeline.Step(0)),
+    None,
+  )
+  assert_eq(@strategy.graph_stage_operation_task(graph, 2, -1), None)
+  assert_eq(@strategy.graph_stage_operation_task(graph, 2, 99), None)
+  assert_eq(@strategy.graph_stage_operation_task(graph, -1, 0), None)
+  assert_eq(@strategy.graph_stage_operation_task(graph, 99, 0), None)
+}
+
+///|
 test "two acquired tasks resolve the exact joined Result policy" {
   let prepared = multi_source_prepared(multi_source_program)
   assert_eq(prepared_client_acquisition_count(prepared), 2)

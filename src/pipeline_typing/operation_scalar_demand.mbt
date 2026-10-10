@@ -27,6 +27,7 @@ pub fn operation_scalar_demand(
   v : OperationObligation,
 ) -> OperationScalarDemand? {
   match v {
+    SerializationInputOrder => None
     RelationRequirement(p) | SequenceRowsRequirement(p) =>
       match p.kind {
         BoundInteger(name~, minimum~) => Some(SafeInteger(name, minimum~))

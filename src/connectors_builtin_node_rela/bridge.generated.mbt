@@ -712,12 +712,27 @@ pub fn strategy_issue_effect_free_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_effect_free_run_receipt(
-      admission, run_definition, invocation, observation, definitions, artifacts,
-      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
-      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+      admission,
+      run_definition,
+      invocation,
+      observation,
+      definitions,
+      artifacts,
+      manifest,
+      normalization_journal,
+      binding_names,
+      binding_digests,
+      source_evidence,
+      model_evidence,
+      barrier_attempt_receipt_cids,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      content_generations~,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1026,10 +1041,24 @@ pub fn strategy_begin_effect_free_captured_run(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.CapturedRunIssuancePreparation {
   @publication.start_effect_free_captured_run(
-    run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
-    advances, authoring, models, max_wire_bytes, max_nodes, max_depth, max_workspace,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    advances,
+    authoring,
+    models,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    content_generations~,
   )
 }
 
@@ -1056,6 +1085,7 @@ pub fn strategy_begin_effectful_captured_run(
   max_depth : Int,
   dependency_wire : String?,
   max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.CapturedRunIssuancePreparation raise NodeHostFailure {
   if plan_names.length() != plan_wires.length() {
     raise InvalidCommand
@@ -1095,6 +1125,7 @@ pub fn strategy_begin_effectful_captured_run(
     max_depth,
     max_workspace,
     dependency_inventory~,
+    content_generations~,
   )
 }
 
@@ -3238,6 +3269,27 @@ pub fn strategy_host_output_export_next(
   value : StrategyHostOutputExport,
 ) -> String? raise NodeHostFailure {
   strategy_publication_output_result(value.core.next())
+}
+
+///|
+#export_name("strategyHostOutputExportAdvance")
+pub fn strategy_host_output_export_advance(
+  value : StrategyHostOutputExport,
+  quantum : Int,
+) -> (String?, Bool, Int, @publication_host.PublicationOutputExportIssue?) {
+  let (progress, work, issue) = value.core.advance(quantum)
+  match progress {
+    Some(progress) => (progress.batch, progress.complete, work, None)
+    None => (None, false, work, issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportRowsComplete")
+pub fn strategy_host_output_export_rows_complete(
+  value : StrategyHostOutputExport,
+) -> Bool raise NodeHostFailure {
+  strategy_publication_output_result(value.core.rows_complete())
 }
 
 ///|

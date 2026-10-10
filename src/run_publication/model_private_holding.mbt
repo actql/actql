@@ -22,6 +22,7 @@ pub fn model_private_holding_cid(
     | "model_call_attempt"
     | "model_attempt_accounting"
     | "model_attempt_outcome"
+    | "model_attachment_admission"
     | "model_dispatch_authority" => if slot < 0 || slot >= 128 { return None }
     _ => return None
   }
@@ -68,7 +69,7 @@ pub fn model_scoped_private_holding_cid(
     ![
       "model_capture_bundle", "model_slot_capture", "model_invocation_evidence",
       "model_call_attempt", "model_attempt_accounting", "model_attempt_outcome",
-      "model_dispatch_authority",
+      "model_dispatch_authority", "model_attachment_admission",
     ].contains(role) {
     return None
   }

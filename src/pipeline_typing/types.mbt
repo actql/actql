@@ -37,6 +37,8 @@ pub(all) enum IssueKind {
   MissingModelTasks
   InferRequiresAlias
   Infer(@evidence.InferIssueKind)
+  Serialize(@content.ContentSerializationIssue)
+  SerializeOrderUnproven
   UnresolvedOrder
   KeyEvidence(@evidence.IssueKind)
   WrongCarrier(@carrier.Kind)
@@ -136,6 +138,7 @@ pub fn step_schema(step : CheckedStep) -> @schema.Schema? {
 ///|
 /// Main input is stored on CheckedStep; binary operations retain their right input.
 pub enum CheckedOperation {
+  Serialize(CheckedSerialization)
   Infer(@evidence.CheckedInfer)
   Unary(@relation.CheckedOperation)
   Join(right~ : Target, checked~ : @join.CheckedJoin)
@@ -207,6 +210,7 @@ struct CheckedPipeline {
   input_orders : Array[LogicalOrder?]
   produced_inputs : Array[ProducedInput?]
   logical_orders : Array[LogicalOrder?]
+  serialization_completions : Array[SortCompletion?]
   lag_orders : Array[SortCompletion?]
   analytic_orders : Array[AnalyticPositionOrder?]
   graph_counts : Array[GraphCount?]
@@ -477,7 +481,7 @@ fn preflight(
         }
       }
       @contract.ResourceRef(resource_kind~) => charge(b, source, resource_kind)
-      @contract.ArtifactRef(media_type=Some(media)) => charge(b, source, media)
+      @contract.ContentRef(media_type=Some(media)) => charge(b, source, media)
       _ => ()
     }
   }

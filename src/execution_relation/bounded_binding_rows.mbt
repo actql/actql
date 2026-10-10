@@ -3521,14 +3521,10 @@ fn start_bounded_binding_rows_with_input(
     @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
     bounded_binding_input_matches(input, owner, step) &&
     bounded_binding_input_available(input) &&
-    bounded_binding_input_row_count(input) <= max_rows &&
-    @lower.preparation_schema_at(
-      @lower.bound_preparation(owner),
-      @pipeline.Step(step),
-    )
-    is Some(output_schema) else {
+    bounded_binding_input_row_count(input) <= max_rows else {
     return Err(InvalidExecution)
   }
+  let output_schema = @lower.kernel_output_schema(kernel)
   let input_schema = bounded_binding_input_schema(input)
   let input_width = @schema.field_count(input_schema)
   let output_width = @schema.field_count(output_schema)
@@ -4008,8 +4004,8 @@ fn start_bounded_binding_rows_with_input(
     }
   }
   let output = match
-    prepare_bounded_admitted_output(
-      owner,
+    prepare_bounded_sequence_admitted_output(
+      generated,
       @pipeline.Step(step),
       max_rows,
       values,

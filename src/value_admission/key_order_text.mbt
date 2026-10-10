@@ -90,7 +90,7 @@ pub fn typed_key_order_text(
         None => Err(InvalidKey)
       }
     (Reference(value), @contract.ResourceRef(..))
-    | (Reference(value), @contract.ArtifactRef(..)) =>
+    | (Reference(value), @contract.ContentRef(..)) =>
       if reference_available(value) {
         Ok(reference_identity_cid(value))
       } else {

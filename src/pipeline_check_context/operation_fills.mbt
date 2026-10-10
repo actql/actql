@@ -50,7 +50,7 @@ fn fill_contract_cost(
         }
       }
       ResourceRef(resource_kind~) => scalar_spend(b, resource_kind.length())
-      ArtifactRef(media_type=Some(text)) => scalar_spend(b, text.length())
+      ContentRef(media_type=Some(text)) => scalar_spend(b, text.length())
       _ => ()
     }
   }

@@ -23,7 +23,7 @@
     }
   },
   "profile_id": "actql-text-time/0.1",
-  "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
+  "inherited_text_time_profile_cid": "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
   "grammar_sha256": "bb3f3420458049d2f57ffdc9178fd9f5a09936df3689d051eb75ce38886d4b85",
   "schemas": {
@@ -6114,7 +6114,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -11756,7 +11756,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -13962,7 +13962,7 @@
                         ],
                         "properties": {
                           "type": {
-                            "const": "artifact_ref"
+                            "const": "content_ref"
                           },
                           "nullable": {
                             "type": "boolean"
@@ -14975,7 +14975,7 @@
                         ],
                         "properties": {
                           "type": {
-                            "const": "artifact_ref"
+                            "const": "content_ref"
                           },
                           "nullable": {
                             "type": "boolean"
@@ -15908,7 +15908,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -16799,7 +16799,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -27820,7 +27820,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -28711,7 +28711,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"

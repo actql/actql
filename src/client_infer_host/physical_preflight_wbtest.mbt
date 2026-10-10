@@ -14,21 +14,21 @@ fn physical_preflight_fixture(
     events.push("start:" + request.slot.to_string())
     let steps = Ref(0)
     Ok({
-      advance: () => {
+      advance: _ => {
         events.push("prepare:" + request.slot.to_string())
         steps.val += 1
         if steps.val < 3 {
-          return Ok(None)
+          return (Ok(None), 1)
         }
         if request.slot == fail_slot {
-          return Err(@model.InvalidProvider)
+          return (Err(@model.InvalidProvider), 1)
         }
         let bound = if foreign {
           { ..request, slot: request.slot + 1, }
         } else {
           request
         }
-        @model.model_physical_request_plan(
+        let result = @model.model_physical_request_plan(
           bound,
           wire_bytes,
           { tokens, cost_units: 0L, duration_ms: 500L, },
@@ -37,6 +37,7 @@ fn physical_preflight_fixture(
             (provider.invoke)(request)
           },
         ).map(value => Some(value))
+        (result, 1)
       },
       cleanup: () => {
         events.push("cleanup:" + request.slot.to_string())
@@ -44,6 +45,204 @@ fn physical_preflight_fixture(
       },
     })
   }).unwrap()
+}
+
+///|
+fn physical_work_fixture(
+  calls : Ref[Int],
+  budget : Int,
+  prepare : @model.ModelPhysicalPreflight,
+) -> (@input.ClientInferInputExecution, @model.ModelExecution) raise {
+  let (input, rows, _, fixed) = call_identity_fixture(fixture_prepared())
+  let provider = @model.install_model_provider("models/fixture", _ => {
+    calls.val += 1
+    Ok({
+      value: @admitted.object_value([
+        ("reason", @admitted.null_value()),
+        ("risk", @admitted.text_value("high", 100).unwrap()),
+      ]).unwrap(),
+      provider_model: "fixture-risk-model",
+      provider_request_id: "physical-work",
+      input_tokens: 1L,
+      output_tokens: 2L,
+      observed_at: "2026-10-01T00:00:00.000Z",
+    })
+  }).unwrap()
+  let limits = standard_limits().model
+  let active = @model.start_model_execution(
+    rows,
+    provider,
+    fixed,
+    { ..limits, max_work: budget, },
+    quantity_capacity=Some(fixture_quantity_capacity(33L, 500L)),
+    physical_preflight=Some(prepare),
+  ).unwrap()
+  (input, active)
+}
+
+///|
+test "physical byte work respects quantum and the independent exact Model budget" {
+  // The existing one-row fixture uses 18 Model work: reserve 1, request 8,
+  // dispatch 1 and response 8. This preflight adds start 1, byte validation 3,
+  // plan completion 1 and the all-plans barrier 1, for exactly 24.
+  let mut expected_total : Int64? = None
+  for quantum in [1, 2, 256] {
+    for budget in [24, 23, 11] {
+      let calls = Ref(0)
+      let bytes = Ref(0)
+      let blocked = Ref(true)
+      let (input, active) = physical_work_fixture(calls, budget, request => {
+        Ok({
+          advance: allowed => {
+            if allowed < 1 || allowed > quantum {
+              abort("preflight received a foreign quantum")
+            }
+            if bytes.val < 3 {
+              let used = allowed.min(3 - bytes.val)
+              bytes.val += used
+              return (Ok(None), used)
+            }
+            let result = @model.model_physical_request_plan(
+              request,
+              1000L,
+              { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+              () => {
+                calls.val += 1
+                Ok({
+                  value: @admitted.object_value([
+                    ("reason", @admitted.null_value()),
+                    ("risk", @admitted.text_value("high", 100).unwrap()),
+                  ]).unwrap(),
+                  provider_model: "fixture-risk-model",
+                  provider_request_id: "physical-work",
+                  input_tokens: 1L,
+                  output_tokens: 2L,
+                  observed_at: "2026-10-01T00:00:00.000Z",
+                })
+              },
+            ).map(value => Some(value))
+            (result, 1)
+          },
+          cleanup: () => !blocked.val,
+        })
+      })
+      let mut last = 0L
+      let mut terminal = false
+      for _ in 0..<2000 {
+        let poll = @model.advance_model_execution(active, quantum).unwrap()
+        let work = match poll {
+          @model.Continue(_, work)
+          | @model.Waiting(_, work)
+          | @model.Settling(_, _, work)
+          | @model.Completed(_, _, work)
+          | @model.Failed(_, _, work)
+          | @model.Stopped(_, _, work) => work
+        }
+        assert_true(work >= last && work - last <= quantum.to_int64())
+        last = work
+        if poll is @model.Continue(_, _) {
+          continue
+        }
+        terminal = true
+        if budget == 24 {
+          assert_true(poll is @model.Completed(_, _, _))
+          assert_eq(work, 24L)
+          assert_eq(bytes.val, 3)
+          assert_eq(calls.val, 1)
+          match expected_total {
+            None => expected_total = Some(work)
+            Some(expected) => assert_eq(work, expected)
+          }
+        } else {
+          assert_true(poll is @model.Failed(@model.WorkLimit, _, _))
+          assert_eq(calls.val, if budget == 11 { 0 } else { 1 })
+          assert_eq(bytes.val, if budget == 11 { 1 } else { 3 })
+        }
+        break
+      }
+      assert_true(terminal)
+      let held = @model.model_execution_resource_usage(active)
+      assert_false(@model.cleanup_model_execution(active).unwrap())
+      assert_eq(@model.model_execution_resource_usage(active), held)
+      blocked.val = false
+      assert_true(@model.cleanup_model_execution(active).unwrap())
+      assert_true(@model.cleanup_model_execution(active).unwrap())
+      assert_eq(
+        @model.model_execution_quantity_usage(active).reserved.tokens,
+        0L,
+      )
+      assert_true(@input.cleanup_client_infer_input(input).unwrap())
+    }
+  }
+}
+
+///|
+test "invalid physical work reports stop without dispatch and keep cleanup custody" {
+  for reported in [0, -1, 2] {
+    let calls = Ref(0)
+    let blocked = Ref(true)
+    let (input, active) = physical_work_fixture(calls, 100000, _ => {
+      Ok({ advance: _ => (Ok(None), reported), cleanup: () => !blocked.val, })
+    })
+    let mut terminal = false
+    for _ in 0..<2000 {
+      let poll = @model.advance_model_execution(active, 1).unwrap()
+      if poll is @model.Continue(_, _) {
+        continue
+      }
+      assert_true(poll is @model.Failed(@model.InvalidProvider, _, _))
+      terminal = true
+      break
+    }
+    assert_true(terminal)
+    assert_eq(calls.val, 0)
+    assert_false(@model.cleanup_model_execution(active).unwrap())
+    blocked.val = false
+    assert_true(@model.cleanup_model_execution(active).unwrap())
+    assert_eq(@model.model_execution_quantity_usage(active).reserved.tokens, 0L)
+    assert_true(@input.cleanup_client_infer_input(input).unwrap())
+  }
+}
+
+///|
+test "typed physical failure keeps consumed work through failed cleanup and retry" {
+  let calls = Ref(0)
+  let blocked = Ref(true)
+  let (input, active) = physical_work_fixture(calls, 24, _ => {
+    Ok({
+      advance: allowed => {
+        if allowed < 3 {
+          abort("fixture requires three admitted work")
+        }
+        (Err(@model.Content(@model.ContentIdentity)), 3)
+      },
+      cleanup: () => !blocked.val,
+    })
+  })
+  let mut terminal = false
+  for _ in 0..<2000 {
+    let poll = @model.advance_model_execution(active, 256).unwrap()
+    if poll is @model.Continue(_, _) {
+      continue
+    }
+    // Reserve 1 + request 8 + physical start 1 + failed validation 3.
+    assert_true(
+      poll is @model.Failed(@model.Content(@model.ContentIdentity), _, 13L),
+    )
+    terminal = true
+    break
+  }
+  assert_true(terminal)
+  assert_eq(calls.val, 0)
+  let held = @model.model_execution_resource_usage(active)
+  assert_false(@model.cleanup_model_execution(active).unwrap())
+  assert_eq(@model.model_execution_resource_usage(active), held)
+  blocked.val = false
+  assert_true(@model.cleanup_model_execution(active).unwrap())
+  assert_true(@model.cleanup_model_execution(active).unwrap())
+  assert_eq(calls.val, 0)
+  assert_eq(@model.model_execution_quantity_usage(active).reserved.tokens, 0L)
+  assert_true(@input.cleanup_client_infer_input(input).unwrap())
 }
 
 ///|
@@ -57,8 +256,8 @@ test "evaluation retains the invoked physical originals only while the adopted o
     let rendered = "é\r\n" + request.slot.to_string()
     let context = "{\"provider_internals\":\"unknown\",\"selected\":[]}"
     Ok({
-      advance: () => {
-        @model.model_physical_request_plan(
+      advance: _ => {
+        let result = @model.model_physical_request_plan(
           request,
           1000L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
@@ -68,6 +267,7 @@ test "evaluation retains the invoked physical originals only while the adopted o
           },
           evidence={ rendered_input: rendered, context_manifest: context, },
         ).map(value => Some(value))
+        (result, 1)
       },
       cleanup: () => true,
     })
@@ -100,8 +300,8 @@ test "prepared physical originals can be retained without invoking or granting a
   bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
   bind_physical_preflight(active, request => {
     Ok({
-      advance: () => {
-        @model.model_physical_request_plan(
+      advance: _ => {
+        let result = @model.model_physical_request_plan(
           request,
           1000L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
@@ -111,6 +311,7 @@ test "prepared physical originals can be retained without invoking or granting a
             context_manifest: "{\"unknown\":true}",
           },
         ).map(value => Some(value))
+        (result, 1)
       },
       cleanup: () => true,
     })
@@ -153,14 +354,15 @@ test "optional physical Evidence overflow stays missing without changing ordinar
   bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
   bind_physical_preflight(active, request => {
     Ok({
-      advance: () => {
-        @model.model_physical_request_plan(
+      advance: _ => {
+        let result = @model.model_physical_request_plan(
           request,
           1L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
           () => (provider.invoke)(request),
           evidence={ rendered_input: "é", context_manifest: "{}", },
         ).map(value => Some(value))
+        (result, 1)
       },
       cleanup: () => true,
     })
@@ -277,6 +479,38 @@ test "physical preflight cancellation retains failed cleanup without redispatch"
   assert_eq(after.reserved_execution_bytes, 0L)
   assert_eq(after.reserved_transfer_bytes, 0L)
   assert_eq(@model.model_execution_quantity_usage(model).reserved.tokens, 0L)
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "typed Content preflight refusal preserves stop and pending physical cleanup" {
+  let calls = Ref(0)
+  let active = contract_capacity_start(calls, 2, 133072L)
+  let blocked = Ref(true)
+  let starts = Ref(0)
+  bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+  bind_physical_preflight(active, _ => {
+    starts.val += 1
+    Ok({
+      advance: _ => (Err(@model.Content(@model.ContentIdentity)), 1),
+      cleanup: () => !blocked.val,
+    })
+  }).unwrap()
+  assert_true(
+    fixture_finish(active)
+    is Failed(Model(@model.Content(@model.ContentIdentity)), ..),
+  )
+  assert_true(execution_stopped(active))
+  assert_true(acquire_output(active) is None)
+  assert_eq(starts.val, 1)
+  assert_eq(calls.val, 0)
+  let before = execution_quantity_usage(active).unwrap().reserved.tokens
+  assert_eq(before, 66L)
+  assert_false(cleanup(active).unwrap())
+  assert_eq(execution_quantity_usage(active).unwrap().reserved.tokens, before)
+  blocked.val = false
+  assert_true(cleanup(active).unwrap())
+  assert_eq(execution_quantity_usage(active).unwrap().reserved.tokens, 0L)
   assert_eq(calls.val, 0)
 }
 

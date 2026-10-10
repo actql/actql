@@ -19,7 +19,7 @@
     "r": {"type":"resource_ref","nullable":false,"resource_kind":"Customer"},
     "rn": {"type":"resource_ref","nullable":true,"resource_kind":"Customer"},
     "other": {"type":"resource_ref","nullable":false,"resource_kind":"Order"},
-    "artifact": {"type":"artifact_ref","nullable":false,"media_type":"text/plain"},
+    "artifact": {"type":"content_ref","nullable":false,"media_type":"text/plain"},
     "a": {"type":"array","nullable":false,"max_items":5,"items":{"type":"number","nullable":true}},
     "an": {"type":"array","nullable":true,"max_items":0,"items":{"type":"number","nullable":false}},
     "o": {"type":"object","nullable":true,"fields":{"x":{"type":"number","nullable":false}}}

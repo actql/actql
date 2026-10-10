@@ -68,6 +68,18 @@ test "Model observation binds both sources even with no call slots" {
     ])
     is Ok(_),
   )
+  // An intermediate Content policy does not authorize a different final
+  // Model Result policy. The checked call-scope boundary owns this decision.
+  assert_true(
+    check_model_observation_binding(
+      template,
+      observation,
+      artifact,
+      "sha256:" + "f".repeat(64),
+      sources=[first, second],
+    )
+    is Err(RunEvidenceReferenceMismatch("observation.data_policy_cid")),
+  )
   for expected in [[], [first], [second, first]] {
     assert_true(
       check_model_observation_binding(

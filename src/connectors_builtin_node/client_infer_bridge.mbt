@@ -117,12 +117,41 @@ pub fn client_program_model_request_preflight(
   cleanup : () -> Bool,
 ) -> @model.ModelRequestPreflight {
   {
-    advance: () => {
-      match advance() {
+    advance: _ => {
+      let result = match advance() {
         (false, None) => Ok(None)
         (true, Some(plan)) => Ok(Some(plan))
         _ => Err(@model.InvalidProvider)
       }
+      (result, 1)
+    },
+    cleanup,
+  }
+}
+
+///|
+/// The payload stays in the installed adapter's closure. MoonBit checks its
+/// exact request owner and its envelope against all pre-reserved slot limits.
+// Known Content refusals return to the same bounded Model owner. Throwing a
+// host exception is not a physical-stop observation or a typed refusal.
+#export_name("clientProgramModelContentRequestPreflight")
+pub fn client_program_model_content_request_preflight(
+  advance : (Int) -> (
+    Result[(Bool, @model.ModelPhysicalRequestPlan?), @model.ModelContentIssue],
+    Int,
+  ),
+  cleanup : () -> Bool,
+) -> @model.ModelRequestPreflight {
+  {
+    advance: quantum => {
+      let (progress, work) = advance(quantum)
+      let result = match progress {
+        Err(issue) => Err(@model.Content(issue))
+        Ok((false, None)) => Ok(None)
+        Ok((true, Some(plan))) => Ok(Some(plan))
+        _ => Err(@model.InvalidProvider)
+      }
+      (result, work)
     },
     cleanup,
   }
@@ -150,6 +179,82 @@ pub fn client_program_model_physical_request_plan(
         None => Err(@model.ProviderError)
       }
     },
+  )
+}
+
+///|
+#export_name("clientProgramModelContentInput")
+pub fn client_program_model_content_input(
+  provider : @model.AdmittedModelProvider,
+  request : @model.ModelRequest,
+  role : String,
+  item : Int,
+) -> Result[@model.ModelContentInput?, @model.ModelContentIssue] {
+  @model.model_content_input(provider, request, role, item)
+}
+
+///|
+#export_name("clientProgramModelContentInputDescription")
+pub fn client_program_model_content_input_description(
+  input : @model.ModelContentInput,
+) -> (String, String, String, Int64, String) {
+  @model.model_content_input_description(input)
+}
+
+///|
+#export_name("clientProgramStartModelContentBytes")
+pub fn client_program_start_model_content_bytes(
+  input : @model.ModelContentInput,
+  region : String,
+  egress_scope_cid : String,
+  pages : Int64?,
+  frames : Int64?,
+  current : () -> Bool,
+) -> Result[@model.ModelContentByteCheck, @model.ModelContentIssue] {
+  @model.start_model_content_byte_check(
+    input, region, egress_scope_cid, pages, frames, current,
+  )
+}
+
+///|
+#export_name("clientProgramUpdateModelContentBytes")
+pub fn client_program_update_model_content_bytes(
+  check : @model.ModelContentByteCheck,
+  bytes : Bytes,
+) -> Result[Int, @model.ModelContentIssue] {
+  @model.update_model_content_bytes(check, bytes)
+}
+
+///|
+#export_name("clientProgramFinishModelContentBytes")
+pub fn client_program_finish_model_content_bytes(
+  check : @model.ModelContentByteCheck,
+) -> Result[@model.ModelContentAdmission, @model.ModelContentIssue] {
+  @model.finish_model_content_bytes(check)
+}
+
+///|
+#export_name("clientProgramModelMediaPhysicalRequestPlan")
+pub fn client_program_model_media_physical_request_plan(
+  request : @model.ModelRequest,
+  wire_bytes : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  attachments : Array[@model.ModelContentAdmission],
+  invoke : () -> @model.ModelResponse?,
+) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
+  @model.model_physical_request_plan(
+    request,
+    wire_bytes,
+    { tokens, cost_units, duration_ms, },
+    () => {
+      match invoke() {
+        Some(response) => Ok(response)
+        None => Err(@model.ProviderError)
+      }
+    },
+    attachments~,
   )
 }
 
@@ -504,6 +609,87 @@ pub fn client_program_start_scoped_infer_execution(
 }
 
 ///|
+#export_name("clientProgramStartSerializedInferExecution")
+pub fn client_program_start_serialized_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  output : @execution.CompletedOutput,
+  provider : @model.ModelProvider,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_serialized(
+    prepared,
+    step,
+    graph,
+    output,
+    provider,
+    @infer_host.standard_limits(),
+  )
+}
+
+///|
+#export_name("clientProgramSerializedInferPlanGraph")
+pub fn client_program_serialized_infer_plan_graph(
+  occurrence : @publication_host.ClientInferOccurrence,
+  component : @publication_host.ClientSerializationPlanGraph,
+  execution : @check_environment.ModelExecutionContract,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  @publication_host.ClientInferPlanGraphIssue,
+] {
+  @publication_host.issue_prepared_client_serialized_infer_plan_graph(
+    occurrence,
+    component,
+    execution,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramStartGeneratedInferExecution")
+pub fn client_program_start_generated_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  graph : @publication_host.ClientInferPlanGraph,
+  provider : @model.ModelProvider,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_generated(
+    prepared,
+    compiled,
+    generation,
+    graph,
+    provider,
+    @infer_host.standard_limits(),
+  )
+}
+
+///|
+/// Borrow the exact completed Model edge in a mixed Content/Model Local chain.
+/// The original compiled owner and generation determine the occurrence; an
+/// Effect Program is never recast as a freshly prepared pure Program.
+#export_name("clientProgramStartGeneratedInferInputs")
+pub fn client_program_start_generated_infer_inputs(
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  graph : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_generated_inputs(
+    compiled,
+    generation,
+    graph,
+    inputs,
+    provider,
+    @infer_host.standard_limits(),
+  )
+}
+
+///|
 /// Replay has no physical provider and prepares the normal input again.
 #export_name("clientProgramStartInferReplay")
 pub fn client_program_start_infer_replay(
@@ -763,6 +949,27 @@ pub fn client_program_issue_infer_slot_capture(
   slot : Int,
 ) -> Result[@publication.RunEvidenceValue, @model.ModelExecutionIssue] {
   @infer_host.issued_slot_capture(active, slot)
+}
+
+///|
+#export_name("clientProgramIssueInferAttachmentAdmission")
+pub fn client_program_issue_infer_attachment_admission(
+  active : @infer_host.Execution,
+  slot : Int,
+) -> Result[@publication.RunEvidenceValue?, @model.ModelExecutionIssue] {
+  @infer_host.issued_attachment_admission(active, slot)
+}
+
+///|
+#export_name("clientProgramVerifyInferAttachmentAdmission")
+pub fn client_program_verify_infer_attachment_admission(
+  capture : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+  admission : @publication.RunEvidenceValue?,
+) -> Result[Unit, @publication.RunEvidenceValueIssue] {
+  @publication.verify_model_slot_attachment_admission(
+    capture, authority, admission,
+  )
 }
 
 ///|
@@ -1328,6 +1535,39 @@ pub fn client_program_infer_dependency_references(
 }
 
 ///|
+#export_name("clientProgramInferMediaDependencyReferences")
+pub fn client_program_infer_media_dependency_references(
+  execution : @check_environment.ModelExecutionContract,
+) -> Array[(String, String)] {
+  Array::makei(@check_environment.model_execution_media_count(execution), index => {
+    @check_environment.model_execution_media_at(execution, index).unwrap()
+  })
+}
+
+///|
+#export_name("clientProgramReadInferModelDependenciesWithMedia")
+pub fn client_program_read_infer_model_dependencies_with_media(
+  execution : @check_environment.ModelExecutionContract,
+  prompt : String?,
+  retry : String?,
+  backoff : String?,
+  media : Array[(String, String)],
+) -> Result[
+  @check_environment.SingleAttemptModelDependencies,
+  @check_environment.ModelDependencyIssue,
+] {
+  @check_environment.read_single_attempt_model_dependencies(
+    execution,
+    prompt.map(value => @utf8.encode(value)),
+    retry.map(value => @utf8.encode(value)),
+    backoff.map(value => @utf8.encode(value)),
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 128, },
+    1000000,
+    media=media.map(entry => (entry.0, @utf8.encode(entry.1))),
+  )
+}
+
+///|
 #export_name("clientProgramInferProviderId")
 pub fn client_program_infer_provider_id(
   execution : @check_environment.ModelExecutionContract,
@@ -1345,6 +1585,7 @@ pub fn client_program_infer_model_dependency_issue_kind(
   match issue {
     @check_environment.Missing(_) => "missing_body"
     @check_environment.UnsupportedPolicy(_) => "unsupported_policy"
+    @check_environment.MediaRole(_, _) => "media_role_mismatch"
     @check_environment.Body(_, failure) =>
       match failure.kind {
         @check_environment.IdentityMismatch => "identity_mismatch"
@@ -1853,6 +2094,44 @@ pub fn client_program_model_capture_json(
   bundle : @model.ModelCaptureBundle,
 ) -> String? {
   @model.model_capture_bundle_json(bundle, 100000, 10000, 64)
+}
+
+///|
+// A failed observation is terminal even though advancing its session returned
+// Ok. Preserve that original issue rather than advancing into Session(Terminal).
+#export_name("clientProgramModelExecutionPollIssue")
+pub fn client_program_model_execution_poll_issue(
+  poll : @model.ModelObservation,
+) -> @model.ModelExecutionIssue? {
+  match poll {
+    @model.Failed(issue, _, _) => Some(issue)
+    _ => None
+  }
+}
+
+///|
+// Diagnostic projection only; the typed original remains the failure cause.
+#export_name("clientProgramModelExecutionContentIssue")
+pub fn client_program_model_execution_content_issue(
+  issue : @model.ModelExecutionIssue,
+) -> String? {
+  match issue {
+    @model.Content(reason) => Some(@debug.to_string(reason))
+    _ => None
+  }
+}
+
+///|
+// Diagnostic projection only; preserve the original composed execution issue.
+#export_name("clientProgramInferExecutionContentIssue")
+pub fn client_program_infer_execution_content_issue(
+  issue : @infer_host.Issue,
+) -> String? {
+  match issue {
+    @infer_host.Model(reason) =>
+      client_program_model_execution_content_issue(reason)
+    _ => None
+  }
 }
 
 ///|
@@ -2573,6 +2852,7 @@ pub fn client_program_start_restored_infer_input(
   saved_scope : @publication_host.ClientInferSavedCallScope,
   fragment : String,
   ordered : String,
+  reference_issuer : @admitted.ReferenceIssuer?,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_restored_input(
     prepared,
@@ -2590,6 +2870,7 @@ pub fn client_program_start_restored_infer_input(
     saved_scope=Some(saved_scope),
     fragment_body=Some(fragment),
     ordered_body=Some(ordered),
+    reference_issuer?,
   )
 }
 
@@ -2600,6 +2881,71 @@ pub fn client_program_restrict_infer_send_slots(
   eligible : Array[Bool],
 ) -> Result[Unit, @infer_host.InvocationBindingIssue] {
   @infer_host.restrict_model_send_slots(active, eligible)
+}
+
+///|
+#export_name("clientProgramStartRestoredGeneratedInferInput")
+pub fn client_program_start_restored_generated_infer_input(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  generation : @publication_host.ClientSerializationGeneration,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  binding : String,
+  descriptor : String,
+  rows : Array[String],
+  custody : () -> Bool,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_generated_input(
+    prepared,
+    compiled,
+    definition,
+    generation,
+    graph,
+    registry,
+    values,
+    provider,
+    binding,
+    binding,
+    descriptor,
+    rows,
+    custody,
+    @infer_host.standard_limits(),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
+#export_name("clientProgramStartRestoredGeneratedInferInputs")
+pub fn client_program_start_restored_generated_infer_inputs(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  generation : @publication_host.ClientSerializationGeneration,
+  graph : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  binding : String,
+  descriptor : String,
+  custody : () -> Bool,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_generated_inputs(
+    compiled,
+    definition,
+    generation,
+    graph,
+    inputs,
+    provider,
+    binding,
+    descriptor,
+    custody,
+    @infer_host.standard_limits(),
+  )
 }
 
 ///|
@@ -2634,6 +2980,9 @@ pub fn client_program_start_restored_composed_infer_input(
   rows : Array[String],
   custody : () -> Bool,
   saved_scope : @publication_host.ClientInferSavedCallScope,
+  reference_issuer : @admitted.ReferenceIssuer?,
+  root_ledger : @resources.Ledger?,
+  suffix : @execution.GeneratedSequence?,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_restored_composed_input(
     occurrence,
@@ -2647,6 +2996,8 @@ pub fn client_program_start_restored_composed_infer_input(
     custody,
     @infer_host.standard_limits(),
     saved_scope=Some(saved_scope),
+    reference_issuer?,
+    root=root_ledger.map(ledger => (suffix, ledger)),
   )
 }
 

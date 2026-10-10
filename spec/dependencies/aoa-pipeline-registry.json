@@ -32,7 +32,7 @@
       "ordered_bindings": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.derive.ordered",
-        "cid": "sha256:ee8b9636da689912be14f1e47a655e40b19be72c480c8ad4084a630fbd844c75"
+        "cid": "sha256:cfeea75627dbb1de44c93e57790dc82aa6e884fc078d1d4dcb25282605f1de21"
       }
     }
   },
@@ -432,7 +432,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
-      "cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210"
+      "cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282"
     }
   },
   "BRIDGE.events.to_rows": {
@@ -471,7 +471,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/REL.values",
-      "cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
+      "cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7"
     }
   },
   "ACTQL.expression_fragment/0.1": {
@@ -482,7 +482,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-      "cid": "sha256:a1a1640463d683e11617125767018e6832b19b13e6cb342c1e09f9cf6cc8b488"
+      "cid": "sha256:7f1219d7f29c9b60cbec774156e33863f3ef9f86bc1bbce8c6ca51b0c9b16bde"
     }
   }
 }

@@ -157,8 +157,7 @@ function connector(registration, {providerBundle, providerMoon, profileVersions 
       assert.equal(options.installation.registration, registration);
       assert.equal(options.installation.revision, revision);
       assert.equal(options.providerMoon, providerMoon);
-      assert.equal(options.runtimeBundleCid,
-        role === 'effect' || providerBundle !== undefined ? runtimeBundleCid : undefined);
+      assert.equal(options.runtimeBundleCid, runtimeBundleCid);
     }
   }});
   return {entry: {name: registration, registration, revision, providerBundle,
@@ -199,7 +198,11 @@ for (const role of ['source', 'effect']) {
         ...(role === 'effect' ? [[role, 'check', 'shared']] : []),
         [role, 'identity', 'shared'], [role, 'select'], [role, 'check', 'shared'],
         [role, 'publish', 'shared'], [role, 'select'], [role, 'check', 'shared'],
-        [role, 'load', 'shared']]);
+        // Source publication custody compares installation metadata before
+        // loading and again afterward; neither observation performs a read.
+        ...(role === 'source' ? [[role, 'identity', 'shared']] : []),
+        [role, 'load', 'shared'],
+        ...(role === 'source' ? [[role, 'select'], [role, 'identity', 'shared']] : [])]);
     }
     assert.notEqual(identities[0], identities[1]);
   });
@@ -292,6 +295,35 @@ for (const role of ['source', 'effect']) {
     }
   }
 }
+
+test('a JS-only source installation receives the exact Host runtime binding without a provider bundle', async t => {
+  const fixture = await installation(t);
+  const selected = connector('plain');
+  const connectorTable = createInstalledConnectorTable([selected.entry]);
+  const path = await fixture.path({version: versions.source, name: 'plain'});
+  const options = {...fixture.options, connectorTable};
+  await publishInstalledSourceProfile(path, options);
+  const adapter = await loadInstalledSource(path, options);
+  await adapter.close();
+  assert.equal(selected.entry.providerBundle, undefined);
+  assert.equal(selected.entries.length, 2);
+  assert.equal(selected.owners.get('source:plain').completed, 1);
+  assert.deepEqual(selected.events.filter(event => event[1] === 'load'),
+    [['source', 'load', 'plain']]);
+});
+
+test('a JS-only source cannot replace an unavailable supplied Host runtime with an unbound installation', async t => {
+  const fixture = await installation(t);
+  const selected = connector('plain');
+  const connectorTable = createInstalledConnectorTable([selected.entry]);
+  const path = await fixture.path({version: versions.source, name: 'plain'});
+  const options = {...fixture.options, connectorTable,
+    runtimeUrl: new URL('file://' + join(fixture.options.root, 'absent-runtime.js'))};
+  await assert.rejects(loadInstalledSource(path, options), {code: 'ENOENT'});
+  await assert.rejects(publishInstalledSourceProfile(path, options), {code: 'ENOENT'});
+  assert.equal(selected.events.some(event => ['load', 'publish'].includes(event[1])), false);
+  assert.equal(selected.owners.size, 0);
+});
 
 test('an explicit source table owns even the built-in DuckDB schema version', async t => {
   const fixture = await installation(t);

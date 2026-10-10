@@ -98,9 +98,10 @@ function assertSourceGate(source) {
   const members = [...gate[1].matchAll(/"([a-z_]+)"/g)].map(match => match[1]);
   assert.equal(new Set(members).size, members.length, 'Duplicate source gate member');
   const metadata = ['from', 'as', 'meta'];
-  // INFER is admitted by its checked ModelTask owner, not by the pure-operation
-  // checker. Its registration must not expand the pure acceptance inventory.
-  const barriers = ['infer'];
+  // INFER and SERIALIZE are admitted by their checked acquisition/content
+  // owners, not as pure operations. Source registration is preparation evidence;
+  // it must not expand the pure execution acceptance inventory.
+  const barriers = ['infer', 'serialize'];
   assert.deepEqual(members.toSorted(), [
     ...metadata, ...barriers,
     ...publicOperations.filter(name => !excluded.includes(name) && !refused(name)),
@@ -124,5 +125,10 @@ test('source gate audit detects omissions, unsupported additions and duplicate r
     const changed = source.replace('| "sequence"', `| "sequence" | "${name}"`);
     assert.notEqual(changed, source);
     assert.throws(() => assertSourceGate(changed), `${name} must not silently re-enter the source gate`);
+  }
+  for (const name of ['infer', 'serialize']) {
+    const changed = source.replace(`| "${name}"`, '');
+    assert.notEqual(changed, source);
+    assert.throws(() => assertSourceGate(changed), `${name} needs its explicit barrier registration`);
   }
 });

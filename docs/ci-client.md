@@ -62,6 +62,34 @@ fallback. To reuse distributions locally, first commit all source changes, run
 it. `client` itself is CI-only aggregation. Hosted CI verifies the final submitted
 revision, actual artifact handoff and complete foundation Git history.
 
+## Focused packed Content recovery acceptance
+
+After committing a coherent Content implementation, use the normal five-package
+producer above and run `node scripts/test-packed-files-content.mjs` with
+`ACTQL_PACKED_CLIENT_PACKAGES` pointing to that verified package directory.
+The consumer refuses dirty source and audits the actual installed package graph.
+Without the variable it uses each package's normal `npm pack`/`prepack`; it does
+not replace packing with checkout imports.
+
+Only authored test fixtures are bundled. Product imports resolve to the fresh
+consumer's installed distributions; undeclared imports, linked product files
+and checkout fallback are refused. Normative fixture inputs are copied exactly,
+with their original digests recorded separately from the fixture bundle digest.
+Children run without a MoonBit toolchain on PATH.
+
+This focused acceptance covers generated Content, intermediate SERIALIZE Result
+recovery, separate Model and COMMAND approval, process restart and unknown
+COMMAND non-resend on Local/HTTPS. It is not the complete files/keyed-capture or
+real GCS campaign. The separate staging and observation-detector tests establish
+only harness behavior, never execution of a public Run.
+
+Command receipts, five tarball digests and phase observations remain in the
+reported `packed-files-content-evidence-*` directory. Its `custody/` directory
+also retains the fixture's Store/journal and private synthetic keys, including
+unknown writes. Do not upload or delete that custody as ordinary diagnostics.
+The successful disposable npm installation is removed only after all children
+finish; custody is never inside that disposable installation.
+
 ## Assessing the result
 
 Report both elapsed wall span (first Client dependency start to aggregate finish)

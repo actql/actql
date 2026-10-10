@@ -208,7 +208,7 @@ pub fn[T] decide(
             | Date
             | Timestamp
             | ResourceRef(..)
-            | ArtifactRef(..) => ()
+            | ContentRef(..) => ()
             _ => fail(source, UnresolvedOrder)
           }
           charge(b, source, @schema.reference_name(field.name))

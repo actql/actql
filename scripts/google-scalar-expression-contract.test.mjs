@@ -287,12 +287,20 @@ test('TRIM preserves exact predecessor bodies and existing unary schema shapes',
   assert.equal(earlier.expression_contract.laws.trim, undefined);
   const expression = read('spec/contracts/actql-expressions.json');
   const protocol = read('spec/contracts/actql-protocol-schemas.json');
-  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
-  const expectedCurrent = structuredClone(earlier.expression_contract);
-  expectedCurrent.laws.trim = googleScalarLaws.trim;
-  assert.deepEqual(expression, expectedCurrent);
-  assert.deepEqual(program, earlier.program_schema);
-  assert.equal(cid(program), expected.program_schema);
+  // Freeze the actual TRIM transition, rather than treating future current
+  // contracts (including ContentRef) as that historical transition's output.
+  const adopted = read('portability/corpus/historical/post-trim-contract-pins.json');
+  assert.equal(adopted.source_revision, '7910952365e0c9a2b89cf9dcfff280ddcb6b2459');
+  const expectedAdopted = structuredClone(earlier.expression_contract);
+  expectedAdopted.laws.trim = googleScalarLaws.trim;
+  assert.equal(cid(expectedAdopted), adopted.expression_contract_cid);
+  assert.equal(adopted.expression_contract_cid,
+    'sha256:a6d2c257b61167db55ca87f4985e89c2c098b33ef0123bf6639878972fa081e8');
+  assert.equal(cid(earlier.program_schema), adopted.program_schema_cid);
+  assert.equal(adopted.program_schema_cid, expected.program_schema);
+  // Still check every current embedding's unary shape, exact law, grammar and
+  // schema pins, without rewriting the retained predecessor body or its CID.
+  updateGoogleScalarContracts(expression, protocol, readFileSync(expression.grammar, 'utf8'));
   assert.notEqual(cid(expression), expected.expression_contract);
   const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
   assert.notEqual(cid(scalar), expected.scalar_law_manifest);

@@ -69,7 +69,7 @@ their normative dependencies are resolved. Do not infer scoring readiness from a
 checked vector, or add an exact-f32-representability restriction here.
 
 Ordinary authored admission returns `UnsupportedReference` for a non-null value
-under a `resource_ref` or `artifact_ref` contract. A separate Host entry accepts
+under a `resource_ref` or `content_ref` contract. A separate Host entry accepts
 such a value only through an opaque issuer bound to evidence validation and a
 current authorization check. Re-admission of retained rows requires the exact
 previously issued occurrence; canonical wire bytes alone cannot manufacture a

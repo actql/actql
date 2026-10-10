@@ -631,7 +631,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
-      "statement_sha256": "1d31be7d0b533b8401ab0d6866463db6c16dbb9b9f4f45c2b115a4ab976fd5a6",
+      "statement_sha256": "3fe800d7655400ceebf940046bd284940060dc8eecd953f5fd8a0ce81ccb2664",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
@@ -643,6 +643,17 @@
     {
       "requirement_id": "actql.protocol.contracts/capacity-host-policy.canonical-source",
       "statement_sha256": "bb1e897e78a3927e75e8e678e4304cd6cc2d03ee6ea40b3fa447235934d41c5a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-host-policy",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-host-policy.file-listing-items",
+      "statement_sha256": "005b49c50e2a2d2d1959212b69d9dff6a0dabd8ff8eb4e2f2468b127d8375f12",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -807,7 +818,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-host-policy.machine-contract",
-      "statement_sha256": "42b3f3acaf73148f47c662632a4e7723cc34fb0b9044803970144dcf37bebeba",
+      "statement_sha256": "ceaccd43c6aa255e37abcc1a16a74ae4606012f3e0ce39f558e9095eee14ed07",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2292,7 +2303,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "56898f9242c700b8f163e6873d05cceb39d01d21364bf0afc4829a34ae34dd39",
+      "statement_sha256": "2c007897952cda4a9f5f0950be5a2793d0c8a06a4e5b171155fe1961952f5f99",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

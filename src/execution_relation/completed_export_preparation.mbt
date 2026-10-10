@@ -27,6 +27,7 @@ struct CompletedOutputExportPreparation {
   mut stream : CompletedOutputExport?
   mut closed : Bool
   mut advancing : Bool
+  mut poll_work : Int
 }
 
 ///|
@@ -52,13 +53,9 @@ pub fn start_completed_output_export(
   }
   guard source.table is Some(table) else { return Err(NotCellRepresentation) }
   guard source.target is Step(_) else { return Err(InvalidTarget) }
-  let owner = @lower.sequence_owner(source.completion.sequence)
   let rows : CompletedExportRows = {
     table,
-    schema: @lower.preparation_schema_at(
-      @lower.bound_preparation(owner),
-      source.target,
-    ).unwrap(),
+    schema: completed_output_relation_schema(source),
     // Checked completed table metadata is immutable. Own its independent name
     // array incrementally before exposing the export stream.
     names: RelationRows::field_names(table),
@@ -144,6 +141,7 @@ fn start_completed_export_rows_metadata(
     stream: None,
     closed: false,
     advancing: false,
+    poll_work: 0,
   })
 }
 
@@ -234,7 +232,20 @@ fn complete_export_metadata(
       measurement_max_depth: value.wire.max_depth,
       row: 0,
       reading: false,
+      poll_steps: 0,
       pending_row: None,
+      references: if managed_schema_reference_free(
+          rows.schema,
+          value.wire.max_nodes,
+        ) ==
+        Some(true) {
+        None
+      } else {
+        match prepare_completed_export_references(value.budget.limits) {
+          Ok(references) => Some(references)
+          Err(issue) => return Err(issue)
+        }
+      },
     })
   } catch {
     issue => Err(Wire(Encoding(issue)))
@@ -249,6 +260,7 @@ pub fn advance_completed_output_export_preparation(
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
   }
+  value.poll_work = 0
   value.advancing = true
   let result = (fn() -> Result[(Bool, Int), CompletedExportIssue] {
     guard value.source is Some(source) else { return Err(Closed) }
@@ -271,15 +283,20 @@ pub fn advance_completed_output_export_preparation(
         let (done, used) = match
           advance_row_wire_order(value.order_cursor, quantum - steps) {
           Ok(value) => value
-          Err(issue) => return Err(Wire(issue))
+          Err(issue) => {
+            value.poll_work = steps + value.order_cursor.poll_work
+            return Err(Wire(issue))
+          }
         }
         steps += used
+        value.poll_work = steps
         if done {
           value.order = Some(finish_row_wire_order(value.order_cursor).unwrap())
           value.phase = 1
         }
       } else if value.phase == 1 {
         steps += 1
+        value.poll_work = steps
         if value.column == rows.names.length() {
           value.phase = 2
         } else {
@@ -297,6 +314,7 @@ pub fn advance_completed_output_export_preparation(
         }
       } else if value.phase == 2 && value.schema_limits is Some(limits) {
         steps += 1
+        value.poll_work = steps
         value.schema_cursor = Some(
           match start_relation_schema_identity(rows.schema, limits) {
             Ok(cursor) => cursor
@@ -306,6 +324,7 @@ pub fn advance_completed_output_export_preparation(
         value.phase = 3
       } else if value.phase == 3 {
         steps += 1
+        value.poll_work = steps
         let cursor = value.schema_cursor.unwrap()
         let (done, _) = match advance_relation_schema_identity(cursor, 1) {
           Ok(progress) => progress
@@ -320,6 +339,7 @@ pub fn advance_completed_output_export_preparation(
         }
       } else {
         steps += 1
+        value.poll_work = steps
         value.stream = Some(
           match complete_export_metadata(value, source) {
             Ok(value) => value

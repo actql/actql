@@ -41,6 +41,20 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// Borrow the compiler's original checked view only for its exact Effect owner.
+/// Never reparse or issue a substitute Effect-free Program for recovery.
+pub fn client_compiled_effect_program(
+  value : ClientCompiledRun,
+  owner : PreparedClientEffectComputation,
+) -> PreparedClientProgram? {
+  match value.compilation {
+    Effects(allowed) if physical_equal(allowed.compilation.owner, owner) =>
+      Some(value.owner)
+    _ => None
+  }
+}
+
+///|
 /// The shared Run owner retains the selected model barrier through admission.
 /// None denotes another compilation path, not permission to synthesize one.
 pub fn client_compiled_run_infer(
@@ -285,15 +299,48 @@ pub fn issue_client_task_compiled_run(
   if !physical_equal(owner, compilation.owner) {
     return Err(ForeignOwner)
   }
-  issue_client_compiled_run(
-    owner,
-    Tasks(compilation),
-    compilation.template,
-    compilation.compiled_plan,
-    execution_context_cid,
-    host_policy_cid,
-    expires_at,
-  )
+  let issued = match
+    issue_client_compiled_run(
+      owner,
+      Tasks(compilation),
+      compilation.template,
+      compilation.compiled_plan,
+      execution_context_cid,
+      host_policy_cid,
+      expires_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // The Content Plan already binds the admitted input policy original. Retain
+  // that same original for generation/recovery; a fresh CID or Model egress
+  // policy cannot substitute for it after compilation.
+  match compilation.serialization {
+    Some(content) if @strategy.graph_source_free_inputs_complete(owner.graph) =>
+      Ok({ ..issued, source_free_result_policy: Some(content.policy), })
+    _ => Ok(issued)
+  }
+}
+
+///|
+/// The original checked Content component, including a mixed Model Plan.
+pub fn client_compiled_run_serialization(
+  value : ClientCompiledRun,
+) -> ClientSerializationPlanGraph? {
+  match value.compilation {
+    Tasks(compilation) => compilation.serialization
+    Effects(allowed) => allowed.compilation.compiled.serialization
+    _ => None
+  }
+}
+
+///|
+/// The compiler-retained Content policy original for both source-free and
+/// acquired generation. The latter is never labelled source-free evidence.
+pub fn client_compiled_run_serialization_policy_body(
+  value : ClientCompiledRun,
+) -> @publication.CapturedEffectDependencyBody? {
+  client_compiled_run_serialization(value).map(component => component.policy)
 }
 
 ///|

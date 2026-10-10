@@ -37,6 +37,20 @@ test('independent canonical manifest identity vectors', () => {
   assert.equal(machineCid(JSON.parse(barrierPreimage)), sha(barrierPreimage));
 });
 
+test('ContentRef barrier has a distinct current canonical identity', () => {
+  // This literal vector is independently hashed, not emitted by the compiler.
+  // The actual former Artifact vector above remains unchanged.
+  const preimage = '{"contracts":[{"contract_cid":"sha256:' +
+    'e'.repeat(64) + '","name":"content_barrier"}],' +
+    '"production_profile_registry_cid":"sha256:' + 'f'.repeat(64) +
+    '","version":"actql-barrier-contract-manifest/0.1"}';
+  const expected = 'sha256:0ba05a35a4a0ee26eeb46c70294441d3a1a556afaaede0f012d5111863624e79';
+  assert.equal(sha(preimage), expected);
+  assert.equal(machineCid(JSON.parse(preimage)), expected);
+  assert.notEqual(expected,
+    'sha256:4cf406b9a5e56f04a82aca30597cdb9d4f874242a590ea1e3873e7cb204c5bf9');
+});
+
 test('structural grammar and rules have distinct bound identity inputs', () => {
   const preimage = '{"expression_contract_cid":"sha256:' + 'a'.repeat(64) +
     '","expression_text_grammar_sha256":"' + 'b'.repeat(64) +

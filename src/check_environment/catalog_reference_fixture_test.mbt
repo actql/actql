@@ -58,6 +58,7 @@ fn reference_fixture(
   native_batch? : String? = None,
   carrier? : String = "relation",
   acquisition_kind? : String = "scan",
+  acquisition_authority? : String = "read_metadata",
   view_count? : Int = 1,
 ) -> CatalogContents raise {
   let kinds = [
@@ -177,6 +178,11 @@ fn reference_fixture(
     view_text = view_text.replace(
       old="\"kind\":\"scan\"",
       new="\"kind\":" + canonical_fixture(Json::string(acquisition_kind)),
+    )
+    view_text = view_text.replace(
+      old="\"authority\":\"read_metadata\"",
+      new="\"authority\":" +
+        canonical_fixture(Json::string(acquisition_authority)),
     )
     fields["view"] = @json.parse(view_text)
   }

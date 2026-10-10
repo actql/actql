@@ -154,7 +154,7 @@ fn json_pick_reference_object(
       live,
     )
   } else {
-    issued_artifact_value(leaf, live)
+    issued_content_value(leaf, live)
   }
   guard issued.value is @admitted.Reference(reference) else {
     abort("json pick reference fixture")
@@ -181,7 +181,7 @@ test "json pick preserves owned reference leaves and current authorization" {
         "resource",
       ),
       (
-        "{\"type\":\"artifact_ref\",\"nullable\":false," +
+        "{\"type\":\"content_ref\",\"nullable\":false," +
         "\"media_type\":\"application/json\"}",
         "artifact",
       ),

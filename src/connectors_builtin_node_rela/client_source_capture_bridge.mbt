@@ -56,8 +56,9 @@ pub fn client_program_restore_source_capture(
   descriptor : String,
   rows : Array[String],
   ledger : @resources.Ledger?,
-  capacity : @client_local_host.ClientDuckDBCaptureCapacity,
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
   custody_available : () -> Bool,
+  reference_issuer : @admitted.ReferenceIssuer?,
 ) -> Result[
   @client_local_host.ClientAccountedSourceCapture,
   @client_local_host.ClientSourceCaptureIssue,
@@ -65,7 +66,7 @@ pub fn client_program_restore_source_capture(
   let receiving_ledger = match ledger {
     Some(value) => value
     None => {
-      let capacity = @client_local_host.client_duckdb_capture_capacity_values(
+      let capacity = @client_local_host.installed_capture_capacity_values(
         capacity,
       )
       match
@@ -83,8 +84,16 @@ pub fn client_program_restore_source_capture(
     }
   }
   @client_local_host.restore_accounted_client_source_capture(
-    requirement, saved_requirement_cid, expected_binding, saved_binding, descriptor,
-    rows, receiving_ledger, capacity, custody_available,
+    requirement,
+    saved_requirement_cid,
+    expected_binding,
+    saved_binding,
+    descriptor,
+    rows,
+    receiving_ledger,
+    capacity,
+    custody_available,
+    reference_issuer?,
   )
 }
 
