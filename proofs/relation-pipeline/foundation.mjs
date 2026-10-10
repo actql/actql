@@ -5,7 +5,8 @@ import { lstatSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { hash } from './inventory.mjs';
-import { foundationAncestorQuery, populateFoundationTrees } from './foundation-trees.mjs';
+import { foundationAncestorQuery, populateFoundationTrees, populateFoundationBlobs,
+  foundationBlobOutputLimit } from './foundation-trees.mjs';
 const sha = /^[0-9a-f]{40}$/;
 const digest = /^[0-9a-f]{64}$/;
 const id = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -89,7 +90,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const inspectedPaths = [...new Set([...protectedPaths, ...immutablePaths, ...immutable.map(entry => entry.sourcePath ?? entry.path)])];
   function git(args, { allowedFailure = false, input } = {}) {
     const result = spawnSync('git', ['--no-replace-objects', ...args], {
-      cwd: root, input, env: { ...process.env, GIT_NO_REPLACE_OBJECTS: '1' }, maxBuffer: 64 * 1024 * 1024,
+      cwd: root, input, env: { ...process.env, GIT_NO_REPLACE_OBJECTS: '1' },
+      maxBuffer: args[0] === 'cat-file' && args[1] === '--batch'
+        ? foundationBlobOutputLimit : 64 * 1024 * 1024,
     });
     assert(!result.error, `Foundation Git failed: ${result.error}`);
     if (!allowedFailure) assert.equal(result.status, 0, `Missing foundation Git history: git ${args.join(' ')}\n${result.stderr}`);
@@ -119,7 +122,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const ancestor = foundationAncestorQuery(completeParents);
   assert(ancestor(checkpoint, head), 'Foundation checkpoint is not an ancestor of HEAD');
   const revisions = git(['rev-list', '--reverse', '--topo-order', `${checkpoint}..${head}`]).stdout.toString().trim().split('\n').filter(Boolean);
-  const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Set();
+  const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Map();
   function parents(revision) {
     assert(completeParents.has(revision), `Missing foundation parent facts ${revision}`);
     return completeParents.get(revision);
@@ -140,10 +143,16 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       const batch = unchecked.slice(offset, offset + 256);
       const checked = git(['cat-file', '--batch-check'], { input: `${batch.join('\n')}\n` }).stdout.toString().trim().split('\n');
       assert.equal(checked.length, batch.length, 'Incomplete foundation Git object check');
-      checked.forEach((line, index) => {
-        assert.match(line, new RegExp(`^${batch[index]} blob [0-9]+$`), 'Missing foundation Git blob');
-        verifiedObjects.add(batch[index]);
+      const objects = checked.map((line, index) => {
+        const match = new RegExp(`^${batch[index]} blob (0|[1-9][0-9]*)$`).exec(line);
+        assert(match, 'Missing foundation Git blob');
+        return {object: batch[index], size: Number(match[1])};
       });
+      // Independently checked object kind/size still precedes every body read.
+      // Batch only transport; all actual bytes feed the unchanged validation.
+      populateFoundationBlobs({objects, blobs,
+        git: (args, input) => git(args, {input}).stdout});
+      for (const entry of objects) verifiedObjects.set(entry.object, entry.size);
     }
   }
   function tree(revision) {
@@ -163,7 +172,8 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     return trees.get(revision);
   }
   function bytes(entry) {
-    if (!blobs.has(entry.object)) blobs.set(entry.object, git(['cat-file', 'blob', entry.object]).stdout);
+    if (!blobs.has(entry.object)) verifyObjects([entry.object]);
+    assert(blobs.has(entry.object), 'Missing verified foundation blob bytes');
     return blobs.get(entry.object);
   }
   function identity(revision, path) {
