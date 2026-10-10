@@ -384,7 +384,8 @@ class DuckDBStream:
         self._owned()
         writer = _RowWriter(destination, self._limits.max_row_bytes)
         with self._owner._io:
-            if self._closed or not self._executed or self._failed:
+            if (self._closed or not self._executed or self._failed
+                    or self._owner._closing):
                 raise DuckDBPhysicalError('DuckDB metadata is unavailable')
             writer.put(b'[')
             for column, kind in enumerate(self._types):
