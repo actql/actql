@@ -87,6 +87,19 @@ def structured_checks(client):
     assert 'payload' not in get_check_input(absent, 'parameters')['value']
 
 
+def number_roundtrips(client):
+    for sign in [1, -1]:
+        number = sign * float.fromhex('0x1p+63')
+        run = yield client.start_source('SELECT @x AS n', format='sql',
+            submission_ref=client.new_submission(nonce=f'python-number-{facade}-{sign}'),
+            parameter_declarations={'x': {'type': 'number'}}, parameters={'x': number})
+        assert (yield run.wait())['status'] == 'succeeded'
+        rows = yield run.result('answer').all(max_rows=1)
+        assert rows == [{'n': number}]
+        assert type(rows[0]['n']) is float
+        assert rows[0]['n'].hex() == number.hex()
+
+
 async def run_async_steps(steps):
     value = None
     while True:
@@ -131,6 +144,8 @@ async def asynchronous():
                 raise AssertionError('Invalid input was admitted')
         elif phase == 'structured':
             await run_async_steps(structured_checks(client))
+        elif phase == 'numbers':
+            await run_async_steps(number_roundtrips(client))
         else:
             raise AssertionError('Unknown public phase')
 
@@ -160,6 +175,8 @@ def synchronous():
                 raise AssertionError('Invalid input was admitted')
         elif phase == 'structured':
             run_sync_steps(structured_checks(client))
+        elif phase == 'numbers':
+            run_sync_steps(number_roundtrips(client))
         else:
             raise AssertionError('Unknown public phase')
 
