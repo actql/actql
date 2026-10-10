@@ -645,8 +645,12 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         // Preserve the independently specified canonical Graph row order on
         // both initial read and reattach; sorting actual results hides damage.
+        const startsBeforeRead = physicalSteps.filter(step => step === 'physical_start_reserved').length;
+        const computesBeforeRead = physicalSteps.filter(step => step === 'computed').length;
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
+        assert.equal(physicalSteps.filter(step => step === 'physical_start_reserved').length,startsBeforeRead);
+        assert.equal(physicalSteps.filter(step => step === 'computed').length,computesBeforeRead);
         assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
         assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),graphSnapshots.map(([task,bytes])=>({
           task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
