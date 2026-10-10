@@ -67,3 +67,40 @@ acceptance remain required at this implementation record. Preserve their
 actual tested SHA, manifest, digests and transport inventories separately.
 No full Core, Native/Wasm, full packed corpus or hosted CI success is claimed.
 This closes one frontend scope defect, not the wider frontend goal.
+
+## Fixed-SHA public acceptance
+
+Normal five-package production and scoped packed acceptance at
+`5f64b7ddb43782a3633e213f5b9633c20042f811` passed (`run-eLIkn6`).
+Embedded Local and authenticated HTTPS each completed 26/26 cases: all prior
+20 cases, three positive controls and three private-slot refusals. Both
+inventories matched `a0364a60cbe810d85a966c20cc611df7470ce6fff5d01199ad2ff473fbf975e1`;
+both workers exited zero with no live children. Normal cases retain actual
+Named Result values, describe type/nullability/column order, hidden-field
+absence, resend/reread, and refusals retain zero admission and Source I/O.
+
+Receipt: `worktrees/.codex-scratch/public-query-evidence-Z034sv/summary.json`.
+The directory retains transport completion/process inventories and logs.
+Private installs were removed after evidence retention (`artifactsRemoved:
+true`, no evidence errors). Normal source manifest:
+`/private/tmp/actql-b-anonymous-aggregate-scope-5f64b7ddb-pack/packed-client-packages.json`.
+Independent SHA-256 checks matched every produced tarball:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | 5a40470f4533ac62c93909ca949c45e335bd056bac609e6eb8fbe8a894c4be0f |
+| local-node | 14cde1b2b10f04940483356e6e51c71188ad153324dc350489e8b301c323587c |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-anonymous-aggregate-scope-5f64b7ddb-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-anonymous-aggregate-scope-5f64b7ddb-pack node scripts/test-packed-public-query.mjs --pipe-pivot-only
+```
+
+The existing wrapper pins Node/MoonBit and applies a 1,200-second aggregate
+budget/exclusive heavy slot. This final evidence-recording commit changes this
+document only; packed execution remains attributed to `5f64b7ddb...`.
+Hosted CI and the broader unexecuted suites remain unverified. No merge was
+performed and the wider frontend goal remains active.
