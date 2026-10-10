@@ -2277,6 +2277,7 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is AssertUnique(_) ||
           operation is UnnestSource(_, _, _) ||
           operation is Set(_) ||
           operation is Extend(_) ||
@@ -2355,8 +2356,12 @@ fn compile_steps(
           }
         }
       }
-      for expression in expressions {
-        let references = join_reference_paths(expression)
+      // Expressions and assertion key paths share the same authored scope.
+      // This validates references only; the assertion's type/key checks and
+      // execution remain with its existing lowering and common Owner.
+      let check_references = fn(
+        references : Array[Array[@query.NamePart]],
+      ) -> Unit raise Abort {
         reject_duplicate_projection_references(
           remaining_projections, references, resolve_input,
         )
@@ -2390,6 +2395,12 @@ fn compile_steps(
             raise Abort(UnknownColumn)
           }
         }
+      }
+      for expression in expressions {
+        check_references(join_reference_paths(expression))
+      }
+      if operation is AssertUnique(keys) {
+        check_references(keys)
       }
     }
     let entries : Array[(String, @builder.Node)] = []
