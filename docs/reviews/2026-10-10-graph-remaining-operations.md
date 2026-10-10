@@ -290,6 +290,18 @@ The two changed test files pass 9/9 each on Wasm and Native under
 matching target. These receipts retain the actual dirty-source identity;
 they are not CI or clean-HEAD public execution evidence.
 
+The separately authored Mean source oracle now fixes four JSON/AQL scenarios:
+explicit repeated sample occurrences with zero weight, empty inputs, and
+generator DATA followed by node/edge Relation processing. Numeric output
+contracts are explicitly nullable. Three refusal oracles cover an invalid
+Pipe left operand, zero total weight and a missing producer. These remain
+outside the executable production inventory until the complete Mean owner is
+connected. Their registration-only Node check passes 2/2 (`run-c49Z0y`,
+`focused-test-5MBLDX`) using
+`node scripts/local-checks.mjs test node -- scripts/graph-mean-source-input.test.mjs`.
+Neither that check nor these identity-free row oracles establish Graph
+snapshot correctness, exact support, runtime dispatch or retained acceptance.
+
 ## Shortest execution and public-source checkpoint
 
 Implementation commit: `0d44b99bf07ddc2ac625972265bfdc859dfb8549`.
