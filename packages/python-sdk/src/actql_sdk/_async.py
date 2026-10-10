@@ -77,7 +77,11 @@ class AsyncClient:
             client._profile = freeze(profile)
             return client
         except BaseException:
-            await client.aclose()
+            try:
+                await client.aclose()
+            except BaseException as cleanup:
+                cleanup.cleanup_client = client
+                raise cleanup from None
             raise
 
     @property

@@ -23,8 +23,12 @@ class Client:
         runner = asyncio.Runner()
         try:
             client = runner.run(AsyncClient.connect(endpoint, token, **options))
-        except BaseException:
-            runner.close()
+        except BaseException as failure:
+            cleanup = getattr(failure, 'cleanup_client', None)
+            if isinstance(cleanup, AsyncClient):
+                failure.cleanup_client = cls(runner, cleanup)
+            else:
+                runner.close()
             raise
         return cls(runner, client)
 

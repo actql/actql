@@ -324,6 +324,23 @@ class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(error.exception.code, 'SubmissionNotSent')
         self.assertEqual([item[0] for item in self.requests], ['connect'])
 
+    async def test_failed_connect_retains_cleanup_handle(self):
+        class Transport(httpx.MockTransport):
+            closes = 0
+            async def aclose(self):
+                self.closes += 1
+                if self.closes == 1: raise OSError('close failed')
+        transport = Transport(lambda request: httpx.Response(200, json={'unknown': 'invalid profile'}))
+        with self.assertRaises(ClientError) as error:
+            await AsyncClient.connect('https://host.invalid/', 'token', transport=transport)
+        self.assertEqual(error.exception.code, 'ClientCleanupFailed')
+        cleanup = error.exception.cleanup_client
+        with self.assertRaises(ClientError):
+            cleanup.new_submission()
+        await cleanup.aclose()
+        await cleanup.aclose()
+        self.assertEqual(transport.closes, 2)
+
     async def test_cancel_loss_uses_original_cancel_reference(self):
         run = await self.client.start({}, submission_ref=reference())
         async def lost(operation, body): raise httpx.ReadError('lost')
@@ -337,6 +354,40 @@ class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SyncBoundaryTests(unittest.TestCase):
+    def test_failed_cleanup_keeps_private_runner_for_explicit_retry(self):
+        requests = []
+        class Transport(httpx.MockTransport):
+            closes = 0
+            async def aclose(self):
+                self.closes += 1
+                if self.closes == 1: raise OSError('close failed')
+        def handler(request):
+            requests.append(request.url.path.rsplit('/', 1)[1])
+            return httpx.Response(200, json=PROFILE)
+        transport = Transport(handler)
+        client = Client.connect('https://host.invalid/', 'token', transport=transport)
+        with self.assertRaises(ClientError) as error:
+            client.close()
+        self.assertEqual(error.exception.code, 'ClientCleanupFailed')
+        client.close()
+        client.close()
+        self.assertEqual(transport.closes, 2)
+        self.assertEqual(requests, ['connect'])
+
+    def test_failed_connect_keeps_sync_cleanup_facade(self):
+        class Transport(httpx.MockTransport):
+            closes = 0
+            async def aclose(self):
+                self.closes += 1
+                if self.closes == 1: raise OSError('close failed')
+        transport = Transport(lambda request: httpx.Response(200, json={}))
+        with self.assertRaises(ClientError) as error:
+            Client.connect('https://host.invalid/', 'token', transport=transport)
+        self.assertIsInstance(error.exception.cleanup_client, Client)
+        error.exception.cleanup_client.close()
+        error.exception.cleanup_client.close()
+        self.assertEqual(transport.closes, 2)
+
     def test_shared_receipts_and_bounded_rows(self):
         requests = []
         def handler(request):
