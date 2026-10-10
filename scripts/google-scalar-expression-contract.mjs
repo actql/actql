@@ -19,6 +19,12 @@ export const googleScalarLaws = {
     evaluation: stringEvaluation,
     identity: 'The closed source form is {ends_with: [value, suffix]}; the machine node is {op: ends_with, body: [value_node, suffix_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
+  strpos: {
+    signature: 'Exactly two string operands; the result is a finite number and is nullable exactly when either operand is nullable. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload or explicit collation is admitted.',
+    value: 'Return the 1-based Unicode scalar position of the first exact occurrence of the second string in the first, or canonical positive zero when absent. An empty second string returns 1 for every non-null first string, including the empty string. Count Unicode scalars, not UTF-8 bytes, UTF-16 code units or grapheme clusters. Default binary comparison preserves retained values without normalization, case folding, trimming or locale rules. Either NULL operand produces NULL. Positions are exact integer values in the existing bounded string domain, represented by ActQL finite binary64 number rather than the GoogleSQL INT64 type.',
+    evaluation: 'Evaluate the value and then the subvalue once each when demanded, including both children when the first produces NULL. Apply strict NULL only after both evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Matching preserves logical operand charges; physical search work remains bounded and cancellable.',
+    identity: 'The closed source form is {strpos: [value, subvalue]}; the machine node is {op: strpos, body: [value_node, subvalue_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
+  },
   sign: {
     signature: 'Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload or non-finite value is admitted.',
     value: 'Return exactly -1 for a negative finite number, canonical positive zero for either zero sign, and exactly 1 for a positive finite number. This includes subnormal and largest finite magnitudes. NULL produces NULL.',
@@ -26,7 +32,7 @@ export const googleScalarLaws = {
     identity: 'The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
 };
-const templates = {starts_with: 'contains', ends_with: 'contains', sign: 'abs'};
+const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs'};
 
 // Copy shapes, not semantics, and keep each embedding's local expression refs.
 function visit(value, write, counts) {
@@ -93,6 +99,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     updateGoogleScalarContracts(...bodies, grammar, true);
     bodies.forEach((body, index) => writeFileSync(paths[index], JSON.stringify(body, null, 2) + '\n'));
   }
-  console.log('GoogleSQL STRING boundary and finite-number SIGN contracts verified:',
+  console.log('GoogleSQL STRING boundary/search and finite-number SIGN contracts verified:',
     updateGoogleScalarContracts(...bodies, grammar));
 }

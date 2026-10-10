@@ -102,6 +102,18 @@ under the common failure, cancellation and budget rules. Result nullability
 is the union of operand nullability, including on empty input. BYTES overloads
 and explicit collations remain GoogleSQL coverage gaps.
 
+`STRPOS(value, subvalue)` takes exactly two STRING operands and lowers to the
+common `strpos` node. The selected [GoogleSQL STRPOS rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#strpos)
+returns the first match's 1-based character position, or 0 when absent. ActQL
+counts Unicode scalars; an empty subvalue yields 1 even for an empty value.
+Comparison is default binary and preserves exact retained strings. Both
+children evaluate once in authored order before strict NULL propagation;
+nullable operands imply a nullable result, including on empty input. The
+common failure, lazy-demand, cancellation and budget rules apply. ActQL uses
+an exact integer-valued finite `number` within its bounded string domain;
+GoogleSQL's INT64 result type, BYTES overload and explicit collation remain
+coverage gaps.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive
