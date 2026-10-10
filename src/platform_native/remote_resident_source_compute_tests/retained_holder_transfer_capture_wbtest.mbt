@@ -126,10 +126,18 @@ fn retained_holder_effect_transfer_capture(
     ),
     original.1,
   )
+  assert_eq(
+    producer.request_for_capture(producer_journal),
+    sender_materials.request,
+  )
   let inputs = @strategy.pin_captured_effect_sources(
     consumer.effect_run().unwrap(),
     4,
   ).unwrap()
+  assert_eq(
+    consumer.request_for_effect_review(inputs),
+    sender_materials.request,
+  )
   let mut root_index = -1
   for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
     let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
@@ -353,6 +361,7 @@ fn retained_holder_effect_transfer_capture(
   |> ignore
   result.output.cancel()
   assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_true(consumer.request_for_effect_review(inputs) is None)
   assert_eq(source_owner.usage().held_bytes, source_usage.held_bytes)
   assert_eq(
     source_owner.usage().reserved_execution_bytes,
