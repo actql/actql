@@ -1836,6 +1836,15 @@ pub(all) enum GraphMatchRule {
   EnforceMatchResources
 } derive(Eq, @debug.Debug)
 
+pub struct GraphMeanCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  inputs : Array[@pipeline_typing.Target]
+  operation : @graph_typing.CheckedMean
+  rule : @graph_typing.MeanObligation
+  policy : @capacity_policy.Policy
+}
+
 pub struct GraphNormalizeCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2407,6 +2416,7 @@ pub(all) enum OperationExecutionCheck {
   GraphNormalizeExecution(GraphNormalizeCheck)
   GraphDeltaExecution(GraphDeltaCheck)
   GraphUnionExecution(GraphUnionCheck)
+  GraphMeanExecution(GraphMeanCheck)
   GraphSubtractionExecution(GraphSubtractionCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)

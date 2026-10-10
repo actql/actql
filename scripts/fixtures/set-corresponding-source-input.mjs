@@ -992,6 +992,69 @@ setCorrespondingRefusals.push(
     + '|> DISTINCT |> WHERE r.aql_set_anonymous_4 > 0) ORDER BY a, b'),
 );
 
+// Correlated UNNEST expands current occurrences without renaming anonymous values.
+export const positionalUnnestProgram = {"version":"actql/0.1","id":"fixture.positional_unnest","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"derive":{"items":{"array":[{"literal":10},{"literal":20}]}}},{"unnest":{"column":"items","as":"element"}},{"select":[{"a":"kept"},{"b":"neg"},{"c":"element"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false},"c":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0,"c":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"},{"field":"c","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b","c"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalUnnestColumns = [{name: 'a', contract: number},
+  {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: number}];
+const positionalUnnest = (name, text, extra = {}) => success('positional-pipe-unnest-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: positionalUnnestColumns,
+    expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 10}, {a: 1, b: -10, c: 20},
+      {a: 2, b: -20, c: 10}, {a: 2, b: -20, c: 20}], ...extra});
+const positionalUnnestHead = 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records |> SELECT id AS kept, -amount ';
+const positionalUnnestTail = '|> SELECT *) ORDER BY a, b NULLS LAST, c NULLS LAST';
+setCorrespondingSuccesses.push(
+  positionalUnnest('json-control', JSON.stringify(positionalUnnestProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalUnnest('anonymous-source', positionalUnnestHead + '|> CROSS JOIN UNNEST([10,20]) AS element ' + positionalUnnestTail),
+  positionalUnnest('duplicate-aliases', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -amount AS `V` |> CROSS JOIN UNNEST([10,20]) AS element ' + positionalUnnestTail),
+  positionalUnnest('current-values-offset', 'SELECT 0 AS a, 0 AS b, 0 AS c, 0 AS d UNION ALL (FROM records '
+    + '|> SELECT id AS kept, -amount |> CROSS JOIN UNNEST([kept,kept+1]) AS element WITH OFFSET position '
+    + '|> SELECT *) ORDER BY a, b NULLS LAST, c, d', {format: 'aql-text',
+      columns: [...positionalUnnestColumns, {name: 'd', contract: number}],
+      expected: [{a: 0, b: 0, c: 0, d: 0}, {a: 1, b: -10, c: 1, d: 0}, {a: 1, b: -10, c: 2, d: 1},
+        {a: 2, b: -20, c: 2, d: 0}, {a: 2, b: -20, c: 3, d: 1}]}),
+  positionalUnnest('immutable-range', positionalUnnestHead + '|> AS r |> SET kept = 7 '
+    + '|> CROSS JOIN UNNEST([r.kept]) AS element ' + positionalUnnestTail,
+    {expected: [{a: 0, b: 0, c: 0}, {a: 7, b: -20, c: 2}, {a: 7, b: -10, c: 1}]}),
+  positionalUnnest('inner-predicate', positionalUnnestHead + '|> INNER JOIN UNNEST([NULL,1,2]) AS element ON element = kept '
+    + positionalUnnestTail, {columns: [...positionalUnnestColumns.slice(0, 2), {name: 'c', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 1}, {a: 2, b: -20, c: 2}]}),
+  positionalUnnest('nullable-elements', positionalUnnestHead + '|> CROSS JOIN UNNEST([10,NULL]) AS element ' + positionalUnnestTail,
+    {columns: [...positionalUnnestColumns.slice(0, 2), {name: 'c', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 10}, {a: 1, b: -10, c: null},
+        {a: 2, b: -20, c: 10}, {a: 2, b: -20, c: null}]}),
+  positionalUnnest('duplicate-elements', positionalUnnestHead + '|> CROSS JOIN UNNEST([10,10]) AS element ' + positionalUnnestTail,
+    {expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 10}, {a: 1, b: -10, c: 10},
+      {a: 2, b: -20, c: 10}, {a: 2, b: -20, c: 10}]}),
+  positionalUnnest('typed-empty', 'SELECT 0 AS a, 0 AS b, 0 AS c WHERE FALSE UNION ALL (FROM records '
+    + '|> SELECT id AS kept, -amount |> CROSS JOIN UNNEST([10,20]) AS element ' + positionalUnnestTail,
+    {sourceRows: [], expected: []}),
+  positionalUnnest('private-shaped-element', positionalUnnestHead + '|> CROSS JOIN UNNEST([10,20]) AS aql_set_anonymous_4 '
+    + '|> WHERE aql_set_anonymous_4 > 0 ' + positionalUnnestTail),
+  positionalUnnest('private-shaped-offset', 'SELECT 0 AS a, 0 AS b, 0 AS c, 0 AS d UNION ALL (FROM records '
+    + '|> SELECT id AS v, -amount AS `V` |> CROSS JOIN UNNEST([10]) AS element WITH OFFSET aql_set_duplicate_2 '
+    + '|> SELECT *) ORDER BY a, b NULLS LAST, c, d',
+    {columns: [...positionalUnnestColumns, {name: 'd', contract: number}],
+      expected: [{a: 0, b: 0, c: 0, d: 0}, {a: 1, b: -10, c: 10, d: 0}, {a: 2, b: -20, c: 10, d: 0}]}),
+  positionalUnnest('nullable-parent', positionalUnnestHead + '|> CROSS JOIN UNNEST([10,20]) AS element ' + positionalUnnestTail,
+    {sourceRows: [{id: 1, amount: null}], expected: [{a: 0, b: 0, c: 0},
+      {a: 1, b: null, c: 10}, {a: 1, b: null, c: 20}]}),
+);
+const refusePositionalUnnest = (name, text) => ({name: 'set-corresponding-refuse-pipe-unnest-' + name,
+  format: 'sql', text, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalUnnest('private-anonymous', positionalUnnestHead + '|> CROSS JOIN UNNEST([aql_set_anonymous_4]) AS element ' + positionalUnnestTail),
+  refusePositionalUnnest('ambiguous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -amount AS `V` |> CROSS JOIN UNNEST([v]) AS element ' + positionalUnnestTail),
+  refusePositionalUnnest('qualified-ambiguous', 'SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records '
+    + '|> SELECT id AS v, -amount AS `V` |> AS r |> CROSS JOIN UNNEST([r.v]) AS element ' + positionalUnnestTail),
+  refusePositionalUnnest('dropped-input', positionalUnnestHead + '|> CROSS JOIN UNNEST([amount]) AS element ' + positionalUnnestTail),
+  refusePositionalUnnest('old-range', positionalUnnestHead + '|> CROSS JOIN UNNEST([records.id]) AS element ' + positionalUnnestTail),
+  refusePositionalUnnest('qualified-private-anonymous', positionalUnnestHead + '|> AS r '
+    + '|> CROSS JOIN UNNEST([r.aql_set_anonymous_4]) AS element ' + positionalUnnestTail),
+  refusePositionalUnnest('non-array', positionalUnnestHead + '|> CROSS JOIN UNNEST(kept) AS element ' + positionalUnnestTail),
+);
+
 // Kept anonymous occurrences retain ordinal meaning through ordinary UNPIVOT.
 export const positionalUnpivotProgram = {"version":"actql/0.1","id":"fixture.positional_unpivot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},"neg"]},{"unpivot":{"columns":["kept"],"keep":["neg"],"value_column":"value","name_column":"label"}},{"select":[{"a":"neg"},{"b":"value"},{"c":"label"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false},"c":{"type":"string","nullable":false}},"rows":[{"a":0,"b":0,"c":"anchor"}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"},{"field":"c","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b","c"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
 const positionalUnpivotColumns = [{name: 'a', contract: {...number, nullable: true}},

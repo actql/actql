@@ -37,6 +37,8 @@ pub fn check_graph_equality(@decode_core.Cursor, @carrier_contract.Carrier, @car
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
+pub fn check_mean(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedMean, Issue]
+
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
 pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedNormalize, Issue]
@@ -56,6 +58,8 @@ pub fn check_subtraction(@decode_core.Cursor, @carrier_contract.Carrier, @carrie
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn check_union(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
+
+pub fn checked_mean_options(CheckedMean) -> CheckedMeanOptions
 
 pub fn components_input(CheckedComponents) -> @carrier_contract.Carrier
 
@@ -227,11 +231,21 @@ pub fn match_types(CheckedMatch) -> Array[String]?
 
 pub fn match_usage(CheckedMatch) -> PredicateUsage
 
+pub fn mean_definition_at(CheckedMean, Int, Int, edge~ : Bool) -> Int?
+
+pub fn mean_input_at(CheckedMean, Int) -> @carrier_contract.Carrier?
+
 pub fn mean_input_names(CheckedMeanOptions) -> Array[String]
 
 pub fn mean_options_source(CheckedMeanOptions) -> @decode_core.Cursor
 
 pub fn mean_options_usage(CheckedMeanOptions) -> Usage
+
+pub fn mean_output(CheckedMean) -> @carrier_contract.Carrier
+
+pub fn mean_pending_at(CheckedMean, Int) -> MeanObligation?
+
+pub fn mean_pending_count(CheckedMean) -> Int
 
 pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
 
@@ -239,9 +253,13 @@ pub fn mean_property_at(CheckedMeanOptions, EntityKind, Int) -> MeanProperty?
 
 pub fn mean_property_count(CheckedMeanOptions, EntityKind) -> Int
 
+pub fn mean_property_input_at(CheckedMean, Int, Int, Int, edge~ : Bool) -> Int?
+
 pub fn mean_sample_count(CheckedMeanOptions) -> Int
 
 pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
+
+pub fn mean_usage(CheckedMean) -> Usage
 
 pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
@@ -440,6 +458,8 @@ type CheckedGraphEquality
 
 type CheckedMatch
 
+type CheckedMean
+
 type CheckedMeanOptions
 
 type CheckedNormalize
@@ -616,6 +636,16 @@ pub(all) enum MatchObligation {
   CanonicalMatchOrder
   ResolveMatchResources
   ResolveGraphMatchProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MeanObligation {
+  AdmitMeanInputs
+  PreserveMeanIdentities
+  CheckMeanLabelsAndEndpoints
+  ResolveMeanResources
+  ApplyExactMeanSupport
+  ApplyMeanPropertyStrategies
+  CanonicalMeanOrder
 } derive(Eq, @debug.Debug)
 
 pub struct MeanProperty {

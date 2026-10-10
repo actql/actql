@@ -45,7 +45,7 @@ fn graph_current_owner(
 }
 
 ///|
-test "unconnected lowering consumers cannot issue retired Graph kernels for a current definition" {
+test "unconnected subgraph and incomplete Mean cannot issue retired Graph kernels" {
   for
     (name, body) in [
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
@@ -82,11 +82,16 @@ test "unconnected lowering consumers cannot issue retired Graph kernels for a cu
     guard checked is Err(issue) else {
       fail("unsupported consumer issued a pipeline")
     }
-    if !(issue.kind is @pipeline.Graph(@graph.UnsupportedGraphOperation) ||
+    let expected = if name == "mean_graphs" {
+      issue.kind is @pipeline.Graph(@graph.InvalidPropertyStrategy("active"))
+    } else {
+      issue.kind is @pipeline.Graph(@graph.UnsupportedGraphOperation) ||
       issue.kind
       is @pipeline.GraphMatch(
         @graph.Structure(@graph.UnsupportedGraphOperation)
-      )) {
+      )
+    }
+    if !expected {
       fail(
         "unexpected refusal from " + name + ": " + @debug.to_string(issue.kind),
       )

@@ -51,6 +51,7 @@ priv struct TextFunctionState {
   mut preceding_cased : Bool
   mut probing_sigma : Bool
   mut probe_position : Int
+  trim_explicit : Bool
   mut trim_scanning : Bool
   mut trim_start : Int
   mut trim_end : Int
@@ -123,7 +124,9 @@ fn start_text_function(
     kind,
     null_result,
     input,
-    search: if kind == TextReplace || kind == TextStrpos {
+    search: if kind == TextReplace ||
+      kind == TextStrpos ||
+      (is_trim_text_function(kind) && values.length() == 2) {
       text(values[1])
     } else {
       ""
@@ -153,6 +156,7 @@ fn start_text_function(
     preceding_cased: false,
     probing_sigma: false,
     probe_position: 0,
+    trim_explicit: is_trim_text_function(kind) && values.length() == 2,
     trim_scanning: is_trim_text_function(kind),
     trim_start: if kind == TextRTrim {
       0
@@ -268,9 +272,30 @@ fn advance_text_function(
       is Some((scalar, next, _, _)) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
+    // Explicit sets are Unicode scalar membership, not substring matching.
+    // Compare at most one set scalar per charged poll. Reuse the retained
+    // search cursor, so even repeated/large sets need no unbounded allocation.
+    let removable = if state.trim_explicit {
+      if state.matched == state.search.length() {
+        false
+      } else {
+        guard text_function_scalar(state.search, state.matched)
+          is Some((candidate, set_next, _, _)) else {
+          return Err({ kind: Scalar(InvalidOperand), expression, })
+        }
+        state.matched = set_next
+        if candidate != scalar {
+          return Ok(None)
+        }
+        true
+      }
+    } else {
+      trim_white_space(scalar)
+    }
+    state.matched = 0
     // The opposite boundary stays at the original edge for a one-sided trim.
     // A full cooperative scan validates every scalar without allocating a copy.
-    if !trim_white_space(scalar) {
+    if !removable {
       if state.kind != TextRTrim && state.trim_start == state.input.length() {
         state.trim_start = state.position
       }

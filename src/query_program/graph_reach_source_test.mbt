@@ -22,10 +22,23 @@ test "Reach public DATA and terminal query retain checked selector and Relation 
 }
 
 ///|
+test "Reach finite array DATA checks connected property selectors" {
+  let prefix = "DATA n = SELECT node_key, node_key AS seed FROM UNNEST([3, 2, 1]) node_key; DATA e = SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); "
+  for direction in ["out", "in"] {
+    let program = compile_data_set(
+      prefix +
+      "DATA reached = FROM g |> reach(start: {where: 'seed = 1'}, direction: '\{direction}', max_depth: 2); FROM reached |> SELECT depth |> ORDER BY depth |> RESULT reached",
+    )
+    check_graph_union_source(program)
+  }
+}
+
+///|
 test "Reach refuses malformed finite bounds and nonexistent selector fields before execution" {
   for
     suffix in [
       "FROM g |> reach(start: {where: 'missing = 1'}, direction: 'out', max_depth: 2) |> SELECT depth",
+      "FROM g |> reach(start: {where: 'node_key = 1'}, direction: 'out', max_depth: 2) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 0) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'wrong', max_depth: 2) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 2, extra: true) |> SELECT depth",
