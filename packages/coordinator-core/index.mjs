@@ -143,9 +143,9 @@ const snapshotTextRecord = (value, fields) => {
 export const effectResumeDeliveries = Object.freeze({
   prepareJson: (report, resolutionWire, authentication, reviewers, claim, limits) => {
     const invalid = () => { throw new TypeError('InvalidEffectResumeDeliveryInput'); };
-    if (typeof resolutionWire !== 'string' || !Array.isArray(reviewers) ||
-        reviewers.length > 64 ||
-        claim === null || typeof claim !== 'object' || Object.keys(claim).length !== 2 ||
+    if (typeof resolutionWire !== 'string' || !Array.isArray(reviewers)) invalid();
+    const count = reviewers.length;
+    if (count > 64 || claim === null || typeof claim !== 'object' || Object.keys(claim).length !== 2 ||
         !Object.hasOwn(claim, 'claimant') || !Object.hasOwn(claim, 'generation') ||
         limits === null || typeof limits !== 'object') invalid();
     // Snapshot caller values once; validation and the Owner see the same facts.
@@ -158,7 +158,6 @@ export const effectResumeDeliveries = Object.freeze({
     const fields = snapshotTextRecord(authentication, effectResumeAuthenticationFields);
     if (fields === null) invalid();
     const keys = [], ids = [];
-    const count = reviewers.length;
     for (let index = 0; index < count; index++) {
       if (!Object.hasOwn(reviewers, index)) invalid();
       const pair = snapshotTextRecord(reviewers[index], ['key_id', 'reviewer_id']);
