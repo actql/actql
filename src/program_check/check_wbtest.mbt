@@ -159,7 +159,7 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"asof_join\":{}}]", true),
       ("[{\"sequence\":{}}]", true),
       ("[{\"traverse\":{}}]", true),
-      ("[{\"reach\":{}}]", false),
+      ("[{\"reach\":{}}]", true),
       ("[{\"shortest_path\":{}}]", false),
       ("[{\"graft_graph\":{}}]", true),
       ("[{\"union_graphs\":{}}]", true),
