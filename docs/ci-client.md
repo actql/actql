@@ -146,10 +146,12 @@ Set `ACTQL_PACKED_CLIENT_PACKAGES` to that exact verified producer directory
 to reuse the packages. Stale source, changed tarballs and dirty build inputs
 remain refusals; no prepack or artifact checks are bypassed.
 
-The external application imports only the installed public Local/HTTPS Client
-entrances and SDK. Only four authored fixture/helper modules are bundled.
-Product source, compiled checkout runtime, source overlays and undisclosed
-imports are forbidden. Fixture digests and the bundle digest are recorded
+The external application uses installed public Local/HTTPS Client, runtime and
+SDK entrances. Trusted installation bootstrap also loads the actual installed
+GCS declaration asset, recording its digest and generating aliases through its
+existing owner. It does not invent Catalog CIDs. Only four authored fixture/helper
+modules are bundled. Copied product source, compiled checkout runtime, source
+overlays and undisclosed imports are forbidden. Fixture digests and the bundle digest are recorded
 separately from all five actual tarball digests.
 
 Both entrances execute the independently expected version-fixed capture and

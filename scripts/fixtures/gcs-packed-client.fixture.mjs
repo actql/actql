@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect as connectLocal} from '@actql/local-node';
+import * as moon from '@actql/local-node/runtime';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect as connectRemote} from '@actql/sdk';
 import {canonicalJson} from '@actql/sdk/host-port';
@@ -16,6 +17,10 @@ import {checkGcsAcceptanceEnvironment, gcsAcceptancePrograms} from '../gcs-files
 import {createGcsAcceptanceCredential} from '../gcs-files-content-credential.mjs';
 
 const configuration = JSON.parse(await readFile(process.argv[2], 'utf8'));
+// Trusted installation bootstrap reuses the Connector's actual packaged
+// declaration builder. It does not copy product code or invent Catalog CIDs.
+const {restoreGcsSourceDeclaration} = await import(new URL(
+  './node_modules/@actql/local-node/adapters/connectors/gcs/host/gcs-source-declaration.mjs', import.meta.url));
 const phase = process.argv[3];
 assert.ok(['capture', 'read'].includes(phase));
 assert.ok(['Local', 'HTTPS'].includes(configuration.entrance));
@@ -64,7 +69,7 @@ try {
       journalRoot: join(configuration.root, 'credential-journal'), namespaceId: 'packed-gcs',
       siteGeneration: 1, siteKey: configuration.entrance, tokenEnvironment: 'ACTQL_GCS_UNUSED_TOKEN'}),
     {flag: 'wx', mode: 0o600});
-    await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-gcs-source/0.1',
+    const profile = {version: 'actql-installed-gcs-source/0.1',
       connectorId: 'gcs-acceptance', project: manifest.project, bucket: manifest.bucket, prefix: manifest.prefix,
       mediaType: manifest.expectedObjects[0].mediaType, siteProfilePath,
       accountConfigurationWire: canonical({version: 'actql-execution-account-config/0.1',
@@ -74,7 +79,12 @@ try {
       limits: {maxListingItems: 3, maxExaminedItems: 9, maxPages: 4, maxAttempts: 4,
         maxListingBytes: 32768, maxDurationMs: 30000, maxPathBytes: 1024,
         maxPageBytes: pageBytes, maxPageItems: 1, maxRequestBytes: 4096,
-        maxContentBytes: Math.min(pageBytes, manifest.limits.maxObjectBytes)}}), {flag: 'wx', mode: 0o600});
+        maxContentBytes: Math.min(pageBytes, manifest.limits.maxObjectBytes)}};
+    const {declared} = restoreGcsSourceDeclaration(moon, profile);
+    const queryAliases = declared.views.map(view => ({name: `docs.${view.resource}`,
+      sourceRef: view.source_ref, sourceViewContractCid: view.view_cid,
+      schemaContractCid: view.carrier_schema_cid}));
+    await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases}), {flag: 'wx', mode: 0o600});
   }
   if (configuration.entrance === 'Local') {
     client = await connectLocal({mode: 'local', owner: 'local', durability: 'durable', installation});

@@ -13,7 +13,8 @@ export const packedGcsFixtureInputs = Object.freeze([
   'adapters/site-node/https-exchange-fixture.mjs',
 ]);
 const productImports = new Set(['@actql/local-node', '@actql/local-node/http-host',
-  '@actql/sdk', '@actql/sdk/host-port']);
+  '@actql/sdk', '@actql/sdk/host-port', '@actql/local-node/runtime']);
+export const packedGcsDeclarationAsset = 'node_modules/@actql/local-node/adapters/connectors/gcs/host/gcs-source-declaration.mjs';
 const inside = (root, path) => {
   const suffix = relative(root, path);
   return suffix === '' || suffix !== '..' && !suffix.startsWith('../') && !isAbsolute(suffix);
@@ -22,6 +23,10 @@ export async function stagePackedGcsFixture({repository, application}) {
   repository = await realpath(repository);
   application = await realpath(application);
   assert.ok(!inside(repository, application) && !inside(application, repository), 'GcsConsumerMustBeExternal');
+  const asset = join(application, packedGcsDeclarationAsset), assetStat = await lstat(asset);
+  assert.ok(assetStat.isFile() && !assetStat.isSymbolicLink() &&
+    await realpath(asset) === asset, 'InvalidPackagedGcsDeclaration');
+  const assetBytes = await readFile(asset);
   const allowed = new Set(packedGcsFixtureInputs.map(path => join(repository, path)));
   const inputs = [];
   for (const path of packedGcsFixtureInputs) {
@@ -55,5 +60,6 @@ export async function stagePackedGcsFixture({repository, application}) {
   assert.ok(imports.every(item => item.external && (isBuiltin(item.path) || productImports.has(item.path))));
   await writeFile(output, bytes, {flag: 'wx'});
   return {entry: output, sha256: createHash('sha256').update(bytes).digest('hex'), inputs,
-    productImports: [...productImports], copiedProductSources: 0};
+    productImports: [...productImports], productAssets: [{path: packedGcsDeclarationAsset,
+      sha256: createHash('sha256').update(assetBytes).digest('hex')}], copiedProductSources: 0};
 }
