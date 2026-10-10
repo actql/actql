@@ -197,6 +197,7 @@ fn resident_provider_observe(
   name : String,
   deny_provider? : Bool = false,
   original_invocation? : @publication.PublicationContract? = None,
+  review? : @effect_provider.NativeResidentEffectReview? = None,
 ) -> ResidentProviderFacts? raise {
   let invocation = match original_invocation {
     Some(value) => value
@@ -224,7 +225,7 @@ fn resident_provider_observe(
     environment: binding.environment,
     site_key: binding.site_key,
     site_generation: binding.site_generation,
-    runtime_bundle_cid: retained_compute_cid("a"),
+    runtime_bundle_cid: @remote.dispatch_request_execution_scope(dispatch)[2],
     connector_registration: binding.connector_registration,
     connector_revision: binding.connector_revision,
     resource_origin: binding.resource_origin,
@@ -303,6 +304,22 @@ fn resident_provider_observe(
   }
   assert_true(selected >= 0)
   let access_count = Ref(0)
+  let access = (use_id : String) => {
+    (_, request) => {
+      access_count.val += 1
+      if @catalog.single_write_request_body(request) != "{\"Count__c\":3}" {
+        return Err(@effect_provider.ForeignScope)
+      }
+      let value : @effect_provider.NativeSalesforceTargetAccess = {
+        service,
+        grant,
+        use_id,
+        scope,
+        credential_org_id: binding.org_id,
+      }
+      Ok(value)
+    }
+  }
   let observe = (use_id, limits, effect_id) => {
     @effect_provider.observe_native_resident_effect_targets(
       consumer,
@@ -328,19 +345,16 @@ fn resident_provider_observe(
       16,
       10000,
       10000,
-      (_, request) => {
-        access_count.val += 1
-        if @catalog.single_write_request_body(request) != "{\"Count__c\":3}" {
-          return Err(@effect_provider.ForeignScope)
-        }
-        Ok({ service, grant, use_id, scope, credential_org_id: binding.org_id, })
-      },
+      access(use_id),
     )
   }
   assert_true(observe("target-a", 0, "save") is Err(InvalidLimits))
   assert_true(observe("target-a", 1, "another-effect") is Err(ForeignMapping))
   assert_eq(access_count.val, 0)
-  let outcome = observe("target-a", 1, "save")
+  let outcome = match review {
+    Some(work) => work.observe(access("target-a"))
+    None => observe("target-a", 1, "save")
+  }
   let mut facts : ResidentProviderFacts? = None
   if deny_provider {
     assert_true(outcome is Err(Provider(Credential(_))))
@@ -350,6 +364,21 @@ fn resident_provider_observe(
     )
   } else {
     let rows = outcome.unwrap()
+    if review is Some(work) {
+      let before = access_count.val
+      assert_eq(work.observe(access("must-not-be-used")).unwrap().length(), 1)
+      assert_eq(access_count.val, before)
+      let uses = work.target_uses()
+      assert_eq(uses.length(), 1)
+      assert_eq(
+        uses[0].scope.dispatch_request_cid,
+        @remote.dispatch_request_identity(dispatch),
+      )
+      assert_eq(
+        uses[0].scope.runtime_bundle_cid,
+        @remote.dispatch_request_execution_scope(dispatch)[2],
+      )
+    }
     facts = Some({
       rows,
       catalog,

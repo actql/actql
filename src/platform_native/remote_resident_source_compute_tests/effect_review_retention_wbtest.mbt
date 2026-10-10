@@ -13,6 +13,7 @@ fn retained_effect_review_retention_store(
   authority : String,
   wire : String,
   authoring_cid : String,
+  review_work? : @effect_provider.NativeResidentEffectReview? = None,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-review-retention-" + @env.now().to_string()
@@ -50,7 +51,36 @@ fn retained_effect_review_retention_store(
     is Err(InvalidConfiguration),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
-  let retention = prepare(materials, key, limits).unwrap()
+  let retention = match review_work {
+    Some(work) => {
+      let retained = work
+        .prepare_retention(
+          crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
+          "2026-10-11T00:00:00.000Z", limits,
+        )
+        .unwrap()
+      assert_true(
+        physical_equal(
+          retained,
+          work
+          .prepare_retention(
+            crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
+            "2026-10-11T00:00:00.000Z", limits,
+          )
+          .unwrap(),
+        ),
+      )
+      assert_true(
+        work.prepare_retention(
+          crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
+          "2026-10-12T00:00:00.000Z", limits,
+        )
+        is Err(Unavailable),
+      )
+      retained
+    }
+    None => prepare(materials, key, limits).unwrap()
+  }
   assert_true(retention.report() is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   let open = () => {
@@ -88,6 +118,18 @@ fn retained_effect_review_retention_store(
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
   let report = retention.persist(store).unwrap()
+  if review_work is Some(work) {
+    let queued = work
+      .persist_and_retain_report(
+        store, crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
+        "2026-10-11T00:00:00.000Z", limits,
+      )
+      .unwrap()
+    assert_eq(
+      @remote.remote_effect_checkpoint_report_json(queued),
+      @remote.remote_effect_checkpoint_report_json(report),
+    )
+  }
   let report_wire = @remote.remote_effect_checkpoint_report_json(report)
   let checkpoint = @remote.remote_effect_checkpoint_report_checkpoint(report)
   let holding = checkpoint.checkpoint_cid

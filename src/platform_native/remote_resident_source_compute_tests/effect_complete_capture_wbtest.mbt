@@ -21,6 +21,7 @@ fn retained_effect_complete_capture(
   private_preview? : (String, String)? = None,
   checkpoint_custody? : Bool = false,
   review_retention? : Bool = false,
+  review_work? : @effect_provider.NativeResidentEffectReview? = None,
 ) -> Unit raise {
   let capture = (material, proofs, sources) => {
     consumer.capture_effect_run(
@@ -109,6 +110,7 @@ fn retained_effect_complete_capture(
       @publication.captured_effect_source_store_authority_cid(source),
       wire,
       authoring_cid,
+      review_work~,
     )
   } else {
     retained_effect_capture_store(
