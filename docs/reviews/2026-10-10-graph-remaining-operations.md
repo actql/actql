@@ -226,6 +226,38 @@ checks above are not substituted for those public delivery conditions.
 
 ## Shortest execution and public-source checkpoint
 
+## Typed Mean profile checkpoint
+
+The mean branch depends on the still-unpublished Graph integration above.
+`check_mean` validates every explicitly ordered sample through the existing
+Graph domain/definition/property alignment, including a singleton, repeated
+names and zero-weight occurrences. No current Graph is inserted into the
+sample list. Numeric mean properties have nullable output contracts even for
+one sample; exact-equal preserves the joined data contract. Only key-role
+aliases common to all samples survive. Ordinary union/graft typing keeps its
+existing stricter alias contract.
+
+The type-level alignment helper does not execute union or numerical averaging.
+The checked Mean retains independent support/property/resource obligations
+and all sample/definition/property bindings. Missing property policies,
+non-number mean policies, incompatible domains and invalid zero-weight inputs
+are refused. Input arrays and runtime policies are not conflated with output
+or execution proof.
+
+Focused JS Mean-profile and shared Union tests pass 11/11 on working source
+(`run-2iUskQ`, `focused-test-qncfFi`) using
+`node scripts/local-checks.mjs test moon -- --target js src/graph_typing/mean_profile_test.mbt src/graph_typing/union_test.mbt`.
+The Graph typing interface is regenerated with pinned
+`moon info --target js src/graph_typing` under guard receipt `run-yc9ZD9`.
+The existing exact_binary64 owner remains the numeric implementation selected
+for further connection; the retired tuple Mean algorithm is not reinstated.
+
+This checkpoint is **not executable Mean support**. The generator pipeline,
+exact support/property cursor, resolved cumulative meters, provider, AQL and
+public retained acceptance remain to connect. The existing public refusal is
+kept until an execution owner can discharge those duties. No success evidence
+or complete-four-operation claim is registered for this preparatory change.
+
 Implementation commit: `0d44b99bf07ddc2ac625972265bfdc859dfb8549`.
 Branch: `feat/graph-shortest-integration`, depending on the unpublished
 graft and Reach commits above. The adopted main remains
