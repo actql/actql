@@ -1,5 +1,5 @@
 ///|
-// ORDER/LIMIT, WHERE, SET, analytic steps and a star retain positional inputs.
+// Pure column edits, filters, ordering and analytic steps retain positional inputs.
 // EXCEPT/REPLACE address named columns without naming retained anonymous values.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
@@ -10,6 +10,10 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Limit(_, _)
       | Where(_)
       | Set(_)
+      | Drop(_)
+      | Rename(_)
+      | Extend(_)
+      | Alias(_)
       | Analytic(_)
       | AnalyticExpressions(_, _) => index -= 1
       Select(projections, _) => {
@@ -26,6 +30,39 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
     }
   }
   projection
+}
+
+///|
+// Positional duplicate columns keep separate physical slots and their authored
+// names. Column removal and star exclusion use the same name correspondence.
+fn positional_authored_column_name(
+  name : String,
+  authored_aliases : Array[(String, String)],
+) -> String {
+  for mapping in authored_aliases {
+    if mapping.0 == name {
+      return mapping.1
+    }
+  }
+  name
+}
+
+///|
+// A range may qualify authored duplicate names, but cannot give an anonymous
+// occurrence its private storage name. Keep the physical value slots intact.
+fn positional_named_expression_columns(
+  columns : Array[(String, String)],
+  private_fields : Array[String],
+  authored_aliases : Array[(String, String)],
+) -> Array[(String, String)] {
+  columns
+  .filter(column => {
+    !private_fields.contains(column.0) ||
+    authored_aliases.any(mapping => mapping.0 == column.0)
+  })
+  .map(column => {
+    (positional_authored_column_name(column.0, authored_aliases), column.1)
+  })
 }
 
 ///|
@@ -88,6 +125,7 @@ fn anonymous_set_projection_name(
   projections : Array[@query.Projection],
   physical : Array[String],
   selected : Array[String],
+  reserved_names? : Array[@query.NamePart] = [],
 ) -> String {
   let reserved = physical + selected
   for projection in projections {
@@ -95,7 +133,14 @@ fn anonymous_set_projection_name(
       reserved.push(name.value)
     }
   }
-  pipe_physical_name(reserved, "aql_set_anonymous_")
+  let mut name = pipe_physical_name(reserved, "aql_set_anonymous_")
+  while reserved_names.any(authored => {
+          same_name(authored, { value: name, quoted: false, })
+        }) {
+    reserved.push(name)
+    name = pipe_physical_name(reserved, "aql_set_anonymous_")
+  }
+  name
 }
 
 ///|
@@ -110,6 +155,7 @@ fn privatize_positional_duplicate_columns(
   selected : Array[@builder.Node],
   physical : Array[String],
   authored_aliases? : Array[(String, String)]? = None,
+  reserved_names? : Array[@query.NamePart] = [],
 ) -> Array[String] raise Abort {
   let private_fields : Array[String] = []
   let counts : Map[String, Int] = Map([])
@@ -120,7 +166,13 @@ fn privatize_positional_duplicate_columns(
   let reserved = physical + names
   for index in 0..<names.length() {
     if counts[ascii_upper(names[index])] > 1 {
-      let name = pipe_physical_name(reserved, "aql_set_duplicate_")
+      let mut name = pipe_physical_name(reserved, "aql_set_duplicate_")
+      while reserved_names.any(authored => {
+              same_name(authored, { value: name, quoted: false, })
+            }) {
+        reserved.push(name)
+        name = pipe_physical_name(reserved, "aql_set_duplicate_")
+      }
       reserved.push(name)
       let source = bindings[index].1
       if authored_aliases is Some(aliases) {
