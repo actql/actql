@@ -54,6 +54,11 @@ streaming, especially when stopping early. Each reader retains one `attempt_id`;
 without the protocol's completion marker is incomplete, even after valid rows.
 Collection limits fail rather than silently returning a truncated success.
 
+If cleanup fails, call `aclose()` / `close()` again on the same handle. A failed
+connection attempt whose cleanup also fails exposes `error.cleanup_client` for
+this purpose. That handle is closed to further requests and can only release
+its remaining local resources.
+
 `check(input, kind="text" | "program", scope="template_only" | "bound_input", ...)`
 does not execute. Text calls also select `format="sql"` or `"aql-text"`.
 Template calls must omit `parameters` entirely. Changed inputs or bindings require
