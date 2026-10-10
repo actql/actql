@@ -481,6 +481,13 @@ fn local_client_read_result_sink(
       })
     },
     _ => true,
+    authorize_lookup=Some(requested => {
+      requested.run_definition_cid ==
+      @publication.publication_contract_identity(definition) &&
+      requested.authority_scope_cid ==
+      @host.client_request_authority_scope_cid(request) &&
+      requested.principal_id == "fixture-principal"
+    }),
   )
   let service = @access.install_native_result_access_service(
     store,
@@ -741,4 +748,78 @@ fn local_client_read_result_sink(
   assert_eq(output.length(), 9)
   assert_eq(finishes.val, 1)
   sink.close().unwrap()
+  let lookup_selection : @client.NativeClientDeliveryAttemptSelection = {
+    namespace_id: selection.namespace_id,
+    principal_id: selection.principal_id,
+    purpose: selection.purpose,
+    result_name: selection.result_name,
+    attempt_id: selection.attempt_id,
+  }
+  for _ in 0..<2 {
+    guard journal.lookup_submitted_result_delivery(
+        epoch_authority,
+        reference,
+        scope,
+        () => true,
+        1104.0,
+        service,
+        lookup_selection,
+      )
+      is Ok(Some(original)) &&
+      original.record is Some(record) &&
+      original.host_release_receipt is Some(saved_receipt) else {
+      fail("original successful Source read evidence was not restored")
+    }
+    assert_eq(
+      @publication.publication_contract_identity(original.attempt),
+      receipt.delivery_attempt_cid,
+    )
+    assert_eq(
+      @publication.publication_contract_identity(record),
+      receipt.delivery_record_cid,
+    )
+    assert_eq(
+      @publication.publication_contract_identity(saved_receipt),
+      receipt.result_delivery_receipt_cid,
+    )
+  }
+  assert_true(
+    journal.lookup_submitted_result_delivery(
+      epoch_authority,
+      reference,
+      scope,
+      () => true,
+      1104.0,
+      service,
+      { ..lookup_selection, namespace_id: "foreign-publication-namespace", },
+    )
+    is Err(@client.Journal(@client.ForeignRun)),
+  )
+  assert_true(
+    journal.lookup_submitted_result_delivery(
+      epoch_authority,
+      reference,
+      scope,
+      () => false,
+      1104.0,
+      service,
+      lookup_selection,
+    )
+    is Err(@client.Journal(@client.AuthorizationDenied)),
+  )
+  assert_true(
+    journal.lookup_submitted_result_delivery(
+      epoch_authority,
+      reference,
+      scope,
+      () => true,
+      1104.0,
+      service,
+      { ..lookup_selection, attempt_id: "absent-original-read", },
+    )
+    is Ok(None),
+  )
+  assert_eq(admissions.val, 1)
+  assert_eq(output.length(), 9)
+  assert_eq(finishes.val, 1)
 }
