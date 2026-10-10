@@ -35,3 +35,8 @@ effectResumeDeliveries.prepareJson(dispatch, '', auth, reviewers, claim, limits)
 // @ts-expect-error Claim generation is an exact signed Int64, not a JS number.
 effectResumeDeliveries.prepareJson(report, '', auth, reviewers, {...claim, generation: 1}, limits);
 void delivery;
+
+const poll: string = effectResumeDeliveries.preparePollJson(report, "", auth, reviewers, claim, limits);
+// @ts-expect-error Routing still requires the original opaque report.
+effectResumeDeliveries.preparePollJson(dispatch, "", auth, reviewers, claim, limits);
+void poll;
