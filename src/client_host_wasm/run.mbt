@@ -208,6 +208,9 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
   }
+  if value.materials.values().any(material => material.run == handle) {
+    return -9
+  }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
     value.runs.remove(handle) |> ignore

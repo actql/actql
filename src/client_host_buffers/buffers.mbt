@@ -20,6 +20,7 @@ pub struct BufferSlot {
   allocation : @resources.SharedAllocation
   wire_length : Int
   cleanup : () -> Bool
+  mut output_only : Bool
   mut bytes : Array[Byte]
   mut wire : Bytes?
   mut written : Int
@@ -133,6 +134,7 @@ pub fn reserve_buffer(
     allocation,
     wire_length: wire_bytes,
     cleanup,
+    output_only: false,
     // Keep reservation free of the large transfer allocation. The caller
     // receives custody before fill can trap while growing linear memory.
     bytes: [],
@@ -154,6 +156,66 @@ pub fn buffer_serial(slot : BufferSlot) -> Int {
 }
 
 ///|
+/// Reserve custody before a Core producer allocates its immutable wire. The
+/// producer must bound its own encoding workspace; this pool accounts for
+/// retained wire and transfer overlap, not the producer's entire Core heap.
+pub fn reserve_output_buffer(
+  pool : BufferPool,
+  max_wire_bytes : Int,
+  physical_copy_bytes : Int64,
+  cleanup : () -> Bool,
+) -> Result[BufferSlot, BufferIssue] {
+  match reserve_buffer(pool, max_wire_bytes, physical_copy_bytes, cleanup) {
+    Err(issue) => Err(issue)
+    Ok(slot) => {
+      slot.output_only = true
+      Ok(slot)
+    }
+  }
+}
+
+///|
+/// Publish once into the exact reserved output. Core-produced bytes are not
+/// decoded as authoring input and cannot acquire a source-node capability.
+pub fn supply_buffer_output(
+  pool : BufferPool,
+  slot : BufferSlot,
+  wire : Bytes,
+) -> Result[Unit, BufferIssue] {
+  if !physical_equal(pool, slot.owner) {
+    return Err(ForeignOwner)
+  }
+  if pool.closing || slot.retired || slot.cleaned || slot.input_complete {
+    return Err(Closed)
+  }
+  if !slot.output_only || wire.length() > slot.wire_length {
+    return Err(InvalidLimits)
+  }
+  slot.wire = Some(wire)
+  slot.input_complete = true
+  Ok(())
+}
+
+///|
+pub fn buffer_length(pool : BufferPool, slot : BufferSlot) -> Int? {
+  buffer_wire(pool, slot).map(wire => wire.length())
+}
+
+///|
+pub fn buffer_output_limit(pool : BufferPool, slot : BufferSlot) -> Int? {
+  if !physical_equal(pool, slot.owner) ||
+    pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    slot.input_complete ||
+    !slot.output_only {
+    None
+  } else {
+    Some(slot.wire_length)
+  }
+}
+
+///|
 pub fn lookup_buffer(pool : BufferPool, serial : Int) -> BufferSlot? {
   pool.slots.iter().find_first(slot => slot.serial == serial && !slot.cleaned)
 }
@@ -171,7 +233,11 @@ pub fn fill_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if pool.closing || slot.retired || slot.cleaned || slot.input_complete {
+  if pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    slot.input_complete ||
+    slot.output_only {
     return Err(Closed)
   }
   if start != slot.written ||
@@ -203,7 +269,11 @@ pub fn seal_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if pool.closing || slot.retired || slot.cleaned || slot.input_complete {
+  if pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    slot.input_complete ||
+    slot.output_only {
     return Err(Closed)
   }
   if slot.written != slot.wire_length {
