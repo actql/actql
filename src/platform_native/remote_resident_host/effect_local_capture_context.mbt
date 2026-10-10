@@ -3,6 +3,7 @@ pub(all) enum ResidentLocalEffectCaptureIssue {
   Unavailable
   InvalidLimits
   Invocation(ResidentEffectSourceInvocationIssue)
+  Bindings(@host.ClientEffectReceiptBindingsIssue)
   Source(ResidentEffectSourceEvidenceIssue)
   Pins(@strategy.RunIssue)
   Export(ResidentSourceComputeIssue)
@@ -148,6 +149,16 @@ pub fn ResidentSourceCompute::prepare_local_effect_capture_context(
   )
   if !current() {
     return Err(Unavailable)
+  }
+  // The same checked preparation and original compiler Template own the
+  // receipt binding inventory. Empty caller arrays cannot prove that inventory;
+  // reject unsupported/foreign originals before allocating capture pins.
+  match
+    @host.client_effect_run_receipt_bindings(
+      materials, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Bindings(issue))
   }
   let (acquired, acquired_bodies) = match
     self.prepare_effect_acquired_evidence(
