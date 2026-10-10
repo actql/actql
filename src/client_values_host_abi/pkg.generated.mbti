@@ -104,6 +104,8 @@ pub fn client_values_host_dispatch_cid(@remote_site_protocol.DispatchRequest) ->
 
 pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
+pub fn client_values_host_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointBindingIssue]
+
 pub fn client_values_host_effect_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_values_host_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
@@ -126,6 +128,18 @@ pub fn client_values_host_effect_start_current(@run_publication_host.ClientEffec
 
 pub fn client_values_host_effect_task_keys(@run_publication_host.ClientEffectCompilation) -> Result[Array[String], @run_publication_host.ClientTaskFragmentIssue]
 
+pub fn client_values_host_effect_task_progress_computation_complete(@run_publication_host.ClientRemoteEffectTaskProgress) -> Bool
+
+pub fn client_values_host_effect_task_progress_fields(@run_publication_host.ClientRemoteEffectTaskProgress) -> Array[Array[String]]
+
+pub fn client_values_host_effect_task_progress_next(@run_publication_host.ClientRemoteEffectTaskProgress) -> Int
+
+pub fn client_values_host_effect_task_progress_result_tasks(@run_publication_host.ClientRemoteEffectTaskProgress) -> Array[Int]
+
+pub fn client_values_host_effect_task_progress_scopes(@run_publication_host.ClientRemoteEffectTaskProgress) -> Array[Array[String]]
+
+pub fn client_values_host_effect_task_progress_task_cleanup_complete(@run_publication_host.ClientRemoteEffectTaskProgress) -> Bool
+
 pub fn client_values_host_effect_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
@@ -141,6 +155,8 @@ pub fn client_values_host_finish_durable_result_row_frames(@run_publication.Dura
 pub fn client_values_host_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[Array[String], @run_publication.CapturedRunIssuanceIssue]
+
+pub fn client_values_host_inspect_effect_task_progress(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[String]) -> Result[@run_publication_host.ClientRemoteEffectTaskProgress, Unit]
 
 pub fn client_values_host_inspect_task_progress(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[String]) -> Result[@run_publication_host.ClientRemoteTaskProgress, Unit]
 
@@ -249,6 +265,8 @@ pub fn client_values_host_prepare_effect(String, String, @program_check.CheckEnv
 pub fn client_values_host_prepare_effect_retained_task_dispatch(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String, ClientValuesHostRetainedTaskInput) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientEffectRetainedInputIssue]
 
 pub fn client_values_host_prepare_effect_source_dispatch(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientEffectSourceDispatchIssue]
+
+pub fn client_values_host_prepare_effect_task_physical_start(@run_publication_host.ClientRemoteEffectTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
 
 pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 

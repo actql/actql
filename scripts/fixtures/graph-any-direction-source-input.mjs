@@ -96,7 +96,7 @@ export const graphAnyDirectionRefusals = [
   })),
   {name: 'graph-any-direction-conditional-reached-property', format: 'aql-text',
     text: heterogeneous + tail('(:Start)-[:R]-(b WHERE b.score > 10)')},
-  {name: 'graph-any-direction-unfiltered-reached-label', format: 'aql-text',
+  {name: 'graph-any-direction-unfiltered-reached-label', expectedCode: 'ClientProgramImplementationLimit', format: 'aql-text',
     text: heterogeneous + tail('(:Start)-[:R]-(:Target)')},
   {name: 'graph-any-direction-foreign-receiver', format: 'aql-text',
     text: data + mapping + tail('(a:Node WHERE id = 1)-[:R]-(b WHERE a.payload.score > 10)'),

@@ -25,6 +25,18 @@ test('Pipe JOIN independent obligations detect lost predicates limits and multip
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
 });
 
+test('removed Pipe JOIN names and duplicate ranges are invalid input', () => {
+  assert.deepEqual(pipeJoinInputRefusals.slice(0, 3).map(({name, expectedCode}) =>
+    ({name, expectedCode})), [
+    {name: 'pipe-join-input-refuse-removed-range', expectedCode: 'ClientProgramInvalidInput'},
+    {name: 'pipe-join-input-refuse-removed-column', expectedCode: 'ClientProgramInvalidInput'},
+    {name: 'pipe-join-input-refuse-duplicate-range', expectedCode: 'ClientProgramInvalidInput'},
+  ]);
+  assert.ok(pipeJoinInputRefusals[0].text.includes('ON old.id = r.key'));
+  assert.ok(pipeJoinInputRefusals[1].text.includes('ON l.id = r.key'));
+  assert.ok(pipeJoinInputRefusals[2].text.includes('AS l ON l.key = l.key'));
+});
+
 test('ordinary and narrow packed acceptance use the same Pipe JOIN corpus', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
