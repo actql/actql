@@ -271,7 +271,11 @@ fn retained_effect_preview_inputs(
     authoring,
     public_capture,
     review_retention=original_work is Some(_),
-    private_preview=Some((wire, authoring_cid)),
+    private_preview=if original_work is Some(_) {
+      Some((wire, authoring_cid))
+    } else {
+      None
+    },
     original_work~,
   )
   public_capture.output.cancel()
