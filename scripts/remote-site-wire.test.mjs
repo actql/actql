@@ -6,6 +6,29 @@ import {project, structuralValidatorSource} from './generate-client-publication-
 
 import {checkEffectCheckpointContract} from './remote-effect-checkpoint-contract.mjs';
 
+test('Effect current fixed queries and replies bind the original report and fresh challenge', () => {
+  const fixed = read('spec/fixtures/remote-effect-current-vectors.json');
+  const original = read(fixed.source_fixture);
+  assert.equal(createHash('sha256').update(readFileSync(fixed.source_fixture)).digest('hex'), fixed.source_fixture_sha256);
+  assert.equal(fixed.query.body.report_cid, hash(canonical(original.report)));
+  for (const [name, values] of [['effect_current_query', [fixed.query]], ['effect_current_reply', fixed.replies]]) {
+    const schema = registry.schemas[name];
+    assert.equal(hash(canonical(schema)), registry.schema_cids[name]);
+    for (const vector of values) {
+      assert.equal(canonical(vector.body), vector.canonical); assert.equal(hash(vector.canonical), vector.cid);
+      const shape = project(schema); assert(validate(vector.body, shape));
+      assert(!validate({...vector.body, provider_response: 'private'}, shape));
+      for (const key of Object.keys(vector.body)) {
+        const missing = {...vector.body}; delete missing[key]; assert(!validate(missing, shape));
+      }
+    }
+  }
+  for (const reply of fixed.replies) {
+    assert.equal(reply.body.query_cid, fixed.query.cid); assert.equal(reply.body.report_cid, fixed.query.body.report_cid);
+    assert.equal(reply.body.query_id, fixed.query.body.query_id);
+  }
+});
+
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const registry = read('spec/contracts/actql-remote-site-wire.json');
 const vectors = read('spec/fixtures/remote-site-wire-vectors.json').vectors;

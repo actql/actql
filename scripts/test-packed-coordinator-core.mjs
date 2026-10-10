@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
 // The Coordinator owners a Cloud adopts are called through the packed
@@ -9,7 +10,9 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
-const installation = await mkdtemp(join(build, 'packed-coordinator-core-'));
+// Keep consumers outside the repository so uncopied fixtures cannot resolve
+// back into its spec tree. Every vector dependency is copied explicitly.
+const installation = await mkdtemp(join(tmpdir(), 'actql-packed-coordinator-core-'));
 const environment = {...process.env,
   npm_config_cache: join(installation, 'npm-cache')};
 
@@ -50,6 +53,10 @@ try {
   await copyFile(join(repository, 'spec/fixtures/remote-effect-resume-vectors.json'),
     join(installation, 'effect-resume-vectors.json'));
   environment.ACTQL_TEST_EFFECT_RESUME_VECTORS = join(installation, 'effect-resume-vectors.json');
+  await copyFile(join(repository, 'spec/fixtures/remote-effect-current-vectors.json'),
+    join(installation, 'effect-current-vectors.json'));
+  environment.ACTQL_TEST_EFFECT_CURRENT_VECTORS = join(installation,
+    'effect-current-vectors.json');
   process.stdout.write(run(process.execPath, ['--test', 'effect-checkpoint.test.mjs'], installation));
   run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
     '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
