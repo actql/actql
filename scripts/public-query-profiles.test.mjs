@@ -268,18 +268,18 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
-  assert.equal(pin.sourceBaseline, 'ac872c75a53b99c19927e8032a3f0f4d7ad32032');
-  assert.equal(pin.totalCases, 3198);
-  assert.deepEqual(pin.counts, {successes: 2026, refusals: 1127, executionFailures: 45});
+  assert.equal(pin.sourceBaseline, 'd32b8972d30cd980973698d58b57e12fc8d75a13');
+  assert.equal(pin.totalCases, 3213);
+  assert.deepEqual(pin.counts, {successes: 2034, refusals: 1133, executionFailures: 46});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 1973, executionFailures: 43, refusals: 1092}],
+    ['standard', {successes: 1981, executionFailures: 44, refusals: 1098}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
   ]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [26, 41]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [27, 42]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [27, 42]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [28, 43]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();
