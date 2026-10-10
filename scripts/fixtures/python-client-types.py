@@ -1,5 +1,15 @@
 """Type-check only; these examples must never dispatch during verification."""
 from actql_sdk import AsyncClient, Client, ClientError, JSONValue
+from actql_sdk._types import Cancellation, CancellationRef
+
+
+def cancellation_dto_shapes() -> Cancellation:
+    operation: CancellationRef = {'namespaceId': 'local', 'authorityScopeCid': 'scope',
+        'runDefinitionCid': 'run', 'cancelId': 'cancel', 'expectedRevision': 1}
+    missing_operation_identity: CancellationRef = {  # type: ignore[typeddict-item]
+        'namespaceId': 'local', 'authorityScopeCid': 'scope', 'runDefinitionCid': 'run'}
+    return {'kind': 'accepted', 'revision': 2, 'cancelRef': operation,
+        'ref': {'namespaceId': 'local', 'authorityScopeCid': 'scope', 'runDefinitionCid': 'run'}}
 
 
 async def original_operation_lookup(client: AsyncClient, error: ClientError) -> None:
