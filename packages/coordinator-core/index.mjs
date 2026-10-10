@@ -127,6 +127,42 @@ const effectCheckpointValue = handle => {
   if (value === undefined) throw new TypeError('InvalidEffectCheckpointReport');
   return value;
 };
+const effectResumeAuthenticationFields = ['key_id', 'reviewer_id',
+  'expected_authority_scope_cid', 'authority_context_cid', 'policy_cid', 'proof_preimage'];
+const closedTextRecord = (value, fields) => value !== null && typeof value === 'object' &&
+  Object.keys(value).length === fields.length &&
+  fields.every(key => Object.hasOwn(value, key) && typeof value[key] === 'string');
+
+// This only serializes an original, approved common Resolution. Authenticate
+// and persist the claim through the existing Run Owner, then fence immediately
+// before handout. A transported claim is never a current Site observation.
+export const effectResumeDeliveries = Object.freeze({
+  prepareJson: (report, resolutionWire, authentication, reviewers, claim, limits) => {
+    const utf8 = new TextEncoder();
+    if (typeof resolutionWire !== 'string' ||
+        !closedTextRecord(authentication, effectResumeAuthenticationFields) ||
+        !siteArray(reviewers, value => closedTextRecord(value, ['key_id', 'reviewer_id'])) ||
+        claim === null || typeof claim !== 'object' || Object.keys(claim).length !== 2 ||
+        !Object.hasOwn(claim, 'claimant') || !Object.hasOwn(claim, 'generation') ||
+        typeof claim.claimant !== 'string' || utf8.encode(claim.claimant).length === 0 ||
+        utf8.encode(claim.claimant).length > 256 || !siteInteger(claim.generation) ||
+        claim.generation === 0n || limits === null || typeof limits !== 'object' ||
+        ![['maxWireBytes', 262144], ['maxNodes', 4096], ['maxDepth', 32]].every(
+          ([key, maximum]) => Number.isSafeInteger(limits[key]) && limits[key] > 0 &&
+            limits[key] <= maximum)) {
+      throw new TypeError('InvalidEffectResumeDeliveryInput');
+    }
+    const fields = effectResumeAuthenticationFields.map(key => authentication[key]);
+    const keys = reviewers.map(value => value.key_id), ids = reviewers.map(value => value.reviewer_id);
+    if ([resolutionWire, ...fields, ...keys, ...ids].reduce((sum, value) =>
+      sum + utf8.encode(value).length, 0) > limits.maxWireBytes) {
+      throw new TypeError('InvalidEffectResumeDeliveryInput');
+    }
+    return checked(owner.coordinatorEffectResumeDeliveryJson(effectCheckpointValue(report),
+      resolutionWire, fields, keys, ids, claim.claimant, claim.generation,
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  },
+});
 export const effectCheckpointReports = Object.freeze({
   admit: (body, request, limits) => {
     if (typeof body !== 'string' || limits === null || typeof limits !== 'object' ||
