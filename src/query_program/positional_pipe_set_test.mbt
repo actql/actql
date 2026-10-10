@@ -56,6 +56,7 @@ test "positional SET composes current aliases ordinals and simultaneous siblings
       "SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM t |> SELECT x AS first, y AS second, -x |> SET first = second, second = first) ORDER BY a, b, c",
       "SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM t |> SELECT x AS v, -x AS `V`, x + 10 AS kept |> SET kept = kept + 1) ORDER BY a, b, c",
       "SELECT 0 AS a, 0 AS b UNION ALL (FROM t |> SELECT x AS kept, -x |> SET kept = kept + 10 |> SET kept = kept + 1) ORDER BY a, b",
+      "SELECT 0 AS a, 0 AS b UNION ALL (FROM t |> SELECT x AS x, -x |> SET x = -x |> ORDER BY -x |> LIMIT 1) ORDER BY a, b",
     ] {
     let program = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),

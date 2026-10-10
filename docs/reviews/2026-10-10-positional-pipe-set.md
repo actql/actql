@@ -56,20 +56,32 @@ Other owners' CTE, predicate, assert, Effect and execution work is unchanged.
   SET fixture test already passed in the previous guard. No product code or
   expected row/type/order was changed to fix inventory bookkeeping.
 
-The existing normal and selected packed registrations include seven new normal
+The existing normal and selected packed registrations include eight new normal
 cases: authored JSON control, source SET, quoted alias/filter/ordinal LIMIT,
-simultaneous swaps, retained duplicate values, nullable retained values and
+current-expression ORDER/LIMIT, simultaneous swaps, retained duplicate values, nullable retained values and
 empty typed output. Seven preparation refusals cover private target/receiver,
 duplicate assignment, ambiguous target/receiver and removed range.
 
 Public checks retain independent rows/order, complete Result.describe column
 contracts and order, private-field absence, Source count, same-request reuse
 and refusal before Run admission/provider I/O. No Program is patched by the
-consumer. The selected cohort is 175 cases per transport (111 normal,
-64 refusals). Full data-only registration is 3,458 obligations: 2,189 normal,
+consumer. The selected cohort is 176 cases per transport (112 normal,
+64 refusals). Full data-only registration is 3,459 obligations: 2,190 normal,
 1,222 refusals and 47 execution-failure cases; digest
-`4ee1ea3f614996dcc0caafc686af1499948134d9060779f6ef8ff5fb5d516fb8`.
+`9d4ebd39714e8eec85f58dddbf3f0b9f398e691d6fced9957565aacf1936180a`.
 Registration is not execution evidence.
+
+A current-value ORDER contrast adds one independent normal obligation:
+`SELECT id AS id, -id |> SET id = -id |> ORDER BY -id |> LIMIT 1`.
+For original IDs 2,1 the changed current key selects (-1,-1); reusing the
+previous SELECT negation selects (-2,-2). The zero anchor makes public rows
+(-1,-1),(0,0). Existing current-scope lowering already handles this after the
+SET connection; no additional product change is needed. Hidden sort columns
+must remain absent from Result.describe and rows. Final guard `run-lIYPBA`
+passes 6/6 changed-file JS and 50/50 affected Node tests with complete
+output/caller output, zero exit and released locks. Earlier failed guards
+retain their original status. Source/caller changes were not repeated through
+full Core or another backend.
 
 This branch depends on #1299, which depends on #1297; the final destination is
 main. Exact-SHA normal five-package Local/HTTPS acceptance and required CI
