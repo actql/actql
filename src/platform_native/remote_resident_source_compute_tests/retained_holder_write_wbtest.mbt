@@ -59,7 +59,7 @@ fn retained_holder_write_row(
     response: { max_bytes: 4096, max_nodes: 128, max_depth: 16, max_rows: 1, },
     ledger: { max_wire_bytes: 65536, max_nodes: 1000, max_depth: 32, },
   }
-  let prepare = () => {
+  let direct_prepare = () => {
     work.prepare_approved_row(
       wire,
       authentication,
@@ -71,16 +71,79 @@ fn retained_holder_write_row(
       limits,
     )
   }
+  let delivery = @remote.prepare_remote_effect_resume_delivery(
+    report,
+    resolution,
+    observed.claim,
+    limits.ledger,
+  ).unwrap()
+  let body = @remote.remote_effect_resume_delivery_json(delivery)
+  let receive = body => {
+    work.prepare_remote_approved_row(
+      body,
+      authentication,
+      reviewers,
+      keys,
+      () => allowed.val,
+      () => Some(current_resume.val),
+      at,
+      limits,
+    )
+  }
+  let prepare = () => receive(body)
   allowed.val = false
-  assert_true(prepare() is Err(Resolution(_)))
+  assert_true(direct_prepare() is Err(Resolution(_)))
+  assert_true(prepare() is Err(AuthorityDenied))
   allowed.val = true
   current_resume.val = { ..observed, settlement_only: true, }
   assert_true(prepare() is Err(AuthorityDenied))
   current_resume.val = { ..observed, resume_intent_id: "foreign-intent", }
   assert_true(prepare() is Err(AuthorityDenied))
+  current_resume.val = {
+    ..observed,
+    claim: { ..observed.claim, generation: generation + 1L, },
+  }
+  assert_true(prepare() is Err(AuthorityDenied))
+  current_resume.val = {
+    ..observed,
+    claim: { ..observed.claim, claimant: "another-coordinator", },
+  }
+  assert_true(prepare() is Err(AuthorityDenied))
   current_resume.val = observed
+  for
+    field in [
+      "report_cid", "dispatch_request_cid", "resolution_cid", "resume_intent_id",
+    ] {
+    let foreign = body.replace(
+      old="\"" + field + "\":\"",
+      new="\"" + field + "\":\"foreign-",
+    )
+    assert_true(receive(foreign) is Err(ForeignRequest))
+  }
+  assert_true(work.restore_row_custody(limits.ledger) is Ok(None))
   let row = prepare().unwrap()
   assert_true(physical_equal(row, prepare().unwrap()))
+  // A cached delivered row cannot be borrowed through the older unfenced
+  // preparation or silently rebound to a new current Coordinator lease.
+  assert_true(direct_prepare() is Err(ForeignRequest))
+  let next_claim = { ..observed.claim, generation: generation + 1L, }
+  let next_delivery = @remote.prepare_remote_effect_resume_delivery(
+    report,
+    resolution,
+    next_claim,
+    limits.ledger,
+  ).unwrap()
+  current_resume.val = {
+    ..observed,
+    claim: next_claim,
+    view: { ..observed.view, generation: next_claim.generation, },
+  }
+  assert_true(
+    receive(@remote.remote_effect_resume_delivery_json(next_delivery))
+    is Err(ForeignRequest),
+  )
+  assert_true(prepare() is Err(AuthorityDenied))
+  current_resume.val = observed
   let request = row.request()
   assert_eq(@catalog.single_write_request_body(request), "{\"Count__c\":3}")
   let origin = retained_runtime_required_env(
@@ -220,7 +283,8 @@ fn retained_holder_write_row(
   assert_eq(restored.response.unwrap().status_code, 204)
   assert_eq(restored.response.unwrap().credential_use_cid, observed_use.use_cid)
   assert_eq(restored.response.unwrap().body, b"")
-  assert_true(prepare() is Err(Resolution(_)))
+  assert_true(direct_prepare() is Err(Resolution(_)))
+  assert_true(prepare() is Err(AuthorityDenied))
   assert_true(work.retry_cleanup() is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   let dispatch_head = peer
