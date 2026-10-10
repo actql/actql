@@ -275,9 +275,26 @@ pub fn NativeClientRunJournal::cancel_operation(
   if !current() {
     return Err(AuthorizationDenied)
   }
-  // This is a trusted exact-Run observation, not a client-supplied terminal flag.
-  // Publication/physical stop/cleanup retain their separate existing Owners.
-  let terminal = terminal_observed()
+  if self.fenced || self.database.transaction_fenced() {
+    return Err(Fenced)
+  }
+  guard cancellation_index(
+      namespace_id,
+      @host.client_request_authority_scope_cid(request),
+      cancel_id,
+    )
+    is Some(operation_key) else {
+    return Err(Encoding)
+  }
+  // This index read only avoids unnecessary current-state observation. It is
+  // not custody or replay admission; the original transaction below rechecks
+  // all issuance, exact key/intent, Run binding and current authority.
+  let terminal = match
+    self.database.read("client_cancellations", operation_key) {
+    Ok(_) => false
+    Err(@sqlite.NotFound) => terminal_observed()
+    Err(issue) => return Err(Physical(issue))
+  }
   if !current() {
     return Err(AuthorizationDenied)
   }

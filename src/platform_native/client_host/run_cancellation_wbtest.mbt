@@ -50,11 +50,14 @@ test "Native cancellation keeps immutable original operation across replay and r
   assert_true(run.checkpoint is None)
   assert_false(journal.claim_physical_start(request, true).unwrap())
   journal.transaction(() => journal.save(run)).unwrap() |> ignore
+  let terminal_reads = Ref(0)
   let replay = journal
     .cancel_operation(request, "namespace-a", "cancel-a", 1, () => true, () => {
+      terminal_reads.val += 1
       true
     })
     .unwrap()
+  assert_eq(terminal_reads.val, 0)
   assert_eq(replay.action, @host.AcceptCancellation)
   assert_eq(replay.observed_revision, 2L)
   guard journal.lookup(request, true) is Ok(Retained(after)) else {
