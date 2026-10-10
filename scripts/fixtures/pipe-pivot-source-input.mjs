@@ -89,3 +89,30 @@ pipePivotSuccesses.push(
     [{other: 0, second: 1, first: 1}],
     [number('other', false), number('second', true), number('first', true)]),
 );
+
+// Scope controls for the aggregate operands feeding the existing PIVOT cohort.
+// These complete SELECTs isolate HAVING name visibility before downstream use.
+const havingRowsControl = {version: 'actql/0.1', id: 'fixture.set_having_scope', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {n: {type: 'number', nullable: false}}, rows: [{n: 1}, {n: 0}]}, as: 'rows'},
+    {from: 'rows', sort: [{field: 'n', dir: 'asc', nulls: 'first'}], as: 'sorted'},
+  ], results: {rows: {from: 'sorted', fields: ['n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+pipePivotSuccesses.push(
+  success('aggregate-having-json-control', JSON.stringify(havingRowsControl),
+    [{n: 0}, {n: 1}], [number('n', false)], {format: 'json'}),
+  success('anonymous-aggregate-having-call',
+    'SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING COUNT(*) > 0 ORDER BY n',
+    [{n: 0}, {n: 1}], [number('n', false)]),
+  success('authored-aggregate-having-alias',
+    'SELECT 0 AS n UNION ALL SELECT COUNT(*) AS aql_set_aggregate_0 HAVING aql_set_aggregate_0 > 0 ORDER BY n',
+    [{n: 0}, {n: 1}], [number('n', false)]),
+);
+for (const [name, reference] of [
+  ['bare', 'aql_set_aggregate_0'], ['case', 'AQL_SET_AGGREGATE_0'],
+  ['quoted', '`aql_set_aggregate_0`'],
+]) {
+  pipePivotRefusals.push({name: 'pipe-pivot-refusal-anonymous-aggregate-having-' + name,
+    format: 'aql-text', text: 'SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING ' + reference + ' > 0',
+    expectedCode: 'ClientProgramInvalidInput'});
+}

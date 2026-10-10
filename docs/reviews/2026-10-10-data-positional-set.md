@@ -162,3 +162,21 @@ that integration acceptance and actual submitted-HEAD hosted CI.
 Aggregate normal support is now integrated in main via #1237. The separately
 reproduced anonymous aggregate HAVING scope fix is #1241; it is not duplicated
 here. The wider goal and other explicitly listed coverage remain active.
+
+## Integration review
+
+The review worktree normally integrated main
+`f49911df6de00967eb4cff0d49769d9c026f0c22`, including the actual anonymous
+aggregate HAVING-slot correction. Both DATA and aggregate/HAVING fixture
+families are retained. Independent registration now contains 3,303 authored
+occurrences: 2,088 successes, 1,168 refusals and 47 execution failures.
+The registration digest was derived from authored fixture inputs, not product
+results; expected rows, types and resource ceilings are unchanged.
+
+The combined precommit integration passed 11/11 JS DATA/set/aggregate cases
+(`run-neksDf`, `focused-test-TkDT0b`) and 43/43 Node case, HAVING-scope and
+inventory checks (`run-7SQ10m`, `focused-test-Auk6Iq`). These are integration
+diagnostics, not a clean new-HEAD packed campaign. The independent reviewer
+matched all five earlier `e4fcc52a...` tarball digests and both completed
+13-case Local/HTTPS inventories to their exact clean implementation receipt.
+Full Core/all-target/full packed coverage and hosted CI remain unclaimed.

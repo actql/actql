@@ -3960,6 +3960,14 @@ fn compile_steps(
         } else {
           pipe_visible = result_fields.map(name => (name, name))
         }
+        if !anonymous_set_aggregate_slots.is_empty() {
+          // Anonymous set aggregates remain physical values for terminal SELECT
+          // and ordinal alignment. They are never authored HAVING bindings.
+          pipe_visible = pipe_visible.filter(entry => {
+            !anonymous_set_aggregate_slots.any(pair => pair.1 == entry.1)
+          })
+          pipe_changed = true
+        }
         pipe_columns = pipe_visible.copy()
         value_table_receivers = []
         pipe_value_columns = []
