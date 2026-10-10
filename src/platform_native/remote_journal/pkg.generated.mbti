@@ -19,6 +19,10 @@ import {
 // Values
 pub fn effect_response_body_digest(Bytes) -> String
 
+pub fn effect_response_record_fields(Bytes, Bytes, Int64) -> (String, Int)?
+
+pub fn effect_response_record_metadata(NativeEffectSavedResponse, Int64) -> Bytes?
+
 pub fn[T] inspect_sqlite_source(@sqlite.Library, String, Int64, Int64, (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue]) -> Result[T, NativeRemoteJournalIssue]
 
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String

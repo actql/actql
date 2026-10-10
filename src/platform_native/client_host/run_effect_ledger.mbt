@@ -46,18 +46,28 @@ fn confirm_effect_ledger_custody(
     "client_effect_custody",
     @host.client_request_scope_cid(record.request),
   )
-  match (effect_ledger_custody_body(record), stored) {
-    (None, Err(@sqlite.NotFound)) if record.checkpoint is None => Ok(())
-    (Some(body), Ok(stored)) if body == stored.body &&
-      record.checkpoint.map(checkpoint => {
-        checkpoint.effect_ledger
-        .filter(entry => @effect.effect_ledger_entry_state_code(entry) != 0)
-        .length()
-        .to_int64()
-      }) ==
-      Some(stored.revision) => Ok(())
-    (_, Err(@sqlite.NotFound)) => Err(CustodyLost)
-    (_, Err(issue)) => Err(Physical(issue))
+  if record.checkpoint is None {
+    return match stored {
+      Err(@sqlite.NotFound) => Ok(())
+      Err(issue) => Err(Physical(issue))
+      Ok(_) => Err(CustodyLost)
+    }
+  }
+  let (body, responses) = match
+    effect_ledger_custody_with_responses(database, record) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match stored {
+    Ok(saved) if saved.body == body &&
+      record.checkpoint.unwrap().effect_ledger
+      .filter(entry => @effect.effect_ledger_entry_state_code(entry) != 0)
+      .length()
+      .to_int64() +
+      responses.to_int64() ==
+      saved.revision => Ok(())
+    Err(@sqlite.NotFound) => Err(CustodyLost)
+    Err(issue) => Err(Physical(issue))
     _ => Err(CustodyLost)
   }
 }
@@ -77,9 +87,10 @@ fn NativeClientRunJournal::save_effect_ledger(
     ..original,
     checkpoint: Some({ ..checkpoint, effect_ledger: entries, }),
   }
-  let body = match effect_ledger_custody_body(next) {
-    Some(body) => body
-    None => return Err(CapacityExceeded)
+  let (body, _) = match
+    effect_ledger_custody_with_responses(self.database, next) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let key = @host.client_request_scope_cid(original.request)
   let witness = match self.database.read("client_effect_custody", key) {

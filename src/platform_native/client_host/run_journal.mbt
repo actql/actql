@@ -219,6 +219,12 @@ fn initialize_native_client_run_journal(
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
+  for table in ["client_effect_response_meta", "client_effect_response_bytes"] {
+    match database.scan_after(table, "") {
+      Err(@sqlite.NotFound) => ()
+      _ => return Err(CustodyLost)
+    }
+  }
   database
   .insert("client_run_custody", "issued", b"0")
   .map(_ => ())
@@ -261,6 +267,7 @@ fn run_journal_custody(
   let mut observed = 0
   let definitions : Map[String, Bool] = Map([], capacity=max_records)
   let checkpoint_scopes : Map[String, Bool] = Map([], capacity=max_records)
+  let responses : Map[String, Bool] = Map([], capacity=max_records)
   while true {
     let row = match database.scan_after("client_runs", cursor) {
       Ok(value) => value
@@ -283,8 +290,24 @@ fn run_journal_custody(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
-    if record.checkpoint is Some(_) {
+    if record.checkpoint is Some(checkpoint) {
       checkpoint_scopes[row.key] = true
+      for entry in checkpoint.effect_ledger {
+        if @effect.effect_ledger_entry_state_code(entry) != 1 {
+          continue
+        }
+        let cid = @effect.effect_ledger_entry_cid(entry)
+        match database.read("client_effect_response_meta", cid) {
+          Ok(_) => {
+            if responses.contains(cid) {
+              return Err(CustodyLost)
+            }
+            responses[cid] = true
+          }
+          Err(@sqlite.NotFound) => ()
+          Err(issue) => return Err(Physical(issue))
+        }
+      }
     }
     let definition = @publication.publication_contract_identity(
       record.definition,
@@ -314,6 +337,29 @@ fn run_journal_custody(
   }
   if witnesses != checkpoint_scopes.length() {
     return Err(CustodyLost)
+  }
+  // No unattached response is adopted, including a pair left behind without
+  // its original dispatch or Run. All expected pairs were authenticated above.
+  for table in ["client_effect_response_meta", "client_effect_response_bytes"] {
+    let mut cursor = ""
+    let mut response_count = 0
+    while true {
+      let row = match database.scan_after(table, cursor) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => break
+        Err(issue) => return Err(Physical(issue))
+      }
+      response_count += 1
+      if response_count > responses.length() ||
+        !responses.contains(row.key) ||
+        row.revision != 0L {
+        return Err(CustodyLost)
+      }
+      cursor = row.key
+    }
+    if response_count != responses.length() {
+      return Err(CustodyLost)
+    }
   }
   Ok((count, retained.revision))
 }
