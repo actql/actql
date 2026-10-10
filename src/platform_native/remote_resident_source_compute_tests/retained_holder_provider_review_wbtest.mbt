@@ -102,6 +102,7 @@ fn retained_holder_provider_review(
     },
     max_rows: 1,
     max_fields: 100,
+    max_capture_workspace_entries: 10000,
     max_work: 10000,
     max_utf16_units: 10000,
   }
@@ -128,6 +129,10 @@ fn retained_holder_provider_review(
   )
   assert_true(
     prepare(materials, { ..policy, max_work: 0, }) is Err(InvalidLimits),
+  )
+  assert_true(
+    prepare(materials, { ..policy, max_capture_workspace_entries: 0, })
+    is Err(InvalidLimits),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   let work = prepare(materials, policy).unwrap()
@@ -171,6 +176,30 @@ fn retained_holder_provider_review(
     Err(_) => abort("original review: completion unavailable")
   }
   println("native-original-review: captured completion confirmed")
+  // The row-export budget (100 entries) cannot cover whole evidence buffers.
+  // Keep that rejection and use the independently installed capture budget.
+  assert_eq(policy.export_limits.max_result_workspace_entries, 100)
+  assert_true(
+    consumer.capture_effect_run(
+      materials,
+      inputs,
+      public_result,
+      invocation,
+      complete.preview.preview,
+      [complete.preview.proof],
+      [complete.source],
+      [complete.local_source],
+      complete.inventory,
+      complete.preview.authoring,
+      policy.max_fields,
+      policy.max_work,
+      policy.preview_limits.max_wire_bytes,
+      policy.preview_limits.max_nodes,
+      policy.preview_limits.max_depth,
+      policy.export_limits.max_result_workspace_entries,
+    )
+    is Err(Capture(CaptureIssuanceChain(EvidenceRoot(ChainEncoding)))),
+  )
   assert_eq(complete.preview.keys.length(), 1)
   assert_true(
     complete.preview.wire.contains(

@@ -127,6 +127,7 @@ pub(all) struct NativeResidentEffectReviewPolicy {
   observation_limits : @catalog.TargetObservationLimits
   max_rows : Int
   max_fields : Int
+  max_capture_workspace_entries : Int
   max_work : Int
   max_utf16_units : Int
 }

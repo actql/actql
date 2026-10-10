@@ -24,6 +24,9 @@ pub(all) struct NativeResidentEffectReviewPolicy {
   observation_limits : @catalog.TargetObservationLimits
   max_rows : Int
   max_fields : Int
+  // Whole evidence validation has its own caller-owned budget, independent
+  // of the result-row export workspace.
+  max_capture_workspace_entries : Int
   max_work : Int
   max_utf16_units : Int
 }
@@ -146,7 +149,10 @@ pub fn prepare_native_resident_effect_review(
     Some(value) if materials.request == Some(value) => value
     _ => return Err(Unavailable)
   }
-  if policy.max_work < 1 || policy.max_work > 1000000 || policy.max_rows < 1 {
+  if policy.max_work < 1 ||
+    policy.max_work > 1000000 ||
+    policy.max_rows < 1 ||
+    policy.max_capture_workspace_entries < 1 {
     return Err(InvalidLimits)
   }
   if !@host.client_effect_dependency_capture_matches(
@@ -559,7 +565,7 @@ pub fn NativeResidentEffectReview::complete(
       bounds.max_wire_bytes,
       bounds.max_nodes,
       bounds.max_depth,
-      policy.export_limits.max_result_workspace_entries,
+      policy.max_capture_workspace_entries,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
