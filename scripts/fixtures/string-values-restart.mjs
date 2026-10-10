@@ -110,17 +110,29 @@ async function readRetainedCohort(cohort, options) {
   } finally { await client.close(); }
 }
 const completedRoots = [];
+// Count the real installed dispatch boundary, not only newly admitted Runs.
+// These private hooks do not change account configuration or Run identity.
+const physicalDispatches = [];
+const replayAuthorization = {faultInjection(name) {
+  if (['physical_start_reserved', 'computed', 'local_compute_advanced'].includes(name)) {
+    physicalDispatches.push(name);
+  }
+}};
 for (const cohort of cohorts) {
   if (mode !== undefined && cohort.mode !== mode) continue;
   worker?.check();
+  const verifyNoPhysicalReplay = cohort.expectedSampleNames !== undefined;
+  const beforePhysical = physicalDispatches.length;
   if (cohort.mode === 'local') {
     await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: cohort.directory, sourceProfilePath: cohort.sourceProfilePath,
-        hostCapacityPolicy: cohort.hostCapacityPolicy}});
+        hostCapacityPolicy: cohort.hostCapacityPolicy,
+        ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {})}});
   } else {
     assert.equal(cohort.mode, 'remote');
     const host = await openInstalledRemoteHttpHost({directory: cohort.directory,
       sourceProfilePath: cohort.sourceProfilePath, hostCapacityPolicy: cohort.hostCapacityPolicy,
+      ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {}),
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     const server = createServer({key: await readFile('remote.key'),
       cert: await readFile('remote.crt')}, host.handler);
@@ -134,8 +146,11 @@ for (const cohort of cohorts) {
       await host.close();
     }
   }
+  if (verifyNoPhysicalReplay) assert.equal(physicalDispatches.length, beforePhysical,
+    'Restored Graph Result attach/replay/lookup must not dispatch or advance Compute');
   completedRoots.push(cohort.directory);
 }
 if (mode !== undefined) await writeFile(`transport-restart.${mode}.json`,
-  JSON.stringify({mode, stringComplete: !cohortOnly, completedRoots}) + '\n', {flag: 'wx'});
+  JSON.stringify({mode, stringComplete: !cohortOnly, completedRoots,
+    physicalDispatches: physicalDispatches.length}) + '\n', {flag: 'wx'});
 console.log('Retained cohort boundary Results preserve attach/replay ownership after fresh Host processes');

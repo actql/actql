@@ -85,4 +85,8 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   const reader = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
   assert.ok(reader.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
   assert.ok(reader.includes('cohort.samples.length >= 1 && cohort.samples.length <= 2'));
+  assert.ok(reader.includes("['physical_start_reserved', 'computed', 'local_compute_advanced']"));
+  assert.equal(reader.match(/authorization: replayAuthorization/g)?.length, 2,
+    'both real Local and HTTPS Hosts observe the installed physical boundary');
+  assert.ok(reader.includes('assert.equal(physicalDispatches.length, beforePhysical'));
 });

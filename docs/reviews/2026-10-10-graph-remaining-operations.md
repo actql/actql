@@ -121,6 +121,19 @@ selection/harness proofs, not fresh-process product execution. A new clean
 source pack is required for the changed lowerer; the b50 manifest is not reused
 as new-SHA acceptance.
 
+The subsequent reader-only change also counts real installed dispatch events
+(`physical_start_reserved`, `computed`, `local_compute_advanced`) on restored
+Graph cohorts. It installs the same private observation hook through both
+Local and HTTPS Host options, without changing account configuration, and
+requires that no event occurs through attach, original-submission lookup/replay
+and Host close. This supplements the original zero-new-Run assertion; that
+assertion alone cannot exclude Compute replay inside an existing Run. The
+transport restart report includes the observed physical-dispatch count.
+Focused Node cohort/transport checks passed 13/13 (`run-dcvSD8`,
+`focused-test-nAHxeR`). Actual external zero-dispatch observation remains
+unverified until the new clean pack executes; fixture wiring is not runtime
+evidence.
+
 ### Earlier integration checkpoint
 
 Earlier adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.
