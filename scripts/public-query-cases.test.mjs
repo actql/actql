@@ -95,6 +95,8 @@ test('derived value-table aliases retain scalar/object type and old-name refusal
  assert.deepEqual(object.expected,cases.get('derived-value-object-json-control').expected);
  assert.equal(object.columns[0].contract.nullable,true);
  assert.equal(object.columns[0].contract.additional_properties,false);
+ assert.equal(Object.hasOwn(object.parameterDeclarations.items.items,'additional_properties'),false);
+ assert.equal(Object.hasOwn(JSON.parse(cases.get('derived-value-object-json-control').text).params.items.items,'additional_properties'),false);
  assert.equal(object.columns[0].contract.fields.id.nullable,false);
  assert.equal(object.columns[1].contract.nullable,true);
  assert.deepEqual(cases.get('derived-value-offset-row-columns').columns,

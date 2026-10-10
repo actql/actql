@@ -114,9 +114,25 @@ No source-generated object case/later/refusal/inventory success is claimed for
 this failed run. Original receipt/logs retained at
 /Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-2WIyK5.
 
-Declare the existing closed-object constraint explicitly in the hand-authored
-contract used by both parameter declarations and expected describe. The same
+Declare the existing closed-object constraint explicitly in the expected checked
+contract returned by describe; authored parameter declarations omit this machine
+field. These are separate closed grammars, not interchangeable forms. The same
 existing value-contract normalization default applies; do not remove closure
 checking or infer a type from rows. Preserve object NULL/field NULL, inside id
 nonnullable/outside property nullable, all rows, column order and case coverage.
 This is a new expected-schema default omission, not a change to product meaning.
+
+At 63daa56b3abaac25c2262d7039dbf46f0d6dee74, run-DhXbdn stops at the same object
+JSON control with typed ClientProgramInvalidInput before execution: the first
+fixture correction put additional_properties into the authored parameter type.
+Language.md's AuthorValueContract mapping explicitly forbids that machine member
+in authored contracts. Original receipt/logs retained at
+/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-uk5op7.
+Both failed workers settle and release; this is not a product type-system defect.
+
+Separate AuthorValueContract (no machine member) from checked expected descriptor
+(spread author fields plus additional_properties=false). Source and JSON parameters
+both retain their original author form; expected rows/nullability/column order and
+all 82 cases remain unchanged. Add an independent fixture assertion that the
+parameter member is absent and the checked descriptor member is present. Do not
+loosen parameter admission or declare a second object type system.
