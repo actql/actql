@@ -89,13 +89,19 @@ test "Mean source rejects implicit inputs non-Graph names and forward references
       },
     )
   }
-  assert_true(
-    classified_graph_source(
-      graph_union_prefix() +
+  for
+    suffix in [
       "DATA combined = FROM g |> mean_graphs(with: [g]" +
       options +
       "); FROM combined |> node_rows() |> SELECT p",
+      "FROM g |> mean_graphs(with: [g]" +
+      options +
+      ") |> node_rows() |> SELECT p",
+    ] {
+    assert_true(
+      classified_graph_source(graph_union_prefix() + suffix)
+      is Err(InvalidQuery),
+      msg=suffix,
     )
-    is Err(_),
-  )
+  }
 }

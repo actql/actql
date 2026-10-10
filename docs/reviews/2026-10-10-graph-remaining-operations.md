@@ -134,6 +134,35 @@ Focused Node cohort/transport checks passed 13/13 (`run-dcvSD8`,
 unverified until the new clean pack executes; fixture wiring is not runtime
 evidence.
 
+### Mean implicit-input public diagnostic
+
+At clean `617194762afc7fddcde90a4c903cde6caa70d01f`, normal packing passed
+and all 27 authored normal cases again passed on each external Local/HTTPS
+transport. The previous Graft refusal no longer stopped the selection. The
+next primary failure was `graph-mean-refuse-implicit-input`, classified as
+`ClientProgramImplementationLimit` instead of an invalid input. Both producer
+workers are terminal with zero live children; neither the fresh-process reader
+nor the subsequent packed Host step ran. Receipt: `run-RzycSP`; external
+evidence: `public-query-evidence-jQvqs2/010.{stdout,stderr,result}.log/json`.
+The exact files are `010.stdout.log`, `010.stderr.log` and `010.result.json`.
+
+The formal pack manifest is retained at
+`graph-four-617-fgtMBi/packed-client-packages.json`. Its revision is the full
+source above. The `local-node` SHA-256 changed to
+`2fdac015adff333a4d339ace65f5eabf5ba950c66803d1d78cc6b80d84956165`;
+the other four package digests equal the earlier b50 cohort because their
+payload inputs did not change. No manifest or tarball was patched in place.
+
+The existing Mean source test previously accepted any error for an implicit
+Graph input. Requiring `InvalidQuery` first reproduces the public distinction
+(`run-hYSrQp`, `focused-test-q6ABJj`, 0/1). DATA Graph calls and terminal
+Graph-row calls now explicitly reject implicit-input Mean as that existing
+input violation. The proper explicit generator and unknown-operation support
+refusals are unchanged. Both invalid call shapes are covered independently.
+Selected Mean source, Graph classification and SGA caller tests pass 13/13
+on the working tree based on 617 (`run-K5V3MK`, `focused-test-f50TvR`). This
+does not relabel the failed clean-source packed attempt as successful.
+
 ### Earlier integration checkpoint
 
 Earlier adopted main: `3900058027b0095b6851161aa4e1c65aa1ef754f`.

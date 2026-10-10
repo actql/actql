@@ -138,6 +138,10 @@ fn lower_script_graph_rows(
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
+    // Mean cannot inherit this Graph input before a Relation projection.
+    if call.operation == "mean_graphs" {
+      raise Abort(InvalidQuery)
+    }
     if row_input is Some(_) {
       // The preceding operation already established an ordinary Relation.
       raise Abort(InvalidQuery)
