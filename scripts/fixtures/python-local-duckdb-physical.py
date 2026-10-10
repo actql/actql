@@ -242,4 +242,4 @@ print(json.dumps({'source_sha': source, 'library': str(args.library),
     'python': sys.version, 'platform': platform.platform(),
     'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
     'public_local_acceptance': False, 'wheel_acceptance': False}))
-sys.exit(0 if result.wasSuccessful() and result.testsRun == 11 else 1)
+sys.exit(0 if result.wasSuccessful() and result.testsRun == 13 and not result.skipped else 1)
