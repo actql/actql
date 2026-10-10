@@ -31,9 +31,9 @@ test "unary side trimming retains demanded and lazy child expressions" {
 }
 
 ///|
-test "unary side trimming rejects explicit sets and namespace changes" {
+test "side trimming rejects unsupported arities and namespace changes" {
   for name in ["LTRIM", "RTRIM"] {
-    for arguments in ["", "'x', ' '", "'x', ' ', 'y'"] {
+    for arguments in ["", "'x', ' ', 'y'"] {
       assert_true(
         lower(fixture(name + "(" + arguments + ")"), _ => None, limits())
         is Err({ issue: InvalidArguments, .. }),

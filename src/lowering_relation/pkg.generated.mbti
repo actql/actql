@@ -1088,6 +1088,9 @@ pub(all) enum BinaryOperator {
   Divide
   Modulo
   Strpos
+  TrimSet
+  LTrimSet
+  RTrimSet
   StartsWith
   EndsWith
   Equal

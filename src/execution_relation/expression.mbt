@@ -1103,7 +1103,10 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if op == @lower.Strpos {
+            if op == @lower.Strpos ||
+              op == @lower.TrimSet ||
+              op == @lower.LTrimSet ||
+              op == @lower.RTrimSet {
               if charge_value(left, left_root) is Some(issue) {
                 return Err({ kind: LogicalValue(issue), expression: expr, })
               }
@@ -1116,7 +1119,15 @@ fn advance_expression_frame_impl(
                   expr,
                   [left, value],
                   [left_root, frame.current_root],
-                  TextStrpos,
+                  if op == @lower.TrimSet {
+                    TextTrim
+                  } else if op == @lower.LTrimSet {
+                    TextLTrim
+                  } else if op == @lower.RTrimSet {
+                    TextRTrim
+                  } else {
+                    TextStrpos
+                  },
                   scope,
                   workspace,
                 ) {

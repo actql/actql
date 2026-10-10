@@ -61,9 +61,6 @@ fn Parser::call(
     | "floor"
     | "lower"
     | "upper"
-    | "trim"
-    | "ltrim"
-    | "rtrim"
     | "to_number"
     | "to_string"
     | "to_boolean"
@@ -72,6 +69,7 @@ fn Parser::call(
     | "try_number"
     | "nfkc"
     | "case_fold" => (1, 1)
+    "trim" | "ltrim" | "rtrim" => (1, 2)
     "contains"
     | "strpos"
     | "starts_with"
@@ -224,7 +222,8 @@ fn Parser::call(
     }
     return self.form(name, self.object(body))
   }
-  if minimum == 1 && maximum == 1 {
+  if (minimum == 1 && maximum == 1) ||
+    (["trim", "ltrim", "rtrim"].contains(name) && args.length() == 1) {
     self.form(name, args[0])
   } else {
     self.arguments(name, args)
