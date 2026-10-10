@@ -336,6 +336,13 @@ physical cleanup is remembered if later input-stop acknowledgement is pending.
 Interrupted production cannot silently produce again. Projecting or reading
 these bytes is neither physical dispatch nor permission to resend them.
 
+The private Python bridge keeps command and Run-material output loans distinct.
+Both use the same bounded byte-copy and cleanup implementation; cross-family,
+copied and foreign loans fail before Wasm I/O. Command reservation registers the
+physical destination before entering Core, and a refused issued reservation
+remains available for retirement through that exact loan. No partial copy is
+cached as a command, and a Core trap does not automatically invoke it again.
+
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
 without physical dispatch. Registry, Values, ordered derive and expression

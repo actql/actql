@@ -49,6 +49,7 @@ class _Output:
     ticket: int
     handle: int
     limit: int
+    family: str = "material"
 
 
 # This is the private in-process ABI, independent of Client wire versions.
@@ -334,10 +335,10 @@ class LocalCore:
                 self._loans.get(value.ticket) is not value):
             raise ValueError('Foreign or released Local input')
 
-    def _owned_output(self, value: _Output) -> None:
+    def _owned_output(self, value: _Output, family: str = "material") -> None:
         self._owned(value)
-        if type(value) is not _Output:
-            raise ValueError('Local material requires an output loan')
+        if type(value) is not _Output or value.family != family:
+            raise ValueError('Local projection requires the matching output loan')
 
     def _owned_input(self, value: _Input) -> None:
         self._owned(value)
@@ -375,45 +376,88 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
-    def produce_material(self, value: _Output) -> None:
-        with self._lock:
-            self._owned_output(value)
-            self._check('produce_material', self._call('material', 'produce',
-                                                     value.handle))
+    def reserve_native_command(self, attempt: int, kind: int, account: _Input, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Borrow current authority and reserve one Core-issued command copy.
 
-    def read_material(self, value: _Output) -> bytes:
-        """Borrow exact Core bytes while the same output loan remains live.
-
-        The physical adapter must consume these bytes before acknowledging
-        cleanup. The loan is not a public input or execution capability.
+        A positive handle retains custody even when output reservation was
+        refused. Producing a command is not physical dispatch or Run admission.
         """
         with self._lock:
-            self._owned_output(value)
+            self._owned_input(account)
+            if (self._closing or type(attempt) is not int or attempt <= 0 or
+                    type(kind) is not int or kind not in (1, 2, 3)):
+                raise ValueError('Invalid Local Native command projection')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 100_000
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) +
+                              sys.getsizeof(b'') + sys.getsizeof(
+                                  _Output(self._identity, ticket, 0, limit, 'source')))
+            handle = self._call('source', 'reserve_command', attempt, kind,
+                                account.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_native_command', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'source')
+            self._loans[ticket] = value
+            return value
+
+    def produce_material(self, value: _Output) -> None:
+        self._produce_output(value, 'material', 'produce')
+
+    def produce_native_command(self, value: _Output) -> None:
+        self._produce_output(value, 'source', 'produce_command')
+
+    def _produce_output(self, value: _Output, family: str, operation: str) -> None:
+        with self._lock:
+            self._owned_output(value, family)
+            self._check(operation, self._call(family, operation, value.handle))
+
+    def read_material(self, value: _Output) -> bytes:
+        return self._read_output(value, 'material', 'length')
+
+    def read_native_command(self, value: _Output) -> bytes:
+        return self._read_output(value, 'source', 'command_length')
+
+    def _read_output(self, value: _Output, family: str, operation: str) -> bytes:
+        """Copy exact Core bytes within the same pre-reserved physical loan."""
+        with self._lock:
+            self._owned_output(value, family)
             physical = self._inputs.get(value.ticket)
             if physical is None:
-                raise RuntimeError('Local material cleanup has completed')
+                raise RuntimeError('Local projection cleanup has completed')
             if physical.payload:
                 return physical.payload
-            length = self._call('material', 'length', value.handle)
+            length = self._call(family, operation, value.handle)
             if not 0 <= length <= value.limit:
-                raise LocalCoreError('material_length', length)
+                raise LocalCoreError(operation, length)
             destination = bytearray(length)
             for start in range(0, length, 16_384):
                 for index in range(start, min(start + 16_384, length)):
                     byte = self._call('buffer', 'byte', value.handle, index)
                     if not 0 <= byte <= 255:
-                        raise LocalCoreError('material_byte', byte)
+                        raise LocalCoreError('projection_byte', byte)
                     destination[index] = byte
             physical.payload = bytes(destination)
             return physical.payload
 
     def close_material(self, value: _Output) -> bool:
+        return self._close_output(value, 'material', 'close')
+
+    def close_native_command(self, value: _Output) -> bool:
+        return self._close_output(value, 'source', 'close_command')
+
+    def _close_output(self, value: _Output, family: str, operation: str) -> bool:
         with self._lock:
-            self._owned_output(value)
-            code = self._call('material', 'close', value.handle)
+            self._owned_output(value, family)
+            code = self._call(family, operation, value.handle)
             if code == -9:
                 return False
-            self._check('close_material', code)
+            self._check(operation, code)
             self._loans.pop(value.ticket)
             self._released.discard(value.ticket)
             return True
