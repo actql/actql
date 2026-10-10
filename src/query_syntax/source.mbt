@@ -67,6 +67,14 @@ struct Tokens {
   document : @origin.Document
   tokens : Array[Token]
   usage : Array[Int]
+  identifiers : Map[String, String]
+}
+
+///|
+// Lexemes retain decoded spelling and original spans. Grammar-owned names use
+// the common identifier contract, separately from STRING data values.
+fn Tokens::identifier(self : Tokens, decoded : String) -> String {
+  self.identifiers.get(decoded).unwrap()
 }
 
 ///|
@@ -104,15 +112,35 @@ fn scan_tokens(
   let budget : Budget = { caps, used: [0, 0, 0], }
   let scanner : Scanner = { text, budget, offset: 0, byte_offset: 0, }
   let tokens : Array[Token] = []
+  let identifiers : Map[String, String] = Map([])
   try {
     while true {
       let t = scanner.next()
+      match t.value {
+        QuotedName(decoded) | Parameter(decoded) =>
+          if !identifiers.contains(decoded) {
+            // Normalize once per spelling, after escape decoding and before
+            // any clause resolves it. Bound input work and NFC byte expansion.
+            budget.charge(Work, decoded.length(), t.start)
+            let identifier = match @canonical.normalize_nfc_lf(decoded) {
+              Ok(value) => value
+              Err(_) => raise LexicalAbort(InvalidScalar, t.start)
+            }
+            let extra = @utf8.encode(identifier).length() -
+              @utf8.encode(decoded).length()
+            if extra > 0 {
+              budget.charge(LiteralBytes, extra, t.start)
+            }
+            identifiers[decoded] = identifier
+          }
+        _ => ()
+      }
       tokens.push(t)
       if first_only || t.value == End {
         break
       }
     }
-    Ok({ document, tokens, usage: budget.used, })
+    Ok({ document, tokens, usage: budget.used, identifiers, })
   } catch {
     LexicalAbort(issue, at) =>
       Err({

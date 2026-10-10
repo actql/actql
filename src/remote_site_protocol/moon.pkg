@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,

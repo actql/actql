@@ -83,6 +83,13 @@ export function effectResultDefinitions(prepared: PreparedEffectProgram,
 export function effectResultSchema(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, resultName: string): Readonly<{
     cid: string; wire: string; fields: readonly string[]}>;
+/** Metadata binding to the original checked Effect Run/unit/window only.
+ * Does not confirm Native custody, current authority, waiting or approval. */
+export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
+  definition: RunDefinition, checkpointWire: string): Readonly<{
+    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
+    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
+    continuationCid: string}>;
 /** Original Catalog evidence; current read authority remains a separate check. */
 export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
@@ -959,6 +966,22 @@ export function inspectTaskProgress(prepared: PreparedProgram,
       revision: number; dispatchCid: string | undefined;
       executionScope: readonly string[]}>[];
   }>;
+
+/** Computation/output facts only; no Effect outcome or public Run state. */
+export function inspectEffectTaskProgress(allowed: AllowedEffectRun,
+  definition: RunDefinition, authority: string,
+  durableWires: readonly string[]): Readonly<{
+    nextTask: number | undefined; computationComplete: boolean;
+    taskCleanupComplete: boolean; resultTasks: readonly number[];
+    tasks: ReturnType<typeof inspectTaskProgress>['tasks'];
+  }>;
+/** Prepare a saved task claim; current input/Source custody remains separate. */
+export function prepareEffectTaskPhysicalStart(allowed: AllowedEffectRun,
+  definition: RunDefinition, authority: string, durableWires: readonly string[],
+  requested: RequestIdentity, retained: RequestIdentity,
+  claim: Readonly<{taskKey: string; dispatchCid: string; definitionCid: string;
+    reserved: boolean; unstarted: boolean; authorized: boolean;
+    cancelled: boolean; failed: boolean}>): boolean;
 
 /** An unpublished snapshot. Start claims must come from trusted saved Host state.
  * This does not commit a Run, publish a Result, stop execution or release custody. */

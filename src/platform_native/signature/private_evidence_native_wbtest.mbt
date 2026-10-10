@@ -72,3 +72,58 @@ test "native private evidence authenticates the existing Store envelope" {
     is Err(InvalidInput),
   )
 }
+
+///|
+test "native continuation and checkpoint roles authenticate independent Node envelopes" {
+  let library = load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
+  ).unwrap()
+  let key = Bytes::makei(32, i => i.to_byte())
+  let cid = "sha256:" + "0".repeat(64)
+  let plaintext = @utf8.encode("native-private-evidence-fixture")
+  for
+    (role, tag) in [
+      ("continuation_record", "3yJDT2CxbtjfVQftN2GjCg=="),
+      ("checkpoint", "nNFQ/3TzvkCWXAw8mHf78g=="),
+    ] {
+    // Public deterministic AES-GCM vector generated independently by Node's
+    // crypto API, not copied from the Native implementation's output.
+    let envelope = @utf8.encode(
+      "{\"version\":\"actql-private-publication-evidence/0.1\",\"nonce\":\"AAECAwQFBgcICQoL\",\"tag\":\"" +
+      tag +
+      "\",\"ciphertext\":\"KWOicrOA72v/KOHqxYxVCPW/41GeGDpRXg6d8WgbZQ==\"}",
+    )
+    assert_eq(
+      library.open_private_evidence(key, role, cid, envelope),
+      Ok(plaintext),
+    )
+    for
+      foreign in [
+        "effect_capture", "effect_preview", "checkpoint", "continuation_record",
+      ] {
+      if foreign != role {
+        assert_true(
+          library.open_private_evidence(key, foreign, cid, envelope)
+          is Err(CipherRejected),
+        )
+      }
+    }
+    assert_true(
+      library.open_private_evidence(Bytes::make(32, 0), role, cid, envelope)
+      is Err(CipherRejected),
+    )
+    assert_true(
+      library.open_private_evidence(
+        key,
+        role,
+        "sha256:" + "1".repeat(64),
+        envelope,
+      )
+      is Err(CipherRejected),
+    )
+  }
+  assert_true(
+    library.seal_private_evidence(key, "arbitrary", cid, plaintext)
+    is Err(InvalidInput),
+  )
+}

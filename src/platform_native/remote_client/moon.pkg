@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/remote_site_protocol" @remote,
@@ -16,6 +17,7 @@ import {
 
 options(
   targets: {
+    "effect_checkpoint_client_native_wbtest.mbt": [ "native" ],
     "client_native.mbt": [ "native" ],
     "client_native_wbtest.mbt": [ "native" ],
     "client_authorization_native_wbtest.mbt": [ "native" ],

@@ -1,0 +1,113 @@
+{
+  "version": "actql-remote-effect-checkpoint-vectors/0.1",
+  "provenance": "Independently authored canonical preimages; no MoonBit product output.",
+  "checkpoint_preimage": {
+    "checkpoint_id": "review-1",
+    "continuation_state_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "created_at": "2026-10-10T00:00:00.000Z",
+    "expires_at": "2099-01-01T00:00:00.000Z",
+    "human_summary": "Review the original write",
+    "kind": "effect_set",
+    "phase": "commit",
+    "reason_code": "effect_review_required",
+    "required_artifact": {
+      "artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "artifact_type": "effect_set_preview"
+    },
+    "requirements": [
+      "effect_scope_approved"
+    ],
+    "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "run_id": "run-1",
+    "subject": {
+      "continuation": "resume_unit",
+      "kind": "run_unit",
+      "run_id": "run-1",
+      "unit_id": "compute"
+    },
+    "version": "actql-execution-checkpoint/0.1"
+  },
+  "vectors": [
+    {
+      "name": "dispatch",
+      "body": {
+        "budget_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "connector_registration": "local",
+        "connector_revision": "local/1",
+        "coordinator_authority": "coordinator-a",
+        "dispatch_id": "consumer-a",
+        "evidence_issuer_capability_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "grant_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "input_binding_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "obligations_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "runtime_bundle_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "site_generation": 1,
+        "site_key": "site-a",
+        "strategy_revision": "strategy/1",
+        "task_attempt": 1,
+        "task_key": "task-a",
+        "version": "actql-remote-dispatch-request/0.1"
+      },
+      "canonical": "{\"budget_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"coordinator_authority\":\"coordinator-a\",\"dispatch_id\":\"consumer-a\",\"evidence_issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"grant_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_binding_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"task_attempt\":1,\"task_key\":\"task-a\",\"version\":\"actql-remote-dispatch-request/0.1\"}",
+      "cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93"
+    },
+    {
+      "name": "checkpoint",
+      "body": {
+        "checkpoint_id": "review-1",
+        "continuation_state_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "created_at": "2026-10-10T00:00:00.000Z",
+        "expires_at": "2099-01-01T00:00:00.000Z",
+        "human_summary": "Review the original write",
+        "kind": "effect_set",
+        "phase": "commit",
+        "reason_code": "effect_review_required",
+        "required_artifact": {
+          "artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "artifact_type": "effect_set_preview"
+        },
+        "requirements": [
+          "effect_scope_approved"
+        ],
+        "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "run_id": "run-1",
+        "subject": {
+          "continuation": "resume_unit",
+          "kind": "run_unit",
+          "run_id": "run-1",
+          "unit_id": "compute"
+        },
+        "version": "actql-execution-checkpoint/0.1",
+        "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d"
+      },
+      "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"checkpoint_id\":\"review-1\",\"continuation_state_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"created_at\":\"2026-10-10T00:00:00.000Z\",\"expires_at\":\"2099-01-01T00:00:00.000Z\",\"human_summary\":\"Review the original write\",\"kind\":\"effect_set\",\"phase\":\"commit\",\"reason_code\":\"effect_review_required\",\"required_artifact\":{\"artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"artifact_type\":\"effect_set_preview\"},\"requirements\":[\"effect_scope_approved\"],\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"run_id\":\"run-1\",\"subject\":{\"continuation\":\"resume_unit\",\"kind\":\"run_unit\",\"run_id\":\"run-1\",\"unit_id\":\"compute\"},\"version\":\"actql-execution-checkpoint/0.1\"}",
+      "cid": "sha256:fc73eb4d8064ab8acb8542a75faa43591f3bb9cc8e3b5475d40bc50f56223382"
+    },
+    {
+      "name": "report",
+      "body": {
+        "checkpoint_wire": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"checkpoint_id\":\"review-1\",\"continuation_state_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"created_at\":\"2026-10-10T00:00:00.000Z\",\"expires_at\":\"2099-01-01T00:00:00.000Z\",\"human_summary\":\"Review the original write\",\"kind\":\"effect_set\",\"phase\":\"commit\",\"reason_code\":\"effect_review_required\",\"required_artifact\":{\"artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"artifact_type\":\"effect_set_preview\"},\"requirements\":[\"effect_scope_approved\"],\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"run_id\":\"run-1\",\"subject\":{\"continuation\":\"resume_unit\",\"kind\":\"run_unit\",\"run_id\":\"run-1\",\"unit_id\":\"compute\"},\"version\":\"actql-execution-checkpoint/0.1\"}",
+        "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+        "version": "actql-remote-effect-checkpoint-report/0.1"
+      },
+      "canonical": "{\"checkpoint_wire\":\"{\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"checkpoint_id\\\":\\\"review-1\\\",\\\"continuation_state_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"created_at\\\":\\\"2026-10-10T00:00:00.000Z\\\",\\\"expires_at\\\":\\\"2099-01-01T00:00:00.000Z\\\",\\\"human_summary\\\":\\\"Review the original write\\\",\\\"kind\\\":\\\"effect_set\\\",\\\"phase\\\":\\\"commit\\\",\\\"reason_code\\\":\\\"effect_review_required\\\",\\\"required_artifact\\\":{\\\"artifact_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"artifact_type\\\":\\\"effect_set_preview\\\"},\\\"requirements\\\":[\\\"effect_scope_approved\\\"],\\\"review_projection_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"run_definition_cid\\\":\\\"sha256:0000000000000000000000000000000000000000000000000000000000000000\\\",\\\"run_id\\\":\\\"run-1\\\",\\\"subject\\\":{\\\"continuation\\\":\\\"resume_unit\\\",\\\"kind\\\":\\\"run_unit\\\",\\\"run_id\\\":\\\"run-1\\\",\\\"unit_id\\\":\\\"compute\\\"},\\\"version\\\":\\\"actql-execution-checkpoint/0.1\\\"}\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"version\":\"actql-remote-effect-checkpoint-report/0.1\"}",
+      "cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996"
+    },
+    {
+      "name": "reply",
+      "body": {
+        "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+        "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+        "outcome": "accepted",
+        "reason": "",
+        "report_cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+        "version": "actql-remote-effect-checkpoint-reply/0.1"
+      },
+      "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"outcome\":\"accepted\",\"reason\":\"\",\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"version\":\"actql-remote-effect-checkpoint-reply/0.1\"}",
+      "cid": "sha256:34d5a5d8d06e79001c69c48b236435d277bd429110336188937f7a7487dbcdaf"
+    }
+  ]
+}
