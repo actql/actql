@@ -14,7 +14,7 @@ fn target_scope() -> @resource.NativeCredentialScope {
     runtime_bundle_cid: "sha256:" + "a".repeat(64),
     connector_registration: "salesforce",
     connector_revision: "salesforce/0.1",
-    resource_origin: required_env("ACTQL_TEST_NATIVE_HTTP_URL"),
+    resource_origin: required_env("ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL"),
     operation: "salesforce:record:observe",
     run_invocation_cid: "sha256:" + "b".repeat(64),
     task_attempt: 3,
@@ -108,9 +108,9 @@ fn target_grant() -> @credential.RemoteCredentialGrant {
   let envelope = @credential.admit_credential_signature_envelope(
     "actql-remote-credential-grant-signature/0.1",
     "credential-key-a",
-    required_env("ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_CID"),
-    required_env("ACTQL_TEST_NATIVE_CREDENTIAL_GRANT_BODY"),
-    required_env("ACTQL_TEST_NATIVE_CREDENTIAL_SIGNATURE"),
+    required_env("ACTQL_TEST_NATIVE_SALESFORCE_CREDENTIAL_GRANT_CID"),
+    required_env("ACTQL_TEST_NATIVE_SALESFORCE_CREDENTIAL_GRANT_BODY"),
+    required_env("ACTQL_TEST_NATIVE_SALESFORCE_CREDENTIAL_SIGNATURE"),
   ).unwrap()
   let signature = @signature.load_library(
     required_env("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY"),
@@ -119,7 +119,9 @@ fn target_grant() -> @credential.RemoteCredentialGrant {
     {
       issuer_authority: "credential-authority-a",
       key_id: "credential-key-a",
-      public_key_pem: required_env("ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY"),
+      public_key_pem: required_env(
+        "ACTQL_TEST_NATIVE_SALESFORCE_CREDENTIAL_PUBLIC_KEY",
+      ),
       admit_new_grants: true,
     },
   ]).unwrap()
@@ -132,15 +134,20 @@ fn target_physical(name : String) -> (@sqlite.Database, @http.Client) {
   ).unwrap()
   let database = sqlite
     .open_database(
-      required_env("ACTQL_TEST_NATIVE_TARGET_ROOT") + "/" + name + ".sqlite",
+      required_env("ACTQL_TEST_NATIVE_SALESFORCE_TARGET_ROOT") +
+      "/" +
+      name +
+      ".sqlite",
       65536L,
     )
     .unwrap()
-  let http = @http.load_library(required_env("ACTQL_TEST_NATIVE_HTTP_LIBRARY")).unwrap()
+  let http = @http.load_library(
+    required_env("ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY"),
+  ).unwrap()
   let client = http
     .create_authenticated_client(
-      required_env("ACTQL_TEST_NATIVE_HTTP_CA"),
-      @http.Bearer(required_env("ACTQL_TEST_NATIVE_HTTP_SECRET")),
+      required_env("ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA"),
+      @http.Bearer(required_env("ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET")),
       1024L,
       2000,
       5000,
@@ -164,7 +171,7 @@ fn target_service(
         resource_origin: target_scope().resource_origin,
         operation: "salesforce:record:observe",
         path,
-        secret_path: required_env("ACTQL_TEST_NATIVE_HTTP_SECRET"),
+        secret_path: required_env("ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET"),
       },
     ],
     authorize,
@@ -191,7 +198,7 @@ test "Native Effect target read yields Provider facts without applying a write" 
     },
   )
   let grant = target_grant()
-  let (use_cid, observation, row) = observe_native_salesforce_effect_target(
+  let (use_cid, observation, row) = @preview.observe_native_salesforce_effect_target(
     service,
     grant,
     "target-a",
@@ -226,7 +233,7 @@ test "Native Effect target read yields Provider facts without applying a write" 
     "succeeded",
   )
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "target-a",
@@ -236,7 +243,7 @@ test "Native Effect target read yields Provider facts without applying a write" 
       catalog,
       target_limits(),
     )
-    is Err(Credential(_)),
+    is Err(@preview.Credential(_)),
   )
   assert_eq(
     @resource.query_native_credential_use(
@@ -263,7 +270,7 @@ test "Native Effect mismatched scope org path and limits consume no credential u
   let service = target_service(database, client, "/wrong-target", authorize)
   let grant = target_grant()
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "never-claimed",
@@ -273,10 +280,10 @@ test "Native Effect mismatched scope org path and limits consume no credential u
       catalog,
       target_limits(),
     )
-    is Err(ForeignScope),
+    is Err(@preview.ForeignScope),
   )
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "never-claimed",
@@ -286,10 +293,10 @@ test "Native Effect mismatched scope org path and limits consume no credential u
       catalog,
       target_limits(),
     )
-    is Err(ForeignScope),
+    is Err(@preview.ForeignScope),
   )
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "never-claimed",
@@ -299,10 +306,10 @@ test "Native Effect mismatched scope org path and limits consume no credential u
       catalog,
       target_limits(),
     )
-    is Err(ForeignScope),
+    is Err(@preview.ForeignScope),
   )
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "never-claimed",
@@ -312,10 +319,10 @@ test "Native Effect mismatched scope org path and limits consume no credential u
       catalog,
       { ..target_limits(), max_bytes: 0, },
     )
-    is Err(InvalidLimits),
+    is Err(@preview.InvalidLimits),
   )
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "never-claimed",
@@ -325,7 +332,7 @@ test "Native Effect mismatched scope org path and limits consume no credential u
       catalog,
       target_limits(),
     )
-    is Err(Credential(@resource.AccessDenied)),
+    is Err(@preview.Credential(@resource.AccessDenied)),
   )
   assert_eq(calls, 0)
   let allowed = target_service(
@@ -335,7 +342,7 @@ test "Native Effect mismatched scope org path and limits consume no credential u
     authorize,
   )
   ignore(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       allowed,
       grant,
       "never-claimed",
@@ -363,7 +370,7 @@ test "Native Effect permission revoked before target send records failure and re
   )
   let grant = target_grant()
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "denied-before-send",
@@ -373,7 +380,7 @@ test "Native Effect permission revoked before target send records failure and re
       catalog,
       target_limits(),
     )
-    is Err(Credential(@resource.AccessDenied)),
+    is Err(@preview.Credential(@resource.AccessDenied)),
   )
   assert_eq(
     @resource.query_native_credential_use(
@@ -400,7 +407,7 @@ test "Native Effect foreign physical target yields no Preview guard or retry" {
   )
   let grant = target_grant()
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "wrong-record",
@@ -410,10 +417,10 @@ test "Native Effect foreign physical target yields no Preview guard or retry" {
       catalog,
       target_limits(),
     )
-    is Err(Observation(@catalog.ForeignTarget)),
+    is Err(@preview.Observation(@catalog.ForeignTarget)),
   )
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "wrong-record",
@@ -423,7 +430,7 @@ test "Native Effect foreign physical target yields no Preview guard or retry" {
       catalog,
       target_limits(),
     )
-    is Err(Credential(_)),
+    is Err(@preview.Credential(_)),
   )
   assert_true(client.close())
   database.close()
@@ -448,7 +455,7 @@ test "Native Effect grant revoked during claim cannot reach target I/O" {
   )
   owner = Some(service)
   assert_true(
-    observe_native_salesforce_effect_target(
+    @preview.observe_native_salesforce_effect_target(
       service,
       grant,
       "revoked-during-claim",
