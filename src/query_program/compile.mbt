@@ -7457,7 +7457,11 @@ fn compile_set_stages(
               Ok(node) => node
               Err(issue) => raise Abort(Construction(issue))
             }
-            stages.push(
+            // The existing captured DAG binds the acquisition at unit zero.
+            // A source-free earlier operand may already have emitted Values
+            // stages; keep those producers and the ordinal append unchanged.
+            stages.insert(
+              0,
               construction.object([
                 ("id", construction.text(name)),
                 ("inputs", construction.object([(input.name, imported)])),

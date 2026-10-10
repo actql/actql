@@ -145,6 +145,26 @@ refusals are not declared permanent language restrictions. #1243's actual
 JOIN capacity reproduction and #1248's Graph-row set connection remain
 independent. The wider frontend goal remains active.
 
+### Integration review: explicit script format
+
+The second pristine packed campaign at `d6828990` passed the independent
+JSON control and duplicate-alias scalar case on Local and HTTPS, but then
+rejected `positional-scoped-current-and-original` before Run admission.
+Its DATA script inherited the helper's SQL format. The Source frontend's
+SQL branch intentionally parses one SQL query; its text branch parses DATA
+declarations. The typed-empty DATA control had the same registration error.
+
+Both authored DATA cases now explicitly select `aql-text`. Their source,
+independent rows, contracts, ordering and refusal controls remain unchanged.
+Node guards check both format declarations. The independent authored
+inventory still has 3,323 occurrences, with digest
+`e5ccf066018866f3171cf8670670536ad5dca5fdaed7609ced82d874b0b9e64d`.
+Selected Node checks passed 39/39 at the corrected patch on `abd422529`
+(`run-EoGnw5`, `focused-test-f1PBq0`). That is patch evidence, not a claim
+that the previous commit or the pristine public campaign passed.
+
+The rejected campaign and retained receipt `run-Pnss1a` remain failures.
+Exact-source packed Local/HTTPS acceptance is still required before merge.
 ### Public fixture format repair
 
 The pristine five-package attempt at `d682899013ae377f683841e7fa421c04b963bfe3`
@@ -172,3 +192,45 @@ with digest `e5ccf066018866f3171cf8670670536ad5dca5fdaed7609ced82d874b0b9e64d`.
 These focused checks ran against the pending patch on d68289901, not a claim
 of hosted CI or final fresh-package completion. Repeat the unchanged 40-case
 public cohort from the corrected clean revision.
+
+### Capture placement counterexample and repair
+
+The integrated child attempt at `a9b7bbd46c50dc85161fd4c9c2364bb8069487af`
+(`run-QEtRC7`, receipt `worktrees/.codex-scratch/public-query-evidence-t7JftE`)
+passed 16 normal cases per transport, including corrected original/current DATA
+and typed empty controls. It then failed on `positional-shared-source` with
+Local `SubmissionUnknown` / `ClientHostFailure`; HTTPS was cancelled. Later
+scalar, aggregate, refusal and JOIN cases are not certified. Normal five-package
+production and independent digest verification succeeded at that exact clean SHA.
+
+A minimal direct preparation diagnostic (`run-If98Y9`) emitted the ordinary
+Program without changing the submitted source. A private diagnostic installation
+of those same tarballs (`run-qjaexM`) reproduced the Host failure for both the
+authored source and its unmodified generated JSON. Cause-only logging locates
+`RunHostTaskCompilationRejected` at `local-values-plan.mjs::checkedTaskRunAdmission`;
+the typed cause is `Compilation(Plan(TaskGraph(UnsupportedGraph)))`. The probe's
+zero exit records two observed failures, not successful acceptance. Its Store,
+source profile and observations remain at
+`/private/tmp/actql-b-positional-source-host-Wsh2mc`; the semantic Program remains
+at `/private/tmp/set-corresponding-positional-shared-source.program.json`.
+This private logging overlay is not a pristine public-success receipt.
+
+The set emitter placed left Values seed/term stages before the later acquired
+Source capture. The existing captured DAG requires acquisition at unit zero;
+its ordered receiving-port coverage cannot treat a later external root as a
+completed prefix. `compile_set_stages` now inserts the sole existing capture
+stage first. It retains every producer name, source predicate, term body,
+left/right append edge, order expression and Result. It neither adds acquisition
+nor modifies a common Owner. Captured declarations have no stage-producer
+dependency; this placement satisfies the already selected acquired profile.
+
+The published review integration was retained by normal fast-forward to
+`03829331b686d3d0b9c037651cb2248492937bf7`, including main
+`74731446bf520e6aea7fdfca573474212e6a656c`. No force push, reverted review
+change or old compatibility route. A hand-authored stage-order/predicate/append
+regression failed before repair (`run-CmUMzU`, `focused-test-RIpmSR`, 0/1),
+then focused scalar/CORRESPONDING/DATA JS passed 15/15 after repair
+(`run-KVZfRZ`, `focused-test-GGtHGJ`). Public fixture sources, rows/types/order,
+read/reuse expectations and authored inventory are unchanged. These focused
+checks used the pending patch on 03829331b; new exact-SHA public acceptance
+remains required. Full Core, Native/Wasm and hosted CI were not rerun.

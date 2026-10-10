@@ -215,7 +215,8 @@ try {
     : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
   const moonArgs = coreArgs === undefined ? ['--target', 'native', '--strip', selection,
     ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
-      'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt'] : []),
+      'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt',
+      'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'] : []),
     ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
       : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
       : residentPreview ? ['--filter', 'Native retained consumer*']
