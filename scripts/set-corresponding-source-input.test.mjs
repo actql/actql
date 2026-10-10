@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 75);
-  assert.equal(setCorrespondingRefusals.length, 40);
+  assert.equal(setCorrespondingSuccesses.length, 85);
+  assert.equal(setCorrespondingRefusals.length, 48);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -239,5 +239,36 @@ test('positional exclusions use authored names without exposing anonymous slots'
   assert.deepEqual(steps.slice(2, 5).map(x => x.select), [[{kept: 'x'}, 'neg'], ['neg'], [{a: 'neg'}]]);
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-exclusion-'));
   assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional replacement preserves snapshots anonymous values and column types', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-replacement-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 10);
+  assert.deepEqual(find('source-scalar').expected, [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]);
+  assert.deepEqual(find('quoted-chain-limit').expected, [{a: 0, b: 0}, {a: 12, b: -2}]);
+  assert.ok(find('simultaneous').text.includes('second AS first, first AS second'));
+  assert.deepEqual(find('simultaneous').expected, [{a: 0, b: 0, c: 0}, {a: 10, b: 1, c: -1}, {a: 20, b: 2, c: -2}]);
+  assert.deepEqual(find('simultaneous').columns.map(x => [x.name, x.contract.nullable]), [['a', true], ['b', false], ['c', false]]);
+  assert.deepEqual(find('retained-duplicates').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 12}, {a: 2, b: -2, c: 13}]);
+  assert.deepEqual(find('distinct').expected, [{a: 0, b: -2}, {a: 0, b: -1}, {a: 0, b: 0}]);
+  assert.deepEqual(find('distinct').sourceRows.map(x => x.id), [2, 2, 1]);
+  assert.deepEqual(find('nullable').expected, [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]);
+  assert.equal(find('nullable').columns[1].contract.nullable, true);
+  assert.equal(Buffer.byteLength('anchor', 'utf8'), 6);
+  assert.equal(Buffer.byteLength('changed', 'utf8'), 7);
+  assert.deepEqual(find('value-type').columns[0], {name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}});
+  assert.deepEqual(find('value-type').expected, [{a: 'anchor', b: 0}, {a: 'changed', b: -2}, {a: 'changed', b: -1}]);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.deepEqual(find('typed-empty').columns.map(x => x.contract.nullable), [false, false]);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const steps = positionalReplacementProgram.stages[0].steps;
+  assert.deepEqual(steps[1].derive, {neg: {negate: {field: 'x'}}});
+  assert.deepEqual(steps[3].derive, {changed: {add: [{field: 'kept'}, {literal: 10}]}});
+  assert.deepEqual(steps.slice(4, 6).map(x => x.select), [[{kept: 'changed'}, 'neg'], [{a: 'kept'}, {b: 'neg'}]]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-replacement-'));
+  assert.equal(refusals.length, 8);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
