@@ -404,3 +404,70 @@ pub fn acknowledge_retained_input_current(
     Err(issue) => Err(Http(issue))
   }
 }
+
+///|
+/// Send only a previously committed original report. HTTP failure or receipt
+/// persistence failure leaves that same journal responsibility pending. This
+/// function never re-executes work or infers acceptance from a bare 2xx.
+pub fn acknowledge_retained_effect_checkpoint(
+  journal : @journal.Journal,
+  client : @http.Client,
+  url : String,
+  request : @remote.DispatchRequest,
+  limits : @checkpoint.WireLimits,
+  checkpoint? : (String) -> Unit = fn(_) {  },
+) -> Result[Unit, NativeRemoteClientIssue] {
+  let (report, saved) = match
+    journal.effect_checkpoint_report(request, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  match saved {
+    Some(@remote.RemoteEffectCheckpointReply::Accepted) => return Ok(())
+    Some(@remote.RemoteEffectCheckpointReply::Refused(reason)) =>
+      return Err(EffectCheckpointRefused(reason))
+    None => ()
+  }
+  // Fence replay against the current durable Site binding before any HTTP I/O.
+  match journal.retain_effect_checkpoint_report(report) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  let response = match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_effect_checkpoint_report_json(report)),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Http(issue))
+  }
+  let body = @utf8.decode(response.body) catch { _ => return Err(InvalidUtf8) }
+  let reply = match
+    @remote.admit_remote_effect_checkpoint_reply_json(body, report) {
+    Ok(value) => value
+    Err(issue) =>
+      return if response.status == 200 {
+        Err(Protocol(issue))
+      } else {
+        Err(HttpStatus(response.status))
+      }
+  }
+  match reply {
+    @remote.RemoteEffectCheckpointReply::Accepted if response.status != 200 =>
+      return Err(HttpStatus(response.status))
+    @remote.RemoteEffectCheckpointReply::Refused(_) if response.status != 409 =>
+      return Err(HttpStatus(response.status))
+    _ => ()
+  }
+  checkpoint("before-checkpoint-ack-save")
+  match journal.record_effect_checkpoint_reply(request, body, limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  checkpoint("after-checkpoint-ack-save")
+  match reply {
+    @remote.RemoteEffectCheckpointReply::Accepted => Ok(())
+    @remote.RemoteEffectCheckpointReply::Refused(reason) =>
+      Err(EffectCheckpointRefused(reason))
+  }
+}

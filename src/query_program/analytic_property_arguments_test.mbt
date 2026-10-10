@@ -140,21 +140,28 @@ test "analytic property arguments preserve exact scope and frame refusals" {
       msg=text,
     )
   }
-  for
-    text in [
-      "SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects",
-      "SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS value FROM objects",
-    ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        analytic_property_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedAnalytic),
-      msg=text,
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects",
+        syntax_limits(),
+      ).unwrap(),
+      analytic_property_context(),
+      construction_limits(),
     )
-  }
+    is Err(UnsupportedAnalytic),
+  )
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS value FROM objects",
+        syntax_limits(),
+      ).unwrap(),
+      analytic_property_context(),
+      construction_limits(),
+    )
+    is Err(InvalidQuery),
+  )
 }
 
 ///|

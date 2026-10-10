@@ -22,15 +22,15 @@ fn order_ordinal_column(
       for unit in text {
         let digit = unit.to_int() - 48
         if digit < 0 || digit > 9 || ordinal > (visible.length() - digit) / 10 {
-          raise Abort(UnsupportedOrdering)
+          raise Abort(InvalidQuery)
         }
         ordinal = ordinal * 10 + digit
         if ordinal > visible.length() {
-          raise Abort(UnsupportedOrdering)
+          raise Abort(InvalidQuery)
         }
       }
       if ordinal < 1 {
-        raise Abort(UnsupportedOrdering)
+        raise Abort(InvalidQuery)
       }
       Some(visible[ordinal - 1])
     }
@@ -38,11 +38,11 @@ fn order_ordinal_column(
     // Negation of a parenthesized expression remains ordinary computation.
     Unary("-", child) => {
       if @query.expression_node(expression, child).unwrap().kind is Number(_) {
-        raise Abort(UnsupportedOrdering)
+        raise Abort(InvalidQuery)
       }
       None
     }
-    StringLiteral(_) | Boolean(_) | Null => raise Abort(UnsupportedOrdering)
+    StringLiteral(_) | Boolean(_) | Null => raise Abort(InvalidQuery)
     _ => None
   }
 }

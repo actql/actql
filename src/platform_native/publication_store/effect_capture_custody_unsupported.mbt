@@ -130,3 +130,69 @@ pub fn EffectPreviewCustody::same_binding(
 ) -> Bool {
   false
 }
+
+///|
+type EffectCheckpointCustody
+
+///|
+pub fn Store::prepare_effect_checkpoint_custody(
+  _self : Store,
+  _checkpoint : @checkpoint.SealedCheckpoint,
+  _continuation_wire : String,
+  _store_authority : String,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::restore_effect_checkpoint_custody(
+  _self : Store,
+  _checkpoint : @checkpoint.SealedCheckpoint,
+  _continuation_wire : String,
+  _store_authority : String,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectCheckpointCustody::persist(
+  _self : EffectCheckpointCustody,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectCheckpointCustody::confirm(
+  _self : EffectCheckpointCustody,
+) -> Result[
+  (@checkpoint.PersistedCheckpoint, String),
+  NativePublicationStoreIssue,
+] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectCheckpointCustody::retry_cleanup(
+  _self : EffectCheckpointCustody,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn EffectCheckpointCustody::reserved_bytes(
+  _self : EffectCheckpointCustody,
+) -> Int64 {
+  0L
+}
+
+///|
+pub fn EffectCheckpointCustody::same_binding(
+  _self : EffectCheckpointCustody,
+  _other : EffectCheckpointCustody,
+) -> Bool {
+  false
+}

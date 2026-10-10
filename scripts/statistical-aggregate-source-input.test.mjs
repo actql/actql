@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {statisticalAggregateProgram, statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures} from './fixtures/statistical-aggregate-source-input.mjs';
+import {statisticalAggregateProgram, statisticalAliasProgram, statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures} from './fixtures/statistical-aggregate-source-input.mjs';
 
 test('default analytic frames retain the explicit implementation-limit refusal', () => {
   const text = 'SELECT VAR_POP(amount) OVER (ORDER BY id) AS v FROM records';
@@ -9,16 +9,39 @@ test('default analytic frames retain the explicit implementation-limit refusal',
   assert.equal(defaultFrame.length, 1);
   assert.equal(defaultFrame[0].expectedCode, 'ClientProgramImplementationLimit');
   assert.deepEqual(statisticalAggregateRefusals.filter(x => x.expectedCode !== undefined)
-    .map(x => x.text), [text]);
+    .map(x => x.text), [text,
+    'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)',
+    'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)']);
   assert.ok(statisticalAggregateRefusals.some(x =>
     x.text === 'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records' &&
     x.expectedCode === undefined));
-  assert.equal(statisticalAggregateRefusals.length, 8);
-  assert.equal(statisticalAggregateSuccesses.length, 14);
+  assert.equal(statisticalAggregateRefusals.length, 10);
+  assert.equal(statisticalAggregateSuccesses.length, 20);
   assert.equal(statisticalAggregateExecutionFailures.length, 1);
   assert.deepEqual(statisticalAggregateSuccesses.find(x =>
     x.name === 'statistical-aggregate-analytic-prefix').expected,
   [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}]);
+});
+
+test('statistical aliases retain one group result through DISTINCT and ordered publication', () => {
+  const cases = new Map(statisticalAggregateSuccesses.map(x => [x.name, x]));
+  const json = cases.get('statistical-aggregate-alias-independent-json');
+  assert.deepEqual(JSON.parse(json.text), statisticalAliasProgram);
+  assert.deepEqual(json.expected, [{v: 2}, {v: 8}, {v: null}]);
+  assert.deepEqual(statisticalAliasProgram.stages[1].steps, [
+    {from: 'records', group: {by: ['id'], aggregates: {v: {fn: 'var_samp', field: 'amount'}}}},
+    {select: ['v']}, {distinct: ['v']},
+    {sort: [{field: 'v', dir: 'asc', nulls: 'last'}], as: 'statistics'},
+  ]);
+  for (const name of ['variance-order-sample', 'sample-order-variance', 'quoted-variance-order-sample']) {
+    const item = cases.get('statistical-aggregate-' + name);
+    assert.deepEqual(item.expected, json.expected);
+    assert.deepEqual(item.columns, [{name: 'v', contract: {type: 'number', nullable: true}}]);
+    assert.equal(item.sourceReadSessionCount, 1);
+    assert.deepEqual(item.sourceRows, json.sourceRows);
+  }
+  assert.ok(statisticalAggregateRefusals.some(x => x.text.endsWith('ORDER BY VAR_POP(amount)')));
+  assert.ok(statisticalAggregateRefusals.some(x => x.text.endsWith('ORDER BY VAR_SAMP(amount + 1)')));
 });
 
 test('independent statistics retain NULL, duplicate occurrences and sample cardinality', () => {

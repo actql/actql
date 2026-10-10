@@ -92,7 +92,7 @@ fn append_order_grouped_expression(
     Abort(issue) => {
       if distinct &&
         issue is Expression({ issue: @expression.UnknownReference, .. }) {
-        raise Abort(UnsupportedOrdering)
+        raise Abort(InvalidQuery)
       }
       raise Abort(issue)
     }

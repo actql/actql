@@ -721,6 +721,8 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_dispatch sha256:ca7951b1ccab716fdf738573b94f402f92ccbdaeadbf4ab699b00a777003ab56
 ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_cancel sha256:53e69b8d3b2b27c7e90ef106f6b888b5267cce91a1145048c2ab5b46f32dd8fc
 ../../../spec/contracts/actql-remote-site-wire.json#/schemas/output_report_reply sha256:db3cd45931cdbbdf86ac79545a19a0691b1240d1b78fe963812eb331f9820284
+../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_checkpoint_report sha256:37ae97f48d65d838aa9ebf2859425a4a952e8e2ea012b58cb319f0f3d6831b86
+../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_checkpoint_reply sha256:087b35471447e082dbdb4f39e77bb91b4bfb90de7be348aebb57d395d9617784
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/observation_facts sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/event_delivery_evidence sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f

@@ -378,6 +378,22 @@ fn prepare_resident_retained_consumer_owned(
     Ok(value) => value
     Err(issue) => return Err(retained_consumer_failure(issue))
   }
+  // Compare the original logical request in the producer's immutable journal
+  // envelope before admitting a receiver alias or returning a completed replay.
+  if effect_limits is Some(selected_limits) {
+    match
+      retained_effect_consumer_original_request(
+        producer_journal,
+        handoff.dispatch,
+        request,
+        body,
+        admission,
+        selected_limits,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(retained_consumer_failure(issue))
+    }
+  }
   if handoff.consumer is Some(consumer) && consumer.executed is Some(_) {
     // A completed exact replay owns its output independently of retired input.
     if @remote.dispatch_request_identity(consumer.request) ==

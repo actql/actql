@@ -211,6 +211,7 @@ fn client_code(issue : @client.NativeRemoteClientIssue) -> String {
     Journal(_) => "journal"
     InvalidUtf8 => "invalid-utf8"
     OutputReportRefused(reason) => "output-report-" + reason
+    EffectCheckpointRefused(reason) => "effect-checkpoint-" + reason
     OutcomeUnknownPersistence(_, _) => "outcome-unknown"
     Closed => "closed"
     UnsupportedTarget => "unsupported-target"
@@ -1646,6 +1647,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let mut holders = 0
   let next_output_report : Map[String, UInt64] = Map([])
   let report_cursor : Ref[String] = { val: "", }
+  let next_checkpoint_report : Map[String, UInt64] = Map([])
+  let checkpoint_report_cursor : Ref[String] = { val: "", }
   let report_kill_at = required(matches, "control-report-kill-at")
   let report_checkpoint = fn(point : String) {
     if point == report_kill_at {
@@ -1657,6 +1660,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     replay_output_reports(
       environment, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
       site_delegation, report_checkpoint,
+    )
+    replay_effect_checkpoint_reports(
+      environment, client, observation_url, next_checkpoint_report, max_backoff_ms,
+      checkpoint_report_cursor, site_delegation, report_checkpoint,
     )
     // A finished holder's durable record is reported before new work.
     match holder {

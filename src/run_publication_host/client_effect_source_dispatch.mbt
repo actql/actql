@@ -195,6 +195,10 @@ pub fn bind_client_effect_source_dispatch(
   request : @remote.DispatchRequest,
   input : @remote.RemoteInputBinding,
 ) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue] {
+  if client_effect_run_materials_request_for_dispatch(materials, request)
+    is Err(_) {
+    return Err(ForeignRequest)
+  }
   let bound = match
     bind_client_effect_compiled_run(
       materials.prepared,

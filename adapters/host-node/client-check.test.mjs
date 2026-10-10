@@ -6053,3 +6053,153 @@ for (const entrance of ['local', 'http']) {
     assertNamespaceCheckOnly(client);
   });
 }
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: semantic query violations remain distinct from implementation limits`, async t => {
+    const client = await open(t, configurations.allowed);
+    const invalid = [
+      'WITH chosen AS (FROM records |> RESULT saved) SELECT id FROM chosen',
+      'SELECT id FROM (FROM records |> RESULT saved) AS chosen',
+      'SELECT * FROM records GROUP BY id',
+      'SELECT r.* FROM records AS r GROUP BY id',
+      'SELECT * EXCEPT (id) FROM records GROUP BY id',
+      'SELECT DISTINCT id FROM records ORDER BY amount + 1',
+      'SELECT amount, id FROM records ORDER BY 0',
+      'SELECT amount, id FROM records ORDER BY 3',
+      'SELECT LAG(amount, (id)) OVER (ORDER BY id) AS previous FROM records',
+      'SELECT LEAD(amount, (1 + 1)) OVER (ORDER BY id) AS next FROM records',
+      'SELECT LAG(amount, -1) OVER (ORDER BY id) AS previous FROM records',
+    ];
+    const unsupported = [
+      'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',
+      'SELECT COUNTIF(amount > 0) OVER (ORDER BY id) AS n FROM records',
+      'SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS value FROM records',
+    ];
+    for (const [texts, verdict, expectedProblem] of [
+      [invalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}],
+      [unsupported, 'undetermined', {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}],
+    ]) {
+      for (const text of texts) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(checked.outcome, 'completed', text);
+        assert.equal(checked.report.verdict, verdict, text);
+        assert.deepEqual(checked.report.reasons, verdict === 'invalid' ? [{code: 'query_invalid'}] : [], text);
+        assert.deepEqual(checked.report.coverage, {
+          limits: verdict === 'invalid' ? [] : [{code: 'implementation_limit'}], unresolved: [],
+        }, text);
+        const submissionRef = client.newSubmission();
+        let original;
+        await assert.rejects(client.startSource(text, {format: 'sql', submissionRef}), error => {
+          original = frontierSDK.getSubmissionOutcome(error);
+          assert.equal(original.kind, 'not_accepted');
+          assert.deepEqual(original.problem, expectedProblem, text);
+          assert.deepEqual(original.submissionRef, submissionRef);
+          assert.equal('admission' in original, false);
+          return error.code === 'SubmissionNotAccepted';
+        });
+        assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+        client.assertNoExecution();
+      }
+    }
+  });
+
+  test(`${entrance}: a delegated Source without a later authorization owner refuses before Run admission`, async t => {
+    const client = await open(t, configurations.undecidable);
+    const text = 'SELECT id FROM records';
+    const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+    assert.equal(checked.outcome, 'completed');
+    assert.equal(checked.report.verdict, 'undetermined');
+    assert.deepEqual(checked.report.reasons, []);
+    assert.deepEqual(checked.report.coverage, {limits: [], unresolved: protectedSource});
+    const submissionRef = client.newSubmission();
+    let original;
+    await assert.rejects(client.startSource(text, {format: 'sql', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      original = frontierSDK.getSubmissionOutcome(error);
+      assert.equal(original.kind, 'preparation_failed');
+      assert.deepEqual(original.problem,
+        {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'});
+      assert.deepEqual(original.submissionRef, submissionRef);
+      assert.equal('admission' in original, false);
+      return true;
+    }, text);
+    assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: CTE shadowing preserves protected outer source resolution`, async t => {
+    const texts = [
+      'WITH records AS (SELECT id FROM records) SELECT id FROM records',
+      'WITH chosen AS (SELECT id FROM records), records AS (SELECT id FROM chosen) SELECT id FROM records',
+    ];
+    // Public checking filters protected Source publication. Submission retains
+    // the actual acceptance phase and the Source read authorization failure.
+    const refusals = {
+      denied: {kind: 'preparation_failed', errorCode: 'SubmissionPreparationFailed',
+        problem: {code: 'ACTQL_E_ACCOUNT_DENIED', classification: 'operation_failed'}},
+      absent: {kind: 'not_accepted', errorCode: 'SubmissionNotAccepted',
+        problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}},
+      undecidable: {kind: 'preparation_failed', errorCode: 'SubmissionPreparationFailed',
+        problem: {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'}},
+    };
+    const protectedOutcomes = new Map();
+    for (const visibility of ['allowed', 'denied', 'absent', 'undecidable']) {
+      const client = await open(t, configurations[visibility]);
+      for (const text of texts) {
+        const label = `${visibility}: ${text}`;
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(checked.outcome, 'completed', label);
+        assert.equal(checked.report.verdict, visibility === 'allowed' ? 'verified' : 'undetermined', label);
+        assert.deepEqual(checked.report.reasons, [], label);
+        assert.deepEqual(checked.report.coverage, {
+          limits: [], unresolved: visibility === 'allowed' ? [] : protectedSource,
+        }, label);
+        if (visibility !== 'allowed') {
+          const expected = refusals[visibility];
+          if (protectedOutcomes.has(text)) assert.deepEqual(withoutContext(checked), protectedOutcomes.get(text), label);
+          else protectedOutcomes.set(text, withoutContext(checked));
+          const submissionRef = client.newSubmission();
+          let original;
+          await assert.rejects(client.startSource(text, {format: 'sql', submissionRef}), error => {
+            original = frontierSDK.getSubmissionOutcome(error);
+            assert.equal(original.kind, expected.kind, label);
+            assert.deepEqual(original.problem, expected.problem, label);
+            assert.deepEqual(original.submissionRef, submissionRef, label);
+            assert.equal('admission' in original, false, label);
+            assert.equal(error.code, expected.errorCode, label);
+            return true;
+          }, label);
+          assert.deepEqual(await client.lookupSubmission(submissionRef), original, label);
+        }
+        client.assertNoExecution();
+      }
+    }
+  });
+
+  test(`${entrance}: CTE unresolved witnesses require authorized complete namespace absence`, async t => {
+    const client = await namespaceClient(t, entrance, configurations.allowed, {sourceNamespace: 'queries',
+      authorization: namespaceAuthorization({accountConfiguration: namespaceAccount()})});
+    for (const [text, missing] of [
+      ['WITH missing AS (SELECT id FROM missing) SELECT id FROM missing', 'missing'],
+      ['WITH chosen AS (SELECT id FROM records UNION ALL SELECT id FROM later), later AS (SELECT id FROM records) SELECT id FROM chosen', 'later'],
+    ]) {
+      const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+      assert.equal(checked.outcome, 'completed');
+      assert.equal(checked.report.verdict, 'invalid');
+      assert.deepEqual(checked.report.reasons, [namespaceReason(missing)]);
+      assert.deepEqual(checked.report.coverage, {limits: [], unresolved: []});
+      const submissionRef = client.newSubmission();
+      let original;
+      await assert.rejects(client.startSource(text, {format: 'sql', submissionRef}), error => {
+        original = frontierSDK.getSubmissionOutcome(error);
+        assert.equal(original.kind, 'not_accepted');
+        assert.deepEqual(original.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+        assert.deepEqual(original.submissionRef, submissionRef);
+        assert.equal('admission' in original, false);
+        return error.code === 'SubmissionNotAccepted';
+      });
+      assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+      client.assertNoExecution();
+    }
+  });
+}
