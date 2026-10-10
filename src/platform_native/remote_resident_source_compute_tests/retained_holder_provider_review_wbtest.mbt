@@ -45,10 +45,12 @@ fn retained_holder_provider_review(
     )
     .unwrap()
   let receipt = transferred_effect_result_receipt(exported)
-  let local = @strategy.captured_effect_local_result_at(inputs, result_index).unwrap()
+  let local_result = @strategy.captured_effect_local_result_at(
+    inputs, result_index,
+  ).unwrap()
   let result_name = @execution.managed_result_occurrence_name(
     @strategy.captured_any_result_borrow_occurrence(
-      @strategy.captured_effect_local_result_borrow(local),
+      @strategy.captured_effect_local_result_borrow(local_result),
     ),
   )
   let definition = @host.issue_client_effect_local_result_definition(
