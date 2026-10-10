@@ -78,9 +78,9 @@ property_pair = identifier, ":", expression ;
 graph_quantifier = "{", integer, "}"
                  | "{", [ integer ], ",", integer, "}" ;
 source        = table_source | unnest_source ;
-table_source  = path, [ source_alias ]
+table_source  = path, [ source_alias ], [ pivot_operator ]
               | "(", relational_body, ")",
-                source_alias ;
+                ( source_alias, [ pivot_operator ] | pivot_operator ) ;
 source_alias  = [ "AS" ], identifier ;
 unnest_source = "UNNEST", "(", expression, ")", source_alias,
                 [ "WITH", "OFFSET", [ source_alias ] ] ;

@@ -3,6 +3,7 @@ import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
 import {relationDataSuccesses, relationDataRefusals} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
+import {pipePivotSuccesses,pipePivotRefusals,fromPivotAcquiredProgram} from './fixtures/pipe-pivot-source-input.mjs';
 
 test('shared Relation controls and Graph source cases have one request each', () => {
   const selected = uniquePublicQueryCases([
@@ -44,4 +45,22 @@ test('DATA refusal fixtures distinguish unsupported output names from private re
     'ClientProgramImplementationLimit');
   assert.equal(cases.get('data-anonymous-set-private-field').expectedCode,
     'ClientProgramInvalidInput');
+});
+
+test('FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh output scopes',()=>{
+ const cases=new Map(pipePivotSuccesses.map(item=>[item.name,item]));
+ const source=cases.get('pipe-pivot-from-shared-source');
+ const control=cases.get('pipe-pivot-from-shared-source-json-control');
+ assert.deepEqual(source.sourceRows,control.sourceRows);
+ assert.deepEqual(source.expected,[{product:'kale',first:3,second:1}]);
+ assert.deepEqual(source.expected,control.expected);
+ assert.deepEqual(source.columns,control.columns);
+ assert.deepEqual(fromPivotAcquiredProgram.stages[0].steps[0].filter,
+  {gt:[{field:'id'},{literal:0}]});
+ assert.ok(cases.get('pipe-pivot-from-left-join-padding').text.includes('MAX_OUTPUT_ROWS 10'));
+ assert.deepEqual(cases.get('pipe-pivot-from-left-join-padding').expected,
+  [{product:1,marker:100,A:5},{product:2,marker:200,A:null}]);
+ assert.deepEqual(cases.get('pipe-pivot-from-projected-identity').expected,
+  [{twin:1,A:2},{twin:2,A:2}]);
+ assert.equal(pipePivotRefusals.filter(item=>item.name.startsWith('pipe-pivot-refusal-from-')).length,6);
 });
