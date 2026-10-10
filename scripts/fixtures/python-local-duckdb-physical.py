@@ -55,11 +55,11 @@ class StandaloneDuckDBTests(unittest.TestCase):
     def test_fixed_native_codec_values_and_fields(self):
         # Unicode spelling, raw line endings, embedded NULL, integer boundaries
         # and IEEE bits are independently fixed, not copied from this producer.
-        rows = self.rows("SELECT -9223372036854775808::BIGINT AS n, "
+        rows = self.rows("SELECT '-9223372036854775808'::BIGINT AS n, "
             "18446744073709551615::UBIGINT AS u, TRUE AS flag, "
             "NULL::VARCHAR AS missing, 'é' || chr(13) || chr(10) || chr(0) || '😀' AS \"名/称~\", "
             "1.5::DOUBLE AS d, 1.5::FLOAT AS f, 12.30::DECIMAL(5,2) AS dec, "
-            "-170141183460469231731687303715884105728::HUGEINT AS huge, "
+            "'-170141183460469231731687303715884105728'::HUGEINT AS huge, "
             "340282366920938463463374607431768211455::UHUGEINT AS uhuge")
         self.assertEqual(rows, [
             b'["-9223372036854775808","18446744073709551615",true,null,'
