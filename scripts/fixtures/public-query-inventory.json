@@ -1,19 +1,19 @@
 {
-  "sourceBaseline": "7bf39c805e1c73e4b871455b8494df2418f538fc",
-  "totalCases": 3755,
-  "inventorySha256": "13db3a85afe879a8f100a0cec73beb37aec6d79c5710218ea6a2b70809c21e3e",
+  "sourceBaseline": "e99a3c01a1a59c8be027fbaae6f555561647d898",
+  "totalCases": 3774,
+  "inventorySha256": "22133535bc0e016e2062fd617e0b6ad52a03bf4371018d58f5ff69b5ec936c62",
   "counts": {
-    "successes": 2370,
+    "successes": 2383,
     "executionFailures": 50,
-    "refusals": 1335
+    "refusals": 1341
   },
   "profiles": [
     {
       "name": "standard",
       "counts": {
-        "successes": 2317,
+        "successes": 2330,
         "executionFailures": 48,
-        "refusals": 1300
+        "refusals": 1306
       }
     },
     {

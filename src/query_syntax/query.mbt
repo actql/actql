@@ -139,6 +139,7 @@ pub(all) struct KeepItem {
 pub(all) struct PivotClause {
   function_name : String
   argument : Array[NamePart]
+  argument_expression : Expression?
   column : Array[NamePart]
   prefix : NamePart?
   values : Array[(String, NamePart?)]
@@ -1599,20 +1600,23 @@ fn QueryParser::over(
 }
 
 ///|
+fn query_aggregate_function_name(name : String) -> Bool {
+  [
+    "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG", "VAR_POP",
+    "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+  ].contains(upper_ascii(name))
+}
+
+///|
 fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
   match self.peek().value {
     Word(name) | QuotedName(name) =>
-      [
-        "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
-        "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
-      ].contains(
-        upper_ascii(
-          if self.peek().value is QuotedName(_) {
-            self.source.identifier(name)
-          } else {
-            name
-          },
-        ),
+      query_aggregate_function_name(
+        if self.peek().value is QuotedName(_) {
+          self.source.identifier(name)
+        } else {
+          name
+        },
       ) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))

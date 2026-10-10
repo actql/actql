@@ -1028,7 +1028,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:c9084dedac4c58e0c4d57fdd67c56777a36854f561b7918d652bb093d21cf220');
+    'sha256:ddb00756605a7cc7ae0c7868cf216fce616aaff605799ff44fd7f5686326c163');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1221,13 +1221,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:e0b2984828e0b8bd51c51e4a63cc11adfadedcb9723f8a0cc3acede8bdfc543f');
+    'sha256:a1095a46c8ca8c69978d95e13160d3840728b417407eeaeebf779ce8d8d88282');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:bb881276e4053c125c050f076a97e39ca91ce7e7c1ac7f57b2898ece91d0eea0');
+    'sha256:f4a4b545381ef956979baabbfdb094628ce958466049c7a5c1056a13c8f63e6f');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:7cd33a0773baf8765c124cc85faa2c906afa581969b236323a87893f0168956f');
+    'sha256:68679d5f6e0c76803a2fc4e2961c083dece3c53d520e2e5edc04cd06eabbf864');
   assert.equal(current.run.run_definition_cid,
-    'sha256:c9084dedac4c58e0c4d57fdd67c56777a36854f561b7918d652bb093d21cf220');
+    'sha256:ddb00756605a7cc7ae0c7868cf216fce616aaff605799ff44fd7f5686326c163');
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
@@ -2224,4 +2224,27 @@ test('pre-range-name-precedence values retain their independently rebuilt Run',(
  assert.deepEqual(vector(gc,frozen.aoa_contract_cid,frozen.values_dependencies,
  frozen.barrier_contract_manifest_cid,frozen.program_identity,{canonicalCandidates:true}),frozen.run_preimages);
  assert.equal(frozen.run_preimages.run.run_definition_cid,'sha256:980299c966ef566cf2b399e1f4181218586aaa72b0bce8d57b39056e2dc7aff2');
+});
+
+test('pre-PIVOT scalar-argument grammar retains complete independent Values Run preimages', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-pivot-argument-expression-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, '3c1aadc464205e66cd167b840833fa7474251a1d');
+  const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid,
+    frozen.values_dependencies, frozen.barrier_contract_manifest_cid,
+    frozen.program_identity, {canonicalCandidates: true}), frozen.run_preimages);
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:0bf6c0cf5627553679b5bdf942fdd14f8f1f94f1d424d905b11f848339851094');
+  const current = JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8'));
+  assert.notEqual(current.grammar_manifest_cid, grammarCid);
+});
+
+
+test('pre-JOIN integration preserves the complete adopted range-precedence Run',()=>{
+ const frozen=JSON.parse(readFileSync('scripts/fixtures/pre-joined-row-integration-values-identities.json','utf8'));
+ assert.equal(frozen.source_revision,'4cebb22df4d7ccfc7e82493badb75d776cf303e1');
+ const {grammar_manifest_cid:gc,...body}=frozen.grammar;assert.equal(cid(body),gc);
+ assert.deepEqual(vector(gc,frozen.aoa_contract_cid,frozen.values_dependencies,frozen.barrier_contract_manifest_cid,frozen.program_identity,{canonicalCandidates:true}),frozen.run_preimages);
+ assert.equal(frozen.run_preimages.run.run_definition_cid,'sha256:c9084dedac4c58e0c4d57fdd67c56777a36854f561b7918d652bb093d21cf220');
 });

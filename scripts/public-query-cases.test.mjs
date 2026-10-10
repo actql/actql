@@ -3,7 +3,7 @@ import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
 import {relationDataSuccesses, relationDataRefusals, queryCompositionSuccesses, queryCompositionRefusals} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
-import {pipePivotSuccesses,pipePivotRefusals,fromPivotAcquiredProgram} from './fixtures/pipe-pivot-source-input.mjs';
+import {pipePivotSuccesses,pipePivotRefusals,fromPivotAcquiredProgram,pivotArgumentExpressionProgram} from './fixtures/pipe-pivot-source-input.mjs';
 
 test('shared Relation controls and Graph source cases have one request each', () => {
   const selected = uniquePublicQueryCases([
@@ -133,4 +133,24 @@ test('range-shadow fixtures distinguish input ranges, ORDER aliases and NULL obj
  assert.deepEqual(cases.get('range-shadow-where-row').expected,[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}]);
  assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('range-shadow-')).length,7);
  assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('range-shadow-refusal-')).length,2);
+});
+
+test('PIVOT expression controls distinguish consumed fields, constants and frozen input slots', () => {
+  const cases = new Map(pipePivotSuccesses.map(item => [item.name, item]));
+  const source = cases.get('pipe-pivot-argument-expression-consumption');
+  const control = cases.get('pipe-pivot-argument-expression-json-control');
+  assert.deepEqual(source.expected, [{product: 1, A: 5}]);
+  assert.deepEqual(source.columns, control.columns);
+  assert.deepEqual(source.expected, control.expected);
+  assert.deepEqual(JSON.parse(control.text), pivotArgumentExpressionProgram);
+  assert.deepEqual(pivotArgumentExpressionProgram.stages[0].steps[2].pivot.index, ['product']);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-constant').expected,
+    [{product: 1, amount: 1, A: 1}, {product: 1, amount: 2, A: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-immutable-range').expected,
+    [{product: 1, amount: 7, A: 5}]);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-current-slot').expected,
+    [{product: 1, A: 16}]);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-property-null-propagation').expected,
+    [{product: 1, A: 11}, {product: 2, A: null}, {product: 3, A: null}]);
+  assert.equal(pipePivotRefusals.filter(item => item.name.startsWith('pipe-pivot-refusal-argument-expression-')).length, 6);
 });

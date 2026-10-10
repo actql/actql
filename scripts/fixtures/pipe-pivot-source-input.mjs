@@ -194,3 +194,109 @@ pipePivotSuccesses.push(
  success('from-projected-identity', "SELECT twin,A FROM (SELECT amount AS value,amount AS twin,axis FROM (SELECT 1 AS amount,'A' AS axis UNION ALL SELECT 1,'A' UNION ALL SELECT 2,'A') original) PIVOT(SUM(value) FOR axis IN('A')) ORDER BY twin",
   [{twin:1,A:2},{twin:2,A:2}],[number('twin',false),number('A',true)]),
 );
+
+// Scalar aggregate arguments consume their referenced evaluated input columns,
+// not the private derived value as an additional implicit group key.
+const expressionRows = [{product: 1, amount: 1, axis: 'A'},
+  {product: 1, amount: 2, axis: 'A'}];
+export const pivotArgumentExpressionProgram = {
+  version: 'actql/0.1', id: 'fixture.pivot_argument_expression', stages: [
+    {id: 'main', inputs: {}, steps: [
+      {values: {schema: {product: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false}, axis: {type: 'string', nullable: false}},
+        rows: expressionRows}, as: 'rows'},
+      {from: 'rows', derive: {adjusted: {add: [{field: 'amount'}, {literal: 1}]}}},
+      {pivot: {index: ['product'], column: 'axis', value: 'adjusted',
+        values: ['A'], aggregate: 'sum'}},
+      {sort: [{field: 'product', dir: 'asc', nulls: 'first'}]},
+      {select: ['product', 'A'], as: 'out'},
+    ], results: {rows: {from: 'out', fields: ['product', 'A']}}},
+  ], results: {answer: {from: {stage: 'main', result: 'rows'}}},
+};
+const expressionHead = "(SELECT 1 AS product,1 AS amount,'A' AS axis UNION ALL SELECT 1,2,'A')";
+const expressionColumns = [number('product', false), number('A', true)];
+const expressionResult = [{product: 1, A: 5}];
+pipePivotSuccesses.push(
+  success('argument-expression-json-control', JSON.stringify(pivotArgumentExpressionProgram),
+    expressionResult, expressionColumns, {format: 'json'}),
+  success('argument-expression-consumption', expressionHead
+    + " |> PIVOT(SUM(amount + 1) FOR axis IN('A')) |> ORDER BY product",
+    expressionResult, expressionColumns),
+  success('argument-expression-multiple-columns',
+    "(SELECT 1 AS product,1 AS amount,2 AS bonus,'A' AS axis UNION ALL SELECT 1,2,3,'A')"
+    + " |> PIVOT(SUM(amount + bonus) FOR axis IN('A')) |> ORDER BY product",
+    [{product: 1, A: 8}], expressionColumns),
+  success('argument-expression-constant', expressionHead
+    + " |> PIVOT(SUM(1) FOR axis IN('A')) |> ORDER BY product,amount",
+    [{product: 1, amount: 1, A: 1}, {product: 1, amount: 2, A: 1}],
+    [number('product', false), number('amount', false), number('A', true)]),
+  success('argument-expression-immutable-range', expressionHead
+    + " |> AS old |> SET amount = 7 |> PIVOT(SUM(old.amount + 1) FOR axis IN('A')) |> ORDER BY product,amount",
+    [{product: 1, amount: 7, A: 5}],
+    [number('product', false), number('amount', false), number('A', true)]),
+  success('argument-expression-current-slot', expressionHead
+    + " |> AS old |> SET amount = 7 |> PIVOT(SUM(amount + 1) FOR axis IN('A')) |> ORDER BY product",
+    [{product: 1, A: 16}], expressionColumns),
+  success('argument-expression-nullable-empty-bucket',
+    "(SELECT 1 AS product,CAST(NULL AS FLOAT64) AS amount,'A' AS axis UNION ALL SELECT 1,2,'A')"
+    + " |> PIVOT(SUM(amount + 1) FOR axis IN('B','A')) |> ORDER BY product",
+    [{product: 1, B: null, A: 3}],
+    [number('product', false), number('B', true), number('A', true)]),
+  success('argument-expression-private-bucket-collision', expressionHead
+    + " |> PIVOT(SUM(amount + 1) FOR axis IN('A' AS aql_pivot_argument_7)) |> ORDER BY product",
+    [{product: 1, aql_pivot_argument_7: 5}],
+    [number('product', false), number('aql_pivot_argument_7', true)]),
+  success('argument-expression-parameter', expressionHead
+    + " |> PIVOT(SUM(amount + @offset) FOR axis IN('A')) |> ORDER BY product",
+    [{product: 1, A: 7}], expressionColumns, {
+      parameterDeclarations: {offset: {type: 'number', nullable: false}},
+      parameters: {offset: 2},
+    }),
+);
+const objectDeclarations = {p1: {type: 'object', nullable: true,
+  fields: {score: {type: 'number', nullable: true}}},
+  p2: {type: 'object', nullable: true, fields: {score: {type: 'number', nullable: true}}},
+  p3: {type: 'object', nullable: true, fields: {score: {type: 'number', nullable: true}}}};
+const objectParameters = {p1: {score: 10}, p2: null, p3: {score: null}};
+const propertyControl = {version: 'actql/0.1', id: 'fixture.pivot_argument_property',
+  params: objectDeclarations, stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {product: {type: 'number', nullable: false}},
+      rows: [{product: 1}, {product: 2}, {product: 3}]}, as: 'rows'},
+    {from: 'rows', derive: {axis: {literal: 'A'}, payload: {case: {when: [
+      {when: {eq: [{field: 'product'}, {literal: 1}]}, then: {$param: 'p1'}},
+      {when: {eq: [{field: 'product'}, {literal: 2}]}, then: {$param: 'p2'}},
+    ], else: {$param: 'p3'}}}}},
+    {derive: {adjusted: {add: [{property: {value: {field: 'payload'}, name: 'score'}}, {literal: 1}]}}},
+    {pivot: {index: ['product'], column: 'axis', value: 'adjusted', values: ['A'], aggregate: 'sum'}},
+    {sort: [{field: 'product', dir: 'asc', nulls: 'first'}]},
+    {select: ['product', 'A'], as: 'out'},
+  ], results: {rows: {from: 'out', fields: ['product', 'A']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const propertyResult = [{product: 1, A: 11}, {product: 2, A: null}, {product: 3, A: null}];
+pipePivotSuccesses.push(
+  success('argument-expression-property-json-control', JSON.stringify(propertyControl),
+    propertyResult, expressionColumns, {format: 'json', parameters: objectParameters}),
+  success('argument-expression-property-null-propagation',
+    "(SELECT 1 AS product,@p1 AS payload,'A' AS axis UNION ALL SELECT 2,@p2,'A' UNION ALL SELECT 3,@p3,'A')"
+    + " |> PIVOT(SUM(payload.score + 1) FOR axis IN('A')) |> ORDER BY product",
+    propertyResult, expressionColumns,
+    {parameterDeclarations: objectDeclarations, parameters: objectParameters}),
+);
+for (const [name, text] of [
+  ['consumed-column', expressionHead + " |> PIVOT(SUM(amount + 1) FOR axis IN('A')) |> SELECT amount"],
+  ['old-range-after-pivot', expressionHead + " |> AS old |> PIVOT(SUM(old.amount + 1) FOR axis IN('A')) |> SELECT old.product"],
+  ['unknown-expression-column', expressionHead + " |> PIVOT(SUM(missing + 1) FOR axis IN('A'))"],
+  ['unregistered-parameter', expressionHead + " |> PIVOT(SUM(amount + @offset) FOR axis IN('A'))"],
+  ['nested-aggregate', expressionHead + " |> PIVOT(SUM(MAX(amount) + 1) FOR axis IN('A'))"],
+  ['wrong-expression-type', expressionHead + " |> PIVOT(SUM(axis || 'B') FOR axis IN('A'))"],
+]) pipePivotRefusals.push({name: 'pipe-pivot-refusal-argument-expression-' + name,
+  format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput'});
+
+pipePivotSuccesses.push(
+  success('argument-expression-empty-global',
+    "SELECT 1 AS amount,'A' AS axis WHERE FALSE |> PIVOT(SUM(amount + 1) FOR axis IN('A'))",
+    [{A: null}], [number('A', true)]),
+  success('argument-expression-empty-keyed',
+    "SELECT 1 AS product,1 AS amount,'A' AS axis WHERE FALSE |> PIVOT(SUM(amount + 1) FOR axis IN('A'))",
+    [], expressionColumns),
+);

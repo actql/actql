@@ -402,14 +402,17 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
-Pipe `PIVOT(aggregate(column) [AS prefix] FOR axis IN ('value' [AS name], ...))
+Pipe `PIVOT(aggregate(expression) [AS prefix] FOR axis IN ('value' [AS name], ...))
 [AS range]` connects the selected
 [GoogleSQL PIVOT profile](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#pivot_pipe_operator)
 to the ordinary common `pivot` operation. This initial surface supports one
-SUM, AVG, COUNT, MIN or MAX of a current or range-qualified input column, a
+SUM, AVG, COUNT, MIN or MAX of a scalar expression over current or range-qualified
+input columns, parameters and existing scalar operations, a
 String axis and a nonempty list of static String bucket values. The current
 columns not consumed by the aggregate argument or axis become implicit group
-keys in their current order. Existing evaluated slots are reused, including
+keys in their current order. All input slots referenced by the argument, including
+receivers of property access, are consumed. A constant or parameter-only argument
+consumes no input columns. Existing evaluated slots are reused, including
 SET/RENAME slots. The common checker owns key, aggregate, numeric, type and
 NULL evidence; no fill, cast, default ceiling or uniqueness is invented.
 
@@ -447,7 +450,14 @@ bounds retain their original expressions and values. Other postfix operators,
 correlated outer-row inputs and the broader multiple-aggregate surface remain
 separate coverage, rather than being approximated by this connection.
 
-Multiple aggregates, aggregate expressions/modifiers,
+Scalar arguments use the ordinary expression lowerer and one private derive before
+pivoting. That private value is neither an implicit group key nor a public column.
+Current and immutable-range references retain their existing resolved slots: a
+reference to an old value does not consume a different current replacement slot.
+Nested aggregate calls are refused; property typing and NULL propagation remain
+owned by the common checker and expression evaluator.
+
+Multiple aggregates and aggregate modifiers,
 COUNT(*), non-String axes and NULL bucket constants remain unimplemented
 surface coverage. The common requirement that bucket values also be admitted
 output field names, with unique values and no collision with physical index
