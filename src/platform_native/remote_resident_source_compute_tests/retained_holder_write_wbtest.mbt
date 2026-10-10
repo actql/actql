@@ -150,7 +150,8 @@ fn retained_holder_write_row(
         observation_reads.val == 1
       },
       limits.ledger,
-    ) is Err(EvidenceDenied),
+    )
+    is Err(EvidenceDenied),
   )
   assert_eq(observation_reads.val, 2)
   let row = prepare().unwrap()
