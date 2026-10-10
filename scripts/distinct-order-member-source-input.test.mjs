@@ -36,7 +36,7 @@ test('receiver collisions reverse the expected order and NULL and multiplicity r
   assert.deepEqual(distinctOrderMemberOwnerProgram.stages[1].steps[4], {distinct: ['original_score', 'payload']});
   assert.deepEqual(distinctOrderMemberOwnerProgram.stages[1].results.rows.fields, ['original_score', 'payload']);
   assert.equal(distinctOrderMemberRefusals.length, 5);
-  assert.ok(distinctOrderMemberRefusals.every(value => value.expectedCode === 'ClientProgramImplementationLimit'));
+  assert.ok(distinctOrderMemberRefusals.every(value => value.expectedCode === 'ClientProgramInvalidInput'));
   assert.ok(distinctOrderMemberSuccesses.every(value => value.sourceReadSessionCount === 1));
 });
 
