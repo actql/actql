@@ -171,6 +171,8 @@ fn target_service(
         resource_origin: target_scope().resource_origin,
         operation: "salesforce:record:observe",
         path,
+        verb: @http.Get,
+        max_request_bytes: 0,
         secret_path: required_env("ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET"),
       },
     ],

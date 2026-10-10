@@ -1,3 +1,4 @@
+import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import test from 'node:test';
@@ -191,14 +192,7 @@ test('fixed preimages and CIDs match independent canonical JSON oracle', () => a
 test('public derivation names the exact shared contract', () => {
   assert.ok(readFileSync('src/sourceview_resolution/query_acquisition.mbt','utf8').includes(cid(contract)));
 });
-const moon = ['// Generated from the independent query-acquisition fixtures; do not edit.', ''];
-for (const [i,v] of vectors.entries()) {
-  moon.push('///|', `test "query acquisition preimage ${i}" {`,
-    `  let input = @json.parse(${JSON.stringify(canonicalText(v.body))})`,
-    '  let value = @canonical_json.from_json(input, 10000, 100, 100000)',
-    `  assert_eq(@canonical_json.cid_value(value, 100000, 10000, 100), ${JSON.stringify(v.cid)})`,
-    '}', '');
-}
+const moon = generateQueryEvidenceVectors('acquisition', vectors);
 const moonPath = 'src/canonical_json/query_acquisition.generated_test.mbt';
-if (process.argv.includes('--write')) writeFileSync(moonPath,moon.join('\n'));
-test('three-target identity fixture is not stale', () => assert.equal(readFileSync(moonPath,'utf8'),moon.join('\n')));
+if (process.argv.includes('--write')) writeFileSync(moonPath,moon);
+test('three-target identity fixture is not stale', () => assert.equal(readFileSync(moonPath,'utf8'),moon));

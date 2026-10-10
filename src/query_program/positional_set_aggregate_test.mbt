@@ -92,14 +92,48 @@ test "positional anonymous aggregate slots retain COUNT argument identity and em
 
 ///|
 test "anonymous aggregate physical slots cannot be addressed by authored HAVING" {
-  let source = "SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING aql_set_aggregate_1 > 0"
-  assert_true(
-    compile(
+  for
+    reference in [
+      "aql_set_aggregate_0", "AQL_SET_AGGREGATE_0", "`aql_set_aggregate_0`",
+    ] {
+    let source = "SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING " +
+      reference +
+      " > 0"
+    match
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        { ..values_context(), inputs: [], },
+        construction_limits(),
+      ) {
+      Err(Expression({ issue: @expression.UnknownReference, .. })) => ()
+      Ok(program) =>
+        fail("authored HAVING accepted the private slot: " + semantic(program))
+      Err(_) => fail("private HAVING failed for another reason")
+    }
+  }
+}
+
+///|
+test "anonymous aggregate HAVING retains explicit calls and authored aliases" {
+  for
+    source in [
+      "SELECT 0 AS n UNION ALL SELECT COUNT(*) HAVING COUNT(*) > 0 ORDER BY n", "SELECT 0 AS n UNION ALL SELECT COUNT(*) AS aql_set_aggregate_0 HAVING aql_set_aggregate_0 > 0 ORDER BY n",
+    ] {
+    let generated = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),
       { ..values_context(), inputs: [], },
       construction_limits(),
-    )
-    is Err(Expression({ issue: @expression.UnknownReference, .. })),
-    msg=source,
-  )
+    ).unwrap()
+    match
+      @check.check_parsed(
+        generated,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      _ => fail("source-free aggregates have no acquisition dependency")
+    }
+  }
 }

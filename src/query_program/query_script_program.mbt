@@ -44,6 +44,7 @@ fn lower_script_relation(
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
+  positional_set_output? : Bool = false,
 ) -> Input raise Abort {
   let (known, graphs) = if @query.cte_count(query) == 0 {
     (known, graphs)
@@ -103,6 +104,7 @@ fn lower_script_relation(
     retained~,
     carry_ranges~,
     graphs~,
+    positional_set_output~,
   )
 }
 
@@ -120,6 +122,8 @@ fn lower_script_relation_term(
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
+  positional_set_output? : Bool = false,
+  set_head? : Bool = false,
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     guard script_graph_input(query, graphs) is Some(graph) else {
@@ -136,6 +140,8 @@ fn lower_script_relation_term(
       known~,
       graphs~,
       retained~,
+      positional_set_output~,
+      set_head~,
     )
   }
   if @query.graph_query(query) is Some(_) {
@@ -220,6 +226,7 @@ fn lower_script_relation_term(
     preserved_scope=preserved,
     prefix_steps=steps.copy(),
     prefix_context=Some(context),
+    positional_set_output~,
   )
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
@@ -320,7 +327,8 @@ pub fn compile_query_script(
       match declaration.value {
         RelationQuery(query) => {
           let graph = script_graph_input(query, graphs)
-          if graph is Some(graph) {
+          if graph is Some(graph) &&
+            !(script_has_graph_rows(query) && @query.set_part_count(query) > 0) {
             let matched = @query.graph_query(query)
               .map(query => query.pattern is Some(_))
               .unwrap_or(false)
@@ -494,7 +502,9 @@ pub fn compile_query_script(
       })
       let current = split.map(pair => pair.0).unwrap_or(query)
       let retained : Array[RetainedResult] = []
-      let result = if script_has_graph_rows(current) {
+      let graph_row_set = script_has_graph_rows(current) &&
+        @query.set_part_count(current) > 0
+      let result = if script_has_graph_rows(current) && !graph_row_set {
         guard script_graph_input(current, graphs) is Some(graph) else {
           if stage_known.any(input => {
               input_relation_matches(@query.relation(current), input)
@@ -515,7 +525,7 @@ pub fn compile_query_script(
           graphs~,
           retained=Some(retained),
         )
-      } else if @query.graph_query(current) is Some(_) {
+      } else if @query.graph_query(current) is Some(_) && !graph_row_set {
         lower_script_keyed_graph_query(
           construction,
           current,

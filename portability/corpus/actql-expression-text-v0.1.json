@@ -188,7 +188,17 @@
           }
         ]
       }
-    }
+    },
+    {"source":"starts_with(value, prefix)","tree":{"starts_with":[{"field":"value"},{"field":"prefix"}]}},
+    {"source":"ends_with($value, $suffix)","tree":{"ends_with":[{"$param":"value"},{"$param":"suffix"}]}},
+    {"source":"starts_with('😀é', '😀')","tree":{"starts_with":[{"literal":"😀é"},{"literal":"😀"}]}},
+    {"source":"ends_with('', '')","tree":{"ends_with":[{"literal":""},{"literal":""}]}},
+    {"source":"starts_with(NULL, NULL)","tree":{"starts_with":[{"literal":null},{"literal":null}]}},
+    {"source":"sign(x)","tree":{"sign":{"field":"x"}}},
+    {"source":"sign(-1)","tree":{"sign":{"literal":-1}}},
+    {"source":"sign(-x)","tree":{"sign":{"negate":{"field":"x"}}}},
+    {"source":"sign(negate(1))","tree":{"sign":{"negate":{"literal":1}}}},
+    {"source":"sign(NULL)","tree":{"sign":{"literal":null}}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -223,6 +233,14 @@
     "len()",
     "len(x, y)",
     "to_decimal(x, $p, 2)",
-    "quantize(x, 18, 2, rounding)"
+    "quantize(x, 18, 2, rounding)",
+    "starts_with()",
+    "starts_with(x)",
+    "starts_with(x,y,z)",
+    "ends_with()",
+    "ends_with(x)",
+    "ends_with(x,y,z)",
+    "sign()",
+    "sign(x,y)"
   ]
 }

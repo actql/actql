@@ -1,3 +1,4 @@
+import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 // Independent finite execution/ownership oracle; not a database adapter or lowerer.
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -209,12 +210,7 @@ test('closed shapes do not replace receipt content, role, ordering and ownership
   assert.equal(multiple.receipts[0].received_rows,3);assert.equal(multiple.receipts[1].received_rows,2);
   assert.notEqual(multiple.observation.output.rows_cid,data.observation.output.rows_cid);
 });
-const moon=['// Generated from independent two-receipt preimages; do not edit.',''];
-for(const [i,v] of [...vectors.receipts,...vectors.records,vectors.observation].entries())moon.push(
-  '///|',`test "two receipt preimage ${i}" {`,
-  `  let input = @json.parse(${JSON.stringify(canonicalText(v.body))})`,
-  '  let value = @canonical_json.from_json(input, 10000, 100, 100000)',
-  `  assert_eq(@canonical_json.cid_value(value, 100000, 10000, 100), ${JSON.stringify(v.cid)})`,'}','');
+const moon = generateQueryEvidenceVectors('two_receipt', vectors);
 const moonPath='src/canonical_json/query_two_receipt.generated_test.mbt';
-if(process.argv.includes('--write'))writeFileSync(moonPath,moon.join('\n'));
-test('three-target preimages are current',()=>assert.equal(readFileSync(moonPath,'utf8'),moon.join('\n')));
+if(process.argv.includes('--write'))writeFileSync(moonPath,moon);
+test('three-target preimages are current',()=>assert.equal(readFileSync(moonPath,'utf8'),moon));
