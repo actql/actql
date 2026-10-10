@@ -29,6 +29,8 @@ class NativeFixture(PhysicalFixture):
         self.attempt = None
         self.workspace_ticket = 999
         self.queries = 0
+        self.native_stop_ready = True
+        self.native_cleanup_ready = True
         super().__init__(module, 1001, capacity=8_388_608, slots=64,
                          fuel=None, execution_bytes=536_870_912)
 
@@ -38,11 +40,11 @@ class NativeFixture(PhysicalFixture):
 
     def native_stopped(self, handle):
         assert handle == self.attempt and self.connection is not None
-        return 0 if self.connection.stop_new_io() else 1
+        return 0 if self.native_stop_ready and self.connection.stop_new_io() else 1
 
     def native_cleaned(self, handle):
         assert handle == self.attempt and self.view is not None
-        return 0 if self.view.close() else 1
+        return 0 if self.native_cleanup_ready and self.view.close() else 1
 
     def stop(self, ticket, reader):
         if ticket == self.workspace_ticket:
@@ -150,8 +152,8 @@ try:
         while setup.read_row(destination) is not None:
             pass
         assert setup.close()
-    environment_wire = (root / 'scripts/fixtures/python-local-source-environment.json').read_text().strip()
-    publication = {'environmentCid': 'sha256:b734cc90c9bffcd4098a70223685a9d9489992f426e861af2232e58261dd7424',
+    environment_wire = (root / 'scripts/fixtures/python-local-native-environment.json').read_text().strip()
+    publication = {'environmentCid': 'sha256:535c4c9bbefc918c4e1c67afcc8a7fae402d37b9113d039b3a03c758ae59a58e',
                    'aliases': [{'name': 'records', 'sourceRef': 'connector://crm/main/r#v',
                                 'sourceViewContractCid': 'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
                                 'schemaContractCid': 'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4'}], 'tableWrites': []}
@@ -309,7 +311,18 @@ try:
     for task in reversed(tasks):
         assert call('task', 'close', task) == 0
     assert call('compute', 'close', compute) == 0
+    root_before_cleanup = fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce)
+    assert root_before_cleanup > 16_777_216 + 67_108_864
+    fixture.native_stop_ready = False
+    assert call('source', 'close_attempt', fixture.attempt) == -9
+    assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == root_before_cleanup
+    fixture.native_stop_ready = True
+    fixture.native_cleanup_ready = False
+    assert call('source', 'close_attempt', fixture.attempt) == -9
+    assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == root_before_cleanup
+    fixture.native_cleanup_ready = True
     assert call('source', 'close_attempt', fixture.attempt) == 0
+    assert fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce) == 16_777_216 + 67_108_864
     assert call('source', 'close_configuration', source) == 0
     assert call('run', 'close_physical_start', start) == 0
     assert call('run', 'close', run) == 0
@@ -339,4 +352,5 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                             'checked_named_result', 'foreign_producer_refusal',
                             'parent_pin_retention', 'close_seals_reserved_chunk',
                             'lost_chunk_acknowledgement', 'exact_independent_result',
-                            'source_non_reexecution', 'formal_private_release']}))
+                            'source_non_reexecution', 'native_stop_and_cleanup_retry',
+                            'native_capacity_retained_until_cleanup', 'formal_private_release']}))

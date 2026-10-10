@@ -303,6 +303,15 @@ pub fn reserved(nonce : Int64) -> Int64 {
 pub fn close_pool(nonce : Int64) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   value.closing = true
+  // Pending Native work and its downstream consumers must retire through
+  // their existing stop/cleanup boundary before the Root can be closed.
+  if !value.native_attempts.is_empty() ||
+    !value.computes.is_empty() ||
+    !value.tasks.is_empty() ||
+    !value.result_exports.is_empty() ||
+    !value.result_chunks.is_empty() {
+    return -9
+  }
   let result = status(@buffers.close_pool(value.pool))
   if result != 0 {
     return result

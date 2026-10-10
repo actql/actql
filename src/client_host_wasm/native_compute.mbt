@@ -101,13 +101,28 @@ pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
   let limits = @native_host.configured_native_host_limits(
     @local_run.local_native_source_configuration(configuration),
   )
-  let source = match
-    @native_host.native_host_retained_source(
+  // This installed ABI receives bounded non-streaming receipts. Use the
+  // matching existing capture owner, not a retained-stream material that
+  // was never staged. The original attempt retains its capacity throughout
+  // every Compute and Result consumer.
+  let capture = match
+    @native_host.capture_native_host_source(
       native,
       observation,
+      false,
+      limits.output_rows,
+      limits.retention,
       limits.output_entries,
       limits.output_name_bytes,
     ) {
+    Ok(capture) => capture
+    Err(_) => {
+      record.outcome = Some(Err(@local_run.Configuration))
+      record.pending = false
+      return 0
+    }
+  }
+  let source = match @native_host.native_host_source_capture_source(capture) {
     Ok(source) => source
     Err(_) => {
       record.outcome = Some(Err(@local_run.Configuration))

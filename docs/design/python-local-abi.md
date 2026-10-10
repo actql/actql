@@ -604,7 +604,7 @@ configuration carries current `read_account`, `registry`, `values`, optional
 `fragment` and optional `ordered` bodies; explicit NULL is not an omitted body.
 
 Configuration rechecks the existing read Account Owner, asks the Native Owner
-for the exact retained capture, and configures existing captured Compute on the
+for the exact bounded buffered capture, and configures existing captured Compute on the
 same root Ledger. It binds the original accepted `LocalRunPhysicalStart`; no
 fresh physically-unstarted assertion or replacement Run start is manufactured.
 The Host reference is retained before start binding. Interrupted construction
@@ -683,3 +683,14 @@ failure and distinguishes setup boundaries without interpreting messages or
 dispatching a replacement attempt. These private categories are not public
 Source reasons; caller disclosure and public diagnostic contracts remain
 separate gates.
+
+The current receipt ABI selects the existing non-streaming Native receiver.
+Before constructing that receiver, Core reserves its declared buffered retention
+and materialization capacity on the same Root Ledger. Compute captures that
+receiver through `capture_native_host_source` with the buffered profile; it does
+not request a retained stream material that was never staged. The reservation
+outlives every Compute and Result consumer and is settled only after physical
+stop, Native closure and physical cleanup. A failed cleanup keeps the original
+attempt handle and its reservation. Root pool closure refuses remaining Native
+and downstream custody instead of clearing those records. This is a declared
+bounded envelope, not a claim about total Python/JIT/allocator RSS.

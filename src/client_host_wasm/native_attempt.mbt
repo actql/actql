@@ -9,6 +9,7 @@ priv struct StoredNativeAttempt {
   mut closing : Bool
   mut event_pending : Bool
   mut compute_reserved : Bool
+  mut capacity : @resources.Reservation?
   mut event_borrow : @buffers.BufferBorrow?
   mut failed : Bool
   mut observation : @native_acquisition.DuckDBNativeObservation?
@@ -59,6 +60,7 @@ pub fn reserve_native_attempt(
     closing: false,
     event_pending: false,
     compute_reserved: false,
+    capacity: None,
     event_borrow: None,
     failed: false,
     observation: None,
@@ -108,6 +110,25 @@ pub fn start_native_attempt(nonce : Int64, handle : Int) -> Int {
       record.outcome = Some(Err(issue))
       return 0
     }
+  }
+  // Reserve the existing bounded buffered receiver and materialization
+  // envelope before construction or any physical dispatch. Failed or unknown
+  // invocations retain this same reservation until stop and cleanup complete.
+  guard @native_host.configured_native_capacity(
+      @local_run.local_native_source_configuration(configuration),
+    )
+    is Some(capacity) else {
+    return -4
+  }
+  match
+    @resources.reserve_attempt(
+      value.root,
+      0L,
+      capacity.retained_bytes,
+      capacity.execution_bytes,
+    ) {
+    Ok(reservation) => record.capacity = Some(reservation)
+    Err(_) => return -4
   }
   let exact = record.exact_attempt
   let outcome = @local_run.start_local_native_source(
@@ -192,6 +213,12 @@ pub fn close_native_attempt(nonce : Int64, handle : Int) -> Int {
       record.event_borrow = None
     }
     None => ()
+  }
+  if record.capacity is Some(capacity) {
+    match @resources.settle_reservation(value.root, capacity) {
+      Err(_) => return -10
+      Ok(_) => record.capacity = None
+    }
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
