@@ -357,6 +357,21 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
   RunBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
 }
 
+type ResidentEffectReviewRetention
+pub fn ResidentEffectReviewRetention::persist(Self, @publication_store.Store) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::report(Self) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::retry_cleanup(Self) -> Result[Bool, ResidentEffectReviewRetentionIssue]
+
+pub(all) enum ResidentEffectReviewRetentionIssue {
+  Unavailable
+  InvalidConfiguration
+  Capture(ResidentEffectCaptureCustodyIssue)
+  Preview(ResidentEffectPreviewCustodyIssue)
+  Preparation(ResidentEffectReviewCheckpointIssue)
+  Checkpoint(ResidentEffectCheckpointCustodyIssue)
+}
+
 pub(all) enum ResidentEffectRunCaptureIssue {
   Unavailable
   Context(@run_publication_host.ClientEffectCapturedRunIssue)
@@ -594,6 +609,7 @@ pub fn ResidentSourceCompute::persist_effect_source_payload(Self, @publication_s
 pub fn ResidentSourceCompute::prepare_effect_acquired_evidence(Self, String, String, String, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentSourceCompute::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[@physical_strategy.CapturedEffectLocalResultExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, ResidentEffectCaptureCustody, ResidentEffectPreviewCustody, String, String, String, @checkpoint_runtime.WireLimits) -> Result[ResidentEffectReviewCheckpoint, ResidentEffectReviewCheckpointIssue]
+pub fn ResidentSourceCompute::prepare_effect_review_retention(Self, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ResidentEffectResultCapture, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, @run_publication.PublicationContract, String, String, String, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[ResidentEffectReviewRetention, ResidentEffectReviewRetentionIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::read_effect_proposals(Self, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int, Int, (Int, String, String) -> Result[Unit, Unit]) -> Result[Int, ResidentEffectProposalIssue]

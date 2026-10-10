@@ -365,11 +365,13 @@ fn retained_holder_effect_transfer_capture(
   |> ignore
   if provider {
     retained_holder_provider_review(
+      holder,
+      journal,
       consumer,
       source_owner,
       materials,
       inputs,
-      producer.executed.request,
+      @resident.resident_retained_consumer_request(holder),
       original_run_invocation,
       original_observation_set,
       dependency,

@@ -16,6 +16,12 @@ import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/platform_native/credential_resource" @resource,
   "actql/actql/remote_credential" @credential,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/platform_native/signature",
+  "actql/actql/checkpoint_runtime" @checkpoint,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/platform_native/publication_store" @store,
 }
 
 import {
