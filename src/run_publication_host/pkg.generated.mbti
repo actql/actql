@@ -310,6 +310,8 @@ pub fn client_effect_result_import_observation_json(ClientEffectResultImportObse
 
 pub fn client_effect_run_materials_request_for_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientRequestIdentityIssue]
 
+pub fn client_effect_run_receipt_bindings(ClientEffectRunMaterials, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEffectReceiptBindingsIssue]
+
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
 pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
@@ -1440,6 +1442,12 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
 } derive(@debug.Debug)
 
 type ClientEffectProducerArtifact
+
+pub(all) enum ClientEffectReceiptBindingsIssue {
+  ForeignMaterials
+  Bindings(ClientEmptyInvocationBindingsIssue)
+  TemplateMismatch
+}
 
 pub(all) enum ClientEffectResultImportIssue {
   ForeignInput

@@ -86,10 +86,13 @@ test "current path variants retain independent exact work workspace and every pr
   // No measured work supplies this oracle.
   // Start index (1), frontier path + its node (2), node-array slots (2),
   // empty edge-array slot (1) overlap until the private row commits.
-  let workspace = 1 + 2 + 2 + 1
+  // Bounded identity equality peaks at the selector table (1), checked
+  // root/comparator (2), and six independently counted live frames.
+  let workspace = Int::max(1 + 2 + 2 + 1, 1 + 2 + 6)
   for mode in ["walk", "trail", "acyclic"] {
     for direction in ["out", "in", "both"] {
       let work = 3 +
+        (32 + 1 + 1 + 390 + 1) +
         3 +
         1 +
         2 +
@@ -241,7 +244,16 @@ test "current path variants retain independent exact work workspace and every pr
   // comparison per eligible edge. TRAIL admits every first edge, so all five
   // definition-scoped copies of the 100 source edges each cost one scan and
   // one label comparison after the eleven zero-hop control/value steps.
-  let labeled_work = 3 + 3 + 1 + 2 + 1 + 1 + 2 * 5 * edge_count
+  // Selector admission and membership: 32 tree polls, one admission
+  // terminal, one comparison setup, 390 equality polls, one terminal.
+  let labeled_work = 3 +
+    (32 + 1 + 1 + 390 + 1) +
+    3 +
+    1 +
+    2 +
+    1 +
+    1 +
+    2 * 5 * edge_count
   let labeled_owner = keyed_graph_receiver(
     graph_owner,
     body="[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +

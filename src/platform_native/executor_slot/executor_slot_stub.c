@@ -141,6 +141,17 @@ int32_t actql_executor_slot_spawn(
   }
   char *path = actql_executor_slot_text(executable, executable_length);
   if (path == NULL) return -1;
+  // Reject a target already known to be unusable before handing over the
+  // slot. POSIX permits spawn to return a pid and report exec failure only
+  // through child exit 127; that is not a reliable admission error channel.
+  // This check does not make the later exec atomic or turn its exit into
+  // proof of execution. Post-spawn failures still belong to the child owner.
+  struct stat target;
+  if (stat(path, &target) != 0 || !S_ISREG(target.st_mode) ||
+      faccessat(AT_FDCWD, path, X_OK, AT_EACCESS) != 0) {
+    free(path);
+    return -1;
+  }
   char *block = malloc((size_t)arguments_length);
   if (block == NULL) {
     free(path);
