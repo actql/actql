@@ -735,3 +735,33 @@ it is not a passed test. The added unchanged-input assertion passed 1/1
 (`run-wfFOzS`, `focused-test-9D0Pkd`). Public Host, external packed and
 portable checks of this new source are still pending. Literal/Relation
 identity lookup admission remains a separate synchronous-prefix obligation.
+
+### Fixed-source selector verification
+
+At clean source `bdfc8e3f553489f654d94867c3da8029ed0281bf`, the five
+selected JS files passed 13/13 (`run-VdX6In`, `focused-test-VXMqAZ`):
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 240 -- --target js src/value_admission/recheck_object_names_wbtest.mbt src/query_integration/graph_selector_recheck_wbtest.mbt src/query_integration/graph_reach_wbtest.mbt src/query_integration/graph_shortest_wbtest.mbt src/query_integration/graph_predicate_custody_wbtest.mbt
+```
+
+The cursor and selector files also passed 5/5 each on Wasm and Native in one
+guarded, sequential selection (`run-xaECPB`, `focused-test-VCEFwh`,
+`focused-test-9nA96O`). These targets use the same independent 14/26-work and
+5/6-workspace expectations, cancellation point and original-Text assertion.
+The preceding wrapper invocation `run-ngrmSn` failed before Moon started
+because Node received `--target` as its own option; that receipt remains a
+failed command and is not product or target coverage.
+
+All three targets used MoonBit `0.10.12+1634b282e` and Node `24.21.0`.
+The Node version is a supported local runtime, not the CI runtime pin.
+No SQLite fixtures, full Core suite, hosted CI or Preview ran.
+
+Public runtime preparation and the eight Host cases did not start:
+`run-dpwzQd` and `run-PEBDFd` refused occupied shared heavy slots. No foreign
+lock or process was changed. This source therefore still lacks repaired
+public Host execution, clean-SHA five-package acceptance and fresh-process
+Result reads. The next public check is the existing eight-case Graph
+selection, followed by the two prepared narrow packed consumers sharing one
+verified five-package manifest. Parent #1284 remains unmerged; #1296 retains
+that dependency rather than changing its base prematurely.
