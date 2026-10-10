@@ -23,14 +23,20 @@ test('explicit read-only scope and credential reference are preserved without pr
   const programs = gcsAcceptancePrograms(checked, 'storage');
   assert.deepEqual(programs.capture.stages[0].inputs.files.request.paths, ['test/e\u0301/a.csv']);
   assert.deepEqual(programs.empty.stages[0].inputs.files.request.paths, []);
-  assert.deepEqual(programs.capture.stages[0].steps[0].join.on,
+  assert.deepEqual(programs.capture.stages[0].steps[0],
+    {from: 'files', filter: 'name IS NOT NULL', as: 'listed'});
+  assert.deepEqual(programs.capture.stages[0].steps[1],
+    {from: 'listed', select: ['resource', 'version', 'name', 'path', 'media_type',
+      'size_bytes', 'modified_at'], as: 'listing_capture'});
+  assert.deepEqual(programs.capture.stages[0].steps[2].join.on,
     [{left: 'resource', right: 'resource'}, {left: 'version', right: 'version'}]);
   assert.equal(programs.capture.stages[0].inputs.contents.request, undefined);
   assert.equal(programs.capture.stages[0].inputs.files.view, 'records');
   assert.equal(programs.capture.stages[0].inputs.contents.view, 'records');
-  assert.deepEqual(programs.capture.stages[0].steps[1],
+  assert.equal(programs.capture.stages[0].steps[2].join.left, 'listing_capture');
+  assert.deepEqual(programs.capture.stages[0].steps[3],
     {from: 'captured', assert_rows: {unique_by: ['name']}, as: 'unique_names'});
-  assert.deepEqual(programs.capture.stages[0].steps[2],
+  assert.deepEqual(programs.capture.stages[0].steps[4],
     {from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered'});
   assert.deepEqual(programs.capture.stages[0].results.files.fields, ['name', 'content']);
 });

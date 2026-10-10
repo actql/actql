@@ -90,6 +90,41 @@ unknown writes. Do not upload or delete that custody as ordinary diagnostics.
 The successful disposable npm installation is removed only after all children
 finish; custody is never inside that disposable installation.
 
+## Explicit real GCS Content diagnostic
+
+`node scripts/test-gcs-files-content.mjs /absolute/authorized-environment.json`
+uses the standard installed GCS Source through public Local and HTTPS Clients.
+It requires an explicit manifest accepted by
+`scripts/gcs-files-content-environment.mjs`: project, bucket, exact prefix,
+impersonated service account, logged-in account, absolute gcloud executable,
+read-only permissions, finite campaign limits, cost allowance and independently
+authored expected object digests/sizes. Merely having credentials is not
+authorization to choose another bucket or enable writes.
+
+The gcloud CLI must have a supported Python interpreter; the operator can name
+it with the CLI's existing `CLOUDSDK_PYTHON` environment variable. The harness
+does not install Python, create secret keys, mutate IAM or log token output.
+Short-lived tokens stay in memory behind the existing scoped credential port.
+The same campaign shares a pre-send request/response reservation and deadline
+across both public entrances; failures do not automatically remint or retry.
+Response reservations bound maximum allowed bytes, not measured received bytes.
+The dollar allowance is not an automatic billing hard cap.
+
+The authored Program explicitly uses the installed query Owner's current
+scan/filter/select capture boundary, retaining every listing column before
+resource/version keyed JOIN. A one-item page ceiling exercises real pagination.
+The test compares ContentRef byte digests and sizes with independent expected
+objects, rereads the same Named Result by reattach, and verifies an empty
+selection sends nothing. It performs no object writes, deletes or version-change
+injection; those require separate explicit authority and evidence.
+
+Evidence and original Run/credential journals remain in the reported
+`gcs-real-content-*` directory, including failures. Synthetic Host signing keys
+are private custody, not uploadable diagnostics. This runner records the actual
+checkout state and compiled runtime digest. Its source-built result must not be
+described as pristine packed acceptance, process-restart acceptance, paid Model
+acceptance or complete INFER/COMMAND composition.
+
 ## Assessing the result
 
 Report both elapsed wall span (first Client dependency start to aggregate finish)

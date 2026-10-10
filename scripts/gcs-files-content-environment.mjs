@@ -67,7 +67,15 @@ export function gcsAcceptancePrograms(manifest, connectorId = 'gcs-acceptance') 
       // view cannot prove that this selector is an audience-visible Source.
       files: {connector: connectorId, resource: 'files', view: 'records', request: {paths, glob: null}},
       contents: {connector: connectorId, resource: 'contents', view: 'records'},
-    }, steps: [{join: {left: 'files', with: 'contents', kind: 'inner',
+    }, steps: [
+    // The current physical query owner admits scan -> filter -> select.
+    // Keep that boundary explicit in the authored Program; it is not a
+    // runtime rewrite or a synthetic completed Source observation. All seven
+    // listing columns are admitted and captured before keyed content lookup.
+    {from: 'files', filter: 'name IS NOT NULL', as: 'listed'},
+    {from: 'listed', select: ['resource', 'version', 'name', 'path', 'media_type',
+      'size_bytes', 'modified_at'], as: 'listing_capture'},
+    {join: {left: 'listing_capture', with: 'contents', kind: 'inner',
       on: [{left: 'resource', right: 'resource'}, {left: 'version', right: 'version'}],
       select: {name: 'left.name', content: 'right.content'}}, as: 'captured'},
     // The Source name is unique within this bucket. Have the existing row
