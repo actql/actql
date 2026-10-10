@@ -1028,7 +1028,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:6a8154a31e6220512566868ac1735675d01c7969d141085a6232f0d9263e12ec');
+    'sha256:c7afaeaf0c46473da6eb11da3c502c5c5b2793c6161524ea9ad198adcef8dba6');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1221,13 +1221,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:7a2e4af1da9b5dfbb80dbf5e3f7e2fff3f95501bb4707a9434d134277e947d6c');
+    'sha256:281e71de4cb4c983b1e60faae2e19a59e60fa149d8a9ceb2bf056034ad19e23f');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:6dafe6451ebeb4a8153c319867fd3a51c680ce99c5fa435f291449e95f3b9975');
+    'sha256:74775dd3ac4354fe2f1a558ce3070d4eed8a416d104e96c638c8695e9b90128f');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:a307d0fe1793ba42c90ddb0670d4c49811bc01be640e072aa2a11677f9c3a820');
+    'sha256:b848f61ee993ef5492e31cc34d3a14308b4057af97ef974fbec5726b814856bd');
   assert.equal(current.run.run_definition_cid,
-    'sha256:6a8154a31e6220512566868ac1735675d01c7969d141085a6232f0d9263e12ec');
+    'sha256:c7afaeaf0c46473da6eb11da3c502c5c5b2793c6161524ea9ad198adcef8dba6');
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
