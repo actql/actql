@@ -126,6 +126,16 @@ reopens its same `trusted-clock.sqlite` within the invocation and checks the
 unchanged 1000/1002 monotonicity assertions. The native HTTP harness already
 creates its own invocation root and is unchanged.
 
+Full Core and selected `platform_native/remote_journal` diagnostics also compile
+an owned, small C fixture executable. The WAL fixture runs it through
+`posix_spawn`, using the same configured SQLite library in a fresh process. It
+commits the independent version-3/old-Coordinator fixture and exits without
+SQLite close; the existing non-mutation and cleanup-retry assertions remain
+required. SQLite is never called between fork and exec. Compilation or fixture
+failure is a failure, with input/DB evidence retained in that invocation's
+namespace. `cc` and the SQLite development headers are required for this test
+fixture; no install-time download or product execution path is added.
+
 The wrapper defaults the SQLite library to the supported platform's system
 library; `ACTQL_TEST_NATIVE_SQLITE_LIBRARY` can override it. After a successful,
 stopped child, owned scratch is removed and checked absent. Failure, a signal,
