@@ -1821,7 +1821,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
 - `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `sqrt`, `abs`, `sign`, `round`, `trunc`, and `floor`;
 - the authoring-only string `template` form;
-- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, and literal `replace`;
+- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
 - explicit `to_number`, `to_string`, `to_boolean`, and `to_timestamp`;
 - `to_decimal`, `try_decimal`, `quantize`, and `decimal_divide`; and
@@ -1846,6 +1846,29 @@ invalid. Null interpolation follows the `to_string` and `concat_strict`
 rules and therefore produces null. Parameters and nested expressions are not
 template placeholders; authors use the ordinary explicit expression grammar
 when those are required.
+
+<!-- requirement-block: scalar-expressions.google-substring -->
+`substring(value, start[, length])` MUST use the GoogleSQL STRING position
+rule in the common scalar owner: positive positions are one-based, zero and
+positions below negative input scalar length select the first scalar, other
+negative positions count from the end, and positions beyond the input select
+an empty string. An omitted length retains the suffix, zero length returns
+empty, and positive length retains at most that many Unicode scalars. Every
+supplied child evaluates once in value/start/length order; any NULL result
+propagates after all children succeed and before domain validation. A
+non-integer or unsafe start/length, or negative length, fails only when the
+non-null call is demanded. Index arithmetic is exact and clamped before
+addition. Retained scalars, including astral, combining, NUL and line breaks,
+remain unchanged. The result retains known input `max_codepoints` and
+`max_utf8_bytes`, drops `min_length`, and unions supplied operand nullability.
+The closed source body is `{substring: {value, start, length?}}`; omission is
+preserved in the corresponding machine body. SQL `SUBSTR` and `SUBSTRING`
+select this same operation, with the existing finite binary64 safe-integer
+range rather than the complete GoogleSQL INT64 domain. BYTES is not admitted.
+Substring has no text-time envelope/profile requirement; nested profile calls
+retain their own obligations, input preflight and selected resource limits.
+All scalar logical-work, live-value, output-byte, workspace, failure and
+cooperative cancellation requirements remain applicable.
 
 Explicit String transformations follow their declared Unicode and locale-independent laws; ordinary String values are preserved. `replace`
 is literal substring replacement, not regex. `date_add` and `date_diff`
@@ -1952,6 +1975,7 @@ atomic, not null, except where the named function explicitly specifies it.
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at both ends; exact interior preserved and strict-null | RelA |
 | `ltrim`, `rtrim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at the leading or trailing end respectively; exact remaining scalars preserved and strict-null | RelA |
+| `substring` | S, N[, N] → S | GoogleSQL scalar positions; optional length; strict NULL; demanded index-domain failures; known input upper bounds retained | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
 | `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
@@ -2200,7 +2224,8 @@ an optional final argument, not expression syntax.
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
 | `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
-| `split_part(value, delimiter, index)`, `substring(value, start, length)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
+| `substring(value, start[, length])` | common scalar substring named body; omitted length is distinct from explicit NULL |
+| `split_part(value, delimiter, index)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
 | `try_number(value)`, `nfkc(value)`, `case_fold(value)` | [Text, time, and regular expressions](#text-time) unary expressions |
 | `parse_timestamp(value, pattern)`, `try_timestamp(value, pattern)`, `format_timestamp(value, pattern)` | [Text, time, and regular expressions](#text-time) fields |
 | `regex_match(value, pattern [, flags])`, `regex_extract(value, pattern, capture [, flags])`, `regex_replace(value, pattern, replacement [, flags])` | [Text, time, and regular expressions](#text-time) fields; flags, when present, are a string literal |
@@ -2912,10 +2937,19 @@ no empty array is guessed to be json or left dynamically untyped.
 ### Text, time, and regular expressions
 
 The optional `actql-text-time/0.1` pure scalar profile adds exactly
-`split_part`, `substring`, `utf8_truncate`, `try_number`, `parse_timestamp`,
+`split_part`, `utf8_truncate`, `try_number`, `parse_timestamp`,
 `format_timestamp`, `regex_match`, `regex_extract`, `regex_replace`, `nfkc`,
 `case_fold`, and `try_timestamp`.
 Profile admission follows [Conformance profiles](conformance.md#conformance-profiles).
+The inherited text-time base remains pinned to its original body. Its former
+fixed-three-argument substring membership, Host envelope and interval law are
+superseded by the current common scalar [substring rule](#scalar-expressions).
+Current text-time source/envelope/barrier schemas omit that operation; earlier
+bodies and CIDs are not reinterpreted. A nested profile call receives a checked
+substring String upper bound when known, otherwise the usual selected-policy
+runtime input preflight. Profile-derived extents across a substring may be
+conservatively widened; identical admission for every old nested profile plan
+is not implied.
 
 <!-- requirement-block: text-time.implementations-must-use-those-pinned-definitions-as-the-semantic-authority text-time.host-library-icu-and-locale-defaults-must-not-define-normalization -->
 This profile pins its Unicode tables, timestamp grammar, and regex grammar.
@@ -2935,7 +2969,7 @@ or pattern syntax.
 ```
 
 <!-- requirement-block: text-time.it-must-not-split-a-unicode-scalar -->
-`split_part` and `substring` use the one-based Unicode-scalar positions defined
+`split_part` uses the one-based Unicode-scalar positions defined
 below; array subscripts remain zero-based. String position/length arguments
 are number expressions checked at evaluation as safe integers without rounding.
 `utf8_truncate` requires a non-negative safe integer byte limit and returns the
@@ -2950,11 +2984,7 @@ Unicode scalar.
 | `split_part`: part outside range | empty string, not null |
 | `split_part`: empty delimiter | one part containing the whole string |
 | `split_part`: empty input | one empty part |
-| `substring(s,start,length)` | retain scalar positions j with 1 <= j <= len(s) and start <= j < start + length; interval arithmetic is exact |
-| `substring`: length = 0 or no retained positions | empty string |
-| `substring`: start <= 0 | same interval intersection; e.g. substring('abcd',0,2) = 'a' |
-| `substring`: negative length, non-integer/unsafe start or length | evaluation failure |
-| either function: any null operand | null, after eager operand evaluation |
+| `split_part`: any null operand | null, after eager operand evaluation |
 
 Returned strings retain the operation's resulting scalar sequence without
 implicit NFC or line-break conversion. Explicit normalization/case-folding
@@ -3034,10 +3064,8 @@ scopes and cannot be bypassed by lazy evaluation. Logical output/size bounds
 use the pinned Unicode/regex/time laws with the string rules above;
 physical scheduling and resource consumption are not deterministic logical charges.
 
-For substring and split_part, the canonical conservative output-byte ceiling is
-the input UTF-8 ceiling. Substring tightens it to `min(input_bytes, 4 * length)`
-only for a bound nonnegative safe-integer literal length. `utf8_truncate`
-similarly uses `min(input_bytes, max_bytes)` for a bound nonnegative safe-integer
+For split_part, the canonical conservative output-byte ceiling is
+the input UTF-8 ceiling. `utf8_truncate` uses `min(input_bytes, max_bytes)` for a bound nonnegative safe-integer
 literal limit, otherwise the input ceiling. These calculations use exact
 integer arithmetic before comparison with Host limits. Dynamic lengths and
 invalid conversion-data literals do not trigger speculative evaluation or a
@@ -3159,7 +3187,7 @@ empty parts array. Its literal UTF-8 byte total, capture reference count and
 maximum capture index (zero with no references) describe these parts, not the
 source spelling or a deduplicated set of captures.
 
-The operation/input matrix is closed: `split_part`, `substring`,
+The operation/input matrix is closed: `split_part`,
 `utf8_truncate`, `try_number`, `parse_timestamp`, `regex_match`,
 `regex_extract`, `regex_replace`, `nfkc`, `case_fold`, and `try_timestamp`
 consume strings; `format_timestamp` consumes a timestamp. `parse_timestamp`
@@ -10103,22 +10131,22 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:f4367116dba3df8d0a584418c7056e50d12f26054fae3f9600f2f5d0d438f73f
+../../spec/contracts/actql-aoa.json# sha256:6bcbd8e694cd666405cf97ad9aea06a9e60aa980940e5ed35905b88b2564c948
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551
-../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
+../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:fec9ffe5df68248b60591c4d61d4e01e55582a5dd23471831634773b07a8a2c6
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:0adec547b46507d86db1eb108e74fc7bf9fac688718b59f4cb709412374d78a1
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:261a090633a215f799e7e48362b64b586d3738c5cbbf87a11dd51a7cd4c95a02
-../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:ffaa83b4f73e4fad41d9c471e02191d4248af71a766348fe623573ab615c7215
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:d9bd018e85640a75fea2cbd4c110639fffa31b355b2a7e48c1b453365e7a8d4b
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:b7821db1590068f28f739b5ca4c53f74a499fea7bf33e9bca0b32f57e2ad0149
+../../spec/contracts/actql-expressions.json# sha256:a23cd070a4f1c2ee0c29d0badba3fd512ad50d073cbf2eef1a0373fe5186cb9a
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:f3f0837535533655370371c7568cd86736867ba3c88bde6e18cec035c87de1ae
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:cda205e483eb8c0ecdeda4ebbb40fb2e52d854781f8a2c4dc3da40c3ceecd9e0
+../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
+../../spec/contracts/actql-expressions.json#/laws sha256:1a5c3af25a5e5e273a420d60a919dab23b37564c4b0861a41756d51282fcf1d4
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:3e7841605225124517ebbf31bb260e1a81610b3c3663b9c4c6d4bc6be3404898
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:2eacc78ca34f0981f3f474298e341eca1c45571e743093a012ea4c45fc6436da
 ```
 
 <!-- stage-contract-pins:start -->

@@ -88,8 +88,8 @@ fn Parser::call(
     | "to_decimal"
     | "try_decimal"
     | "split_part"
-    | "substring"
     | "vector_score" => if name == "date_trunc" { (2, 2) } else { (3, 3) }
+    "substring" => (2, 3)
     "quantize" => (4, 4)
     "decimal_divide" => (5, 5)
     "regex_match" => (2, 3)

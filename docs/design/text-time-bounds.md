@@ -38,13 +38,15 @@ provenance categories, not new wire spellings for `envelope.input.source`.
 
 The fixed reference inspected is Sketch `87dc7144`,
 `src/actql-expression-profile-v2.ts::checkTextTimeProfileV2`. The language and
-expression contract remain authoritative, especially the refined substring and
-truncate laws. With input points P and bytes B:
+expression contract remain authoritative. The numeric owner retains the inherited
+substring formula for pinned-law coverage, but current common substring is a
+scalar operation and does not select that profile formula. With input points P
+and bytes B:
 
 | Operation | Output-byte ceiling |
 | --- | --- |
 | split_part, regex_extract | B |
-| substring | min(B, 4 × bound safe nonnegative length), otherwise B |
+| inherited profile substring (not selected by current common substring) | min(B, 4 × bound safe nonnegative length), otherwise B |
 | utf8_truncate | min(B, bound safe nonnegative max_bytes), otherwise B |
 | try_number | 32 |
 | regex_match | 5 |
@@ -78,7 +80,8 @@ complete sealed envelopes. No matcher, lowerer or runtime enforcement is added.
 
 ## Verification and remaining connection
 
-Tests use explicit independent arithmetic examples for all twelve operations,
+Tests use explicit independent arithmetic examples for the eleven current profile
+operations and the retained inherited substring formula,
 multibyte and null inputs, cross-constrained field bounds, invalid/dynamic length
 operands, exact output/replacement ceilings, large integer products and retained
 child provenance. Both ownership and the distinction between derived output

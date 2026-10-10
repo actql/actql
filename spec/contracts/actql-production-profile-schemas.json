@@ -10,9 +10,9 @@
     "artifact_source": "sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632",
     "artifact_barrier": "sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd",
     "artifact_evidence": "sha256:702409a249ef4617394564dc251f2a361a5da1494d220fe16e14d7563153349e",
-    "text_time_expression": "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
-    "text_time_evaluation_envelope": "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
-    "text_time_evaluation_barrier": "sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237",
+    "text_time_expression": "sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd",
+    "text_time_evaluation_envelope": "sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f",
+    "text_time_evaluation_barrier": "sha256:f16cab0a63c51d1dee37a0b279e9a2ffe2c35bf165077d68ed8de66cd5bc06bf",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -1346,126 +1346,6 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "substring"
-          ],
-          "properties": {
-            "substring": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "value",
-                "start",
-                "length"
-              ],
-              "properties": {
-                "value": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "field"
-                      ],
-                      "properties": {
-                        "field": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "literal"
-                      ],
-                      "properties": {
-                        "literal": {}
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "$param"
-                      ],
-                      "properties": {
-                        "$param": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      }
-                    }
-                  ]
-                },
-                "start": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "literal"
-                      ],
-                      "properties": {
-                        "literal": {
-                          "type": "integer",
-                          "minimum": 0
-                        }
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "$param"
-                      ],
-                      "properties": {
-                        "$param": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      }
-                    }
-                  ]
-                },
-                "length": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "literal"
-                      ],
-                      "properties": {
-                        "literal": {
-                          "type": "integer",
-                          "minimum": 0
-                        }
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "$param"
-                      ],
-                      "properties": {
-                        "$param": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
             "utf8_truncate"
           ],
           "properties": {
@@ -2290,7 +2170,6 @@
         "operation": {
           "enum": [
             "split_part",
-            "substring",
             "utf8_truncate",
             "try_number",
             "parse_timestamp",
@@ -3600,126 +3479,6 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "substring"
-                ],
-                "properties": {
-                  "substring": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "value",
-                      "start",
-                      "length"
-                    ],
-                    "properties": {
-                      "value": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "field"
-                            ],
-                            "properties": {
-                              "field": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "literal"
-                            ],
-                            "properties": {
-                              "literal": {}
-                            }
-                          },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "$param"
-                            ],
-                            "properties": {
-                              "$param": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "start": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "literal"
-                            ],
-                            "properties": {
-                              "literal": {
-                                "type": "integer",
-                                "minimum": 0
-                              }
-                            }
-                          },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "$param"
-                            ],
-                            "properties": {
-                              "$param": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
-                      },
-                      "length": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "literal"
-                            ],
-                            "properties": {
-                              "literal": {
-                                "type": "integer",
-                                "minimum": 0
-                              }
-                            }
-                          },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "$param"
-                            ],
-                            "properties": {
-                              "$param": {
-                                "type": "string",
-                                "minLength": 1
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
                   "utf8_truncate"
                 ],
                 "properties": {
@@ -4555,7 +4314,6 @@
               "operation": {
                 "enum": [
                   "split_part",
-                  "substring",
                   "utf8_truncate",
                   "try_number",
                   "parse_timestamp",
@@ -7063,5 +6821,5 @@
       }
     }
   },
-  "registry_cid": "sha256:abb3d0a2e0c6ba074eaa52c47f3f47dc984572979641212dc41cf5548dea3b7e"
+  "registry_cid": "sha256:5280a11d1c439b65e25b0281183fe21dfb99bb1483fa4bdcfd43fc960b7674c9"
 }
