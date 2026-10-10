@@ -54,7 +54,10 @@ export const graphRowsJoinRefusals = [
   ['shadowed-graph', nodePrefix + 'WITH g AS (SELECT 1 AS id) FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.node_key'],
   ['graph-returning-input', nodePrefix + 'FROM g |> normalize_graph() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT rr.tag'],
   ['invalid-bound', nodePrefix + 'FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 0 |> SELECT rr.tag'],
-].map(([name, text]) => ({name: 'graph-rows-join-' + name, format: 'aql-text', text}));
+].map(([name, text]) => ({name: 'graph-rows-join-' + name, format: 'aql-text', text,
+  // A Relation shadow cannot supply the common Graph Bridge's required Carrier.
+  ...(name === 'shadowed-graph' ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
+}));
 export const graphRowsJoinExecutionFailures = [{name: 'graph-rows-join-explicit-bound-exceeded', format: 'aql-text',
   text: nodePrefix + 'FROM g |> node_rows()' + tail.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 2'),
   resultNames: ['answer'], sourceReadSessionCount: 0}];

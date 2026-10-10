@@ -32,6 +32,8 @@ test('Graph row JOIN controls preserve keys, edge instances, multiplicity, expli
         {name: 'value', contract: {type: 'number', nullable: true}}]);
   }
   assert.ok(graphRowsJoinExecutionFailures[0].text.includes('MAX_OUTPUT_ROWS 2'));
+  assert.equal(graphRowsJoinRefusals.find(input => input.name.endsWith('shadowed-graph')).expectedCode,
+    'ClientProgramImplementationLimit');
   const all = [...graphRowsJoinSuccesses, ...graphRowsJoinRefusals, ...graphRowsJoinExecutionFailures];
   assert.equal(new Set(all.map(input => input.name)).size, all.length);
 });

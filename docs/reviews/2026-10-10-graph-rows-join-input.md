@@ -100,3 +100,15 @@ have not yet run at the time this document is committed. Their exact revision,
 tarball digests, receipt and outcomes will be recorded in the PR after execution.
 CI, full Core, Wasm/Native, all packed cohorts and snapshot/restart campaigns
 are not established by the focused checks above.
+
+The first packed run at `b3a8f0acad4b9252b2a47a346e6b1b668fe0ca18`
+completed all ten Local normal cases and the explicit-ceiling execution
+failure. It then stopped because the shadowed-Graph refusal fixture used the
+generic input-code set, which excludes `ClientProgramImplementationLimit`.
+The existing public path returned that typed refusal for applying the Graph
+Bridge to a Relation. The fixture now pins that exact code; the expected
+rows, schema, limits and product implementation are unchanged. Evidence:
+`worktrees/.codex-scratch/public-query-evidence-5fhThV/{summary.json,010.stdout.log,010.stderr.log}`
+(relative to the shared workspace). HTTPS and subsequent refusals were not
+established by this failed run. Successful execution must be verified again
+using the corrected clean commit and its normal five-package distribution.
