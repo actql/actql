@@ -24,19 +24,3 @@ import {
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/platform_native/publication_store" @store,
 }
-
-import {
-  "actql/actql/platform_native/http_client" @http,
-  "actql/actql/platform_native/sqlite",
-  "actql/actql/platform_native/signature",
-  "actql/actql/sha256" @sha,
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/env",
-} for "wbtest"
-
-options(
-  targets: {
-    "target_native_wbtest.mbt": [ "native" ],
-    "resolution_native_wbtest.mbt": [ "native" ],
-  },
-)

@@ -12,8 +12,15 @@ const residentCheckpoint = residentOriginalHolder || process.argv.includes('--re
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
 const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-runtime-capture');
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
+const coreIndex = process.argv.indexOf('--core-test-json');
+const coreArgs = coreIndex < 0 ? undefined : JSON.parse(process.argv[coreIndex + 1]);
+if (coreArgs !== undefined) {
+  assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
+    'Invalid Native core fixture invocation');
+}
 
-const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT;
+const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT ?? (coreArgs === undefined ? undefined :
+  join(process.cwd(), '_build', 'native-core-physical'));
 assert(typeof scratch === 'string' && scratch.length > 0,
   'ACTQL_TEST_SCRATCH_ROOT is required');
 await mkdir(scratch, {recursive: true});
@@ -146,16 +153,34 @@ try {
         .toString('base64url'),
     });
   }
+  // Only this package consumes the target fixture. A full Core run must not
+  // accidentally activate unrelated optional HTTP tests with this endpoint.
+  for (const suffix of ['HTTP_URL', 'HTTP_CA', 'HTTP_SECRET', 'HTTP_LIBRARY', 'TARGET_ROOT',
+    'CREDENTIAL_GRANT_BODY', 'CREDENTIAL_GRANT_CID', 'CREDENTIAL_SIGNATURE', 'CREDENTIAL_PUBLIC_KEY']) {
+    const key = 'ACTQL_TEST_NATIVE_' + suffix;
+    testEnv['ACTQL_TEST_NATIVE_SALESFORCE_' + suffix] = testEnv[key];
+    if (coreArgs !== undefined) {
+      if (process.env[key] === undefined) delete testEnv[key];
+      else testEnv[key] = process.env[key];
+    }
+  }
   const selection = residentOriginalHolder
     ? 'src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt'
     : residentProposals
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
-    : 'src/platform_native/salesforce_effect_preview/target_native_wbtest.mbt';
+    : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
+  const moonArgs = coreArgs === undefined ? ['--target', 'native', '--strip', selection,
+    ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt'] : []),
+    ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
+      : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
+      : residentPreview ? ['--filter', 'Native retained consumer*']
+      : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
+    : ['--target', 'native', ...coreArgs];
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-    "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + (!residentProposals ? ", 'src/platform_native/salesforce_effect_preview/resolution_native_wbtest.mbt'" : '') + (residentOriginalHolder ? ", '--filter', 'Effect original holders retain physical Provider review*'" : residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
-    "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
+    "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
+    "{timeout: " + (coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
