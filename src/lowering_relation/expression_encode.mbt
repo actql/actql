@@ -23,8 +23,15 @@ fn binary_name(op : BinaryOperator) -> String {
     Subtract => "subtract"
     Multiply => "multiply"
     Divide => "divide"
+    SafeDivide => "safe_divide"
+    SafeAdd => "safe_add"
+    SafeSubtract => "safe_subtract"
+    SafeMultiply => "safe_multiply"
     Modulo => "modulo"
     Strpos => "strpos"
+    TrimSet => "trim"
+    LTrimSet => "ltrim"
+    RTrimSet => "rtrim"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -166,12 +173,16 @@ fn emit_frames(
                   Negate => "negate"
                   Upper => "upper"
                   Lower => "lower"
+                  Trim => "trim"
+                  LTrim => "ltrim"
+                  RTrim => "rtrim"
                   Floor => "floor"
                   Sqrt => "sqrt"
                   Abs => "abs"
                   Sign => "sign"
                   Round => "round"
                   Trunc => "trunc"
+                  SafeNegate => "safe_negate"
                   Not => "not"
                   IsNull => "is_null"
                   NotNull => "not_null"
@@ -202,6 +213,17 @@ fn emit_frames(
             @encode.begin_array(output)
             pending.push(Expressions(children, 0))
           }
+          Many(Substring, args) => {
+            pending.push(Op("substring"))
+            @encode.begin_object(output)
+            let fields = []
+            if args.get(2) is Some(length) {
+              fields.push(("length", length))
+            }
+            fields.push(("start", args[1]))
+            fields.push(("value", args[0]))
+            pending.push(ObjectExpressions(fields, 0))
+          }
           Many(op, args) => {
             pending.push(
               Op(
@@ -212,6 +234,7 @@ fn emit_frames(
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
+                  Substring => "substring"
                   Between => "between"
                 },
               ),

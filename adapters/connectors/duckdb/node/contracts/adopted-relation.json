@@ -1,8 +1,8 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:1419a9859c985731ba784fd0eea6f7cf13004f7300c2debfff56f66e21cc1983",
+  "registry_cid": "sha256:1f3403ff9d4e9bc8e1dfab4da754564038bc63f985e2bf139d4d32b46db03c78",
   "values_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
-  "fragment_cid": "sha256:021569b50cdd8e909ce67e38f12484c14aeb757883412b2171a00fc5e59eace9",
+  "fragment_cid": "sha256:f118f134f4bb40fdee3b37f5ce89c93f3206b81b764b1636bfd34674b8eee394",
   "graph_cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210",
   "registry": {
     "REL.select": {
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:aa2573c9d065224b3fe4b013823c3f01d41ed5de872e539f975b7f222e602b45"
+          "cid": "sha256:a3537565b4e6d2b8f476ff2a8a478075ec1f4aee1a5942d491ac74794e06239d"
         }
       }
     },
@@ -488,7 +488,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:021569b50cdd8e909ce67e38f12484c14aeb757883412b2171a00fc5e59eace9"
+        "cid": "sha256:f118f134f4bb40fdee3b37f5ce89c93f3206b81b764b1636bfd34674b8eee394"
       }
     }
   },
@@ -1504,12 +1504,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:99eb8896d61317e04b39b54eaad9cecb64abe7c08fb6e79bbaaa113547d855cf"
+        "cid": "sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:12ed75dd9face4baf35036bdca1149b98ddcfb7b3bc41601255ae535670ebbbe"
+        "cid": "sha256:6ba46385fdc0212be4c6fb6cd1a649e1f30d2535775ce0b9c504bf1a23f6e287"
       }
     },
     "params_schema": {

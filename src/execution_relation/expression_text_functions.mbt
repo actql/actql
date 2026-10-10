@@ -2,6 +2,7 @@
 /// These are continuations of the existing expression frame, not another
 /// evaluator. Operand roots survive both the sizing and construction passes.
 priv struct TextArgumentsState {
+  kind : TextFunctionKind
   expression : @lower.Expression
   children : Array[@lower.Expression]
   values : Array[Value]
@@ -14,9 +15,18 @@ priv enum TextFunctionKind {
   TextLength
   TextStrpos
   TextReplace
+  TextSubstring
   TextUpper
   TextLower
+  TextTrim
+  TextLTrim
+  TextRTrim
 } derive(Eq)
+
+///|
+fn is_trim_text_function(kind : TextFunctionKind) -> Bool {
+  kind == TextTrim || kind == TextLTrim || kind == TextRTrim
+}
 
 ///|
 priv struct TextFunctionState {
@@ -43,6 +53,13 @@ priv struct TextFunctionState {
   mut preceding_cased : Bool
   mut probing_sigma : Bool
   mut probe_position : Int
+  trim_explicit : Bool
+  mut substring_phase : Int
+  mut substring_start : Int64
+  mut substring_end : Int64
+  mut trim_scanning : Bool
+  mut trim_start : Int
+  mut trim_end : Int
 }
 
 ///|
@@ -55,11 +72,29 @@ fn start_text_function(
   workspace : RowWorkspace,
 ) -> Result[TextFunctionState, EvalIssue] {
   let mut null_result = false
-  for value in values {
+  for i, value in values {
     match value {
       Null => null_result = true
-      Text(_) => ()
+      Text(_) if kind != TextSubstring || i == 0 => ()
+      Number(_) if kind == TextSubstring && i > 0 => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+  }
+  let mut substring_start = 0L
+  let mut substring_end = 9007199254740991L
+  if kind == TextSubstring && !null_result {
+    guard values[1] is Number(position) &&
+      @scalar.read_safe_integer(position) is Some(start) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    substring_start = start
+    if values.get(2) is Some(length) {
+      guard length is Number(number) &&
+        @scalar.read_safe_integer(number) is Some(length) &&
+        length >= 0L else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      substring_end = length
     }
   }
   if !reserve_slots(workspace, 2) {
@@ -105,13 +140,16 @@ fn start_text_function(
       _ => ""
     }
   }
+  let input = text(values[0])
   Ok({
     expression,
     roots,
     kind,
     null_result,
-    input: text(values[0]),
-    search: if kind == TextReplace || kind == TextStrpos {
+    input,
+    search: if kind == TextReplace ||
+      kind == TextStrpos ||
+      (is_trim_text_function(kind) && values.length() == 2) {
       text(values[1])
     } else {
       ""
@@ -122,8 +160,8 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextReplace {
-      12
+    reserved: if kind == TextReplace || kind == TextSubstring {
+      values.length() * 3 + 3
     } else {
       2
     },
@@ -141,6 +179,25 @@ fn start_text_function(
     preceding_cased: false,
     probing_sigma: false,
     probe_position: 0,
+    trim_explicit: is_trim_text_function(kind) && values.length() == 2,
+    substring_phase: if kind == TextSubstring {
+      1
+    } else {
+      0
+    },
+    substring_start,
+    substring_end,
+    trim_scanning: is_trim_text_function(kind),
+    trim_start: if kind == TextRTrim {
+      0
+    } else {
+      input.length()
+    },
+    trim_end: if kind == TextRTrim {
+      0
+    } else {
+      input.length()
+    },
   })
 }
 
@@ -225,7 +282,7 @@ fn append_text_function_scalar(
 }
 
 ///|
-/// One comparison code unit or one emitted scalar per poll. No substring,
+/// One comparison code unit or one scanned/emitted scalar per poll. No substring,
 /// whole-string search, normalization, output measurement or replay occurs.
 fn advance_text_function(
   state : TextFunctionState,
@@ -234,6 +291,95 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.substring_phase == 1 {
+    if state.position == state.input.length() {
+      let count = state.count.to_int64()
+      let position = state.substring_start
+      let start = if position > 0L {
+        (position - 1L).min(count)
+      } else if position == 0L || position < -count {
+        0L
+      } else {
+        count + position
+      }
+      // Clamp before addition, keeping even the largest admitted indices exact.
+      state.substring_start = start
+      state.substring_end = start + state.substring_end.min(count - start)
+      state.substring_phase = 2
+      state.position = 0
+      state.count = 0
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    state.position = next
+    state.count += 1
+    return Ok(None)
+  }
+  if state.substring_phase == 2 {
+    if state.count.to_int64() == state.substring_start {
+      state.trim_start = state.position
+    }
+    if state.count.to_int64() == state.substring_end {
+      state.trim_end = state.position
+      state.position = state.trim_start
+      state.substring_phase = 3
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    state.position = next
+    state.count += 1
+    return Ok(None)
+  }
+  if state.trim_scanning {
+    if state.position == state.input.length() {
+      state.trim_scanning = false
+      state.position = state.trim_start
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((scalar, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    // Explicit sets are Unicode scalar membership, not substring matching.
+    // Compare at most one set scalar per charged poll. Reuse the retained
+    // search cursor, so even repeated/large sets need no unbounded allocation.
+    let removable = if state.trim_explicit {
+      if state.matched == state.search.length() {
+        false
+      } else {
+        guard text_function_scalar(state.search, state.matched)
+          is Some((candidate, set_next, _, _)) else {
+          return Err({ kind: Scalar(InvalidOperand), expression, })
+        }
+        state.matched = set_next
+        if candidate != scalar {
+          return Ok(None)
+        }
+        true
+      }
+    } else {
+      trim_white_space(scalar)
+    }
+    state.matched = 0
+    // The opposite boundary stays at the original edge for a one-sided trim.
+    // A full cooperative scan validates every scalar without allocating a copy.
+    if !removable {
+      if state.kind != TextRTrim && state.trim_start == state.input.length() {
+        state.trim_start = state.position
+      }
+      if state.kind != TextLTrim {
+        state.trim_end = next
+      }
+    }
+    state.position = next
+    return Ok(None)
   }
   if state.kind == TextLength {
     if state.position == state.input.length() {
@@ -307,7 +453,12 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  if state.position == state.input.length() {
+  let end = if is_trim_text_function(state.kind) || state.kind == TextSubstring {
+    state.trim_end
+  } else {
+    state.input.length()
+  }
+  if state.position == end {
     if state.building {
       guard state.builder is Some(builder) else {
         return Err({ kind: Scalar(InvalidOperand), expression, })
@@ -332,7 +483,12 @@ fn advance_text_function(
     state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
-    state.position = 0
+    state.position = if is_trim_text_function(state.kind) ||
+      state.kind == TextSubstring {
+      state.trim_start
+    } else {
+      0
+    }
     state.matched = 0
     state.preceding_cased = false
     state.probing_sigma = false
@@ -380,6 +536,14 @@ fn advance_text_function(
     }
     return Ok(None)
   }
+  if is_trim_text_function(state.kind) || state.kind == TextSubstring {
+    state.position = match
+      append_text_function_scalar(state, state.input, state.position) {
+      Ok(next) => next
+      Err(issue) => return Err(issue)
+    }
+    return Ok(None)
+  }
   if !state.search.is_empty() &&
     state.search.length() <= state.input.length() - state.position {
     if state.input[state.position + state.matched] ==
@@ -401,4 +565,22 @@ fn advance_text_function(
     Err(issue) => return Err(issue)
   }
   Ok(None)
+}
+
+///|
+/// Unicode 16.0 PropList White_Space, independent of host-language trim rules.
+/// U+0085 belongs to this set; U+FEFF and U+200B do not.
+fn trim_white_space(scalar : Char) -> Bool {
+  let code = scalar.to_int()
+  (code >= 0x0009 && code <= 0x000d) ||
+  code == 0x0020 ||
+  code == 0x0085 ||
+  code == 0x00a0 ||
+  code == 0x1680 ||
+  (code >= 0x2000 && code <= 0x200a) ||
+  code == 0x2028 ||
+  code == 0x2029 ||
+  code == 0x202f ||
+  code == 0x205f ||
+  code == 0x3000
 }

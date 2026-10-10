@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {admitDispatchJson, effectCheckpointReports as reports, prepareDispatch}
+import {admitDispatchJson, effectCheckpointReports as reports, effectResumeDeliveries, effectCurrentObservations, prepareDispatch}
   from '@actql/coordinator-core';
 
 // Independently authored protocol vectors, not runtime-generated expectations.
@@ -12,6 +12,14 @@ const limits = {maxWireBytes: 262144, maxNodes: 4096, maxDepth: 32};
 const request = () => admitDispatchJson(vector('dispatch').canonical, vector('dispatch').cid);
 const report = () => reports.admit(vector('report').canonical, request(), limits);
 const rejected = {code: 'CoordinatorOwnerRejected'};
+const resume = JSON.parse(readFileSync(process.env.ACTQL_TEST_EFFECT_RESUME_VECTORS ??
+  new URL('../../spec/fixtures/remote-effect-resume-vectors.json', import.meta.url), 'utf8'));
+const resumeDelivery = (original = report(), changes = {}) => effectResumeDeliveries.prepareJson(
+  original, changes.wire ?? resume.delivery.body.resolution_wire,
+  changes.authentication ?? resume.authentication,
+  changes.reviewers ?? [{key_id: resume.authentication.key_id, reviewer_id: resume.authentication.reviewer_id}],
+  changes.claim ?? {claimant: 'original-coordinator', generation: 1n},
+  changes.limits ?? limits);
 
 test('portable Checkpoint report and exact ACK agree with independent canonical vectors', () => {
   const admitted = report();
@@ -81,4 +89,147 @@ test('definitive refusal uses only closed codes and remains bound to the origina
   assert.throws(() => reports.refusedJson(admitted, 'private_cause'), rejected);
   assert.throws(() => reports.admitReplyJson(admitted, JSON.stringify({
     ...vector('reply').body, outcome: 'accepted', reason: 'report_conflict'})), rejected);
+});
+
+test('portable resume delivery uses the original common Owner and fixed independent body', () => {
+  const original = report();
+  const before = reports.facts(original);
+  assert.equal(resumeDelivery(original), resume.delivery.canonical);
+  // Common Resolution admission owns JSON framing; no value normalizer is added.
+  assert.equal(resumeDelivery(original, {wire: resume.delivery.body.resolution_wire + ' '}),
+    resume.delivery.canonical);
+  assert.deepEqual(reports.facts(original), before);
+  assert.equal(reports.acceptedJson(original), vector('reply').canonical);
+  // Generation is delivery fencing metadata, never a new Run or attempt.
+  assert.equal(resumeDelivery(original, {claim: {claimant: 'original-coordinator', generation: 2n}}),
+    JSON.stringify({...resume.delivery.body, generation: '2'}));
+});
+
+test('portable resume delivery rejects forged original and foreign approval metadata', () => {
+  const original = report();
+  for (const fake of [{}, {...original}, request(), null]) {
+    assert.throws(() => resumeDelivery(fake), {message: 'InvalidEffectCheckpointReport'});
+  }
+  assert.throws(() => resumeDelivery(original, {wire: '{'}), rejected);
+  assert.throws(() => resumeDelivery(original, {reviewers: []}), rejected);
+  for (const authentication of [{...resume.authentication, reviewer_id: 'other'},
+    {...resume.authentication, key_id: 'other'},
+    {...resume.authentication, expected_authority_scope_cid: 'sha256:' + 'f'.repeat(64)}]) {
+    assert.throws(() => resumeDelivery(original, {authentication}), rejected);
+  }
+});
+
+test('portable resume delivery refuses invalid and unbounded caller inputs before serialization', () => {
+  const original = report();
+  const invalid = {message: 'InvalidEffectResumeDeliveryInput'};
+  for (const claim of [{claimant: '', generation: 1n}, {claimant: 'x'.repeat(257), generation: 1n},
+    {claimant: 'é'.repeat(129), generation: 1n}, {claimant: 'a', generation: 0n},
+    {claimant: 'a', generation: -1n}, {claimant: 'a', generation: 9223372036854775808n},
+    {claimant: 'a', generation: 1}, {claimant: 'a', generation: 1n, current: true}]) {
+    assert.throws(() => resumeDelivery(original, {claim}), invalid);
+  }
+  assert.throws(() => resumeDelivery(original, {authentication: {...resume.authentication, authorized: true}}), invalid);
+  assert.throws(() => resumeDelivery(original, {reviewers: new Array(1)}), invalid);
+  assert.throws(() => resumeDelivery(original, {wire: 'x'.repeat(limits.maxWireBytes + 1)}), invalid);
+  for (const maximum of [0, -1, Infinity, 262145, '262144']) {
+    assert.throws(() => resumeDelivery(original, {limits: {...limits, maxWireBytes: maximum}}), invalid);
+  }
+});
+
+test('resume input limits apply before UTF-8 allocation, including the remaining aggregate budget', () => {
+  const original = report();
+  const NativeEncoder = globalThis.TextEncoder;
+  const encoded = [];
+  globalThis.TextEncoder = class extends NativeEncoder {
+    encode(value) {
+      encoded.push(value.length);
+      assert.ok(value.length <= limits.maxWireBytes, 'oversized text reached the encoder');
+      return super.encode(value);
+    }
+  };
+  try {
+    const invalid = {message: 'InvalidEffectResumeDeliveryInput'};
+    const huge = 'x'.repeat(limits.maxWireBytes + 1);
+    for (const changes of [{wire: huge},
+      {authentication: {...resume.authentication, proof_preimage: huge}},
+      {reviewers: [{key_id: huge, reviewer_id: resume.authentication.reviewer_id}]},
+      {claim: {claimant: huge, generation: 1n}}]) {
+      assert.throws(() => resumeDelivery(original, changes), invalid);
+    }
+    encoded.length = 0;
+    assert.throws(() => resumeDelivery(original, {
+      wire: 'x'.repeat(64), limits: {...limits, maxWireBytes: 65},
+    }), invalid);
+    assert.deepEqual(encoded, ['original-coordinator'.length, 64]);
+  } finally {
+    globalThis.TextEncoder = NativeEncoder;
+  }
+});
+
+test('resume admission snapshots typed caller facts once without implicit string coercion', () => {
+  const original = report();
+  let reads = 0;
+  const authentication = {...resume.authentication};
+  Object.defineProperty(authentication, 'key_id', {enumerable: true, get() {
+    reads++;
+    return reads === 1 ? resume.authentication.key_id : {toString() {
+      throw new Error('CallerValueCoerced');
+    }};
+  }});
+  assert.equal(resumeDelivery(original, {authentication}), resume.delivery.canonical);
+  assert.equal(reads, 1);
+  authentication.key_id;
+  assert.throws(() => resumeDelivery(original, {authentication}),
+    {message: 'InvalidEffectResumeDeliveryInput'});
+});
+
+
+test('portable resume poll carries the exact original Owner delivery and request', () => {
+  const original = report();
+  const before = reports.facts(original);
+  const args = [original, resume.delivery.body.resolution_wire, resume.authentication,
+    [{key_id: resume.authentication.key_id, reviewer_id: resume.authentication.reviewer_id}],
+    {claimant: 'original-coordinator', generation: 1n}, limits];
+  assert.equal(effectResumeDeliveries.preparePollJson(...args), resume.poll.canonical);
+  assert.deepEqual(reports.facts(original), before);
+  assert.throws(() => effectResumeDeliveries.preparePollJson({...original}, ...args.slice(1)),
+    {message: 'InvalidEffectCheckpointReport'});
+  assert.throws(() => effectResumeDeliveries.preparePollJson(original, args[1], args[2], [], args[4], limits), rejected);
+});
+const current = JSON.parse(readFileSync(process.env.ACTQL_TEST_EFFECT_CURRENT_VECTORS ??
+  new URL('../../spec/fixtures/remote-effect-current-vectors.json', import.meta.url), 'utf8'));
+test('formal current query preserves fixed original report and Native reply correlation', () => {
+  const original = report(), before = reports.facts(original);
+  const query = effectCurrentObservations.prepareQuery(original, current.query.body.effect_id,
+    current.query.body.query_id, {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32});
+  assert.equal(effectCurrentObservations.queryJson(query), current.query.canonical);
+  assert.equal(effectCurrentObservations.pollJson(query), current.poll.canonical);
+  assert.equal(effectCurrentObservations.queryFacts(query).queryCid, current.query.cid);
+  for (const vector of current.replies) {
+    const reply = effectCurrentObservations.admitReplyJson(query, vector.canonical,
+      {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32});
+    const facts = effectCurrentObservations.replyFacts(reply);
+    assert.equal(facts.replyCid, vector.cid);
+    assert.equal(facts.recoveryAction, vector.body.recovery_action);
+    assert.equal(facts.responseSaved, vector.body.response_saved);
+    assert.deepEqual(facts.unknownEffects, vector.body.recovery_action === 3 ? [current.query.body.effect_id] : []);
+    assert(Object.isFrozen(facts)); assert(Object.isFrozen(facts.unknownEffects));
+  }
+  assert.deepEqual(reports.facts(original), before);
+});
+
+test('formal current handles reject copied metadata and stale replies without inventing a Native response', () => {
+  const bounds = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32};
+  const original = report(), query = effectCurrentObservations.prepareQuery(original, 'write-1', 'query-original', bounds);
+  assert.throws(() => effectCurrentObservations.prepareQuery({...original}, 'write-1', 'query-original', bounds));
+  assert.throws(() => effectCurrentObservations.queryJson({...query}), {message: 'InvalidEffectCurrentHandle'});
+  assert.throws(() => effectCurrentObservations.pollJson({...query}), {message: 'InvalidEffectCurrentHandle'});
+  assert.throws(() => effectCurrentObservations.admitReplyJson({...query}, current.replies[0].canonical, bounds));
+  const fresh = effectCurrentObservations.prepareQuery(original, 'write-1', 'query-fresh', bounds);
+  assert.throws(() => effectCurrentObservations.admitReplyJson(fresh, current.replies[1].canonical, bounds));
+  const reply = effectCurrentObservations.admitReplyJson(query, current.replies[1].canonical, bounds);
+  assert.throws(() => effectCurrentObservations.replyFacts({...reply}), {message: 'InvalidEffectCurrentHandle'});
+  assert.throws(() => effectCurrentObservations.prepareQuery(original, 'write-1', 'x'.repeat(257), bounds));
+  assert.throws(() => effectCurrentObservations.admitReplyJson(query, 'x'.repeat(65537), bounds));
+  assert.throws(() => effectCurrentObservations.prepareQuery(original, 'write-1', 'query-original', {...bounds, maxWireBytes: 65537}));
 });

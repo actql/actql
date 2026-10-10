@@ -12,6 +12,11 @@ normative_dependencies: [actql.execution, actql.protocol.contracts, actql.protoc
 <!-- normative-import: actql.execution actql/0.1 -->
 <!-- normative-import: actql.protocol.contracts actql/0.1 -->
 <!-- normative-import: actql.protocol.artifacts actql/0.1 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_resume_delivery sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_resume sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_current_reply sha256:d898c42ea28d2f776df4dbd1d910b27b3d13afe7f9479edca364a1387ef9e380 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_current_query sha256:a11afe0b0327e7c253cc2a8d621282cfc5c994fbb304ec2178ce5d2132a7e343 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_current sha256:ec96478794b68708c384b01df952e25d99961e909927137398a9a05c4920079f -->
 
 This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, apply-receipt, reconciliation-receipt. It does not define other owners' wire protocols or a particular Host implementation. Cross-owner links outside the declared dependencies are informative navigation to protocol bindings or conformance evidence; they do not import those documents' requirements. Narrow machine contracts remain authoritative for their explicitly referenced values and envelopes.
 
@@ -805,3 +810,56 @@ A cancellation confirmed before physical start can have outcome `cancelled`.
 An accepted request after physical start MUST NOT rewrite a committed success
 or an uncertain publication outcome. Physical stop confirmation remains
 independent of Result availability and delivery completion.
+
+<a id="resident-effect-resume-transport"></a>
+
+### Resident Effect resume transport
+
+<!-- requirement-block: resident-effect-resume-routing resident-effect-resume-preservation -->
+The `actql-remote-poll-effect-resume/0.1` envelope carries the exact original
+Dispatch Request JSON and the report-bound Effect resume delivery JSON. Its
+`dispatch_request_cid` MUST match both the admitted request identity and the
+embedded delivery's dispatch identity. The envelope MUST NOT replace materials,
+refresh the original Run lifetime, create an execution attempt or imply that the
+transported claim is current authorization.
+
+<!-- requirement-block: resident-effect-resume-admission resident-effect-resume-pending -->
+Routing admission is distinct from approval and execution admission. The
+retained holder MUST admit the unchanged delivery against its own durable
+accepted Checkpoint report, independently installed authentication and current
+resume fence before an Effect send. A missing receiving review Owner MUST leave
+the original responsibility pending; receipt of the envelope is not execution,
+settlement, publication or cleanup evidence. The inner delivery is limited to
+262144 UTF-8 bytes and the canonical outer envelope to 1048576 UTF-8 bytes.
+
+
+<a id="resident-effect-current-query"></a>
+
+### Original resident Effect current queries
+
+<!-- requirement-block: resident-effect-current-query-binding resident-effect-current-query-binding.2 resident-effect-current-query-binding.3 -->
+`actql-remote-effect-current-query/0.1` MUST bind a fresh query ID, its canonical
+CID, the original dispatch, accepted report, Checkpoint and checked Effect
+member. The Host MUST obtain that member from the original checked Owner,
+and the Native receiver MUST reject a different member or original report.
+This query is not an execution attempt, approval or dispatch permission.
+
+<!-- requirement-block: resident-effect-current-reply-binding resident-effect-current-reply-binding.2 resident-effect-current-reply-binding.3 resident-effect-current-reply-binding.4 -->
+`actql-remote-effect-current-reply/0.1` MUST retain that exact query correlation,
+the original report scope, optional original Ledger head, common recovery-action
+code and saved-response presence. An absent head MUST have action 0 and no saved
+response. A present head MUST have action 1, 3, 4, 5, 6 or 7; a prepared head
+(action 1) MUST NOT claim saved response. Invalid or contradictory custody is a
+refusal, never an empty successful observation. A saved response with possible
+or unknown dispatch remains unresolved until its original Ledger terminal is
+admitted; the response body and credential-use data stay private.
+
+<!-- requirement-block: resident-effect-current-transport-freshness resident-effect-current-transport-freshness.2 resident-effect-current-transport-freshness.3 resident-effect-current-transport-freshness.4 -->
+The receiving Host MUST authenticate the current Site/generation and match its
+own outstanding query before using a reply as a current observation. It MUST
+issue a fresh challenge after reconstruction; old saved replies are historical
+evidence, not current facts. The Native receiver MUST authorize original evidence
+access before Store reads and recheck it before disclosure. Query/reply admission
+and canonical CID agreement MUST NOT imply current approval, permission to send,
+physical stop, publication, cleanup completion or reservation return. Current
+Run/cancellation/authority/holding and Ledger fences remain separate.

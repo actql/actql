@@ -12,7 +12,8 @@ test "expression closure maps every obligation to its owned resolution" {
   for
     (expression, expected_count) in [
       ("regex_extract($p, '(.)', $n)", 9),
-      ("regex_extract(substring($p, 1, $n), '(.)', 1)", 15),
+      ("regex_extract(utf8_truncate($p, $n), '(.)', 1)", 15),
+      ("regex_extract(substring($p, 1, $n), '(.)', 1)", 9),
       ("if(FALSE, regex_extract($p, '(.)', $n), 'x')", 9),
       (
         "concat(format_timestamp(CAST(NULL AS TIMESTAMP), 'yyyy'), regex_extract($p, '(.)', $n))",

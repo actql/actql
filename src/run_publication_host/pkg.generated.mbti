@@ -308,7 +308,11 @@ pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObser
 
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
 
+pub fn client_effect_review_checkpoint_members(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits, Int, Int) -> Result[Array[String], ClientEffectCheckpointMembersIssue]
+
 pub fn client_effect_run_materials_request_for_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientRequestIdentityIssue]
+
+pub fn client_effect_run_receipt_bindings(ClientEffectRunMaterials, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEffectReceiptBindingsIssue]
 
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
@@ -1301,6 +1305,13 @@ pub(all) enum ClientEffectCheckpointBindingIssue {
   OriginalLifetime
 }
 
+pub(all) enum ClientEffectCheckpointMembersIssue {
+  Binding(ClientEffectCheckpointBindingIssue)
+  InvalidLimits
+  WorkLimit
+  UnsupportedInventory
+}
+
 pub struct ClientEffectCompilation {
   owner : PreparedClientEffectComputation
   compiled : ClientTaskCompilation
@@ -1440,6 +1451,12 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
 } derive(@debug.Debug)
 
 type ClientEffectProducerArtifact
+
+pub(all) enum ClientEffectReceiptBindingsIssue {
+  ForeignMaterials
+  Bindings(ClientEmptyInvocationBindingsIssue)
+  TemplateMismatch
+}
 
 pub(all) enum ClientEffectResultImportIssue {
   ForeignInput

@@ -8,12 +8,24 @@ fn compile_pipe_pivot(
   visible : Array[(String, String)],
   columns : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
+  argument_value? : String? = None,
+  consumed_fields? : Array[String] = [],
+  authored_aliases? : Array[(String, String)] = [],
 ) -> (@builder.Node, Array[(String, String)]) raise Abort {
-  guard pipe_slot(clause.argument, visible, ranges) is Some(value) &&
-    pipe_slot(clause.column, visible, ranges) is Some(column) else {
+  let value = if argument_value is Some(slot) {
+    slot
+  } else {
+    guard pipe_slot(clause.argument, visible, ranges) is Some(slot) else {
+      raise Abort(UnknownColumn)
+    }
+    slot
+  }
+  guard pipe_slot(clause.column, visible, ranges) is Some(column) else {
     raise Abort(UnknownColumn)
   }
-  let index = columns.filter(pair => pair.1 != value && pair.1 != column)
+  let index = columns.filter(pair => {
+    pair.1 != value && pair.1 != column && !consumed_fields.contains(pair.1)
+  })
   let output = index.copy()
   for entry in clause.values {
     let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
@@ -21,10 +33,13 @@ fn compile_pipe_pivot(
       .map(prefix => prefix.value + "_" + suffix)
       .unwrap_or(suffix)
     if output.any(pair => {
-        same_name({ value: pair.0, quoted: false, }, {
-          value: name,
-          quoted: false,
-        })
+        same_name(
+          {
+            value: positional_authored_column_name(pair.0, authored_aliases),
+            quoted: false,
+          },
+          { value: name, quoted: false, },
+        )
       }) {
       raise Abort(DuplicateOutput)
     }

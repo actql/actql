@@ -139,6 +139,7 @@ pub(all) struct KeepItem {
 pub(all) struct PivotClause {
   function_name : String
   argument : Array[NamePart]
+  argument_expression : Expression?
   column : Array[NamePart]
   prefix : NamePart?
   values : Array[(String, NamePart?)]
@@ -1581,20 +1582,23 @@ fn QueryParser::over(
 }
 
 ///|
+fn query_aggregate_function_name(name : String) -> Bool {
+  [
+    "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG", "VAR_POP",
+    "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+  ].contains(upper_ascii(name))
+}
+
+///|
 fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
   match self.peek().value {
     Word(name) | QuotedName(name) =>
-      [
-        "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
-        "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
-      ].contains(
-        upper_ascii(
-          if self.peek().value is QuotedName(_) {
-            self.source.identifier(name)
-          } else {
-            name
-          },
-        ),
+      query_aggregate_function_name(
+        if self.peek().value is QuotedName(_) {
+          self.source.identifier(name)
+        } else {
+          name
+        },
       ) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))
@@ -1968,15 +1972,23 @@ fn QueryParser::unnest_source(
 ///|
 // Correlation expands the current row; it is not an independent JOIN input.
 // Fixed lookahead keeps quoted names out of the operator dispatch.
-fn QueryParser::starts_correlated_unnest(self : QueryParser) -> Bool {
-  if self.has("JOIN") {
-    self.index + 1 < self.source.tokens.length() &&
-    keyword(self.source.tokens[self.index + 1], "UNNEST")
+fn QueryParser::starts_correlated_unnest(
+  self : QueryParser,
+  lookahead_offset? : Int = 0,
+) -> Bool {
+  let index = self.index + lookahead_offset
+  if index < self.source.tokens.length() &&
+    keyword(self.source.tokens[index], "JOIN") {
+    index + 1 < self.source.tokens.length() &&
+    keyword(self.source.tokens[index + 1], "UNNEST")
   } else {
-    self.index + 2 < self.source.tokens.length() &&
-    (self.has("CROSS") || self.has("INNER")) &&
-    keyword(self.source.tokens[self.index + 1], "JOIN") &&
-    keyword(self.source.tokens[self.index + 2], "UNNEST")
+    index + 2 < self.source.tokens.length() &&
+    (
+      keyword(self.source.tokens[index], "CROSS") ||
+      keyword(self.source.tokens[index], "INNER")
+    ) &&
+    keyword(self.source.tokens[index + 1], "JOIN") &&
+    keyword(self.source.tokens[index + 2], "UNNEST")
   }
 }
 
@@ -2605,6 +2617,7 @@ fn QueryParser::pipe_tail(
       return self.pipe_tail(self.bind_query(producer), cte_body~)
     }
     if pipe_join_head(next) &&
+      !self.starts_correlated_unnest(lookahead_offset=1) &&
       !(keyword(next, "INNER") &&
       set_operator_token(token_at(self.source, self.index + 2).unwrap())) &&
       !operations.is_empty() &&

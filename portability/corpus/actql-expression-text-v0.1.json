@@ -10,185 +10,18 @@
     {"source":"(x IN (1)).c","tree":{"property":{"value":{"in":[{"field":"x"},{"literal":[1]}]},"name":"c"}}},
     {"source":"x IN ((1), (($p)), -(2))","tree":{"in":[{"field":"x"},{"literal":[1,{"$param":"p"},-2]}]}},
     {"source":"x LIKE ('a%')","tree":{"like":[{"field":"x"},{"literal":"a%"}]}},
-    {
-      "source": "amount * quantity + 1",
-      "tree": {
-        "add": [
-          {
-            "multiply": [
-              {
-                "field": "amount"
-              },
-              {
-                "field": "quantity"
-              }
-            ]
-          },
-          {
-            "literal": 1
-          }
-        ]
-      }
-    },
-    {
-      "source": "x IN (1, 2)",
-      "tree": {
-        "in": [
-          {
-            "field": "x"
-          },
-          {
-            "literal": [1, 2]
-          }
-        ]
-      }
-    },
-    {
-      "source": "x NOT IN $items",
-      "tree": {
-        "not_in": [
-          {
-            "field": "x"
-          },
-          {
-            "$param": "items"
-          }
-        ]
-      }
-    },
-    {
-      "source": "\"会社名\"",
-      "tree": {
-        "field": "会社名"
-      }
-    },
-    {
-      "source": "name IS NOT NULL",
-      "tree": {
-        "not_null": {
-          "field": "name"
-        }
-      }
-    },
-    {
-      "source": "coalesce(name, 'Unknown')",
-      "tree": {
-        "coalesce": [
-          {
-            "field": "name"
-          },
-          {
-            "literal": "Unknown"
-          }
-        ]
-      }
-    },
-    {
-      "source": "to_decimal('19.99', 18, 2)",
-      "tree": {
-        "cast": {
-          "value": {
-            "literal": "19.99"
-          },
-          "target": { "type": "decimal", "precision": 18, "scale": 2 }
-        }
-      }
-    },
-    {
-      "source": "quantize(amount, 18, 2, 'half_up')",
-      "tree": {
-        "quantize": {
-          "value": {
-            "field": "amount"
-          },
-          "precision": 18,
-          "scale": 2,
-          "rounding": "half_up"
-        }
-      }
-    },
-    {
-      "source": "CASE WHEN x = 1 THEN 'yes' ELSE 'no' END",
-      "tree": {
-        "case": {
-          "when": [
-            {
-              "when": {
-                "eq": [
-                  {
-                    "field": "x"
-                  },
-                  {
-                    "literal": 1
-                  }
-                ]
-              },
-              "then": {
-                "literal": "yes"
-              }
-            }
-          ],
-          "else": {
-            "literal": "no"
-          }
-        }
-      }
-    },
-    {
-      "source": "try_timestamp(stamp, 'yyyy-MM-dd HH:mm:ss')",
-      "tree": {
-        "try_timestamp": {
-          "value": {
-            "field": "stamp"
-          },
-          "pattern": {
-            "literal": "yyyy-MM-dd HH:mm:ss"
-          }
-        }
-      }
-    },
-    {
-      "source": "'a' || 'b'",
-      "tree": {
-        "concat_strict": [
-          {
-            "literal": "a"
-          },
-          {
-            "literal": "b"
-          }
-        ]
-      }
-    },
-    {
-      "source": "NOT x = 1 AND y > 2",
-      "tree": {
-        "and": [
-          {
-            "not": {
-              "eq": [
-                {
-                  "field": "x"
-                },
-                {
-                  "literal": 1
-                }
-              ]
-            }
-          },
-          {
-            "gt": [
-              {
-                "field": "y"
-              },
-              {
-                "literal": 2
-              }
-            ]
-          }
-        ]
-      }
-    },
+    {"source":"amount * quantity + 1","tree":{"add":[{"multiply":[{"field":"amount"},{"field":"quantity"}]},{"literal":1}]}},
+    {"source":"x IN (1, 2)","tree":{"in":[{"field":"x"},{"literal":[1,2]}]}},
+    {"source":"x NOT IN $items","tree":{"not_in":[{"field":"x"},{"$param":"items"}]}},
+    {"source":"\"会社名\"","tree":{"field":"会社名"}},
+    {"source":"name IS NOT NULL","tree":{"not_null":{"field":"name"}}},
+    {"source":"coalesce(name, 'Unknown')","tree":{"coalesce":[{"field":"name"},{"literal":"Unknown"}]}},
+    {"source":"to_decimal('19.99', 18, 2)","tree":{"cast":{"value":{"literal":"19.99"},"target":{"type":"decimal","precision":18,"scale":2}}}},
+    {"source":"quantize(amount, 18, 2, 'half_up')","tree":{"quantize":{"value":{"field":"amount"},"precision":18,"scale":2,"rounding":"half_up"}}},
+    {"source":"CASE WHEN x = 1 THEN 'yes' ELSE 'no' END","tree":{"case":{"when":[{"when":{"eq":[{"field":"x"},{"literal":1}]},"then":{"literal":"yes"}}],"else":{"literal":"no"}}}},
+    {"source":"try_timestamp(stamp, 'yyyy-MM-dd HH:mm:ss')","tree":{"try_timestamp":{"value":{"field":"stamp"},"pattern":{"literal":"yyyy-MM-dd HH:mm:ss"}}}},
+    {"source":"'a' || 'b'","tree":{"concat_strict":[{"literal":"a"},{"literal":"b"}]}},
+    {"source":"NOT x = 1 AND y > 2","tree":{"and":[{"not":{"eq":[{"field":"x"},{"literal":1}]}},{"gt":[{"field":"y"},{"literal":2}]}]}},
     {"source":"starts_with(value, prefix)","tree":{"starts_with":[{"field":"value"},{"field":"prefix"}]}},
     {"source":"ends_with($value, $suffix)","tree":{"ends_with":[{"$param":"value"},{"$param":"suffix"}]}},
     {"source":"starts_with('😀é', '😀')","tree":{"starts_with":[{"literal":"😀é"},{"literal":"😀"}]}},
@@ -213,7 +46,41 @@
     {"source":"round(negate(1))","tree":{"round":{"negate":{"literal":1}}}},
     {"source":"trunc(negate(1))","tree":{"trunc":{"negate":{"literal":1}}}},
     {"source":"round(NULL)","tree":{"round":{"literal":null}}},
-    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}}
+    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}},
+    {"source":"ltrim(s)","tree":{"ltrim":{"field":"s"}}},
+    {"source":"ltrim($p)","tree":{"ltrim":{"$param":"p"}}},
+    {"source":"ltrim(NULL)","tree":{"ltrim":{"literal":null}}},
+    {"source":"ltrim(' 😀é ')","tree":{"ltrim":{"literal":" 😀é "}}},
+    {"source":"ltrim('')","tree":{"ltrim":{"literal":""}}},
+    {"source":"rtrim(s)","tree":{"rtrim":{"field":"s"}}},
+    {"source":"rtrim($p)","tree":{"rtrim":{"$param":"p"}}},
+    {"source":"rtrim(NULL)","tree":{"rtrim":{"literal":null}}},
+    {"source":"rtrim(' 😀é ')","tree":{"rtrim":{"literal":" 😀é "}}},
+    {"source":"rtrim('')","tree":{"rtrim":{"literal":""}}},
+    {"source":"trim(s,' ')","tree":{"trim":[{"field":"s"},{"literal":" "}]}},
+    {"source":"trim($p,s)","tree":{"trim":[{"$param":"p"},{"field":"s"}]}},
+    {"source":"trim(NULL,'x')","tree":{"trim":[{"literal":null},{"literal":"x"}]}},
+    {"source":"trim('x',NULL)","tree":{"trim":[{"literal":"x"},{"literal":null}]}},
+    {"source":"trim(NULL,NULL)","tree":{"trim":[{"literal":null},{"literal":null}]}},
+    {"source":"trim('😀é','😀́')","tree":{"trim":[{"literal":"😀é"},{"literal":"😀́"}]}},
+    {"source":"trim('x','')","tree":{"trim":[{"literal":"x"},{"literal":""}]}},
+    {"source":"trim(s,concat('a','b'))","tree":{"trim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}},
+    {"source":"ltrim(s,' ')","tree":{"ltrim":[{"field":"s"},{"literal":" "}]}},
+    {"source":"ltrim($p,s)","tree":{"ltrim":[{"$param":"p"},{"field":"s"}]}},
+    {"source":"ltrim(NULL,'x')","tree":{"ltrim":[{"literal":null},{"literal":"x"}]}},
+    {"source":"ltrim('x',NULL)","tree":{"ltrim":[{"literal":"x"},{"literal":null}]}},
+    {"source":"ltrim(NULL,NULL)","tree":{"ltrim":[{"literal":null},{"literal":null}]}},
+    {"source":"ltrim('😀é','😀́')","tree":{"ltrim":[{"literal":"😀é"},{"literal":"😀́"}]}},
+    {"source":"ltrim('x','')","tree":{"ltrim":[{"literal":"x"},{"literal":""}]}},
+    {"source":"ltrim(s,concat('a','b'))","tree":{"ltrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}},
+    {"source":"rtrim(s,' ')","tree":{"rtrim":[{"field":"s"},{"literal":" "}]}},
+    {"source":"rtrim($p,s)","tree":{"rtrim":[{"$param":"p"},{"field":"s"}]}},
+    {"source":"rtrim(NULL,'x')","tree":{"rtrim":[{"literal":null},{"literal":"x"}]}},
+    {"source":"rtrim('x',NULL)","tree":{"rtrim":[{"literal":"x"},{"literal":null}]}},
+    {"source":"rtrim(NULL,NULL)","tree":{"rtrim":[{"literal":null},{"literal":null}]}},
+    {"source":"rtrim('😀é','😀́')","tree":{"rtrim":[{"literal":"😀é"},{"literal":"😀́"}]}},
+    {"source":"rtrim('x','')","tree":{"rtrim":[{"literal":"x"},{"literal":""}]}},
+    {"source":"rtrim(s,concat('a','b'))","tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -264,6 +131,14 @@
     "round()",
     "trunc()",
     "round(x,y)",
-    "trunc(x,y)"
+    "trunc(x,y)",
+    "ltrim()",
+    "ltrim(s,' ',s)",
+    "LTRIM(s)",
+    "rtrim()",
+    "rtrim(s,' ',s)",
+    "RTRIM(s)",
+    "trim()",
+    "trim(s,' ',s)"
   ]
 }

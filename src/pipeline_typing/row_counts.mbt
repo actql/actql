@@ -330,6 +330,7 @@ fn selector_count(
     ExplicitIds =>
       Some(count(@graph.selector_id_count(selector).to_int64(), false))
     RelationIds(_) => reduce_count(target.bind(t => count_at(t, rows)))
+    NodeWhere => reduce_count(nodes)
   }
   match (selected, nodes) {
     (Some(a), Some(z)) =>
@@ -366,7 +367,7 @@ fn derive_row_counts(
           nodes: reduce_count(value.nodes),
           edges: reduce_count(value.edges),
         })
-      GraphUnion(inputs~, ..) => {
+      GraphUnion(inputs~, ..) | GraphMean(inputs~, ..) => {
         let mut nodes = Some(count(0L, true))
         let mut edges = Some(count(0L, true))
         for target in inputs {

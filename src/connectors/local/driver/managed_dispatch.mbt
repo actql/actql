@@ -2098,7 +2098,12 @@ pub fn[T] start_local_managed_dispatch(
               ).unwrap(),
             )
             is Some(@lower.GraphTraverseStep(traverse)) &&
-            !@lower.graph_traverse_emits_paths(traverse) {
+            (
+              !@lower.graph_traverse_emits_paths(traverse) ||
+              @lower.graph_traverse_shortest(traverse) is Some(_)
+            ) {
+            // Shortest's typed path columns are completed Relation values;
+            // persist/reload them through the existing snapshot owner too.
             graph_rows = true
           }
         }
