@@ -1,0 +1,10 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/source_value" @source,
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"
