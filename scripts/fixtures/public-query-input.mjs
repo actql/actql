@@ -410,6 +410,72 @@ queryCompositionSuccesses.push(
  shadowCase('null-object-column',shadowPayloadText,[{value:90}],[optionalNumber('value')],{parameterDeclarations:shadowPayloadDeclaration,parameters:{payload:null}}),
 );
 
+// JOIN rows reuse the existing range/column scope and closed-object form.
+// These rows and contracts are authored from SQL multiplicity/null extension,
+// independently of compiler output. FULL retains explicit key evidence.
+const joinedLeft='(SELECT 20 AS amount,2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64),1 UNION ALL SELECT 20,2)';
+const joinedRight='(SELECT 2 AS id,20 AS marker UNION ALL SELECT 4,40)';
+const joinedLeftFields={amount:{type:'number',nullable:true},id:{type:'number',nullable:false}};
+const joinedObject=(name,fields)=>({name,contract:{type:'object',nullable:false,fields,additional_properties:false}});
+const joinedLeftColumn=joinedObject('left_row',joinedLeftFields);
+const joinedRightColumn=joinedObject('right_row',{id:{type:'number',nullable:false}});
+const joinedCrossRows=[
+ {left_row:{amount:null,id:1},right_row:{id:7}},
+ {left_row:{amount:20,id:2},right_row:{id:7}},
+ {left_row:{amount:20,id:2},right_row:{id:7}},
+];
+export const joinedRowControl={version:'actql/0.1',id:'fixture.joined_rows',stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:joinedLeftFields,rows:[{amount:20,id:2},{amount:null,id:1},{amount:20,id:2}]},as:'left'},
+ {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:7}]},as:'right'},
+ {from:'left',cross_join:{with:'right',max_output_rows:10,select:{left_amount:'left.amount',left_id:'left.id',right_id:'right.id'}},as:'joined'},
+ {from:'joined',derive:{left_row:{object:{amount:{field:'left_amount'},id:{field:'left_id'}}},right_row:{object:{id:{field:'right_id'}}}}},
+ {sort:[{field:'left_id',dir:'asc',nulls:'first'}]},
+ {select:['left_row','right_row'],as:'out'},
+ ],results:{rows:{from:'out',fields:['left_row','right_row']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const joinedCase=(name,text,expected=joinedCrossRows,columns=[joinedLeftColumn,joinedRightColumn],extra={})=>({name:'joined-row-'+name,format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const joinedCrossSource='SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 ORDER BY l.id';
+const joinedNullableRight=joinedObject('right_row',{id:{type:'number',nullable:true},marker:{type:'number',nullable:true}});
+const joinedNonNullRight=joinedObject('right_row',{id:{type:'number',nullable:false},marker:{type:'number',nullable:false}});
+const joinedNullableLeft=joinedObject('left_row',{amount:{type:'number',nullable:true},id:{type:'number',nullable:true}});
+const joinedAliasSource='SELECT COALESCE(l,NULL).amount AS original,r AS l,l.id AS id FROM (SELECT 1 AS id,20 AS amount UNION ALL SELECT 2,10 UNION ALL SELECT 2,10) l JOIN (SELECT 1 AS id,10 AS amount UNION ALL SELECT 2,30) r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY COALESCE(l,NULL).amount';
+const joinedAliasColumns=[optionalNumber('original'),joinedObject('l',{amount:{type:'number',nullable:false},id:{type:'number',nullable:false}}),optionalNumber('id')];
+queryCompositionSuccesses.push(
+ joinedCase('json-control',JSON.stringify(joinedRowControl),joinedCrossRows,[joinedLeftColumn,joinedRightColumn],{format:'json'}),
+ joinedCase('cross-null-duplicates',joinedCrossSource),
+ joinedCase('empty',joinedCrossSource.replace(joinedLeft, '(SELECT CAST(NULL AS FLOAT64) AS amount,1 AS id WHERE FALSE)'),[],[joinedLeftColumn,joinedRightColumn]),
+ joinedCase('range-column-collision','SELECT l AS row FROM (SELECT 7 AS l,9 AS id) l CROSS JOIN (SELECT 2 AS id) r MAX_OUTPUT_ROWS 10',[{row:{l:7,id:9}}],[joinedObject('row',{l:{type:'number',nullable:false},id:{type:'number',nullable:false}})]),
+ joinedCase('quoted-range','SELECT `ORDER` AS left_row,r AS right_row FROM '+joinedLeft+' `ORDER` CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 ORDER BY `ORDER`.id'),
+ joinedCase('left-null-extension','SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l LEFT JOIN '+joinedRight+' r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY l.id',[
+  {left_row:{amount:null,id:1},right_row:{id:null,marker:null}},
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+ ],[joinedLeftColumn,joinedNullableRight]),
+ joinedCase('right-null-extension','SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l RIGHT JOIN '+joinedRight+' r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY r.id',[
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+  {left_row:{amount:null,id:null},right_row:{id:4,marker:40}},
+ ],[joinedNullableLeft,joinedNonNullRight]),
+ joinedCase('full-using','DATA lefts = FROM (SELECT 1 AS id UNION ALL SELECT 2) |> ASSERT UNIQUE BY (id); DATA rights = FROM '+joinedRight+' |> ASSERT UNIQUE BY (id); SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id',[
+  {left_row:{id:1},right_row:{id:null,marker:null}},
+  {left_row:{id:2},right_row:{id:2,marker:20}},
+  {left_row:{id:null},right_row:{id:4,marker:40}},
+ ],[joinedObject('left_row',{id:{type:'number',nullable:true}}),joinedNullableRight],{format:'aql-text'}),
+ joinedCase('pre-join-predicate','FROM '+joinedLeft+' l |> WHERE COALESCE(l,NULL).id > 1 |> LIMIT 1 |> CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 |> SELECT l AS left_row,r AS right_row',[{left_row:{amount:20,id:2},right_row:{id:7}}],[joinedLeftColumn,joinedRightColumn],{format:'aql-text'}),
+ joinedCase('order-alias-not-input-reuse',joinedAliasSource,[
+  {original:20,l:{amount:10,id:1},id:1},
+  {original:10,l:{amount:30,id:2},id:2},
+  {original:10,l:{amount:30,id:2},id:2},
+ ],joinedAliasColumns),
+ joinedCase('shared-acquired-cte','WITH chosen AS (SELECT amount,id FROM records) SELECT l AS left_row,r AS right_row FROM chosen l JOIN chosen r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY l.id',[
+  {left_row:{amount:null,id:1},right_row:{amount:null,id:1}},
+  {left_row:{amount:20,id:2},right_row:{amount:20,id:2}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+ ],[joinedLeftColumn,joinedObject('right_row',joinedLeftFields)],{sourceReadCount:undefined,sourceReadSessionCount:1}),
+);
+
 export const queryCompositionRefusals = [
   {name: 'nested-cte-octal-range', format: 'sql',
     text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
@@ -479,6 +545,13 @@ queryCompositionRefusals.push(...[
  ['drop-removes-range',shadowHead+' |> DROP element |> SELECT element AS row'],
  ['row-is-not-number',shadowHead+' |> SELECT element + 1 AS value'],
 ].map(([name,text])=>({name:'range-shadow-refusal-'+name,format:'aql-text',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['missing-row-member','SELECT (l).missing AS value FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10'],
+ ['row-is-not-number','SELECT l+1 AS value FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10'],
+ ['displaced-range','FROM '+joinedLeft+' l |> CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 |> AS current |> SELECT l AS row'],
+ ['duplicate-range','SELECT l AS row FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) l MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'joined-row-refusal-'+name,format:name==='displaced-range'?'aql-text':'sql',text,expectedCode:'ClientProgramInvalidInput'})));
 
 export const querySuccesses = [
   {name: 'sql', format: 'sql',

@@ -1028,7 +1028,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:ddb00756605a7cc7ae0c7868cf216fce616aaff605799ff44fd7f5686326c163');
+    'sha256:b20b5b1274cc9aba4d8b04257ed7acec3418eb1f782e634031365b5150c66331');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1221,13 +1221,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:a1095a46c8ca8c69978d95e13160d3840728b417407eeaeebf779ce8d8d88282');
+    'sha256:c8556b9af84d3381d90ac493b10e6d0af41a43ee3cf7baab3214142709fc98a5');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:f4a4b545381ef956979baabbfdb094628ce958466049c7a5c1056a13c8f63e6f');
+    'sha256:77c12a52d43ad5c3caac120ec4bb0f361cec87c16a80bdb2c1f6c5ecce1dbf05');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:68679d5f6e0c76803a2fc4e2961c083dece3c53d520e2e5edc04cd06eabbf864');
+    'sha256:37d6db1cbacd23f8c8371496bc41f4f38b1df7418e65f69a4f5ed0e2977d1ea0');
   assert.equal(current.run.run_definition_cid,
-    'sha256:ddb00756605a7cc7ae0c7868cf216fce616aaff605799ff44fd7f5686326c163');
+    'sha256:b20b5b1274cc9aba4d8b04257ed7acec3418eb1f782e634031365b5150c66331');
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
@@ -2247,4 +2247,15 @@ test('pre-JOIN integration preserves the complete adopted range-precedence Run',
  const {grammar_manifest_cid:gc,...body}=frozen.grammar;assert.equal(cid(body),gc);
  assert.deepEqual(vector(gc,frozen.aoa_contract_cid,frozen.values_dependencies,frozen.barrier_contract_manifest_cid,frozen.program_identity,{canonicalCandidates:true}),frozen.run_preimages);
  assert.equal(frozen.run_preimages.run.run_definition_cid,'sha256:c9084dedac4c58e0c4d57fdd67c56777a36854f561b7918d652bb093d21cf220');
+});
+
+test('pre-joined-row rules retain the integrated grammar and complete Run closure',()=>{
+ const frozen=JSON.parse(readFileSync('scripts/fixtures/pre-joined-row-range-values-identities.json','utf8'));
+ assert.equal(frozen.source_revision,'0833c2c07060c6ed8291341ddfe3db718c6909a0');
+ const {grammar_manifest_cid:gc,...body}=frozen.grammar;
+ assert.equal(cid(body),gc);
+ assert.deepEqual(vector(gc,frozen.aoa_contract_cid,frozen.values_dependencies,
+  frozen.barrier_contract_manifest_cid,frozen.program_identity,{canonicalCandidates:true}),frozen.run_preimages);
+ assert.equal(frozen.run_preimages.run.run_definition_cid,
+  'sha256:ddb00756605a7cc7ae0c7868cf216fce616aaff605799ff44fd7f5686326c163');
 });

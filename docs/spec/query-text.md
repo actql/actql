@@ -686,6 +686,15 @@ belongs to a nearer overriding scope and takes precedence over an input name.
 Column-selector positions such as USING and ITEM KEY remain distinct from
 expression reference lookup. The expression uses the common object form;
 AS itself neither derives an object nor changes an acquisition boundary.
+
+JOIN row expressions use this same scope and common object construction. A
+row receiver denotes the complete declared fields of its operand, including
+the original qualified USING keys. Null extension changes those fields'
+nullability; it does not make the constructed ordinary row object NULL.
+Whole-row references inside predicates retain their authored evaluation point,
+and ORDER aliases override input row receivers before SELECT-expression reuse.
+Row lookup does not manufacture key, uniqueness or order evidence: FULL JOIN
+continues to require its existing checked identity premises.
 SET, DROP and RENAME retain a surviving range's original field names/slots;
 AS rebinds only the current visible columns. A removed range or unavailable
 post-projection slot cannot be recovered through whole-row construction.

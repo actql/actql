@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:7b70ef4ac9e85715f6fb01cf692fa4a3811bdd4b1fef96d5ae132de2613e8d6d';
+  const currentExpected = 'sha256:d2dc38cdf444ff4a60d0096fa4bf486b392526231336d20b4628d6321bb50990';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -478,7 +478,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     expression_text_grammar_sha256: '12dfcd8853b43a66946036e8c9cc7bdf092b8cf2d911062fec57a9614f66285b',
     expression_text_rules_sha256: 'af98f75d2a1b4199171f72c3a88c36378a87b9be25955c9f112b4cfe56527313',
     query_text_grammar_sha256: '1fb1f78b0d3eecd17266dbd97148b4df1e096d6032eba02c66bf07cbf155b41e',
-    query_text_rules_sha256: 'f96231d74182b589bddedefca780458697ac181115440c9457955f1fba322f1f'});
+    query_text_rules_sha256: '4cdc98039a3a0438900d52fa8d67ed780447489b730a54779c7f9b501ca313c4'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
@@ -529,6 +529,17 @@ test('range precedence changes only query rules, not common contracts or syntax'
  const {grammar_manifest_cid:bc,query_text_rules_sha256:br,...cb}=before;
  const {grammar_manifest_cid:ac,query_text_rules_sha256:ar,...ca}=after;
  assert.deepEqual(ca,cb);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+test('joined row scope changes query rules without a new expression or JOIN contract',()=>{
+ const before=read('scripts/fixtures/pre-joined-row-range-values-identities.json').grammar;
+ const after=read('spec/manifests/actql-grammar-0.1.json');
+ const {grammar_manifest_cid:bc,query_text_rules_sha256:br,...commonBefore}=before;
+ const {grammar_manifest_cid:ac,query_text_rules_sha256:ar,...commonAfter}=after;
+ assert.deepEqual(commonAfter,commonBefore);
+ assert.equal(cid({...commonBefore,query_text_rules_sha256:br}),bc);
+ assert.equal(cid({...commonAfter,query_text_rules_sha256:ar}),ac);
+ assert.notEqual(ar,br);assert.notEqual(ac,bc);
 });
 
 test('PIVOT scalar argument only changes its source grammar and lowering rules pins', () => {

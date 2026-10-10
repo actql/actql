@@ -9010,24 +9010,16 @@ fn joined_projection(
     }
     output.push(name)
     match reference {
-      Some(path) =>
-        if joined_row_input_fields(
-            path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          )
-          is Some(_) {
-          private_projection = true
+      Some(path) => {
+        let resolved = join_projection_receiver(
+          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+        )
+        if resolved.2 == path.length() {
+          select.push((name, construction.text(resolved.0 + "." + resolved.1)))
         } else {
-          let resolved = join_projection_receiver(
-            path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          )
-          if resolved.2 == path.length() {
-            select.push(
-              (name, construction.text(resolved.0 + "." + resolved.1)),
-            )
-          } else {
-            private_projection = true
-          }
+          private_projection = true
         }
+      }
       None => private_projection = true
     }
   }
@@ -9045,31 +9037,26 @@ fn joined_projection(
   }
   select.clear()
   let required : Array[(String, String)] = []
-  let seen_required : Map[(String, String), Bool] = Map([])
-  let require_field = fn(field : (String, String)) {
-    if !seen_required.contains(field) {
-      required.push(field)
-      seen_required[field] = true
-    }
-  }
   for projection in projections {
     for path in join_reference_paths(projection.expression.unwrap()) {
-      for
-        field in joined_expression_input_fields(
-          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-        ) {
-        require_field(field)
+      let receiver = join_projection_receiver(
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+      )
+      let field = (receiver.0, receiver.1)
+      if !required.contains(field) {
+        required.push(field)
       }
     }
   }
   match predicate {
     Some(expression) =>
       for path in join_reference_paths(expression) {
-        for
-          field in joined_expression_input_fields(
-            path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          ) {
-          require_field(field)
+        let receiver = join_projection_receiver(
+          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+        )
+        let field = (receiver.0, receiver.1)
+        if !required.contains(field) {
+          required.push(field)
         }
       }
     None => ()
@@ -9094,15 +9081,8 @@ fn joined_projection(
           Abort(issue) => raise Abort(issue)
         }
         if field is Some(field) {
-          require_field(field)
-          break
-        }
-        if joined_row_input_fields(
-            prefix, part, left_qualifier, right_qualifier, left_fields, right_fields,
-          )
-          is Some(fields) {
-          for field in fields {
-            require_field(field)
+          if !required.contains(field) {
+            required.push(field)
           }
           break
         }
@@ -9124,19 +9104,9 @@ fn joined_projection(
     left_fields +
     right_fields
   let slots : Array[(String, String, String)] = []
-  let reserved_names : Map[String, Bool] = Map([])
-  for name in reserved {
-    reserved_names[ascii_upper(name)] = true
-  }
-  let mut serial = reserved.length()
   for field in required {
-    let mut slot = "aql_join_input_" + serial.to_string()
-    while reserved_names.contains(ascii_upper(slot)) {
-      serial += 1
-      slot = "aql_join_input_" + serial.to_string()
-    }
-    serial += 1
-    reserved_names[ascii_upper(slot)] = true
+    let slot = pipe_physical_name(reserved, "aql_join_input_")
+    reserved.push(slot)
     slots.push((field.0, field.1, slot))
     select.push((slot, construction.text(field.0 + "." + field.1)))
   }
@@ -9160,14 +9130,6 @@ fn joined_projection(
       None => None
     }
   }
-  let ranges = joined_row_ranges(
-    left_qualifier, right_qualifier, left_fields, right_fields, slots,
-  )
-  let resolve_row = fn(
-    path : Array[@query.NamePart],
-  ) -> Array[(String, String)]? {
-    row_reference_fields(path, name => resolve([name]) is Some(_), ranges)
-  }
   let mut from = join_step_binding(step_bindings, "aql_join_raw")
   match predicate {
     Some(expression) => {
@@ -9178,7 +9140,6 @@ fn joined_projection(
           construction.builder,
           max_work,
           resolve_parameter=construction.parameter_resolver(),
-          resolve_row=Some(resolve_row),
         ) {
         Ok(value) => value
         Err(error) => raise Abort(Expression(error))
@@ -9225,7 +9186,6 @@ fn joined_projection(
             construction.builder,
             max_work,
             resolve_parameter=construction.parameter_resolver(),
-            resolve_row=Some(resolve_row),
           ) {
           Ok(value) => value
           Err(error) => raise Abort(Expression(error))
@@ -9265,16 +9225,6 @@ fn joined_projection(
         construction.builder,
         max_work,
         resolve_parameter=construction.parameter_resolver(),
-        resolve_row=Some(path => {
-          row_reference_fields(
-            path,
-            name => {
-              order_output_slot([name], output_slots) is Some(_) ||
-              resolve([name]) is Some(_)
-            },
-            ranges,
-          )
-        }),
       ) {
       Ok(value) => value
       Err(error) => raise Abort(Expression(error))
@@ -9366,25 +9316,7 @@ fn join_order_projection(
     ) catch {
       Abort(_) => None
     }
-    if resolved is Some(field) {
-      return Some(field.0 + "." + field.1)
-    }
-    let row = joined_row_input_fields(
-      path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-    ) catch {
-      Abort(_) => None
-    }
-    if row is Some(_) {
-      // Comparison-only scope identity; this is never a physical field name.
-      return Some(
-        if same_name(path[0], left_qualifier) {
-          "row-scope:left"
-        } else {
-          "row-scope:right"
-        },
-      )
-    }
-    None
+    resolved.map(field => field.0 + "." + field.1)
   }
   for index in 0..<projections.length() {
     let expression = projections[index].expression.unwrap()

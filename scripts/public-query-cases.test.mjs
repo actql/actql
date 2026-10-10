@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
-import {relationDataSuccesses, relationDataRefusals, queryCompositionSuccesses, queryCompositionRefusals} from './fixtures/public-query-input.mjs';
+import {relationDataSuccesses, relationDataRefusals, queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
 import {pipePivotSuccesses,pipePivotRefusals,fromPivotAcquiredProgram,pivotArgumentExpressionProgram} from './fixtures/pipe-pivot-source-input.mjs';
 
@@ -25,6 +25,29 @@ test('duplicate request names cannot hide conflicting source or expectations', (
     assert.throws(() => uniquePublicQueryCases([original, conflicting]),
       /Conflicting public query fixture/u);
   }
+});
+
+test('joined row fixtures distinguish row identity, null extension and ORDER receiver reuse',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const control=cases.get('joined-row-json-control');
+ const source=cases.get('joined-row-cross-null-duplicates');
+ assert.deepEqual(control.expected,source.expected);
+ assert.deepEqual(control.columns,source.columns);
+ assert.deepEqual(joinedRowControl.stages[0].steps[2].cross_join,
+  {with:'right',max_output_rows:10,select:{left_amount:'left.amount',left_id:'left.id',right_id:'right.id'}});
+ assert.deepEqual(source.expected.map(row=>row.left_row.id),[1,2,2]);
+ assert.deepEqual(cases.get('joined-row-range-column-collision').expected,[{row:{l:7,id:9}}]);
+ assert.deepEqual(cases.get('joined-row-left-null-extension').expected[0],
+  {left_row:{amount:null,id:1},right_row:{id:null,marker:null}});
+ assert.equal(cases.get('joined-row-left-null-extension').columns[1].contract.nullable,false);
+ assert.equal(cases.get('joined-row-right-null-extension').columns[0].contract.fields.id.nullable,true);
+ assert.ok(cases.get('joined-row-full-using').text.includes('ASSERT UNIQUE BY (id)'));
+ const alias=cases.get('joined-row-order-alias-not-input-reuse');
+ assert.deepEqual(alias.expected.map(row=>row.id),[1,2,2]);
+ assert.deepEqual([...alias.expected].sort((a,b)=>a.original-b.original).map(row=>row.id),[2,2,1]);
+ assert.equal(cases.get('joined-row-shared-acquired-cte').sourceReadSessionCount,1);
+ assert.equal(cases.get('joined-row-shared-acquired-cte').expected.length,6);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('joined-row-refusal-')).length,4);
 });
 
 test('DATA positional fixture keeps NULL duplicates and public output contracts', () => {
