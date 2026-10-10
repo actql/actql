@@ -1,10 +1,9 @@
 ///|
 /// Protocol-authored one-row Preview for the physical receipt transaction.
 /// Derived references are signing inputs, never expected statuses/results.
-fn receipt_test_preview() -> (
-  @publication.EffectPreviewIdentity,
-  @effect.EffectDispatchKey,
-) {
+fn receipt_test_preview(
+  run_identity? : String,
+) -> (@publication.EffectPreviewIdentity, @effect.EffectDispatchKey) {
   let c = (digit : String) => "sha256:" + digit.repeat(64)
   let a = c("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
@@ -84,7 +83,7 @@ fn receipt_test_preview() -> (
   let (cid, _) = @publication.derive_effect_preview_identities(
     with_member, 8192, 256, 12,
   ).unwrap()
-  let (request, _, _, _) = journal_test_run(
+  let (request, _, _, definition) = journal_test_run(
     "checkpoint-request", "checkpoint-run",
   )
   let key = @effect.prepare_effect_dispatch_key(
@@ -101,9 +100,16 @@ fn receipt_test_preview() -> (
       new="\"effect_preview_cid\":\"" + cid + "\"",
     )
     .replace_all(old=c("4"), new=key.cid)
+  let original_run = run_identity.unwrap_or(
+    @publication.publication_contract_identity(definition),
+  )
+  let final_wire = final_wire.replace_all(
+    old="\"run_identity_cid\":\"" + a + "\"",
+    new="\"run_identity_cid\":\"" + original_run + "\"",
+  )
   let preview = @effect.admit_effect_preview_apply_identity(
     final_wire,
-    a,
+    original_run,
     authoring,
     @host.client_request_logical_scope(request),
     [[key]],
@@ -523,4 +529,86 @@ test "Native original terminal and receipt commit together after lost reply" {
     assert_false(journal.claim_physical_start(dispatch.request, true).unwrap())
     reopened.close_checked().unwrap()
   }
+}
+
+///|
+test "Native original receipt refuses another Run with the same semantic Preview and dispatch key" {
+  let (database, journal, dispatch, preview, locator, key, basis) = receipt_test_dispatch(
+    "client-row-receipt-foreign-run",
+  )
+  journal
+  .record_effect_row_response(dispatch, response_test_value(), 4096)
+  .unwrap()
+  let (foreign, foreign_key) = receipt_test_preview(
+    run_identity="sha256:" + "9".repeat(64),
+  )
+  assert_eq(
+    @publication.effect_preview_semantic_identity(foreign),
+    @publication.effect_preview_semantic_identity(preview),
+  )
+  assert_eq(foreign_key.cid, key.cid)
+  assert_true(
+    @publication.effect_preview_run_identity(foreign) !=
+    @publication.effect_preview_run_identity(preview),
+  )
+  assert_true(
+    receipt_test_settle(journal, dispatch, foreign, locator, foreign_key, basis)
+    is Err(Checkpoint(InvalidMaterial)),
+  )
+  assert_eq(
+    journal
+    .lookup_effect_row(dispatch.request, locator, () => true)
+    .unwrap()
+    .unwrap().cid,
+    dispatch.dispatching.cid,
+  )
+  assert_true(
+    database.scan_after("client_effect_row_receipt", "")
+    is Err(@sqlite.NotFound),
+  )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native original receipt lookup refuses foreign Run even before terminal evidence exists" {
+  let (database, journal, dispatch, preview, locator, key, basis) = receipt_test_dispatch(
+    "client-row-receipt-foreign-lookup",
+  )
+  let (foreign, foreign_key) = receipt_test_preview(
+    run_identity="sha256:" + "9".repeat(64),
+  )
+  assert_eq(
+    @publication.effect_preview_semantic_identity(foreign),
+    @publication.effect_preview_semantic_identity(preview),
+  )
+  assert_eq(foreign_key.cid, key.cid)
+  assert_true(
+    journal.effect_row_receipt(
+      dispatch,
+      foreign,
+      0,
+      0,
+      locator,
+      foreign_key,
+      basis.canonical_request_cid,
+      () => true,
+      4096,
+    )
+    is Err(Checkpoint(InvalidMaterial)),
+  )
+  assert_true(
+    journal.effect_row_receipt(
+      dispatch,
+      preview,
+      0,
+      0,
+      locator,
+      key,
+      basis.canonical_request_cid,
+      () => true,
+      4096,
+    )
+    is Ok(None),
+  )
+  database.close_checked().unwrap()
 }
