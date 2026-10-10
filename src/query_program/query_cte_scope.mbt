@@ -5,6 +5,7 @@
 fn validate_cte_scope(
   query : @query.Query,
   inputs : Array[Input],
+  graphs? : Array[ScriptGraph] = [],
 ) -> Unit raise Abort {
   let used = Array::make(@query.cte_count(query), false)
   for index in 0..<@query.cte_count(query) {
@@ -31,7 +32,8 @@ fn validate_cte_scope(
     for term in query_terms(body) {
       let body_relation = @query.relation(term)
       let known_outer = body_relation.is_empty() ||
-        inputs.any(input => input_relation_matches(body_relation, input))
+        inputs.any(input => input_relation_matches(body_relation, input)) ||
+        (script_has_graph_rows(term) && script_graph_input(term, graphs) is Some(_))
       for future in index..<@query.cte_count(query) {
         if same_relation_path(body_relation, [
             @query.cte_at(query, future).unwrap().name,
