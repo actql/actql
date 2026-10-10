@@ -1,8 +1,10 @@
 """Remote import independence and pre-I/O Local artifact admission."""
 import subprocess
 import sys
+import hashlib
 from threading import RLock
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from actql_sdk._local_core import LocalCore, _PhysicalInput
@@ -31,6 +33,22 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
     def test_invalid_artifact_rejected_before_optional_engine_import(self):
         with self.assertRaisesRegex(ValueError, 'artifact or capacity'):
             LocalCore(b'not a module', digest='0' * 64, transfer_capacity=65536)
+
+    def test_scalar_budgets_rejected_before_optional_engine_import(self):
+        module = b'installed module'
+        digest = hashlib.sha256(module).hexdigest()
+        cases = [
+            {'transfer_capacity': 2**63},
+            {'transfer_capacity': 2**64 + 65536},
+            {'transfer_capacity': 65536, 'fuel': 2**64},
+            {'transfer_capacity': 65536, 'fuel': 2**64 + 100000000},
+        ]
+        with patch('actql_sdk._local_core.import_module',
+                   side_effect=AssertionError('Invalid scalar reached Wasmtime')):
+            for settings in cases:
+                with self.subTest(settings=settings):
+                    with self.assertRaisesRegex(ValueError, 'artifact or capacity'):
+                        LocalCore(module, digest=digest, **settings)
 
     def test_physical_cleanup_fact_survives_missing_core_acknowledgement(self):
         core = LocalCore.__new__(LocalCore)
