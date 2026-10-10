@@ -11,6 +11,45 @@ struct PreparedGraphTraverse {
   checked : @graph.CheckedTraverse
   hops : Array[PreparedGraphTraverseHop]
   output_guard : Int64?
+  start_predicate : Expression?
+  target_predicate : Expression?
+}
+
+///|
+pub fn graph_traverse_shortest(
+  value : PreparedGraphTraverse,
+) -> @graph.CheckedShortest? {
+  @graph.traverse_shortest(value.checked)
+}
+
+///|
+fn graph_traverse_operation(checked : @graph.CheckedTraverse) -> String {
+  if @graph.traverse_shortest(checked) is Some(_) {
+    "SGA.shortest_path"
+  } else if @graph.traverse_is_reach(checked) {
+    "SGA.reachable"
+  } else {
+    "SGA.traverse"
+  }
+}
+
+///|
+pub fn graph_traverse_target_predicate(
+  value : PreparedGraphTraverse,
+) -> Expression? {
+  value.target_predicate
+}
+
+///|
+pub fn graph_traverse_target_selector(
+  value : PreparedGraphTraverse,
+) -> @graph.CheckedSelector? {
+  graph_traverse_shortest(value).map(@graph.shortest_targets)
+}
+
+///|
+pub fn graph_traverse_is_reach(value : PreparedGraphTraverse) -> Bool {
+  @graph.traverse_is_reach(value.checked)
 }
 
 ///|
@@ -51,7 +90,7 @@ pub fn graph_traverse_bounds(value : PreparedGraphTraverse) -> (Int64, Int64)? {
 ///|
 /// Whether this occurrence emits complete paths rather than reached nodes.
 pub fn graph_traverse_emits_paths(value : PreparedGraphTraverse) -> Bool {
-  @graph.traverse_emission(value.checked) == @graph.TraversedPaths
+  @graph.traverse_emission(value.checked) != @graph.TraversedNodes
 }
 
 ///|
@@ -64,6 +103,33 @@ pub fn graph_traverse_output_guard(value : PreparedGraphTraverse) -> Int64? {
 /// Number of checked literal identities in the start selector.
 pub fn graph_traverse_start_id_count(value : PreparedGraphTraverse) -> Int {
   @graph.selector_id_count(@graph.traverse_start(value.checked))
+}
+
+///|
+pub fn graph_traverse_start_predicate(
+  value : PreparedGraphTraverse,
+) -> Expression? {
+  value.start_predicate
+}
+
+///|
+pub fn graph_traverse_start_fields(
+  value : PreparedGraphTraverse,
+) -> @carrier.Knowledge? {
+  @graph.selector_fields(@graph.traverse_start(value.checked))
+}
+
+///|
+pub fn graph_traverse_start_property_position(
+  value : PreparedGraphTraverse,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  @graph.selector_property_position(
+    @graph.traverse_start(value.checked),
+    definition,
+    field,
+  )
 }
 
 ///|
@@ -207,10 +273,16 @@ fn prepare_graph_traverse_node(
     return Err(InvalidGraphTraverseWiring)
   }
   let start = @graph.traverse_start(checked)
-  let expected_inputs = if @graph.selector_form(start) is @graph.RelationIds(..) {
+  let mut expected_inputs = if @graph.selector_form(start)
+    is @graph.RelationIds(..) {
     2
   } else {
     1
+  }
+  let target = @graph.traverse_shortest(checked).map(@graph.shortest_targets)
+  if target is Some(selector) &&
+    @graph.selector_form(selector) is @graph.RelationIds(..) {
+    expected_inputs += 1
   }
   if node.inputs.length() != expected_inputs {
     return Err(InvalidGraphTraverseWiring)
@@ -220,6 +292,16 @@ fn prepare_graph_traverse_node(
   if @graph.selector_form(start) is @graph.RelationIds(field~, ..) {
     entries += 1
     name_bytes += @utf8.encode(@schema.reference_name(field)).length()
+  }
+  if target is Some(selector) {
+    entries += @graph.selector_id_count(selector)
+    if @graph.selector_form(selector) is @graph.RelationIds(field~, ..) {
+      entries += 1
+      name_bytes += @utf8.encode(@schema.reference_name(field)).length()
+    }
+  }
+  if entries > max_entries || name_bytes > max_name_bytes {
+    return Err(GraphTraversePreparationLimit)
   }
   let hop_count = @graph.traverse_hop_count(checked)
   if hop_count > max_entries - entries {
@@ -248,6 +330,42 @@ fn prepare_graph_traverse_node(
   }
   let hops : Array[PreparedGraphTraverseHop] = []
   let mut remaining = expressions
+  let start_predicate = if @graph.selector_predicate(start) is Some(_) {
+    let (expression, usage) = match
+      lower_expression_measured(owner, step_index, hop_count * 2, remaining) {
+      Ok(value) => value
+      Err(issue) => return Err(GraphTraverseExpression(issue))
+    }
+    remaining = {
+      ..remaining,
+      max_nodes: remaining.max_nodes - usage.nodes,
+      max_work: remaining.max_work - usage.work,
+      max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+      max_literal_text_bytes: remaining.max_literal_text_bytes -
+      usage.literal_bytes,
+    }
+    Some(expression)
+  } else {
+    None
+  }
+  let target_predicate = if target.bind(@graph.selector_predicate) is Some(_) {
+    let (expression, usage) = match
+      lower_expression_measured(owner, step_index, hop_count * 2 + 1, remaining) {
+      Ok(value) => value
+      Err(issue) => return Err(GraphTraverseExpression(issue))
+    }
+    remaining = {
+      ..remaining,
+      max_nodes: remaining.max_nodes - usage.nodes,
+      max_work: remaining.max_work - usage.work,
+      max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+      max_literal_text_bytes: remaining.max_literal_text_bytes -
+      usage.literal_bytes,
+    }
+    Some(expression)
+  } else {
+    None
+  }
   for index in 0..<hop_count {
     let hop = @graph.traverse_hop_at(checked, index).unwrap()
     let edge_predicate = if @graph.hop_edge_predicate(hop) is Some(_) {
@@ -309,7 +427,14 @@ fn prepare_graph_traverse_node(
       Some(integer)
     }
   }
-  Ok(({ node, checked, hops, output_guard, }, entries, name_bytes, remaining))
+  Ok(
+    (
+      { node, checked, hops, output_guard, start_predicate, target_predicate, },
+      entries,
+      name_bytes,
+      remaining,
+    ),
+  )
 }
 
 ///|
@@ -342,11 +467,65 @@ fn emit_graph_traverse_node(
   }
   @encode.end_array(out)
   @encode.key(out, "op")
-  @encode.string_value(out, "SGA.traverse")
+  @encode.string_value(out, operation(prepared.node))
   @encode.key(out, "params")
   @encode.begin_object(out)
+  if graph_traverse_shortest(prepared) is Some(shortest) {
+    @encode.key(out, "source")
+    let starts = @graph.shortest_starts(shortest)
+    emit_graph_selector(starts, out, predicate=prepared.start_predicate)
+    @encode.key(out, "target")
+    emit_graph_selector(
+      @graph.shortest_targets(shortest),
+      out,
+      predicate=prepared.target_predicate,
+      input_port=if @graph.selector_form(starts) is @graph.RelationIds(..) {
+        2
+      } else {
+        1
+      },
+    )
+    @encode.key(out, "selection")
+    @encode.string_value(
+      out,
+      match @graph.shortest_selection(shortest) {
+        @graph.EachPair => "each_pair"
+        @graph.NearestPerSource => "nearest_per_source"
+        @graph.NearestPair => "nearest_pair"
+      },
+    )
+    @encode.key(out, "direction")
+    emit_graph_direction(@graph.shortest_direction(shortest), out)
+    @encode.key(out, "max_hops")
+    @encode.number_value(out, @graph.shortest_maximum_hops(shortest))
+    emit_graph_types(prepared.hops[0].checked, out)
+    if @graph.shortest_weight(shortest) is Some(weight) {
+      @encode.key(out, "weight")
+      @encode.string_value(out, weight)
+    }
+    if prepared.output_guard is Some(value) {
+      @encode.key(out, "max_output_rows")
+      @encode.number_value(out, value.to_double())
+    }
+    @encode.end_object(out)
+    @encode.end_object(out)
+    return
+  }
   @encode.key(out, "start")
-  emit_graph_selector(@graph.traverse_start(prepared.checked), out)
+  emit_graph_selector(
+    @graph.traverse_start(prepared.checked),
+    out,
+    predicate=prepared.start_predicate,
+  )
+  if graph_traverse_is_reach(prepared) {
+    @encode.key(out, "direction")
+    emit_graph_direction(@graph.hop_direction(prepared.hops[0].checked), out)
+    @encode.key(out, "max_depth")
+    @encode.number_value(out, @graph.traverse_bounds(prepared.checked).1)
+    @encode.end_object(out)
+    @encode.end_object(out)
+    return
+  }
   @encode.key(out, "path_mode")
   @encode.string_value(
     out,

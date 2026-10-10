@@ -2,13 +2,13 @@
 fn keyed_relation_path_owner(
   graph : @lower.BoundPrepared,
   selector : @lower.BoundPrepared,
+  selector_step? : Int = 0,
+  body? : String = (
+    #|[{"from":"g","traverse":{"start":{"from":"seeds","id":"key"},"path_mode":"trail","hops":[{"direction":"out","edge_types":["R"]},{"direction":"out","edge_types":["R"]}],"emit":"paths"}}]
+  ),
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
-    input_cursor(
-      (
-        #|[{"from":"g","traverse":{"start":{"from":"seeds","id":"key"},"path_mode":"trail","hops":[{"direction":"out","edge_types":["R"]},{"direction":"out","edge_types":["R"]}],"emit":"paths"}}]
-      ),
-    ),
+    input_cursor(body),
     [
       (
         "g",
@@ -24,7 +24,7 @@ fn keyed_relation_path_owner(
         @pipeline.ProducedInput(
           @pipeline.produced_input(
             @lower.pipeline(@lower.bound_preparation(selector)),
-            @pipeline.Step(0),
+            @pipeline.Step(selector_step),
           ).unwrap(),
         ),
       ),

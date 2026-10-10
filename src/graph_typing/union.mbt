@@ -33,6 +33,7 @@ priv struct UnionFold {
 /// One checked left fold. Every operand occurrence and positional alignment is
 /// retained; neither repeated references nor equal values erase an application.
 struct CheckedUnion {
+  graft : Bool
   source : @decode.Cursor
   inputs : Array[@carrier.Carrier]
   folds : Array[UnionFold]
@@ -461,6 +462,28 @@ pub fn check_union(
 }
 
 ///|
+/// Graft uses the exact-equal structural fold, but retains its own checked
+/// operation identity and closed binary body. No merge policy is admitted.
+pub fn check_graft(
+  source : @decode.Cursor,
+  inputs : Array[@carrier.Carrier],
+  limits : Limits,
+) -> Result[CheckedUnion, Issue] {
+  check_structural_composition(
+    source,
+    inputs,
+    limits,
+    allow_list=false,
+    graft=true,
+  )
+}
+
+///|
+pub fn union_is_graft(value : CheckedUnion) -> Bool {
+  value.graft
+}
+
+///|
 /// Shared compatibility and field alignment construction. The operation's
 /// closed operand form remains distinct; subtraction never admits a fold list.
 fn check_structural_composition(
@@ -468,6 +491,7 @@ fn check_structural_composition(
   inputs : Array[@carrier.Carrier],
   limits : Limits,
   allow_list~ : Bool,
+  graft? : Bool = false,
 ) -> Result[CheckedUnion, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -483,7 +507,16 @@ fn check_structural_composition(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    let body = decoded(@decode.closed_object(source, ["with", "merge"]))
+    let body = decoded(
+      @decode.closed_object(
+        source,
+        if graft {
+          ["with"]
+        } else {
+          ["with", "merge"]
+        },
+      ),
+    )
     let at = decoded(@decode.required(body, "with"))
     let peers = if @decode.array_length(at) is Some(count) {
       if !allow_list || count == 0 {
@@ -544,6 +577,7 @@ fn check_structural_composition(
     node_entries.sort_by((a, z) => @canonical.compare_utf16(a.0, z.0))
     edge_entries.sort_by((a, z) => @canonical.compare_utf16(a.0, z.0))
     Ok({
+      graft,
       source,
       inputs: inputs.copy(),
       folds,

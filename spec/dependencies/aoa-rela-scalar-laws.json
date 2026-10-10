@@ -91,7 +91,9 @@
       "3000"
     ],
     "ltrim": "unicode-white-space-leading",
-    "rtrim": "unicode-white-space-trailing"
+    "rtrim": "unicode-white-space-trailing",
+    "trim_character_set": "unicode-code-point-membership",
+    "trim_empty_character_set": "preserve-value"
   },
   "conversion_truth_table": {
     "to_number": {

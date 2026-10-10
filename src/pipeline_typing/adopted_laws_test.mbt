@@ -35,7 +35,7 @@ test "adopted operation laws retain the existing shared body identities" {
     (law, cid) in [
       (
         @pipeline_typing.RelaScalar,
-        "sha256:a99ee999ce67ba339026b263122e8d978d5ef09ef73b988a6f184aed10209acf",
+        "sha256:c1da16b95664cf0d466102f988c2c6b7119ca651bf03df89373b2fbeda7cfafd",
       ),
       (
         RelaPrimitive,
