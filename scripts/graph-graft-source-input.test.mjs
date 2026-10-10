@@ -30,4 +30,11 @@ test('graft public fixtures reach the normal and narrow packed harness', async (
   assert.ok(fixture.includes('graphGraftOnly ? {successes: graphGraftSourceSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_GRAFT_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/graph-graft-source-input.mjs', 'graph-graft-source-input.mjs']"));
+  const restart = driver.indexOf("await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});");
+  const acceptance = driver.indexOf("['packed-query-transports.mjs']");
+  assert.ok(restart > acceptance, 'graft must reread retained Results after both producers exit');
+  const consumer = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
+  assert.ok(consumer.includes("const cohortOnly = process.env.ACTQL_TEST_RETAINED_COHORT_ONLY === '1';"));
+  assert.ok(consumer.includes('assert.deepEqual(actual, oracle.rows)'));
+  assert.ok(consumer.includes("'reopened cohort attach/replay/lookup must preserve the original Run'"));
 });

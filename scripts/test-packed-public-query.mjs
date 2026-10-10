@@ -754,6 +754,26 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
+  let succeeded = false, primary;
+  try {
+    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
+      {...runtimeEnvironment, ...extraEnvironment,
+        ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120_000).trimEnd());
+    succeeded = true;
+  } catch (error) { primary = error; throw error; }
+  finally {
+    await retainTransportReports(['transport-restart-processes.json',
+      'transport-restart.local.json', 'transport-restart.remote.json'],
+    succeeded, primary, 'transport-restart-evidence-index.json');
+  }
+}
+if (process.argv.includes('--graph-graft-only')) {
+  // The Local and HTTPS producers have exited. Read the original retained
+  // Graph projection Results in new processes; no String fixture was selected.
+  await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});
+  return;
+}
 if (process.argv.includes('--source-graph-member-only')) return;
 if (process.argv.includes('--negated-predicate-reuse-only')) return;
 if (process.argv.includes('--membership-expression-reuse-only')) return;
@@ -810,17 +830,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
-  let restartSucceeded = false, restartFailure;
-  try {
-    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
-      {...runtimeEnvironment, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120000).trimEnd());
-    restartSucceeded = true;
-  } catch (error) { restartFailure = error; throw error; }
-  finally {
-    await retainTransportReports(['transport-restart-processes.json',
-      'transport-restart.local.json', 'transport-restart.remote.json'],
-    restartSucceeded, restartFailure, 'transport-restart-evidence-index.json');
-  }
+  await exerciseRetainedQueryRestart();
 }
 if (process.argv.includes('--select-all-only') || process.argv.includes('--typed-json-literal-only') || process.argv.includes('--limit-parameter-only') || process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
