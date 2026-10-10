@@ -28,6 +28,7 @@ fn lower_script_set_relation(
     reserved,
     first,
     graphs~,
+    set_head=true,
   )
   let sql_inner_count = set_inner_chain_length(query)
   let sql_rights : Array[Input] = []

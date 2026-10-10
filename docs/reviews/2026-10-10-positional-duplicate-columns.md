@@ -85,10 +85,32 @@ node scripts/local-checks.mjs test node --timeout-seconds 180 -- scripts/set-cor
 
 ## Pending public acceptance and broader boundaries
 
+### Current-main integration
+
+Normal merge `f86f5b9d07999ce3401c4a2b606918f0f36454e4` adopts main
+`c00439f4f1d4b942e16e4eece97990866c3ec02e`, including the separately
+merged Graph-row set repair #1248 and updated core fixtures. The only
+conflicts were the authored public inventory metadata and its count test.
+Their resolved values were checked against actual authored registration:
+3,323 occurrences, 2,103 normal, 1,173 refusal and 47 execution-failure
+expectations; digest
+`e005d979b379bc3131379c18e26a26496a7a44fbf0fa202e5341eb0b5f54784c`.
+The final metadata preserves main's historical sourceBaseline
+`ce027a937cf780f617d5ed98bb4d56ecbb010877`; the automatic cached resolution's
+different baseline is not retained. No expected rows, types, scopes, limits,
+Graph rejection behavior or CI workflows were changed in conflict resolution.
+The initial counts above remain evidence of the earlier revision, not of
+this integrated source. Post-integration focused JS positional/Graph-row
+callers passed 24/24 (`run-zxzbJZ`, `focused-test-kRraU7`); Node authored
+fixture/inventory checks passed 39/39 (`run-H453Yf`, `focused-test-VbAjBc`).
+These commands used the merged product and final metadata; the follow-up
+commit changes only this record and the baseline metadata correction.
+
 Normal exact-SHA five-package production and the existing 40-case Embedded
 Local/authenticated HTTPS consumer are the next check. Focused success alone
 is not public execution evidence. Actual source revision, digests and receipts
-will be recorded after execution. Full Core, Native/Wasm, complete packed
+will be recorded in the PR's acceptance status after execution; this paragraph
+records the planned check when this source was committed. Full Core, Native/Wasm, complete packed
 corpus and hosted CI have not been run locally. No manual CI rerun or merge.
 
 This unit does not certify nonterminal duplicate projections, duplicate

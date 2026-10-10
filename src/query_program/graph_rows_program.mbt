@@ -121,9 +121,11 @@ fn lower_script_graph_rows(
   known? : Array[Input] = [],
   graphs? : Array[ScriptGraph] = [],
   retained? : Array[RetainedResult]? = None,
+  positional_set_output? : Bool = false,
+  set_head? : Bool = false,
 ) -> Input raise Abort {
   if @query.cte_count(query) > 0 ||
-    @query.set_part_count(query) > 0 ||
+    (@query.set_part_count(query) > 0 && !set_head) ||
     @query.join_part_count(query) > 0 ||
     @query.graph_query(query)
     .map(graph => graph.pattern is Some(_))
@@ -250,6 +252,7 @@ fn lower_script_graph_rows(
     false,
     output,
     retained~,
+    positional_set_output~,
   )
   steps.append(body)
   {

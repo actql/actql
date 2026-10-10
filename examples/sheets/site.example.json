@@ -1,0 +1,27 @@
+{
+  "version": "actql-installed-sheets-site/0.1",
+  "apiOrigin": "https://sheets.googleapis.com",
+  "spreadsheetId": "REPLACE_WITH_AUTHORIZED_SPREADSHEET_ID",
+  "gridRange": {
+    "sheetId": 0,
+    "startRow": 1,
+    "endRow": 4,
+    "startColumn": 0,
+    "endColumn": 3
+  },
+  "appendSheetId": 7,
+  "columns": [
+    {"name": "text", "type": "string", "nullable": false},
+    {"name": "number", "type": "number", "nullable": true},
+    {"name": "flag", "type": "boolean", "nullable": true}
+  ],
+  "namespaceId": "REPLACE_WITH_AUTHORIZED_NAMESPACE",
+  "environment": "test",
+  "siteKey": "sheets-acceptance",
+  "siteGeneration": 1,
+  "credentialAuthorityId": "REPLACE_WITH_INSTALLED_AUTHORITY",
+  "credentialKeyId": "REPLACE_WITH_INSTALLED_SIGNING_KEY_ID",
+  "credentialPrivateKeyPath": "/configured/sheets/credential-signing.key",
+  "journalRoot": "/configured/sheets/credential-journal",
+  "tokenEnvironment": "ACTQL_SHEETS_ACCESS_TOKEN"
+}

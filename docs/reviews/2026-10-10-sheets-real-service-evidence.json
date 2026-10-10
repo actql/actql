@@ -1,0 +1,263 @@
+{
+  "artifactSourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+  "commands": [
+    {
+      "receipt": "real-google-qtY3Wl",
+      "sha256": "0d43713eed389547e89c03d0b269ea1334f0f384c685e15784aefedebec8c1a5",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "setup"
+      ]
+    },
+    {
+      "receipt": "real-google-zhfkZ7",
+      "sha256": "0f638e78673566ecbd924f413ca41c3be6a3d6394386a2dbdf5f40f10f4bd016",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "local",
+        "normal"
+      ]
+    },
+    {
+      "receipt": "real-google-tzylcG",
+      "sha256": "e807d652bd5210455c8fd6b8b6b734d34cc7e920c48b2c448613259695a7be10",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "https",
+        "normal"
+      ]
+    },
+    {
+      "receipt": "real-google-SWx13e",
+      "sha256": "27e460125d1579a1b11539835be305f2f0e3db6abb955e953ee3745b11ab25d1",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "local",
+        "nullable"
+      ]
+    },
+    {
+      "receipt": "real-google-hhxzD4",
+      "sha256": "2c1a66ea02aa7ae67ba3e7fa882d0f46ca6890da1c76add4055723eb6df998eb",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "https",
+        "nullable"
+      ]
+    },
+    {
+      "receipt": "real-google-6ElTN3",
+      "sha256": "cb747064a4b8262924a8529aa7c2f99f207c30b9022c61ea713dbfd9f2e325ac",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "local",
+        "empty"
+      ]
+    },
+    {
+      "receipt": "real-google-yImWvQ",
+      "sha256": "33e908bcf09fe574e13ab2ae6515ce17cc85f0d19cdaa5b2a292a5c21fedb276",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "https",
+        "empty"
+      ]
+    },
+    {
+      "receipt": "real-google-rkPZbH",
+      "sha256": "612b3821095ed33c8256c8d023f26bea01b9049d5b1d5361944097aa1d26603e",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "local",
+        "formula"
+      ]
+    },
+    {
+      "receipt": "real-google-6VYVRC",
+      "sha256": "051defc802f6792a3cd2269eb29aef5759d79915c87674a7a7c17161cd4cf6b0",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "https",
+        "formula"
+      ]
+    },
+    {
+      "receipt": "real-google-mrugVB",
+      "sha256": "dca0acfe9f8410cdfcb0eaefdf473db5fc4b14c6ce3142ba8908b2f5117248a1",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "local",
+        "error"
+      ]
+    },
+    {
+      "receipt": "real-google-UAEIgp",
+      "sha256": "7beacfbb0f67884825348d5cbd399f505333448d38a444545db872a695522172",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "read",
+        "https",
+        "error"
+      ]
+    },
+    {
+      "receipt": "real-google-YLzecp",
+      "sha256": "f249796277519cfd76ca0f56ceb5af3e0a6c650a69afc8a6b676bc94133667ee",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "append-start",
+        "https"
+      ]
+    },
+    {
+      "receipt": "real-google-tZ81E1",
+      "sha256": "6ffc4e39f6430efeb5febb1c5b25c284d7c867c5382623cd9b824ca7516f9cae",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "approve",
+        "https"
+      ]
+    },
+    {
+      "receipt": "real-google-M2domk",
+      "sha256": "450e5fdd429eb4bce21cff1db0a54bd5546da4460c99bf1411a93ad159afc86d",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "resume",
+        "https"
+      ]
+    },
+    {
+      "receipt": "real-google-ao8OrY",
+      "sha256": "ff3837dfcb964cd312e4ac34a076119225992411f8ba9c6f3dcc4ac5e56f8cc1",
+      "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+      "dirty": false,
+      "status": "passed",
+      "complete": true,
+      "selection": [
+        "replay",
+        "https"
+      ]
+    }
+  ],
+  "controlled": {
+    "receipt": "focused-test-XJRDaT",
+    "summarySha256": "1b70b0a08b795636be732d36822c8b0ae5888910b931ddf1df8ba28e3b0fe0c0",
+    "sourceSha": null,
+    "dirty": null,
+    "status": "passed",
+    "counts": {
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "example": {
+    "receipt": "published-example-PLA1yq",
+    "summarySha256": "18f26db334016e83819393c9eab7b37690062cfada4dc161b8168404cac497ca",
+    "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+    "dirty": true,
+    "status": "passed"
+  },
+  "readbackSha256": "05db42ff1af0cadf0104bdc3969db14b632e932ab7df6f6fb91e577b6813040a",
+  "installationReceiptSha256": "61bc3da5954d4b359d030c257cf133418f9297014d30346844e1df19dc8a493b",
+  "installedFileAuditSha256": "0e16a8b0933aa4bf65857b3f2e97c5a5e00b1f4c0fa34f071a6a1dfadee545f2",
+  "artifact": {
+    "sourceSha": "6fcbe314160e56c603118baa083d4d19f9a5e335",
+    "packages": [
+      {
+        "name": "@actql/client-wire",
+        "version": "0.0.1",
+        "sha256": "8b8cc0f62a862e9d0535a12b3193198d2883b52955f220243b40dfa3f45dfb70"
+      },
+      {
+        "name": "@actql/sdk",
+        "version": "0.0.1",
+        "sha256": "a3f7f5bab95bb950465522318fa171583179956361027984ff0250ec79093988"
+      },
+      {
+        "name": "@actql/local-node",
+        "version": "0.0.1",
+        "sha256": "0c702e09f83c63f61ff64ebe0923f0e22e5aaca7748e9c0a7aaa0c826170e654"
+      },
+      {
+        "name": "@actql/node",
+        "version": "0.0.1",
+        "sha256": "930f3b02ad4d16434b9cd5528e58a10792fe88a85ac83a933ac637bd5da23b9c"
+      }
+    ],
+    "filesVerified": 285,
+    "status": "passed",
+    "adapterOverlay": false,
+    "registryPublication": false
+  },
+  "authority": {
+    "receipt": "focused-test-T5nVoW",
+    "summarySha256": "92affac989c89a64251676dadb2142312a76f7e1ecfda51b3580aad67832862b",
+    "sourceSha": null,
+    "dirty": null,
+    "status": "passed",
+    "counts": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  }
+}

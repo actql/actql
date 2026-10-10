@@ -195,7 +195,9 @@
     {"source":"ends_with('', '')","tree":{"ends_with":[{"literal":""},{"literal":""}]}},
     {"source":"starts_with(NULL, NULL)","tree":{"starts_with":[{"literal":null},{"literal":null}]}},
     {"source":"sign(x)","tree":{"sign":{"field":"x"}}},
-    {"source":"sign(-1)","tree":{"sign":{"negate":{"literal":1}}}},
+    {"source":"sign(-1)","tree":{"sign":{"literal":-1}}},
+    {"source":"sign(-x)","tree":{"sign":{"negate":{"field":"x"}}}},
+    {"source":"sign(negate(1))","tree":{"sign":{"negate":{"literal":1}}}},
     {"source":"sign(NULL)","tree":{"sign":{"literal":null}}}
   ],
   "negative": [

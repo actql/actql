@@ -1,0 +1,9 @@
+{
+  "spreadsheetId": "REPLACE_WITH_AUTHORIZED_SPREADSHEET_ID",
+  "readSheetId": 0,
+  "appendSheetId": 7,
+  "maxAppendRows": 2,
+  "campaignMarker": "=actql-acceptance-UNIQUE_CAMPAIGN",
+  "appendPermissionConfirmed": false,
+  "tlsDirectory": "/configured/sheets-test/localhost-tls"
+}
