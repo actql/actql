@@ -168,3 +168,24 @@ For every adopted feature, keep provenance, scope, checked lowering, runtime
 support, packed execution and proof coverage distinct. The
 [initial alignment review](../reviews/2026-10-01-frontend-standard-alignment.md)
 records concrete implementation gaps and evidence boundaries.
+
+## Selected simple scalar functions
+
+The query profile admits GoogleSQL STARTS_WITH and ENDS_WITH over STRING with
+its default binary comparison, and SIGN over the common finite binary64
+number domain corresponding to the finite FLOAT64 subset. Their common
+expression owners define the same result for SQL/Pipe and JSON/YAML input.
+Empty prefixes/suffixes match every non-null string, and both zero signs
+produce canonical positive zero for SIGN. NULL results and inferred
+nullability follow the common strict signatures, independently of row count.
+
+This is new supported coverage. BYTES, explicit collation, non-finite numbers
+and the INT64/NUMERIC/BIGNUMERIC SIGN overloads remain implementation gaps;
+their omission is not a restriction of GoogleSQL. No frontend approximation,
+implicit coercion, Unicode normalization or extra evaluation is introduced.
+The reference clauses are Google's [STARTS_WITH](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#starts_with),
+[ENDS_WITH](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#ends_with)
+and [SIGN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
+consulted 2026-10-10. Source grammar, embedded schema alternatives, common laws,
+execution registrations and dependent identities change together on the
+initial 0.1 baseline. Earlier pinned bodies keep their earlier meanings.
