@@ -295,7 +295,8 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   if value.materials.values().any(material => material.run == handle) ||
-    value.physical_starts.values().any(start => start.run == handle) {
+    value.physical_starts.values().any(start => start.run == handle) ||
+    value.native_sources.values().any(source => source.run == handle) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))

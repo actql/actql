@@ -1,0 +1,159 @@
+///|
+/// Trusted installed physical binding, separate from authored input and Run
+/// activation. Its immutable loan precedes any interrupted configuration.
+priv struct StoredNativeSourceConfiguration {
+  run : Int
+  borrow : @buffers.BufferBorrow
+  mut invoked : Bool
+  mut outcome : Result[
+    @local_run.LocalNativeSourceConfiguration,
+    @local_run.LocalNativeSourceIssue,
+  ]?
+}
+
+///|
+fn optional_text(
+  object : @decode.ObjectView,
+  name : String,
+) -> Result[String?, Unit] {
+  match @decode.field(object, name) {
+    Missing => Ok(None)
+    ExplicitNull => Err(())
+    Present(cursor) =>
+      match @decode.text(cursor) {
+        Ok(text) => Ok(Some(text))
+        Err(_) => Err(())
+      }
+  }
+}
+
+///|
+fn required_int32(object : @decode.ObjectView, name : String) -> Int? {
+  match @decode.required(object, name) {
+    Ok(cursor) => @decode.int32(cursor).to_option()
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("actql_source_reserve_configuration")
+pub fn reserve_native_source_configuration(
+  nonce : Int64,
+  run : Int,
+  input : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.runs.get(run) is Some({ outcome: Some(Ok(_)), .. }) &&
+    value.copies.get(input) is Some((slot, physical)) else {
+    return -2
+  }
+  if value.next_handle == 2147483647 {
+    return -4
+  }
+  let handle = value.next_handle
+  let borrow = match
+    @buffers.borrow_buffer(value.pool, slot, () => {
+      physical_reader_stop(physical, handle) == 0
+    }) {
+    Ok(borrow) => borrow
+    Err(issue) => return issue_code(issue)
+  }
+  value.native_sources[handle] = { run, borrow, invoked: false, outcome: None, }
+  value.next_handle += 1
+  handle
+}
+
+///|
+/// Core derives the exact checked requirement and admits the Native receipt
+/// contracts. Installed Source metadata, a Run permit and a read account are
+/// not physical invocation, settlement or a verified Source capture.
+#export_name("actql_source_configure")
+pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.native_sources.get(handle) is Some(record) &&
+    value.runs.get(record.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
+    return -2
+  }
+  if record.outcome is Some(_) {
+    return 0
+  }
+  if record.invoked {
+    return -33
+  }
+  record.invoked = true
+  guard input_cursor(value, record.borrow.slot) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "stage", "source_index", "registry", "values", "fragment", "ordered", "database_schema",
+      "table", "query_contract", "evidence_contract", "two_receipt_contract", "read_account",
+      "read_principal", "read_connection", "read_resource", "read_operation", "read_context_cid",
+    ])
+    is Ok(object) &&
+    required_int32(object, "stage") is Some(stage) &&
+    required_int32(object, "source_index") is Some(source_index) &&
+    required_text(object, "registry") is Some(registry) &&
+    required_text(object, "values") is Some(values) &&
+    optional_text(object, "fragment") is Ok(fragment) &&
+    optional_text(object, "ordered") is Ok(ordered) &&
+    required_text(object, "database_schema") is Some(database_schema) &&
+    required_text(object, "table") is Some(table) &&
+    required_text(object, "query_contract") is Some(query_contract) &&
+    required_text(object, "evidence_contract") is Some(evidence_contract) &&
+    required_text(object, "two_receipt_contract") is Some(two_receipt_contract) &&
+    required_text(object, "read_account") is Some(account_wire) &&
+    @authorization.admit_account_configuration_json(account_wire) is Ok(account) &&
+    required_text(object, "read_principal") is Some(principal) &&
+    required_text(object, "read_connection") is Some(connection) &&
+    required_text(object, "read_resource") is Some(resource) &&
+    required_text(object, "read_operation") is Some(operation) &&
+    required_text(object, "read_context_cid") is Some(context) else {
+    return -31
+  }
+  record.outcome = Some(
+    @local_run.configure_local_native_source(
+      plan,
+      stage,
+      source_index,
+      registry,
+      values,
+      fragment,
+      ordered,
+      database_schema,
+      table,
+      query_contract,
+      evidence_contract,
+      two_receipt_contract,
+      { principal, connection, resource, operation, },
+      account,
+      context,
+    ),
+  )
+  0
+}
+
+///|
+#export_name("actql_source_configured")
+pub fn native_source_configured(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.native_sources.get(handle) is Some(record) else {
+    return -2
+  }
+  match record.outcome {
+    Some(Ok(_)) => 0
+    Some(Err(_)) => -32
+    None => -33
+  }
+}
+
+///|
+#export_name("actql_source_close_configuration")
+pub fn close_native_source_configuration(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.native_sources.get(handle) is Some(record) else {
+    return -2
+  }
+  let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
+  if result == 0 {
+    value.native_sources.remove(handle) |> ignore
+  }
+  result
+}

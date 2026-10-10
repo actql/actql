@@ -21,6 +21,7 @@ priv struct Instance {
   materials : Map[Int, StoredMaterial]
   restorations : Map[Int, StoredRestoration]
   physical_starts : Map[Int, StoredPhysicalStart]
+  native_sources : Map[Int, StoredNativeSourceConfiguration]
   mut next_handle : Int
 }
 
@@ -88,6 +89,7 @@ pub fn open(
         materials: {},
         restorations: {},
         physical_starts: {},
+        native_sources: {},
         next_handle: 1,
       })
       0

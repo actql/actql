@@ -98,6 +98,12 @@ _MATERIAL_SIGNATURES = {
     'restored': ('i64 i32', 'i32'),
     'close_restoration': ('i64 i32', 'i32'),
 }
+_SOURCE_SIGNATURES = {
+    'reserve_configuration': ('i64 i32 i32', 'i32'),
+    'configure': ('i64 i32', 'i32'),
+    'configured': ('i64 i32', 'i32'),
+    'close_configuration': ('i64 i32', 'i32'),
+}
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
@@ -171,6 +177,8 @@ class LocalCore:
                              for name, value in _RUN_SIGNATURES.items()})
             expected.update({'actql_material_' + name: value
                              for name, value in _MATERIAL_SIGNATURES.items()})
+            expected.update({'actql_source_' + name: value
+                             for name, value in _SOURCE_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -195,7 +203,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 5:
+            if self._exports['actql_host_abi_version'](self._store) != 6:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576))

@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 5; this private ABI
+before opening the instance. `actql_host_abi_version` returns 6; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -247,6 +247,23 @@ existing Native acquisition Owner alone validates metadata, both receipts and
 the settled read-view observation. The installing Host must retain the issued
 attempt and durably record its physical invocation; these in-process adapter
 values neither reserve the whole runtime nor establish process recovery.
+
+The private `actql_source_reserve_configuration` entry retains the installed
+physical configuration loan against the original Run. `actql_source_configure`
+selects its explicit checked `stage` and `source_index` through the existing
+query-requirement Owner; no frontend or Python pipeline scanner derives another
+query. Its closed object carries the installed engine/receipt contract bodies,
+database schema/table, read account/tuple and context. Optional fragment and
+ordered contract bodies may be absent; explicit NULL is malformed configuration
+rather than an absent contract or a query value. Core admits all supplied
+contracts and the registered receipt Capability before configuration is ready.
+
+An interrupted or malformed configuration cannot silently invoke its constructor
+again. Its borrow keeps both the original Run and input alive until physical
+stop acknowledgement. Configuration readiness performs no physical database
+operation, reserves no Native workspace, and grants no read or completion
+authority. Native invocation, both receipt streams and the exact settled
+read-view callback remain separate connection requirements.
 
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
