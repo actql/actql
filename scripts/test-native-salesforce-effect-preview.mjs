@@ -6,7 +6,8 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentPreview = process.argv.includes('--resident-preview');
+const residentCheckpoint = process.argv.includes('--resident-checkpoint-custody');
+const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
 const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-runtime-capture');
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
 
@@ -131,7 +132,7 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', ['--target', 'native', '--strip', " +
-    JSON.stringify(selection) + (residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
+    JSON.stringify(selection) + (residentCheckpoint ? ", '--filter', 'Native Checkpoint custody*'" : residentPreview ? ", '--filter', 'Native retained consumer*'" : residentEffectRuntimeCapture ? ", '--filter', 'Effect retained consumer completes through Runtime*'" : "") + "], " +
     "{timeout: 180000, evidenceScratch: " + JSON.stringify(root) + "});"],
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');

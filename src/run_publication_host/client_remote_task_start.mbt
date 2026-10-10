@@ -33,6 +33,30 @@ pub fn prepare_client_remote_task_physical_start(
     Ok(value) => value
     Err(issue) => return Err(Request(issue))
   }
+  prepare_bound_client_remote_task_physical_start(
+    progress, original, task_key, dispatch_cid, requested, retained, retained_definition_cid,
+    dispatch_reserved, physically_unstarted, current_authorization, cancellation_requested,
+    pre_start_failure_confirmed,
+  )
+}
+
+///|
+/// Only the family-specific entry can derive the original checked request.
+/// The existing physical start Owner still decides the saved intent's claim.
+fn prepare_bound_client_remote_task_physical_start(
+  progress : ClientRemoteTaskProgress,
+  original : ClientRequestIdentity,
+  task_key : String,
+  dispatch_cid : String,
+  requested : ClientRequestIdentity,
+  retained : ClientRequestIdentity,
+  retained_definition_cid : String,
+  dispatch_reserved : Bool,
+  physically_unstarted : Bool,
+  current_authorization : Bool,
+  cancellation_requested : Bool,
+  pre_start_failure_confirmed : Bool,
+) -> Result[Bool, ClientRemoteTaskStartIssue] {
   match client_request_identity_relation(original, retained) {
     SameRequest => ()
     ChangedIntent => return Err(Start(ChangedIntent))
