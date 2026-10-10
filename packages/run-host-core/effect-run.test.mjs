@@ -125,7 +125,7 @@ test('Effect input parsing preserves the bounded Parameter Values rejection', ()
 
 test('formal Effect exports bundle for a Worker without a physical runtime', () => {
   const result = buildSync({stdin: {contents:
-    "export {prepareEffect, compileEffect, admitEffectRunMaterials, issueEffectSourceDispatch, issueEffectRetainedTaskDispatch, effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts} from '@actql/run-host-core';",
+    "export {prepareEffect, compileEffect, admitEffectRunMaterials, issueEffectSourceDispatch, issueEffectRetainedTaskDispatch, effectTaskKeys, effectResultDefinitions, effectResultSchema, effectSourceEvidenceFacts, inspectEffectTaskProgress, prepareEffectTaskPhysicalStart} from '@actql/run-host-core';",
   resolveDir: import.meta.dirname}, bundle: true, write: false,
   platform: 'browser', format: 'esm', target: 'es2022', metafile: true});
   const inputs = Object.keys(result.metafile.inputs);
