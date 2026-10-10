@@ -119,6 +119,8 @@ pub fn resident_dispatch_execution_family(ResidentRunAdmission, @remote_site_pro
 
 pub fn resident_effect_retained_consumer_producer_identity(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String) -> Result[String, ResidentRetainedExecutionIssue]
 
+pub fn resident_effect_source_compute_shape_supported(@run_publication_host.PreparedClientEffectRun) -> Bool
+
 pub fn resident_holder_process_hold_identity(@remote_journal.Journal, ResidentRunAdmission, String, String, recorded_source? : @actql/actql/run_publication.RecordedRunPublication?) -> Result[String, ResidentHostIssue]
 
 pub fn resident_output_checkpoints() -> Array[String]

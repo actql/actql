@@ -133,6 +133,16 @@ pub fn resident_source_compute_shape_supported(
 }
 
 ///|
+/// The same Effect shape predicate as the existing physical Owner. The Local
+/// connection uses it before claiming a start; it grants no acquisition,
+/// current authority, capture persistence, Preview or write permission.
+pub fn resident_effect_source_compute_shape_supported(
+  run : @host.PreparedClientEffectRun,
+) -> Bool {
+  resident_source_owner_supported(Effect(run))
+}
+
+///|
 fn resident_source_owner_requirement(
   owner : ResidentSourceOwner,
   configuration : ResidentSourceComputeConfiguration,

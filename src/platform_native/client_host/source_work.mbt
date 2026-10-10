@@ -17,6 +17,7 @@ struct NativeClientSourceWork {
 pub(all) enum NativeClientSourceWorkIssue {
   AuthorizationDenied
   NeedsOriginalReconciliation
+  OriginalRunNotCurrent
   Journal(NativeClientRunJournalIssue)
   Work(@resident.ResidentSourceComputeIssue)
   Observation(@resident.ResidentSourcePublicationObservationIssue)
@@ -45,6 +46,20 @@ fn claim_native_client_work_start(
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
+  claim_native_client_retained_work_start(
+    journal, request, current_authorization,
+  )
+}
+
+///|
+/// The family-specific caller has checked and retained the original Run.
+/// Acquisition and Effect computation share these exact reservation/start
+/// facts; this helper never constructs a Run or a replacement continuation.
+fn claim_native_client_retained_work_start(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : () -> Bool,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
   // Recheck after callbacks and each durable boundary. A reservation alone
   // cannot authorize acquisition, and a false claim never opens another owner.
   if !current_authorization() {
@@ -114,20 +129,9 @@ pub fn open_native_client_source_work(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let guarded_observe = event => {
-    if observe is Some(record) && !record(event) {
-      false
-    } else {
-      match event {
-        @resident.CleanupPending | @resident.CleanupCompleted => true
-        _ =>
-          current_authorization() &&
-          journal.lookup(request, true) is Ok(Retained(record)) &&
-          record.physical_start_claimed &&
-          !record.cancellation_requested
-      }
-    }
-  }
+  let guarded_observe = native_client_work_observer(
+    journal, request, current_authorization, observe,
+  )
   match
     @resident.open_resident_source_compute(
       prepared,
@@ -147,6 +151,29 @@ pub fn open_native_client_source_work(
         current_authorization,
       })
     Err((issue, cleanup)) => Err(Open(issue, cleanup))
+  }
+}
+
+///|
+fn native_client_work_observer(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : () -> Bool,
+  observe : ((@resident.ResidentSourceComputeEvent) -> Bool)?,
+) -> (@resident.ResidentSourceComputeEvent) -> Bool {
+  event => {
+    if observe is Some(record) && !record(event) {
+      false
+    } else {
+      match event {
+        @resident.CleanupPending | @resident.CleanupCompleted => true
+        _ =>
+          current_authorization() &&
+          journal.lookup(request, true) is Ok(Retained(record)) &&
+          record.physical_start_claimed &&
+          !record.cancellation_requested
+      }
+    }
   }
 }
 
@@ -215,10 +242,23 @@ pub fn NativeClientSourceWork::publication_invocation(
 fn NativeClientSourceWork::require_current(
   self : NativeClientSourceWork,
 ) -> Result[Unit, NativeClientSourceWorkIssue] {
-  if !(self.current_authorization)() {
+  require_native_client_work_current(
+    self.journal,
+    self.request,
+    self.current_authorization,
+  )
+}
+
+///|
+fn require_native_client_work_current(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : () -> Bool,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  if !current_authorization() {
     return Err(AuthorizationDenied)
   }
-  match self.journal.lookup(self.request, true) {
+  match journal.lookup(request, true) {
     Ok(Retained(record)) if record.physical_start_claimed &&
       !record.cancellation_requested => Ok(())
     Ok(_) => Err(NeedsOriginalReconciliation)

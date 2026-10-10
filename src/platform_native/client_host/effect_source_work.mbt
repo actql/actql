@@ -1,0 +1,202 @@
+///|
+/// The original accepted Effect Run connected to the same Native acquisition,
+/// Compute and cleanup Owner as ordinary Source work. It is not a second Run,
+/// scheduler, approval Owner, capture receipt or Provider permission.
+struct NativeClientEffectSourceWork {
+  journal : NativeClientRunJournal
+  request : @host.ClientRequestIdentity
+  owner : @resident.ResidentSourceCompute
+  allowed : @host.ClientEffectAllowedRun
+  definition : @publication.PublicationContract
+  current_time : () -> String
+  current_authorization : () -> Bool
+}
+
+///|
+fn claim_native_client_effect_work_start(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  current_authorization : () -> Bool,
+) -> Result[@host.PreparedClientEffectRun, NativeClientSourceWorkIssue] {
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+  let bound = match
+    @host.bind_client_effect_compiled_run(prepared, allowed, definition) {
+    Ok(value) => value
+    Err(issue) => return Err(Work(EffectRun(issue)))
+  }
+  if @host.prepared_client_effect_request_scope(prepared, request) is Err(_) {
+    return Err(Journal(ChangedIntent))
+  }
+  match journal.lookup(request, true) {
+    Ok(Retained(record)) if @publication.publication_contract_identity(
+        record.definition,
+      ) ==
+      @publication.publication_contract_identity(definition) => ()
+    Ok(Retained(_)) => return Err(Journal(ForeignRun))
+    Ok(UnresolvedHistory) => return Err(Journal(CustodyLost))
+    Err(issue) => return Err(Journal(issue))
+  }
+  match
+    claim_native_client_retained_work_start(
+      journal, request, current_authorization,
+    ) {
+    Ok(_) => Ok(bound)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Open only an already accepted original Effect Run. Configuration remains
+/// Host-owned and must be the selected original mapping; this adapter does not
+/// install configuration or grants. A prior physical claim cannot be retried,
+/// including after failure or lost reply. Recovery uses the original Owner.
+pub fn open_native_client_effect_source_work(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  configuration : @resident.ResidentSourceComputeConfiguration,
+  occurrence : String,
+  current_time : () -> String,
+  current_authorization : () -> Bool,
+  observe? : (@resident.ResidentSourceComputeEvent) -> Bool,
+) -> Result[NativeClientEffectSourceWork, NativeClientSourceWorkIssue] {
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+  let checked = match
+    @host.bind_client_effect_compiled_run(prepared, allowed, definition) {
+    Ok(value) => value
+    Err(issue) => return Err(Work(EffectRun(issue)))
+  }
+  if !@resident.resident_effect_source_compute_shape_supported(checked) {
+    return Err(Work(UnsupportedGraph))
+  }
+  // Observe time before the final original-claim guard. A clock callback may
+  // itself accept cancellation and must never bypass that guard.
+  if !@host.client_effect_run_start_current(allowed, definition, current_time()) {
+    return Err(OriginalRunNotCurrent)
+  }
+  let bound = match
+    claim_native_client_effect_work_start(
+      journal, request, allowed, definition, current_authorization,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @resident.open_resident_effect_source_compute(
+      bound,
+      configuration,
+      occurrence,
+      observe=native_client_work_observer(
+        journal,
+        request,
+        () => {
+          @host.client_effect_run_start_current(
+            allowed,
+            definition,
+            current_time(),
+          ) &&
+          current_authorization()
+        },
+        observe,
+      ),
+    ) {
+    Ok(owner) =>
+      Ok({
+        journal,
+        request,
+        owner,
+        allowed,
+        definition,
+        current_time,
+        current_authorization,
+      })
+    Err((issue, cleanup)) => Err(Open(issue, cleanup))
+  }
+}
+
+///|
+fn NativeClientEffectSourceWork::require_current(
+  self : NativeClientEffectSourceWork,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  if !(self.current_authorization)() {
+    return Err(AuthorizationDenied)
+  }
+  let now = (self.current_time)()
+  // Time observation may itself revoke authority or accept cancellation.
+  if !(self.current_authorization)() {
+    return Err(AuthorizationDenied)
+  }
+  if !@host.client_effect_run_start_current(self.allowed, self.definition, now) {
+    return Err(OriginalRunNotCurrent)
+  }
+  require_native_client_work_current(
+    self.journal,
+    self.request,
+    self.current_authorization,
+  )
+}
+
+///|
+pub fn NativeClientEffectSourceWork::execute_task(
+  self : NativeClientEffectSourceWork,
+  task : Int,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  match self.require_current() {
+    Ok(_) =>
+      self.owner.execute_task(task).map(_ => ()).map_err(issue => Work(issue))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Borrow the original physical Owner for existing capture/Preview APIs.
+/// The Host retains every returned pin and output according to those Owners;
+/// this observation neither transfers ownership nor authorizes Provider I/O.
+pub fn NativeClientEffectSourceWork::owner_for_capture(
+  self : NativeClientEffectSourceWork,
+) -> Result[@resident.ResidentSourceCompute, NativeClientSourceWorkIssue] {
+  match self.require_current() {
+    Ok(_) if self.owner.effect_run() is Some(_) => Ok(self.owner)
+    Ok(_) => Err(Work(Unavailable))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Checked Named Result bytes remain private until ordinary publication and
+/// current read authorization; exporting them is not Effect completion.
+pub fn NativeClientEffectSourceWork::prepare_result_export(
+  self : NativeClientEffectSourceWork,
+  limits : @host.PublicationOutputExportLimits,
+) -> Result[@host.PublicationOutputExport, NativeClientSourceWorkIssue] {
+  match self.require_current() {
+    Ok(_) =>
+      self.owner.prepare_result_export(limits).map_err(issue => Work(issue))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn NativeClientEffectSourceWork::usage(
+  self : NativeClientEffectSourceWork,
+) -> @resources.LedgerUsage {
+  self.owner.usage()
+}
+
+///|
+/// Cleanup retains the same retryable Owner even after authority loss. A
+/// successful physical close is not cancellation acceptance or Run terminality.
+pub fn NativeClientEffectSourceWork::close(
+  self : NativeClientEffectSourceWork,
+) -> Bool {
+  self.owner.close()
+}
