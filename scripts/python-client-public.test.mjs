@@ -20,7 +20,7 @@ async function python(args,cwd) {
   return JSON.parse(stdout);
 }
 
-test('wheel: async and sync normal, separate-process attach, and original text diagnostics over actual HTTPS',async t=>{
+test('wheel: async and sync normal, separate-process attach, text and structured diagnostics over actual HTTPS',async t=>{
   const scratch=resolve('_build/python-client-public');await mkdir(scratch,{recursive:true});
   const root=await mkdtemp(join(scratch,'public-'));
   const keys=generateKeyPairSync('ed25519'),principalId=userInfo().username;
@@ -40,10 +40,16 @@ test('wheel: async and sync normal, separate-process attach, and original text d
     if(process.env.ACTQL_TEST_PRESERVE_SCRATCH!=='1')await rm(root,{recursive:true,force:true});});
   const endpoint=`https://127.0.0.1:${server.address().port}/`;
   const results=[];
-  for(const facade of ['async','sync'])for(const phase of ['normal','reattach','diagnostics']){
+  for(const facade of ['async','sync'])for(const phase of ['normal','reattach','diagnostics','structured']){
     const receipt=await python([resolve('scripts/fixtures/python-client-public.py'),phase,facade,endpoint,certificates.caPath,join(root,`${facade}.custody.json`)],root);
     assert.deepEqual(receipt,{phase,facade,success:true});results.push(receipt);
   }
   assert.equal(counts.computed,2,'Only the two explicit valid submissions compute; lookup, attach, reads and diagnostics do not recompute.');
+  for(const facade of ['async','sync']){
+    const phase='numbers';
+    const receipt=await python([resolve('scripts/fixtures/python-client-public.py'),phase,facade,endpoint,certificates.caPath,join(root,`${facade}.custody.json`)],root);
+    assert.deepEqual(receipt,{phase,facade,success:true});results.push(receipt);
+  }
+  assert.equal(counts.computed,6,'Only four additional explicit binary64 submissions compute.');
   await writeFile(join(root,'receipt.json'),JSON.stringify({results,counts},null,2)+'\n');
 });
