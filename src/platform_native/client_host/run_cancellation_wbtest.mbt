@@ -437,15 +437,16 @@ test "Native publication fence permits only original readback and blocks nested 
     fail("Run missing")
   }
   let reads = Ref(0)
+  let original_read = Ref(false)
+  let nested_refused = Ref(false)
   assert_true(
     journal.fence_publication(request, before.definition, () => true, () => {
-      guard journal.lookup(request, true) is Ok(Retained(inside)) else {
-        fail("read-only original lookup cannot join publication fence")
+      original_read.val = match journal.lookup(request, true) {
+        Ok(Retained(inside)) => inside.revision == before.revision
+        _ => false
       }
-      assert_eq(inside.revision, before.revision)
       reads.val += 1
-      assert_true(
-        journal.cancellation_test_operation(
+      nested_refused.val = journal.cancellation_test_operation(
           request,
           "namespace-a",
           "nested",
@@ -453,13 +454,14 @@ test "Native publication fence permits only original readback and blocks nested 
           () => true,
           () => false,
         )
-        is Err(Physical(@sqlite.Busy)),
-      )
+        is Err(Physical(@sqlite.Busy))
       Err(@native_publication.AccessDenied)
     })
     is Err(@native_publication.AccessDenied),
   )
   assert_eq(reads.val, 1)
+  assert_true(original_read.val)
+  assert_true(nested_refused.val)
   assert_true(
     journal.lookup_cancellation(
       request,
