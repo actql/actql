@@ -518,3 +518,40 @@ pub fn managed_task_inputs_ready(nonce : Int64, handle : Int) -> Int {
     0
   }
 }
+
+///|
+/// Retained typed failure projection for the trusted physical Host. These
+/// private categories neither publish diagnostics nor authorize re-execution.
+#export_name("actql_task_issue")
+pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.tasks.get(handle) is Some(record) else {
+    return -2
+  }
+  match record.issue {
+    None => if record.operations is Some(_) { 0 } else { -33 }
+    Some(AuthorizationMismatch) => 1
+    Some(UnsupportedCapability) => 2
+    Some(Configuration) => 3
+    Some(Task(_)) => 4
+    Some(Obligations(_)) => 5
+    Some(Dispatch(_)) => 6
+    Some(Managed(issue)) =>
+      match issue {
+        Configuration(_) => 71
+        Preparation(_) => 72
+        Dispatch(_) => 73
+        Execution(_) => 74
+        Search(_) => 75
+        ManagedValues(_) => 76
+        ManagedCopy(_) => 77
+        ManagedRetention(_) => 78
+        ManagedCompletion(_) => 79
+        IdentityExport(_) => 80
+        CarrierSnapshot(_) => 81
+      }
+    Some(Estimate(_)) => 9
+    Some(Start(_)) => 10
+    Some(StartNotPermitted) => 11
+  }
+}

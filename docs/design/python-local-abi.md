@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 11 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 12 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -694,3 +694,7 @@ stop, Native closure and physical cleanup. A failed cleanup keeps the original
 attempt handle and its reservation. Root pool closure refuses remaining Native
 and downstream custody instead of clearing those records. This is a declared
 bounded envelope, not a claim about total Python/JIT/allocator RSS.
+
+Private ABI 12 exposes the original retained task issue category to the trusted
+physical Host. It does not infer failure from an error message or expose Source
+metadata to a caller.

@@ -186,6 +186,7 @@ _TASK_SIGNATURES = {
     'reserve': ('i64 i32 i32', 'i32'),
     'start': ('i64 i32', 'i32'),
     'started': ('i64 i32', 'i32'),
+    'issue': ('i64 i32', 'i32'),
     'feed': ('i64 i32 i32', 'i32'),
     'inputs_ready': ('i64 i32', 'i32'),
     'advance': ('i64 i32 i32', 'i32'),
@@ -341,7 +342,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 11:
+            if self._exports['actql_host_abi_version'](self._store) != 12:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
