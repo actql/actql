@@ -6,6 +6,29 @@ import {project, structuralValidatorSource} from './generate-client-publication-
 
 import {checkEffectCheckpointContract} from './remote-effect-checkpoint-contract.mjs';
 
+test('Effect current fixed queries and replies bind the original report and fresh challenge', () => {
+  const fixed = read('spec/fixtures/remote-effect-current-vectors.json');
+  const original = read(fixed.source_fixture);
+  assert.equal(createHash('sha256').update(readFileSync(fixed.source_fixture)).digest('hex'), fixed.source_fixture_sha256);
+  assert.equal(fixed.query.body.report_cid, hash(canonical(original.report)));
+  for (const [name, values] of [['effect_current_query', [fixed.query]], ['effect_current_reply', fixed.replies]]) {
+    const schema = registry.schemas[name];
+    assert.equal(hash(canonical(schema)), registry.schema_cids[name]);
+    for (const vector of values) {
+      assert.equal(canonical(vector.body), vector.canonical); assert.equal(hash(vector.canonical), vector.cid);
+      const shape = project(schema); assert(validate(vector.body, shape));
+      assert(!validate({...vector.body, provider_response: 'private'}, shape));
+      for (const key of Object.keys(vector.body)) {
+        const missing = {...vector.body}; delete missing[key]; assert(!validate(missing, shape));
+      }
+    }
+  }
+  for (const reply of fixed.replies) {
+    assert.equal(reply.body.query_cid, fixed.query.cid); assert.equal(reply.body.report_cid, fixed.query.body.report_cid);
+    assert.equal(reply.body.query_id, fixed.query.body.query_id);
+  }
+});
+
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const registry = read('spec/contracts/actql-remote-site-wire.json');
 const vectors = read('spec/fixtures/remote-site-wire-vectors.json').vectors;
@@ -150,4 +173,50 @@ test('Effect review fixed preimages bind original dispatch, Checkpoint and ACK',
   assert.equal(byName.reply.body.dispatch_request_cid, byName.dispatch.cid);
   assert(validate(byName.report.body, project(registry.schemas.effect_checkpoint_report)));
   assert(validate(byName.reply.body, project(registry.schemas.effect_checkpoint_reply)));
+});
+
+test('Effect resume delivery pins original custody and canonical claim fields', () => {
+  checkEffectCheckpointContract(registry);
+  const fixed = read('spec/fixtures/remote-effect-resume-vectors.json');
+  const {body} = fixed.delivery;
+  assert.equal(canonical(body), fixed.delivery.canonical);
+  assert.equal(hash(canonical(body)), fixed.delivery.cid);
+  assert.equal(body.checkpoint_cid, fixed.checkpoint.checkpoint_cid);
+  assert.equal(body.report_cid, hash(canonical(fixed.report)));
+  assert.equal(body.dispatch_request_cid, hash(canonical(fixed.dispatch)));
+  assert.equal(body.resolution_cid, fixed.resolution.resolution_cid);
+  assert.equal(body.resolution_wire, canonical(fixed.verified_resolution));
+  assert.equal(body.resume_intent_id, hash(canonical({checkpoint_cid: body.checkpoint_cid,
+    resolution_cid: body.resolution_cid})));
+  const schema = registry.schemas.effect_resume_delivery;
+  assert.equal(hash(canonical(schema)), registry.schema_cids.effect_resume_delivery);
+  const shape = project(schema);
+  assert(validate(body, shape));
+  for (const key of Object.keys(body)) {
+    const missing = {...body}; delete missing[key];
+    assert(!validate(missing, shape), `missing ${key}`);
+  }
+  for (const generation of ['0', '-1', '01', '1.0']) assert(!validate({...body, generation}, shape));
+  assert(!validate({...body, credential: 'must-not-be-sent'}, shape));
+  assert(!validate({...body, version: body.version.replace('/0.1', '/0.2')}, shape));
+});
+
+test('Effect resume poll preserves exact original delivery and dispatch bytes', () => {
+  const fixed = read('spec/fixtures/remote-effect-resume-vectors.json');
+  const {body, canonical: text, cid} = fixed.poll;
+  assert.equal(canonical(body), text);
+  assert.equal(hash(text), cid);
+  assert.equal(body.delivery_json, fixed.delivery.canonical);
+  assert.equal(body.request_json, canonical(fixed.dispatch));
+  assert.equal(hash(body.request_json), body.dispatch_request_cid);
+  assert.equal(JSON.parse(body.delivery_json).dispatch_request_cid, body.dispatch_request_cid);
+  const schema = registry.schemas.poll_effect_resume;
+  assert.equal(hash(canonical(schema)), registry.schema_cids.poll_effect_resume);
+  const shape = project(schema);
+  assert(validate(body, shape));
+  assert(!validate({...body, credential: 'must-not-be-sent'}, shape));
+  for (const key of Object.keys(body)) {
+    const missing = {...body}; delete missing[key];
+    assert(!validate(missing, shape), `missing ${key}`);
+  }
 });

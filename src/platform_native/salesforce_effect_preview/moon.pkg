@@ -23,6 +23,7 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_client" @client,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/platform_native/publication_store" @store,
 }

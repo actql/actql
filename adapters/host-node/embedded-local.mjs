@@ -407,9 +407,21 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     // verified export/reload before their ordinary guaranteed projection.
     const installStore = retainedRelationOutput
       ? installLocalRetainedStore : installLocalSnapshotStore;
-    localSnapshotConfiguration = installStore((_key, bytes, frame) =>
-      createLocalRetainedStore({parentDirectory:snapshotDirectory,
-        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}),
+    // Private fixture wiring, never a Program or transport setting. Select
+    // the physical factory before allocation; a rejected factory still owns
+    // anything it created until a lease is transferred to the existing driver.
+    const snapshotFactory = authorization?.faultInjection?.localSnapshotStoreFactory;
+    if (snapshotFactory !== undefined &&
+        (typeof authorization.faultInjection !== 'function' ||
+          typeof snapshotFactory !== 'function')) {
+      throw new TypeError('InvalidLocalSnapshotStoreFactory');
+    }
+    localSnapshotConfiguration = installStore((key, bytes, frame, signal) =>
+      snapshotFactory === undefined
+        ? createLocalRetainedStore({parentDirectory:snapshotDirectory,
+          capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1})
+        : snapshotFactory(Object.freeze({key,bytes,frame,
+          parentDirectory:snapshotDirectory,signal})),
     authorization?.faultInjection);
     journal = openClientRequestJournal(journalDirectory, {
       // Private fault hooks exercise the real installed admission clock;

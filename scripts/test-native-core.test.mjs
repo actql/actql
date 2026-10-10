@@ -7,6 +7,46 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
+import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
+
+test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const suffix of ['preparing-0-0', 'prepared-0-0', 'advancing-1-16', 'advancing-2-32']) {
+    mkdirSync(join(root, 'original.review-capture-' + suffix));
+  }
+  writeFileSync(join(root, 'original.review-capture-completed-4-48'), 'not a phase directory');
+  writeFileSync(join(root, 'custody.sqlite3'), 'private original receipt');
+  const progress = await readNativeEffectCaptureProgress(root);
+  assert.equal(progress.status, 'observed');
+  assert.deepEqual(progress.phases.map(({phase, advances, logicalWork}) => ({phase, advances, logicalWork})), [
+    {phase: 'preparing', advances: '0', logicalWork: '0'},
+    {phase: 'prepared', advances: '0', logicalWork: '0'},
+    {phase: 'advancing', advances: '1', logicalWork: '16'},
+    {phase: 'advancing', advances: '2', logicalWork: '32'},
+  ]);
+  assert(!JSON.stringify(progress).includes('private original receipt'));
+  assert.equal(readFileSync(join(root, 'custody.sqlite3'), 'utf8'), 'private original receipt');
+});
+
+test('Native Effect capture progress does not follow a root or completion-marker symlink', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-capture-symlink-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const retained = join(root, 'retained'); const external = join(root, 'external');
+  mkdirSync(retained); mkdirSync(external);
+  writeFileSync(join(external, 'credential'), 'external secret');
+  symlinkSync(external, join(root, 'borrowed-root'), 'dir');
+  assert.deepEqual(await readNativeEffectCaptureProgress(join(root, 'borrowed-root')),
+    {status: 'unavailable', reason: 'unsafe-root'});
+  symlinkSync(external, join(retained, 'original.review-capture-completed-1-16'), 'dir');
+  assert.deepEqual(await readNativeEffectCaptureProgress(retained), {status: 'observed', phases: []});
+  assert.equal(readFileSync(join(external, 'credential'), 'utf8'), 'external secret');
+});
+
+test('Native Effect capture progress missing evidence remains unavailable', async () => {
+  assert.deepEqual(await readNativeEffectCaptureProgress(join(tmpdir(), 'absent-actql-capture-' + crypto.randomUUID())),
+    {status: 'unavailable', reason: 'collection-failed'});
+});
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));

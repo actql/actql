@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram, positionalDropProgram, positionalRenameProgram, positionalExtendProgram, positionalAsProgram, positionalOrderWindowProgram, positionalDistinctProgram, positionalUnnestProgram, positionalUnpivotProgram, positionalUnpivotCollisionProgram, positionalAssertProgram, positionalPivotProgram, setCorrespondingExecutionFailures} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 91);
-  assert.equal(setCorrespondingRefusals.length, 51);
+  assert.equal(setCorrespondingSuccesses.length, 196);
+  assert.equal(setCorrespondingRefusals.length, 133);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -35,7 +35,9 @@ test('positional windows retain opposing order keys and different functions', ()
   assert.deepEqual(steps[1].analytic.order_by, [{field: 'x', dir: 'asc', nulls: 'first'}]);
   assert.deepEqual(steps[2].analytic.order_by, [{field: 'x', dir: 'desc', nulls: 'last'}]);
   assert.deepEqual(steps[3].select, [{a: 'up'}, {b: 'down'}]);
-  for (const item of setCorrespondingRefusals.filter(x => x.name.includes('-window-'))) {
+  const windowRefusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-window-'));
+  assert.equal(windowRefusals.length, 2);
+  for (const item of windowRefusals) {
     assert.equal(item.expectedCode, 'ClientProgramInvalidInput');
     assert.equal(item.format, 'aql-text');
   }
@@ -112,7 +114,7 @@ test('CORRESPONDING matching participates in both normal and narrow packed accep
   const corpus = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/set-corresponding-source-input.mjs', 'set-corresponding-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_SET_CORRESPONDING_ONLY = '1'"));
-  assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals]}'));
+  assert.ok(corpus.includes('setCorrespondingOnly ? {successes: [...setCorrespondingSuccesses, ...setJoinSuccesses], refusals: [...setCorrespondingRefusals, ...setJoinRefusals], executionFailures: setCorrespondingExecutionFailures}'));
   assert.ok(corpus.includes('scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals)'));
 });
@@ -290,5 +292,294 @@ test('window replacement uses current names with opposing keys and retained anon
   assert.deepEqual(positionalWindowReplacementProgram.stages[0].steps[4].select, [{a: 'rank'}, {b: 'neg'}]);
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-analytic-replacement-'));
   assert.equal(refusals.length, 3);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional SET retains pre-assignment values, nullability and private scope', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-set-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 8);
+  assert.deepEqual(JSON.parse(find('json-control').text), positionalReplacementProgram);
+  assert.deepEqual(find('source').expected, [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]);
+  assert.deepEqual(find('current-expression-limit').expected, [{a: -1, b: -1}, {a: 0, b: 0}]);
+  assert.ok(find('current-expression-limit').text.includes('SET id = -id |> ORDER BY -id |> LIMIT 1'));
+  assert.deepEqual(find('quoted-chain-limit').expected, [{a: 0, b: 0}, {a: 12, b: -2}]);
+  assert.ok(find('simultaneous').text.includes('SET first = second, second = first'));
+  assert.deepEqual(find('simultaneous').expected, [{a: 0, b: 0, c: 0}, {a: 10, b: 1, c: -1}, {a: 20, b: 2, c: -2}]);
+  assert.deepEqual(find('simultaneous').columns.map(x => [x.name, x.contract.nullable]), [['a', true], ['b', false], ['c', false]]);
+  assert.deepEqual(find('retained-duplicates').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 12}, {a: 2, b: -2, c: 13}]);
+  assert.deepEqual(find('nullable').expected, [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]);
+  assert.equal(find('nullable').columns[1].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-set-'));
+  assert.equal(refusals.length, 7);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional DROP removes authored duplicates and retains unnamed values and current scope', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-drop-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 8);
+  assert.deepEqual(JSON.parse(find('json-control').text), positionalDropProgram);
+  const steps = positionalDropProgram.stages[0].steps;
+  assert.deepEqual(steps[3], {drop: ['removed']});
+  assert.deepEqual(steps[4], {select: [{a: 'kept'}, {b: 'neg'}], as: 'right'});
+  assert.deepEqual(find('source').expected, [{a: 0, b: 0}, {a: 1, b: -1}, {a: 2, b: -2}]);
+  assert.deepEqual(find('duplicates-removed').expected, [{a: 0}, {a: 11}, {a: 12}]);
+  assert.deepEqual(find('duplicates-retained').expected, find('source').expected);
+  assert.ok(find('duplicates-removed').text.includes('DROP `v`'));
+  assert.deepEqual(find('chain-ordinal-limit').expected, [{a: -1}, {a: 0}]);
+  assert.ok(find('chain-ordinal-limit').text.includes('ORDER BY 1 DESC |> LIMIT 1'));
+  assert.deepEqual(find('filter-expression-limit').expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.ok(find('filter-expression-limit').text.includes('WHERE kept > 1 |> ORDER BY -kept |> LIMIT 1'));
+  assert.deepEqual(find('nullable').expected, [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: null}]);
+  assert.equal(find('nullable').columns[1].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-drop-'));
+  assert.equal(refusals.length, 7);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional RENAME preserves values while changing current authored lookup', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-rename-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 10);
+  assert.deepEqual(JSON.parse(find('json-control').text), positionalRenameProgram);
+  assert.deepEqual(positionalRenameProgram.stages[0].steps[3], {select: [{renamed: 'kept'}, 'neg']});
+  assert.deepEqual(positionalRenameProgram.stages[0].steps[4], {select: [{a: 'renamed'}, {b: 'neg'}], as: 'right'});
+  assert.deepEqual(find('source').expected, [{a: 0, b: 0}, {a: 1, b: -1}, {a: 2, b: -2}]);
+  assert.deepEqual(find('current-expression-limit').expected, [{a: -1, b: 11}, {a: 0, b: 0}]);
+  assert.ok(find('current-expression-limit').text.includes('RENAME kept AS id |> WHERE id < 0 |> ORDER BY -id |> LIMIT 1'));
+  assert.deepEqual(find('quoted-chain').expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.deepEqual(find('introduced-duplicates').expected, [{a: 0, b: 0, c: 0}, {a: 2, b: 20, c: -2}]);
+  assert.deepEqual(find('introduced-duplicates').columns.map(x => [x.name, x.contract.nullable]), [['a', false], ['b', true], ['c', false]]);
+  assert.deepEqual(find('private-shaped-anonymous-destination').expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.ok(find('private-shaped-anonymous-destination').text.includes('RENAME kept AS `AQL_SET_ANONYMOUS_4`'));
+  assert.deepEqual(find('private-shaped-duplicate-destination').expected, [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]);
+  assert.ok(find('private-shaped-duplicate-destination').text.includes('RENAME kept AS `AQL_SET_DUPLICATE_5`'));
+  assert.deepEqual(find('introduced-duplicates-drop').expected, [{a: -2}, {a: -1}, {a: 0}]);
+  assert.deepEqual(find('nullable').expected, [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: null}]);
+  assert.equal(find('nullable').columns[1].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-rename-'));
+  assert.equal(refusals.length, 10);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('pure Pipe tails retain ordinal values and only expose authored range names', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pure-tail-'));
+  const find = name => normals.find(x => x.name === 'set-corresponding-positional-pure-tail-' + name);
+  assert.equal(normals.length, 14);
+  assert.deepEqual(JSON.parse(find('extend-json-control').text), positionalExtendProgram);
+  assert.deepEqual(JSON.parse(find('as-json-control').text), positionalAsProgram);
+  assert.deepEqual(positionalExtendProgram.stages[0].steps[3], {derive: {extra: {add: [{field: 'kept'}, {literal: 10}]}}});
+  assert.deepEqual(positionalAsProgram.stages[0].steps[3], {filter: {gt: [{field: 'kept'}, {literal: 1}]}});
+  assert.deepEqual(find('extend-source').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 11}, {a: 2, b: -2, c: 12}]);
+  assert.deepEqual(find('as-source').expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.deepEqual(find('extend-current-parameter-limit').expected, [{a: -1, b: 11, c: 9}, {a: 0, b: 0, c: 0}]);
+  assert.deepEqual(find('extend-current-parameter-limit').parameterDeclarations, {bump: {type: 'number', nullable: false}});
+  assert.deepEqual(find('extend-current-parameter-limit').parameters, {bump: 10});
+  assert.ok(find('extend-current-parameter-limit').text.includes('ORDER BY -kept |> LIMIT 1'));
+  assert.deepEqual(find('extend-siblings').expected, [{a: 0, b: 0, c: 0, d: 0}, {a: 1, b: -1, c: 2, d: 11}, {a: 2, b: -2, c: 3, d: 12}]);
+  assert.deepEqual(find('extend-private-shaped-anonymous-destination').expected, [{a: 0, b: 0, c: 0}, {a: 2, b: -2, c: 12}]);
+  assert.deepEqual(find('extend-private-shaped-duplicate-destination').expected, [{a: 0, b: 0, c: 0, d: 0}, {a: 2, b: -2, c: 12, d: 13}]);
+  assert.deepEqual(find('as-immutable-set').expected, [{a: 0, b: 0}, {a: 12, b: -2}]);
+  assert.ok(find('as-immutable-set').text.includes('SET kept = kept + 10 |> WHERE r.kept = 2'));
+  assert.deepEqual(find('as-quoted-rebind').expected, find('as-source').expected);
+  assert.deepEqual(find('as-private-shaped-authored-column').expected, find('as-source').expected);
+  assert.deepEqual(find('extend-window').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 2}, {a: 2, b: -2, c: 1}]);
+  assert.deepEqual(find('nullable').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 11}, {a: 2, b: null, c: 12}]);
+  assert.deepEqual(find('nullable').columns.map(x => [x.name, x.contract.nullable]), [['a', false], ['b', true], ['c', false]]);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pure-tail-'));
+  assert.equal(refusals.length, 15);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional ORDER windows retain named snapshots without publishing hidden keys', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-order-window-'));
+  assert.equal(cases.length, 8);
+  const source = cases.find(x => x.name.endsWith('-source'));
+  assert.deepEqual(source.expected, [{a: 0, b: 0}, {a: 2, b: -2}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-range')).expected, [{a: -2, b: -2}, {a: 0, b: 0}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-nullable')).columns,
+    [{name: 'a', contract: {type: 'number', nullable: false}}, {name: 'b', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  const limited = cases.find(x => x.name.endsWith('-scalar-parameter-offset'));
+  assert.deepEqual(limited.parameters, {shift: 10});
+  assert.ok(limited.text.includes('LIMIT 1 OFFSET 1'));
+  assert.ok(limited.text.includes('ORDER BY kept) + @shift DESC'));
+  const steps = positionalOrderWindowProgram.stages[0].steps;
+  assert.deepEqual(steps[3].analytic.order_by, [{field: 'kept', dir: 'desc', nulls: 'last'}]);
+  assert.deepEqual(steps[5].take, {count: 1, offset: 0});
+  assert.deepEqual(steps[6].select, [{a: 'kept'}, {b: 'neg'}]);
+  assert.deepEqual(positionalOrderWindowProgram.stages[0].results.rows.fields, ['a', 'b']);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-order-window-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional DISTINCT compares anonymous values and preserves later DROP multiplicity', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-distinct-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.sourceRows, [{id: 1, amount: 10}, {id: 1, amount: 20}, {id: 1, amount: 10}]);
+  assert.deepEqual(source.expected, [{a: 0, b: 0}, {a: 1, b: -20}, {a: 1, b: -10}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-displaced-value-not-an-equality-key')).expected,
+    [{a: 0, b: 0}, {a: 1, b: -10}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-drop-keeps-result-multiplicity')).expected,
+    [{a: 0}, {a: 11}, {a: 11}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-nullable')).expected,
+    [{a: 0, b: 0}, {a: 1, b: -10}, {a: 1, b: null}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  const limited = cases.find(x => x.name.endsWith('-parameter-order-limit'));
+  assert.deepEqual(limited.parameters, {min: 0, skip: 1});
+  assert.ok(limited.text.includes('ORDER BY -kept, 2 ASC NULLS LAST'));
+  assert.ok(limited.text.includes('LIMIT 1 OFFSET @skip'));
+  assert.deepEqual(positionalDistinctProgram.stages[0].steps[3].distinct, ['kept', 'neg']);
+  assert.deepEqual(positionalDistinctProgram.stages[0].steps[4].select, [{a: 'kept'}, {b: 'neg'}]);
+  assert.deepEqual(positionalDistinctProgram.stages[0].steps[0].values.schema.y,
+    {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-distinct-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional UNNEST preserves anonymous occurrences, child multiplicity and immutable range values', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-unnest-'));
+  assert.equal(cases.length, 12);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.sourceRows, [{id: 1, amount: 10}, {id: 2, amount: 20}]);
+  assert.deepEqual(source.expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -10, c: 10},
+    {a: 1, b: -10, c: 20}, {a: 2, b: -20, c: 10}, {a: 2, b: -20, c: 20}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: false}},
+    {name: 'b', contract: {type: 'number', nullable: true}}, {name: 'c', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-range')).expected,
+    [{a: 0, b: 0, c: 0}, {a: 7, b: -20, c: 2}, {a: 7, b: -10, c: 1}]);
+  const duplicate = cases.find(x => x.name.endsWith('-duplicate-elements'));
+  assert.deepEqual(duplicate.expected.slice(1, 3), [{a: 1, b: -10, c: 10}, {a: 1, b: -10, c: 10}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-element')).text.includes('AS aql_set_anonymous_4'));
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-offset')).text.includes('WITH OFFSET aql_set_duplicate_2'));
+  assert.deepEqual(positionalUnnestProgram.stages[0].steps[4].unnest, {column: 'items', as: 'element'});
+  assert.deepEqual(positionalUnnestProgram.stages[0].steps[5].select, [{a: 'kept'}, {b: 'neg'}, {c: 'element'}]);
+  assert.deepEqual(positionalUnnestProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unnest-'));
+  assert.equal(refusals.length, 7);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('positional UNPIVOT retains anonymous values, generated current labels and repeated-row multiplicity', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-unpivot-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.expected, [{a: -20, b: 2, c: 'kept'}, {a: -10, b: 1, c: 'kept'}, {a: 0, b: 0, c: 'anchor'}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: true}},
+    {name: 'b', contract: {type: 'number', nullable: false}}, {name: 'c', contract: {type: 'string', nullable: false}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-current-renamed-label')).expected,
+    [{a: -20, b: 7, c: 'renamed'}, {a: -10, b: 7, c: 'renamed'}, {a: 0, b: 0, c: 'anchor'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-repeated-selected-column')).expected.slice(0,2),
+    [{a: -20, b: 2, c: 'kept'}, {a: -20, b: 2, c: 'kept'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.ok(cases.find(x => x.name.endsWith('-private-shaped-destination')).text.includes('INCLUDE NULLS(aql_set_anonymous_4'));
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[3].unpivot,
+    {columns: ['kept'], keep: ['neg'], value_column: 'value', name_column: 'label'});
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[4].select, [{a: 'neg'}, {b: 'value'}, {c: 'label'}]);
+  assert.deepEqual(positionalUnpivotProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-unpivot-'));
+  assert.equal(refusals.length, 5);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('UNPIVOT generated-name collisions keep old and new values as separate positional occurrences', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-unpivot-name-collision-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-value-column'));
+  assert.deepEqual(source.expected, [{a: 0, b: 0, c: 0, d: 'anchor'},
+    {a: 10, b: -10, c: 1, d: 'kept'}, {a: 20, b: -20, c: 2, d: 'kept'}]);
+  assert.notEqual(source.expected[1].a, source.expected[1].c);
+  const labelCollision = cases.find(x => x.name.endsWith('-name-column'));
+  assert.deepEqual(labelCollision.columns[0], {name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}});
+  assert.equal(Buffer.byteLength('anchor', 'utf8'), 6);
+  assert.equal(Buffer.byteLength('user', 'utf8'), 4);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-star')).expected, source.expected);
+  assert.ok(cases.find(x => x.name.endsWith('-immutable-star')).text.includes("SET label = 'changed'"));
+  assert.deepEqual(cases.find(x => x.name.endsWith('-distinct-complete-row')).expected,
+    [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'}, {a: 10, b: -10, c: 2, d: 'kept'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-drop-all-matching-occurrences')).expected,
+    [{a: -20, b: 'kept'}, {a: -10, b: 'kept'}, {a: 0, b: 'anchor'}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.deepEqual(positionalUnpivotCollisionProgram.stages[0].steps[3].unpivot,
+    {columns: ['kept'], keep: ['extra', 'neg'], value_column: 'expanded', name_column: 'label'});
+  assert.deepEqual(positionalUnpivotCollisionProgram.stages[0].steps[4].select,
+    [{a: 'extra'}, {b: 'neg'}, {c: 'expanded'}, {d: 'label'}]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-unpivot-name-collision-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional ASSERT retains values and validates explicit current/range keys through the common Owner', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-assert-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-source'));
+  assert.deepEqual(source.sourceRows, [{id: 1, amount: 10}, {id: 2, amount: 20}]);
+  assert.deepEqual(source.expected, [{a: 0, b: 0}, {a: 1, b: -10}, {a: 2, b: -20}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-key')).expected,
+    [{a: 0, b: 0}, {a: 7, b: -20}, {a: 7, b: -10}]);
+  assert.ok(cases.find(x => x.name.endsWith('-immutable-key')).text.includes('ASSERT UNIQUE BY(r.kept)'));
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty')).expected, []);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-parameter-filter-limit')).parameters, {min: 0});
+  assert.deepEqual(positionalAssertProgram.stages[0].steps[3].assert_rows, {unique_by: ['kept']});
+  assert.deepEqual(positionalAssertProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  assert.deepEqual(positionalAssertProgram.stages[0].steps[4].select, [{a: 'kept'}, {b: 'neg'}]);
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-assert-'));
+  assert.equal(refusals.length, 6);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+  assert.equal(setCorrespondingExecutionFailures.length, 2);
+  assert.deepEqual(setCorrespondingExecutionFailures[1].sourceRows, [{id: 1, amount: 10}, {id: 1, amount: 20}]);
+  assert.deepEqual(setCorrespondingExecutionFailures.map(x => x.resultNames), [['answer'], ['answer']]);
+  const packed = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  assert.ok(packed.includes('executionFailures: setCorrespondingExecutionFailures'));
+  assert.ok(packed.includes('scopeInputs.executionFailures.push(...setCorrespondingExecutionFailures)'));
+});
+
+
+test('positional PIVOT keeps anonymous group keys, immutable receivers and authored bucket order', () => {
+  const cases = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-pivot-'));
+  assert.equal(cases.length, 9);
+  const source = cases.find(x => x.name.endsWith('-anonymous-group'));
+  assert.deepEqual(source.expected, [{a: -20, b: 2}, {a: -10, b: 4}, {a: 0, b: 0}]);
+  assert.deepEqual(source.columns, [{name: 'a', contract: {type: 'number', nullable: true}},
+    {name: 'b', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-aggregate-current-key')).expected,
+    [{a: 0, b: 0, c: 0}, {a: 7, b: -20, c: 2}, {a: 7, b: -10, c: 4}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-current-aggregate')).expected,
+    [{a: -20, b: 7}, {a: -10, b: 14}, {a: 0, b: 0}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-bucket-declaration-order')).expected,
+    [{a: -20, b: 0, c: 1}, {a: -10, b: 0, c: 2}, {a: 0, b: 0, c: 0}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-nullable-group-key')).expected,
+    [{a: 0, b: 0}, {a: null, b: 1}]);
+  assert.deepEqual(cases.find(x => x.name.endsWith('-typed-empty-keyed')).expected, []);
+  assert.deepEqual(positionalPivotProgram.stages[0].steps[3].pivot,
+    {index: ['neg'], column: 'axis', value: 'amount', values: ['A'], aggregate: 'sum'});
+  assert.deepEqual(positionalPivotProgram.stages[0].steps[4].select, [{a: 'neg'}, {b: 'A'}]);
+  assert.deepEqual(positionalPivotProgram.stages[0].steps[0].values.schema.y, {type: 'number', nullable: true});
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-pivot-'));
+  assert.equal(refusals.length, 7);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });

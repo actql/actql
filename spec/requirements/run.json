@@ -782,6 +782,171 @@
         "anchor": "machine-contracts",
         "kind": "prose"
       }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-routing",
+      "statement_sha256": "24b93cbcf8f588074a8655b0febac8a9a3ba3d09d7feb546ddde566553007bf2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-preservation",
+      "statement_sha256": "39156b5c94cb362ac19b2c8b60ad15635e17ab37e394c33af40e61de3554939f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-admission",
+      "statement_sha256": "a54136724934a5ce6aedbe7b7a4f40db851b10a9a1b93dda51cddc5e561a502a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-pending",
+      "statement_sha256": "700d27ba051a1b6bba5b7bbc4a4271eaf4d3298c5f0cf49f70308006f0f0bb67",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-query-binding",
+      "statement_sha256": "aa98d4791a986ad9bd14362a6174d087bac32199e06b241e3c03daa34c6b816b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-query-binding.2",
+      "statement_sha256": "1b113fb7af62350b8770a2471795740542a2a8079deda8eca73dd581ba73c757",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-query-binding.3",
+      "statement_sha256": "584ca7c6151445d0fe5d90efdacf8fab716287c565995cff1f17908c4fe71944",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding",
+      "statement_sha256": "24af20218a9a28eb7d562f9ae0437c6d139db35027fcab0a3d3a393ab6522bf1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding.2",
+      "statement_sha256": "f22b22b8d2b6fa4111d00eede08adb4617983a0d2c1c3594bb6cd1529aa85701",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding.3",
+      "statement_sha256": "2cb74b03480d935aaf6b4a0db722f8603cbe124c364f6a6a13d747a9f20336cc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding.4",
+      "statement_sha256": "bf944bc9d11fbfe24222983fe9b9d32c98200871c4dd145c5e24415101b0eecb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness",
+      "statement_sha256": "ca0f26368b5c3943946d8b2669c323a03cd847023ac8d349eac5b60fd38a8285",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness.2",
+      "statement_sha256": "df1da833cd56667528254f1105bfa8f667492b6d279a550a2c33f60a7f0358be",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness.3",
+      "statement_sha256": "fb7989ce88274fb6ef1bd0552b792796f49c3a7de873c18e5831907fc0c3cc3e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness.4",
+      "statement_sha256": "2fdb7e863a5bb831425631b278c6ef50f3c1e7c488b0ab4f732ab6f884a78c7d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
     }
   ]
 }

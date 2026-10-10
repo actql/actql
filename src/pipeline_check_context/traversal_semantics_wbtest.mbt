@@ -1,4 +1,92 @@
 ///|
+test "Shortest duties retain both ordered selector occurrences and no TRAIL substitution" {
+  let producer = property_execution_pipeline()
+  let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
+  guard graph is @carrier.GraphValue(schema) else { fail("typed Graph") }
+  let rows = @carrier.relation(
+    @carrier.rows(
+      [(Qualified(Left, "element"), Some(@carrier.graph_identity(schema)))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap(),
+  )
+  let pipeline = @pipeline.check_carriers(
+    asof_test_cursor(
+      "[{\"from\":\"g\",\"shortest_path\":{\"source\":{\"from\":\"r\",\"id\":\"left.element\"},\"target\":{\"from\":\"r\",\"id\":\"left.element\"},\"selection\":\"each_pair\",\"direction\":\"out\",\"max_hops\":2}}]",
+    ),
+    [("g", graph), ("r", rows)],
+    None,
+    None,
+    {
+      max_steps: 1,
+      max_work: 100000,
+      max_text_bytes: 100000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let step = @pipeline.step_at(pipeline, 0).unwrap()
+  assert_eq(@pipeline.input_occurrence_count(step), 3)
+  let body = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()
+  let rules : Array[TraversalRule] = []
+  let mut unresolved = 0
+  for index in 0..<@pipeline.operation_obligations_count(body) {
+    let requirement = @pipeline.operation_obligations_at(body, index).unwrap()
+    let site : OperationRequirementSite = {
+      stage: 0,
+      producer_visit: 0,
+      step: 0,
+      group: 0,
+      index,
+      pipeline,
+      obligations: body,
+      requirement,
+    }
+    match traversal_execution_check(site).unwrap() {
+      Some(TraversalExecution(check)) => {
+        assert_eq(check.input, @pipeline.Input(0))
+        assert_eq(check.selector_relation, Some(@pipeline.Input(1)))
+        assert_eq(check.target_selector_relation, Some(@pipeline.Input(1)))
+        guard requirement
+          is @pipeline.TraverseRequirement(ShortestRequirement(rule)) else {
+          fail("Shortest duty was replaced")
+        }
+        assert_eq(check.rule, ShortestRule(rule))
+        rules.push(check.rule)
+      }
+      None => {
+        assert_true(
+          requirement
+          is @pipeline.TraverseRequirement(
+            ShortestRequirement(
+              ResolveShortestResources
+              | ResolveShortestProfile
+            )
+          ),
+        )
+        unresolved += 1
+      }
+      _ => fail("unexpected Shortest owner")
+    }
+  }
+  assert_eq(rules, [
+    ShortestRule(@graph.AdmitShortestGraph),
+    ShortestRule(@graph.AdmitShortestSelectors),
+    ShortestRule(@graph.DeduplicateShortestSelectors),
+    ShortestRule(@graph.RequireShortestMembership),
+    ShortestRule(@graph.ValidateEveryShortestWeight),
+    ShortestRule(@graph.RespectShortestHopBound),
+    ShortestRule(@graph.EnumerateSimpleShortestPaths),
+    ShortestRule(@graph.SelectCanonicalShortestPaths),
+    ShortestRule(@graph.RejectSelectedOverrange),
+    ShortestRule(@graph.CanonicalShortestOutputOrder),
+  ])
+  assert_eq(unresolved, 2)
+}
+
+///|
 test "keyed traversal checks retain explicit mode and never reuse simple-path law obligations" {
   let producer = property_execution_pipeline()
   let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()

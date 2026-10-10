@@ -309,25 +309,12 @@ pub fn check_text_bounds(
           let mut length_parameter = None
           let operation = match tag {
             "split_part" => @bounds.SplitPart
-            "substring" | "utf8_truncate" => {
+            "utf8_truncate" => {
               let (number, parameter) = bound_length(
-                expression,
-                node,
-                if tag == "substring" {
-                  2
-                } else {
-                  1
-                },
-                site,
-                index,
-                b,
+                expression, node, 1, site, index, b,
               )
               length_parameter = parameter
-              if tag == "substring" {
-                @bounds.Substring(number)
-              } else {
-                @bounds.Utf8Truncate(number)
-              }
+              @bounds.Utf8Truncate(number)
             }
             "try_number" => @bounds.TryNumber
             "nfkc" => @bounds.Nfkc

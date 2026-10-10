@@ -1359,8 +1359,8 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:baf912c13cee22ee1cdb67bacc8111872b11784f22fb8ef7340b33c81bbd9c25 -->
-<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:920143bf02c01c8688bcd34e8e018f80fac55c81ca070c3eb4c9ebe9712f3059 -->
+<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:98cabab7effed19178941d006ff89d3d6c08da0ebbc721d0a975058b4762d67c -->
 
 <a id="parameter-value-projection"></a>
 
@@ -1930,7 +1930,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:3d0d958d6aa9a7f620afbcda89396aa43c1ae300268a7f041bf64fd708124a34
+../../../spec/contracts/actql-check-environment.json# sha256:955731071e31bc92d17644be84dae7d7506b1eedaf2b3de365e0f1c7662e8d22
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
@@ -1959,18 +1959,18 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:b71883bbfd59d448a5c1d8ca66ac22501ac1c8042b2d369a50d556251ed97d2c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:22d89eb86d5dc3dc974f6ba8b13f756792bcc853a1766c6917f26a2dd6bb9bb6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:624c7bb93f2d4eb6faef529f2d52753051434813aec7cf1a58827553fed7427f
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:7c9a6a57b7c9519f7e9fff3bbbd3ac06f724523b0d134be06fae0675503933c3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
-../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9
-../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_barrier sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237
+../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f
+../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_barrier sha256:f16cab0a63c51d1dee37a0b279e9a2ffe2c35bf165077d68ed8de66cd5bc06bf
 ```
 
 <!-- stage-contract-pins:start -->

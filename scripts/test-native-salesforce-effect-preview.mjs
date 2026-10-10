@@ -6,6 +6,8 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
+import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
+import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
@@ -43,10 +45,57 @@ const paths = [];
 let resolutionRequests = 0;
 let writes = 0;
 let rejectedWrites = 0;
+let reviewUploads = 0;
+let checkpointReportRequests = 0;
+let checkpointReportWire;
+const reviewUploadBodies = [];
 const writeBodies = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review-report') {
+    if (request.headers.authorization !== 'Bearer native-target-test' ||
+        request.headers['content-type'] !== 'application/json') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks=[]; let bytes=0;
+    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>65536)request.destroy();else chunks.push(chunk);});
+    request.on('end',()=>{
+      try {
+        const wire=Buffer.concat(chunks).toString('utf8');
+        checkpointReportWire ??= wire;
+        if(wire!==checkpointReportWire){response.writeHead(409);response.end();return;}
+        const reply=nativeEffectCheckpointReplyFixture(wire);
+        checkpointReportRequests++;
+        // Bare HTTP success cannot discharge the journal's report custody.
+        // The next explicit retry obtains a fixture typed receipt, not a
+        // production Cloud Owner commit or Effect approval.
+        response.writeHead(200,{'content-type':'application/json'});
+        response.end(checkpointReportRequests===1?'{}':reply);
+      } catch {response.writeHead(422);response.end();}
+    });
+    return;
+  }
+  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review') {
+    if (request.headers.authorization !== 'Bearer native-target-test' ||
+        request.headers['content-type'] !== 'application/json' ||
+        !/^sha256:[a-f0-9]{64}$/.test(request.headers['actql-dispatch-cid'] ?? '')) {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks=[]; let bytes=0;
+    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>65536)request.destroy();else chunks.push(chunk);});
+    request.on('end',()=>{
+      assert.equal(checkpointReportRequests,2,'Artifact upload preceded the original typed report receipt');
+      const body=Buffer.concat(chunks).toString('utf8');
+      reviewUploadBodies.push({dispatchCid:request.headers['actql-dispatch-cid'],
+        byteLength:bytes,bodySha256:createHash('sha256').update(Buffer.concat(chunks)).digest('hex')});
+      reviewUploads++;
+      // First response is uncertain from the Site's perspective. The caller
+      // retries its same owned bytes; no approval/report ACK is synthesized.
+      response.writeHead(reviewUploads===1?503:204); response.end();
+    });
+    return;
+  }
   if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
     if (request.headers.authorization !== 'Bearer native-target-test') {
       response.writeHead(403); response.end(); return;
@@ -141,6 +190,8 @@ try {
     keys.privateKey).toString('base64url');
   const testEnv = {...process.env, ...nativeResolutionFixture(),
     ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL:origin+'/fixture/effect-resolution',
+    ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL:origin+'/fixture/effect-review',
+    ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL:origin+'/fixture/effect-review-report',
     ACTQL_TEST_NATIVE_HTTP_URL: origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
@@ -233,8 +284,11 @@ try {
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests,
+    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, reviewUploads, reviewUploadBodies,
+    checkpointReportRequests, checkpointReportSha256:checkpointReportWire===undefined?undefined:
+      createHash('sha256').update(checkpointReportWire).digest('hex'),
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
+    captureProgress: residentOriginalHolder ? await readNativeEffectCaptureProgress(join(root, 'retained')) : undefined,
     scope: residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
       : residentOriginalHolder
@@ -250,6 +304,9 @@ try {
   assert.equal(rejectedWrites, residentProposals ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
+  assert.equal(reviewUploads,residentOriginalHolder?3:0);
+  assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
+  if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
   if (residentProposals) {
     assert.deepEqual(paths, []);
     assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
