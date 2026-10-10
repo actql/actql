@@ -13,8 +13,22 @@ test "unnamed projected table closes ranges while a Pipe table preserves its act
     "SELECT current.x FROM (FROM rows |> AS r) current",
     query_limits(),
   ).unwrap()
-  assert_eq(relation_alias(named), Some({ value: "current", quoted: false, }))
-  assert_false(cte_at(named, 0).unwrap().carry_ranges)
+  assert_eq(relation_alias(named), None)
+  let named_body = cte_at(named, 0).unwrap()
+  assert_true(named_body.carry_ranges)
+  assert_true(
+    operation_at(named_body.query, operation_count(named_body.query) - 1)
+    is Some(Alias({ value: "current", quoted: false, })),
+  )
+  let projected_named = parse_query(
+    "SELECT current.x FROM (SELECT x FROM rows) current",
+    query_limits(),
+  ).unwrap()
+  assert_eq(
+    relation_alias(projected_named),
+    Some({ value: "current", quoted: false, }),
+  )
+  assert_false(cte_at(projected_named, 0).unwrap().carry_ranges)
 }
 
 ///|

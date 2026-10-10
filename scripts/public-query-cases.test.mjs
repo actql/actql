@@ -84,3 +84,19 @@ test('optional table aliases preserve independent NULL/duplicate and range-value
  assert.equal(cases.get('derived-optional-captured-range-snapshot').sourceReadSessionCount,1);
  assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('derived-optional-refusal-')).length,6);
 });
+
+test('derived value-table aliases retain scalar/object type and old-name refusal controls',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ const scalar=cases.get('derived-value-scalar-receiver');
+ assert.deepEqual(scalar.expected,[{value:null},{value:2},{value:2}]);
+ assert.deepEqual(scalar.expected,cases.get('derived-value-scalar-json-control').expected);
+ assert.deepEqual(scalar.columns,[{name:'value',contract:{type:'number',nullable:true}}]);
+ const object=cases.get('derived-value-object-whole-and-property');
+ assert.deepEqual(object.expected,cases.get('derived-value-object-json-control').expected);
+ assert.equal(object.columns[0].contract.nullable,true);
+ assert.equal(object.columns[0].contract.fields.id.nullable,false);
+ assert.equal(object.columns[1].contract.nullable,true);
+ assert.deepEqual(cases.get('derived-value-offset-row-columns').columns,
+ [{name:'value',contract:{type:'number',nullable:true}},{name:'position',contract:{type:'number',nullable:false}}]);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('derived-value-refusal-')).length,4);
+});

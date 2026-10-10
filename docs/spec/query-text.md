@@ -777,8 +777,13 @@ from published Source View path resolution. This is lexical producer binding,
 not SQL rewriting or repeated execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER and RESULT declarations are excluded from CTE bodies.
-A table subquery's alias is optional. An explicit alias replaces its input
-ranges with one range over the output; without an alias, surviving query ranges
+A table subquery's alias is optional. On an ordinary row, an explicit alias
+replaces input ranges with one range over the current output. A single value
+table retains its value kind and replaces its receiver name: a scalar remains
+a scalar and a nullable object remains the original nullable object, not a
+new STRUCT of projected fields. Apply the existing AS rules before retaining
+this scope. OFFSET or other added columns make an ordinary row with qualified
+columns; scalar receiver star remains invalid. Without an alias, surviving query ranges
 and value-table receivers are preserved using the existing private scope binding.
 A completed SELECT or set exposes only its current projected columns, so omission
 does not revive displaced aliases, hidden slots or removed inputs. Transparent

@@ -949,6 +949,15 @@ fn QueryParser::query_source(
   }
   let inner = self.parenthesized()
   let source_alias = self.optional_source_alias()
+  if source_alias is Some(result_range) && query_output_carries_ranges(inner) {
+    // Apply the existing AS rules to the actual output kind before retaining
+    // it. A value-table receiver is a value, not an ordinary whole-row object.
+    let bound = self.bind_query(
+      { ..inner, operations: inner.operations + [Alias(result_range)], },
+      carry_ranges=true,
+    )
+    return self.from_pivot_source(bound.relation, None, bound.ctes)
+  }
   // An explicit alias creates one projected range. Without it, preserve the
   // inner query's current names/ranges through the existing continuation scope.
   let carry_ranges = source_alias is None && query_output_carries_ranges(inner)

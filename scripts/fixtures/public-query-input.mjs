@@ -312,6 +312,58 @@ queryCompositionSuccesses.push(
   [{id:1},{id:2}],[optionalNumber('id')]),
 );
 
+// A derived alias names the existing value-table receiver, including the
+// whole nullable object. It does not manufacture a STRUCT around a scalar.
+const derivedScalarDeclarations={items:{type:'array',nullable:true,max_items:3,
+ items:{type:'number',nullable:true}}};
+const derivedScalarItems=[2,null,2];
+const derivedScalarControl={version:'actql/0.1',id:'fixture.derived_scalar_alias',
+ params:derivedScalarDeclarations,stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'value'}},
+ {sort:[{field:'value',dir:'asc',nulls:'first'}]},
+ {select:['value'],as:'out'},
+ ],results:{rows:{from:'out',fields:['value']}}}],
+ results:{answer:{from:{stage:'main',result:'rows'}}}};
+const derivedValueCase=(name,text,expected,columns,extra={})=>({
+ name:'derived-value-'+name,format:'sql',text,expected,columns,
+ parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},
+ sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const derivedValueColumns=[optionalNumber('value',true)];
+const derivedScalarRows=[{value:null},{value:2},{value:2}];
+const derivedScalarText='SELECT chosen AS value FROM (FROM UNNEST(@items) element) chosen ORDER BY value NULLS FIRST';
+const derivedObjectContract={type:'object',nullable:true,fields:{id:{type:'number',nullable:false},label:{type:'string',nullable:true}}};
+const derivedObjectDeclarations={items:{type:'array',nullable:true,max_items:3,items:derivedObjectContract}};
+const derivedObjectItems=[{id:2,label:'kept'},null,{id:2,label:null}];
+const derivedObjectRows=[{value:null,id:null},{value:{id:2,label:null},id:2},{value:{id:2,label:'kept'},id:2}];
+const derivedObjectColumns=[{name:'value',contract:derivedObjectContract},optionalNumber('id',true)];
+const derivedObjectControl={version:'actql/0.1',id:'fixture.derived_object_alias',params:derivedObjectDeclarations,
+ stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'element'}},
+ {derive:{id:{property:{value:{field:'element'},name:'id'}},label:{property:{value:{field:'element'},name:'label'}}}},
+ {sort:[{field:'id',dir:'asc',nulls:'first'},{field:'label',dir:'asc',nulls:'first'}]},
+ {select:[{value:'element'},'id'],as:'out'},
+ ],results:{rows:{from:'out',fields:['value','id']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+queryCompositionSuccesses.push(
+ derivedValueCase('scalar-json-control',JSON.stringify(derivedScalarControl),derivedScalarRows,derivedValueColumns,{format:'json',parameterDeclarations:undefined}),
+ derivedValueCase('scalar-receiver',derivedScalarText,derivedScalarRows,derivedValueColumns),
+ derivedValueCase('quoted-scalar','FROM (FROM UNNEST(@items) element) `ORDER` |> SELECT `ORDER` AS value |> ORDER BY value NULLS FIRST',derivedScalarRows,derivedValueColumns,{format:'aql-text'}),
+ derivedValueCase('scalar-empty',derivedScalarText,[],derivedValueColumns,{parameters:{items:[]}}),
+ derivedValueCase('scalar-null-array',derivedScalarText,[],derivedValueColumns,{parameters:{items:null}}),
+ derivedValueCase('object-json-control',JSON.stringify(derivedObjectControl),derivedObjectRows,derivedObjectColumns,{format:'json',parameterDeclarations:undefined,parameters:{items:derivedObjectItems}}),
+ derivedValueCase('object-whole-and-property','SELECT chosen AS value,chosen.id AS id FROM (FROM UNNEST(@items) element) chosen ORDER BY id NULLS FIRST,value.label NULLS FIRST',derivedObjectRows,derivedObjectColumns,{parameterDeclarations:derivedObjectDeclarations,parameters:{items:derivedObjectItems}}),
+ derivedValueCase('object-star','SELECT chosen.* FROM (FROM UNNEST(@items) element) chosen ORDER BY id NULLS FIRST,label NULLS FIRST',
+ [{id:null,label:null},{id:2,label:null},{id:2,label:'kept'}],[optionalNumber('id',true),{name:'label',contract:{type:'string',nullable:true}}],{parameterDeclarations:derivedObjectDeclarations,parameters:{items:derivedObjectItems}}),
+ derivedValueCase('object-empty','SELECT chosen AS value,chosen.id AS id FROM (FROM UNNEST(@items) element) chosen ORDER BY id NULLS FIRST,value.label NULLS FIRST',[],derivedObjectColumns,{parameterDeclarations:derivedObjectDeclarations,parameters:{items:[]}}),
+ derivedValueCase('offset-row-columns','SELECT chosen.element AS value,chosen.position FROM (FROM UNNEST(@items) element WITH OFFSET position) chosen ORDER BY position',
+ [{value:2,position:0},{value:null,position:1},{value:2,position:2}],[optionalNumber('value',true),optionalNumber('position')]),
+ derivedValueCase('offset-row-star','SELECT chosen.* FROM (FROM UNNEST(@items) element WITH OFFSET position) chosen ORDER BY position',
+ [{element:2,position:0},{element:null,position:1},{element:2,position:2}],[optionalNumber('element',true),optionalNumber('position')]),
+);
+
 export const queryCompositionRefusals = [
   {name: 'nested-cte-octal-range', format: 'sql',
     text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
@@ -361,6 +413,14 @@ queryCompositionRefusals.push(...[
  ['ambiguous-column','SELECT id FROM (SELECT 1 AS id) CROSS JOIN (SELECT 2 AS id) MAX_OUTPUT_ROWS 10'],
 ].map(([name,text])=>({name:'derived-optional-refusal-'+name,format:'sql',text,
  expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['old-scalar-receiver','SELECT element AS value FROM (FROM UNNEST(@items) element) chosen'],
+ ['scalar-star','SELECT chosen.* FROM (FROM UNNEST(@items) element) chosen'],
+ ['unregistered-scalar-property','SELECT chosen.score AS value FROM (FROM UNNEST(@items) element) chosen'],
+ ['duplicate-derived-alias','SELECT chosen.value FROM (FROM UNNEST(@items) element) chosen CROSS JOIN (SELECT 1 AS value) chosen MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'derived-value-refusal-'+name,format:'sql',text,
+ parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
 
 export const querySuccesses = [
   {name: 'sql', format: 'sql',
