@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram, positionalExclusionProgram, positionalReplacementProgram, positionalWindowReplacementProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 91);
-  assert.equal(setCorrespondingRefusals.length, 51);
+  assert.equal(setCorrespondingSuccesses.length, 99);
+  assert.equal(setCorrespondingRefusals.length, 58);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -290,5 +290,28 @@ test('window replacement uses current names with opposing keys and retained anon
   assert.deepEqual(positionalWindowReplacementProgram.stages[0].steps[4].select, [{a: 'rank'}, {b: 'neg'}]);
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-analytic-replacement-'));
   assert.equal(refusals.length, 3);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional SET retains pre-assignment values, nullability and private scope', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-pipe-set-'));
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.equal(normals.length, 8);
+  assert.deepEqual(JSON.parse(find('json-control').text), positionalReplacementProgram);
+  assert.deepEqual(find('source').expected, [{a: 0, b: 0}, {a: 11, b: -1}, {a: 12, b: -2}]);
+  assert.deepEqual(find('current-expression-limit').expected, [{a: -1, b: -1}, {a: 0, b: 0}]);
+  assert.ok(find('current-expression-limit').text.includes('SET id = -id |> ORDER BY -id |> LIMIT 1'));
+  assert.deepEqual(find('quoted-chain-limit').expected, [{a: 0, b: 0}, {a: 12, b: -2}]);
+  assert.ok(find('simultaneous').text.includes('SET first = second, second = first'));
+  assert.deepEqual(find('simultaneous').expected, [{a: 0, b: 0, c: 0}, {a: 10, b: 1, c: -1}, {a: 20, b: 2, c: -2}]);
+  assert.deepEqual(find('simultaneous').columns.map(x => [x.name, x.contract.nullable]), [['a', true], ['b', false], ['c', false]]);
+  assert.deepEqual(find('retained-duplicates').expected, [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 12}, {a: 2, b: -2, c: 13}]);
+  assert.deepEqual(find('nullable').expected, [{a: 0, b: 0}, {a: 11, b: -10}, {a: 12, b: null}]);
+  assert.equal(find('nullable').columns[1].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-pipe-set-'));
+  assert.equal(refusals.length, 7);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
