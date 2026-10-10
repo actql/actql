@@ -2,32 +2,32 @@
 
 ///|
 test "stage semantics: local-binding-and-parameter-uses" {
-  assert_stage_semantics(false, 0, "{\"binding_references\":[{\"name\":\"b\",\"path\":\"/inputs/remote~1~0/request/again\",\"type\":{\"resource_kind\":\"drive.file\",\"type\":\"resource_ref\"}},{\"name\":\"b\",\"path\":\"/inputs/remote~1~0/request/f~1~0\",\"type\":{\"resource_kind\":\"drive.file\",\"type\":\"resource_ref\"}}],\"bindings\":{\"b\":{\"resource_kind\":\"drive.file\",\"type\":\"resource_ref\"}},\"expression_contract_cid\":\"sha256:bfb03b8ce1884b8fcd64023d210d9db69643cb884ae472282329c3988721d253\",\"local_body\":{\"effects\":{\"d\":{\"delete\":{\"where\":[{\"lt\":[{\"literal\":1},{\"$param\":\"n\"}]}]}}},\"from\":\"rows\",\"inputs\":{\"remote/~\":{\"connector\":\"drive/main\",\"request\":{\"again\":{\"$binding\":\"b\"},\"data\":{\"nested\":{\"$param\":\"unknown\"}},\"f/~\":{\"$binding\":\"b\"},\"p\":{\"$param\":\"n\"}},\"resource\":\"file\"},\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[{\"take\":{\"$param\":\"m\"}}]},\"parameter_references\":[{\"name\":\"n\",\"path\":\"/effects/d/delete/where/0/lt/1\",\"type\":{\"type\":\"number\"}},{\"name\":\"n\",\"path\":\"/inputs/remote~1~0/request/p\",\"type\":{\"type\":\"number\"}},{\"name\":\"m\",\"path\":\"/steps/0/take\",\"type\":{\"type\":\"number\"}}],\"parameters\":{\"m\":{\"type\":\"number\"},\"n\":{\"type\":\"number\"}},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:69d1a9b617a9560b4e78e15a6e2bba51f0556fc8f5070d180d93bcec6fb3adeb")
+  assert_stage_semantics(false, 0, "{\"binding_references\":[{\"name\":\"b\",\"path\":\"/inputs/remote~1~0/request/again\",\"type\":{\"resource_kind\":\"drive.file\",\"type\":\"resource_ref\"}},{\"name\":\"b\",\"path\":\"/inputs/remote~1~0/request/f~1~0\",\"type\":{\"resource_kind\":\"drive.file\",\"type\":\"resource_ref\"}}],\"bindings\":{\"b\":{\"resource_kind\":\"drive.file\",\"type\":\"resource_ref\"}},\"expression_contract_cid\":\"sha256:fec9ffe5df68248b60591c4d61d4e01e55582a5dd23471831634773b07a8a2c6\",\"local_body\":{\"effects\":{\"d\":{\"delete\":{\"where\":[{\"lt\":[{\"literal\":1},{\"$param\":\"n\"}]}]}}},\"from\":\"rows\",\"inputs\":{\"remote/~\":{\"connector\":\"drive/main\",\"request\":{\"again\":{\"$binding\":\"b\"},\"data\":{\"nested\":{\"$param\":\"unknown\"}},\"f/~\":{\"$binding\":\"b\"},\"p\":{\"$param\":\"n\"}},\"resource\":\"file\"},\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[{\"take\":{\"$param\":\"m\"}}]},\"parameter_references\":[{\"name\":\"n\",\"path\":\"/effects/d/delete/where/0/lt/1\",\"type\":{\"type\":\"number\"}},{\"name\":\"n\",\"path\":\"/inputs/remote~1~0/request/p\",\"type\":{\"type\":\"number\"}},{\"name\":\"m\",\"path\":\"/steps/0/take\",\"type\":{\"type\":\"number\"}}],\"parameters\":{\"m\":{\"type\":\"number\"},\"n\":{\"type\":\"number\"}},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:7a6bcfc169edbe9f2a5df61bfbab6b56f4e54d92a6ca07e609b91b2cb1ce8f3d")
 }
 
 ///|
 test "stage semantics: other-stage-declarations-excluded" {
-  assert_stage_semantics(false, 1, "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:bfb03b8ce1884b8fcd64023d210d9db69643cb884ae472282329c3988721d253\",\"local_body\":{\"effects\":{},\"from\":\"rows\",\"inputs\":{\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[{\"take\":{\"$param\":\"m\"}}]},\"parameter_references\":[{\"name\":\"m\",\"path\":\"/steps/0/take\",\"type\":{\"type\":\"number\"}}],\"parameters\":{\"m\":{\"type\":\"number\"}},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:3497cceec2db05834ffb417b3be56a95187489994e4035367b117b2700e2dee4")
+  assert_stage_semantics(false, 1, "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:fec9ffe5df68248b60591c4d61d4e01e55582a5dd23471831634773b07a8a2c6\",\"local_body\":{\"effects\":{},\"from\":\"rows\",\"inputs\":{\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[{\"take\":{\"$param\":\"m\"}}]},\"parameter_references\":[{\"name\":\"m\",\"path\":\"/steps/0/take\",\"type\":{\"type\":\"number\"}}],\"parameters\":{\"m\":{\"type\":\"number\"}},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:baee27801bb502e2028c7e77d01ee8839b8ed0ef463880611c6f8ab1d013dac8")
 }
 
 ///|
 test "stage semantics: explicit-empty-maps-and-lists" {
-  assert_stage_semantics(true, 1, "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:bfb03b8ce1884b8fcd64023d210d9db69643cb884ae472282329c3988721d253\",\"local_body\":{\"effects\":{},\"from\":\"rows\",\"inputs\":{\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:e735b102683bb1f6d723b299f763bab33aa48812d7a34cd36544e4552e840170")
+  assert_stage_semantics(true, 1, "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:fec9ffe5df68248b60591c4d61d4e01e55582a5dd23471831634773b07a8a2c6\",\"local_body\":{\"effects\":{},\"from\":\"rows\",\"inputs\":{\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:06bb78c6ddefbc6fc24ac8ec21c262a0d7b47901e1b7b2081e94d05f07f0f35f")
 }
 
 ///|
 test "stage definition: local-binding-and-parameter-uses" {
-  assert_stage_definition(false, 0, "a", "sha256:69d1a9b617a9560b4e78e15a6e2bba51f0556fc8f5070d180d93bcec6fb3adeb", "{\"id\":\"a\",\"stage_semantics_cid\":\"sha256:69d1a9b617a9560b4e78e15a6e2bba51f0556fc8f5070d180d93bcec6fb3adeb\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:0c0483b880394ad75e12994591bb1a837faa922a45fa3b46ef5a910219697b06")
+  assert_stage_definition(false, 0, "a", "sha256:7a6bcfc169edbe9f2a5df61bfbab6b56f4e54d92a6ca07e609b91b2cb1ce8f3d", "{\"id\":\"a\",\"stage_semantics_cid\":\"sha256:7a6bcfc169edbe9f2a5df61bfbab6b56f4e54d92a6ca07e609b91b2cb1ce8f3d\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:88f49387984b844bd9eff91fa1a58fa7b5b196899bff41936646f8ef260a372d")
 }
 
 ///|
 test "stage definition: other-stage-declarations-excluded" {
-  assert_stage_definition(false, 1, "b", "sha256:3497cceec2db05834ffb417b3be56a95187489994e4035367b117b2700e2dee4", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:3497cceec2db05834ffb417b3be56a95187489994e4035367b117b2700e2dee4\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:0061783277939d8192a2800fa93034ec6cdfd9e67e82142a68aff2c98865d6c2")
+  assert_stage_definition(false, 1, "b", "sha256:baee27801bb502e2028c7e77d01ee8839b8ed0ef463880611c6f8ab1d013dac8", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:baee27801bb502e2028c7e77d01ee8839b8ed0ef463880611c6f8ab1d013dac8\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:3b2764dc0416194ee6585d30b069519ff209f94dc4999d84b2dd284e1aac08cf")
 }
 
 ///|
 test "stage definition: explicit-empty-maps-and-lists" {
-  assert_stage_definition(true, 1, "b", "sha256:e735b102683bb1f6d723b299f763bab33aa48812d7a34cd36544e4552e840170", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:e735b102683bb1f6d723b299f763bab33aa48812d7a34cd36544e4552e840170\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:67117d6cb482a5222f9508a70ae764c19fc92f5054aca7843c2b2700063cf123")
+  assert_stage_definition(true, 1, "b", "sha256:06bb78c6ddefbc6fc24ac8ec21c262a0d7b47901e1b7b2081e94d05f07f0f35f", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:06bb78c6ddefbc6fc24ac8ec21c262a0d7b47901e1b7b2081e94d05f07f0f35f\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:b29cef2923edf24f7c3f41a857163c0ca7525e1ea0b95ebc56b276f028cc5359")
 }
 
 ///|
