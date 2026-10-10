@@ -59,6 +59,32 @@ fn effect_ledger_custody_with_responses(
   let mut body = @utf8.decode(base) catch { _ => return Err(CustodyLost) }
   let mut count = 0
   for entry in checkpoint.effect_ledger {
+    let state = @effect.effect_ledger_entry_state_code(entry)
+    if state >= 2 && state <= 4 {
+      let receipt = match read_client_effect_receipt(database, entry) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      guard @publication.effect_row_outcome_receipt_dispatch_identity(receipt)
+        is Some(dispatch_cid) &&
+        checkpoint.effect_ledger.any(original => {
+          original.cid == dispatch_cid &&
+          @effect.effect_ledger_entry_state_code(original) == 1 &&
+          original.logical_item_locator_cid == entry.logical_item_locator_cid &&
+          original.attempt_sequence == entry.attempt_sequence
+        }) else {
+        return Err(CustodyLost)
+      }
+      match read_client_effect_response_record(database, dispatch_cid) {
+        Ok(Some(_)) => ()
+        Err(issue) => return Err(issue)
+        _ => return Err(CustodyLost)
+      }
+      body += "\nreceipt\n" +
+        entry.cid +
+        "\n" +
+        @publication.publication_contract_identity(receipt)
+    }
     if @effect.effect_ledger_entry_state_code(entry) != 1 {
       continue
     }

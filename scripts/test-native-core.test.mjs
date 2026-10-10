@@ -84,7 +84,8 @@ const {writeFileSync, existsSync, statSync} = require('node:fs');
 const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
-if (process.argv.includes('src/platform_native/client_host/run_checkpoint_wbtest.mbt') &&
+if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
+     'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
     process.argv.includes('--index')) {
   const fixed = digit => 'sha256:' + digit.repeat(64);
   console.log('ACTQL_CLIENT_CHECKPOINT ' + JSON.stringify({

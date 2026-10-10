@@ -219,7 +219,10 @@ fn initialize_native_client_run_journal(
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
-  for table in ["client_effect_response_meta", "client_effect_response_bytes"] {
+  for
+    table in [
+      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
+    ] {
     match database.scan_after(table, "") {
       Err(@sqlite.NotFound) => ()
       _ => return Err(CustodyLost)
@@ -268,6 +271,7 @@ fn run_journal_custody(
   let definitions : Map[String, Bool] = Map([], capacity=max_records)
   let checkpoint_scopes : Map[String, Bool] = Map([], capacity=max_records)
   let responses : Map[String, Bool] = Map([], capacity=max_records)
+  let receipts : Map[String, Bool] = Map([], capacity=max_records)
   while true {
     let row = match database.scan_after("client_runs", cursor) {
       Ok(value) => value
@@ -293,6 +297,14 @@ fn run_journal_custody(
     if record.checkpoint is Some(checkpoint) {
       checkpoint_scopes[row.key] = true
       for entry in checkpoint.effect_ledger {
+        let state = @effect.effect_ledger_entry_state_code(entry)
+        if state >= 2 && state <= 4 {
+          guard entry.outcome_receipt_cid is Some(cid) &&
+            !receipts.contains(cid) else {
+            return Err(CustodyLost)
+          }
+          receipts[cid] = true
+        }
         if @effect.effect_ledger_entry_state_code(entry) != 1 {
           continue
         }
@@ -360,6 +372,26 @@ fn run_journal_custody(
     if response_count != responses.length() {
       return Err(CustodyLost)
     }
+  }
+  let mut receipt_cursor = ""
+  let mut receipt_count = 0
+  while true {
+    let row = match
+      database.scan_after("client_effect_row_receipt", receipt_cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    receipt_count += 1
+    if receipt_count > receipts.length() ||
+      !receipts.contains(row.key) ||
+      row.revision != 0L {
+      return Err(CustodyLost)
+    }
+    receipt_cursor = row.key
+  }
+  if receipt_count != receipts.length() {
+    return Err(CustodyLost)
   }
   Ok((count, retained.revision))
 }

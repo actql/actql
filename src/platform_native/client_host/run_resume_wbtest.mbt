@@ -17,8 +17,11 @@ fn resume_test_claim(
   current : () -> Bool,
   before_commit? : () -> Unit = () => (),
   installed? : Bool = true,
+  resolution_mode? : String = "APPROVE",
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
-  let wire = @env.get_env_var("ACTQL_TEST_CLIENT_APPROVE_RESOLUTION_WIRE").unwrap()
+  let wire = @env.get_env_var(
+    "ACTQL_TEST_CLIENT_" + resolution_mode + "_RESOLUTION_WIRE",
+  ).unwrap()
   journal.claim_effect_resume(
     request,
     epoch_test_crypto(),

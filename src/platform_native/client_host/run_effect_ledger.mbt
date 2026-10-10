@@ -394,7 +394,7 @@ pub fn NativeClientRunJournal::restore_effect_row_observation(
       return Ok(None)
     }
     let state = @effect.effect_ledger_entry_state_code(head)
-    if state != 1 && state != 5 {
+    if state < 1 || state > 5 {
       return Err(Checkpoint(InvalidMaterial))
     }
     let original = checkpoint.effect_ledger.filter(entry => {
