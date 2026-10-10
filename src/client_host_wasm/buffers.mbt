@@ -32,6 +32,7 @@ priv struct Instance {
   physical_starts : Map[Int, StoredPhysicalStart]
   native_sources : Map[Int, StoredNativeSourceConfiguration]
   native_attempts : Map[Int, StoredNativeAttempt]
+  native_commands : Map[Int, StoredNativeCommand]
   mut next_handle : Int
 }
 
@@ -101,6 +102,7 @@ pub fn open(
         physical_starts: {},
         native_sources: {},
         native_attempts: {},
+        native_commands: {},
         next_handle: 1,
       })
       0

@@ -20,6 +20,7 @@ from actql_sdk._local_duckdb import (  # noqa: E402
     DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBTransferLimits, DuckDBParameter,
     _Result,
 )
+from actql_sdk._local_command import native_command  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('library', type=Path)
@@ -178,6 +179,22 @@ class StandaloneDuckDBTests(unittest.TestCase):
         self.assertEqual(bytes(destination[:count]),
             b'[["3ff8000000000000"],["8000000000000000"],'
             b'["e\xcc\x81\\u000d\\u000a\\u0000\xf0\x9f\x98\x80"],[true],[null]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+
+    def test_shared_core_command_projection_reaches_actual_native_binding(self):
+        command = native_command(
+            b'{"sql":"SELECT ?::DOUBLE AS n, ?::VARCHAR AS text, ?::BOOLEAN AS flag, ?::VARCHAR AS missing",'
+            b'"parameters":[{"type":{"id":"DOUBLE"},"value":"3ff8000000000000"},'
+            b'{"type":{"id":"VARCHAR"},"value":"e\xcc\x81\\r\\n\\u0000\xf0\x9f\x98\x80"},'
+            b'{"type":{"id":"BOOLEAN"},"value":false},'
+            b'{"type":{"id":"VARCHAR"},"value":null}]}')
+        self.stream = self.connection.prepare(command.sql, DuckDBTransferLimits(),
+                                              parameters=command.parameters)
+        self.stream.execute()
+        destination = bytearray(256)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]),
+            b'[["3ff8000000000000"],["e\xcc\x81\\u000d\\u000a\\u0000\xf0\x9f\x98\x80"],[false],[null]]')
         self.assertIsNone(self.stream.read_column_row(destination))
 
     def test_bound_metadata_names_select_exact_table_without_interpolation(self):
@@ -361,4 +378,4 @@ print(json.dumps({'source_sha': source, 'library': str(args.library),
     'python': sys.version, 'platform': platform.platform(),
     'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
     'public_local_acceptance': False, 'wheel_acceptance': False}))
-sys.exit(0 if result.wasSuccessful() and result.testsRun == 19 and not result.skipped else 1)
+sys.exit(0 if result.wasSuccessful() and result.testsRun == 20 and not result.skipped else 1)

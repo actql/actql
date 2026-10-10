@@ -121,7 +121,19 @@ pub fn start_native_attempt(nonce : Int64, handle : Int) -> Int {
     },
   )
   match outcome {
-    Ok(host) => exact.val = Some(@native_host.native_host_attempt(host))
+    Ok(host) => {
+      let scan = @native_host.native_host_scan(host)
+      let parameter = @duckdb.native_query_parameter(
+        @duckdb.native_scan_query(scan),
+      )
+      let type_id = @duckdb.physical_parameter_type_id(parameter)
+      if type_id != "BOOLEAN" && type_id != "DOUBLE" && type_id != "VARCHAR" {
+        @native_host.close_native_host(host)
+        record.outcome = Some(Err(@local_run.UnsupportedCapability))
+        return 0
+      }
+      exact.val = Some(@native_host.native_host_attempt(host))
+    }
     Err(_) => ()
   }
   record.outcome = Some(outcome)
@@ -155,6 +167,9 @@ pub fn close_native_attempt(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.native_commands.values().any(command => command.attempt == handle) {
+    return -9
+  }
   if physical_native_stopped(handle) != 0 {
     return -9
   }

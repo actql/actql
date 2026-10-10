@@ -110,6 +110,10 @@ _SOURCE_SIGNATURES = {
     'accept': ('i64 i32 i32 i32', 'i32'),
     'completed': ('i64 i32', 'i32'),
     'close_event': ('i64 i32', 'i32'),
+    'reserve_command': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'produce_command': ('i64 i32', 'i32'),
+    'command_length': ('i64 i32', 'i32'),
+    'close_command': ('i64 i32', 'i32'),
 }
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),

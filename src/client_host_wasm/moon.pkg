@@ -15,6 +15,7 @@ import {
   "actql/actql/connectors/duckdb/host" @native_host,
   "actql/actql/connectors/duckdb/acquisition" @native_acquisition,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
+  "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
 }
 

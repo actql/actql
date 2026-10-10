@@ -298,6 +298,25 @@ configuration and start-token release cannot bypass those obligations. The
 Host must still reserve aggregate workspace and durably record physical query
 invocations before using this connection for execution.
 
+`reserve_command` retains current account input and reserves a 100,000-byte
+output allowance before `produce_command` emits the existing Core Native SQL
+and prepared physical parameters. Command kinds 1/2/3 project metadata,
+validation and processed-result queries. The shared parameter codec preserves
+type identity even for NULL; the initial installed Python binding profile is
+BOOLEAN/DOUBLE/VARCHAR. Unsupported native parameter types are refused before
+physical Source I/O. Python consumes this closed projection with its shared
+JSON admission and existing physical binding adapter; it does not parse,
+lower, repair or rebuild SQL.
+
+An output-reservation refusal still returns the issued command custody handle
+when its account loan already exists. Producing that handle reports the retained
+reservation refusal. Output cleanup, including an unallocated registered
+physical destination, completes before account-borrow retirement. Cleanup
+failure retains the same descriptor quota and parent attempt, and successful
+physical cleanup is remembered if later input-stop acknowledgement is pending.
+Interrupted production cannot silently produce again. Projecting or reading
+these bytes is neither physical dispatch nor permission to resend them.
+
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
 without physical dispatch. Registry, Values, ordered derive and expression
