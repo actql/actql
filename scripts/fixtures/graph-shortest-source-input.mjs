@@ -53,6 +53,43 @@ const tail = ' |> SELECT ' + fields.join(', ') + ' |> RESULT paths';
 const call = selection => "shortest_path(source: {from: seeds, id: 'element'}, " +
   "target: {from: seeds, id: 'element'}, selection: '" + selection +
   "', direction: 'out', max_hops: 2)";
+// Nonzero-hop inputs are independently authored as both machine and source
+// Programs. Parallel edges retain separate keys; the self-loop cannot replace
+// the acyclic path. Publish an ordinary Relation continuation, not a private
+// helper's winner or a result synthesized from the execution output.
+const weightedValues = [
+  {schema: {node_key: number}, rows: [{node_key: 2}, {node_key: 1}]},
+  {schema: {edge_key: number, src: number, dst: number, w: number}, rows: [
+    {edge_key: 11, src: 1, dst: 2, w: 2},
+    {edge_key: 12, src: 1, dst: 1, w: 0},
+    {edge_key: 10, src: 1, dst: 2, w: 1},
+  ]},
+];
+const weightedMapping = {...mapping, edges: [{name: 'E', from: 'e', key: ['edge_key'],
+  source: {definition: 'N', key: ['src']}, target: {definition: 'N', key: ['dst']},
+  labels: [{name: 'R', properties: {mode: 'columns', columns: [{from: 'w', to: 'w'}]}}]}]};
+const weightedBody = {source: {where: 'node_key = 1'}, target: {where: 'node_key = 2'},
+  selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'};
+const weightedProgram = {version: 'actql/0.1', id: 'fixture.graph_shortest_weighted',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: weightedValues[0], as: 'n'}, {values: weightedValues[1], as: 'e'},
+    {graph: weightedMapping, as: 'g'}, {from: 'g', shortest_path: weightedBody, as: 'paths'},
+    {from: 'paths', filter: 'hop_count > 0'},
+    {select: ['hop_count', 'total_cost'], as: 'out'},
+  ], results: {paths: {from: 'out', fields: ['hop_count', 'total_cost']}}}],
+  results: {paths: {from: {stage: 'main', result: 'paths'}}}};
+const weightedSource = 'DATA n = SELECT 2 AS node_key UNION ALL SELECT 1 AS node_key; ' +
+  'DATA e = SELECT 11 AS edge_key, 1 AS src, 2 AS dst, 2 AS w ' +
+  'UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst, 0 AS w ' +
+  'UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst, 1 AS w; ' +
+  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) ' +
+  'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N ' +
+  'DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (w))); ' +
+  "DATA paths = FROM g |> shortest_path(source: {where: 'node_key = 1'}, " +
+  "target: {where: 'node_key = 2'}, selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'); " +
+  'FROM paths |> WHERE hop_count > 0 |> SELECT hop_count, total_cost |> RESULT paths';
+const weightedResult = {paths: {rows: [{hop_count: 1, total_cost: 1}],
+  columns: ['hop_count', 'total_cost'].map(name => ({name, contract: number}))}};
 export const graphShortestSourceSuccesses = [
   {name: 'graph-shortest-json-zero-hop-two-consumers', format: 'json',
     text: JSON.stringify(program), results: {a: result(jsonDomain), b: result(jsonDomain)}, sourceReadCount: 0},
@@ -66,6 +103,10 @@ export const graphShortestSourceSuccesses = [
       "target: {where: 'false'}, selection: 'each_pair', direction: 'in', max_hops: 1); " +
       'FROM paths' + tail,
     results: {paths: result(sourceDomain, true)}, sourceReadCount: 0},
+  {name: 'graph-shortest-json-weighted-parallel-edges', format: 'json',
+    text: JSON.stringify(weightedProgram), results: weightedResult, sourceReadCount: 0},
+  {name: 'graph-shortest-aql-weighted-parallel-edges', format: 'aql-text',
+    text: weightedSource, results: weightedResult, sourceReadCount: 0},
 ];
 export const graphShortestSourceRefusals = [
   ['zero-hops', call('each_pair').replace('max_hops: 2', 'max_hops: 0')],

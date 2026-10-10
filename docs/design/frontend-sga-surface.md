@@ -99,6 +99,7 @@ argument or certify every backend.
 | `node_rows`, `edge_rows` | Graph → Relation | [Graph rows](../../src/query_program/graph_rows_program.mbt); admitted definition/label selection and ordinary Relation continuation |
 | `traverse` | Graph → Relation | [Traversal rows](../../src/query_program/traversal_nodes_program.mbt); explicit `emit: 'nodes'` or `'paths'`, retained selector and bounds |
 | `reach` | Graph → Relation | [Traversal rows](../../src/query_program/traversal_nodes_program.mbt); fixed start/node/depth output, typed ID, Relation or statically checked node predicate selector, retained direction and positive depth bound |
+| `shortest_path` | Graph → Relation | [Shortest rows](../../src/query_program/traversal_nodes_program.mbt); retained source/target selectors, explicit set selection, direction, weight and positive finite hop bound |
 | `match_nodes`, `match_edges` | Graph → Relation | [Named match rows](../../src/query_program/graph_match_rows_program.mbt); explicit field order, common predicate/type checking |
 | `degree`, `graph_bounds`, `components` | Graph → Relation | [Diagnostic rows](../../src/query_program/graph_diagnostics_program.mbt); authored bodies and parameters retained |
 | `graphs_equal`, `graph_diff` | Graph pair → Relation | [Pair rows](../../src/query_program/graph_equality_program.mbt); explicit earlier DATA peer, existing Boolean/Delta columns |
@@ -113,8 +114,8 @@ Graph-returning call retains the checked Graph contract until explicit rows
 or MATCH processing; it does not acquire, save, copy or select an execution
 location itself.
 
-`shortest_path` and `mean_graphs` remain adopted but
-unconnected in this Script frontend. In particular, the generator-style
+`mean_graphs` remains adopted but unconnected in this Script frontend.
+In particular, the generator-style
 `mean_graphs` binding is not an implemented constructor. Parser vocabulary
 and historical machine-input execution are not successful public text routes.
 Wider selector acquisition, terminal quantified predicates and other pattern
