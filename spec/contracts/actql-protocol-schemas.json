@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:d4b05a7553ddab10722ff95e9f7e049c4e5b6291fda43f4f31c0103e3f43017a",
+  "artifact_registry_cid": "sha256:0e7b57597bd13b50db291374b6b62cdce8cbc8e7b350b2ea6f88f966cbb6d072",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:bacd77a774a0f29ebf5769113ee3f934211c286b48a8be54d6f1e46bcb31574b",
+    "executable_plan": "sha256:0e7846f7b7799dce525a0aa407e0d30c6a976a0cedd7b4ab40e23322442ef890",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:e0e937ffece05cd9befbf4528ac5b158293a771badcf9facc91f898ce9d6b421",
+    "plan_document": "sha256:fd8891776ec211f0b208d7c37a079b00a330e274d3fc6b5f60c2201cf1a9423e",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
     "captured_run": "sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4",
@@ -16605,6 +16605,23 @@
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
+                        "strpos"
+                      ],
+                      "properties": {
+                        "strpos": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
                         "ends_with"
                       ],
                       "properties": {
@@ -21755,6 +21772,23 @@
                       ],
                       "properties": {
                         "contains": {
+                          "type": "array",
+                          "minItems": 2,
+                          "items": {
+                            "$ref": "#/$defs/value_expression"
+                          },
+                          "maxItems": 2
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "strpos"
+                      ],
+                      "properties": {
+                        "strpos": {
                           "type": "array",
                           "minItems": 2,
                           "items": {
@@ -46354,6 +46388,23 @@
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
+                            "strpos"
+                          ],
+                          "properties": {
+                            "strpos": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
                             "ends_with"
                           ],
                           "properties": {
@@ -51504,6 +51555,23 @@
                           ],
                           "properties": {
                             "contains": {
+                              "type": "array",
+                              "minItems": 2,
+                              "items": {
+                                "$ref": "#/$defs/value_expression"
+                              },
+                              "maxItems": 2
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "strpos"
+                          ],
+                          "properties": {
+                            "strpos": {
                               "type": "array",
                               "minItems": 2,
                               "items": {

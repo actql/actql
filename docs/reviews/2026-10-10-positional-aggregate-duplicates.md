@@ -153,3 +153,17 @@ still requires normal exact-SHA packages and a complete Local/HTTPS receipt.
 The parent's earlier partial packed runs remain evidence of their own
 revisions, not this aggregate path. Shared heavy-slot waiting does not start a
 producer/consumer or establish acceptance; no lock is removed manually.
+
+### Coordinator main integration
+
+Normally retained author 35b485284 and adopted main fcb550c67 after #1251
+merged. This also retains #1243's completed Append scratch retirement,
+all Graph-row fixtures and current contract pins. Only inventory/count
+conflicts were resolved from authored registration, not product output.
+The combined inventory contains 3,341 cases (2,115 successes, 1,179
+refusals, 47 execution failures), digest
+`6106cabe2625d26065b606f6663157e1d2e630b26f4a1c1eba7c93d6845d92bf`.
+Original expected rows, types, order, private-field and I/O assertions remain.
+The final base is main; this is not a merge into the former parent branch.
+Integrated caller and actual aggregate packed acceptance remain pending
+at this integration point. Earlier partial public failures are retained.

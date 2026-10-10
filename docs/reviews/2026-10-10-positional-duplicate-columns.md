@@ -234,3 +234,16 @@ then focused scalar/CORRESPONDING/DATA JS passed 15/15 after repair
 read/reuse expectations and authored inventory are unchanged. These focused
 checks used the pending patch on 03829331b; new exact-SHA public acceptance
 remains required. Full Core, Native/Wasm and hosted CI were not rerun.
+
+### Coordinator integration after the capacity repair
+
+Normally adopted main c9fdae0d8, including #1243's Append scratch lifetime
+repair, without reverting the author's capture-before-Values correction.
+Only the independently enumerated inventory/count conflicts were resolved.
+All authored duplicate, JOIN, Graph-row and refusal fixtures remain; result
+expectations, the historical baseline, ceilings and CI settings are unchanged.
+The combined inventory contains 3,330 occurrences (2,108 successes,
+1,175 refusals and 47 execution failures), digest
+`89dfcbdecc5cdc18f4a632eccf78c2b558b19c3676f115ce17d3403e5f633d2d`.
+Clean-source caller and pristine packed acceptance are still pending at
+this integration point; earlier successful subsets are not a full campaign.

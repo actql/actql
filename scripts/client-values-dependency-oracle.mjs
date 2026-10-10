@@ -170,9 +170,17 @@ export function valuesPublicationOracle(options={}) {
     derivation:{op:'source'},law_id:'actql.bound.values',role:'proven_upper_bound',
     source:{kind:'program',proof_cid:proof,semantic_ref:`unit:${unit}#/steps/0`},
     unit:'rows',value:2},'witness_cid');
+  // Historical options reproduce retained arrays; current limits use
+  // canonical witness-CID order, which can change when the Unit is reidentified.
+  const preserveCandidateOrder = options.legacy || options.beforeMembership || options.preTypedJson;
+  const candidates = measure => {
+    const values = measure==='rows' ? [ceiling(measure),upper] : [ceiling(measure)];
+    return preserveCandidateOrder ? values : values.sort((a,b) =>
+      a.witness_cid < b.witness_cid ? -1 : a.witness_cid > b.witness_cid ? 1 : 0);
+  };
   const limits = ['rows','bytes'].map(measure => seal({
     version:'actql-resolved-limit/0.1',author_guard_binding:'absent',breach:'fail',
-    candidates:measure==='rows' ? [ceiling(measure),upper] : [ceiling(measure)],
+    candidates:candidates(measure),
     effective_max:measure==='rows' ? 2 : 1000,enforcement:'engine_atomic',
     subject_ref:`unit:${unit}#/results/${escaped}/${measure}`,unit:measure},
   'resolved_limit_cid'));

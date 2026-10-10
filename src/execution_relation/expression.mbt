@@ -1092,6 +1092,33 @@ fn advance_expression_frame_impl(
               }
               continue
             }
+            if op == @lower.Strpos {
+              if charge_value(left, left_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              if charge_value(value, frame.current_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              release_slots(workspace, 1)
+              let state = match
+                start_text_function(
+                  expr,
+                  [left, value],
+                  [left_root, frame.current_root],
+                  TextStrpos,
+                  scope,
+                  workspace,
+                ) {
+                Ok(state) => state
+                Err(issue) => return Err(issue)
+              }
+              frame.current_root = None
+              frame.state = TextFunction(state)
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
             if op == @lower.StartsWith ||
               op == @lower.EndsWith ||
               (left is Text(text) && text.length() > 64) ||

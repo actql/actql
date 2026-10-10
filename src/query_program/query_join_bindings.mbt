@@ -51,6 +51,7 @@ fn lower_script_join_relation(
   reserved : Array[String],
   retained : Array[RetainedResult]?,
   preserved_scope? : Array[JoinChainScope]? = None,
+  positional_set_output? : Bool = false,
 ) -> Input raise Abort {
   if @query.join_part_count(query) < 1 {
     raise Abort(UnsupportedJoin)
@@ -61,7 +62,13 @@ fn lower_script_join_relation(
   if @query.join_part_count(query) > 1 ||
     join_requires_group_scope(query) ||
     initial_scope is Some(_) ||
-    preserved_scope is Some(_) {
+    preserved_scope is Some(_) ||
+    (
+      positional_set_output &&
+      @query.operation_at(query, @query.operation_count(query) - 1)
+      is Some(Select(projections, _)) &&
+      projections.any(projection => projection_alias(projection) is None)
+    ) {
     let left = bind_script_input(
       construction, selected, context, sources, steps, reserved,
     )
@@ -86,6 +93,7 @@ fn lower_script_join_relation(
       parameter_declarations=context.parameter_declarations,
       prefix_steps=steps.copy(),
       prefix_context=Some(context),
+      positional_set_output~,
     )
     steps.append(body)
     return {

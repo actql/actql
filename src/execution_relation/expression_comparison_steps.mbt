@@ -69,6 +69,7 @@ fn advance_binary_comparison(
     | Modulo
     | In
     | NotIn
+    | Strpos
     | StartsWith
     | EndsWith => false
     _ => true

@@ -1,20 +1,20 @@
 {
   "version": "actql-public-query-fixture-inventory/0.1",
   "sourceBaseline": "ce027a937cf780f617d5ed98bb4d56ecbb010877",
-  "totalCases": 3334,
-  "inventorySha256": "7ee4f1bce060abcb02ed86be6ae370a7595d97ca165ad3b87d659e97a2b64c96",
+  "totalCases": 3341,
+  "inventorySha256": "6106cabe2625d26065b606f6663157e1d2e630b26f4a1c1eba7c93d6845d92bf",
   "counts": {
-    "successes": 2110,
+    "successes": 2115,
     "executionFailures": 47,
-    "refusals": 1177
+    "refusals": 1179
   },
   "profiles": [
     {
       "name": "standard",
       "counts": {
-        "successes": 2057,
+        "successes": 2062,
         "executionFailures": 45,
-        "refusals": 1142
+        "refusals": 1144
       }
     },
     {
