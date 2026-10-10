@@ -169,8 +169,9 @@ command with `--target wasm` or `--target native` and the explicit files
 `src/graph_typing/path_contract_test.mbt`. These verify the typed profile
 and generated portable boundary, not shortest search or public execution.
 
-This is not executable shortest-path support. The normal pipeline and public
-source gate remain refused until the existing bounded traversal owner gains
+At the checker-only checkpoint above this was not executable shortest-path
+support. The normal pipeline and public source gate remained refused until
+the existing bounded traversal owner gained
 target selection, binary64 path cost with absorbing overrange, canonical winner
 selection and atomic output handoff. Remaining connections are the ordered
 source/target Relation ports, predicate expression frames, resource subjects,
@@ -222,3 +223,73 @@ fresh-process retained reads remain unexecuted. Runtime preparation has been
 refused before execution by the shared heavy lock; other owners' locks are
 not removed or bypassed. CI is not started. Lightweight authored-harness
 checks above are not substituted for those public delivery conditions.
+
+## Shortest execution and public-source checkpoint
+
+Implementation commit: `0d44b99bf07ddc2ac625972265bfdc859dfb8549`.
+Branch: `feat/graph-shortest-integration`, depending on the unpublished
+graft and Reach commits above. The adopted main remains
+`179c0e9df04dab7195370d26db87280b05944078`.
+
+Shortest now uses the existing bounded typed path owner with a retained
+Shortest profile. Source and target Relation selectors occupy distinct ordered
+ports even when they reference the same producer. Target predicates have their
+own expression-slot consumer. Completion keeps the original Shortest duties;
+TRAIL enumeration does not substitute for membership, all-edge cost admission,
+canonical winner selection or atomic selected-overrange rejection. Search
+paths and selected output rows retain separate checked capacity subjects.
+Two single identities omit selection; supplying it is refused before execution.
+
+The shared path owner validates every edge cost before searching, rounds each
+path-edge addition in binary64, and keeps absorbing overrange private. Winner
+selection compares cost, hops, source/target and full node/edge sequences using
+bounded identity cursors. Output reuses the existing stepped admitted-row
+cursor; it does not synchronously measure a complete nested path value.
+Borrowed inputs survive cancellation and stopped cleanup. These changes add
+no scheduler, alternate ledger or legacy Graph conversion.
+
+The following guarded JS checks passed on the implementation immediately before
+the commit. Receipts retain the actual dirty-source status and original HEAD;
+they are not relabelled as clean fixed-SHA execution:
+
+- 25/25: Shortest typing, shared kernel, cost cursor and affected pipeline
+  selector/key/refusal/obligation callers; `run-vYes4j`,
+  `focused-test-qwJTuQ`.
+- 13/13 after removing test-only unused traits: Shortest typing, kernel and
+  cost cursor; `run-JB3aEe`, `focused-test-IVLw38`.
+- 7/7: ordered selector occurrences, distinct search/output capacity owners,
+  and public DATA/terminal common admission; `run-esepf7`,
+  `focused-test-N9IS7w`.
+- 8/8: public Shortest/Reach/graft source callers and existing resource/policy
+  callers; `run-qrXxdY`, `focused-test-pRyxLv`.
+
+All Moon selections use `node scripts/local-checks.mjs test moon -- --target js`
+and explicit test files. Independent zero-hop retained value work is 38 nodes
+plus three identity text extents (`50 + domain.length()` each) and 53 field-name
+bytes. Its row-workspace peak is 9 retained path/selector slots plus 7 row slots
+plus 3 measurement frames. Exact/one-short assert their typed causes at quantum
+1, 7 and 64. This is retained-value accounting, not a claim that the currently
+separate control/value budgets have been proved to form one operation-wide
+logical-work ceiling. That integration remains a delivery obligation.
+
+The independent public fixtures cover structured zero-hop output with two
+consumers, AQL repeated source/target Relation input in all three selection
+modes, and DATA with an empty target. Five malformed AQL refusals accompany
+the five successful oracles. `--graph-shortest-only` selects the existing
+packed Local/HTTPS driver and then its fresh-process retained cohort reader.
+The authored inventory includes exactly those ten new occurrences; expected
+rows, schemas and typed identity preimages are not obtained from product output.
+
+Node fixture/registration checks pass 40/40 (`run-YxDtaJ`,
+`focused-test-bm4Ltc`) on the working source. Workers and Node Host generators
+both pass their read-only freshness checks. Affected public interfaces were
+generated with pinned `moon info`, not hand-edited.
+
+Public Host execution did not start: `run-xzpi3Q` was refused by G's shared
+heavy lock. No other owner's lock or process was changed. Current-kernel
+Wasm/Native, actual public retained/published rows, pristine packed packages,
+fresh-process reads and public failure/cleanup acceptance remain unverified.
+The earlier checker-only Wasm/Native evidence is not promoted to these claims.
+Mean still lacks its checked finite-list execution connection; its exact
+weighted semantics must not be replaced by pairwise union means. All four
+operations remain delivery-incomplete, and CI remains disabled.

@@ -108,6 +108,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-union-source-input.mjs', 'graph-union-source-input.mjs'],
   ['scripts/fixtures/graph-graft-source-input.mjs', 'graph-graft-source-input.mjs'],
   ['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs'],
+  ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
@@ -213,7 +214,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
 for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
-  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs', 'fixtures/graph-reach-source-input.mjs']) {
+  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs', 'fixtures/graph-reach-source-input.mjs',
+  'fixtures/graph-shortest-source-input.mjs']) {
   await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
 }
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
@@ -375,6 +377,11 @@ if (process.argv.includes('--graph-graft-only')) {
 }
 if (process.argv.includes('--graph-reach-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_REACH_ONLY = '1';
+}
+if (process.argv.includes('--graph-shortest-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_SHORTEST_ONLY = '1';
+  // Reuse the existing narrow Graph transport profile and retained rereads.
+  runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_ONLY = '1';
 }
 if (process.argv.includes('--min-max-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_MIN_MAX_DISTINCT_ONLY = '1';
@@ -679,6 +686,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--match-data-producer-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-reach-only',
+  '--graph-shortest-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
   '--graph-property-predicate-only',
@@ -773,7 +781,8 @@ async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
     succeeded, primary, 'transport-restart-evidence-index.json');
   }
 }
-if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only')) {
+if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only') ||
+    process.argv.includes('--graph-shortest-only')) {
   // The Local and HTTPS producers have exited. Read the original retained
   // Graph-derived Results in new processes; no String fixture was selected.
   await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});

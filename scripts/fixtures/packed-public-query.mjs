@@ -48,6 +48,8 @@ import {graphUnionSourceSuccesses, graphUnionSourceRefusals, graphUnionSourceExe
   from './graph-union-source-input.mjs';
 import {graphGraftSourceSuccesses, graphGraftSourceRefusals, graphGraftSourceExecutionFailures}
   from './graph-graft-source-input.mjs';
+import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
+  from './graph-shortest-source-input.mjs';
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -424,6 +426,8 @@ const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals
   : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
+  : process.env.ACTQL_TEST_GRAPH_SHORTEST_ONLY === '1'
+    ? {successes: graphShortestSourceSuccesses, refusals: graphShortestSourceRefusals}
   : graphTraverseOnly ? (graphReachOnly
     ? {successes: graphReachSourceSuccesses, refusals: graphReachSourceRefusals}
     : {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals})
@@ -569,6 +573,8 @@ if (!scopeOnly) {
   scopeInputs.executionFailures.push(...graphGraftSourceExecutionFailures);
   scopeInputs.successes.push(...graphReachSourceSuccesses);
   scopeInputs.refusals.push(...graphReachSourceRefusals);
+  scopeInputs.successes.push(...graphShortestSourceSuccesses);
+  scopeInputs.refusals.push(...graphShortestSourceRefusals);
   scopeInputs.successes.push(...statisticalAggregateSuccesses);
   scopeInputs.refusals.push(...statisticalAggregateRefusals);
   scopeInputs.executionFailures.push(...statisticalAggregateExecutionFailures);

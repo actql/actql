@@ -20,6 +20,7 @@ const profiles = {
   'graph-union': 'Graph union preserves occurrences and sparse rows through Store reload and public',
   'graph-graft': 'Graph graft preserves complete records through Store reload and public',
   'graph-reach': 'Graph Reach preserves typed selectors and depth through Store reload and public',
+  'graph-shortest': 'Graph Shortest preserves selected paths through Store reload and public',
   'graph-subtraction': 'Graph subtraction preserves typed records through Store reload and public',
 };
 

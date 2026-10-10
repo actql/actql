@@ -34,5 +34,5 @@ test('Reach narrow packed selection uses public transports and fresh-process ret
   assert.ok(driver.includes("['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs']"));
   const narrow = driver.slice(driver.indexOf('const narrowPublicQuery ='), driver.indexOf('.includes(flag));'));
   assert.ok(narrow.includes("'--graph-reach-only'"));
-  assert.match(driver, /if \(process\.argv\.includes\('--graph-graft-only'\) \|\| process\.argv\.includes\('--graph-reach-only'\)\) \{[^]*?exerciseRetainedQueryRestart\(\{ACTQL_TEST_RETAINED_COHORT_ONLY: '1'\}\)/u);
+  assert.match(driver, /if \(process\.argv\.includes\('--graph-graft-only'\) \|\| process\.argv\.includes\('--graph-reach-only'\) \|\|\s+process\.argv\.includes\('--graph-shortest-only'\)\) \{[^]*?exerciseRetainedQueryRestart\(\{ACTQL_TEST_RETAINED_COHORT_ONLY: '1'\}\)/u);
 });

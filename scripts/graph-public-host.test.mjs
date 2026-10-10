@@ -13,6 +13,7 @@ import {graphPresenceOracle, deltaApplicationScenario as deltaScenario,
 import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/graph-union.mjs';
 import {subtractionScenario} from './fixtures/graph-subtraction.mjs';
 import {graphReachSourceSuccesses} from './fixtures/graph-reach-source-input.mjs';
+import {graphShortestSourceSuccesses} from './fixtures/graph-shortest-source-input.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -64,7 +65,7 @@ const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value
 // does not infer types from product rows or change Graph/Delta identity bodies.
 const graphIdentityRowWire = rows => rows.map(row => {
   const wire = {...row};
-  for (const name of ['id','src','dst','start_id','end_id','node_id']) {
+  for (const name of ['id','src','dst','start_id','end_id','node_id','source_id','target_id']) {
     if (Object.hasOwn(row,name) && row[name] !== null) wire[name] = {$json:row[name]};
   }
   for (const name of ['node_ids','edge_ids']) {
@@ -539,8 +540,9 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
-    if (profile === 'graph-reach') {
-      for (const sample of graphReachSourceSuccesses) {
+    if (profile === 'graph-reach' || profile === 'graph-shortest') {
+      const samples = profile === 'graph-reach' ? graphReachSourceSuccesses : graphShortestSourceSuccesses;
+      for (const sample of samples) {
         const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
         const run = await client.startSource(sample.text, {format: sample.format, submissionRef});
         const state = await run.wait();
@@ -559,7 +561,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.equal(physicalCount(), completedCount, 'Result reads and same intent must not repeat Compute');
         const retained = relationSnapshots.get(run.ref.runDefinitionCid) ?? [];
         if (Object.values(sample.results).some(result => result.rows.length > 0)) {
-          assert.ok(retained.length > 0, 'Reach must traverse the retained Relation Store');
+          assert.ok(retained.length > 0, 'Graph query must traverse the retained Relation Store');
         }
         for (const receipt of retained) {
           assert.equal(receipt.restored, true);
