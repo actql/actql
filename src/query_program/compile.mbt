@@ -2228,7 +2228,9 @@ fn compile_steps(
         }
         positional_authored_aliases.any(mapping => {
           same_name(name, { value: mapping.1, quoted: false, }) &&
-          active_fields.contains(mapping.0)
+          // Deferred SELECT keeps evaluated output occurrences in its column
+          // scope before their physical names enter active_fields.
+          pipe_columns.any(column => column.0 == mapping.0)
         })
       })
       for expression in expressions {
@@ -4868,6 +4870,7 @@ fn compile_steps(
         let derives : Array[(String, @builder.Node)] = []
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
+        let expression_positions : Array[Int] = []
         let physical = active_fields.copy()
         for projection_index in 0..<projections.length() {
           let projection = projections[projection_index]
@@ -5088,6 +5091,7 @@ fn compile_steps(
               }
               names.push(name)
               bindings.push((name, source))
+              expression_positions.push(names.length() - 1)
               expressions.push(
                 (
                   expanded_projections[projection_index].expression.unwrap(),
@@ -5115,6 +5119,14 @@ fn compile_steps(
               authored_aliases=Some(positional_authored_aliases),
             ),
           )
+          // ORDER reuses evaluated occurrences after duplicate aliases are
+          // privatized; an authored alias is no longer their physical slot.
+          for index in 0..<expressions.length() {
+            expressions[index] = (
+              expressions[index].0,
+              names[expression_positions[index]],
+            )
+          }
         }
         for a in 0..<names.length() {
           for b in 0..<a {
@@ -5280,6 +5292,7 @@ fn compile_steps(
         let selected : Array[@builder.Node] = []
         let bindings : Array[(String, String)] = []
         let expressions : Array[(@query.Expression, String)] = []
+        let expression_positions : Array[Int] = []
         for projection_index in 0..<projections.length() {
           let projection = projections[projection_index]
           match projection.star {
@@ -5387,6 +5400,7 @@ fn compile_steps(
                 continue
               }
               let expression = projection.expression.unwrap()
+              expression_positions.push(names.length() - 1)
               expressions.push(
                 (
                   expanded_projections[projection_index].expression.unwrap(),
@@ -5473,6 +5487,12 @@ fn compile_steps(
               authored_aliases=Some(positional_authored_aliases),
             ),
           )
+          for index in 0..<expressions.length() {
+            expressions[index] = (
+              expressions[index].0,
+              names[expression_positions[index]],
+            )
+          }
         }
         for a in 0..<names.length() {
           for b in 0..<a {

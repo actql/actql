@@ -137,7 +137,7 @@ test "public and name-matched duplicate columns remain rejected" {
   for
     source in [
       "SELECT 1 AS x, 2 AS x", "SELECT 0 AS a, 0 AS a UNION ALL SELECT 1 AS x, 2 AS y",
-      "SELECT 0 AS a, 0 AS b UNION ALL BY NAME SELECT 1 AS a, 2 AS a", "SELECT 0 AS a, 0 AS b UNION ALL (SELECT 1 AS x, 2 AS x ORDER BY x)",
+      "SELECT 0 AS a, 0 AS b UNION ALL BY NAME SELECT 1 AS a, 2 AS a",
     ] {
     assert_true(
       compile_query_script(
@@ -149,6 +149,34 @@ test "public and name-matched duplicate columns remain rejected" {
       msg=source,
     )
   }
+}
+
+///|
+test "source-free positional ORDER rejects an ambiguous authored alias" {
+  // Positional outputs retain both values. An ORDER receiver must still
+  // identify one authored alias; it cannot select either duplicate occurrence.
+  let source = "SELECT 0 AS a, 0 AS b UNION ALL (SELECT 1 AS x, 2 AS x ORDER BY x)"
+  let actual = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  )
+  assert_true(
+    actual is Err(AmbiguousColumn),
+    msg=match actual {
+      Ok(_) => "duplicate ORDER alias was accepted"
+      Err(UnknownColumn) => "duplicate ORDER alias became UnknownColumn"
+      Err(DuplicateOutput) => "duplicate ORDER alias became DuplicateOutput"
+      Err(UnsupportedOrdering) =>
+        "duplicate ORDER alias became UnsupportedOrdering"
+      Err(Expression(_)) => "duplicate ORDER alias became Expression"
+      Err(ExpressionTyping(_)) =>
+        "duplicate ORDER alias became ExpressionTyping"
+      Err(Construction(_)) => "duplicate ORDER alias became Construction"
+      Err(Admission(_)) => "duplicate ORDER alias became Admission"
+      _ => "unexpected duplicate ORDER alias diagnostic"
+    },
+  )
 }
 
 ///|
