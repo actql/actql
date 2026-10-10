@@ -2273,6 +2273,10 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
+        Pivot(clause) =>
+          clause.argument_expression
+          .map(expression => [expression])
+          .unwrap_or([])
         UnnestSource(expression, _, _) => [expression]
         Set(assignments) => assignments.map(assignment => assignment.1)
         Select(columns, _)
@@ -2412,7 +2416,13 @@ fn compile_steps(
         check_references(keys)
       }
       if operation is Pivot(clause) {
-        check_references([clause.argument, clause.column])
+        check_references(
+          if clause.argument_expression is Some(_) {
+            [clause.column]
+          } else {
+            [clause.argument, clause.column]
+          },
+        )
       }
     }
     let entries : Array[(String, @builder.Node)] = []
@@ -3393,12 +3403,85 @@ fn compile_steps(
         if pipe_value_table {
           raise Abort(UnsupportedGrouping)
         }
+        let consumed_fields : Array[String] = []
+        let direct_argument = clause.argument_expression
+          .map(expression => {
+            @query.expression_node(
+              expression,
+              @query.expression_root(expression),
+            ).unwrap().kind
+            is Reference(_) &&
+            pipe_slot(clause.argument, pipe_visible, pipe_ranges) is Some(_)
+          })
+          .unwrap_or(false)
+        let argument_value = if clause.argument_expression is Some(expression) &&
+          !direct_argument {
+          let resolve = path => pipe_slot(path, pipe_visible, pipe_ranges)
+          if @query.expression_node(
+              expression,
+              @query.expression_root(expression),
+            ).unwrap().kind
+            is Reference(path) &&
+            order_reference_identity(path, resolve) is None &&
+            !(path.length() == 1 &&
+            pipe_ranges.any(range => same_name(path[0], range.0))) {
+            // Preserve the existing unknown-column diagnostic for a simple
+            // argument; a known receiver's property goes through common typing.
+            raise Abort(UnknownColumn)
+          }
+          for path in join_reference_paths(expression) {
+            if order_reference_identity(path, resolve) is Some((slot, _)) {
+              if !consumed_fields.contains(slot) {
+                consumed_fields.push(slot)
+              }
+            } else if path.length() == 1 {
+              // A whole-row receiver statically references its range fields.
+              for range in pipe_ranges {
+                if same_name(path[0], range.0) {
+                  for field in range.1 {
+                    if !consumed_fields.contains(field.1) {
+                      consumed_fields.push(field.1)
+                    }
+                  }
+                }
+              }
+            }
+          }
+          let value = append_pipe_expression(
+            construction,
+            expression,
+            unnest_expression_columns(
+              pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+            ),
+            pipe_ranges,
+            max_work,
+          )
+          let reserved = active_fields + pipe_columns.map(field => field.0)
+          for entry in clause.values {
+            let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
+            reserved.push(
+              clause.prefix
+              .map(prefix => prefix.value + "_" + suffix)
+              .unwrap_or(suffix),
+            )
+          }
+          let name = pipe_physical_name(reserved, "aql_pivot_argument_")
+          entries.push(("derive", construction.object([(name, value)])))
+          step_entries.push(entries.copy())
+          entries.clear()
+          active_fields.push(name)
+          Some(name)
+        } else {
+          None
+        }
         let (pivot, visible) = compile_pipe_pivot(
           construction,
           clause,
           pipe_visible,
           pipe_columns,
           pipe_ranges,
+          argument_value~,
+          consumed_fields~,
           authored_aliases=positional_authored_aliases,
         )
         entries.push(("pivot", pivot))

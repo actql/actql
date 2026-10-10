@@ -9,7 +9,20 @@ fn QueryParser::pivot_clause(
     raise QueryAbort("Unsupported PIVOT aggregate", self.peek().start)
   }
   self.symbol(40)
-  let argument = self.path()
+  let expression = self.expression()
+  for index in 0..<expression_node_count(expression) {
+    let node = expression_node(expression, index).unwrap()
+    if node.kind is Call(name, _) &&
+      name.length() == 1 &&
+      query_aggregate_function_name(name[0].value) {
+      raise QueryAbort("PIVOT argument cannot contain an aggregate", node.start)
+    }
+  }
+  let (argument, argument_expression) = match
+    expression_node(expression, expression_root(expression)).unwrap().kind {
+    Reference(path) => (path, Some(expression))
+    _ => ([], Some(expression))
+  }
   self.symbol(41)
   let prefix = self.optional_output_alias()
   self.keyword("FOR")
@@ -35,5 +48,5 @@ fn QueryParser::pivot_clause(
   }
   self.symbol(41)
   self.symbol(41)
-  { function_name, argument, column, prefix, values, }
+  { function_name, argument, argument_expression, column, prefix, values, }
 }

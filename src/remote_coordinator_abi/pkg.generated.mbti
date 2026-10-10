@@ -144,6 +144,8 @@ pub fn coordinator_effect_checkpoint_report_admit(String, @remote_site_protocol.
 
 pub fn coordinator_effect_checkpoint_report_projection(@remote_site_protocol.RemoteEffectCheckpointReport) -> Array[String]
 
+pub fn coordinator_effect_current_poll_json(@remote_site_protocol.RemoteEffectCurrentQuery) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_effect_current_query_prepare(@remote_site_protocol.RemoteEffectCheckpointReport, String, String, Int, Int, Int) -> Result[@remote_site_protocol.RemoteEffectCurrentQuery, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_effect_current_query_projection(@remote_site_protocol.RemoteEffectCurrentQuery) -> Array[String]

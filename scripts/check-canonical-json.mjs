@@ -295,7 +295,7 @@ function fixtures() {
   }
   const effectCurrent = read('spec/fixtures/remote-effect-current-vectors.json');
   assert.equal(effectCurrent.version, 'actql-remote-effect-current-vectors/0.1');
-  for (const item of [{id: 'query', ...effectCurrent.query}, ...effectCurrent.replies]) {
+  for (const item of [{id: 'query', ...effectCurrent.query}, {id: 'poll', ...effectCurrent.poll}, ...effectCurrent.replies]) {
     result.push({id: 'Remote Effect current ' + item.id,
       value: item.body, cid: item.cid, text: item.canonical});
   }
