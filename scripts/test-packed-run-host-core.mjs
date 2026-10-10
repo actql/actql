@@ -52,6 +52,20 @@ const {admitEnvironment, prepare, compileValues, compiledPlanCid,
   issueSourceFreeInvocation, inspectCanonicalResultRows,
   openResultDeliveryControl} =
   await import('@actql/run-host-core');
+const checkpoints = await import('@actql/run-host-core/checkpoints');
+for (const unknown of [[], ['original-unknown-effect']]) {
+  const reply = JSON.parse(checkpoints.waitingExitState('waiting-exit-original-run',
+    '2026-10-10T00:00:00.000Z', '["Result"]', JSON.stringify(unknown)));
+  assert.equal(reply.ok, true);
+  const state = JSON.parse(reply.run_state_wire);
+  assert.equal(state.run_id, 'waiting-exit-original-run');
+  assert.equal(state.status, unknown.length ? 'needs_reconciliation' : 'cancelled');
+  assert.equal(state.result_available, false);
+  assert.equal(JSON.parse(checkpoints.runStateAdmit(reply.run_state_wire)).ok, true);
+  if (unknown.length) assert.equal(state.next_action.kind, 'reconcile');
+}
+assert.equal(JSON.parse(checkpoints.waitingExitState('original-run',
+  'invalid-time', '[]', '[]')).ok, false);
 const resultAccess = await import('@actql/run-host-core/result-access');
 const {installResultAccessAuthority} = resultAccess;
 const {exerciseResultDeliveryAcceptance} =

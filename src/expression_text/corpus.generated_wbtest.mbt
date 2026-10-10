@@ -106,6 +106,46 @@ test "expression corpus accepted: 21" {
 }
 
 ///|
+test "expression corpus accepted: 22" {
+  assert_tree("starts_with(value, prefix)", "{\"starts_with\":[{\"field\":\"value\"},{\"field\":\"prefix\"}]}")
+}
+
+///|
+test "expression corpus accepted: 23" {
+  assert_tree("ends_with($value, $suffix)", "{\"ends_with\":[{\"$param\":\"value\"},{\"$param\":\"suffix\"}]}")
+}
+
+///|
+test "expression corpus accepted: 24" {
+  assert_tree("starts_with('\u{1f600}e\u{301}', '\u{1f600}')", "{\"starts_with\":[{\"literal\":\"\u{1f600}e\u{301}\"},{\"literal\":\"\u{1f600}\"}]}")
+}
+
+///|
+test "expression corpus accepted: 25" {
+  assert_tree("ends_with('', '')", "{\"ends_with\":[{\"literal\":\"\"},{\"literal\":\"\"}]}")
+}
+
+///|
+test "expression corpus accepted: 26" {
+  assert_tree("starts_with(NULL, NULL)", "{\"starts_with\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 27" {
+  assert_tree("sign(x)", "{\"sign\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 28" {
+  assert_tree("sign(-1)", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 29" {
+  assert_tree("sign(NULL)", "{\"sign\":{\"literal\":null}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -268,4 +308,44 @@ test "expression corpus rejected: 32" {
 ///|
 test "expression corpus rejected: 33" {
   assert_true(parse("quantize(x, 18, 2, rounding)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 34" {
+  assert_true(parse("starts_with()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 35" {
+  assert_true(parse("starts_with(x)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 36" {
+  assert_true(parse("starts_with(x,y,z)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 37" {
+  assert_true(parse("ends_with()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 38" {
+  assert_true(parse("ends_with(x)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 39" {
+  assert_true(parse("ends_with(x,y,z)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 40" {
+  assert_true(parse("sign()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 41" {
+  assert_true(parse("sign(x,y)", test_limits()) is Err(_))
 }

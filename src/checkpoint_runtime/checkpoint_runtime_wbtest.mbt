@@ -1544,3 +1544,93 @@ test "terminal outcome never supplies Result read authority" {
     Ok(()),
   )
 }
+
+///|
+test "attested Effect reconstruction binds original Checkpoint and current reviewer" {
+  let (checkpoint, resolution, evidence) = approved_effect()
+  let verified = seal_verified_resolution(
+    admit(checkpoint, resolution, Some(evidence)).unwrap(),
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  let restored = admit_attested_effect_resolution(
+    checkpoint,
+    verified.wire,
+    authentication(resolution),
+    authorities(),
+    limits(),
+  ).unwrap()
+  assert_eq(restored.resolution, verified)
+  assert_eq(restored.host_key_id, "host-key")
+  assert_eq(restored.signature, "aG9zdA==")
+  assert_eq(
+    restored.attestation_preimage,
+    verified_resolution_attestation_preimage(verified.wire, limits()).unwrap(),
+  )
+  assert_true(
+    admit_attested_effect_resolution(
+      sealed_of({ ..effect_request(), checkpoint_id: "foreign-checkpoint", }),
+      verified.wire,
+      authentication(resolution),
+      authorities(),
+      limits(),
+    )
+    is Err(_),
+  )
+  assert_true(
+    admit_attested_effect_resolution(
+      checkpoint,
+      verified.wire,
+      { ..authentication(resolution), expected_authority_scope_cid: cid("8"), },
+      authorities(),
+      limits(),
+    )
+    is Err(_),
+  )
+  assert_true(
+    admit_attested_effect_resolution(
+      checkpoint,
+      verified.wire,
+      authentication(resolution),
+      [],
+      limits(),
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "attested Effect reconstruction rejects a self-consistent substituted wrapper" {
+  let (checkpoint, resolution, evidence) = approved_effect()
+  let verified = seal_verified_resolution(
+    admit(checkpoint, resolution, Some(evidence)).unwrap(),
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  let value = parse_wire(verified.wire, limits()).unwrap()
+  let body = @json.object_without_field(value, "verified_resolution_cid").unwrap()
+  let fields : Map[String, Json] = Map([])
+  for field in @json.object_fields(body).unwrap() {
+    let (key, value) = field
+    fields[key] = to_json(value)
+  }
+  fields["verified_by_policy_cid"] = Json::string(cid("8"))
+  let changed = canonical_of(Json::object(fields), limits()).unwrap()
+  let substituted = @json.object_with_string_field(
+    changed,
+    "verified_resolution_cid",
+    cid_of(changed, limits()).unwrap(),
+  ).unwrap()
+  assert_true(
+    admit_attested_effect_resolution(
+      checkpoint,
+      wire_of(substituted, limits()).unwrap(),
+      authentication(resolution),
+      authorities(),
+      limits(),
+    )
+    is Err(_),
+  )
+}

@@ -55,6 +55,7 @@ fn Parser::call(
     "len"
     | "sqrt"
     | "abs"
+    | "sign"
     | "floor"
     | "lower"
     | "upper"
@@ -68,6 +69,8 @@ fn Parser::call(
     | "nfkc"
     | "case_fold" => (1, 1)
     "contains"
+    | "starts_with"
+    | "ends_with"
     | "safe_div"
     | "nullif"
     | "utf8_truncate"
