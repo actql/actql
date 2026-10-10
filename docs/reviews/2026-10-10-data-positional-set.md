@@ -93,3 +93,41 @@ The corrected refusal fixtures and independent registration digest passed the
 same two targeted Node files: 40/40 (`run-ZPSO0F`, `focused-test-D68xBX`).
 The first sandboxed wrapper attempt could not inspect its own process group and
 executed no selected tests; the subsequent bounded run above is the evidence.
+
+## Corrected-SHA public acceptance
+
+Normal five-package production and the scoped consumer at
+`e4fcc52a3305571bb8ff0ad432a2dd64c43a7151` passed (`run-QiBspJ`).
+Embedded Local and authenticated HTTPS each completed all 13/13 registered
+cases: eight normal cases and five preparation refusals. Both inventories
+matched `b5bca61c94ef8b0842087728ea5157b72a7abbf145d4530861e8457dced0c327`;
+both workers exited zero and no live child remained. These are the existing
+Named Result rows/describe/column-order, hidden-field, resend/reread and
+zero-admission/Source-I/O assertions, with no Program patch or limit override.
+
+Receipt: `worktrees/.codex-scratch/public-query-evidence-twThwM/summary.json`;
+transport logs and completion inventories are retained in that directory.
+The receipt confirms `artifactsRemoved: true` and no evidence errors.
+Five-package source manifest: `/private/tmp/actql-b-data-positional-e4fcc52a3-pack/packed-client-packages.json`.
+All five tarball digests were independently checked against that manifest:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60 |
+| sdk | 64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e |
+| run-host-core | 712228cbe4c27f071c978c7ad7a7d1ad8867ea6fe8d0d5aae9df0552b9ff9c15 |
+| local-node | 6bb30e6459359dd8e8a45ddcd611d24179283dd83a922cb9d01f21b294a4f06f |
+| node | a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb |
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-data-positional-e4fcc52a3-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-data-positional-e4fcc52a3-pack node scripts/test-packed-public-query.mjs --relation-data-only
+```
+
+The bounded wrapper uses the pinned Node/MoonBit environment, a 1,200-second
+aggregate deadline and an exclusive heavy gate. It waited for the verified
+other-owner gate to release before starting; it did not remove that lock.
+This final evidence-recording commit changes this document only. The public
+execution proof remains attributed to `e4fcc52a...`, not silently relabeled
+as the later submitted HEAD. Full Core/Native/Wasm, the full packed corpus and
+hosted CI remain unexecuted for this unit.
