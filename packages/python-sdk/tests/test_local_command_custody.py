@@ -3,7 +3,7 @@ import copy
 from threading import RLock
 import unittest
 
-from actql_sdk._local_core import LocalCore, LocalCoreError, _Input
+from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _NativeAttempt
 
 
 class NativeCommandCustodyTests(unittest.TestCase):
@@ -16,6 +16,8 @@ class NativeCommandCustodyTests(unittest.TestCase):
         core._released = set()
         core._next_ticket = 2
         core._closing = False
+        attempt = _NativeAttempt(core._identity, 17)
+        core._native_loans = {17: attempt}
         account = _Input(core._identity, 1, 13, 7)
         core._loans[1] = account
         calls = []
@@ -44,7 +46,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
     def test_exact_bytes_are_cached_with_same_loan_through_pending_cleanup(self):
         core, account, calls, pending = self.bridge()
         cleanup = []
-        loan = core.reserve_native_command(17, 3, account,
+        loan = core.reserve_native_command(core._native_loans[17], 3, account,
             cleanup=lambda: cleanup.append('close') or True)
         self.assertEqual(loan.limit, 100_000)
         core.produce_native_command(loan)
@@ -66,9 +68,9 @@ class NativeCommandCustodyTests(unittest.TestCase):
     def test_copied_authority_and_cross_family_loans_fail_before_io(self):
         core, account, calls, _ = self.bridge()
         with self.assertRaises(ValueError):
-            core.reserve_native_command(17, 3, copy.copy(account), cleanup=lambda: True)
+            core.reserve_native_command(core._native_loans[17], 3, copy.copy(account), cleanup=lambda: True)
         self.assertEqual(calls, [])
-        loan = core.reserve_native_command(17, 3, account, cleanup=lambda: True)
+        loan = core.reserve_native_command(core._native_loans[17], 3, account, cleanup=lambda: True)
         baseline = len(calls)
         for action in (lambda: core.read_native_command(copy.copy(loan)),
                        lambda: core.read_material(loan),
@@ -81,7 +83,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
 
     def test_refused_output_keeps_issued_loan_for_retirement(self):
         core, account, _, pending = self.bridge()
-        loan = core.reserve_native_command(17, 3, account, cleanup=lambda: True)
+        loan = core.reserve_native_command(core._native_loans[17], 3, account, cleanup=lambda: True)
         original = core._call
         def call(family, name, *args):
             if name == 'produce_command':
@@ -99,7 +101,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
     def test_invalid_lengths_and_partial_bytes_never_publish_partial_command(self):
         for refusal in ('command_length', 'byte'):
             core, account, _, _ = self.bridge()
-            loan = core.reserve_native_command(17, 3, account, cleanup=lambda: True)
+            loan = core.reserve_native_command(core._native_loans[17], 3, account, cleanup=lambda: True)
             original = core._call
             def call(family, name, *args):
                 if name == refusal:
@@ -119,7 +121,7 @@ class NativeCommandCustodyTests(unittest.TestCase):
             raise RuntimeError('Independent interrupted Core call')
         core._call = trapped
         with self.assertRaises(RuntimeError):
-            core.reserve_native_command(17, 3, account, cleanup=lambda: True)
+            core.reserve_native_command(core._native_loans[17], 3, account, cleanup=lambda: True)
         self.assertEqual(len(attempted), 1)
         self.assertIn(2, core._inputs)
         self.assertEqual(core._next_ticket, 3)

@@ -36,6 +36,12 @@ class _Input:
     length: int
 
 
+@dataclass(frozen=True, slots=True, eq=False)
+class _NativeAttempt:
+    owner: object
+    handle: int
+
+
 @dataclass(slots=True)
 class _PhysicalInput:
     payload: bytes
@@ -157,6 +163,7 @@ class LocalCore:
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
         self._inputs: dict[int, _PhysicalInput] = {}
+        self._native_loans: dict[int, _NativeAttempt] = {}
         self._native_observers: dict[int, tuple[Callable[[], bool], Callable[[], bool], Callable[[], bool]]] = {}
         self._loans: dict[int, _Input | _Output] = {}
         self._released: set[int] = set()
@@ -376,7 +383,80 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
-    def reserve_native_command(self, attempt: int, kind: int, account: _Input, *,
+    def _owned_native(self, value: _NativeAttempt) -> None:
+        if (type(value) is not _NativeAttempt or value.owner is not self._identity
+                or self._native_loans.get(value.handle) is not value):
+            raise ValueError('Foreign or released Local Native attempt')
+
+    def reserve_native_attempt(self, configuration: int, start: int, input: _Input, *,
+                               settled: Callable[[], bool], stopped: Callable[[], bool],
+                               cleaned: Callable[[], bool]) -> _NativeAttempt:
+        """Bind physical observations before starting the issued Core attempt.
+
+        Configuration/start are private handles from this installed instance.
+        This operation neither starts DuckDB I/O nor decides Source completion.
+        """
+        with self._lock:
+            self._owned_input(input)
+            if (self._closing or type(configuration) is not int or configuration <= 0
+                    or type(start) is not int or start <= 0
+                    or not all(callable(item) for item in (settled, stopped, cleaned))):
+                raise ValueError('Invalid Local Native attempt reservation')
+            handle = self._call('source', 'reserve_attempt', configuration, start,
+                                input.handle)
+            if handle <= 0:
+                raise LocalCoreError('reserve_native_attempt', handle)
+            value = _NativeAttempt(self._identity, handle)
+            self._native_loans[handle] = value
+            self._native_observers[handle] = (settled, stopped, cleaned)
+            return value
+
+    def start_native_attempt(self, value: _NativeAttempt) -> None:
+        with self._lock:
+            self._owned_native(value)
+            self._check('start_native_attempt', self._call('source', 'start', value.handle))
+            self._check('native_attempt_started', self._call('source', 'started', value.handle))
+
+    def accept_native_event(self, value: _NativeAttempt, kind: int, input: _Input) -> None:
+        with self._lock:
+            self._owned_native(value)
+            self._owned_input(input)
+            if type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6):
+                raise ValueError('Invalid Local Native event kind')
+            self._check('accept_native_event', self._call('source', 'accept',
+                                                        value.handle, kind, input.handle))
+
+    def close_native_event(self, value: _NativeAttempt) -> bool:
+        with self._lock:
+            self._owned_native(value)
+            code = self._call('source', 'close_event', value.handle)
+            if code == -9:
+                return False
+            self._check('close_native_event', code)
+            return True
+
+    def native_source_completed(self, value: _NativeAttempt) -> bool:
+        """Core receipt completion only; not a Run success/publication result."""
+        with self._lock:
+            self._owned_native(value)
+            code = self._call('source', 'completed', value.handle)
+            if code == -33:
+                return False
+            self._check('native_source_completed', code)
+            return True
+
+    def close_native_attempt(self, value: _NativeAttempt) -> bool:
+        with self._lock:
+            self._owned_native(value)
+            code = self._call('source', 'close_attempt', value.handle)
+            if code == -9:
+                return False
+            self._check('close_native_attempt', code)
+            del self._native_loans[value.handle]
+            del self._native_observers[value.handle]
+            return True
+
+    def reserve_native_command(self, attempt: _NativeAttempt, kind: int, account: _Input, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Borrow current authority and reserve one Core-issued command copy.
 
@@ -385,7 +465,8 @@ class LocalCore:
         """
         with self._lock:
             self._owned_input(account)
-            if (self._closing or type(attempt) is not int or attempt <= 0 or
+            self._owned_native(attempt)
+            if (self._closing or
                     type(kind) is not int or kind not in (1, 2, 3)):
                 raise ValueError('Invalid Local Native command projection')
             ticket = self._next_ticket
@@ -397,7 +478,7 @@ class LocalCore:
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) +
                               sys.getsizeof(b'') + sys.getsizeof(
                                   _Output(self._identity, ticket, 0, limit, 'source')))
-            handle = self._call('source', 'reserve_command', attempt, kind,
+            handle = self._call('source', 'reserve_command', attempt.handle, kind,
                                 account.handle, ticket, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
@@ -509,3 +590,4 @@ class LocalCore:
         self._loans.clear()
         self._released.clear()
         self._native_observers.clear()
+        self._native_loans.clear()

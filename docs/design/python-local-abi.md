@@ -317,6 +317,13 @@ configuration and start-token release cannot bypass those obligations. The
 Host must still reserve aggregate workspace and durably record physical query
 invocations before using this connection for execution.
 
+The private Python bridge registers settlement, physical-stop and cleanup
+observers against the exact issued attempt before its start call. It retains
+those observers and the same identity-bearing loan until Core acknowledges
+retirement. A copied/foreign loan cannot start, feed events or close the attempt.
+Pending cleanup and trapped calls retain custody; neither invokes a replacement
+attempt. Receipt completion is exposed separately from the Run outcome.
+
 `reserve_command` retains current account input and reserves a 100,000-byte
 output allowance before `produce_command` emits the existing Core Native SQL
 and prepared physical parameters. Command kinds 1/2/3 project metadata,
