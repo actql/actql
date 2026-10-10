@@ -12,6 +12,9 @@ _T = TypeVar("_T")
 
 class ClientError(Exception):
     code: str
+    original_error: BaseException | None
+    cleanup_error: BaseException | None
+    cleanup_client: AsyncClient | Client | None
     def __init__(self, code: str, **facts: Any) -> None: ...
 
 class Observation(Mapping[str, Any], Generic[_T]):

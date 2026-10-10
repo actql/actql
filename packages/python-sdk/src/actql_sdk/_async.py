@@ -76,8 +76,15 @@ class AsyncClient:
                 raise ClientError('InvalidHostProfile')
             client._profile = freeze(profile)
             return client
-        except BaseException:
-            await client.aclose()
+        except BaseException as failure:
+            try:
+                await client.aclose()
+            except BaseException as cleanup:
+                # connect() has not returned its Client. Keep that same physical
+                # cleanup owner reachable rather than orphaning it on failure.
+                raise ClientError('ClientConnectionCleanupFailed',
+                                  original_error=failure, cleanup_error=cleanup,
+                                  cleanup_client=client) from None
             raise
 
     @property
