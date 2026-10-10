@@ -13,6 +13,7 @@ normative_dependencies: [actql.execution, actql.protocol.contracts, actql.protoc
 <!-- normative-import: actql.protocol.contracts actql/0.1 -->
 <!-- normative-import: actql.protocol.artifacts actql/0.1 -->
 <!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_resume_delivery sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_resume sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265 -->
 
 This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, apply-receipt, reconciliation-receipt. It does not define other owners' wire protocols or a particular Host implementation. Cross-owner links outside the declared dependencies are informative navigation to protocol bindings or conformance evidence; they do not import those documents' requirements. Narrow machine contracts remain authoritative for their explicitly referenced values and envelopes.
 
@@ -806,3 +807,24 @@ A cancellation confirmed before physical start can have outcome `cancelled`.
 An accepted request after physical start MUST NOT rewrite a committed success
 or an uncertain publication outcome. Physical stop confirmation remains
 independent of Result availability and delivery completion.
+
+<a id="resident-effect-resume-transport"></a>
+
+### Resident Effect resume transport
+
+<!-- requirement-block: resident-effect-resume-routing resident-effect-resume-preservation -->
+The `actql-remote-poll-effect-resume/0.1` envelope carries the exact original
+Dispatch Request JSON and the report-bound Effect resume delivery JSON. Its
+`dispatch_request_cid` MUST match both the admitted request identity and the
+embedded delivery's dispatch identity. The envelope MUST NOT replace materials,
+refresh the original Run lifetime, create an execution attempt or imply that the
+transported claim is current authorization.
+
+<!-- requirement-block: resident-effect-resume-admission resident-effect-resume-pending -->
+Routing admission is distinct from approval and execution admission. The
+retained holder MUST admit the unchanged delivery against its own durable
+accepted Checkpoint report, independently installed authentication and current
+resume fence before an Effect send. A missing receiving review Owner MUST leave
+the original responsibility pending; receipt of the envelope is not execution,
+settlement, publication or cleanup evidence. The inner delivery is limited to
+262144 UTF-8 bytes and the canonical outer envelope to 1048576 UTF-8 bytes.

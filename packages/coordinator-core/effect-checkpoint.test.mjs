@@ -182,3 +182,17 @@ test('resume admission snapshots typed caller facts once without implicit string
   assert.throws(() => resumeDelivery(original, {authentication}),
     {message: 'InvalidEffectResumeDeliveryInput'});
 });
+
+
+test('portable resume poll carries the exact original Owner delivery and request', () => {
+  const original = report();
+  const before = reports.facts(original);
+  const args = [original, resume.delivery.body.resolution_wire, resume.authentication,
+    [{key_id: resume.authentication.key_id, reviewer_id: resume.authentication.reviewer_id}],
+    {claimant: 'original-coordinator', generation: 1n}, limits];
+  assert.equal(effectResumeDeliveries.preparePollJson(...args), resume.poll.canonical);
+  assert.deepEqual(reports.facts(original), before);
+  assert.throws(() => effectResumeDeliveries.preparePollJson({...original}, ...args.slice(1)),
+    {message: 'InvalidEffectCheckpointReport'});
+  assert.throws(() => effectResumeDeliveries.preparePollJson(original, args[1], args[2], [], args[4], limits), rejected);
+});
