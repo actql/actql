@@ -126,3 +126,28 @@ test "object field names follow child ordinals and topology traverses without re
   assert_eq(count, 10001)
   assert_eq(count, @expression_typing.node_count(typed))
 }
+
+///|
+test "substring is a scalar owner with no text-time profile or envelope obligations" {
+  for
+    text in [
+      "substring('abc',0)", "substring(NULL,1,NULL)", "substring('abc',1,-1)",
+    ] {
+    let typed = @expression_typing.check(
+      syntax("\"" + text + "\""),
+      env(),
+      test_limits(),
+    ).unwrap()
+    assert_eq(@expression_typing.pending_validations(typed).length(), 0)
+  }
+  let typed = @expression_typing.check(
+    syntax("\"substring(nfkc('abc'),0)\""),
+    env(),
+    test_limits(),
+  ).unwrap()
+  let obligations = @expression_typing.pending_validations(typed)
+  assert_eq(obligations.length(), 2)
+  for obligation in obligations {
+    assert_eq(obligation.node_index, 1)
+  }
+}

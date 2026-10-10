@@ -105,6 +105,18 @@ pub fn unary(
           }
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    SafeNegate =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else {
+            // Negation of an admitted finite binary64 value cannot overflow.
+            finite(-n)
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Sign =>
       match value {
         Null => Ok(Null)
@@ -331,7 +343,15 @@ pub fn binary(
       }
       Ok(membership_result(op, matched, unknown))
     }
-    Add | Subtract | Multiply | Divide | Modulo => {
+    Add
+    | Subtract
+    | Multiply
+    | Divide
+    | Modulo
+    | SafeAdd
+    | SafeSubtract
+    | SafeMultiply
+    | SafeDivide => {
       if left is Null || right is Null {
         return Ok(Null)
       }
@@ -341,11 +361,16 @@ pub fn binary(
       if a.is_nan() || a.is_inf() || b.is_nan() || b.is_inf() {
         return Err(InvalidOperand)
       }
-      match op {
-        Add => finite(a + b)
-        Subtract => finite(a - b)
-        Multiply => finite(a * b)
-        Divide => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a / b) }
+      let result = match op {
+        Add | SafeAdd => finite(a + b)
+        Subtract | SafeSubtract => finite(a - b)
+        Multiply | SafeMultiply => finite(a * b)
+        Divide | SafeDivide =>
+          if b == 0.0 {
+            Err(ArithmeticFailure)
+          } else {
+            finite(a / b)
+          }
         Modulo => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a % b) }
         Equal
         | NotEqual
@@ -363,6 +388,16 @@ pub fn binary(
         | Strpos
         | StartsWith
         | EndsWith => Err(InvalidOperand)
+      }
+      // Only this already-evaluated arithmetic operation is safe. Child,
+      // operand-domain, control, cancellation and custody failures keep their
+      // original owner and are never caught by a SAFE operation.
+      match result {
+        Err(ArithmeticFailure) if op == @lower.SafeAdd ||
+          op == @lower.SafeSubtract ||
+          op == @lower.SafeMultiply ||
+          op == @lower.SafeDivide => Ok(Null)
+        _ => result
       }
     }
     Equal
@@ -418,6 +453,10 @@ fn binary_comparison_result(
     | Subtract
     | Multiply
     | Divide
+    | SafeDivide
+    | SafeAdd
+    | SafeSubtract
+    | SafeMultiply
     | Modulo
     | In
     | NotIn
@@ -462,7 +501,8 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce | Concat | ConcatStrict | Replace | Between => Err(InvalidOperand)
+    Coalesce | Concat | ConcatStrict | Replace | Substring | Between =>
+      Err(InvalidOperand)
   }
 }
 

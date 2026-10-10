@@ -144,6 +144,10 @@ fn check_backend_capabilities(
             | Subtract
             | Multiply
             | Divide
+            | SafeDivide
+            | SafeAdd
+            | SafeSubtract
+            | SafeMultiply
             | Modulo
             | TrimSet
             | LTrimSet

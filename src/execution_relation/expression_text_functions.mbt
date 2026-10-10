@@ -2,6 +2,7 @@
 /// These are continuations of the existing expression frame, not another
 /// evaluator. Operand roots survive both the sizing and construction passes.
 priv struct TextArgumentsState {
+  kind : TextFunctionKind
   expression : @lower.Expression
   children : Array[@lower.Expression]
   values : Array[Value]
@@ -14,6 +15,7 @@ priv enum TextFunctionKind {
   TextLength
   TextStrpos
   TextReplace
+  TextSubstring
   TextUpper
   TextLower
   TextTrim
@@ -52,6 +54,9 @@ priv struct TextFunctionState {
   mut probing_sigma : Bool
   mut probe_position : Int
   trim_explicit : Bool
+  mut substring_phase : Int
+  mut substring_start : Int64
+  mut substring_end : Int64
   mut trim_scanning : Bool
   mut trim_start : Int
   mut trim_end : Int
@@ -67,11 +72,29 @@ fn start_text_function(
   workspace : RowWorkspace,
 ) -> Result[TextFunctionState, EvalIssue] {
   let mut null_result = false
-  for value in values {
+  for i, value in values {
     match value {
       Null => null_result = true
-      Text(_) => ()
+      Text(_) if kind != TextSubstring || i == 0 => ()
+      Number(_) if kind == TextSubstring && i > 0 => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+  }
+  let mut substring_start = 0L
+  let mut substring_end = 9007199254740991L
+  if kind == TextSubstring && !null_result {
+    guard values[1] is Number(position) &&
+      @scalar.read_safe_integer(position) is Some(start) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    substring_start = start
+    if values.get(2) is Some(length) {
+      guard length is Number(number) &&
+        @scalar.read_safe_integer(number) is Some(length) &&
+        length >= 0L else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      substring_end = length
     }
   }
   if !reserve_slots(workspace, 2) {
@@ -137,8 +160,8 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextReplace {
-      12
+    reserved: if kind == TextReplace || kind == TextSubstring {
+      values.length() * 3 + 3
     } else {
       2
     },
@@ -157,6 +180,13 @@ fn start_text_function(
     probing_sigma: false,
     probe_position: 0,
     trim_explicit: is_trim_text_function(kind) && values.length() == 2,
+    substring_phase: if kind == TextSubstring {
+      1
+    } else {
+      0
+    },
+    substring_start,
+    substring_end,
     trim_scanning: is_trim_text_function(kind),
     trim_start: if kind == TextRTrim {
       0
@@ -261,6 +291,51 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.substring_phase == 1 {
+    if state.position == state.input.length() {
+      let count = state.count.to_int64()
+      let position = state.substring_start
+      let start = if position > 0L {
+        (position - 1L).min(count)
+      } else if position == 0L || position < -count {
+        0L
+      } else {
+        count + position
+      }
+      // Clamp before addition, keeping even the largest admitted indices exact.
+      state.substring_start = start
+      state.substring_end = start + state.substring_end.min(count - start)
+      state.substring_phase = 2
+      state.position = 0
+      state.count = 0
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    state.position = next
+    state.count += 1
+    return Ok(None)
+  }
+  if state.substring_phase == 2 {
+    if state.count.to_int64() == state.substring_start {
+      state.trim_start = state.position
+    }
+    if state.count.to_int64() == state.substring_end {
+      state.trim_end = state.position
+      state.position = state.trim_start
+      state.substring_phase = 3
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    state.position = next
+    state.count += 1
+    return Ok(None)
   }
   if state.trim_scanning {
     if state.position == state.input.length() {
@@ -378,7 +453,7 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  let end = if is_trim_text_function(state.kind) {
+  let end = if is_trim_text_function(state.kind) || state.kind == TextSubstring {
     state.trim_end
   } else {
     state.input.length()
@@ -408,7 +483,8 @@ fn advance_text_function(
     state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
-    state.position = if is_trim_text_function(state.kind) {
+    state.position = if is_trim_text_function(state.kind) ||
+      state.kind == TextSubstring {
       state.trim_start
     } else {
       0
@@ -460,7 +536,7 @@ fn advance_text_function(
     }
     return Ok(None)
   }
-  if is_trim_text_function(state.kind) {
+  if is_trim_text_function(state.kind) || state.kind == TextSubstring {
     state.position = match
       append_text_function_scalar(state, state.input, state.position) {
       Ok(next) => next

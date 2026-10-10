@@ -384,3 +384,73 @@ Values Program/Run preimages are retained before changing the owners; older
 history is unchanged. Schema, scalar law, expression and dependent identities
 move together. This initial 0.1 extension does not admit BYTES or collation and
 does not claim conformance on unverified targets or live BigQuery.
+
+
+## GoogleSQL STRING substring and profile ownership
+
+The current normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+Google's [SUBSTR/SUBSTRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#substr)
+uses optional length, one-based positive positions, zero-to-one clamping and
+end-relative negative positions. The previous common declaration used exact
+interval intersection, fixed arity and the optional text-time profile:
+`substring('abcd',0,2)` meant `a`; the aligned rule means `ab`. That is a semantic
+change, not a spelling alias. Before this change the text/JSON checker and
+text-time bound derivation admitted substring, but executable lowering rejected
+its unresolved HostEnvelope and did not implement its tag; SQL/Pipe did not
+admit either public spelling.
+
+Keep one common `substring` tag with `{value,start,length?}` and its matching
+machine body. Both documented SQL spellings lower to that owner. Preserve
+omission as omission and retain every supplied child once in authored order.
+This adds no frontend evaluator, sentinel expression or fallback alias. The
+existing finite binary64 domain accepts only safe-integer indices; full INT64
+and BYTES remain explicit coverage gaps.
+
+Substring now uses the existing scalar continuation's bounded count, boundary,
+sizing and construction passes. The scalar work/live-value/workspace and
+cancellation owners remain authoritative. Removing substring's text-time
+membership is a coordinated current-contract change, not permission to ignore
+other pending obligations. Current profile source/envelope/barrier schemas
+omit substring, while the inherited base and all historical snapshots keep
+exact old bodies and CIDs. Nested profile operations retain their own profile,
+pattern, policy, envelope and preflight obligations, even in skipped branches.
+
+A substring result inherits sound input byte/codepoint maxima, drops minimum
+length and unions all supplied nullability. Type checking neither evaluates
+length nor rejects invalid literal data. This preserves directly known upper
+bounds. Profile-produced extents derived after typing do not pass through a
+new invented substring envelope: an outer profile falls back to its checked
+input contract or selected-policy preflight. Consequently some formerly
+checkable nested profile plans may need a wider conservative bound and fail a
+tight policy that admitted the old profile chain. The current contract records
+that compatibility effect; it does not claim unchanged historical admission.
+
+
+## Finite-number SAFE arithmetic
+
+GoogleSQL [SAFE arithmetic](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#safe_divide)
+converts the operation's own arithmetic error into NULL, and its
+[floating-point rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#floating_point_semantics)
+classify non-finite output from finite inputs as overflow. Thus a zero-only
+safe division rule is insufficient for SAFE_DIVIDE.
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+The existing `safe_div` spelling already means zero-divisor null with overflow
+failure. That original meaning is retained. New `safe_divide` is a distinct
+closed common operation with GoogleSQL zero-divisor-or-overflow null semantics;
+the SQL/Pipe function SAFE_DIVIDE lowers to it, not to the legacy spelling.
+SAFE_ADD, SAFE_SUBTRACT, SAFE_MULTIPLY and SAFE_NEGATE use the same existing
+arithmetic evaluator and retained-expression continuation. Only the arithmetic
+result at the operation boundary is made safe. This follows the documented
+[SAFE error boundary](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/functions-reference#safe_prefix).
+Child errors and all resource
+or cancellation failures retain their original owner and precedence.
+
+This increment admits the existing finite binary64 Number domain. Underflow is
+an ordinary finite result and operation-boundary zero is canonical positive
+zero. Binary safe operations produce nullable Number; safe negation preserves
+operand nullability because negation cannot overflow for finite binary64.
+INT64, NUMERIC, BIGNUMERIC, Decimal and non-finite overloads are not implied.
+The initial 0.1 expression, scalar-manifest, schema and dependent identity
+contracts change together, retaining exact predecessor bodies and preimages.
+Registration alone is not execution conformance for an unverified target.
