@@ -78,7 +78,8 @@ class PhysicalFixture:
         handle = self.call('reserve', ticket, len(payload), retained_bytes)
         assert handle > 0
         self.inputs[ticket] = payload
-        assert self.call('fill', handle, 0, len(payload)) == 0
+        for start in range(0, len(payload), 16_384):
+            assert self.call('fill', handle, start, min(16_384, len(payload) - start)) == 0
         assert self.call('seal', handle) == 0
         output = bytes(self.call('byte', handle, index) for index in range(len(payload)))
         assert output == payload
