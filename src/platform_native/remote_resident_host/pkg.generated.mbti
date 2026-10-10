@@ -405,6 +405,7 @@ pub(all) enum ResidentEffectReviewInputIssue {
 
 type ResidentEffectReviewRetention
 pub fn ResidentEffectReviewRetention::confirm_original_checkpoint(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract) -> Result[@checkpoint_runtime.PersistedCheckpoint, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::original_completion_evidence(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract, () -> Bool, Int) -> Result[ResidentOriginalEffectCompletionEvidence, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::original_review_projection(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract, () -> Bool, Int) -> Result[(@checkpoint_runtime.PersistedCheckpoint, String), ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::persist(Self, @publication_store.Store) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::persist_original_checkpoint(Self, @publication_store.Store) -> Result[@checkpoint_runtime.PersistedCheckpoint, ResidentEffectReviewRetentionIssue]
@@ -570,6 +571,18 @@ pub(all) enum ResidentLocalEffectCaptureIssue {
   Observation(@run_publication_host.ClientEffectResultImportIssue)
   Imported(@run_publication_host.ClientEffectImportedEvidenceIssue)
   Result(ResidentEffectResultCaptureIssue)
+}
+
+pub struct ResidentOriginalEffectCompletionEvidence {
+  checkpoint_cid : String
+  run_definition : @actql/actql/run_publication.PublicationContract
+  invocation : @actql/actql/run_publication.PublicationContract
+  result_definition : @actql/actql/run_publication.PublicationContract
+  result_artifact : @actql/actql/run_publication.PublicationContract
+  result_manifest : @actql/actql/run_publication.PublicationContract
+  computation_receipt : @actql/actql/run_publication.PublicationContract
+  captured : @actql/actql/run_publication.PublicationContract
+  preview : @actql/actql/run_publication.EffectPreviewIdentity
 }
 
 pub(all) enum ResidentOutputIssue {
