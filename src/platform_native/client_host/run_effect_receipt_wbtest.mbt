@@ -3,6 +3,7 @@
 /// Derived references are signing inputs, never expected statuses/results.
 fn receipt_test_preview(
   run_identity? : String,
+  wire_sink? : (String) -> Unit = _ => (),
 ) -> (@publication.EffectPreviewIdentity, @effect.EffectDispatchKey) {
   let c = (digit : String) => "sha256:" + digit.repeat(64)
   let a = c("a")
@@ -107,6 +108,7 @@ fn receipt_test_preview(
     old="\"run_identity_cid\":\"" + a + "\"",
     new="\"run_identity_cid\":\"" + original_run + "\"",
   )
+  wire_sink(final_wire)
   let preview = @effect.admit_effect_preview_apply_identity(
     final_wire,
     original_run,
@@ -148,6 +150,7 @@ test "export original Native receipt Checkpoint signing references" {
 ///|
 fn receipt_test_dispatch(
   name : String,
+  preview_wire_sink? : (String) -> Unit = _ => (),
 ) -> (
   @sqlite.Database,
   NativeClientRunJournal,
@@ -213,7 +216,7 @@ fn receipt_test_dispatch(
     is Ok(Claimed(claim)) else {
     fail("receipt resume claim missing")
   }
-  let (preview, key) = receipt_test_preview()
+  let (preview, key) = receipt_test_preview(wire_sink=preview_wire_sink)
   let (locator, _, _) = effect_row_test_binding(
     request,
     preview=@publication.effect_preview_semantic_identity(preview),

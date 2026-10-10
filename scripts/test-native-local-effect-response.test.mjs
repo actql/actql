@@ -11,20 +11,18 @@ import {fileURLToPath} from 'node:url';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
-test('Original Native saved response survives exited writer and repeated independent readers', async () => {
+async function handoff(file, expectedName, prefix) {
   const root = fileURLToPath(new URL('../', import.meta.url));
-  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-response-process-',
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix,
     label: 'Original Native Effect response process handoff'});
   const env = {...process.env, ACTQL_TEST_NATIVE_SQLITE_ROOT: scratch.path};
   Object.assign(env, nativeClientCheckpointFixture(root, env));
   const folder = join(root, '_build/native/debug/test/platform_native/client_host');
   const binary = join(folder, 'client_host.whitebox_test.exe');
-  const file = 'run_effect_response_process_wbtest.mbt';
   const info = JSON.parse(readFileSync(join(folder, '__whitebox_test_info.json'), 'utf8'));
   const cases = info.tests[file];
   assert.equal(cases.length, 1, 'Select the actual generated Native case, never all tests');
-  assert.equal(cases[0].name,
-    'Native saved Effect response handoff reads original custody without preparation or dispatch');
+  assert.equal(cases[0].name, expectedName);
   const sha256 = createHash('sha256').update(readFileSync(binary)).digest('hex');
   const receipts = [];
   for (const phase of ['write', 'read', 'read']) {
@@ -53,4 +51,16 @@ test('Original Native saved response survives exited writer and repeated indepen
   writeFileSync(join(scratch.path, 'process-receipts.json'), JSON.stringify(receipts, null, 2) + '\n');
   console.log('Native original response process receipts: ' + join(scratch.path, 'process-receipts.json'));
   await scratch.passed();
+}
+
+test('Original Native saved response survives exited writer and repeated independent readers', async () => {
+  await handoff('run_effect_response_process_wbtest.mbt',
+    'Native saved Effect response handoff reads original custody without preparation or dispatch',
+    'actql-native-response-process-');
+});
+
+test('Original Native terminal receipt survives exited writer and independent readers without execution', async () => {
+  await handoff('run_effect_receipt_process_wbtest.mbt',
+    'Native terminal receipt handoff re-admits original saved custody without execution',
+    'actql-native-receipt-process-');
 });
