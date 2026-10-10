@@ -18,6 +18,10 @@ pub(all) enum ResidentEffectReviewCheckpointIssue {
 /// a resume permit. The caller must retain both evidence holdings and persist
 /// these exact bytes before the existing Run owner can commit waiting.
 pub struct ResidentEffectReviewCheckpoint {
+  source_owner : ResidentSourceCompute
+  capture_owner : ResidentEffectCaptureCustody
+  preview_owner : ResidentEffectPreviewCustody
+  store_authority : String
   checkpoint : @checkpoint.SealedCheckpoint
   continuation_wire : String
   review_wire : String
@@ -259,5 +263,15 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
   if !self.resident_effect_inputs_current(inputs) {
     return Err(Unavailable)
   }
-  Ok({ checkpoint: sealed_checkpoint, continuation_wire, review_wire, })
+  Ok({
+    source_owner: self,
+    capture_owner: capture,
+    preview_owner: preview,
+    store_authority: @publication.effect_capture_holding_authority(
+      capture.binding,
+    ),
+    checkpoint: sealed_checkpoint,
+    continuation_wire,
+    review_wire,
+  })
 }
