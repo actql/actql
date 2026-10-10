@@ -5582,7 +5582,12 @@ fn compile_steps(
           scalar_value_table_ranges = []
         }
       }
+      // An otherwise empty Stage Result consumer needs its own declared output
+      // operation. A projection inside an existing JOIN pipeline may still elide.
       Select(projections, distinct) if !preserve_identity_select &&
+        !(input.source is StageResult(_, _) &&
+        step_entries.is_empty() &&
+        !projected_input) &&
         !sql_group_projection &&
         !distinct &&
         projections.length() == 1 &&

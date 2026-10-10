@@ -448,7 +448,24 @@ reference to an old value does not consume a different current replacement slot.
 Nested aggregate calls are refused; property typing and NULL propagation remain
 owned by the common checker and expression evaluator.
 
-FROM-suffix PIVOT, multiple aggregates, aggregate modifiers,
+The same selected PIVOT clause is supported as a FROM postfix, on a named
+Relation/CTE or a parenthesized query, before surrounding JOIN, WHERE and SELECT.
+A parenthesized PIVOT input may omit its input alias. References inside PIVOT
+resolve against that input and its optional alias. The postfix result exposes
+only its output columns and optional result alias; input ranges and consumed
+columns do not escape. This follows the fixed GoogleSQL analyzer's fresh PIVOT
+NameList. Quoted names remain names, including `PIVOT` and `ORDER` aliases.
+
+A postfix becomes an ordinary projected producer through the existing query
+binding path, so both left and right JOIN inputs use their transformed Relation.
+No SQL rewriting, new acquisition/storage owner or physical-placement selector
+is introduced. The existing Program Stage/result dependency carries the value;
+WHERE on the pivot output remains downstream. All predicates and explicit JOIN
+bounds retain their original expressions and values. Other postfix operators,
+correlated outer-row inputs and the broader multiple-aggregate surface remain
+separate coverage, rather than being approximated by this connection.
+
+Multiple aggregates, aggregate modifiers,
 non-String axes and NULL bucket constants remain unimplemented
 surface coverage. The common requirement that bucket values also be admitted
 output field names, with unique values and no collision with physical index
