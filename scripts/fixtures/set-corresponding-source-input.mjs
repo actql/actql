@@ -166,3 +166,54 @@ setCorrespondingRefusals.push(...[
   {name: 'aggregate-ambiguous-qualify', format: 'aql-text', text: aggregateQualify + 'n > 0'},
 ].map(item => ({...item, name: 'set-corresponding-refuse-' + item.name,
   format: item.format ?? 'sql', expectedCode: 'ClientProgramInvalidInput'})));
+
+// The two window calls consume the same input snapshot, but opposing ORDER
+// keys produce different values. Authored duplicate names cannot select a slot.
+export const positionalWindowProgram = {version: 'actql/0.1', id: 'fixture.window_duplicates',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}]}, as: 'input'},
+    {from: 'input', analytic: {partition_by: [],
+      order_by: [{field: 'x', dir: 'asc', nulls: 'first'}],
+      functions: {up: {fn: 'row_number'}}}},
+    {analytic: {partition_by: [], order_by: [{field: 'x', dir: 'desc', nulls: 'last'}],
+      functions: {down: {fn: 'row_number'}}}},
+    {select: [{a: 'up'}, {b: 'down'}], as: 'right'},
+    {values: {schema: {a: number, b: number}, rows: [{a: 0, b: 0}]}, as: 'left'},
+    {from: 'left', append: {with: 'right'}},
+    {sort: [{field: 'a', dir: 'asc', nulls: 'first'},
+      {field: 'b', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['a', 'b']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const windowRows = [{a: 0, b: 0}, {a: 1, b: 2}, {a: 2, b: 1}];
+const windowHead = 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+  + 'ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r';
+const window = (name, text, extra = {}) => positional('window-' + name, text,
+  {columns: aggregateColumns, expected: windowRows, ...extra});
+setCorrespondingSuccesses.push(
+  window('json-control', JSON.stringify(positionalWindowProgram), {format: 'json'}),
+  window('opposing-orders', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + windowHead + ' ORDER BY a, b', {format: 'aql-text'}),
+  window('different-functions', 'DATA r = SELECT 1 AS x UNION ALL SELECT 1 AS x; '
+    + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, '
+    + 'RANK() OVER (ORDER BY x) AS n FROM r ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 1}, {a: 2, b: 1}]}),
+  window('aggregate-functions', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+    + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT SUM(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n, '
+    + 'COUNT(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n FROM r ORDER BY a, b',
+    {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 1}, {a: 3, b: 2}],
+      columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}]}),
+  window('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+    + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r '
+    + 'ORDER BY a, b', {format: 'aql-text', expected: []}),
+  window('source-orders', 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
+    + 'ROW_NUMBER() OVER (ORDER BY id) AS n, ROW_NUMBER() OVER (ORDER BY id DESC) AS n '
+    + 'FROM records ORDER BY a, b',
+    {sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
+);
+setCorrespondingRefusals.push(...[
+  {name: 'window-ambiguous-qualify', text: windowHead + ' QUALIFY n > 0'},
+  {name: 'window-private-qualify', text: windowHead + ' QUALIFY aql_analytic_output_3 > 0'},
+].map(item => ({...item, text: 'DATA r = SELECT 1 AS x; ' + item.text,
+  name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
+  expectedCode: 'ClientProgramInvalidInput'})));
