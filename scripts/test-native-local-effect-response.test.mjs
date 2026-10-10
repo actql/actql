@@ -43,7 +43,7 @@ test('Original Native saved response survives exited writer and repeated indepen
       .map(line => JSON.parse(line)).filter(record => record.type === 'result');
     assert.equal(records.length, 1, result.stdout);
     assert.equal(records[0].file, file);
-    assert.equal(records[0].index, String(cases[0].index));
+    assert.equal(records[0].index, cases[0].index);
     assert.equal(records[0].message, '', result.stdout);
     assert(Number.isSafeInteger(result.pid) && result.pid > 0);
     receipts.push({phase, pid: result.pid, startedAt, exitedAt: new Date().toISOString(),
