@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 1; this private ABI
+before opening the instance. `actql_host_abi_version` returns 2; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -189,3 +189,45 @@ rollback journal, file/schema overhead, Python descriptors, Core Wasm memory or
 DuckDB workspace. Their simultaneous holdings still require the existing shared
 resource Owner; a byte-store test alone establishes no aggregate Local bound or
 successful Run recovery.
+
+## Original Core material transfer
+
+The private `actql_material_*` family projects records from an existing prepared
+Run. `reserve` selects checked materials (1), the original request record (2),
+the original definition CID (3), or exact authored input bytes (4). It reserves
+a 1 MiB output allowance before invoking an encoder. Its physical copy allowance
+covers simultaneous Python destination and immutable byte copies. This is a
+transfer reservation, not an aggregate Core encoding or execution guarantee.
+The existing materials encoder retains its stricter closed-record limits.
+
+`produce` uses existing Owner projections. Its handle is issued before encoding,
+retained on interruption, and never implicitly retried after a trap. Repeating
+a completed projection reads the same output. Output slots cannot be filled or
+sealed as authoring inputs and expose no parsed source-node capability. Their
+actual byte length is independent of the reserved upper bound; empty output is
+distinct from incomplete output. `actql_buffer_byte` reads these immutable bytes
+under the same instance and loan. The original Run cannot close while an output
+handle remains live. Output retirement requires the same physical cleanup
+acknowledgement as input transfer and retains its capacity on failure.
+
+Python retains an exact output-loan object; copied or foreign objects cannot
+retrieve or release its bytes. Allocation of the large destination follows Core
+reservation. Reads are bounded to the admitted length and do not store partial
+records on invalid lengths, invalid bytes or traps. A physical adapter must
+finish consuming the borrowed bytes before acknowledging output cleanup.
+
+`reserve_restoration` retains an immutable input loan before codec admission.
+Its closed physical envelope contains `materials` and
+`expected_run_definition_cid`, both strings. The trusted Host supplies the
+retained original CID; neither field is a caller grant. `restore` invokes the
+existing task-Run materials Owner and keeps the exact typed outcome. `restored`
+reports private readiness only: 0 is codec admission, -32 a typed rejection,
+and -33 no completed outcome. Closing restoration waits for physical stop.
+
+These projections and codec admissions perform no Run acceptance, durable
+commit, Source acquisition, task dispatch, publication or recovery start. The
+saved exact authored input and request are separate records from lowered Program
+materials. The product Host still needs to connect original journal facts,
+current authorization, completed retained outputs and publication Owners before
+it can resume the original Run. ABI 1 modules are refused by the ABI 2 bridge;
+no compatibility adapter or alternate runtime route is retained.

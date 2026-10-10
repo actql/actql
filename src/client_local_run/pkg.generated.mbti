@@ -30,6 +30,8 @@ pub fn local_run_compilation(LocalRunPlan) -> @run_publication_host.ClientTaskCo
 
 pub fn local_run_definition(LocalRunPlan) -> @run_publication.PublicationContract
 
+pub fn local_run_definition_cid(LocalRunPlan) -> String
+
 pub fn local_run_material_limits() -> @run_publication_host.ClientValuesRunMaterialsLimits
 
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity

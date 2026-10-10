@@ -54,8 +54,11 @@ if(process.argv.includes('--build-and-consume')){
   const runPreparation=JSON.parse(run(python,['scripts/fixtures/python-local-run-abi.py',module]));
   assert.equal(runPreparation.success,true);
   assert.equal(runPreparation.module_sha256,digest);
+  const materials=JSON.parse(run(python,['scripts/fixtures/python-local-material-abi.py',module]));
+  assert.equal(materials.success,true);
+  assert.equal(materials.module_sha256,digest);
   const record={source_sha:source,module,module_sha256:digest,
-    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,run_preparation:runPreparation};
+    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,run_preparation:runPreparation,materials};
   try {
     await writeFile(join(receipt,'receipt.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
   } catch (error) {

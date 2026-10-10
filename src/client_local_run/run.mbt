@@ -177,6 +177,11 @@ pub fn local_run_definition(
 }
 
 ///|
+pub fn local_run_definition_cid(plan : LocalRunPlan) -> String {
+  @publication.publication_contract_identity(plan.definition)
+}
+
+///|
 pub fn local_run_compilation(
   plan : LocalRunPlan,
 ) -> @host.ClientTaskCompilation {
