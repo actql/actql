@@ -1949,7 +1949,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | Functions | Input → result | Null/failure rule beyond the common rule | Profile |
 | --- | --- | --- | --- |
 | `len` | S → N | Unicode scalar count | RelA |
-| `lower`, `upper`, `trim` | S → S | Pinned mappings/character set | RelA |
+| `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
+| `trim` | S → S | Unary Unicode 16.0 White_Space at both ends; exact interior and operand nullability preserved | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
 | `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
@@ -1981,7 +1982,7 @@ timestamp.
 
 <!-- requirement-block: scalar-expressions.lower-upper-use-unicode-16-0-default-mappings-a-runtime-without-exactly -->
 String value and ordering rules are defined in [Carriers, values, and types](#values-and-types). `len`
-counts Unicode scalar values; `trim` removes only U+0009..U+000D and U+0020;
+counts Unicode scalar values; `trim` follows the pinned Unicode whitespace rule below;
 `contains` is case-sensitive exact retained-value matching. `starts_with` and
 `ends_with` compare the exact retained Unicode scalar prefix or suffix without
 normalization, case folding, trimming or locale rules. An empty prefix or suffix
@@ -2015,6 +2016,24 @@ outside this ActQL profile; they MUST NOT be silently ignored or coerced.
 The common source forms are `{round: expression}` and `{trunc: expression}`;
 machine nodes retain the operation and sole child without constant folding.
 Earlier expression contract CIDs retain their earlier meanings.
+
+<!-- requirement-block: scalar-expressions.trim -->
+`trim(value)` MUST take exactly one string and remove the longest leading and
+trailing sequences of Unicode 16.0 `White_Space` code points: U+0009..U+000D,
+U+0020, U+0085, U+00A0, U+1680, U+2000..U+200A, U+2028, U+2029, U+202F,
+U+205F and U+3000. This fixed set contains 25 code points; U+FEFF and U+200B
+are excluded. The exact interior scalar sequence, including whitespace,
+combining sequences and CR/LF, remains unchanged. No normalization, case
+folding, line-break conversion or host-dependent whitespace rule is applied.
+Empty and all-whitespace inputs produce the empty string; null produces null.
+The result preserves operand nullability, and untyped NULL takes the unique
+string signature. The sole child evaluates once when demanded; enclosing lazy
+demand, first-failure precedence, cancellation and logical charges remain in
+force. Physical scanning, output sizing and construction remain bounded and
+cancellable. The authored TRIM node and its child remain in canonical lowering,
+even for an unchanged value. This selects the unary GoogleSQL STRING behavior;
+the optional character set, BYTES, explicit collation, LTRIM and RTRIM are
+outside this operation's admitted signature.
 
 <!-- requirement-block: scalar-expressions.strpos -->
 `strpos(value, subvalue)` MUST take exactly two strings and return the first exact
@@ -10027,7 +10046,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:6b681d8f15e1dea9e005910f636e923a7288c83e92484d31a5f8aa741f6550c9
+../../spec/contracts/actql-aoa.json# sha256:a7acd15dc5a9005c4928a77122bdf7bd19264b24b5223bbd59e16fc3c58a61b2
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10036,11 +10055,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:99eb8896d61317e04b39b54eaad9cecb64abe7c08fb6e79bbaaa113547d855cf
+../../spec/contracts/actql-expressions.json# sha256:a6d2c257b61167db55ca87f4985e89c2c098b33ef0123bf6639878972fa081e8
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:568e7f5d17ca2814d8d65cc81f3facd059575c52c1f21eda2d292c216927b9d9
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:8ed3d05144d03864c617fdcd6161b241c2dfe29c8eed7bbc5ecba05861ebdab6
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:1df3fa2e8518197f2ffb09caece227964fe05c8742500e0a5333b29052db9da0
+../../spec/contracts/actql-expressions.json#/laws sha256:fbadee9f54819744ef09ba91a5b8743ccaa10edb7d1242ab680a05df67a84d87
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:12ed75dd9face4baf35036bdca1149b98ddcfb7b3bc41601255ae535670ebbbe
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:bbf865aba24fece58f3e35c443aa0ff6f0109fc8fbfa3aa3cd4902e92c286db8
 ```

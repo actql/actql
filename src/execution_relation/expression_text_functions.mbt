@@ -16,6 +16,7 @@ priv enum TextFunctionKind {
   TextReplace
   TextUpper
   TextLower
+  TextTrim
 } derive(Eq)
 
 ///|
@@ -43,6 +44,9 @@ priv struct TextFunctionState {
   mut preceding_cased : Bool
   mut probing_sigma : Bool
   mut probe_position : Int
+  mut trim_scanning : Bool
+  mut trim_start : Int
+  mut trim_end : Int
 }
 
 ///|
@@ -105,12 +109,13 @@ fn start_text_function(
       _ => ""
     }
   }
+  let input = text(values[0])
   Ok({
     expression,
     roots,
     kind,
     null_result,
-    input: text(values[0]),
+    input,
     search: if kind == TextReplace || kind == TextStrpos {
       text(values[1])
     } else {
@@ -141,6 +146,9 @@ fn start_text_function(
     preceding_cased: false,
     probing_sigma: false,
     probe_position: 0,
+    trim_scanning: kind == TextTrim,
+    trim_start: input.length(),
+    trim_end: input.length(),
   })
 }
 
@@ -225,7 +233,7 @@ fn append_text_function_scalar(
 }
 
 ///|
-/// One comparison code unit or one emitted scalar per poll. No substring,
+/// One comparison code unit or one scanned/emitted scalar per poll. No substring,
 /// whole-string search, normalization, output measurement or replay occurs.
 fn advance_text_function(
   state : TextFunctionState,
@@ -234,6 +242,25 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.trim_scanning {
+    if state.position == state.input.length() {
+      state.trim_scanning = false
+      state.position = state.trim_start
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((scalar, next, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if !trim_white_space(scalar) {
+      if state.trim_start == state.input.length() {
+        state.trim_start = state.position
+      }
+      state.trim_end = next
+    }
+    state.position = next
+    return Ok(None)
   }
   if state.kind == TextLength {
     if state.position == state.input.length() {
@@ -307,7 +334,12 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  if state.position == state.input.length() {
+  let end = if state.kind == TextTrim {
+    state.trim_end
+  } else {
+    state.input.length()
+  }
+  if state.position == end {
     if state.building {
       guard state.builder is Some(builder) else {
         return Err({ kind: Scalar(InvalidOperand), expression, })
@@ -332,7 +364,7 @@ fn advance_text_function(
     state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
-    state.position = 0
+    state.position = if state.kind == TextTrim { state.trim_start } else { 0 }
     state.matched = 0
     state.preceding_cased = false
     state.probing_sigma = false
@@ -380,6 +412,14 @@ fn advance_text_function(
     }
     return Ok(None)
   }
+  if state.kind == TextTrim {
+    state.position = match
+      append_text_function_scalar(state, state.input, state.position) {
+      Ok(next) => next
+      Err(issue) => return Err(issue)
+    }
+    return Ok(None)
+  }
   if !state.search.is_empty() &&
     state.search.length() <= state.input.length() - state.position {
     if state.input[state.position + state.matched] ==
@@ -401,4 +441,22 @@ fn advance_text_function(
     Err(issue) => return Err(issue)
   }
   Ok(None)
+}
+
+///|
+/// Unicode 16.0 PropList White_Space, independent of host-language trim rules.
+/// U+0085 belongs to this set; U+FEFF and U+200B do not.
+fn trim_white_space(scalar : Char) -> Bool {
+  let code = scalar.to_int()
+  (code >= 0x0009 && code <= 0x000d) ||
+  code == 0x0020 ||
+  code == 0x0085 ||
+  code == 0x00a0 ||
+  code == 0x1680 ||
+  (code >= 0x2000 && code <= 0x200a) ||
+  code == 0x2028 ||
+  code == 0x2029 ||
+  code == 0x202f ||
+  code == 0x205f ||
+  code == 0x3000
 }
