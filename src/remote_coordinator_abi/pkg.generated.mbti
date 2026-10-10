@@ -134,6 +134,16 @@ pub fn coordinator_durable_request(@remote_site_protocol.DurableCoordinatorDispa
 
 pub fn coordinator_durable_revision(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Int
 
+pub fn coordinator_effect_checkpoint_accepted_json(@remote_site_protocol.RemoteEffectCheckpointReport) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_effect_checkpoint_refused_json(@remote_site_protocol.RemoteEffectCheckpointReport, String) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_effect_checkpoint_reply_admit(@remote_site_protocol.RemoteEffectCheckpointReport, String) -> Result[Array[String], @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_effect_checkpoint_report_admit(String, @remote_site_protocol.DispatchRequest, Int, Int, Int) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_effect_checkpoint_report_projection(@remote_site_protocol.RemoteEffectCheckpointReport) -> Array[String]
+
 pub fn coordinator_exact_retransmission_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest) -> Bool
 
 pub fn coordinator_initial_delivery_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool, Bool) -> Result[Bool, @remote_site_protocol.DispatchIssue]

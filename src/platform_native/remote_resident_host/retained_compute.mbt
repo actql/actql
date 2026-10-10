@@ -267,7 +267,7 @@ fn open_resident_retained_compute_owned(
     close_borrow,
     observe,
     effect_retained=match prepared {
-      Effect(_) => Some({ input, material, current, })
+      Effect(_) => Some({ dispatch, input, material, current, })
       Pure(_) => None
     },
     effect_materials~,

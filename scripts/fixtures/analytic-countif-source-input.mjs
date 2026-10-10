@@ -50,7 +50,8 @@ export const analyticCountifRefusals = [
   'SELECT COUNTIF(amount > 10) OVER (ORDER BY id) AS n FROM records',
   'SELECT COUNTIF(amount > @missing) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
   'SELECT amount > 10 AS invented, COUNTIF(invented) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
-].map((text, index) => ({name: 'analytic-countif-refuse-' + index, format: 'sql', text}));
+].map((text, index) => ({name: 'analytic-countif-refuse-' + index, format: 'sql', text,
+  ...(index === 1 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
 export const analyticCountifExecutionFailures = [{
   name: 'analytic-countif-demanded-expression-failure', format: 'sql',
   text: 'SELECT COUNTIF(1 / 0 > 0) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
