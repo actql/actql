@@ -38,11 +38,13 @@ const record = {version: 'actql-real-gcs-content-acceptance/0.1', source,
   complete: false, cases: [], limitations: [
     'source-built public diagnostic, not clean packed distribution acceptance',
     'no GCS writes, deletion, version-change injection or typed INFER/COMMAND in this campaign',
+    'completed Result process restart does not establish unfinished capture or Model recovery',
     'response budget is a pre-send upper reservation, not measured response bytes',
   ]};
 record.harnessInputs = [];
 for (const path of ['scripts/test-gcs-files-content.mjs',
-  'scripts/gcs-files-content-credential.mjs', 'scripts/gcs-files-content-environment.mjs']) {
+  'scripts/gcs-files-content-credential.mjs', 'scripts/gcs-files-content-environment.mjs',
+  'scripts/gcs-files-content-restart.mjs']) {
   const bytes = await readFile(join(repository, path));
   record.harnessInputs.push({path, bytes: bytes.length,
     sha256: createHash('sha256').update(bytes).digest('hex')});
@@ -167,6 +169,31 @@ try {
       await host?.close();
       if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
     }
+    // All parent Clients, Hosts and SQLite journals are closed before the
+    // fresh process attaches the same public Run. Never start a new Program.
+    const restartConfiguration = join(root, 'restart.json');
+    await writeFile(restartConfiguration, JSON.stringify({
+      version: 'actql-gcs-content-restart-fixture/0.1', entrance,
+      evidenceDirectory: root, privateKeyPath,
+      installation: {directory: installation.directory, sourceProfilePath,
+        hostLookupExecutionPolicy},
+      authorization: {accountConfiguration: installation.authorization.accountConfiguration},
+      cases: record.cases.filter(value => value.entrance === entrance),
+    }), {flag: 'wx', mode: 0o600});
+    const beforeRestart = credential.observation();
+    const {result, outcome, writeFailure} = evidence.capture(process.execPath,
+      ['scripts/gcs-files-content-restart.mjs', restartConfiguration],
+      {cwd: repository, timeout: 60000});
+    if (writeFailure) throw writeFailure;
+    assert.equal(result.status, 0, `Separate-process GCS Result recovery failed: ${outcome.id}`);
+    const restarted = JSON.parse(result.stdout.trim().split('\n').at(-1));
+    assert.equal(restarted.complete, true);
+    assert.notEqual(restarted.pid, process.pid);
+    assert.equal(restarted.credentialCalls, 0);
+    assert.deepEqual(credential.observation(), beforeRestart);
+    record.restarts ??= [];
+    record.restarts.push(restarted);
+    await save();
   }
   record.complete = true;
 } catch (error) {

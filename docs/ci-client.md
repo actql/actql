@@ -115,15 +115,26 @@ scan/filter/select capture boundary, retaining every listing column before
 resource/version keyed JOIN. A one-item page ceiling exercises real pagination.
 The test compares ContentRef byte digests and sizes with independent expected
 objects, rereads the same Named Result by reattach, and verifies an empty
-selection sends nothing. It performs no object writes, deletes or version-change
+selection sends nothing. It then closes the original Host and opens each public
+entrance in a fresh process, comparing the same Run Ref, complete description
+and rows while its credential resolver rejects every call. It performs no
+object writes, deletes or version-change
 injection; those require separate explicit authority and evidence.
 
 Evidence and original Run/credential journals remain in the reported
 `gcs-real-content-*` directory, including failures. Synthetic Host signing keys
 are private custody, not uploadable diagnostics. This runner records the actual
 checkout state and compiled runtime digest. Its source-built result must not be
-described as pristine packed acceptance, process-restart acceptance, paid Model
+described as pristine packed acceptance, restart of unfinished capture, paid Model
 acceptance or complete INFER/COMMAND composition.
+
+`node scripts/test-gcs-content-retained-restart.mjs /absolute/original-acceptance.json`
+checks the same separate-process Result recovery against an explicitly named
+successful real-service record without reacquiring its objects. It retains the
+original record's digest, original source revision and fresh-process observations
+separately. This tests retained Result recovery, not restart of an unfinished
+capture or pending Model/COMMAND operation. Runtime artifact provenance remains
+the same explicit source-built limitation above.
 
 ## Assessing the result
 
