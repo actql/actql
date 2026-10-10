@@ -422,3 +422,202 @@ pub fn Journal::effect_ledger_response(
     StorageIssue(issue) => Err(issue)
   }
 }
+
+///|
+/// Project terminality through the existing common receipt Owner using only
+/// Store-owned raw response bytes. Save the receipt and exact common terminal
+/// entry atomically with the head CAS. This does not release physical custody.
+pub fn Journal::record_effect_row_receipt(
+  self : Journal,
+  request : @remote.DispatchRequest,
+  dispatching : @effect.EffectLedgerEntry,
+  preview : @publication.EffectPreviewIdentity,
+  scope : @request_scope.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  outcome_wire : String,
+  max_response_bytes : Int,
+  limits : @checkpoint.WireLimits,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeRemoteJournalIssue,
+] {
+  if limits.max_nodes < 1 {
+    return Err(StateCollision)
+  }
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let result = (fn() -> Result[
+    (@publication.PublicationContract, @effect.EffectLedgerEntry),
+    NativeRemoteJournalIssue,
+  ] raise EffectLedgerStorageFailure {
+    guard ledger_storage(self.effect_ledger_response(request, dispatching))
+      is Some(response) else {
+      return Err(StateCollision)
+    }
+    let dispatch_cid = @effect.effect_ledger_entry_cid(dispatching)
+    let receipt = match
+      @publication.issue_effect_row_outcome_receipt(
+        preview,
+        0,
+        0,
+        dispatch_cid,
+        response.credential_use_cid,
+        response.body,
+        response.status_code,
+        outcome_wire,
+        max_response_bytes,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(StateCollision)
+    }
+    let locator_cid = @effect.logical_item_locator_cid(locator)
+    let stored = ledger_storage(
+      self.database
+      .read("site_effect_ledger_head", locator_cid)
+      .map_err(issue => Physical(issue)),
+    )
+    let wire = @utf8.decode(stored.body) catch {
+      _ => return Err(StateCollision)
+    }
+    let current = match
+      @effect.admit_effect_ledger_entry(
+        wire,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(StateCollision)
+    }
+    let history : Array[@effect.EffectLedgerEntry] = []
+    let mut entry = current
+    for _ in 0..<limits.max_nodes {
+      let immutable = ledger_storage(
+        self.database
+        .read(
+          "site_effect_ledger_entry",
+          @effect.effect_ledger_entry_cid(entry),
+        )
+        .map_err(issue => Physical(issue)),
+      )
+      if immutable.revision != 0L ||
+        immutable.body != @utf8.encode(@effect.effect_ledger_entry_wire(entry)) {
+        return Err(StateCollision)
+      }
+      history.push(entry)
+      match entry.prior_entry_cid {
+        None => break
+        Some(cid) => {
+          let prior = ledger_storage(
+            self.database
+            .read("site_effect_ledger_entry", cid)
+            .map_err(issue => Physical(issue)),
+          )
+          let prior_wire = @utf8.decode(prior.body) catch {
+            _ => return Err(StateCollision)
+          }
+          entry = match
+            @effect.admit_effect_ledger_entry(
+              prior_wire,
+              limits.max_wire_bytes,
+              limits.max_nodes,
+              limits.max_depth,
+            ) {
+            Ok(value) if @effect.effect_ledger_entry_cid(value) == cid => value
+            _ => return Err(StateCollision)
+          }
+        }
+      }
+    }
+    if history[history.length() - 1].prior_entry_cid is Some(_) {
+      return Err(StateCollision)
+    }
+    let ordered = Array::makei(history.length(), i => {
+      history[history.length() - 1 - i]
+    })
+    let terminal = match
+      @effect.issue_effect_row_receipt_terminal_entry(
+        preview,
+        0,
+        0,
+        scope,
+        locator,
+        key,
+        canonical_request_cid,
+        current,
+        ordered,
+        dispatch_cid,
+        response.credential_use_cid,
+        response.body,
+        response.status_code,
+        @publication.publication_contract_json(receipt),
+        max_response_bytes,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(StateCollision)
+    }
+    let receipt_cid = @publication.publication_contract_identity(receipt)
+    let receipt_bytes = @utf8.encode(
+      @publication.publication_contract_json(receipt),
+    )
+    let terminal_cid = @effect.effect_ledger_entry_cid(terminal)
+    let terminal_bytes = @utf8.encode(
+      @effect.effect_ledger_entry_wire(terminal),
+    )
+    for
+      (table, cid, body) in [
+        ("site_effect_row_receipt", receipt_cid, receipt_bytes),
+        ("site_effect_ledger_entry", terminal_cid, terminal_bytes),
+      ] {
+      match self.database.read(table, cid) {
+        Ok(value) if value.revision == 0L && value.body == body => ()
+        Err(@sqlite.NotFound) =>
+          ledger_storage(
+            self.database
+            .insert(table, cid, body)
+            .map_err(issue => Physical(issue)),
+          )
+          |> ignore
+        Err(issue) => return Err(Physical(issue))
+        _ => return Err(StateCollision)
+      }
+    }
+    if terminal_cid != @effect.effect_ledger_entry_cid(current) {
+      ledger_storage(
+        self.database
+        .compare_exchange(
+          "site_effect_ledger_head",
+          locator_cid,
+          stored.revision,
+          terminal_bytes,
+        )
+        .map_err(issue => Physical(issue)),
+      )
+      |> ignore
+    }
+    Ok((receipt, terminal))
+  })() catch {
+    StorageIssue(issue) => Err(issue)
+  }
+  match result {
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(issue)
+    }
+    Ok(value) =>
+      match self.finish_effect_checkpoint_mutation(Ok(())) {
+        Ok(_) => Ok(value)
+        Err(issue) => Err(issue)
+      }
+  }
+}

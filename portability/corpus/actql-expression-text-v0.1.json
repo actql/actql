@@ -198,7 +198,12 @@
     {"source":"sign(-1)","tree":{"sign":{"literal":-1}}},
     {"source":"sign(-x)","tree":{"sign":{"negate":{"field":"x"}}}},
     {"source":"sign(negate(1))","tree":{"sign":{"negate":{"literal":1}}}},
-    {"source":"sign(NULL)","tree":{"sign":{"literal":null}}}
+    {"source":"sign(NULL)","tree":{"sign":{"literal":null}}},
+    {"source":"strpos(value, part)","tree":{"strpos":[{"field":"value"},{"field":"part"}]}},
+    {"source":"strpos($value, $part)","tree":{"strpos":[{"$param":"value"},{"$param":"part"}]}},
+    {"source":"strpos('😀éx', 'x')","tree":{"strpos":[{"literal":"😀éx"},{"literal":"x"}]}},
+    {"source":"strpos('', '')","tree":{"strpos":[{"literal":""},{"literal":""}]}},
+    {"source":"strpos(NULL, NULL)","tree":{"strpos":[{"literal":null},{"literal":null}]}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -241,6 +246,10 @@
     "ends_with(x)",
     "ends_with(x,y,z)",
     "sign()",
-    "sign(x,y)"
+    "sign(x,y)",
+    "strpos()",
+    "strpos(x)",
+    "strpos(x,y,z)",
+    "STRPOS(x,y)"
   ]
 }

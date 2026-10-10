@@ -187,7 +187,15 @@
     {"source":"sign(nn)","type":"number?"},
     {"source":"sign(NULL)","type":"number?"},
     {"source":"sign($q)","type":"number?"},
-    {"source":"sign(-1)","type":"number"}
+    {"source":"sign(-1)","type":"number"},
+    {"source":"strpos(s,s)","type":"number"},
+    {"source":"strpos(sn,s)","type":"number?"},
+    {"source":"strpos(s,sn)","type":"number?"},
+    {"source":"strpos(NULL,NULL)","type":"number?"},
+    {"source":"strpos('', '')","type":"number"},
+    {"source":"strpos(s,$p)","type":"number"},
+    {"source":"strpos(NULL,s)","type":"number?"},
+    {"source":"strpos(s,NULL)","type":"number?"}
   ],
   "negative": [
     {"source":"missing","issue":"UnknownField"},
@@ -267,6 +275,14 @@
     {"source":"sign(j)","issue":"TypeMismatch"},
     {"source":"sign(r)","issue":"TypeMismatch"},
     {"source":"sign(a)","issue":"TypeMismatch"},
-    {"source":"sign(v)","issue":"TypeMismatch"}
+    {"source":"sign(v)","issue":"TypeMismatch"},
+    {"source":"strpos(n,s)","issue":"TypeMismatch"},
+    {"source":"strpos(s,n)","issue":"TypeMismatch"},
+    {"source":"strpos(b,s)","issue":"TypeMismatch"},
+    {"source":"strpos(j,s)","issue":"TypeMismatch"},
+    {"source":"strpos(r,s)","issue":"TypeMismatch"},
+    {"source":"strpos(s,a)","issue":"TypeMismatch"},
+    {"source":"strpos(d,s)","issue":"TypeMismatch"},
+    {"source":"strpos(s,v)","issue":"TypeMismatch"}
   ]
 }

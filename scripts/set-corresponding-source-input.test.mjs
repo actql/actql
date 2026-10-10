@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 12);
-  assert.equal(setCorrespondingRefusals.length, 8);
+  assert.equal(setCorrespondingSuccesses.length, 17);
+  assert.equal(setCorrespondingRefusals.length, 11);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -14,6 +14,30 @@ test('CORRESPONDING matching has independent row, type, scope and multiplicity c
   assert.deepEqual(setCorrespondingProgram.stages[1].steps[0].filter, {gt: [{field: 'id'}, {literal: 1}]});
   assert.deepEqual(setCorrespondingProgram.stages[1].steps[2].filter, {lte: [{field: 'id'}, {literal: 2}]});
   assert.deepEqual(setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-global-common-type').expected, [{x: 1}, {x: 3}, {x: 4}]);
+});
+
+test('positional duplicate controls retain both values, types and scope', () => {
+  const control = JSON.parse(setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-json-control').text);
+  assert.equal(control.stages[0].steps[0].as, 'seed');
+  assert.equal(control.stages[0].steps[1].from, 'seed');
+  assert.deepEqual(control.stages[0].steps[0].values.rows, [{a: 0, b: 0}, {a: 1, b: null}]);
+  const scalar = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-duplicate-aliases');
+  assert.deepEqual(scalar.expected, [{a: 0, b: 0}, {a: 1, b: null}]);
+  assert.deepEqual(scalar.columns.map(x => [x.name, x.contract.nullable]), [['a', false], ['b', true]]);
+  assert.equal(scalar.sourceReadSessionCount, 0);
+  const scoped = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-scoped-current-and-original');
+  assert.equal(scoped.format, 'aql-text');
+  assert.deepEqual(scoped.expected, [{a: 0, b: 0}, {a: 1, b: 2}]);
+  assert.ok(scoped.text.includes('original.x AS x, x AS `X`'));
+  const empty = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-typed-empty');
+  assert.equal(empty.format, 'aql-text');
+  assert.deepEqual(empty.expected, []);
+  const shared = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-positional-shared-source');
+  assert.equal(shared.sourceReadSessionCount, 1);
+  assert.deepEqual(shared.expected.slice(-2), [{a: 3, b: 30}, {a: 3, b: 30}]);
+  for (const f of setCorrespondingRefusals.filter(x => x.name.includes('positional-'))) {
+    assert.equal(f.expectedCode, 'ClientProgramInvalidInput');
+  }
 });
 
 test('CORRESPONDING matching participates in both normal and narrow packed acceptance', () => {
