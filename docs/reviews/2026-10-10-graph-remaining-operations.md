@@ -131,11 +131,36 @@ Independent boundaries, not successful-run measurements, supply the oracles:
 - The common read regression also covers raw runtime Text, invalid coordinates,
   expired input authority and cancellation without mutation or lost binding.
 
-Wasm/Native admission selections are **not yet executed**. Their guarded
-attempt `run-fWlTuR` refused the busy shared heavy lock before starting either
-test command. No foreign lock was reclaimed. Full Core, a new packed cohort,
-hosted CI and Preview were not run for this source. The preceding `aa615176b`
-packed acceptance stays bound to its original artifacts, not this new source.
+After the shared slot became available, the same two selected files passed
+**Wasm 7/7** and **Native 7/7** at clean
+`f190db02ec5f1562b28da2b4b858c3fe261e9d04`. Its implementation tree is the
+verified `ca6e3afbd` source plus the evidence document only. Guarded sequential
+receipt `run-H8S78h` is terminal, passed, output complete, with locks released;
+focused receipts are `focused-test-yw7ovI` and `focused-test-oXFhXG`.
+
+Each step used the existing focused nonzero-test guard with:
+
+```sh
+moon test --target wasm src/execution_relation/producer_read_wbtest.mbt \
+  src/query_integration/graph_start_admission_wbtest.mbt
+moon test --target native src/execution_relation/producer_read_wbtest.mbt \
+  src/query_integration/graph_start_admission_wbtest.mbt
+```
+
+The enclosing `runLocalCheck` owned the shared heavy lock and ran the steps
+sequentially with a 600-second total budget. Earlier attempt `run-fWlTuR`
+refused the busy shared lock before test execution; `run-fo5h0o` failed on a
+Node argument separator before running MoonBit. Neither is a test success.
+No foreign lock was reclaimed. Full Core, a new packed cohort, hosted CI and
+Preview were not run for this source. The preceding `aa615176b` packed
+acceptance stays bound to its original artifacts, not this new source.
+
+The evidence-document commit's message was amended with explicit approval:
+`3d53eef748dc4defb9661cb6590060787b38e668` became
+`f190db02ec5f1562b28da2b4b858c3fe261e9d04`. Tree
+`32a1561143ee09e6ee3a81decd07cc73b5ff02e2` and parent `ca6e3afbd` stayed
+identical; all final message lines are at most 68 characters. Push used the
+full old remote SHA as an explicit lease. No execution receipt was relabeled.
 
 Remaining P2: `LookupStart` still calls the existing synchronous storage
 scope validation, identity serialization and String-key construction index.
