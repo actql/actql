@@ -1974,13 +1974,21 @@ fn compile_steps(
   }
   let positional_private_fields : Array[String] = []
   let positional_authored_aliases : Array[(String, String)] = []
-  // A later authored RENAME destination is a real column name. Reserve it
+  // A later authored column destination is a real column name. Reserve it
   // before assigning private storage names to anonymous/duplicate occurrences.
-  let positional_renamed_names : Array[@query.NamePart] = []
+  let positional_destination_names : Array[@query.NamePart] = []
   if positional_projection is Some(projection) {
     for index in (projection + 1)..<@query.operation_count(query) {
-      if @query.operation_at(query, index) is Some(Rename(names)) {
-        positional_renamed_names.append(names.map(pair => pair.1))
+      match @query.operation_at(query, index) {
+        Some(Rename(names)) =>
+          positional_destination_names.append(names.map(pair => pair.1))
+        Some(Extend(columns)) =>
+          for column in columns {
+            if projection_alias(column) is Some(name) {
+              positional_destination_names.push(name)
+            }
+          }
+        _ => ()
       }
     }
   }
@@ -2249,6 +2257,7 @@ fn compile_steps(
         Where(predicate) => [predicate]
         Set(assignments) => assignments.map(assignment => assignment.1)
         Select(columns, _)
+        | Extend(columns)
         | Analytic(columns)
         | AnalyticExpressions(columns, _)
         | OrderAnalytic(columns, _) =>
@@ -2258,6 +2267,7 @@ fn compile_steps(
       let resolve_input = path => {
         if operation is Where(_) ||
           operation is Set(_) ||
+          operation is Extend(_) ||
           operation is Select(_, _) ||
           operation is Analytic(_) ||
           operation is AnalyticExpressions(_, _) ||
@@ -2327,6 +2337,18 @@ fn compile_steps(
           remaining_projections, references, resolve_input,
         )
         for path in references {
+          if path.length() > 1 &&
+            pipe_ranges.any(range => {
+              same_name(path[0], range.0) &&
+              range.1
+              .filter(column => {
+                same_name(path[1], { value: column.0, quoted: false, })
+              })
+              .length() >
+              1
+            }) {
+            raise Abort(AmbiguousColumn)
+          }
           if ambiguous_current_name(path[0]) &&
             !order_reference_identity(path, resolve_input)
             .map(identity => identity.1 > 1)
@@ -3230,7 +3252,7 @@ fn compile_steps(
             selected,
             active_fields,
             authored_aliases=Some(positional_authored_aliases),
-            reserved_names=positional_renamed_names,
+            reserved_names=positional_destination_names,
           )
           if !private_fields.is_empty() {
             positional_private_fields.append(private_fields)
@@ -3264,12 +3286,21 @@ fn compile_steps(
             pipe_ranges = [(name, [])]
           }
         } else {
-          pipe_ranges = [
-            (
-              name,
-              unnest_expression_columns(pipe_visible, [], [], pipe_columns),
-            ),
-          ]
+          let columns = unnest_expression_columns(
+            pipe_visible,
+            [],
+            [],
+            pipe_columns,
+          )
+          let columns = if positional_projection is Some(projection) &&
+            i > projection {
+            positional_named_expression_columns(
+              columns, positional_private_fields, positional_authored_aliases,
+            )
+          } else {
+            columns
+          }
+          pipe_ranges = [(name, columns)]
           scalar_value_table_ranges = []
           value_table_receivers = []
           pipe_value_table = false
@@ -5090,7 +5121,7 @@ fn compile_steps(
                         projections,
                         physical,
                         names,
-                        reserved_names=positional_renamed_names,
+                        reserved_names=positional_destination_names,
                       ),
                       positional_set_aggregate_slot(
                         call,
@@ -5131,7 +5162,7 @@ fn compile_steps(
                       projections,
                       physical,
                       names,
-                      reserved_names=positional_renamed_names,
+                      reserved_names=positional_destination_names,
                     )
                   }
                 }
@@ -5241,7 +5272,7 @@ fn compile_steps(
                   projections,
                   physical,
                   names,
-                  reserved_names=positional_renamed_names,
+                  reserved_names=positional_destination_names,
                 )
               } else {
                 projection_output_name(projection)
@@ -5279,7 +5310,7 @@ fn compile_steps(
               selected,
               physical,
               authored_aliases=Some(positional_authored_aliases),
-              reserved_names=positional_renamed_names,
+              reserved_names=positional_destination_names,
             ),
           )
           // ORDER reuses evaluated occurrences after duplicate aliases are
@@ -5497,7 +5528,7 @@ fn compile_steps(
                   projections,
                   active_fields,
                   names,
-                  reserved_names=positional_renamed_names,
+                  reserved_names=positional_destination_names,
                 )
               } else {
                 output_name(
@@ -5653,7 +5684,7 @@ fn compile_steps(
               selected,
               active_fields,
               authored_aliases=Some(positional_authored_aliases),
-              reserved_names=positional_renamed_names,
+              reserved_names=positional_destination_names,
             ),
           )
           for index in 0..<expressions.length() {
