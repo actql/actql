@@ -143,7 +143,7 @@ Use `get_check_input(observation, document_id, revision)` and
 `resolve_check_text_range` converts exact UTF-8 spans to zero-based line/UTF-16
 editor coordinates; a position inside CRLF has no exact editor coordinate.
 `explain_check_reason(reason)` returns English catalog text and safe advice.
-`get_submission_check(error)` retrieves the original public Check Observation
+`get_submission_check_observation(error)` retrieves the original public Check Observation
 for a rejected submission when available; use the same location helpers on it.
 
 Copying/serializing an observation preserves public data but does not create
