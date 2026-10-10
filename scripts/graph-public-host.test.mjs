@@ -12,6 +12,7 @@ import {graphPresenceOracle, deltaApplicationScenario as deltaScenario,
   './fixtures/graph-delta-application.mjs';
 import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/graph-union.mjs';
 import {subtractionScenario} from './fixtures/graph-subtraction.mjs';
+import {graphReachSourceSuccesses} from './fixtures/graph-reach-source-input.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -538,6 +539,37 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'graph-reach') {
+      for (const sample of graphReachSourceSuccesses) {
+        const submissionRef = client.newSubmission({nonce: `${sample.name}-${mode}`});
+        const run = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        const state = await run.wait();
+        assert.equal(state.status, 'succeeded', JSON.stringify(state));
+        const physicalCount = () => physicalSteps.filter(name =>
+          name === 'physical_start_reserved' || name === 'computed').length;
+        const completedCount = physicalCount();
+        const attached = await client.attach(run.ref);
+        for (const [name, expected] of Object.entries(sample.results)) {
+          assert.deepEqual(await run.result(name).all(), expected.rows, sample.name);
+          assert.deepEqual((await run.result(name).describe()).columns, expected.columns, sample.name);
+          assert.deepEqual(await attached.result(name).all(), expected.rows, sample.name);
+        }
+        const repeated = await client.startSource(sample.text, {format: sample.format, submissionRef});
+        assert.deepEqual(repeated.ref, run.ref);
+        assert.equal(physicalCount(), completedCount, 'Result reads and same intent must not repeat Compute');
+        const retained = relationSnapshots.get(run.ref.runDefinitionCid) ?? [];
+        if (Object.values(sample.results).some(result => result.rows.length > 0)) {
+          assert.ok(retained.length > 0, 'Reach must traverse the retained Relation Store');
+        }
+        for (const receipt of retained) {
+          assert.equal(receipt.restored, true);
+          assert.equal(receipt.sourceReleased, true);
+          assert.equal(receipt.temporaryBodyReclaimed, true);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+      }
+      return;
+    }
     if (profile === 'graph-subtraction') {
       // Small authored cases cover both projections without multiplying every
       // property strategy by every transport/failure. Conditional p crosses the

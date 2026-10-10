@@ -165,6 +165,8 @@ import {graphHopNodePredicateSuccesses, graphHopNodePredicateRefusals}
   from './graph-hop-node-predicate-source-input.mjs';
 import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './graph-traverse-source-input.mjs';
+import {graphReachSourceSuccesses, graphReachSourceRefusals}
+  from './graph-reach-source-input.mjs';
 import {graphTraversePathSuccesses, graphTraversePathRefusals}
   from './graph-traverse-path-source-input.mjs';
 import {graphDifferenceSourceSuccesses, graphDifferenceSourceRefusals}
@@ -230,7 +232,8 @@ const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
-const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1';
+const graphReachOnly = process.env.ACTQL_TEST_GRAPH_REACH_ONLY === '1';
+const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly;
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
 const negatedPredicateReuseOnly = process.env.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY === '1';
@@ -421,7 +424,9 @@ const scopeInputs = concatReuseOnly ? {successes: concatReuseSuccesses, refusals
   : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
-  : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
+  : graphTraverseOnly ? (graphReachOnly
+    ? {successes: graphReachSourceSuccesses, refusals: graphReachSourceRefusals}
+    : {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals})
   : matchDataProducerOnly ? {successes: matchDataProducerSuccesses, refusals: matchDataProducerRefusals}
   : graphMatchOnly ? {successes: graphMatchSourceSuccesses, refusals: graphMatchSourceRefusals}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
@@ -562,6 +567,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...graphGraftSourceSuccesses);
   scopeInputs.refusals.push(...graphGraftSourceRefusals);
   scopeInputs.executionFailures.push(...graphGraftSourceExecutionFailures);
+  scopeInputs.successes.push(...graphReachSourceSuccesses);
+  scopeInputs.refusals.push(...graphReachSourceRefusals);
   scopeInputs.successes.push(...statisticalAggregateSuccesses);
   scopeInputs.refusals.push(...statisticalAggregateRefusals);
   scopeInputs.executionFailures.push(...statisticalAggregateExecutionFailures);

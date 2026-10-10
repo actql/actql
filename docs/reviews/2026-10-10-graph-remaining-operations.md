@@ -120,3 +120,17 @@ Remaining Reach evidence: selected public Host/retained Store execution,
 packed Local/HTTPS, fresh-process Result reads, required matching backends,
 shared-input consumer and cleanup retry acceptance. It remains partial, not
 delivery-complete. shortest_path and mean_graphs remain unconnected.
+
+Reach's independent public fixture registration covers raw typed identity with
+two Result consumers, AQL Relation and predicate selectors, empty results and
+malformed options. `--graph-reach-only` selects the existing public Local and
+HTTPS driver, then its fresh-process retained cohort reader, without selecting
+the unrelated Planner, Effect or String campaigns. Source Host cases use the
+same rows/schema oracle and count actual physical-start/completion hooks during
+reattach, reads and submission-intent reuse.
+
+Registration, copied dependencies, transport ownership and authored inventory
+checks pass 54/54 (run-1gooEr, focused-test-UvUPyk). These lightweight Node
+checks do not execute Reach through the real Host or prove package acceptance.
+The normal corpus pin includes the five new success and four refusal oracles;
+its digest is over independent fixture registration, not product output.
