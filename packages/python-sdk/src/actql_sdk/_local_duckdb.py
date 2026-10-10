@@ -150,6 +150,7 @@ class DuckDBLibrary:
             'disconnect': ([pp], None),
             'close': ([pp], None),
             'interrupt': ([p], None),
+            'query': ([p, C.c_char_p, rp], C.c_int),
             'prepare': ([p, C.c_char_p, pp], C.c_int),
             'nparams': ([p], C.c_uint64),
             'bind_null': ([p, C.c_uint64], C.c_int),
@@ -210,6 +211,7 @@ class DuckDBConnection:
         self._io = Lock()
         self._lifetime = Lock()
         self._streams: set[DuckDBStream] = set()
+        self._read_view: DuckDBReadView | None = None
         self._closing = False
         self._closed = False
         try:
@@ -266,7 +268,8 @@ class DuckDBConnection:
                 remaining -= len(arguments[0])
             bindings.append((name, arguments))
         with self._io:
-            if self._closing or self._closed or self._streams:
+            if (self._closing or self._closed or self._streams
+                    or (self._read_view is not None and not self._read_view._readable)):
                 raise DuckDBPhysicalError('DuckDB connection is unavailable')
             stream = DuckDBStream(self, limits)
             # Register custody before the native prepare call can fail.
@@ -291,6 +294,24 @@ class DuckDBConnection:
                     setattr(error, 'physical_cleanup', stream)
                 raise
 
+    def begin_read_view(self) -> DuckDBReadView:
+        """A physical transaction, not Source authorization or completion."""
+        self._owned()
+        with self._io:
+            if self._closing or self._closed or self._streams or self._read_view is not None:
+                raise DuckDBPhysicalError('DuckDB read view is unavailable')
+            view = DuckDBReadView(self)
+            # Register the exact handle before BEGIN can fail or lose its reply.
+            self._read_view = view
+            try:
+                view._command(b'BEGIN TRANSACTION')
+                view._readable = True
+                return view
+            except BaseException as error:
+                self._closing = True
+                setattr(error, 'physical_cleanup', view)
+                raise
+
     def interrupt(self) -> None:
         self._owned()
         # Cancellation delivery can overlap execution; only Core decides the
@@ -307,7 +328,7 @@ class DuckDBConnection:
         if not self._io.acquire(blocking=False):
             return False
         try:
-            if self._streams:
+            if self._streams or self._read_view is not None:
                 return False
             with self._lifetime:
                 if self._connection.value:
@@ -323,6 +344,104 @@ class DuckDBConnection:
     def _owned(self) -> None:
         if self._identity is not self:
             raise ValueError('Foreign DuckDB connection handle')
+
+
+class DuckDBReadView:
+    """One physical read transaction and its control-result cleanup custody.
+
+    Only an observed successful COMMIT is settlement. Exceptions, interruption,
+    rollback and close never substitute for it. Failed control operations are
+    not repeated; teardown retries retain this handle and its native result.
+    These flags describe physical I/O, not Run admission or recovery state.
+    """
+
+    def __init__(self, owner: DuckDBConnection) -> None:
+        self._owner = owner
+        self._identity = self
+        self._result = _Result()
+        self._result_created = False
+        self._readable = False
+        self._finish_invoked = False
+        self._finished = False
+        self._committed = False
+        self._closed = False
+
+    @property
+    def committed(self) -> bool:
+        self._owned()
+        return self._committed
+
+    def _owned(self) -> None:
+        if (self._identity is not self
+                or (not self._closed and self._owner._read_view is not self)):
+            raise ValueError('Foreign DuckDB read-view handle')
+        self._owner._owned()
+
+    def _dispose_result(self) -> None:
+        if self._result_created:
+            self._owner._api.duckdb_destroy_result(C.byref(self._result))
+            self._result_created = False
+
+    def _command(self, command: bytes) -> None:
+        self._result = _Result()
+        self._result_created = True
+        status = self._owner._api.duckdb_query(
+            self._owner._connection, command, C.byref(self._result))
+        if status != 0:
+            raise DuckDBPhysicalError('DuckDB read-view control failed')
+        if command == b'COMMIT':
+            self._committed = True
+        if command in (b'COMMIT', b'ROLLBACK'):
+            self._finished = True
+        # Cleanup failure does not erase an already observed commit fact.
+        self._dispose_result()
+
+    def commit(self) -> None:
+        self._owned()
+        with self._owner._io:
+            if (self._closed or not self._readable or self._finish_invoked
+                    or self._owner._closing or self._owner._streams):
+                raise DuckDBPhysicalError('DuckDB read view cannot commit')
+            self._finish_invoked = True
+            self._readable = False
+            try:
+                self._command(b'COMMIT')
+            except BaseException as error:
+                self._owner._closing = True
+                setattr(error, 'physical_cleanup', self)
+                raise
+
+    def close(self) -> bool:
+        self._owned()
+        if self._closed:
+            return True
+        if not self._owner._io.acquire(blocking=False):
+            return False
+        try:
+            if self._owner._streams:
+                return False
+            self._dispose_result()
+            if self._readable and not self._finish_invoked:
+                self._finish_invoked = True
+                self._readable = False
+                try:
+                    self._command(b'ROLLBACK')
+                except BaseException:
+                    self._owner._closing = True
+                    raise
+            if not self._finished:
+                # A control reply was not observed. Do not replay it or report
+                # settlement; synchronous disconnect physically ends the view.
+                self._owner._closing = True
+                with self._owner._lifetime:
+                    if self._owner._connection.value:
+                        self._owner._api.duckdb_disconnect(
+                            C.byref(self._owner._connection))
+            self._owner._read_view = None
+            self._closed = True
+            return True
+        finally:
+            self._owner._io.release()
 
 
 _INTEGER_TYPES: dict[int, Any] = {

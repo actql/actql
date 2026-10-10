@@ -135,6 +135,23 @@ methods consume the same native cursor and share its row and byte ceilings.
 The existing Core receiver validates column shape, counts, schema, values and
 cumulative limits; the physical encoding does not certify a Source receipt.
 
+`begin_read_view` retains one physical transaction on the same connection used
+for metadata, validation and processed-result queries. The fixed transaction
+control commands do not introduce a query parser or authorize Source access.
+Only a successful observed COMMIT sets the physical `committed` fact. All query
+streams must release their exact native handles before commit or view teardown.
+The Core Native attempt Owner still decides whether that settled view belongs
+to its issued attempt and whether the receipts establish a capture.
+
+A missing control reply is not settlement or permission to repeat the command.
+Failed BEGIN/COMMIT/ROLLBACK retains the same read-view and result handles. After
+result cleanup, disconnect physically terminates an unresolved view without
+replaying control I/O. Closing a readable, unfinished view rolls back once;
+rollback never reports commit. A known COMMIT survives a later result-cleanup
+failure, while connection release remains pending until the result is actually
+destroyed. Busy I/O or failed destruction retains custody for the same-handle
+retry. Read-view close is physical cleanup, not cancellation of a Run.
+
 Statement, result, chunk and logical-type handles belong to the exact physical
 connection and stream. Copied handles are refused. Interrupt delivery is not
 physical-stop acknowledgement or a Run cancellation result. While native I/O
