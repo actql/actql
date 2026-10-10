@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 12 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 13 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -698,3 +698,9 @@ bounded envelope, not a claim about total Python/JIT/allocator RSS.
 Private ABI 12 exposes the original retained task issue category to the trusted
 physical Host. It does not infer failure from an error message or expose Source
 metadata to a caller.
+
+Private ABI 13 reads an existing strategy assessment and its exact Root capacity
+and reservation quantities. It does not rerun search, derive admission from
+explanation text, or change a Run. The trusted Host may inspect the reported
+resource rejection before fixing its preflight inventory. A single assessment
+is not a claim that all strategies were explored.

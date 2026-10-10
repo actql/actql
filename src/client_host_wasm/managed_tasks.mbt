@@ -570,3 +570,46 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
     Some(StartNotPermitted) => 11
   }
 }
+
+///|
+/// Read one existing Owner assessment, without rerunning search or dispatch.
+/// Int64 quantities retain exact declared capacities and current reservations.
+#export_name("actql_task_assessment")
+pub fn managed_task_assessment(
+  nonce : Int64,
+  handle : Int,
+  index : Int,
+  field : Int,
+) -> Int64 {
+  guard selected(nonce) is Some(value) &&
+    value.tasks.get(handle) is Some(record) &&
+    value.computes.get(record.compute) is Some({ host: Some(host), .. }) else {
+    return -2L
+  }
+  let run = @local_run.local_compute_run(host)
+  guard @strategy.strategy_report_at(run, index) is Some(assessment) else {
+    return -2L
+  }
+  let limits = @resources.ledger_admission_limits(value.root)
+  let usage = @resources.ledger_usage(value.root)
+  match field {
+    0 =>
+      match assessment.rejection {
+        None => 0L
+        Some(RetentionLimit) => 1L
+        Some(ExecutionLimit) => 2L
+        Some(TransferLimit) => 3L
+        Some(AttemptLimit) => 4L
+        Some(HoldingLimit) => 5L
+        Some(_) => 6L
+      }
+    1 => assessment.transfer_bytes
+    2 => assessment.retained_bytes
+    3 => assessment.execution_bytes
+    4 => limits.retained_bytes
+    5 => usage.held_bytes + usage.reserved_retention_bytes
+    6 => limits.execution_bytes
+    7 => usage.reserved_execution_bytes
+    _ => -3L
+  }
+}
