@@ -220,6 +220,12 @@ function fixtures() {
     result.push({id: 'checkpoint resolution unsigned ' + c.id, value: unsigned, cid: c.expected_unsigned_cid});
     result.push({id: 'checkpoint resolution signed ' + c.id, value: signed, cid: c.expected_self_cid});
   }
+  const historicalStages = read('portability/corpus/historical/pre-strpos-stage-identities.json');
+  assert.equal(historicalStages.version, 'actql-historical-stage-identity-vectors/0.1');
+  for (const c of historicalStages.cases) result.push({
+    id: 'pre-STRPOS historical ' + c.id, value: c.envelope,
+    cid: c.expected_cid, text: c.expected_canonical_bytes,
+  });
   const family = read('spec/spec-family.json');
   const sourceStates = read('portability/corpus/source-state-requirement.json');
   for (const c of sourceStates.cases) {
@@ -273,7 +279,7 @@ function fixtures() {
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
     // Independent canonical JSON oracle for the current closed Program schema,
     // including the selected common GoogleSQL scalar function alternatives.
-    cid: 'sha256:5f67400cee99f7f718eb812bae8d39bb6058cd81038bd805f00e33e84a84c893',
+    cid: 'sha256:64e8361cab632650d7b58e38a5535db6a02b19c179adb44eb0b08e48ed5541d3',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {

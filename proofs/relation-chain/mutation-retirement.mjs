@@ -13,7 +13,7 @@ export const retirementCases = Object.freeze([
     suite, ordinary, 'assert_eq(cleanups[before], 1)'],
   ['pending-cleanup-starts-successor', path,
     'Ok(false) => return Ok(managed_provider_waiting(0L, 0L))', 'Ok(false) => ()',
-    suite, retry, 'assert_true(\n    advance_managed_provider(active, 1).unwrap() is Waiting(work=0L, ..),'],
+    suite, retry, 'assert_true(\n      advance_managed_provider(active, 1).unwrap() is Waiting(work=0L, ..),'],
 ].map(row => Object.freeze(row)));
 
 // Default CI retains every original recipe and adds the three shared-owner

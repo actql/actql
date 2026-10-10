@@ -1,0 +1,10 @@
+{
+  "revision": "81250607ee8621659276653afa6c9bbc1fc680e3",
+  "tarballs": {
+    "client-wire": "ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60",
+    "sdk": "64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e",
+    "run-host-core": "5a40470f4533ac62c93909ca949c45e335bd056bac609e6eb8fbe8a894c4be0f",
+    "local-node": "a14ac61bb13f8cfc65b4029b8c5abb511b61a6eb43a370b9b244d16bc2889897",
+    "node": "a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb"
+  }
+}

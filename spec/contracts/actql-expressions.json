@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "ff66d4a9096c8b34a0310b48d4f682db0efe4ce289e35161663b18252bcc9daf",
+  "grammar_sha256": "767948d07a472205a702821bad11b336a6bb1eea343e185f1ccf1db0d78dd01e",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2413,6 +2413,23 @@
               ],
               "properties": {
                 "contains": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "strpos"
+              ],
+              "properties": {
+                "strpos": {
                   "type": "array",
                   "minItems": 2,
                   "items": {
@@ -7814,6 +7831,27 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "strpos"
                 },
                 "body": {
                   "type": "array",
@@ -19112,6 +19150,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "strpos"
+              ],
+              "properties": {
+                "strpos": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "ends_with"
               ],
               "properties": {
@@ -23602,6 +23657,27 @@
               "properties": {
                 "op": {
                   "const": "contains"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "strpos"
                 },
                 "body": {
                   "type": "array",
@@ -30930,6 +31006,23 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "strpos"
+              ],
+              "properties": {
+                "strpos": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "ends_with"
               ],
               "properties": {
@@ -35440,6 +35533,27 @@
               ],
               "properties": {
                 "op": {
+                  "const": "strpos"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  },
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
                   "const": "ends_with"
                 },
                 "body": {
@@ -39142,6 +39256,12 @@
       "value": "Return exactly -1 for a negative finite number, canonical positive zero for either zero sign, and exactly 1 for a positive finite number. This includes subnormal and largest finite magnitudes. NULL produces NULL.",
       "evaluation": "Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. SIGN introduces no secondary evaluation or value-domain failure for an admitted finite number.",
       "identity": "The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
+    },
+    "strpos": {
+      "signature": "Exactly two string operands; the result is a finite number and is nullable exactly when either operand is nullable. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload or explicit collation is admitted.",
+      "value": "Return the 1-based Unicode scalar position of the first exact occurrence of the second string in the first, or canonical positive zero when absent. An empty second string returns 1 for every non-null first string, including the empty string. Count Unicode scalars, not UTF-8 bytes, UTF-16 code units or grapheme clusters. Default binary comparison preserves retained values without normalization, case folding, trimming or locale rules. Either NULL operand produces NULL. Positions are exact integer values in the existing bounded string domain, represented by ActQL finite binary64 number rather than the GoogleSQL INT64 type.",
+      "evaluation": "Evaluate the value and then the subvalue once each when demanded, including both children when the first produces NULL. Apply strict NULL only after both evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Matching preserves logical operand charges; physical search work remains bounded and cancellable.",
+      "identity": "The closed source form is {strpos: [value, subvalue]}; the machine node is {op: strpos, body: [value_node, subvalue_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning."
     }
   },
   "regex_ast_contract": {
