@@ -226,6 +226,15 @@ fn cancellation_custody(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
+    let original = match database.read("client_cancel_originals", row.key) {
+      Ok(value) => value
+      _ => return Err(CustodyLost)
+    }
+    if original.revision != 0L ||
+      original.body !=
+      @utf8.encode(@journal.effect_response_body_digest(row.body)) {
+      return Err(CustodyLost)
+    }
     if cancellation_index(
         value.namespace_id,
         @host.client_request_authority_scope_cid(value.request),
@@ -257,6 +266,28 @@ fn cancellation_custody(
     cursor = row.key
   }
   if observed != count {
+    return Err(CustodyLost)
+  }
+  let mut original_cursor = ""
+  let mut originals = 0
+  while true {
+    let row = match
+      database.scan_after("client_cancel_originals", original_cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    originals += 1
+    if originals > count || row.revision != 0L {
+      return Err(CustodyLost)
+    }
+    match database.read("client_cancellations", row.key) {
+      Ok(_) => ()
+      _ => return Err(CustodyLost)
+    }
+    original_cursor = row.key
+  }
+  if originals != count {
     return Err(CustodyLost)
   }
   Ok((count, marker.revision))
@@ -442,6 +473,18 @@ pub fn NativeClientRunJournal::cancel_operation(
           return Err(Encoding)
         }
         match self.database.insert("client_cancellations", key, body) {
+          Ok(_) => ()
+          Err(issue) => return Err(Physical(issue))
+        }
+        // Independently witness exact original result bytes, not only issuance
+        // count or a self-consistent intent. Both rows and the request fence
+        // commit together; neither lookup nor replay rewrites this witness.
+        match
+          self.database.insert(
+            "client_cancel_originals",
+            key,
+            @utf8.encode(@journal.effect_response_body_digest(body)),
+          ) {
           Ok(_) => ()
           Err(issue) => return Err(Physical(issue))
         }
