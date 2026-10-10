@@ -1955,6 +1955,7 @@ fn compile_steps(
   let qualify_values : Array[(@query.Expression, String)] = []
   let sql_group_aggregate_slots : Array[(String, String)] = []
   let anonymous_set_aggregate_slots : Array[(@query.AggregateCall, String)] = []
+  let positional_set_aggregate_slots : Array[(@query.AggregateCall, String)] = []
   let having_aggregate_slots : Array[(String, String)] = []
   let order_aggregate_slots : Array[(String, String)] = []
   let order_analytic_slots : Array[(String, String)] = []
@@ -3047,6 +3048,7 @@ fn compile_steps(
       }
       Group(keys, projections, grouping_scope) => {
         anonymous_set_aggregate_slots.clear()
+        positional_set_aggregate_slots.clear()
         let scoped = pipe_changed || pipe_rebound
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
@@ -3540,7 +3542,17 @@ fn compile_steps(
                   let output_name = if (
                       embedded && active_fields.contains(name)
                     ) ||
-                    result_fields.contains(name) {
+                    result_fields.contains(name) ||
+                    (
+                      positional_set_output &&
+                      sql_group_projection &&
+                      @query.operation_at(
+                        query,
+                        @query.operation_count(query) - 1,
+                      )
+                      is Some(Select(_, _)) &&
+                      duplicate_projection_alias(selected, name)
+                    ) {
                     pipe_physical_name(
                       order_reserved + result_fields,
                       "aql_select_aggregate_",
@@ -3593,6 +3605,12 @@ fn compile_steps(
                 // The SELECT alias may have the same name as a retained key.
                 // The input binding and aggregate result are distinct values.
                 sql_group_aggregate_slots.push((name, slot))
+                if positional_set_output &&
+                  @query.operation_at(query, @query.operation_count(query) - 1)
+                  is Some(Select(_, _)) &&
+                  duplicate_projection_alias(selected, name) {
+                  positional_set_aggregate_slots.push((call, slot))
+                }
                 if projection.name is None {
                   anonymous_set_aggregate_slots.push((call, slot))
                 }
@@ -3960,11 +3978,13 @@ fn compile_steps(
         } else {
           pipe_visible = result_fields.map(name => (name, name))
         }
-        if !anonymous_set_aggregate_slots.is_empty() {
-          // Anonymous set aggregates remain physical values for terminal SELECT
-          // and ordinal alignment. They are never authored HAVING bindings.
+        if !anonymous_set_aggregate_slots.is_empty() ||
+          !positional_set_aggregate_slots.is_empty() {
+          // Set-only aggregate slots remain physical values for terminal
+          // SELECT and ordinal alignment, never authored HAVING bindings.
           pipe_visible = pipe_visible.filter(entry => {
-            !anonymous_set_aggregate_slots.any(pair => pair.1 == entry.1)
+            !anonymous_set_aggregate_slots.any(pair => pair.1 == entry.1) &&
+            !positional_set_aggregate_slots.any(pair => pair.1 == entry.1)
           })
           pipe_changed = true
         }
@@ -4003,6 +4023,11 @@ fn compile_steps(
           None
         }
         let references = join_reference_paths(predicate)
+        if !positional_set_aggregate_slots.is_empty() {
+          reject_duplicate_projection_references(projections, references, path => {
+            pipe_slot(path, pipe_visible, pipe_ranges)
+          })
+        }
         let derives : Array[(String, @builder.Node)] = []
         let physical = active_fields.copy()
         for projection in projections {
@@ -4170,6 +4195,13 @@ fn compile_steps(
         entries.push(("filter", value))
       }
       Qualify(predicate, _) => {
+        if !positional_set_aggregate_slots.is_empty() {
+          reject_duplicate_projection_references(
+            sql_group_selected_projections,
+            join_reference_paths(predicate),
+            path => pipe_slot(path, pipe_visible, pipe_ranges),
+          )
+        }
         let input_scope = if sql_group_projection {
           sql_group_select_scope.unwrap()
         } else {
@@ -4749,15 +4781,27 @@ fn compile_steps(
                   raise Abort(UnsupportedAggregate)
                 }
                 let (name, slot) = match projection.name {
-                  Some(name) => {
-                    let matches = sql_group_aggregate_slots.filter(entry => {
-                      entry.0 == name.value
-                    })
-                    if matches.length() != 1 {
-                      raise Abort(UnsupportedAggregate)
+                  Some(name) =>
+                    if positional_set_output &&
+                      i == @query.operation_count(query) - 1 &&
+                      duplicate_projection_alias(projections, name.value) {
+                      (
+                        name.value,
+                        positional_set_aggregate_slot(
+                          call,
+                          positional_set_aggregate_slots,
+                          sql_group_expression_input_scope.unwrap(),
+                        ),
+                      )
+                    } else {
+                      let matches = sql_group_aggregate_slots.filter(entry => {
+                        entry.0 == name.value
+                      })
+                      if matches.length() != 1 {
+                        raise Abort(UnsupportedAggregate)
+                      }
+                      (name.value, matches[0].1)
                     }
-                    (name.value, matches[0].1)
-                  }
                   None => {
                     if !positional_set_output ||
                       i != @query.operation_count(query) - 1 {
@@ -4767,7 +4811,7 @@ fn compile_steps(
                       anonymous_set_projection_name(
                         projections, physical, names,
                       ),
-                      anonymous_set_aggregate_slot(
+                      positional_set_aggregate_slot(
                         call,
                         anonymous_set_aggregate_slots,
                         sql_group_expression_input_scope.unwrap(),
@@ -5124,7 +5168,7 @@ fn compile_steps(
                   if !grouped || !sql_group_projection {
                     raise Abort(UnsupportedAggregate)
                   }
-                  let slot = anonymous_set_aggregate_slot(
+                  let slot = positional_set_aggregate_slot(
                     call,
                     anonymous_set_aggregate_slots,
                     sql_group_expression_input_scope.unwrap(),
