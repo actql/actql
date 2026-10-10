@@ -3,7 +3,7 @@ import wasmtime
 
 
 class PhysicalFixture:
-    def __init__(self, module, nonce, capacity=256, slots=8):
+    def __init__(self, module, nonce, capacity=256, slots=8, fuel=None):
         self.inputs = {}
         self.cleanups = {}
         self.reads = 0
@@ -12,8 +12,13 @@ class PhysicalFixture:
         self.stop_ready = False
         self.invalid_byte = False
         self.nonce = nonce
-        self.engine = wasmtime.Engine()
+        config = wasmtime.Config()
+        if fuel is not None:
+            config.consume_fuel = True
+        self.engine = wasmtime.Engine(config)
         self.store = wasmtime.Store(self.engine)
+        if fuel is not None:
+            self.store.set_fuel(fuel)
         self.store.set_limits(memory_size=16 * 1024 * 1024, memories=1)
         self.module = wasmtime.Module(self.engine, module)
         self.linker = wasmtime.Linker(self.engine)

@@ -72,8 +72,11 @@ or an AQL string explicitly and invokes the common frontend and Checker. AQL
 retains the lowerer's parsed Program and authored provenance. There is no syntax
 fallback, fabricated parameter value or physical Source lookup.
 
-A preparation handle retains the original input borrow, its environment handle
-and the Core's typed success or rejection. Environment close is pending while
+A preparation handle is reserved and returned before invoking the Checker. It
+retains the original input borrow, its environment handle and the Core's typed
+success or rejection. An interrupted invocation remains reachable for cleanup
+under the already-issued handle and is not silently repeated. -23 means the
+invocation has no completed typed outcome. Environment close is pending while
 any dependent preparation is retained. Preparation close returns its exact loan
 only after the physical callback acknowledges stop. Rejected preparations have
 the same custody obligations. Root close retains capacity while any loan or

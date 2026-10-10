@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import wasmtime
 from python_local_physical import PhysicalFixture
 
 
@@ -41,8 +42,11 @@ try:
     for ticket, value, kind, minimum in [(2, PROGRAM, 1, 2), (3, AQL, 2, 1)]:
         payload = encode(value)
         source = fixture.copy(ticket, payload, sys.getsizeof(payload))
-        prepared = program_call('prepare', environment, source, kind)
+        prepared = program_call('reserve_preparation', environment, source, kind)
         assert prepared > source
+        assert program_call('prepared_results', prepared) == -23
+        assert program_call('prepare', prepared) == 0
+        assert program_call('prepare', prepared) == 0
         assert program_call('prepared_results', prepared) == 1
         assert program_call('prepared_tasks', prepared) >= minimum
         assert program_call('close_environment', environment) == -9
@@ -60,8 +64,9 @@ try:
     # empty Program and cannot release while its physical reader is pending.
     bad = encode({'version': 'actql/0.1', 'id': 'invalid', 'stages': []})
     source = fixture.copy(4, bad, sys.getsizeof(bad))
-    rejected = program_call('prepare', environment, source, 1)
+    rejected = program_call('reserve_preparation', environment, source, 1)
     assert rejected > source
+    assert program_call('prepare', rejected) == 0
     assert program_call('prepared_results', rejected) == -22
     assert program_call('prepared_tasks', rejected) == -22
     assert fixture.call('close_pool') == -9
@@ -78,8 +83,41 @@ try:
 finally:
     fixture.close()
 
+trapped = PhysicalFixture(module, 404, capacity=65536, slots=16, fuel=100000000)
+try:
+    def trapped_call(name, *args):
+        return trapped.exports['actql_program_' + name](trapped.store, trapped.nonce, *args)
+    config = trapped.copy(1, ENVIRONMENT, sys.getsizeof(ENVIRONMENT))
+    environment = trapped_call('install_environment', config)
+    payload = encode(PROGRAM)
+    source = trapped.copy(2, payload, sys.getsizeof(payload))
+    preparation = trapped_call('reserve_preparation', environment, source, 1)
+    assert preparation > source
+    retained = trapped.call('allocated')
+    trapped.store.set_fuel(5000)
+    try:
+        trapped_call('prepare', preparation)
+    except wasmtime.Trap:
+        pass
+    else:
+        raise AssertionError('Expected an actual physical Wasm interruption')
+    trapped.store.set_fuel(100000000)
+    assert trapped_call('prepared_results', preparation) == -23
+    assert trapped_call('prepare', preparation) == -23
+    assert trapped.call('allocated') == retained
+    assert trapped_call('close_preparation', preparation) == -9
+    trapped.stop_ready = True
+    assert trapped_call('close_preparation', preparation) == 0
+    assert trapped_call('close_environment', environment) == 0
+    trapped.cleanup_ready = True
+    assert trapped.call('close_pool') == 0
+    assert trapped.call('reserved') == 0
+finally:
+    trapped.close()
+
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
                   'cases': ['structured_core_preparation', 'aql_core_preparation',
                             'input_borrow_custody', 'environment_lifetime',
                             'typed_rejection_custody', 'physical_stop_retry',
-                            'cleanup_failure_reservation', 'final_settlement']}))
+                            'cleanup_failure_reservation', 'final_settlement',
+                            'wasm_trap_custody', 'no_implicit_preparation_retry']}))

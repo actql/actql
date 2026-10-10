@@ -10,11 +10,14 @@ priv struct StoredEnvironment {
 ///|
 priv struct StoredPreparation {
   borrow : @buffers.BufferBorrow
+  slot : @buffers.BufferSlot
   environment : Int
-  outcome : Result[
+  kind : Int
+  mut started : Bool
+  mut outcome : Result[
     @host.PreparedClientProgram,
     @preparation.LocalPreparationIssue,
-  ]
+  ]?
 }
 
 ///|
@@ -85,27 +88,68 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
 }
 
 ///|
-/// kind=1 transfers a structured JSON Program; kind=2 transfers the original
-/// AQL as a JSON string. This entry does not supply bindings or admit a Run.
-/// Positive handles retain either the prepared input or its typed rejection.
-#export_name("actql_program_prepare")
-pub fn prepare_program(
+/// Reserve original input custody before invoking the Checker. The caller
+/// receives this handle even if a later Wasm invocation traps or is cancelled.
+/// No physical reader or semantic preparation starts during reservation.
+#export_name("actql_program_reserve_preparation")
+pub fn reserve_preparation(
   nonce : Int64,
   environment : Int,
   input : Int,
   kind : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
-  guard value.environments.get(environment) is Some(configuration) &&
+  guard value.environments.contains(environment) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
-  }
-  if kind != 1 && kind != 2 {
-    return -3
   }
   if value.next_handle == 2147483647 {
     return -4
   }
+  if kind != 1 && kind != 2 {
+    return -3
+  }
+  let handle = value.next_handle
+  let borrow = match
+    @buffers.borrow_buffer(value.pool, slot, () => {
+      physical_reader_stop(physical, handle) == 0
+    }) {
+    Ok(borrow) => borrow
+    Err(issue) => return issue_code(issue)
+  }
+  value.preparations[handle] = {
+    borrow,
+    slot,
+    environment,
+    kind,
+    started: false,
+    outcome: None,
+  }
+  value.next_handle += 1
+  handle
+}
+
+///|
+/// kind=1 is structured JSON; kind=2 is original AQL carried as a JSON string.
+/// Readiness is not Run admission. A completed call is not silently repeated.
+#export_name("actql_program_prepare")
+pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) else { return -1 }
+  guard value.preparations.get(handle) is Some(record) &&
+    value.environments.get(record.environment) is Some(configuration) else {
+    return -2
+  }
+  if record.outcome is Some(_) {
+    return 0
+  }
+  if record.started {
+    return -23
+  }
+  // A trap after this point leaves the original loan and invocation marker
+  // reachable under the handle already issued to the caller.
+  record.started = true
+  let slot = record.slot
+  let kind = record.kind
   let document = if kind == 1 {
     guard @buffers.buffer_wire(value.pool, slot) is Some(wire) else {
       return -5
@@ -120,14 +164,6 @@ pub fn prepare_program(
     }
     text
   }
-  let handle = value.next_handle
-  let borrow = match
-    @buffers.borrow_buffer(value.pool, slot, () => {
-      physical_reader_stop(physical, handle) == 0
-    }) {
-    Ok(borrow) => borrow
-    Err(issue) => return issue_code(issue)
-  }
   let input = if kind == 1 {
     @preparation.Program(document)
   } else {
@@ -140,9 +176,8 @@ pub fn prepare_program(
     Some(configuration.context),
     @host.client_standard_program_preparation_limits(),
   )
-  value.preparations[handle] = { borrow, environment, outcome, }
-  value.next_handle += 1
-  handle
+  record.outcome = Some(outcome)
+  0
 }
 
 ///|
@@ -151,8 +186,9 @@ pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
   match record.outcome {
-    Ok(prepared) => @host.prepared_client_result_count(prepared)
-    Err(_) => -22
+    Some(Ok(prepared)) => @host.prepared_client_result_count(prepared)
+    Some(Err(_)) => -22
+    None => -23
   }
 }
 
@@ -162,9 +198,10 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
   match record.outcome {
-    Ok(prepared) =>
+    Some(Ok(prepared)) =>
       @strategy.graph_task_count(@host.prepared_client_graph(prepared))
-    Err(_) => -22
+    Some(Err(_)) => -22
+    None => -23
   }
 }
 
