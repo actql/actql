@@ -87,6 +87,7 @@ fn expression_role(
     | "if"
     | "between"
     | "contains"
+    | "strpos"
     | "starts_with"
     | "ends_with"
     | "safe_div"

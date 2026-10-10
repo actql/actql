@@ -27,7 +27,10 @@
     {"source":{"starts_with":["$value","$prefix"]},"tree":{"starts_with":[{"$param":"value"},{"$param":"prefix"}]},"parameters":["value","prefix"]},
     {"source":{"ends_with":[{"field":"value"},{"literal":""}]},"tree":{"ends_with":[{"field":"value"},{"literal":""}]},"parameters":[]},
     {"source":{"sign":"$value"},"tree":{"sign":{"$param":"value"}},"parameters":["value"]},
-    {"source":{"sign":{"literal":null}},"tree":{"sign":{"literal":null}},"parameters":[]}
+    {"source":{"sign":{"literal":null}},"tree":{"sign":{"literal":null}},"parameters":[]},
+    {"source":{"strpos":["$value","$part"]},"tree":{"strpos":[{"$param":"value"},{"$param":"part"}]},"parameters":["value","part"]},
+    {"source":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"tree":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"parameters":[]},
+    {"source":{"strpos":[{"literal":null},{"literal":null}]},"tree":{"strpos":[{"literal":null},{"literal":null}]},"parameters":[]}
   ],
   "negative": [
     "\"right.\"",
@@ -65,6 +68,11 @@
     {"ends_with":[{"literal":"a"},{"literal":"b"},{"literal":"c"}]},
     {"sign":[]},
     {"sign":[{"literal":1}]},
-    {"sign":{"literal":1},"extra":true}
+    {"sign":{"literal":1},"extra":true},
+    {"strpos":[]},
+    {"strpos":["x"]},
+    {"strpos":["x","y","z"]},
+    {"strpos":{"literal":"x"}},
+    {"strpos":["x","y"],"extra":true}
   ]
 }

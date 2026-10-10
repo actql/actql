@@ -255,10 +255,16 @@ fn chain_lifetime_select_body() -> String {
 }
 
 ///|
+fn chain_lifetime_append_body() -> String {
+  "[{\"from\":\"source\",\"append\":{\"with\":\"source\"},\"as\":\"doubled\"},{\"from\":\"doubled\",\"select\":[\"id\"],\"as\":\"selected\"},{\"from\":\"selected\",\"append\":{\"with\":\"doubled\"}}]"
+}
+
+///|
 test "built-in chains reclaim each intermediate execution and preserve exact outputs" {
   for
     (body, expected_rows) in [
       (chain_lifetime_select_body(), 3),
+      (chain_lifetime_append_body(), 12),
       (
         "[{\"from\":\"source\",\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}},\"as\":\"grouped\"},{\"from\":\"grouped\",\"filter\":\"true\",\"as\":\"kept\"},{\"from\":\"kept\",\"select\":[\"id\",\"n\"]}]",
         2,
@@ -274,6 +280,39 @@ test "built-in chains reclaim each intermediate execution and preserve exact out
     ] {
     let (sequence, read, source) = chain_lifetime_fixture(body)
     assert_true(relation_chain_reclaims_completed_scratch(sequence))
+    if expected_rows == 12 {
+      let limits = chain_lifetime_limits()
+      let measurement = chain_lifetime_measurement()
+      let count = @execution.generated_sequence_step_count(sequence)
+      let mut retained = 0L
+      let mut peak = 0L
+      let mut conservative = 0L
+      for index in 0..<count {
+        let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
+        let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
+        let child = @execution.generated_sequence_capacity(
+          selected, limits, measurement,
+        ).unwrap()
+        retained += child.retained_bytes
+        peak = Int64::max(peak, child.execution_bytes)
+        conservative += child.execution_bytes
+      }
+      let base = @execution.generated_sequence_capacity(
+        sequence, limits, measurement,
+      ).unwrap()
+      let capacity = bounded_relation_chain_capacity(
+        sequence,
+        limits,
+        measurement,
+        [],
+      ).unwrap()
+      let handles = count.to_int64() * 256L + 512L
+      assert_eq(
+        capacity.execution_bytes,
+        Int64::max(base.execution_bytes, retained + peak + handles),
+      )
+      assert_true(capacity.execution_bytes < retained + conservative + handles)
+    }
     let (active, state) = chain_lifetime_start(sequence, read)
     let count = @execution.generated_sequence_step_count(sequence)
     let cleanups = Array::make(count, 0)
@@ -339,6 +378,19 @@ test "built-in chains reclaim each intermediate execution and preserve exact out
     }
     assert_true(@execution.completed_output_available(output))
     assert_eq(@execution.completed_row_count(output), expected_rows)
+    if expected_rows == 12 {
+      // Both append occurrences retain all source occurrences in order. The
+      // first completion is read twice after its child has been reclaimed.
+      let expected = [
+        2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0,
+      ]
+      for row in 0..<expected.length() {
+        match @execution.completed_cell(output, row, 0) {
+          Some(@execution.Number(value)) => assert_eq(value, expected[row])
+          _ => fail("append lost an ordered number occurrence")
+        }
+      }
+    }
     assert_true(@execution.completed_output_available(source))
   }
 }
@@ -382,131 +434,131 @@ test "chain cancellation between reclaimed children does not start the next chil
 
 ///|
 test "intermediate cleanup false and error preserve child custody until parent retry" {
-  let (sequence, read, source) = chain_lifetime_fixture(
-    chain_lifetime_select_body(),
-  )
-  let (active, state) = chain_lifetime_start(sequence, read)
-  let child = state.current.unwrap()
-  let calls = Ref(0)
-  let advances = Ref(0)
-  let watched = managed_provider_execution(
-    q => {
-      advances.val += 1
-      advance_managed_provider(child, q)
-    },
-    () => cancel_managed_provider(child),
-    () => managed_provider_stopped(child),
-    () => {
-      calls.val += 1
-      match calls.val {
-        1 | 2 => Ok(false)
-        3 => Err(@connector.InvalidLimits)
-        _ => cleanup_managed_provider(child)
+  for body in [chain_lifetime_select_body(), chain_lifetime_append_body()] {
+    let (sequence, read, source) = chain_lifetime_fixture(body)
+    let (active, state) = chain_lifetime_start(sequence, read)
+    let child = state.current.unwrap()
+    let calls = Ref(0)
+    let advances = Ref(0)
+    let watched = managed_provider_execution(
+      q => {
+        advances.val += 1
+        advance_managed_provider(child, q)
+      },
+      () => cancel_managed_provider(child),
+      () => managed_provider_stopped(child),
+      () => {
+        calls.val += 1
+        match calls.val {
+          1 | 2 => Ok(false)
+          3 => Err(@connector.InvalidLimits)
+          _ => cleanup_managed_provider(child)
+        }
+      },
+    )
+    state.current = Some(watched)
+    state.children = [watched]
+    for _ in 0..<10000 {
+      if state.pending {
+        break
       }
-    },
-  )
-  state.current = Some(watched)
-  state.children = [watched]
-  for _ in 0..<10000 {
-    if state.pending {
-      break
+      assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
     }
-    assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
+    assert_true(state.pending)
+    assert_true(state.reclaiming)
+    assert_eq(calls.val, 1)
+    let output = state.completed[0].unwrap()
+    let work = managed_provider_cumulative_work(active)
+    let polls = advances.val
+    assert_true(physical_equal(state.current.unwrap(), watched))
+    assert_true(physical_equal(state.children[0], watched))
+    assert_true(
+      advance_managed_provider(active, 1).unwrap() is Waiting(work=0L, ..),
+    )
+    assert_eq(calls.val, 2)
+    assert_false(managed_provider_stopped(active))
+    assert_true(physical_equal(state.current.unwrap(), watched))
+    assert_true(physical_equal(state.children[0], watched))
+    assert_true(
+      advance_managed_provider(active, 1).unwrap() is Failed(_, work=0L, ..),
+    )
+    assert_true(managed_provider_stopped(active))
+    assert_eq(calls.val, 3)
+    assert_eq(state.position, 1)
+    assert_true(physical_equal(state.current.unwrap(), watched))
+    assert_true(physical_equal(state.children[0], watched))
+    assert_true(@execution.completed_output_available(output))
+    assert_true(cleanup_managed_provider(active).unwrap())
+    assert_true(cleanup_managed_provider(active).unwrap())
+    assert_eq(calls.val, 4)
+    assert_eq(advances.val, polls)
+    assert_eq(managed_provider_cumulative_work(active), work)
+    assert_true(state.current is None)
+    assert_true(state.children.is_empty())
+    assert_true(state.completed.is_empty())
+    assert_true(@execution.completed_output_available(output))
+    assert_true(@execution.producer_read_available(read))
+    assert_true(@execution.completed_output_available(source))
   }
-  assert_true(state.pending)
-  assert_true(state.reclaiming)
-  assert_eq(calls.val, 1)
-  let output = state.completed[0].unwrap()
-  let work = managed_provider_cumulative_work(active)
-  let polls = advances.val
-  assert_true(physical_equal(state.current.unwrap(), watched))
-  assert_true(physical_equal(state.children[0], watched))
-  assert_true(
-    advance_managed_provider(active, 1).unwrap() is Waiting(work=0L, ..),
-  )
-  assert_eq(calls.val, 2)
-  assert_false(managed_provider_stopped(active))
-  assert_true(physical_equal(state.current.unwrap(), watched))
-  assert_true(physical_equal(state.children[0], watched))
-  assert_true(
-    advance_managed_provider(active, 1).unwrap() is Failed(_, work=0L, ..),
-  )
-  assert_true(managed_provider_stopped(active))
-  assert_eq(calls.val, 3)
-  assert_eq(state.position, 1)
-  assert_true(physical_equal(state.current.unwrap(), watched))
-  assert_true(physical_equal(state.children[0], watched))
-  assert_true(@execution.completed_output_available(output))
-  assert_true(cleanup_managed_provider(active).unwrap())
-  assert_true(cleanup_managed_provider(active).unwrap())
-  assert_eq(calls.val, 4)
-  assert_eq(advances.val, polls)
-  assert_eq(managed_provider_cumulative_work(active), work)
-  assert_true(state.current is None)
-  assert_true(state.children.is_empty())
-  assert_true(state.completed.is_empty())
-  assert_true(@execution.completed_output_available(output))
-  assert_true(@execution.producer_read_available(read))
-  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
 test "cancelling pending intermediate cleanup preserves reclamation custody" {
-  let (sequence, read, source) = chain_lifetime_fixture(
-    chain_lifetime_select_body(),
-  )
-  let (active, state) = chain_lifetime_start(sequence, read)
-  let child = state.current.unwrap()
-  let calls = Ref(0)
-  let watched = managed_provider_execution(
-    q => advance_managed_provider(child, q),
-    () => cancel_managed_provider(child),
-    () => managed_provider_stopped(child),
-    () => {
-      calls.val += 1
-      if calls.val == 1 {
-        Ok(false)
-      } else {
-        cleanup_managed_provider(child)
+  for body in [chain_lifetime_select_body(), chain_lifetime_append_body()] {
+    let (sequence, read, source) = chain_lifetime_fixture(body)
+    let (active, state) = chain_lifetime_start(sequence, read)
+    let child = state.current.unwrap()
+    let calls = Ref(0)
+    let watched = managed_provider_execution(
+      q => advance_managed_provider(child, q),
+      () => cancel_managed_provider(child),
+      () => managed_provider_stopped(child),
+      () => {
+        calls.val += 1
+        if calls.val == 1 {
+          Ok(false)
+        } else {
+          cleanup_managed_provider(child)
+        }
+      },
+    )
+    state.current = Some(watched)
+    state.children = [watched]
+    for _ in 0..<10000 {
+      if state.pending {
+        break
       }
-    },
-  )
-  state.current = Some(watched)
-  state.children = [watched]
-  for _ in 0..<10000 {
-    if state.pending {
-      break
+      assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
     }
-    assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
+    assert_true(state.pending)
+    assert_true(state.reclaiming)
+    let output = state.completed[0].unwrap()
+    let work = managed_provider_cumulative_work(active)
+    assert_eq(calls.val, 1)
+    assert_true(cancel_managed_provider(active))
+    assert_true(
+      advance_managed_provider(active, 1).unwrap() is Stopped(work=0L, ..),
+    )
+    assert_eq(state.position, 1)
+    assert_true(physical_equal(state.current.unwrap(), watched))
+    assert_true(physical_equal(state.children[0], watched))
+    assert_true(cleanup_managed_provider(active).unwrap())
+    assert_true(cleanup_managed_provider(active).unwrap())
+    assert_eq(calls.val, 2)
+    assert_true(state.current is None)
+    assert_true(state.children.is_empty())
+    assert_true(state.completed.is_empty())
+    assert_eq(managed_provider_cumulative_work(active), work)
+    assert_true(@execution.completed_output_available(output))
+    assert_true(@execution.producer_read_available(read))
+    assert_true(@execution.completed_output_available(source))
   }
-  assert_true(state.pending)
-  assert_true(state.reclaiming)
-  let output = state.completed[0].unwrap()
-  let work = managed_provider_cumulative_work(active)
-  assert_eq(calls.val, 1)
-  assert_true(cancel_managed_provider(active))
-  assert_true(
-    advance_managed_provider(active, 1).unwrap() is Stopped(work=0L, ..),
-  )
-  assert_eq(state.position, 1)
-  assert_true(physical_equal(state.current.unwrap(), watched))
-  assert_true(physical_equal(state.children[0], watched))
-  assert_true(cleanup_managed_provider(active).unwrap())
-  assert_true(cleanup_managed_provider(active).unwrap())
-  assert_eq(calls.val, 2)
-  assert_true(state.current is None)
-  assert_true(state.children.is_empty())
-  assert_true(state.completed.is_empty())
-  assert_eq(managed_provider_cumulative_work(active), work)
-  assert_true(@execution.completed_output_available(output))
-  assert_true(@execution.producer_read_available(read))
-  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
 test "unaudited chain steps keep conservative capacity and child custody" {
   let (sequence, read, source) = chain_lifetime_fixture(
-    "[{\"from\":\"source\",\"select\":[\"id\"],\"as\":\"first\"},{\"from\":\"first\",\"append\":{\"with\":\"first\"},\"as\":\"out\"}]",
+    "[{\"from\":\"source\",\"select\":[\"id\"],\"as\":\"first\"},{\"from\":\"first\",\"intersect\":{\"with\":\"first\",\"duplicates\":\"all\"},\"as\":\"out\"}]",
   )
   assert_false(relation_chain_reclaims_completed_scratch(sequence))
   let limits = chain_lifetime_limits()
@@ -533,14 +585,14 @@ test "unaudited chain steps keep conservative capacity and child custody" {
     match advance_managed_provider(active, 1).unwrap() {
       Continue(..) => ()
       Complete(output, ..) => result = Some(output)
-      _ => fail("conservative append chain did not complete")
+      _ => fail("conservative set chain did not complete")
     }
     if state.pending {
       assert_eq(state.children.length(), state.position)
       assert_false(state.reclaiming)
     }
   }
-  assert_eq(@execution.completed_row_count(result.unwrap()), 6)
+  assert_eq(@execution.completed_row_count(result.unwrap()), 3)
   assert_eq(state.children.length(), count)
   assert_true(cleanup_managed_provider(active).unwrap())
   assert_true(state.children.is_empty())

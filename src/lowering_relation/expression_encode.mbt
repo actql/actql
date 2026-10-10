@@ -24,6 +24,7 @@ fn binary_name(op : BinaryOperator) -> String {
     Multiply => "multiply"
     Divide => "divide"
     Modulo => "modulo"
+    Strpos => "strpos"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"

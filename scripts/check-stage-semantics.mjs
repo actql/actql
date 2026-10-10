@@ -6,6 +6,24 @@ import {machineCid} from './actql-spec-family.mjs';
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const args = process.argv.slice(2);
 assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--write'));
+// The STRPOS adoption changes current expression-dependent source identities,
+// not the canonical bytes or validity of their retained predecessor bodies.
+const history = read('portability/corpus/historical/pre-strpos-stage-identities.json');
+assert.equal(history.version, 'actql-historical-stage-identity-vectors/0.1');
+assert.equal(history.source_commit, '30d0b1cb0250aeb57a60c748fd0e5dc9d7d6a525');
+assert.equal(history.expression_contract_cid,
+  'sha256:f9a2ed26d8bf19e399fc94c64737ce2f1c76b890e173d51f8584b0fd9253b47a');
+verifyIdentity(history,
+  'sha256:72b6fb0614b57bd63d360c4d1f7f1ea9573650167169401b3df9dec3d4167882');
+assert.equal(history.cases.length, 116);
+assert.equal(new Set(history.cases.map(c => c.id)).size, history.cases.length);
+for (const c of history.cases) {
+  assert.equal(typeof c.source, 'string');
+  verifyIdentity(c.envelope, c.expected_cid, c.expected_canonical_bytes);
+  if (Object.hasOwn(c.envelope, 'expression_contract_cid')) {
+    assert.equal(c.envelope.expression_contract_cid, history.expression_contract_cid);
+  }
+}
 const cid = machineCid(read('spec/contracts/actql-expressions.json'));
 assert.equal(read('spec/contracts/actql-aoa.json').expression_contract_cid, cid);
 const vectors = read('portability/corpus/stage-semantics.json');
@@ -119,4 +137,4 @@ for (const [path, content] of [
   if (args[0] === '--write') writeFileSync(url, content);
   else assert.equal(readFileSync(url, 'utf8'), content, `stale generated file: ${path}`);
 }
-console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics, ${stageDefinitions.cases.length} Stage and ${definitions.cases.length} Program Definition identities, ${stageDeclarations.cases.length} local declaration and ${unitBodies.cases.length} Unit body projections verified; no executable conformance claim.`);
+console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics, ${stageDefinitions.cases.length} Stage and ${definitions.cases.length} Program Definition identities, ${stageDeclarations.cases.length} local declaration and ${unitBodies.cases.length} Unit body projections, and ${history.cases.length} retained pre-STRPOS identities verified; no executable conformance claim.`);
