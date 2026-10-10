@@ -6,3 +6,10 @@ pub(all) struct NativeEffectSavedResponse {
   status_code : Int
   body : Bytes
 }
+
+///|
+/// The stored response metadata hashes exact bytes on every target. Physical
+/// journal access remains target-specific.
+pub fn effect_response_body_digest(body : Bytes) -> String {
+  @sha.hex(body)
+}

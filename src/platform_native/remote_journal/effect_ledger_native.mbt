@@ -276,7 +276,7 @@ pub fn Journal::record_effect_ledger_response(
     "\n" +
     response.status_code.to_string() +
     "\n" +
-    @sha.hex(response.body),
+    effect_response_body_digest(response.body),
   )
   let bytes = Bytes::from_array(response.body.to_array())
   match self.begin_mutation(true) {
@@ -403,7 +403,7 @@ pub fn Journal::effect_ledger_response(
           status < 100 ||
           status > 599 ||
           status.to_string() != parts[1] ||
-          @sha.hex(bytes.body) != parts[2] {
+          effect_response_body_digest(bytes.body) != parts[2] {
           return Err(StateCollision)
         }
         Ok(
