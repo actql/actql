@@ -28,6 +28,7 @@ pub(all) enum NativeClientCheckpointIssue {
   Signature(@effect_resolution.NativeResidentEffectResolutionIssue)
   Resume(@checkpoint.ResumeIssue)
   Ledger(@effect.EffectLedgerIssue)
+  EffectBinding(@host.ClientEffectCheckpointBindingIssue)
 }
 
 ///|
@@ -419,6 +420,105 @@ pub fn NativeClientRunJournal::wait_checkpoint(
   updated_at : String,
   current : () -> Bool,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  self.wait_original_checkpoint(
+    request,
+    persisted,
+    expected_revision,
+    binding,
+    unknown_effects,
+    updated_at,
+    current,
+    definition => {
+      if @host.check_client_compiled_run_definition(compiled, definition)
+        is Err(_) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      Ok(@host.client_compiled_run_result_names(compiled))
+    },
+  )
+}
+
+///|
+/// The actual checked Effect Run supplies its original unit and Result
+/// inventory. The shared Checkpoint Owner admits its sealed review; the same
+/// Client transaction commits waiting and independent custody. This is not a
+/// Preview persistence proof, approval, reconstructed continuation or send.
+pub fn NativeClientRunJournal::wait_effect_checkpoint(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  persisted : @checkpoint.PersistedCheckpoint,
+  expected_revision : Int64,
+  binding : @checkpoint.ResumeBinding,
+  unknown_effects : Array[String],
+  updated_at : String,
+  current : () -> Bool,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  self.wait_original_checkpoint(
+    request,
+    persisted,
+    expected_revision,
+    binding,
+    unknown_effects,
+    updated_at,
+    current,
+    definition => {
+      let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+      let identity = @host.prepared_client_effect_identity(prepared)
+      if @host.client_request_program_cid(request) !=
+        identity.program_definition_cid ||
+        @host.client_request_parameters_cid(request) !=
+        identity.parameter_values_cid {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      match
+        @host.admit_client_effect_review_checkpoint_binding(
+          allowed,
+          definition,
+          persisted.artifact.wire,
+          native_checkpoint_limits(),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Checkpoint(EffectBinding(issue)))
+      }
+      let stages = @syntax.stages(
+        @host.prepared_client_effect_computation_source(prepared),
+      )
+      if unknown_effects.any(name => {
+          !stages.any(stage => @syntax.effect_names(stage).contains(name))
+        }) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
+      let results : Array[String] = []
+      for index in 0..<@host.prepared_client_effect_result_count(prepared) {
+        guard @host.prepared_client_effect_result_name(prepared, index)
+          is Some(name) else {
+          return Err(Checkpoint(InvalidMaterial))
+        }
+        results.push(name)
+      }
+      Ok(results)
+    },
+  )
+}
+
+///|
+/// Family-specific checked owners validate the exact retained definition and
+/// supply their declared Results inside this single original transaction.
+fn NativeClientRunJournal::wait_original_checkpoint(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  persisted : @checkpoint.PersistedCheckpoint,
+  expected_revision : Int64,
+  binding : @checkpoint.ResumeBinding,
+  unknown_effects : Array[String],
+  updated_at : String,
+  current : () -> Bool,
+  validate_owner : (@publication.PublicationContract) -> Result[
+    Array[String],
+    NativeClientRunJournalIssue,
+  ],
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if unknown_effects.length() > 128 ||
     unknown_effects.any(value => value.length() > 65536) {
     return Err(Checkpoint(InvalidMaterial))
@@ -436,12 +536,11 @@ pub fn NativeClientRunJournal::wait_checkpoint(
       return Err(Checkpoint(StaleRevision))
     }
     let artifact = persisted.artifact
-    guard @host.check_client_compiled_run_definition(
-        compiled,
-        record.definition,
-      )
-      is Ok(_) &&
-      @publication.run_definition_run_id(record.definition) is Ok(run_id) &&
+    let declared_results = match validate_owner(record.definition) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    guard @publication.run_definition_run_id(record.definition) is Ok(run_id) &&
       artifact.checkpoint.run_id() == Some(run_id) &&
       artifact.checkpoint.run_definition_cid() ==
       Some(@publication.publication_contract_identity(record.definition)) &&
@@ -456,7 +555,6 @@ pub fn NativeClientRunJournal::wait_checkpoint(
       @checkpoint.checkpoint_expired_at(artifact, updated_at) != Ok(false) {
       return Err(Checkpoint(Expired))
     }
-    let declared_results = @host.client_compiled_run_result_names(compiled)
     let wire = match
       @checkpoint.issue_waiting_run_state(
         persisted,

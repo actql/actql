@@ -148,6 +148,94 @@ pub fn NativeClientRunJournal::accept_submitted_run(
   current_authorization : Bool,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  match
+    self.authorize_submitted_run(
+      authority, reference, request, authority_scope_cid, current_authorization,
+      now,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard preparation.preparation is Computation(prepared) else {
+    return Err(UnsupportedPreparation)
+  }
+  match
+    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.accept_original_submitted_run(
+    authority,
+    reference,
+    preparation.intent_cid,
+    request,
+    definition,
+    authority_scope_cid,
+    current_authorization,
+  )
+}
+
+///|
+/// Admit the original Effect preparation through its existing checked owner.
+/// No Effect-free compilation, second Run, dispatch reservation or mutation
+/// permit is created. Both execution families commit acceptance in the same
+/// original request-journal transaction and retain the same immutable fact.
+pub fn NativeClientRunJournal::accept_submitted_effect_run(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  match
+    self.authorize_submitted_run(
+      authority, reference, request, authority_scope_cid, current_authorization,
+      now,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard preparation.preparation is EffectComputation(prepared) else {
+    return Err(UnsupportedPreparation)
+  }
+  let identity = @host.prepared_client_effect_identity(prepared)
+  if @host.client_request_program_cid(request) !=
+    identity.program_definition_cid ||
+    @host.client_request_parameters_cid(request) !=
+    identity.parameter_values_cid {
+    return Err(ChangedIntent)
+  }
+  match @host.bind_client_effect_compiled_run(prepared, allowed, definition) {
+    Ok(_) => ()
+    Err(@host.ForeignCompilation) => return Err(ChangedIntent)
+    Err(_) => return Err(ForeignRun)
+  }
+  self.accept_original_submitted_run(
+    authority,
+    reference,
+    preparation.intent_cid,
+    request,
+    definition,
+    authority_scope_cid,
+    current_authorization,
+  )
+}
+
+///|
+fn NativeClientRunJournal::authorize_submitted_run(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+) -> Result[Unit, NativeClientRunJournalIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
@@ -166,14 +254,23 @@ pub fn NativeClientRunJournal::accept_submitted_run(
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
   }
-  guard preparation.preparation is Computation(prepared) else {
-    return Err(UnsupportedPreparation)
-  }
-  match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
+  Ok(())
+}
+
+///|
+/// Both public family-specific callers have validated their exact opaque
+/// preparation and definition. This private transaction cannot be used to
+/// substitute a merely equal CID for the checked owner or retained intent.
+fn NativeClientRunJournal::accept_original_submitted_run(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  intent_cid : String,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
   self.transaction(() => {
     match
       self.verify_submission_locked(
@@ -191,8 +288,7 @@ pub fn NativeClientRunJournal::accept_submitted_run(
       Ok(None) => return Err(CustodyLost)
       Err(issue) => return Err(issue)
     }
-    if @host.client_submitted_intent_cid(original.intent) !=
-      preparation.intent_cid {
+    if @host.client_submitted_intent_cid(original.intent) != intent_cid {
       return Err(ChangedIntent)
     }
     let before = if original.run_admission is Some(_) {
