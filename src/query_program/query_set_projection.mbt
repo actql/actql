@@ -1,5 +1,5 @@
 ///|
-// ORDER/LIMIT, WHERE, SET, analytic steps and a star retain positional inputs.
+// ORDER/LIMIT, WHERE, SET, DROP, analytic steps and a star retain positional inputs.
 // EXCEPT/REPLACE address named columns without naming retained anonymous values.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
@@ -10,6 +10,7 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Limit(_, _)
       | Where(_)
       | Set(_)
+      | Drop(_)
       | Analytic(_)
       | AnalyticExpressions(_, _) => index -= 1
       Select(projections, _) => {
@@ -26,6 +27,21 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
     }
   }
   projection
+}
+
+///|
+// Positional duplicate columns keep separate physical slots and their authored
+// names. Column removal and star exclusion use the same name correspondence.
+fn positional_authored_column_name(
+  name : String,
+  authored_aliases : Array[(String, String)],
+) -> String {
+  for mapping in authored_aliases {
+    if mapping.0 == name {
+      return mapping.1
+    }
+  }
+  name
 }
 
 ///|
