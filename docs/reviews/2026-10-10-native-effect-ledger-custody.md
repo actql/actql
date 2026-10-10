@@ -50,9 +50,9 @@ introduce or execute a cleanup/garbage-collection transition.
 
 ## Scope and dependencies
 
-The final destination is OSS main. This work is stacked on #1246 for the next
-physical transport connection; #1239's reviewed Resolution admission is already
-in main. The latest main integration includes #1245's private Native retained
+The final destination is OSS main. Both #1246's physical
+credential transport and #1239's reviewed Resolution admission are now merged
+in main; no unmerged parent is required. The latest main integration includes #1245's private Native retained
 file test fixtures. No Cloud pin, formal package cohort, deployment binary,
 Preview, existing Run or #88 recovery record is changed.
 
