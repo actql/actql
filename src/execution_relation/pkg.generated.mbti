@@ -1269,6 +1269,8 @@ pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Val
 
 pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
 
+pub fn start_producer_read_cell_recheck(ProducerRead, Int, Int, @value_admission.Limits) -> @value_admission.RecheckCursor?
+
 pub fn start_relation_schema_identity(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue]
 
 pub fn start_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrderPreparation, RowWireIssue]

@@ -342,7 +342,19 @@ test "Reach independently counts exact work workspace and every pending handoff 
   // a number recheck, three terminal polls, and charge setup. Logical charge
   // polls are three names/values, two identity trees (24 each), and commit.
   let row_control = 3 + 2 * 32 + 1 + 3 + 1 + (6 + 2 * 24 + 1)
-  let control_work = 3 + 1 + 1 + 3 + 1 + 1 + (2 + 1) * edge_count + row_control
+  // Literal admission adds 32 identity-tree polls, one terminal recheck
+  // poll, and one separate membership-lookup transition.
+  let control_work = 3 +
+    32 +
+    1 +
+    1 +
+    1 +
+    1 +
+    3 +
+    1 +
+    1 +
+    (2 + 1) * edge_count +
+    row_control
   // Retained row: row wrapper + one number + two 11-node identities. Text
   // is each identity's fixed 50 bytes and 71-byte domain plus output names.
   let output_work = 1 + 1 + 2 * 11 + 2 * (50 + 71) + (5 + 7 + 8)

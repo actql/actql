@@ -187,7 +187,10 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
   assert_eq(domain.length(), 71)
   // Each identity has two key components (Text "a", Number 1) and two key
   // descriptors, not the one-component identity used by public smoke inputs.
+  // Both source and target add 32 identity-tree polls, the terminal
+  // recheck poll, and the transition into membership lookup.
   let control_work = 5 +
+    2 * (32 + 1 + 1) +
     4 +
     7 +
     2 +

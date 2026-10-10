@@ -212,8 +212,11 @@ test "keyed node traversal has independent exact budgets and every zero-hop stop
   // separate work budget or fabricated cleanup cost is introduced.
   // Peak private entries: start index (1), depth index (1), seed path (2)
   // and endpoint order index (1). Neither number comes from measured output.
-  let work = 3 + 1 + 1 + 3 + 1 + 1 + 2 * 5 * edge_count
-  let workspace = 1 + 1 + 2 + 1
+  // Literal identity admission adds 32 tree polls, terminal poll and lookup.
+  let work = 3 + (32 + 1 + 1) + 1 + 1 + 3 + 1 + 1 + 2 * 5 * edge_count
+  // Admission's cursor/root, four frames and one pre-reserved growth slot
+  // overlap the selector entry, before the frontier allocations begin.
+  let workspace = Int::max(1 + 1 + 2 + 1, 1 + 2 + 4 + 1)
   for viewed in [false, true] {
     let start = fn(control, slots, allowed, rows, paths) {
       let limits : @execution.ValueLimits = {

@@ -232,6 +232,23 @@ pub fn producer_read_checked_cell(
 }
 
 ///|
+/// Stage the same receiving-column validation without scanning a cell in the
+/// caller's setup step. The caller retains this exact read and checks its
+/// availability before every advance; only completed admission is usable.
+pub fn start_producer_read_cell_recheck(
+  value : ProducerRead,
+  row : Int,
+  column : Int,
+  limits : @admitted.Limits,
+) -> @admitted.RecheckCursor? {
+  guard @schema.field_at(value.schema, column) is Some(field) &&
+    producer_read_cell(value, row, column) is Some(cell) else {
+    return None
+  }
+  start_ordered_output_value_recheck(cell, field.contract, limits)
+}
+
+///|
 /// Execute an owned completed input through ordinary producer admission. No
 /// source lookup, row materialization or accounting exemption is introduced.
 pub fn execute_fixed_producer_input(
