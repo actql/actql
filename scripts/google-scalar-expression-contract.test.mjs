@@ -16,26 +16,26 @@ function bodies() {
   return [{schemas: {source, node}, laws: {}, grammar_sha256: ''},
     {artifact_schemas: {program: structuredClone(source)}, artifact_schema_cids: {}}];
 }
-const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" ;\n';
+const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_divide" | "safe_negate" ;\n';
 
 test('GoogleSQL scalar schemas preserve exact arities, local references and original operators', () => {
   const [expression, protocol] = bodies();
   const original = structuredClone(expression.schemas);
   assert.deepEqual(updateGoogleScalarContracts(expression, protocol, grammar, true), {
-    starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1}, trim: {source: 2, node: 1}, ltrim: {source: 2, node: 1}, rtrim: {source: 2, node: 1},
+    starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1}, trim: {source: 2, node: 1}, ltrim: {source: 2, node: 1}, rtrim: {source: 2, node: 1}, safe_add: {source: 2, node: 1}, safe_subtract: {source: 2, node: 1}, safe_multiply: {source: 2, node: 1}, safe_divide: {source: 2, node: 1}, safe_negate: {source: 2, node: 1},
   });
   for (const [kind, schema] of Object.entries(original)) {
     for (const shape of schema.oneOf) assert.ok(expression.schemas[kind].oneOf
       .some(candidate => JSON.stringify(candidate) === JSON.stringify(shape)));
   }
-  for (const name of ['starts_with', 'ends_with', 'strpos']) {
+  for (const name of ['starts_with', 'ends_with', 'strpos', 'safe_add', 'safe_subtract', 'safe_multiply', 'safe_divide']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {type: 'array', minItems: 2, maxItems: 2,
       items: {$ref: '#/$defs/source_expression'}});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body.items, {$ref: '#/$defs/machine_expression'});
   }
-  for (const name of ['sign', 'round', 'trunc']) {
+  for (const name of ['sign', 'round', 'trunc', 'safe_negate']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {$ref: '#/$defs/source_expression'});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);

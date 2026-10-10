@@ -57,6 +57,7 @@ pub(all) enum UnaryOperator {
   Sign
   Round
   Trunc
+  SafeNegate
 } derive(Eq, Debug)
 
 ///|
@@ -65,6 +66,10 @@ pub(all) enum BinaryOperator {
   Subtract
   Multiply
   Divide
+  SafeDivide
+  SafeAdd
+  SafeSubtract
+  SafeMultiply
   Modulo
   Strpos
   TrimSet
@@ -215,6 +220,7 @@ fn expression_tag(
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "is_true"
     | "is_false"
     | "is_unknown"
@@ -225,6 +231,10 @@ fn expression_tag(
     | "subtract"
     | "multiply"
     | "divide"
+    | "safe_divide"
+    | "safe_add"
+    | "safe_subtract"
+    | "safe_multiply"
     | "modulo"
     | "strpos"
     | "starts_with"
@@ -309,6 +319,7 @@ fn expression_children(
     | "sign"
     | "round"
     | "trunc"
+    | "safe_negate"
     | "not"
     | "is_null"
     | "not_null"
@@ -909,6 +920,7 @@ fn lower_typed_expression_measured(
         "sign" => Unary(Sign, args[0])
         "round" => Unary(Round, args[0])
         "trunc" => Unary(Trunc, args[0])
+        "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
@@ -921,6 +933,10 @@ fn lower_typed_expression_measured(
         "subtract" => Binary(Subtract, args[0], args[1])
         "multiply" => Binary(Multiply, args[0], args[1])
         "divide" => Binary(Divide, args[0], args[1])
+        "safe_divide" => Binary(SafeDivide, args[0], args[1])
+        "safe_add" => Binary(SafeAdd, args[0], args[1])
+        "safe_subtract" => Binary(SafeSubtract, args[0], args[1])
+        "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])

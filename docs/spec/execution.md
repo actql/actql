@@ -596,7 +596,7 @@ selected common contract. The initial scan/filter/select profile has no ordered
 derive step: `request.row_kernel_limits` is absent, not an invented set of
 filter/select limits or a zero-valued exemption.
 
-<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:0405488baba615c07ab913c9082c83027394090d3cf84598f06225e8baef5112 -->
+<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:1c2fccf0bd42038868c332a21df87737154e87c7384977cb4b233e93e7af52c8 -->
 The [pinned resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 distinguishes measurement, subject and binding at `/limits`. Acquisition `max_rows`
 counts complete select-output occurrences, not scanned or received rows.
@@ -664,7 +664,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:4cbbbff1c48c6f653d5854616edd75e0c3ce1e8bbfe292da4ace9b5f09556c60 -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:bcc97430fc60b3ad0ba4e09dd58c0f406020ae0fdf2f71c1e32f004d02915f74 -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes

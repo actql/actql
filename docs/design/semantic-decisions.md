@@ -424,3 +424,33 @@ input contract or selected-policy preflight. Consequently some formerly
 checkable nested profile plans may need a wider conservative bound and fail a
 tight policy that admitted the old profile chain. The current contract records
 that compatibility effect; it does not claim unchanged historical admission.
+
+
+## Finite-number SAFE arithmetic
+
+GoogleSQL [SAFE arithmetic](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#safe_divide)
+converts the operation's own arithmetic error into NULL, and its
+[floating-point rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#floating_point_semantics)
+classify non-finite output from finite inputs as overflow. Thus a zero-only
+safe division rule is insufficient for SAFE_DIVIDE.
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+The existing `safe_div` spelling already means zero-divisor null with overflow
+failure. That original meaning is retained. New `safe_divide` is a distinct
+closed common operation with GoogleSQL zero-divisor-or-overflow null semantics;
+the SQL/Pipe function SAFE_DIVIDE lowers to it, not to the legacy spelling.
+SAFE_ADD, SAFE_SUBTRACT, SAFE_MULTIPLY and SAFE_NEGATE use the same existing
+arithmetic evaluator and retained-expression continuation. Only the arithmetic
+result at the operation boundary is made safe. This follows the documented
+[SAFE error boundary](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/functions-reference#safe_prefix).
+Child errors and all resource
+or cancellation failures retain their original owner and precedence.
+
+This increment admits the existing finite binary64 Number domain. Underflow is
+an ordinary finite result and operation-boundary zero is canonical positive
+zero. Binary safe operations produce nullable Number; safe negation preserves
+operand nullability because negation cannot overflow for finite binary64.
+INT64, NUMERIC, BIGNUMERIC, Decimal and non-finite overloads are not implied.
+The initial 0.1 expression, scalar-manifest, schema and dependent identity
+contracts change together, retaining exact predecessor bodies and preimages.
+Registration alone is not execution conformance for an unverified target.
