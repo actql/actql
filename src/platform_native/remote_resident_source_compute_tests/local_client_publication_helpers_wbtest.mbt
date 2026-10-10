@@ -13,6 +13,8 @@ fn local_client_publication_context(
   library : @sqlite.Library,
   store_root : String,
   change_source_authorization : (Bool) -> Unit,
+  journal : @client.NativeClientRunJournal,
+  race : Bool,
 ) -> @store.Store raise {
   let authority = local_client_publication_cid("native-client-original-store")
   let store = @store.open_store(
@@ -205,8 +207,82 @@ fn local_client_publication_context(
   assert_true(pending.commit() is Err(@native_publication.AccessDenied))
   revoke_during_authorization.val = false
   change_source_authorization(true)
+  if race {
+    guard journal.lookup(request, true) is Ok(@client.Retained(record)) else {
+      fail("original Run missing before publication race")
+    }
+    let committed = Ref(false)
+    let checks = Ref(0)
+    let observer = @client.install_native_client_cancellation_publication(
+      store,
+      intent.namespace_id,
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+    let cancelled = journal
+      .cancel_operation(
+        request,
+        intent.namespace_id,
+        "publication-race-cancel",
+        @client.native_client_run_record_revision(record).to_int(),
+        () => {
+          checks.val += 1
+          if checks.val == 3 {
+            // After the actual scoped Store lookup, before cancel persistence.
+            // The concurrent publication must acquire the same physical fence.
+            committed.val = pending.commit() is Ok(_)
+          }
+          true
+        },
+        observer,
+      )
+      .unwrap()
+    assert_eq(checks.val, 3)
+    assert_false(
+      committed.val &&
+      @client.native_client_cancellation_action(cancelled) ==
+      @host.AcceptCancellation,
+    )
+    guard journal.lookup(request, true) is Ok(@client.Retained(after)) else {
+      fail("original Run missing after publication race")
+    }
+    assert_true(
+      @client.native_client_run_record_revision(after) >=
+      @client.native_client_run_record_revision(record),
+    )
+    assert_true(pending.cancel().unwrap())
+    return store
+  }
   let committed = pending.commit().unwrap()
   assert_true(committed.committed)
+  guard journal.lookup(request, true) is Ok(@client.Retained(original_run)) else {
+    fail("original published Run missing")
+  }
+  let terminal = journal
+    .cancel_operation(
+      request,
+      intent.namespace_id,
+      "after-original-publication",
+      @client.native_client_run_record_revision(original_run).to_int(),
+      () => true,
+      @client.install_native_client_cancellation_publication(
+        store,
+        intent.namespace_id,
+        1000000,
+        100000,
+        100,
+      ).unwrap(),
+    )
+    .unwrap()
+  assert_eq(
+    @client.native_client_cancellation_action(terminal),
+    @host.AlreadyTerminal,
+  )
+  assert_eq(
+    @client.native_client_cancellation_revision(terminal),
+    @client.native_client_run_record_revision(original_run),
+  )
   assert_eq(
     pending.commit().unwrap().publication_attempt_cid,
     committed.publication_attempt_cid,

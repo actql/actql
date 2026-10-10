@@ -263,6 +263,41 @@ fn cancellation_custody(
 }
 
 ///|
+/// Borrow the existing Store only for current-authorized original-Run lookup.
+/// No process-local terminal Bool or foreign publication can enter cancellation.
+struct NativeClientCancellationPublication {
+  observe : (NativeClientRunRecord) -> Result[Bool, NativeClientRunJournalIssue]
+}
+
+///|
+pub fn install_native_client_cancellation_publication(
+  store : @publication_store.Store,
+  namespace_id : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[NativeClientCancellationPublication, NativeClientRunJournalIssue] {
+  if namespace_id == "" || max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(Encoding)
+  }
+  Ok({
+    observe: run => {
+      store
+      .inspect_committed_publication(
+        namespace_id,
+        @host.client_request_authority_scope_cid(run.request),
+        @publication.publication_contract_identity(run.definition),
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+      .map(value => value is Some(_))
+      .map_err(issue => PublicationObservation(issue))
+    },
+  })
+}
+
+///|
 pub fn NativeClientRunJournal::cancel_operation(
   self : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
@@ -270,7 +305,7 @@ pub fn NativeClientRunJournal::cancel_operation(
   cancel_id : String,
   expected_revision : Int,
   current : () -> Bool,
-  terminal_observed : () -> Bool,
+  publication : NativeClientCancellationPublication,
 ) -> Result[NativeClientCancellationRecord, NativeClientRunJournalIssue] {
   if !current() {
     return Err(AuthorizationDenied)
@@ -283,17 +318,8 @@ pub fn NativeClientRunJournal::cancel_operation(
       @host.client_request_authority_scope_cid(request),
       cancel_id,
     )
-    is Some(operation_key) else {
+    is Some(_) else {
     return Err(Encoding)
-  }
-  // This index read only avoids unnecessary current-state observation. It is
-  // not custody or replay admission; the original transaction below rechecks
-  // all issuance, exact key/intent, Run binding and current authority.
-  let terminal = match
-    self.database.read("client_cancellations", operation_key) {
-    Ok(_) => false
-    Err(@sqlite.NotFound) => terminal_observed()
-    Err(issue) => return Err(Physical(issue))
   }
   if !current() {
     return Err(AuthorizationDenied)
@@ -336,6 +362,17 @@ pub fn NativeClientRunJournal::cancel_operation(
         }
       Err(@sqlite.NotFound) => None
       Err(issue) => return Err(Physical(issue))
+    }
+    // Only a new operation observes the original publication under the same
+    // physical journal fence held by the installed Local publication service.
+    // The closed observer reads only the scoped durable Store commit.
+    let terminal = if original is Some(_) {
+      false
+    } else {
+      match (publication.observe)(run) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     }
     if run.revision > 2147483647L {
       return Err(CapacityExceeded)

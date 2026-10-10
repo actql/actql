@@ -6,6 +6,9 @@ struct NativeClientRunJournal {
   database : @sqlite.Database
   max_records : Int
   mut fenced : Bool
+  // Read-only lookup may join this journal's own publication fence. Mutating
+  // nested operations still fail instead of acquiring another transaction.
+  mut publication_read_locked : Bool
 }
 
 ///|
@@ -27,6 +30,7 @@ pub(all) enum NativeClientRunJournalIssue {
   Checkpoint(NativeClientCheckpointIssue)
   CancellationIdentity(@host.ClientCancellationIdentityIssue)
   CancellationOperation(@host.ClientCancellationOperationIssue)
+  PublicationObservation(@publication_store.NativePublicationStoreIssue)
 }
 
 ///|
@@ -419,7 +423,13 @@ pub fn open_native_client_run_journal(
     return Err(CapacityExceeded)
   }
   match run_journal_custody(database, max_records) {
-    Ok(_) => Ok({ database, max_records, fenced: false, })
+    Ok(_) =>
+      Ok({
+        database,
+        max_records,
+        fenced: false,
+        publication_read_locked: false,
+      })
     Err(issue) => Err(issue)
   }
 }
@@ -431,6 +441,9 @@ fn[T] NativeClientRunJournal::transaction(
 ) -> Result[T, NativeClientRunJournalIssue] {
   if self.fenced || self.database.transaction_fenced() {
     return Err(Fenced)
+  }
+  if self.publication_read_locked {
+    return Err(Physical(@sqlite.Busy))
   }
   match self.database.begin_immediate() {
     Ok(_) => ()
@@ -492,6 +505,16 @@ pub fn NativeClientRunJournal::lookup(
 ) -> Result[NativeClientRunLookup, NativeClientRunJournalIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
+  }
+  if self.publication_read_locked {
+    return self
+      .retained(requested)
+      .map(record => {
+        match record {
+          Some(value) => Retained(value)
+          None => UnresolvedHistory
+        }
+      })
   }
   self.transaction(() => {
     self

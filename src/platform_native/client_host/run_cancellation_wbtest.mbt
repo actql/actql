@@ -1,4 +1,26 @@
 ///|
+// Owner-only decision fixtures use an explicit private observation stub. The
+// exported Host API accepts only a scoped, actual Store observation handle.
+fn NativeClientRunJournal::cancellation_test_operation(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  namespace_id : String,
+  cancel_id : String,
+  expected_revision : Int,
+  current : () -> Bool,
+  terminal_observed : () -> Bool,
+) -> Result[NativeClientCancellationRecord, NativeClientRunJournalIssue] {
+  self.cancel_operation(
+    request,
+    namespace_id,
+    cancel_id,
+    expected_revision,
+    current,
+    { observe: _ => Ok(terminal_observed()), },
+  )
+}
+
+///|
 fn cancellation_test_run(
   name : String,
 ) -> (@sqlite.Database, NativeClientRunJournal, @host.ClientRequestIdentity) {
@@ -25,7 +47,7 @@ test "Native cancellation keeps immutable original operation across replay and r
     is Ok(UnresolvedCancellationHistory),
   )
   assert_true(
-    journal.cancel_operation(
+    journal.cancellation_test_operation(
       request,
       "namespace-a",
       "cancel-a",
@@ -36,9 +58,14 @@ test "Native cancellation keeps immutable original operation across replay and r
     is Err(AuthorizationDenied),
   )
   let accepted = journal
-    .cancel_operation(request, "namespace-a", "cancel-a", 1, () => true, () => {
-      false
-    })
+    .cancellation_test_operation(
+      request,
+      "namespace-a",
+      "cancel-a",
+      1,
+      () => true,
+      () => false,
+    )
     .unwrap()
   assert_eq(accepted.action, @host.AcceptCancellation)
   assert_eq(accepted.observed_revision, 2L)
@@ -52,10 +79,17 @@ test "Native cancellation keeps immutable original operation across replay and r
   journal.transaction(() => journal.save(run)).unwrap() |> ignore
   let terminal_reads = Ref(0)
   let replay = journal
-    .cancel_operation(request, "namespace-a", "cancel-a", 1, () => true, () => {
-      terminal_reads.val += 1
-      true
-    })
+    .cancellation_test_operation(
+      request,
+      "namespace-a",
+      "cancel-a",
+      1,
+      () => true,
+      () => {
+        terminal_reads.val += 1
+        true
+      },
+    )
     .unwrap()
   assert_eq(terminal_reads.val, 0)
   assert_eq(replay.action, @host.AcceptCancellation)
@@ -102,18 +136,25 @@ test "Native cancellation key cannot change Run revision or opaque Unicode inten
     "client-cancel-intent",
   )
   journal
-  .cancel_operation(request, "namespace-a", "e\u{0301}", 1, () => true, () => {
-    false
-  })
+  .cancellation_test_operation(
+    request,
+    "namespace-a",
+    "e\u{0301}",
+    1,
+    () => true,
+    () => false,
+  )
   .unwrap()
   |> ignore
   let composed = journal
-    .cancel_operation(request, "namespace-a", "é", 2, () => true, () => false)
+    .cancellation_test_operation(request, "namespace-a", "é", 2, () => true, () => {
+      false
+    })
     .unwrap()
   assert_eq(composed.action, @host.AlreadyRequested)
   assert_eq(composed.observed_revision, 2L)
   assert_true(
-    journal.cancel_operation(
+    journal.cancellation_test_operation(
       request,
       "namespace-a",
       "e\u{0301}",
@@ -129,9 +170,14 @@ test "Native cancellation key cannot change Run revision or opaque Unicode inten
   journal.bind_run(other, prepared, compiled, definition, true).unwrap()
   |> ignore
   assert_true(
-    journal.cancel_operation(other, "namespace-a", "e\u{0301}", 0, () => true, () => {
-      false
-    })
+    journal.cancellation_test_operation(
+      other,
+      "namespace-a",
+      "e\u{0301}",
+      0,
+      () => true,
+      () => false,
+    )
     is Err(CancellationOperation(@host.ChangedIntent)),
   )
   assert_true(
@@ -140,9 +186,14 @@ test "Native cancellation key cannot change Run revision or opaque Unicode inten
   )
   for id in ["", "cancel\r", "cancel\n", "cancel\r\n"] {
     assert_true(
-      journal.cancel_operation(request, "namespace-a", id, 2, () => true, () => {
-        false
-      })
+      journal.cancellation_test_operation(
+        request,
+        "namespace-a",
+        id,
+        2,
+        () => true,
+        () => false,
+      )
       is Err(CancellationIdentity(@host.InvalidOperationId)),
     )
   }
@@ -154,15 +205,29 @@ test "Native cancellation observes revision race and late authority without an o
   let (database, journal, request) = cancellation_test_run("client-cancel-race")
   let accepted = Ref(false)
   assert_true(
-    journal.cancel_operation(request, "namespace-a", "stale", 1, () => true, () => {
-      let other = journal
-        .cancel_operation(request, "namespace-a", "winner", 1, () => true, () => {
-          false
-        })
-        .unwrap()
-      accepted.val = other.action == @host.AcceptCancellation
-      false
-    })
+    journal.cancellation_test_operation(
+      request,
+      "namespace-a",
+      "stale",
+      1,
+      () => {
+        if !accepted.val {
+          let other = journal
+            .cancellation_test_operation(
+              request,
+              "namespace-a",
+              "winner",
+              1,
+              () => true,
+              () => false,
+            )
+            .unwrap()
+          accepted.val = other.action == @host.AcceptCancellation
+        }
+        true
+      },
+      () => false,
+    )
     is Err(CancellationOperation(@host.RevisionConflict)),
   )
   assert_true(accepted.val)
@@ -172,7 +237,7 @@ test "Native cancellation observes revision race and late authority without an o
   )
   let checks = Ref(0)
   assert_true(
-    journal.cancel_operation(
+    journal.cancellation_test_operation(
       request,
       "namespace-a",
       "late",
@@ -204,7 +269,7 @@ test "Native cancellation commit loss is looked up without deriving a retry from
       client_test_fail_commit(database, 1)
     }
     assert_true(
-      journal.cancel_operation(
+      journal.cancellation_test_operation(
         request,
         "namespace-a",
         "original",
@@ -245,9 +310,14 @@ test "Native original cancellation refuses missing altered or lost witness custo
     let name = "client-cancel-loss-" + loss
     let (database, journal, request) = cancellation_test_run(name)
     journal
-    .cancel_operation(request, "namespace-a", "original", 1, () => true, () => {
-      false
-    })
+    .cancellation_test_operation(
+      request,
+      "namespace-a",
+      "original",
+      1,
+      () => true,
+      () => false,
+    )
     .unwrap()
     |> ignore
     let table = if loss == "witness" {
@@ -301,9 +371,14 @@ test "Native already-terminal cancellation records exact result without a stop o
     "client-cancel-terminal",
   )
   let outcome = journal
-    .cancel_operation(request, "namespace-a", "terminal", 1, () => true, () => {
-      true
-    })
+    .cancellation_test_operation(
+      request,
+      "namespace-a",
+      "terminal",
+      1,
+      () => true,
+      () => true,
+    )
     .unwrap()
   assert_eq(outcome.action, @host.AlreadyTerminal)
   assert_eq(outcome.observed_revision, 1L)
@@ -321,13 +396,20 @@ test "Native cancellation finite issuance refuses another operation without cons
   let (database, _, request) = cancellation_test_run("client-cancel-capacity")
   let journal = open_native_client_run_journal(database, 1).unwrap()
   journal
-  .cancel_operation(request, "namespace-a", "one", 1, () => true, () => false)
+  .cancellation_test_operation(request, "namespace-a", "one", 1, () => true, () => {
+    false
+  })
   .unwrap()
   |> ignore
   assert_true(
-    journal.cancel_operation(request, "namespace-a", "two", 2, () => true, () => {
-      false
-    })
+    journal.cancellation_test_operation(
+      request,
+      "namespace-a",
+      "two",
+      2,
+      () => true,
+      () => false,
+    )
     is Err(CapacityExceeded),
   )
   assert_true(
@@ -336,9 +418,62 @@ test "Native cancellation finite issuance refuses another operation without cons
   )
   assert_eq(
     journal
-    .cancel_operation(request, "namespace-a", "one", 1, () => true, () => false)
+    .cancellation_test_operation(request, "namespace-a", "one", 1, () => true, () => {
+      false
+    })
     .unwrap().observed_revision,
     2L,
   )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native publication fence permits only original readback and blocks nested cancellation" {
+  let (database, journal, request) = cancellation_test_run(
+    "client-publication-fence",
+  )
+  assert_true(journal.claim_physical_start(request, true).unwrap())
+  guard journal.lookup(request, true) is Ok(Retained(before)) else {
+    fail("Run missing")
+  }
+  let reads = Ref(0)
+  assert_true(
+    journal.fence_publication(request, before.definition, () => true, () => {
+      guard journal.lookup(request, true) is Ok(Retained(inside)) else {
+        fail("read-only original lookup cannot join publication fence")
+      }
+      assert_eq(inside.revision, before.revision)
+      reads.val += 1
+      assert_true(
+        journal.cancellation_test_operation(
+          request,
+          "namespace-a",
+          "nested",
+          before.revision.to_int(),
+          () => true,
+          () => false,
+        )
+        is Err(Physical(@sqlite.Busy)),
+      )
+      Err(@native_publication.AccessDenied)
+    })
+    is Err(@native_publication.AccessDenied),
+  )
+  assert_eq(reads.val, 1)
+  assert_true(
+    journal.lookup_cancellation(
+      request,
+      "namespace-a",
+      "nested",
+      before.revision.to_int(),
+      () => true,
+    )
+    is Ok(UnresolvedCancellationHistory),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("Run missing")
+  }
+  assert_eq(after.revision, before.revision)
+  assert_false(after.cancellation_requested)
   database.close_checked().unwrap()
 }

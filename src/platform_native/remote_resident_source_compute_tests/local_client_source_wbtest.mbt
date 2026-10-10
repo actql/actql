@@ -3,7 +3,7 @@
 // restart, and this fixture is not public CLI ingress or read authorization.
 
 ///|
-test "Native Client original Run reaches actual Source Compute Result export and cleanup" {
+fn local_client_source_publication_case(race : Bool) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Source acceptance requires its actual DuckDB fixture")
   }
@@ -183,18 +183,39 @@ test "Native Client original Run reaches actual Source Compute Result export and
     sqlite,
     store_root,
     value => permitted = value,
+    journal,
+    race,
   )
-  local_client_read_committed_result(
-    store, definition, request, "original-read",
-  )
+  if !race {
+    local_client_read_committed_result(
+      store, definition, request, "original-read",
+    )
+  }
   assert_false(work.close())
   assert_eq(cleanups, 0)
   output.cancel()
   assert_true(work.close())
-  assert_true(
-    work.publication_invocation(resident_compute_limits(), 1000000, 100000, 100)
-    is Err(@client.Observation(@resident.Unavailable)),
-  )
+  if race {
+    assert_true(
+      work.publication_invocation(
+        resident_compute_limits(),
+        1000000,
+        100000,
+        100,
+      )
+      is Err(@client.NeedsOriginalReconciliation),
+    )
+  } else {
+    assert_true(
+      work.publication_invocation(
+        resident_compute_limits(),
+        1000000,
+        100000,
+        100,
+      )
+      is Err(@client.Observation(@resident.Unavailable)),
+    )
+  }
   assert_true(work.close())
   assert_eq(acquisitions, 1)
   assert_eq(consumers, 1)
@@ -206,7 +227,11 @@ test "Native Client original Run reaches actual Source Compute Result export and
   assert_eq(usage.reserved_execution_bytes, 0L)
   // Temporary Compute holds are gone; the Named Result has independent
   // durable retention and can be reread without reopening Source or Compute.
-  assert_true(store.capacity_usage().unwrap().reserved_bytes > 0L)
+  if race {
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  } else {
+    assert_true(store.capacity_usage().unwrap().reserved_bytes > 0L)
+  }
   assert_true(store.close().unwrap())
   let store = @store.open_store(
     sqlite,
@@ -216,10 +241,42 @@ test "Native Client original Run reaches actual Source Compute Result export and
     8L,
     1000000L,
   ).unwrap()
-  local_client_read_committed_result(
-    store, definition, request, "new-read-after-reopen",
-  )
+  if !race {
+    local_client_read_committed_result(
+      store, definition, request, "new-read-after-reopen",
+    )
+  }
   assert_true(store.close().unwrap())
+  guard journal.lookup(request, true)
+    is Ok(@client.Retained(before_failed_observation)) else {
+    fail("original Run missing before closed Store observation")
+  }
+  let original_revision = @client.native_client_run_record_revision(
+    before_failed_observation,
+  ).to_int()
+  assert_true(
+    journal.cancel_operation(
+      request,
+      "native-client-fixture",
+      "closed-store-cancel",
+      original_revision,
+      () => true,
+      @client.install_native_client_cancellation_publication(
+        store, "native-client-fixture", 1000000, 100000, 100,
+      ).unwrap(),
+    )
+    is Err(@client.PublicationObservation(@store.Closed)),
+  )
+  assert_true(
+    journal.lookup_cancellation(
+      request,
+      "native-client-fixture",
+      "closed-store-cancel",
+      original_revision,
+      () => true,
+    )
+    is Ok(@client.UnresolvedCancellationHistory),
+  )
   // Repetition keeps the original Run and cannot acquire/compute again. These
   // facts do not mark an unpublished Run as succeeded or a cancellation done.
   assert_true(
@@ -241,4 +298,14 @@ test "Native Client original Run reaches actual Source Compute Result export and
   assert_eq(cleanups, 1)
   database.close_checked().unwrap()
   resident_compute_reclaim(root, name)
+}
+
+///|
+test "Native Client original Run reaches actual Source Compute Result export and cleanup" {
+  local_client_source_publication_case(false)
+}
+
+///|
+test "Native original publication and cancellation cannot both win the same admission fence" {
+  local_client_source_publication_case(true)
 }

@@ -39,7 +39,19 @@ pub fn NativeClientSourceWork::install_publication_service(
     }
   })
   @native_publication.install_native_run_publication_service(
-    store, authority, max_wire_bytes, max_nodes, max_depth,
+    store,
+    authority,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    commit_guard=commit => {
+      self.journal.fence_publication(
+        self.request,
+        self.definition,
+        self.current_authorization,
+        commit,
+      )
+    },
   ).map_err(issue => Service(issue))
 }
 
@@ -155,4 +167,47 @@ fn source_publication_text(
   })
   .bind(cursor => @decode.open_object(cursor).to_option())
   .bind(object => epoch_text(object, field))
+}
+
+///|
+/// Serialize the actual Store index commit with original cancellation admission.
+/// This is a physical fence over existing Owners, not an atomic two-Store commit.
+/// If journal confirmation is lost after the Store wins, the caller must inspect
+/// that original Store; an error never proves that publication did not happen.
+fn NativeClientRunJournal::fence_publication(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  current : () -> Bool,
+  commit : () -> Result[
+    @native_publication.NativeRunPublicationResult,
+    @native_publication.NativeRunPublicationIssue,
+  ],
+) -> Result[
+  @native_publication.NativeRunPublicationResult,
+  @native_publication.NativeRunPublicationIssue,
+] {
+  if !current() {
+    return Err(@native_publication.AccessDenied)
+  }
+  match
+    self.transaction(() => {
+      guard self.retained(request) is Ok(Some(run)) &&
+        @publication.publication_contract_identity(run.definition) ==
+        @publication.publication_contract_identity(definition) &&
+        run.physical_start_claimed &&
+        !run.cancellation_requested else {
+        return Err(CustodyLost)
+      }
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      self.publication_read_locked = true
+      let outcome = commit()
+      self.publication_read_locked = false
+      Ok(outcome)
+    }) {
+    Ok(outcome) => outcome
+    Err(_) => Err(@native_publication.CommitFenceUnavailable)
+  }
 }
