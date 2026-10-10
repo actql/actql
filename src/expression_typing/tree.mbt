@@ -177,6 +177,7 @@ fn flatten(
       | "sign"
       | "round"
       | "trunc"
+      | "safe_negate"
       | "floor"
       | "lower"
       | "upper"

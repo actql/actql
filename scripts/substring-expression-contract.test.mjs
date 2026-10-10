@@ -87,12 +87,13 @@ test('substring freezes predecessor profiles and complete identity preimages bef
   assert.ok(earlier.expression_contract.schemas.evaluation_envelope.properties.operation.enum.includes('substring'));
   assert.ok(earlier.production_profile_registry.schemas.text_time_expression.oneOf.some(item => item.required?.[0] === 'substring'));
   assert.match(earlier.expression_contract.laws.envelopes, /substring tightens input bytes/);
-  const current = bodies();
-  updateSubstringContracts(...current);
+  // This transition compares with its exact adopted successor, not later scalar extensions.
+  const adopted = Object.fromEntries(read('portability/corpus/historical/pre-safe-arithmetic-contract-identities.json').contracts.map(item => [item.id, item.body]));
+  const current = [adopted.expression_contract, null, adopted.production_profile_registry];
   assert.notEqual(cid(current[0]), expected.expression_contract);
   assert.notEqual(cid(current[2]), expected.production_profile_registry);
-  assert.equal(cid(read('spec/dependencies/aoa-rela-scalar-laws.json')), expected.scalar_law_manifest);
-  assert.notEqual(cid(read('spec/manifests/actql-barrier-contracts-0.1.json')), expected.barrier_manifest);
+  assert.equal(cid(adopted.scalar_law_manifest), expected.scalar_law_manifest);
+  assert.notEqual(cid(adopted.barrier_manifest), expected.barrier_manifest);
   for (const entry of history.expression_fragments.cases) {
     assert.equal(canonical(entry.body), entry.canonical);
     assert.equal(cid(entry.body), entry.cid);

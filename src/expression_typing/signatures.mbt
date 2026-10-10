@@ -563,9 +563,28 @@ fn infer(
         source,
       )
     }
-    "sqrt" | "floor" | "abs" | "sign" | "round" | "trunc" | "safe_div" => {
+    "sqrt"
+    | "floor"
+    | "abs"
+    | "sign"
+    | "round"
+    | "trunc"
+    | "safe_negate"
+    | "safe_div"
+    | "safe_divide"
+    | "safe_add"
+    | "safe_subtract"
+    | "safe_multiply" => {
       let nullable = arguments(t, nodes, node, "number")
-      primitive(t, NumberType, nullable || tag == "safe_div", source)
+      primitive(
+        t,
+        NumberType,
+        nullable ||
+        [
+          "safe_div", "safe_divide", "safe_add", "safe_subtract", "safe_multiply",
+        ].contains(tag),
+        source,
+      )
     }
     "eq"
     | "neq"

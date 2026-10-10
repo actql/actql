@@ -1819,7 +1819,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `sqrt`, `abs`, `sign`, `round`, `trunc`, and `floor`;
+- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `abs`, `sign`, `round`, `trunc`, and `floor`;
 - the authoring-only string `template` form;
 - `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
@@ -1885,7 +1885,29 @@ The expression 0.1 contract retains the binary64 arithmetic laws of
 Every binary64 arithmetic result rounds to
 binary64; negative zero is normalized at operation boundaries and remains
 invalid in canonical source. Overflow/non-finite results and ordinary division
-by zero fail the operation; `safe_div(_, 0)` returns null. Binary64 `sum` and
+by zero fail the operation except for the explicitly safe operations below.
+The legacy `safe_div(_, 0)` returns null but retains overflow failure; it is not
+an alias of GoogleSQL `SAFE_DIVIDE` or the common `safe_divide` operation.
+
+`safe_add`, `safe_subtract`, `safe_multiply`, and `safe_divide` accept exactly
+two Number operands and produce nullable Number. They apply the corresponding
+binary64 arithmetic operation and return null for their own overflow;
+`safe_divide` also returns null for a zero divisor, including zero divided by
+zero. Finite subnormal results and underflow to canonical positive zero remain
+ordinary numeric results. `safe_negate` accepts exactly one Number and returns
+its negation with the operand nullability: every finite binary64 value has a
+finite negation, so no extra null is introduced in this supported domain.
+These operations do not admit Decimal, INT64, NUMERIC, BIGNUMERIC or non-finite
+values, and they do not coerce strings or booleans.
+
+The common strict rule evaluates every demanded child exactly once in source
+order before applying null or arithmetic handling. A null first operand does
+not suppress a failing second operand. Child-expression, domain, cancellation,
+control, logical-work, live-byte and workspace failures are not converted to
+null. Authored SAFE nodes and their children remain in canonical lowering even
+when constant. Existing lazy expressions retain their demand rules.
+
+Binary64 `sum` and
 `avg` use the captured numeric-observation boundary defined below, rather than
 requiring a placement-independent reduction bit pattern. Exact decimal arithmetic
 uses a separate coefficient/precision/scale value domain ([Exact decimal values](#decimal-values)), not an
@@ -1980,7 +2002,9 @@ atomic, not null, except where the named function explicitly specifies it.
 | `contains` | S, S → boolean | Exact matching | RelA |
 | `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
-| `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; safe division by zero returns null | RelA |
+| `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; legacy safe division by zero returns null, overflow fails | RelA |
+| `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
+| `safe_negate` | N → N | Finite binary64 negation cannot overflow; preserves operand nullability | RelA |
 | `abs`, `sign`, `round`, `trunc` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
 | `to_number`, `to_boolean`, `to_timestamp` | S or the exact target type → indicated type | [Explicit casts](#casts) closed conversion table; same-type identity | RelA |
 | `to_string` | string, number, decimal, boolean, timestamp, or date → S | Canonical spelling; json/object/array/vector and both reference types are rejected | RelA |
@@ -2212,10 +2236,10 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `trim(x, characters)`, `ltrim(x, characters)`, `rtrim(x, characters)` | corresponding scalar trim with an explicit STRING code-point set |
 | `to_number(x)`, `to_string(x)`, `to_boolean(x)`, `to_timestamp(x)` | explicit conversion |
-| `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `strpos(value, subvalue)`, `safe_div(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
+| `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `strpos(value, subvalue)`, `safe_div(left, right)`, `safe_add(left, right)`, `safe_subtract(left, right)`, `safe_multiply(left, right)`, `safe_divide(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
 | `concat(x, ...)`, `concat_strict(x, ...)`, `coalesce(x, ...)`, `if(condition, then_value, else_value)` | corresponding scalar function or conditional tree |
 | `vector_score(a, b, 'cosine'|'dot'|'l2')` | `{vector_score: {left: a, right: b, metric: decoded-literal}}` |
 | `vector_concat(a, b, ...)` | `{vector_concat: [a,b,...]}`; at least two operands |
@@ -10131,7 +10155,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:6bcbd8e694cd666405cf97ad9aea06a9e60aa980940e5ed35905b88b2564c948
+../../spec/contracts/actql-aoa.json# sha256:55d0202bf89438490a27b7cc7f5996c096e0fbe879e3c4868b81de81edf13e53
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10140,13 +10164,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:a23cd070a4f1c2ee0c29d0badba3fd512ad50d073cbf2eef1a0373fe5186cb9a
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:f3f0837535533655370371c7568cd86736867ba3c88bde6e18cec035c87de1ae
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:cda205e483eb8c0ecdeda4ebbb40fb2e52d854781f8a2c4dc3da40c3ceecd9e0
+../../spec/contracts/actql-expressions.json# sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5cd7e4d1f632a291776cfd9c9b79b0d62419c18850dde07dde34b0d0f9db205d
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:bd505adfc4c7da349bfab01d5aa39adefeaaff7ca7154c3e26de9cb0732589f4
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:1a5c3af25a5e5e273a420d60a919dab23b37564c4b0861a41756d51282fcf1d4
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:3e7841605225124517ebbf31bb260e1a81610b3c3663b9c4c6d4bc6be3404898
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:2eacc78ca34f0981f3f474298e341eca1c45571e743093a012ea4c45fc6436da
+../../spec/contracts/actql-expressions.json#/laws sha256:93f0c1503ea21923f0f1e25b47621482099ff6815e3a06124bef49c0cbf01749
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:6ba46385fdc0212be4c6fb6cd1a649e1f30d2535775ce0b9c504bf1a23f6e287
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0fb299b1a878dfce8da6de5fe5ee2ebef18c2c4b60de7e881b06e187eea8b64c
 ```
 
 <!-- stage-contract-pins:start -->
