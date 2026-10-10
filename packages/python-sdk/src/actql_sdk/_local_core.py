@@ -66,6 +66,14 @@ _PROGRAM_SIGNATURES = {
     'close_preparation': ('i64 i32', 'i32'),
     'close_environment': ('i64 i32', 'i32'),
 }
+_RUN_SIGNATURES = {
+    'install_configuration': ('i64 i32', 'i32'),
+    'reserve': ('i64 i32 i32 i32', 'i32'),
+    'prepare': ('i64 i32', 'i32'),
+    'prepared': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+    'close_configuration': ('i64 i32', 'i32'),
+}
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
@@ -135,6 +143,8 @@ class LocalCore:
                         for name, value in _BUFFER_SIGNATURES.items()}
             expected.update({'actql_program_' + name: value
                              for name, value in _PROGRAM_SIGNATURES.items()})
+            expected.update({'actql_run_' + name: value
+                             for name, value in _RUN_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or

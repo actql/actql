@@ -15,7 +15,7 @@ priv struct StoredPreparation {
   kind : Int
   mut started : Bool
   mut outcome : Result[
-    @host.PreparedClientProgram,
+    @preparation.LocalPreparedInput,
     @preparation.LocalPreparationIssue,
   ]?
 }
@@ -169,7 +169,7 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   } else {
     @preparation.Aql(document)
   }
-  let outcome = @preparation.prepare_local_input(
+  let outcome = @preparation.prepare_local_input_material(
     input,
     configuration.environment,
     None,
@@ -186,7 +186,10 @@ pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
   match record.outcome {
-    Some(Ok(prepared)) => @host.prepared_client_result_count(prepared)
+    Some(Ok(prepared)) =>
+      @host.prepared_client_result_count(
+        @preparation.local_prepared_program(prepared),
+      )
     Some(Err(_)) => -22
     None => -23
   }
@@ -199,7 +202,11 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
   guard value.preparations.get(handle) is Some(record) else { return -2 }
   match record.outcome {
     Some(Ok(prepared)) =>
-      @strategy.graph_task_count(@host.prepared_client_graph(prepared))
+      @strategy.graph_task_count(
+        @host.prepared_client_graph(
+          @preparation.local_prepared_program(prepared),
+        ),
+      )
     Some(Err(_)) => -22
     None => -23
   }
@@ -210,6 +217,9 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
 pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
+  if value.runs.values().any(run => run.preparation == handle) {
+    return -9
+  }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
     value.preparations.remove(handle) |> ignore

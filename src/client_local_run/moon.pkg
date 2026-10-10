@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/client_local_preparation" @input,
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/program_check" @checked,
+  "actql/actql/execution_authorization" @authorization,
+  "actql/actql/physical_strategy" @strategy,
+}

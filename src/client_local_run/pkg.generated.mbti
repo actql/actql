@@ -1,0 +1,60 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_local_run"
+
+import {
+  "actql/actql/client_local_preparation",
+  "actql/actql/execution_authorization",
+  "actql/actql/program_check",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
+
+pub fn local_run_admission(LocalRunPlan) -> @run_publication.RunPublicationAdmission
+
+pub fn local_run_compilation(LocalRunPlan) -> @run_publication_host.ClientTaskCompilation
+
+pub fn local_run_definition(LocalRunPlan) -> @run_publication.PublicationContract
+
+pub fn local_run_material_limits() -> @run_publication_host.ClientValuesRunMaterialsLimits
+
+pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
+
+pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Bool, LocalRunIssue]
+
+pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
+
+pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn restore_local_run_materials(String, String) -> Result[@run_publication_host.ClientTaskRunMaterials, LocalRunIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum LocalRunIssue {
+  AuthorizationMismatch
+  UnsupportedCapability
+  Request(@run_publication_host.ClientRequestIdentityIssue)
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Compilation(@run_publication_host.ClientTaskCompilationIssue)
+  Admission(@run_publication_host.ClientCompiledRunIssue)
+  Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
+  Start(@run_publication_host.ClientRunStartIssue)
+}
+
+pub struct LocalRunPlan {
+  input : @client_local_preparation.LocalPreparedInput
+  request : @run_publication_host.ClientRequestIdentity
+  compilation : @run_publication_host.ClientTaskCompilation
+  admission : @run_publication.RunPublicationAdmission
+  definition : @run_publication.PublicationContract
+  account_id : String
+  tuple : @execution_authorization.AccessTuple
+  execution_context_cid : String
+}
+
+// Type aliases
+
+// Traits
