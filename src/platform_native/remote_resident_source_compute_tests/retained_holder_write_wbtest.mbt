@@ -234,7 +234,9 @@ fn retained_holder_write_row(
     "native-approved-row: retaining responsibility after terminal save failure",
   )
   assert_true(work.settle_saved_row(limits) is Err(Journal(Physical(_))))
-  assert_true(work.retry_cleanup() is Err(Unavailable))
+  // Custody is unconfirmed and the same peer still holds SQLite's write lock.
+  // Cleanup must preserve the concrete Store failure and all reservations.
+  assert_true(work.retry_cleanup() is Err(Journal(Physical(_))))
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   let pending_head = peer
     .read(
