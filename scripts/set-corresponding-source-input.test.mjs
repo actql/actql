@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalFilterProgram} from './fixtures/set-corresponding-source-input.mjs';
+import {setCorrespondingSuccesses, setCorrespondingRefusals, setCorrespondingProgram, positionalAggregateProgram, positionalWindowProgram, positionalOrderLimitProgram, positionalStarProgram, positionalFilterProgram} from './fixtures/set-corresponding-source-input.mjs';
 
 test('CORRESPONDING matching has independent row, type, scope and multiplicity controls', () => {
-  assert.equal(setCorrespondingSuccesses.length, 57);
-  assert.equal(setCorrespondingRefusals.length, 30);
+  assert.equal(setCorrespondingSuccesses.length, 66);
+  assert.equal(setCorrespondingRefusals.length, 34);
   const union = setCorrespondingSuccesses.find(x => x.name === 'set-corresponding-sql-default');
   assert.deepEqual(union.expected, [{id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 3, amount: 30}, {id: 3, amount: 30}, {id: 1, amount: null}]);
@@ -164,6 +164,30 @@ test('positional inner ORDER LIMIT has independent values and opposite alias con
   assert.deepEqual(steps[4].select, [{a: 'neg'}]);
   assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
   const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-limited-'));
+  assert.equal(refusals.length, 4);
+  assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('positional star fixtures preserve values nullable schema DISTINCT and scope', () => {
+  const normals = setCorrespondingSuccesses.filter(x => x.name.startsWith('set-corresponding-positional-star-'));
+  assert.equal(normals.length, 9);
+  const find = name => normals.find(x => x.name.endsWith('-' + name));
+  assert.deepEqual(find('source-scalar').expected, [{a: -2}, {a: -1}, {a: 0}]);
+  assert.deepEqual(find('distinct').sourceRows.map(x => x.id), [2, 2, 1]);
+  assert.deepEqual(find('distinct').expected, find('source-scalar').expected);
+  assert.deepEqual(find('repeated-star-limit').expected, [{a: -1}, {a: 0}]);
+  assert.deepEqual(find('window').expected, [{a: 0}, {a: 2}]);
+  assert.deepEqual(find('aggregate').columns.map(x => [x.name, x.contract.nullable]), [['a', true], ['b', false]]);
+  assert.deepEqual(find('nullable').expected, [{a: -10}, {a: 0}, {a: null}]);
+  assert.equal(find('nullable').columns[0].contract.nullable, true);
+  assert.deepEqual(find('typed-empty').expected, []);
+  assert.deepEqual(find('typed-empty').columns, [{name: 'a', contract: {type: 'number', nullable: false}}]);
+  const steps = positionalStarProgram.stages[0].steps;
+  assert.deepEqual(steps[1].derive, {neg: {negate: {field: 'x'}}});
+  assert.deepEqual(steps.slice(2, 5).map(x => x.select), [['neg'], ['neg'], [{a: 'neg'}]]);
+  assert.ok(normals.every(x => x.sourceReadSessionCount === (x.format === 'json' ? 0 : 1)));
+  const refusals = setCorrespondingRefusals.filter(x => x.name.startsWith('set-corresponding-refuse-star-'));
   assert.equal(refusals.length, 4);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
