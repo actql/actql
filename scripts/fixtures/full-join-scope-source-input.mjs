@@ -112,10 +112,10 @@ export const fullJoinScopeSuccesses = [
   ...fullUsingScopeSuccesses,
 ];
 export const fullJoinScopeRefusals = [
-  // UnsupportedJoin projects a public implementation-limit fact; malformed
-  // syntax and ambiguous columns project violations. Keep exact classifications
+  // Duplicate USING keys are invalid; a non-equijoin is an implementation gap.
+  // Syntax and ambiguous columns remain violations. Keep exact classifications
   // instead of broadening the shared input-code set for unrelated refusals.
-  [prefix + body.replace('ON l.id = r.id', 'USING (id, `ID`)'), 'ClientProgramImplementationLimit'],
+  [prefix + body.replace('ON l.id = r.id', 'USING (id, `ID`)'), 'ClientProgramInvalidInput'],
   [prefix + body.replace('ON l.id = r.id', 'ON l.id > r.id'), 'ClientProgramImplementationLimit'],
   [prefix + body.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 0'), 'ClientProgramInvalidInput'],
   [prefix + body.replace('SELECT l.*, r.id AS rid', 'SELECT id'), 'ClientProgramInvalidInput'],

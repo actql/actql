@@ -22,6 +22,7 @@ pub fn lower(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String
 
 pub fn numeric_literal(String) -> Result[Double, Issue]
 
+pub fn same_scalar_function(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
 pub fn same_binary_operator(String, String) -> Bool
 
 pub fn source(Lowered) -> @program_source_builder.Source

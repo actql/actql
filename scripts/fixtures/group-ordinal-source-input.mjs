@@ -1,3 +1,5 @@
+import {scalarAliasGroupSuccesses, scalarAliasGroupRefusals}
+  from './scalar-alias-group-source-input.mjs';
 import {groupComparisonSuccesses, groupComparisonRefusals}
   from './group-comparison-source-input.mjs';
 
@@ -104,6 +106,7 @@ export const repeatedGroupKeySuccesses = [
   }),
 ];
 groupOrdinalSuccesses.push(...repeatedGroupKeySuccesses);
+groupOrdinalSuccesses.push(...scalarAliasGroupSuccesses);
 groupOrdinalSuccesses.push(...groupComparisonSuccesses);
 export const groupOrdinalRefusals = [
   'SELECT id, amount FROM records GROUP BY 0',
@@ -114,4 +117,4 @@ export const groupOrdinalRefusals = [
   'FROM records |> AGGREGATE COUNT(*) AS n GROUP BY 1',
 ].map((text, index) => ({name: 'group-ordinal-invalid-' + index,
   format: 'aql-text', text, expectedCode: 'ClientProgramImplementationLimit'}))
-  .concat(groupComparisonRefusals);
+  .concat(scalarAliasGroupRefusals, groupComparisonRefusals);
