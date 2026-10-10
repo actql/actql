@@ -1963,6 +1963,10 @@ fn compile_steps(
   prefix_context? : Context? = None,
   positional_set_output? : Bool = false,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
+  // Internal parenthesized bindings retain their positional export role.
+  // This parser fact never grants anonymous exports to authored CTEs.
+  let positional_set_output = positional_set_output ||
+    @query.positional_output(query)
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
   let mut requires_graph_projection = graph_bindings_only
@@ -6092,6 +6096,19 @@ pub fn compile(
     )
   }
   if @query.cte_count(query) > 0 {
+    let positional_operand = Array::makei(@query.cte_count(query), index => {
+      @query.positional_output(@query.cte_at(query, index).unwrap().query)
+    }).any(value => value)
+    if positional_operand {
+      // These parser-owned bindings can export values without authored names.
+      // Reuse script composition rather than publishing an intermediate Result.
+      return compile_query_script(
+        @query.single_query_script(query),
+        context,
+        limits,
+        table_writes~,
+      )
+    }
     return compile_cte_query(query, context, limits)
   }
   if @query.set_part_count(query) > 0 {
