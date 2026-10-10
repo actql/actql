@@ -11,6 +11,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {checkGcsAcceptanceEnvironment} from './gcs-files-content-environment.mjs';
 import {stagePackedGcsFixture} from './packed-gcs-content-fixture.mjs';
+import {verifyPackedGcsObservations} from './packed-gcs-content-observations.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 assert.ok(isAbsolute(process.argv[2] ?? ''), 'Explicit authorized GCS manifest required');
@@ -80,11 +81,7 @@ try {
       assert.equal(value.cases.length, 2);
       phases.push(value);
     }
-    assert.notEqual(phases[0].pid, phases[1].pid);
-    assert.ok(phases[0].credential.credentialResolutions > 0);
-    assert.equal(phases[1].credential.credentialResolutions, 0);
-    assert.equal(phases[1].credential.tokenMints, 0);
-    assert.deepEqual(phases[0].cases.map(value => value.runRef), phases[1].cases.map(value => value.runRef));
+    verifyPackedGcsObservations({entrance, phases, manifest});
     record.cases.push({entrance, phases, custodyDirectory: root});
     await save();
     console.log(`PACKED_GCS ${entrance}: capture and separate-process read passed`);
