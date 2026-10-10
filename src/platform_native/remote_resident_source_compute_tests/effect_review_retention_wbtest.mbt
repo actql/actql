@@ -206,6 +206,7 @@ fn retained_effect_review_retention_store(
           // recheck the actual holder after the callback, without dropping
           // the pending original retention owner or returning capacity.
           let cleanup_failed = Ref(false)
+          let cleanup_observation = Ref("cleanup callback not reached")
           assert_true(
             work.admit_resolution(
               wire,
@@ -214,11 +215,23 @@ fn retained_effect_review_retention_store(
               keys,
               () => true,
               () => {
-                cleanup_failed.val = work.retry_cleanup() is Err(Retention(_))
+                let cleanup = work.retry_cleanup()
+                cleanup_failed.val = cleanup is Err(Retention(_))
+                cleanup_observation.val = match cleanup {
+                  Err(Retention(_)) => "retention cleanup pending"
+                  Err(Journal(StateCollision)) => "journal custody collision"
+                  Err(Journal(Closed)) => "journal closed"
+                  Err(Journal(Physical(_))) => "journal physical failure"
+                  Err(Journal(_)) => "journal custody rejected"
+                  Err(Unavailable) => "review custody unavailable"
+                  Err(_) => "review cleanup rejected"
+                  Ok(_) => "review cleanup succeeded"
+                }
                 "2026-10-10T00:01:00.000Z"
               },
             )
             is Err(AuthorityDenied),
+            msg=cleanup_observation.val[:],
           )
           assert_true(cleanup_failed.val)
         } else {

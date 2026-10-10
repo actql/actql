@@ -118,58 +118,32 @@ fn NativeResidentEffectApprovedRow::current(
 }
 
 ///|
-/// Prepare the first bounded single-record update from this holder's actual
-/// checked Preview. No request, membership or claim identity is caller-issued.
-pub fn NativeResidentEffectReview::prepare_approved_row(
+/// Checked original row identities only. No approval or send permission.
+priv struct NativeResidentEffectRowContext {
+  preview : @publication.EffectPreviewIdentity
+  scope : @request_scope.LogicalRequestScope
+  locator : @effect.LogicalItemLocator
+  key : @effect.EffectDispatchKey
+  basis : @effect.EffectLedgerBasis
+  request : @catalog.SingleWriteRequest
+  observation : @catalog.TargetObservation
+}
+
+///|
+fn NativeResidentEffectReview::row_context(
   self : NativeResidentEffectReview,
-  verified_wire : String,
-  authentication : @checkpoint.HostAuthentication,
-  reviewers : Array[@checkpoint.ReviewerAuthority],
-  keys : Array[NativeEffectHostAuthority],
-  current_authority : () -> Bool,
-  observe_resume : () -> NativeEffectResumeObservation?,
-  now : () -> String,
-  limits : NativeResidentEffectWriteLimits,
-) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue] {
+  limits : @checkpoint.WireLimits,
+) -> Result[NativeResidentEffectRowContext, NativeResidentEffectWriteIssue] {
   (fn() -> Result[
-    NativeResidentEffectApprovedRow,
+    NativeResidentEffectRowContext,
     NativeResidentEffectWriteIssue,
   ] raise NativeEffectWriteFailure {
-    let resolution = write_checked(
-      self
-      .admit_resolution(
-        verified_wire, authentication, reviewers, keys, current_authority, now,
-      )
-      .map_err(issue => Resolution(issue)),
-    )
-    if resolution.decision != @checkpoint.Approved ||
-      resolution.resume_intent_id is None {
-      return Err(AuthorityDenied)
-    }
-    if self.approved_row is Some(row) {
-      if row.resolution != resolution {
-        return Err(ForeignRequest)
-      }
-      if !row.current() {
-        return Err(AuthorityDenied)
-      }
-      return Ok(row)
-    }
     guard self.captured is Some(capture) &&
       self.targets is Some(targets) &&
       targets.length() == 1 &&
       capture.preview.keys.length() == 1 &&
       self.retention_configuration is Some(_) else {
       return Err(Unavailable)
-    }
-    if limits.response.max_bytes < 1 ||
-      limits.response.max_bytes > 1000000 ||
-      limits.response.max_nodes < 1 ||
-      limits.response.max_nodes > 1000 ||
-      limits.response.max_depth < 1 ||
-      limits.response.max_depth > 32 ||
-      limits.response.max_rows != 1 {
-      return Err(ForeignRequest)
     }
     let scope = write_checked(
       @host.prepared_client_effect_request_scope(
@@ -276,12 +250,144 @@ pub fn NativeResidentEffectReview::prepare_approved_row(
     write_checked(
       @effect.issue_prepared_effect_ledger_entry(
         basis,
-        limits.ledger.max_wire_bytes,
-        limits.ledger.max_nodes,
-        limits.ledger.max_depth,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
       ).map_err(_ => ForeignRequest),
     )
     |> ignore
+    Ok({
+      preview,
+      scope,
+      locator: binding.locator,
+      key: binding.key,
+      basis,
+      request,
+      observation: targets[0].2,
+    })
+  })() catch {
+    WriteFailed(issue) => Err(issue)
+  }
+}
+
+///|
+/// Restore the original dispatch and response custody without current write
+/// permission. The installed caller controls evidence disclosure. Missing or
+/// uncertain custody retains cleanup responsibility; this never sends.
+pub fn NativeResidentEffectReview::restore_row_custody(
+  self : NativeResidentEffectReview,
+  limits : @checkpoint.WireLimits,
+) -> Result[@journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue] {
+  if self.closed {
+    return Err(Unavailable)
+  }
+  self.effect_pending = true
+  self.row_custody_confirmed = false
+  (fn() -> Result[
+    @journal.NativeEffectRowCustody?,
+    NativeResidentEffectWriteIssue,
+  ] raise NativeEffectWriteFailure {
+    let context = write_checked(self.row_context(limits))
+    let custody = write_checked(
+      self.journal
+      .effect_ledger_custody(
+        @resident.resident_retained_consumer_request(self.holder),
+        context.scope,
+        context.locator,
+        context.key,
+        context.basis,
+        limits,
+        self.retention_configuration.unwrap().5,
+      )
+      .map_err(issue => Journal(issue)),
+    )
+    if custody is Some(saved) && saved.dispatching is Some(original) {
+      if self.approved_row is Some(row) {
+        if row.dispatching is Some(existing) &&
+          (
+            @effect.effect_ledger_entry_cid(existing) !=
+            @effect.effect_ledger_entry_cid(original) ||
+            @effect.effect_ledger_entry_wire(existing) !=
+            @effect.effect_ledger_entry_wire(original)
+          ) {
+          return Err(ForeignRequest)
+        }
+        row.dispatching = Some(original)
+        row.started = true
+        if row.terminal is Some((_, terminal)) &&
+          @effect.effect_ledger_entry_cid(terminal) ==
+          @effect.effect_ledger_entry_cid(saved.head) &&
+          @effect.effect_ledger_entry_wire(terminal) ==
+          @effect.effect_ledger_entry_wire(saved.head) {
+          self.effect_pending = false
+        }
+      }
+    } else {
+      if self.approved_row is Some(row) && (row.started || row.raw is Some(_)) {
+        return Err(ReconciliationRequired)
+      }
+      self.effect_pending = false
+    }
+    self.row_custody_confirmed = true
+    Ok(custody)
+  })() catch {
+    WriteFailed(issue) => Err(issue)
+  }
+}
+
+///|
+/// Prepare the first bounded single-record update from this holder's actual
+/// checked Preview. No request, membership or claim identity is caller-issued.
+pub fn NativeResidentEffectReview::prepare_approved_row(
+  self : NativeResidentEffectReview,
+  verified_wire : String,
+  authentication : @checkpoint.HostAuthentication,
+  reviewers : Array[@checkpoint.ReviewerAuthority],
+  keys : Array[NativeEffectHostAuthority],
+  current_authority : () -> Bool,
+  observe_resume : () -> NativeEffectResumeObservation?,
+  now : () -> String,
+  limits : NativeResidentEffectWriteLimits,
+) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue] {
+  (fn() -> Result[
+    NativeResidentEffectApprovedRow,
+    NativeResidentEffectWriteIssue,
+  ] raise NativeEffectWriteFailure {
+    if limits.response.max_bytes < 1 ||
+      limits.response.max_bytes > 1000000 ||
+      limits.response.max_nodes < 1 ||
+      limits.response.max_nodes > 1000 ||
+      limits.response.max_depth < 1 ||
+      limits.response.max_depth > 32 ||
+      limits.response.max_rows != 1 {
+      return Err(ForeignRequest)
+    }
+    let prior = write_checked(self.restore_row_custody(limits.ledger))
+    let resolution = write_checked(
+      self
+      .admit_resolution(
+        verified_wire, authentication, reviewers, keys, current_authority, now,
+      )
+      .map_err(issue => Resolution(issue)),
+    )
+    if resolution.decision != @checkpoint.Approved ||
+      resolution.resume_intent_id is None {
+      return Err(AuthorityDenied)
+    }
+    if self.approved_row is Some(row) {
+      if row.resolution != resolution {
+        return Err(ForeignRequest)
+      }
+      if !row.current() {
+        return Err(AuthorityDenied)
+      }
+      return Ok(row)
+    }
+    let context = write_checked(self.row_context(limits.ledger))
+    let preview = context.preview
+    let scope = context.scope
+    let request = context.request
+    let basis = context.basis
     let row = {
       owner: self,
       resolution,
@@ -293,17 +399,28 @@ pub fn NativeResidentEffectReview::prepare_approved_row(
       now,
       preview,
       scope,
-      locator: binding.locator,
-      key: binding.key,
+      locator: context.locator,
+      key: context.key,
       basis,
       request,
-      observation: targets[0].2,
+      observation: context.observation,
       limits,
       dispatching: None,
       raw: None,
       sending: false,
       started: false,
       terminal: None,
+    }
+    if !row.current() {
+      return Err(AuthorityDenied)
+    }
+    if prior is Some(custody) && custody.dispatching is Some(original) {
+      // Restore responsibility before exposing a replacement row. Even a
+      // terminal head must be reconciled against the original raw response;
+      // physical resource zero does not establish semantic completion.
+      row.dispatching = Some(original)
+      row.started = true
+      self.effect_pending = true
     }
     if !row.current() {
       return Err(AuthorityDenied)
@@ -474,6 +591,122 @@ pub fn NativeResidentEffectApprovedRow::retry_response_custody(
 }
 
 ///|
+fn settle_original_row_response(
+  owner : NativeResidentEffectReview,
+  context : NativeResidentEffectRowContext,
+  entry : @effect.EffectLedgerEntry,
+  response : @journal.NativeEffectSavedResponse,
+  limits : NativeResidentEffectWriteLimits,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeResidentEffectWriteIssue,
+] {
+  let dispatch = @resident.resident_retained_consumer_request(owner.holder)
+  (fn() -> Result[
+    (@publication.PublicationContract, @effect.EffectLedgerEntry),
+    NativeResidentEffectWriteIssue,
+  ] raise NativeEffectWriteFailure {
+    if limits.response.max_bytes < 1 ||
+      limits.response.max_bytes > 1000000 ||
+      limits.response.max_nodes < 1 ||
+      limits.response.max_nodes > 1000 ||
+      limits.response.max_depth < 1 ||
+      limits.response.max_depth > 32 ||
+      limits.response.max_rows != 1 {
+      return Err(ForeignRequest)
+    }
+    let projected = if response.status_code >= 200 && response.status_code < 300 {
+      @catalog.project_write_single_success(
+        response.status_code,
+        response.body,
+        @catalog.single_write_request_kind(context.request),
+        limits.response,
+      )
+    } else {
+      @catalog.project_write_single_rejection(
+        response.status_code,
+        response.body,
+        context.request,
+        limits.response,
+      )
+    }
+    let typed = match projected {
+      Ok(value) => value
+      Err(_) => return Err(UnclassifiedResponse)
+    }
+    let outcome = match
+      @catalog.project_single_effect_outcome(
+        typed,
+        @publication.effect_preview_ordered_row_identity(context.preview, 0, 0).unwrap(),
+        limits.ledger.max_wire_bytes,
+        limits.ledger.max_nodes,
+        limits.ledger.max_depth,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(UnclassifiedResponse)
+    }
+    let terminal = write_checked(
+      owner.journal
+      .record_effect_row_receipt(
+        dispatch,
+        entry,
+        context.preview,
+        context.scope,
+        context.locator,
+        context.key,
+        context.basis.canonical_request_cid,
+        @catalog.write_row_effect_projection_wire(outcome),
+        limits.response.max_bytes,
+        limits.ledger,
+      )
+      .map_err(issue => Journal(issue)),
+    )
+    Ok(terminal)
+  })() catch {
+    WriteFailed(issue) => Err(issue)
+  }
+}
+
+///|
+/// Reconcile a Store-owned response through the original common receipt Owner.
+/// No Resolution renewal, claim or Provider I/O occurs. Absent response bytes
+/// remain unresolved; a historical terminal is not accepted without its receipt.
+pub fn NativeResidentEffectReview::settle_saved_row(
+  self : NativeResidentEffectReview,
+  limits : NativeResidentEffectWriteLimits,
+) -> Result[
+  (@publication.PublicationContract, @effect.EffectLedgerEntry),
+  NativeResidentEffectWriteIssue,
+] {
+  if self.approved_row is Some(row) && row.sending {
+    return Err(ReconciliationRequired)
+  }
+  (fn() -> Result[
+    (@publication.PublicationContract, @effect.EffectLedgerEntry),
+    NativeResidentEffectWriteIssue,
+  ] raise NativeEffectWriteFailure {
+    let saved = write_checked(self.restore_row_custody(limits.ledger))
+    guard saved is Some(custody) &&
+      custody.dispatching is Some(entry) &&
+      custody.response is Some(response) else {
+      return Err(ReconciliationRequired)
+    }
+    let context = write_checked(self.row_context(limits.ledger))
+    let terminal = write_checked(
+      settle_original_row_response(self, context, entry, response, limits),
+    )
+    if self.approved_row is Some(row) {
+      row.terminal = Some(terminal)
+      row.raw = None
+    }
+    self.effect_pending = false
+    Ok(terminal)
+  })() catch {
+    WriteFailed(issue) => Err(issue)
+  }
+}
+
+///|
 /// Retain and classify the same original raw response; this never invokes a
 /// Provider. Unknown responses keep the original claim and cleanup obligation.
 pub fn NativeResidentEffectApprovedRow::settle(
@@ -506,51 +739,9 @@ pub fn NativeResidentEffectApprovedRow::settle(
       is Some(response) else {
       return Err(ReconciliationRequired)
     }
-    let projected = if response.status_code >= 200 && response.status_code < 300 {
-      @catalog.project_write_single_success(
-        response.status_code,
-        response.body,
-        @catalog.single_write_request_kind(self.request),
-        self.limits.response,
-      )
-    } else {
-      @catalog.project_write_single_rejection(
-        response.status_code,
-        response.body,
-        self.request,
-        self.limits.response,
-      )
-    }
-    let typed = match projected {
-      Ok(value) => value
-      Err(_) => return Err(UnclassifiedResponse)
-    }
-    let outcome = match
-      @catalog.project_single_effect_outcome(
-        typed,
-        @publication.effect_preview_ordered_row_identity(self.preview, 0, 0).unwrap(),
-        self.limits.ledger.max_wire_bytes,
-        self.limits.ledger.max_nodes,
-        self.limits.ledger.max_depth,
-      ) {
-      Ok(value) => value
-      Err(_) => return Err(UnclassifiedResponse)
-    }
+    let context = write_checked(owner.row_context(self.limits.ledger))
     let terminal = write_checked(
-      owner.journal
-      .record_effect_row_receipt(
-        dispatch,
-        entry,
-        self.preview,
-        self.scope,
-        self.locator,
-        self.key,
-        self.basis.canonical_request_cid,
-        @catalog.write_row_effect_projection_wire(outcome),
-        self.limits.response.max_bytes,
-        self.limits.ledger,
-      )
-      .map_err(issue => Journal(issue)),
+      settle_original_row_response(owner, context, entry, response, self.limits),
     )
     self.terminal = Some(terminal)
     self.raw = None
