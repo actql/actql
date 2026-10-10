@@ -17,8 +17,15 @@ fn compile_pipe_pivot(
   let output = index.copy()
   for entry in clause.values {
     let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
-    let name = clause.prefix.map(prefix => prefix.value + "_" + suffix).unwrap_or(suffix)
-    if output.any(pair => same_name({ value: pair.0, quoted: false, }, { value: name, quoted: false, })) {
+    let name = clause.prefix
+      .map(prefix => prefix.value + "_" + suffix)
+      .unwrap_or(suffix)
+    if output.any(pair => {
+        same_name({ value: pair.0, quoted: false, }, {
+          value: name,
+          quoted: false,
+        })
+      }) {
       raise Abort(DuplicateOutput)
     }
     output.push((name, entry.0))
@@ -27,7 +34,10 @@ fn compile_pipe_pivot(
     ("index", construction.array(index.map(pair => construction.text(pair.1)))),
     ("column", construction.text(column)),
     ("value", construction.text(value)),
-    ("values", construction.array(clause.values.map(pair => construction.text(pair.0)))),
+    (
+      "values",
+      construction.array(clause.values.map(pair => construction.text(pair.0))),
+    ),
     ("aggregate", construction.text(clause.function_name.to_lower())),
   ])
   (pivot, output)

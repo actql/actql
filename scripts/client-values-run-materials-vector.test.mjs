@@ -1008,7 +1008,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:d848446acc09f209842f19258f701c4e9dc887701936e7165a8b371557bce227');
+    'sha256:0e78ef6f3c7f4932c00b61d4945432738a8dc32350ca3244405c4927c71ad0aa');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1068,6 +1068,10 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(cid(requestIntent), "sha256:8291aeda45155c650ced1f803650313d9c5741f97b70672933a57d6fcffdd32b");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity);
+  const beforeUnpivot = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-unpivot-grammar.json', 'utf8'));
+  assert.deepEqual(vector(beforeUnpivot.grammar.grammar_manifest_cid, cid(aoa),
+    dependencies, barrier.barrier_contract_manifest_cid, identity), beforeUnpivot.run_preimages);
+  assert.equal(beforeUnpivot.run_preimages.run.run_definition_cid, 'sha256:0af1a043d6f8054e2c51c595c929fea4442f08a259924f738e4c25dd2fe6f3a4');
   // Preserve the preceding complete grammar-bound Run. This AS correction
   // changes the compiler rules pin, never the Values Unit or Result Plan.
   const beforeAs = JSON.parse(readFileSync('scripts/fixtures/pre-value-table-as-grammar.json', 'utf8'));
@@ -1085,7 +1089,7 @@ test('current contract inputs independently determine the Values Run and consumi
     barrier.barrier_contract_manifest_cid, identity), beforeDouble.run_preimages);
   assert.equal(beforeDouble.run_preimages.run.run_definition_cid,
     'sha256:fa57a9c0f667cae5597a30f9cf4606c86d3c15620526d757f7942e16129b01bf');
-  assert.equal(current.run.run_definition_cid, "sha256:d848446acc09f209842f19258f701c4e9dc887701936e7165a8b371557bce227");
+  assert.equal(current.run.run_definition_cid, "sha256:0e78ef6f3c7f4932c00b61d4945432738a8dc32350ca3244405c4927c71ad0aa");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
@@ -1741,4 +1745,37 @@ test('submitted ABS parent retains its original complete Values Run preimage', (
     dependencies, 'sha256:8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818',
     identity).run.run_definition_cid,
     'sha256:ba3a4a4c7d3a5cdb37d678ea03a7f1cb0d75fb4706fc4af96329f1860f1d0f66');
+});
+
+
+test('both UNPIVOT integration parents retain independently hashed Run preimages', () => {
+  const aoa = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
+  const barrier = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
+  for (const [name, expected] of [
+    ['submitted-pipe-unpivot-grammar', 'sha256:21c1a9c072fbea368aae263f5aea6a2fdddc5bf0b549cfbdaa7a2ebbc29f1b20'],
+    ['pre-integrated-pipe-unpivot-grammar', 'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f'],
+  ]) {
+    const frozen = JSON.parse(readFileSync(`scripts/fixtures/${name}.json`, 'utf8'));
+    const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+    assert.equal(cid(body), grammarCid);
+    assert.deepEqual(vector(grammarCid, cid(aoa), valuesDependencyOracle(),
+      barrier.barrier_contract_manifest_cid, valuesProgramOracle()), frozen.run_preimages);
+    assert.equal(frozen.run_preimages.run.run_definition_cid, expected);
+  }
+});
+
+test('both PIVOT integration parents retain independently hashed Run preimages', () => {
+  const aoa = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
+  const barrier = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
+  for (const [name, expected] of [
+    ['submitted-pipe-pivot-grammar', 'sha256:d848446acc09f209842f19258f701c4e9dc887701936e7165a8b371557bce227'],
+    ['pre-integrated-pipe-pivot-grammar', 'sha256:75109d09c4ab325eb4078950126e1f1458d0df05a90ae0e2bf4c4c8999c1efd8'],
+  ]) {
+    const frozen = JSON.parse(readFileSync(`scripts/fixtures/${name}.json`, 'utf8'));
+    const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+    assert.equal(cid(body), grammarCid);
+    assert.deepEqual(vector(grammarCid, cid(aoa), valuesDependencyOracle(),
+      barrier.barrier_contract_manifest_cid, valuesProgramOracle()), frozen.run_preimages);
+    assert.equal(frozen.run_preimages.run.run_definition_cid, expected);
+  }
 });

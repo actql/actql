@@ -19,6 +19,16 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
   assert.deepEqual(cases.get('pipe-pivot-empty-keyed').expected, []);
   assert.ok(cases.get('pipe-pivot-empty-keyed').columns.slice(1).every(column => column.contract.nullable));
   assert.deepEqual(cases.get('pipe-pivot-current-value').expected, [{product: 'kale', present: 99}]);
+  // Literal typing admits the four UTF-8 bytes of 'kale'; grouping retains
+  // that evidence even for empty input. An authored Values column has no
+  // such extent, so the machine control keeps its distinct checked schema.
+  for (const name of ['min-missing-authored-order', 'prefix-and-range',
+    'current-value', 'empty-keyed', 'duplicate-null-source']) {
+    assert.deepEqual(cases.get('pipe-pivot-' + name).columns[0],
+      {name: 'product', contract: {type: 'string', nullable: false, max_utf8_bytes: 4}});
+  }
+  assert.deepEqual(cases.get('pipe-pivot-duplicate-null-json-control').columns[0],
+    {name: 'product', contract: {type: 'string', nullable: false}});
   assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 16);
 });
 

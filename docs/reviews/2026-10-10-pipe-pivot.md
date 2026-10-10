@@ -99,7 +99,51 @@ Normal clean-HEAD five-package production, digest verification and public
 Embedded Local/authenticated HTTPS source-to-Named-Result execution are still
 required. The ordinary runner checks Result.describe/rows type and field order,
 repeat requests and rereads, and zero Run/provider I/O for preparation refusals.
-No packed success, submitted-HEAD CI, full Core or Wasm/Native execution is
-claimed by this record. UNPIVOT PR #1230's separate common capacity handoff is
-not an unmerged code dependency or a reason to stop this independent connection.
+No complete packed success, submitted-HEAD CI, full Core or Wasm/Native execution
+is claimed by this record. UNPIVOT PR #1230 is now integrated in main; its
+previous capacity refusal is historical evidence, not a current dependency wait.
 The wider frontend goal remains incomplete; no merge is performed.
+
+## Current-main integration and schema counterexample
+
+Normally merged main `b890a2f259e8ea4fe806ac7f46a9e4a5d8a51ca4`, including
+UNPIVOT and its completed-child scratch reclamation. Both Pipe operators,
+their ordinary/scoped acceptance registrations and historical independent Run
+vectors are retained. Grammar/metadata/canonical outputs were regenerated from
+the integrated sources. The new grammar CID is
+`sha256:b381518ea64d0adca1f11e3577c7e8fe066539fd6afefa1c44339a436cd1ebd2`.
+The independently reconstructed current Values Run CID is
+`sha256:0e78ef6f3c7f4932c00b61d4945432738a8dc32350ca3244405c4927c71ad0aa`.
+`submitted-pipe-pivot-grammar.json` and
+`pre-integrated-pipe-pivot-grammar.json` preserve both parents' complete
+grammar and independently checked Run preimages; old Runs are not reinterpreted.
+
+The first normal five-package acceptance used clean submitted SHA
+`13ab7fb028a7c88a037a1ea51c62ef2261f9bac2`. Its producer and independent digest
+verification succeeded (`run-Q9K5ei`). Both Embedded Local and HTTPS passed
+the independent duplicate/NULL JSON control, then stopped at the first source
+case's complete `Result.describe()` contract comparison. Evidence remains in
+`worktrees/.codex-scratch/public-query-evidence-r0M9oO` (`010.stdout.log`,
+`010.stderr.log`, `summary.json`). This is an incomplete failed campaign;
+remaining normal and refusal cases did not execute.
+
+The source fixture omitted the checked String extent, not a row/type/order
+failure. `language.md` Value contracts defines admitted checked String bounds.
+`expression_typing/signatures.mbt` derives a literal's UTF-8 byte length;
+`relation_typing/pivot.mbt` retains index-column contracts. Thus `'kale'` has
+`max_utf8_bytes: 4`, including on typed empty input and its identical UNION ALL
+operands. The five affected source expectations now include that bound. The
+authored JSON Values control intentionally remains unbounded: its explicit
+author schema supplies no String extent. Row expectations, column order,
+nullability, limits and all cases remain unchanged. The data-only registration
+inventory is recomputed from authored fixtures, not runtime results.
+
+Integration checks: focused JS parser/lowerer/scope/JOIN-input and consuming
+Run identity tests passed 27/27 (`run-bNjkUB`, `focused-test-Nklf0k`). Targeted
+Node fixture/profile/manifest and historical vector checks passed 66/66
+(`run-cNuY9u`, `focused-test-UIIPBn`). Generators completed with 384 canonical
+identities (`run-DPeFc5`). Changed MoonBit formatting was checked with the pinned
+formatter; no unrelated source formatting is included. Fresh fixed-SHA public
+execution is still required after this integration and fixture correction.
+The query API generator and read-only compilation manifest, document metadata,
+spec-family and 384 canonical identity checks passed (`run-PHcANn`).
