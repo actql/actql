@@ -536,6 +536,8 @@ pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> 
 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
 
+pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLimits
+
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
