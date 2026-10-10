@@ -24,6 +24,17 @@ are not completed by this preparation entry. The source fixtures are in
 `scripts/fixtures/native-local-cli`; current source changes do not establish
 fresh installed-artifact acceptance by themselves.
 
+The focused developer acceptance command
+`node scripts/test-native-cli-local-install.mjs <fixed-CLI-RC>` installs the
+existing `actql` launcher and matching platform artifact into an external npm
+prefix using the fixed-artifact private registry. It reuses the Native ingress
+cases with the installed launcher, checks exact source/artifact identity, and
+retains command and nonzero-test evidence. It does not require an SDK RC or
+run the Remote acceptance campaign. Its scope is preparation, value preservation
+and refusal; Local Run, approval and process recovery remain separate unfinished
+requirements. Run this through the existing heavy guard after preparing a
+clean-source Native CLI RC with the existing artifact/release producers.
+
 ## Remote transport
 
 Build with the pinned MoonBit toolchain using `moon build --target native
