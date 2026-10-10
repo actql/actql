@@ -332,8 +332,8 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles) {
     selected.tea, selected.calendar, selected.textRank), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
-  const request = originalRequest?.$tag === 1 ? handle(requests, originalRequest._0, 'request-identity') : undefined;
-  if (originalRequest?.$tag !== 0 && originalRequest?.$tag !== 1) throw new Error('InvalidRunHostOriginalRequest');
+  if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
+  const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
   return Object.freeze({prepared, ...(request === undefined ? {} : {request}),
     compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
     allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),

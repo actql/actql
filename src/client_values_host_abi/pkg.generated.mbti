@@ -342,7 +342,7 @@ pub fn client_values_host_restored_effect_definition(@run_publication_host.Clien
 
 pub fn client_values_host_restored_effect_prepared(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.PreparedClientEffectComputation
 
-pub fn client_values_host_restored_effect_request(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.ClientRequestIdentity?
+pub fn client_values_host_restored_effect_request(@run_publication_host.ClientEffectRunMaterials) -> Array[@run_publication_host.ClientRequestIdentity]
 
 pub fn client_values_host_result_access_progress_action(@run_publication.ResultAccessProgress) -> Int
 

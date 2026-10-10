@@ -294,8 +294,13 @@ pub fn client_values_host_restored_effect_definition(
 #export_name("clientValuesHostRestoredEffectRequest")
 pub fn client_values_host_restored_effect_request(
   restored : @host.ClientEffectRunMaterials,
-) -> @host.ClientRequestIdentity? {
-  restored.request
+) -> Array[@host.ClientRequestIdentity] {
+  // Explicit cardinality avoids depending on optimized optional-struct
+  // representations at the generated JavaScript boundary.
+  match restored.request {
+    None => []
+    Some(request) => [request]
+  }
 }
 
 ///|
