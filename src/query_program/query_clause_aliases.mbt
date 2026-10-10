@@ -24,6 +24,11 @@ fn materialize_clause_aliases(
     if projection.star is Some(_) {
       continue
     }
+    // An anonymous SELECT value has no clause alias. Its private evaluated
+    // slot cannot become a receiver merely because a later clause exists.
+    if projection_alias(projection) is None {
+      continue
+    }
     let name = projection.name.unwrap_or({
       value: output_name(projection),
       quoted: false,

@@ -4,7 +4,8 @@ import {join} from 'node:path';
 import {chmodSync, writeFileSync} from 'node:fs';
 import {FoundationRepository, PACKAGE, RENAME, DISTINCT, DECLARATION_DIRECTORY,
   packageBytes} from './fixtures/foundation-repository.mjs';
-import {foundationAncestorQuery, populateFoundationTrees, readFoundationTreeDeltas} from './foundation-trees.mjs';
+import {foundationAncestorQuery, populateFoundationTrees, readFoundationTreeDeltas,
+  foundationBlobBatches, populateFoundationBlobs, readFoundationBlobBatch} from './foundation-trees.mjs';
 
 const revision = 'a'.repeat(40), other = 'b'.repeat(40), object = 'c'.repeat(40), zero = '0'.repeat(40);
 const paths = [PACKAGE, RENAME, DISTINCT, DECLARATION_DIRECTORY];
@@ -12,6 +13,90 @@ const frame = (header = `:000000 100644 ${zero} ${object} A`, path = PACKAGE) =>
   Buffer.from(`${revision}\0${header}\0${path}\0`);
 
 const numberedRevision = value => value.toString(16).padStart(40, '0');
+const blobFrame = (object, bytes) => Buffer.concat([
+  Buffer.from(`${object} blob ${bytes.length}\n`), bytes, Buffer.from('\n'),
+]);
+test('blob transport preserves binary bytes, embedded headers, CRLF and empty bodies without aliasing', () => {
+  const bytes = Buffer.concat([Buffer.from(`\0\r\n${other} blob 0\n`), Buffer.from([0xff, 0xfe, 0x00])]);
+  const output = Buffer.concat([blobFrame(object, bytes), blobFrame(other, Buffer.alloc(0))]);
+  const result = readFoundationBlobBatch(output, [{object, size: bytes.length}, {object: other, size: 0}]);
+  assert.deepEqual(result.get(object), bytes);
+  assert.deepEqual(result.get(other), Buffer.alloc(0));
+  output.fill(0);
+  assert.deepEqual(result.get(object), bytes, 'Cached source must not borrow mutable transport storage');
+});
+for (const [name, corrupt] of [
+  ['foreign object', bytes => Buffer.from(bytes.toString().replace(object, other))],
+  ['wrong type', bytes => Buffer.from(bytes.toString().replace(' blob ', ' tree '))],
+  ['wrong size', bytes => Buffer.from(bytes.toString().replace('blob 3', 'blob 2'))],
+  ['noncanonical size', bytes => Buffer.from(bytes.toString().replace('blob 3', 'blob 03'))],
+  ['missing object', () => Buffer.from(`${object} missing\n`)],
+  ['truncated header', () => Buffer.from(object)],
+  ['truncated payload', bytes => bytes.subarray(0, bytes.length - 2)],
+  ['wrong separator', bytes => Buffer.concat([bytes.subarray(0, -1), Buffer.from('\r')])],
+  ['trailing bytes', bytes => Buffer.concat([bytes, Buffer.from('extra')])],
+]) test(`blob transport rejects ${name}`, () => {
+  assert.throws(() => readFoundationBlobBatch(corrupt(blobFrame(object, Buffer.from('abc'))),
+    [{object, size: 3}]), /foundation.*blob|foundation Git blob/u);
+});
+test('blob transport rejects missing, repeated and reordered frames', () => {
+  const a = blobFrame(object, Buffer.from('a')), b = blobFrame(other, Buffer.from('b'));
+  const requested = [{object, size: 1}, {object: other, size: 1}];
+  for (const bytes of [a, Buffer.concat([a, a]), Buffer.concat([b, a])])
+    assert.throws(() => readFoundationBlobBatch(bytes, requested));
+});
+test('blob requests retain the existing payload limit and use both byte and count bounds', () => {
+  const limit = 64 * 1024 * 1024;
+  assert.deepEqual(foundationBlobBatches([{object, size: limit}, {object: other, size: 1}])
+    .map(batch => batch.length), [1, 1]);
+  const empty = Array.from({length: 513}, (_, index) => ({object: numberedRevision(index + 1), size: 0}));
+  assert.deepEqual(foundationBlobBatches(empty).map(batch => batch.length), [256, 256, 1]);
+  for (const entry of [{object: 'not-an-object', size: 0}, {object, size: -1},
+    {object, size: 1.5}, {object, size: limit + 1}, {object, size: Infinity},
+    {object, size: '1'}, {object, size: 1, extra: true}]) {
+    assert.throws(() => foundationBlobBatches([entry]));
+  }
+  assert.throws(() => foundationBlobBatches([{object, size: 0}, {object, size: 0}]));
+  assert.throws(() => readFoundationBlobBatch(Buffer.alloc(0), []));
+  assert.throws(() => readFoundationBlobBatch(Buffer.alloc(0), empty));
+});
+test('one invocation shares exact blobs but a new invocation fetches them again', () => {
+  const objects = Array.from({length: 257}, (_, index) => ({object: numberedRevision(index + 1), size: 1}));
+  let calls = 0;
+  const git = (args, input) => {
+    assert.deepEqual(args, ['cat-file', '--batch']); calls++;
+    return Buffer.concat(input.trimEnd().split('\n').map(id => blobFrame(id, Buffer.from('x'))));
+  };
+  const blobs = new Map();
+  populateFoundationBlobs({objects, git, blobs}); assert.equal(calls, 2);
+  populateFoundationBlobs({objects, git, blobs}); assert.equal(calls, 2);
+  assert.equal(blobs.size, 257);
+  populateFoundationBlobs({objects, git, blobs: new Map()}); assert.equal(calls, 4);
+  blobs.set(objects[0].object, Buffer.alloc(2));
+  assert.throws(() => populateFoundationBlobs({objects, git, blobs}), /Changed cached foundation blob size/u);
+});
+test('real Git batch bodies equal independently read blobs and reject a missing body', t => {
+  const repo = new FoundationRepository(t);
+  repo.source({[RENAME]: Buffer.from([0, 255, 13, 10, 0]), [DISTINCT]: Buffer.alloc(0)});
+  const ids = [PACKAGE, RENAME, DISTINCT].map(path => repo.git('rev-parse', `HEAD:${path}`));
+  const expected = ids.map(object => {
+    const read = repo.run(['cat-file', 'blob', object], {encoding: null});
+    assert.equal(read.status, 0); return read.stdout;
+  });
+  const objects = ids.map((object, index) => ({object, size: expected[index].length}));
+  let calls = 0;
+  const git = (args, input) => {
+    calls++;
+    const result = repo.run(['--no-replace-objects', ...args], {input, encoding: null});
+    assert.equal(result.status, 0); return result.stdout;
+  };
+  const blobs = new Map(); populateFoundationBlobs({objects, git, blobs});
+  assert.equal(calls, 1);
+  ids.forEach((id, index) => assert.deepEqual(blobs.get(id), expected[index]));
+  const missing = ids[1]; repo.remove(`.git/objects/${missing.slice(0, 2)}/${missing.slice(2)}`);
+  assert.throws(() => populateFoundationBlobs({objects, git, blobs: new Map()}),
+    /Missing\/reordered foundation Git blob/u);
+});
 function directAncestor(parents, a, b) {
   if (!parents.has(a) || !parents.has(b)) return false;
   const pending = [b], seen = new Set();
