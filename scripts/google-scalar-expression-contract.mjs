@@ -25,6 +25,18 @@ export const googleScalarLaws = {
     evaluation: 'Evaluate the value and then the subvalue once each when demanded, including both children when the first produces NULL. Apply strict NULL only after both evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Matching preserves logical operand charges; physical search work remains bounded and cancellable.',
     identity: 'The closed source form is {strpos: [value, subvalue]}; the machine node is {op: strpos, body: [value_node, subvalue_node]}. Retain the node and both ordered children in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
+  round: {
+    signature: 'Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload, non-finite value, precision argument or rounding-mode argument is admitted.',
+    value: 'Return the nearest integer, rounding exact halfway cases away from zero. Preserve already integral numbers, including the largest finite magnitudes. Use the existing ActQL arithmetic canonical positive zero rule. NULL produces NULL.',
+    evaluation: 'Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. ROUND introduces no secondary evaluation or value-domain failure for an admitted finite number.',
+    identity: 'The closed source form is {round: expression}; the closed machine node is {op: round, body: expression_node}. Retain the ROUND node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
+  },
+  trunc: {
+    signature: 'Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload, non-finite value, precision argument or rounding-mode argument is admitted.',
+    value: 'Return the integer obtained by discarding the fractional part toward zero. Preserve already integral numbers, including the largest finite magnitudes. Use the existing ActQL arithmetic canonical positive zero rule. NULL produces NULL.',
+    evaluation: 'Evaluate the sole child exactly once when demanded, then apply the value rule. Preserve the child failure, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. TRUNC introduces no secondary evaluation or value-domain failure for an admitted finite number.',
+    identity: 'The closed source form is {trunc: expression}; the closed machine node is {op: trunc, body: expression_node}. Retain the TRUNC node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
+  },
   sign: {
     signature: 'Exactly one finite binary64 number operand; the result is number with the operand nullability. Untyped NULL takes the unique number signature. No implicit conversion, decimal overload or non-finite value is admitted.',
     value: 'Return exactly -1 for a negative finite number, canonical positive zero for either zero sign, and exactly 1 for a positive finite number. This includes subnormal and largest finite magnitudes. NULL produces NULL.',
@@ -32,7 +44,7 @@ export const googleScalarLaws = {
     identity: 'The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
 };
-const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs'};
+const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', round: 'abs', trunc: 'abs'};
 
 // Copy shapes, not semantics, and keep each embedding's local expression refs.
 function visit(value, write, counts) {
@@ -99,6 +111,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     updateGoogleScalarContracts(...bodies, grammar, true);
     bodies.forEach((body, index) => writeFileSync(paths[index], JSON.stringify(body, null, 2) + '\n'));
   }
-  console.log('GoogleSQL STRING boundary/search and finite-number SIGN contracts verified:',
+  console.log('GoogleSQL STRING boundary/search and finite-number SIGN/ROUND/TRUNC contracts verified:',
     updateGoogleScalarContracts(...bodies, grammar));
 }
