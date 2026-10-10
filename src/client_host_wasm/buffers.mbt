@@ -14,6 +14,8 @@ priv struct Instance {
   pool : @buffers.BufferPool
   copies : Map[Int, (@buffers.BufferSlot, Int)]
   readers : Map[Int, @buffers.BufferBorrow]
+  environments : Map[Int, StoredEnvironment]
+  preparations : Map[Int, StoredPreparation]
   mut next_handle : Int
 }
 
@@ -74,6 +76,8 @@ pub fn open(
         pool,
         copies: {},
         readers: {},
+        environments: {},
+        preparations: {},
         next_handle: 1,
       })
       0
@@ -222,6 +226,8 @@ pub fn close_pool(nonce : Int64) -> Int {
   if result == 0 {
     value.copies.clear()
     value.readers.clear()
+    value.environments.clear()
+    value.preparations.clear()
   }
   result
 }

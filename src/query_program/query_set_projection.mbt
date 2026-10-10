@@ -1,12 +1,12 @@
 ///|
-// ORDER/LIMIT and an unchanged star preserve positional column values.
+// ORDER/LIMIT, WHERE and an unchanged star preserve positional columns.
 // Walk through those projections without making physical names public aliases.
 fn positional_set_terminal_projection(query : @query.Query) -> Int? {
   let mut index = @query.operation_count(query) - 1
   let mut projection : Int? = None
   while index >= 0 {
     match @query.operation_at(query, index).unwrap() {
-      Order(_) | Limit(_, _) => index -= 1
+      Order(_) | Limit(_, _) | Where(_) => index -= 1
       Select(projections, _) => {
         projection = Some(index)
         if projections.length() == 1 &&
@@ -28,7 +28,8 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
 ///|
 // A terminal positional right operand needs physical fields, not authored
 // aliases. ORDER may use their positions or evaluated expressions, never
-// their private names. Existing ordinal alignment supplies the public names.
+// their private names. Filters see only authored output aliases. Existing
+// ordinal alignment supplies the public names.
 fn anonymous_set_projection_name(
   projections : Array[@query.Projection],
   physical : Array[String],
