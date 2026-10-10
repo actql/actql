@@ -154,3 +154,17 @@ successes and the six c61596475 public cases remain evidence for their own SHAs,
 not later HEADs. Full public completion, final-HEAD CI, full Core, all packed,
 Wasm/Native and the wider Frontend objective remain unverified. Final merge
 destination is main; retain the parent dependency until it reaches main.
+
+## Integration repair: Graph equality singleton order
+
+The original failure above remains historical evidence. During integration,
+`derive_logical_orders` now recognizes `GraphEquality` as an order-establishing
+producer: the existing equality executor emits exactly one Boolean row and
+then finishes. This follows the existing singleton Delta producer rule; it
+does not infer uniqueness from a ceiling or change either Graph's identity.
+
+Both independently authored JSON and AQL ordered JOIN controls now require
+successful checking, as does standalone equality followed by ORDER/LIMIT.
+Contextual and sort refusal controls remain unchanged. Public fixture rows,
+column contracts, JOIN bounds and the original failure reproduction are
+preserved. Fresh public execution is recorded separately when completed.
