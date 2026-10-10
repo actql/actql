@@ -14,6 +14,7 @@ fn retained_effect_review_retention_store(
   wire : String,
   authoring_cid : String,
   review_work? : @effect_provider.NativeResidentEffectReview? = None,
+  original_journal_path? : String? = None,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-review-retention-" + @env.now().to_string()
@@ -135,6 +136,17 @@ fn retained_effect_review_retention_store(
     Some(retained_holder_admit_resolution(work, report))
   } else {
     None
+  }
+  if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
+    retained_holder_write_row(
+      review_work.unwrap(),
+      report,
+      resolution_fixture.unwrap(),
+      invocation,
+      original_journal_path.unwrap(),
+      consumer,
+      result,
+    )
   }
   let report_wire = @remote.remote_effect_checkpoint_report_json(report)
   let checkpoint = @remote.remote_effect_checkpoint_report_checkpoint(report)
