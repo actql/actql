@@ -23,7 +23,8 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun,
   prepareTaskPhysicalStart, prepareEffect, compileEffect, issueAllowedEffectRun,
   issueEffectRunDefinition, prepareEffectRequest, prepareEffectRetainedTaskInputEdge,
-  issueEffectSourceDispatch, issueEffectRetainedTaskDispatch}
+  issueEffectSourceDispatch, issueEffectRetainedTaskDispatch, inspectEffectTaskProgress,
+  prepareEffectTaskPhysicalStart}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -1059,7 +1060,7 @@ test('retained current query joins actual durable protocol record and rejects st
 });
 
 
-test('Effect retained dispatch uses the original checked edge and current committed Transfer owner', () => {
+function effectRunFixture() {
   const read = name => readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8').trimEnd();
   const environmentWire = read('source-compute-effect.environment.json');
   const effectEnvironment = admitEnvironment(environmentWire,
@@ -1072,8 +1073,14 @@ test('Effect retained dispatch uses the original checked edge and current commit
   const definition = issueEffectRunDefinition(allowed, 'retained-effect', 'original-run',
     '2026-10-09T00:00:00.000Z', '2099-01-01T00:00:00.000Z');
   const caller = prepareEffectRequest(prepared, compilation, cid('c'), 'original-request');
-  const original = {definition, edge: () => prepareEffectRetainedTaskInputEdge(allowed, definition),
+  const original = {prepared, compilation, allowed, caller, definition, edge: () => prepareEffectRetainedTaskInputEdge(allowed, definition),
     issueSourceDispatch: selection => issueEffectSourceDispatch(allowed, definition, caller, selection)};
+  return original;
+}
+
+test('Effect retained dispatch uses the original checked edge and current committed Transfer owner', () => {
+  const original = effectRunFixture();
+  const {allowed, definition, caller} = original;
   // Reuse the actual common Coordinator and Transfer admission/transition
   // owners. Their explicit protocol fixtures do not claim physical Site I/O.
   const fixture = retainedTransferFixture(original);
@@ -1108,4 +1115,104 @@ test('Effect retained dispatch uses the original checked edge and current commit
   assert.throws(() => issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, input),
     {code: 'RunHostEffectRetainedTaskDispatchRejected'});
   assert.deepEqual(retainedTaskInputFacts(input), saved);
+});
+
+test('Effect checked progress advances the original computation without projecting Effect completion', () => {
+  const original = effectRunFixture();
+  const {allowed, definition, caller} = original;
+  const inspect = (...records) => inspectEffectTaskProgress(allowed, definition,
+    cid('c'), records.map(record => record.current().durableRecordWire));
+  const empty = inspect();
+  assert.equal(empty.nextTask, 0);
+  assert.equal(empty.computationComplete, false);
+  assert.equal(empty.taskCleanupComplete, false);
+  assert.deepEqual(empty.resultTasks, [1]);
+  const fixture = retainedTransferFixture(original);
+  assert.equal(inspect(fixture.completed).nextTask, 1);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'effect-progress-use', fixture.current, inputLimits);
+  const dispatch = issueEffectRetainedTaskDispatch(allowed, definition, caller,
+    {...fixture.completed.selection, dispatchId: 'effect-progress-consumer'}, input);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'), dispatch);
+  assert.equal(inspect(fixture.completed, consumer).nextTask, undefined,
+    'a saved consumer intent is reconciled rather than selected again');
+  const facts = retainedTaskInputEdgeFacts(original.edge());
+  const claim = {taskKey: facts.consumerTaskKey, dispatchCid: dispatch.cid,
+    definitionCid: facts.runDefinitionCid, reserved: true, unstarted: true,
+    authorized: true, cancelled: false, failed: false};
+  const records = [fixture.completed, consumer].map(record => record.current().durableRecordWire);
+  assert.equal(prepareEffectTaskPhysicalStart(allowed, definition, cid('c'), records,
+    caller, caller, claim), true);
+  assert.equal(prepareEffectTaskPhysicalStart(allowed, definition, cid('c'), records,
+    caller, caller, {...claim, cancelled: true}), false);
+  consumer.observe([3, 2, 0, 1, 0], 5, false);
+  assert.equal(inspect(fixture.completed, consumer).computationComplete, false,
+    'physical settlement without output proof does not complete computation');
+  consumer.observe([3, 2, 0, 1, 0], 6);
+  const complete = inspect(fixture.completed, consumer);
+  assert.equal(complete.computationComplete, true);
+  assert.equal(complete.taskCleanupComplete, false);
+  for (const name of ['executionComplete', 'publicationReady', 'stateWire']) {
+    assert.equal(name in complete, false, 'no Pure Run completion/publication projection escapes');
+  }
+  assert(Object.isFrozen(complete)); assert(Object.isFrozen(complete.tasks));
+  assert(Object.isFrozen(complete.tasks[0])); assert(Object.isFrozen(complete.tasks[0].executionScope));
+  for (const record of [fixture.completed, consumer]) {
+    record.observe([3, 2, 1, 1, 0], 7);
+    record.observe([3, 2, 2, 0, 0], 8);
+  }
+  assert.equal(inspect(fixture.completed, consumer).taskCleanupComplete, true,
+    'task cleanup says nothing about Checkpoint/Effect/borrower/Result custody');
+});
+
+test('Effect task start uses the original request and never restarts accepted running or unknown work', () => {
+  for (const observed of [undefined, [1, 0, 0, 0, 0], [2, 0, 0, 0, 0], [6, 0, 3, 0, 0]]) {
+    const original = effectRunFixture();
+    const producer = coordinatorProducerFixture(original);
+    const facts = retainedTaskInputEdgeFacts(original.edge());
+    const claim = {taskKey: facts.producerTaskKey, dispatchCid: producer.issued.cid,
+      definitionCid: facts.runDefinitionCid, reserved: true, unstarted: true,
+      authorized: true, cancelled: false, failed: false};
+    const start = (changes = {}, requested = original.caller, retained = original.caller) =>
+      prepareEffectTaskPhysicalStart(original.allowed, original.definition, cid('c'),
+        [producer.current().durableRecordWire], requested, retained, {...claim, ...changes});
+    if (observed) producer.observe(observed, 1, false);
+    const before = producer.current().durableRecordWire;
+    assert.equal(start(), observed === undefined);
+    for (const changes of [{reserved: false}, {unstarted: false}, {cancelled: true}, {failed: true}]) {
+      assert.equal(start(changes), false);
+    }
+    for (const changes of [{authorized: false}, {taskKey: 'foreign'},
+      {dispatchCid: cid('f')}, {definitionCid: cid('f')}]) {
+      assert.throws(() => start(changes), {code: 'RunHostEffectTaskStartRejected'});
+    }
+    const foreign = run(document.replace('id > 2', 'id > 1'));
+    const request = prepareTaskRequest(foreign.prepared, foreign.compilation, cid('c'), 'original-request');
+    assert.throws(() => start({}, request, request), {code: 'RunHostEffectTaskStartRejected'});
+    assert.equal(producer.current().durableRecordWire, before, 'claim eligibility does not commit or start');
+  }
+});
+
+test('Effect progress rejects foreign Run authority competing attempts and forged family handles', () => {
+  const original = effectRunFixture();
+  const producer = coordinatorProducerFixture(original);
+  const saved = producer.current().durableRecordWire;
+  const inspect = (records, authority = cid('c'), definition = original.definition) =>
+    inspectEffectTaskProgress(original.allowed, definition, authority, records);
+  assert.equal(inspect([saved]).nextTask, undefined);
+  assert.throws(() => inspect([saved], cid('f')), {code: 'RunHostEffectTaskProgressRejected'});
+  assert.throws(() => inspect([saved, saved]), {code: 'RunHostEffectTaskProgressRejected'});
+  const other = coordinatorProducerFixture(original, 2).current().durableRecordWire;
+  assert.throws(() => inspect([saved, other]), {code: 'RunHostEffectTaskProgressRejected'});
+  const foreign = issueEffectRunDefinition(original.allowed, 'retained-effect', 'other-run',
+    '2026-10-09T00:00:00.000Z', '2099-01-01T00:00:00.000Z');
+  assert.throws(() => inspect([saved], cid('c'), foreign), {code: 'RunHostEffectTaskProgressRejected'});
+  const pure = run();
+  assert.throws(() => inspect([], cid('c'), pure.definition), {code: 'RunHostEffectTaskProgressRejected'});
+  for (const records of [null, ['invalid'], [saved, 1]]) assert.throws(() => inspect(records));
+  for (const forged of [{...original.allowed}, original.prepared, inspect([])]) {
+    assert.throws(() => inspectEffectTaskProgress(forged, original.definition, cid('c'), []),
+      {message: 'ForeignRunHostHandle'});
+  }
 });

@@ -172,7 +172,7 @@ fn QueryParser::sga_argument(
       TextValue(output.to_string())
     }
     Numeric(value) => NumberValue(value)
-    Parameter(name) => ParameterValue(name)
+    Parameter(name) => ParameterValue(self.source.identifier(name))
     Word(name) if ascii_upper(name) == "TRUE" => BooleanValue(true)
     Word(name) if ascii_upper(name) == "FALSE" => BooleanValue(false)
     Word(name) if ascii_upper(name) == "NULL" => NullValue

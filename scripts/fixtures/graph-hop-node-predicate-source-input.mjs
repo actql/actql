@@ -88,11 +88,11 @@ export const graphHopNodePredicateRefusals = [
     .map((predicate, index) => ({name: 'graph-hop-node-invalid-' + index, format: 'aql-text',
       text: data + mapping + tail(`(a:Node WHERE id = 1)-[:R]->(b:Node WHERE ${predicate})`),
       parameterDeclarations: declarations, parameters})),
-  {name: 'graph-hop-node-quantified-endpoint', format: 'aql-text',
+  {name: 'graph-hop-node-quantified-endpoint', expectedCode: 'ClientProgramImplementationLimit', format: 'aql-text',
     text: data + mapping + tail('(a:Node WHERE id = 1)-[:R]->{2,2}(b:Node WHERE payload.score > 10)'),
     parameterDeclarations: declarations, parameters},
   {name: 'graph-hop-node-conditional-property', format: 'aql-text',
     text: definitionData + definitionMapping(true) + tail('(:Start)-[:R]->(b WHERE b.score > 10)')},
-  {name: 'graph-hop-node-unfiltered-label', format: 'aql-text',
+  {name: 'graph-hop-node-unfiltered-label', expectedCode: 'ClientProgramImplementationLimit', format: 'aql-text',
     text: definitionData + definitionMapping(true) + tail('(:Start)-[:R]->(:Target)')},
 ];
