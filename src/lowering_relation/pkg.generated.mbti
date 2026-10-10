@@ -1855,6 +1855,8 @@ pub(all) enum UnaryOperator {
   Upper
   Lower
   Trim
+  LTrim
+  RTrim
   Floor
   Sqrt
   Abs

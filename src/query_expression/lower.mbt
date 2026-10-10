@@ -206,6 +206,8 @@ fn scalar_call(
     "LOWER" => ("LOWER", "lower", 1, 1)
     "UPPER" => ("UPPER", "upper", 1, 1)
     "TRIM" => ("TRIM", "trim", 1, 1)
+    "LTRIM" => ("LTRIM", "ltrim", 1, 1)
+    "RTRIM" => ("RTRIM", "rtrim", 1, 1)
     "REPLACE" => ("REPLACE", "replace", 3, 3)
     "COALESCE" => ("COALESCE", "coalesce", 1, 2147483647)
     "IFNULL" => ("IFNULL", "coalesce", 2, 2)

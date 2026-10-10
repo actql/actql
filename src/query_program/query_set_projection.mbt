@@ -12,8 +12,11 @@ fn positional_set_terminal_projection(query : @query.Query) -> Int? {
       | Set(_)
       | Drop(_)
       | Rename(_)
+      | Extend(_)
+      | Alias(_)
       | Analytic(_)
-      | AnalyticExpressions(_, _) => index -= 1
+      | AnalyticExpressions(_, _)
+      | OrderAnalytic(_, _) => index -= 1
       Select(projections, _) => {
         projection = Some(index)
         if projections.length() == 1 &&
@@ -43,6 +46,24 @@ fn positional_authored_column_name(
     }
   }
   name
+}
+
+///|
+// A range may qualify authored duplicate names, but cannot give an anonymous
+// occurrence its private storage name. Keep the physical value slots intact.
+fn positional_named_expression_columns(
+  columns : Array[(String, String)],
+  private_fields : Array[String],
+  authored_aliases : Array[(String, String)],
+) -> Array[(String, String)] {
+  columns
+  .filter(column => {
+    !private_fields.contains(column.0) ||
+    authored_aliases.any(mapping => mapping.0 == column.0)
+  })
+  .map(column => {
+    (positional_authored_column_name(column.0, authored_aliases), column.1)
+  })
 }
 
 ///|

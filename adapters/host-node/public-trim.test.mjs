@@ -192,10 +192,9 @@ test('public TRIM refuses wrong arity, types, bindings, and excluded overloads b
       {text: "TRIM('a', 'b', 'c')", expression: {trim: [literal('a'), literal('b'), literal('c')]}},
       {text: 'TRIM(1)', expression: {trim: literal(1)}},
       {text: 'TRIM(TRUE)', expression: {trim: literal(true)}},
-      // Unknown text functions are implementation limits; unrecognized JSON
-      // expression tags are invalid input under the closed common grammar.
-      {text: "LTRIM(' a ')", expression: {ltrim: literal(' a ')}, unsupportedText: true},
-      {text: "RTRIM(' a ')", expression: {rtrim: literal(' a ')}, unsupportedText: true},
+      // Side-specific unary trims are admitted; explicit character sets remain excluded.
+      {text: "LTRIM(' a ', ' ')", expression: {ltrim: [literal(' a '), literal(' ')]}},
+      {text: "RTRIM(' a ', ' ')", expression: {rtrim: [literal(' a '), literal(' ')]}},
     ];
     for (const [index, item] of invalid.entries()) {
       for (const format of formats) {
