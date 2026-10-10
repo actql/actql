@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_local_preparation"
+
+import {
+  "actql/actql/check_environment",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/program_check",
+  "actql/actql/relation_schema",
+  "actql/actql/run_publication_host",
+  "actql/actql/source_frontend",
+}
+
+// Values
+pub fn bind_local_input_context(@program_check.CheckEnvironment, Array[@source_frontend.PublishedAlias], String, parameter_declarations? : @parameter_binding.Declarations?, input_schemas? : Array[(String, @relation_schema.Schema)], source_catalog? : @check_environment.SourceRequestContracts?) -> Result[LocalInputContext, LocalPreparationIssue]
+
+pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, LocalPreparationIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum LocalInput {
+  Program(String)
+  Aql(String)
+}
+
+type LocalInputContext
+
+pub(all) enum LocalPreparationIssue {
+  Context(@source_frontend.AliasIssue)
+  ForeignEnvironment
+  Frontend(@source_frontend.Issue)
+  Preparation(@run_publication_host.ClientProgramPreparationIssue)
+  ArrayProfile(@source_frontend.ArrayProfileIssue)
+}
+
+// Type aliases
+
+// Traits

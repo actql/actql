@@ -268,14 +268,14 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
-  assert.equal(pin.sourceBaseline, '9a6b103d28364b2d1a7aab6e6eadcba79ee2495d');
+  assert.equal(pin.sourceBaseline, '719d3c5328563c7a9e0697464f3b2687d33521c5');
   // The graft registration adds five success, four refusal and one failure
   // oracle; Reach adds five success and four refusal oracles; Shortest adds
   // seven success and five refusal oracles. Other family rows are unchanged.
-  assert.equal(pin.totalCases, 3378 + 10 + 9 + 12);
-  assert.deepEqual(pin.counts, {successes: 2141 + 5 + 5 + 7, refusals: 1190 + 4 + 4 + 5, executionFailures: 47 + 1});
+  assert.equal(pin.totalCases, 3389 + 10 + 9 + 12);
+  assert.deepEqual(pin.counts, {successes: 2148 + 5 + 5 + 7, refusals: 1194 + 4 + 4 + 5, executionFailures: 47 + 1});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2088 + 5 + 5 + 7, executionFailures: 45 + 1, refusals: 1155 + 4 + 4 + 5}],
+    ['standard', {successes: 2095 + 5 + 5 + 7, executionFailures: 45 + 1, refusals: 1159 + 4 + 4 + 5}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
