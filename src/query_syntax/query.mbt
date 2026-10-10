@@ -2163,6 +2163,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::query(
   self : QueryParser,
   cte_body? : Bool = false,
+  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.has("CREATE") {
     if cte_body {
@@ -2247,7 +2248,11 @@ fn QueryParser::query(
       ignore(self.advance())
     }
   }
-  let term = if self.has("FROM") { self.pipe(cte_body~) } else { self.sql() }
+  let term = if self.has("FROM") {
+    self.pipe(cte_body~, graph_data_body~)
+  } else {
+    self.sql()
+  }
   let term = if self.peek().value == Pipe {
     self.pipe_tail(term, cte_body~)
   } else {
@@ -2424,12 +2429,13 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::pipe(
   self : QueryParser,
   cte_body? : Bool = false,
+  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
-    if cte_body {
+    if cte_body && !graph_data_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
     }
     self.keyword("GRAPH")
