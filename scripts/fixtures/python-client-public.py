@@ -200,10 +200,17 @@ def synchronous():
             raise AssertionError('Unknown public phase')
 
 
-if facade == 'async':
-    asyncio.run(asynchronous())
-elif facade == 'sync':
-    synchronous()
-else:
-    raise AssertionError('Unknown facade')
+try:
+    if facade == 'async':
+        asyncio.run(asynchronous())
+    elif facade == 'sync':
+        synchronous()
+    else:
+        raise AssertionError('Unknown facade')
+except ClientError as error:
+    checked = get_submission_check_observation(error)
+    document = checked.to_dict() if checked is not None else {}
+    report = document.get('report', document.get('partial_report', {}))
+    raise AssertionError(json.dumps({'phase': phase, 'code': error.code,
+        'reasons': report.get('reasons', []), 'requirements': report.get('requirements', [])})) from None
 print(json.dumps({'phase': phase, 'facade': facade, 'success': True}))
