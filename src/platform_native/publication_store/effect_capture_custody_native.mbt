@@ -534,7 +534,7 @@ pub fn Store::prepare_effect_checkpoint_custody(
   if store_authority != self.authority_cid {
     return Err(StateCollision)
   }
-  if "sha256:" + @sha.hex(@sha.digest(@utf8.encode(continuation_wire))) !=
+  if "sha256:" + @sha.hex(@utf8.encode(continuation_wire)) !=
     checkpoint.checkpoint.continuation_state_cid {
     return Err(DigestMismatch)
   }

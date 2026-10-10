@@ -222,6 +222,41 @@ fn retained_effect_review_retention_store(
   let checkpoint_record = inspection
     .read("effect_checkpoint_custody", holding)
     .unwrap()
+  let continuation_bytes = crypto
+    .open_private_evidence(
+      key,
+      "continuation_record",
+      checkpoint.checkpoint.continuation_state_cid,
+      continuation.body,
+    )
+    .unwrap()
+  assert_eq(
+    checkpoint.checkpoint.continuation_state_cid,
+    "sha256:" + @sha.hex(continuation_bytes),
+  )
+  let doubled = @checkpoint.seal_checkpoint(
+    {
+      ..checkpoint.checkpoint,
+      continuation_state_cid: "sha256:" +
+      @sha.hex(@sha.digest(continuation_bytes)),
+    },
+    limits,
+  ).unwrap()
+  let before_rejected_continuation = store.capacity_usage().unwrap().reserved_bytes
+  assert_true(
+    store.prepare_effect_checkpoint_custody(
+      doubled,
+      @utf8.decode(continuation_bytes),
+      authority,
+      crypto,
+      key,
+    )
+    is Err(DigestMismatch),
+  )
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    before_rejected_continuation,
+  )
   assert_false(@utf8.decode(continuation.body).contains("Count__c"))
   let reserved = consumer.usage().reserved_retention_bytes
   let physical_reserved = store.capacity_usage().unwrap().reserved_bytes
