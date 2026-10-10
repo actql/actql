@@ -131,13 +131,7 @@ fn retained_holder_provider_review(
   assert_eq(Some(request), materials.request)
   let policy = retained_holder_review_policy(holder, inputs, invocation)
   let work = @effect_provider.prepare_native_resident_effect_review_from_context(
-    holder,
-    journal,
-    owned_context,
-    normalization,
-    [],
-    [],
-    policy,
+    holder, journal, owned_context, normalization, policy,
   ).unwrap()
   let owned_result = work.result_capture().unwrap()
   assert_eq(
@@ -156,7 +150,7 @@ fn retained_holder_provider_review(
   // ceiling, and its retirement must leave the adopted Result/input live.
   let congested = prepare_context().unwrap()
   assert_true(
-    congested.capture_result(journal, normalization, [], [], 65536, 4096, 64)
+    congested.capture_result(journal, normalization, 65536, 4096, 64)
     is Err(Native(Export(Retain(Physical(HoldingLimit))))),
   )
   assert_true(congested.close())

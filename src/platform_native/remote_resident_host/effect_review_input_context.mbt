@@ -149,20 +149,32 @@ pub fn ResidentEffectReviewInputContext::matches_holder(
 
 ///|
 /// Capture the actual consumer Result from the original acquired Source and
-/// invocation. Normalization and binding metadata must come from the trusted
-/// Host; this connection does not invent a normalization journal. The returned
+/// invocation. Binding inventory comes from the original checked materials
+/// and compiler Template. Normalization must come from the trusted Host;
+/// this connection does not invent a normalization journal. The returned
 /// export is separately owned and must retire before this context is closed.
 pub fn ResidentEffectReviewInputContext::capture_result(
   self : ResidentEffectReviewInputContext,
   journal : @journal.Journal,
   normalization : @publication.RunEvidenceValue,
-  binding_names : Array[String],
-  binding_digests : Array[String],
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ResidentEffectResultCapture, ResidentEffectResultCaptureIssue] {
   guard self.facts(journal) is Some(facts) else { return Err(Unavailable) }
+  // The current compilation supports exactly zero opaque declarations. Prove
+  // that through its existing Owner before passing an empty Receipt inventory;
+  // a caller's empty arrays are not evidence of absent declared bindings.
+  match
+    @host.client_effect_run_receipt_bindings(
+      facts.materials,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Bindings(issue))
+  }
   self.consumer.capture_effect_result(
     facts.materials,
     facts.inputs,
@@ -171,8 +183,8 @@ pub fn ResidentEffectReviewInputContext::capture_result(
     facts.producer.observation,
     self.retention,
     normalization,
-    binding_names,
-    binding_digests,
+    [],
+    [],
     [@host.client_effect_acquired_observation(facts.producer.acquired)],
     self.export_limits,
     max_bytes,
@@ -187,7 +199,7 @@ pub fn ResidentEffectReviewInputContext::capture_result(
 /// caller-authored input name, fresh observation or reconstructed cells can
 /// replace those Owners. All newly acquired pins have a cleanup owner before
 /// any further fallible operation. Normalization metadata and Provider policy
-/// remain trusted caller inputs to subsequent existing capture operations.
+/// remain trusted caller inputs; the original compiler owns binding inventory.
 pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(
   self : ResidentRetainedConsumer,
   journal : @journal.Journal,
