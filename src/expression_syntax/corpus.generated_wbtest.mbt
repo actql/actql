@@ -533,11 +533,21 @@ test "common admission of text corpus: 27" {
 
 ///|
 test "common admission of text corpus: 28" {
-  assert_tree("\"sign(-1)\"", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+  assert_tree("\"sign(-1)\"", "{\"sign\":{\"literal\":-1}}")
 }
 
 ///|
 test "common admission of text corpus: 29" {
+  assert_tree("\"sign(-x)\"", "{\"sign\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "common admission of text corpus: 30" {
+  assert_tree("\"sign(negate(1))\"", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "common admission of text corpus: 31" {
   assert_tree("\"sign(NULL)\"", "{\"sign\":{\"literal\":null}}")
 }
 

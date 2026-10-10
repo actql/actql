@@ -137,11 +137,21 @@ test "expression corpus accepted: 27" {
 
 ///|
 test "expression corpus accepted: 28" {
-  assert_tree("sign(-1)", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+  assert_tree("sign(-1)", "{\"sign\":{\"literal\":-1}}")
 }
 
 ///|
 test "expression corpus accepted: 29" {
+  assert_tree("sign(-x)", "{\"sign\":{\"negate\":{\"field\":\"x\"}}}")
+}
+
+///|
+test "expression corpus accepted: 30" {
+  assert_tree("sign(negate(1))", "{\"sign\":{\"negate\":{\"literal\":1}}}")
+}
+
+///|
+test "expression corpus accepted: 31" {
   assert_tree("sign(NULL)", "{\"sign\":{\"literal\":null}}")
 }
 
