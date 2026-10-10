@@ -2,7 +2,7 @@
   "version": "actql-public-query-fixture-inventory/0.1",
   "sourceBaseline": "ce027a937cf780f617d5ed98bb4d56ecbb010877",
   "totalCases": 3644,
-  "inventorySha256": "289455febd9b9b1f606bc757630514a5b3f8a6d8f80f362dcbe3436f28e59602",
+  "inventorySha256": "ec24a83a8bb206a60b800ec68bdb1a431b44e9734d284c6601d8e6082867c49e",
   "counts": {
     "successes": 2296,
     "executionFailures": 48,

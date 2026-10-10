@@ -512,6 +512,10 @@ test('UNPIVOT generated-name collisions keep old and new values as separate posi
   assert.deepEqual(source.expected, [{a: 0, b: 0, c: 0, d: 'anchor'},
     {a: 10, b: -10, c: 1, d: 'kept'}, {a: 20, b: -20, c: 2, d: 'kept'}]);
   assert.notEqual(source.expected[1].a, source.expected[1].c);
+  const labelCollision = cases.find(x => x.name.endsWith('-name-column'));
+  assert.deepEqual(labelCollision.columns[0], {name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}});
+  assert.equal(Buffer.byteLength('anchor', 'utf8'), 6);
+  assert.equal(Buffer.byteLength('user', 'utf8'), 4);
   assert.deepEqual(cases.find(x => x.name.endsWith('-immutable-star')).expected, source.expected);
   assert.ok(cases.find(x => x.name.endsWith('-immutable-star')).text.includes("SET label = 'changed'"));
   assert.deepEqual(cases.find(x => x.name.endsWith('-distinct-complete-row')).expected,

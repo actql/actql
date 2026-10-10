@@ -106,3 +106,44 @@ common contract/owner/capacity rule; incoming main contract changes above are
 separate. At this commit exact clean-HEAD normal five-package packed Local/HTTPS
 execution is pending. Full Core, Wasm/native, the full packed corpus and CI
 remain unverified. The broader frontend goal remains incomplete.
+
+## First packed run: checked String-bound fixture correction
+
+Clean source `c42835102b777484a8a75aaa8599ae1dedea83c8` normally produces all
+five packages and verifies their actual digests. Its selected public attempt
+(`run-dj9wX7`) fails at the Local name-column collision's describe assertion.
+The JSON control and value-column collision pass on Local. The name-column
+first row read also matches the expected values; describe then finds the
+missing checked `max_utf8_bytes: 6` in column a. Attach/reuse and subsequent
+cases are not reached. HTTP is cancelled as a sibling; neither transport has
+a complete inventory. This is not reported as successful public acceptance.
+
+The correction is independently derived from the existing String contract:
+literal 'anchor' has six UTF-8 bytes and literal 'user' has four. Literal
+typing in `expression_typing/signatures.mbt` preserves the exact retained-value
+bound. The ordinary append uses the least restrictive checked contract through
+`value_contract/relations.mbt` and `relation_append/check.mbt`, retaining the
+maximum upper extent, six. The generated UNPIVOT label's unbounded contract is
+separate. `docs/spec/language.md` defines checked String extents and complete
+contract equality; the consumer must compare the extent rather than discard it.
+
+Only the missing expected bound and its independent fixture assertion change.
+Input, Program, expected rows, nullability, order, capacity, rejection codes and
+product code are unchanged. No runtime-derived values are copied into an oracle.
+Original fixture and correction rationale are preserved at
+`/private/tmp/actql-b-unpivot-output-name-fixture-c42835102-before-bound.mjs` and
+`/private/tmp/actql-b-unpivot-output-name-bound-correction-c42835102.json`.
+Failed logs/receipt remain at
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-DGDUAb`.
+The attempt is terminal with all children exited and locks released; its failed
+guard does not have a successful complete flag. New-source packed acceptance
+remains pending after this expectation correction.
+
+The corrected fixture selection passes 22/22 in `run-uKWf2G`; its profile check
+initially fails only because the retained-fixture fingerprint includes the
+expected checked contract. Refresh that data-only pin from authored registration
+with the existing inventory function, verifying that total, counts, profiles and
+repeated-failure positions do not change. Only the failed profile file is rerun:
+`run-GzwqK8` passes 36/36. The corrected full inventory digest is
+`ec24a83a8bb206a60b800ec68bdb1a431b44e9734d284c6601d8e6082867c49e`.
+The earlier digest above remains the pre-correction historical pin.

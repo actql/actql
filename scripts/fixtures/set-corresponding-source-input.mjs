@@ -1126,7 +1126,7 @@ setCorrespondingSuccesses.push(
   unpivotCollision('name-column', "SELECT 'anchor' AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
     + "|> SELECT id AS kept, 'user' AS extra, -amount |> UNPIVOT INCLUDE NULLS(value FOR extra IN(kept)) "
     + '|> SELECT *) ORDER BY a, b NULLS LAST, c, d',
-    {columns: [{name: 'a', contract: {type: 'string', nullable: false}}, ...unpivotCollisionColumns.slice(1)],
+    {columns: [{name: 'a', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}}, ...unpivotCollisionColumns.slice(1)],
       expected: [{a: 'anchor', b: 0, c: 0, d: 'anchor'}, {a: 'user', b: -20, c: 2, d: 'kept'},
         {a: 'user', b: -10, c: 1, d: 'kept'}]}),
   unpivotCollision('qualified-star', unpivotCollisionHead + '|> AS fresh |> SELECT fresh.*) '
