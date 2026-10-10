@@ -42,6 +42,8 @@ pub fn final_operation_count(Query) -> Int
 
 pub fn graph_query(Query) -> GraphQuery?
 
+pub fn has_sga_relation_lowering(String) -> Bool
+
 pub fn join_part_at(Query, Int) -> JoinPart?
 
 pub fn join_part_count(Query) -> Int

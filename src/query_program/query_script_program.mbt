@@ -321,18 +321,43 @@ pub fn compile_query_script(
         RelationQuery(query) => {
           let graph = script_graph_input(query, graphs)
           if graph is Some(graph) {
-            if script_has_graph_rows(query) {
-              let bound = lower_script_graph_rows(
-                construction,
-                query,
-                graph,
-                limits,
-                steps,
-                reserved,
-                output,
-                known~,
-                graphs~,
-              )
+            let matched = @query.graph_query(query)
+              .map(query => query.pattern is Some(_))
+              .unwrap_or(false)
+            if script_has_graph_rows(query) || matched {
+              let bound = if matched {
+                // A DATA producer has no public Result declarations. Retain
+                // the ordinary declaration refusal before calling the keyed
+                // lowerer, whose terminal entry accepts retained Results.
+                if has_retained_result(query) {
+                  raise Abort(UnsupportedResult)
+                }
+                // MATCH's explicit projection is a Relation producer. Keep
+                // pattern scope/identity with the existing keyed lowerer.
+                lower_script_keyed_graph_query(
+                  construction,
+                  query,
+                  graphs,
+                  limits,
+                  steps,
+                  reserved,
+                  output,
+                  [],
+                  known~,
+                )
+              } else {
+                lower_script_graph_rows(
+                  construction,
+                  query,
+                  graph,
+                  limits,
+                  steps,
+                  reserved,
+                  output,
+                  known~,
+                  graphs~,
+                )
+              }
               known = known.filter(input => {
                 !(input.relation.length() == 1 &&
                 same_name(input.relation[0], declaration.name))

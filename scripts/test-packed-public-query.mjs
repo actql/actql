@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/match-data-producer-source-input.mjs', 'match-data-producer-source-input.mjs'],
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
@@ -140,6 +141,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/group-property-receiver-source-input.mjs', 'group-property-receiver-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/graph-source-input.mjs', 'graph-source-input.mjs'],
+  ['scripts/fixtures/graph-relation-join-source-input.mjs', 'graph-relation-join-source-input.mjs'],
   ['scripts/fixtures/traversal-join-source-input.mjs', 'traversal-join-source-input.mjs'],
   ['scripts/fixtures/graph-rows-join-source-input.mjs', 'graph-rows-join-source-input.mjs'],
   ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
@@ -317,8 +319,14 @@ if (process.argv.includes('--graph-projection-property-only')) {
 if (process.argv.includes('--graph-diagnostics-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY = '1';
 }
+if (process.argv.includes('--match-data-producer-only')) {
+  runtimeEnvironment.ACTQL_TEST_MATCH_DATA_PRODUCER_ONLY = '1';
+}
 if (process.argv.includes('--graph-match-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_MATCH_ONLY = '1';
+}
+if (process.argv.includes('--graph-relation-join-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_RELATION_JOIN_ONLY = '1';
 }
 if (process.argv.includes('--traversal-join-only')) {
   runtimeEnvironment.ACTQL_TEST_TRAVERSAL_JOIN_ONLY = '1';
@@ -646,7 +654,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--pipe-unpivot-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -656,7 +664,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-unpivot-only', '--t
   '--qualify-only',
   '--named-window-only',
   '--analytic-offset-only',
-  '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
+  '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--match-data-producer-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
@@ -767,6 +775,7 @@ if (process.argv.includes('--named-window-only')) return;
 if (process.argv.includes('--group-by-all-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--min-max-distinct-only')) return;
+if (process.argv.includes('--graph-relation-join-only')) return;
 if (process.argv.includes('--traversal-join-only')) return;
 if (process.argv.includes('--graph-rows-join-only')) return;
 if (process.argv.includes('--between-only')) return;
@@ -780,6 +789,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--dis
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only', '--limit-parameter-only', '--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--analytic-partition-property-only', '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--analytic-offset-only',
+  '--match-data-producer-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -810,6 +820,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--analytic-offset-only') ||
     process.argv.includes('--subgraph-only') ||
+    process.argv.includes('--match-data-producer-only') ||
     process.argv.includes('--graph-match-only') ||
     process.argv.includes('--join-property-only') ||
     process.argv.includes('--graph-diagnostics-only') ||

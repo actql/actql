@@ -2,8 +2,13 @@
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 script        = { data_declaration }, query ;
 data_declaration = "DATA", identifier, "=",
-                   ( relational_body | graph_constructor
+                   ( relational_body | data_graph_match | graph_constructor
                    | named_sga_call ), ";" ;
+(* Projected MATCH can bind a pure Relation producer without widening CTE
+   or statement-level INFER/RESULT/EFFECT placement. *)
+data_graph_match = "FROM", "GRAPH", path, [ graph_labels ],
+                   { "|>", named_sga_call }, "|>", graph_match,
+                   { "|>", cte_pipe_item } ;
 query         = ( table_create_statement
               | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
 table_create_statement = table_create, "AS", table_input_query ;

@@ -1,7 +1,8 @@
 ///|
 /// Join separately admitted producer/consumer Runtime owners through the actual
 /// receiver holding. Equal original materials are not shared object handles.
-/// No provider Preview, approval, write or public Effect Result is simulated.
+/// The optional Provider branch observes real HTTPS rows and retains the
+/// original review Checkpoint. Approval, write and Cloud commit are separate.
 fn retained_holder_effect_transfer_capture(
   holder : @resident.ResidentRetainedConsumer,
   journal : @dispatch_journal.Journal,
@@ -9,6 +10,9 @@ fn retained_holder_effect_transfer_capture(
   producer_journal : @dispatch_journal.Journal,
   input : @host.ClientRetainedTaskInput,
   site : @site.ExecutionSite,
+  provider? : Bool = false,
+  root_path? : String = "",
+  name? : String = "",
 ) -> Unit raise {
   let source_owner = producer.source_for_capture(producer_journal).unwrap()
   let sender_materials = producer
@@ -81,6 +85,14 @@ fn retained_holder_effect_transfer_capture(
     producer.invocation_for_capture(producer_journal, 1, 4096, 64)
     is Err(Invocation(_)),
   )
+  if provider {
+    retained_holder_context_review(
+      holder, journal, producer, producer_journal, root_path, name,
+    )
+    assert_eq(source_owner.usage().held_bytes, source_usage.held_bytes)
+    assert_eq(consumer.usage().held_bytes, consumer_usage.held_bytes)
+    return
+  }
   // The production adapter joins actual original journal evidence to the
   // existing captured Result; no test issuer supplies its name or timestamps.
   assert_true(
@@ -338,7 +350,7 @@ fn retained_holder_effect_transfer_capture(
     .unwrap()
   assert_eq(
     result.output.result_schema_wire().unwrap(),
-    "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+    retained_effect_expected_schema(provider),
   )
   assert_eq(result.output.row_count().unwrap(), 1)
   let read = result.output.replay().unwrap()
@@ -347,7 +359,7 @@ fn retained_holder_effect_transfer_capture(
     rows.write_string(chunk)
   }
   rows.write_string(read.finish().unwrap())
-  assert_eq(rows.to_string(), "[{\"id\":3}]")
+  assert_eq(rows.to_string(), retained_effect_expected_rows(provider))
   @publication.validate_run_publication_chain(
     materials.run_definition,
     invocation,

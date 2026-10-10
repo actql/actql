@@ -256,3 +256,19 @@ retains reclamation custody without repeated work or source invalidation.
 An initial new-test compilation error and a positional-column assertion
 were corrected separately; output cells are checked by canonical names.
 The fixed public SET/RENAME case still requires fresh packed acceptance.
+
+### Main integration verification
+
+Integrated the adopted MATCH DATA and Graph Relation JOIN work without
+removing their fixture registrations. The independent authored inventory has
+3,271 occurrences: 2,069 successes, 1,155 refusals and 47 execution failures.
+Both parent grammar/Run preimages remain fixed fixtures; the current Run CID
+was derived by the independent JavaScript oracle, not product output.
+
+- Focused JS: 31/31 (`run-yVqtP0`, `focused-test-OOgXps`).
+- Node identity and fixture consumers: 54/54 (`run-dNe8uS`).
+- Read-only manifests, metadata and 384 canonical identities: passed
+  (`run-VSvNwt`). The full formatter reported existing unchanged main files;
+  the changed MoonBit sources match its generated formatting output.
+- Fresh packed Local/HTTPS acceptance remains pending at this commit.
+- Hosted CI and all-target acceptance are not claimed.

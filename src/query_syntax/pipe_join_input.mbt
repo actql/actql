@@ -45,9 +45,7 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
       GraphCall(call) => {
         // A row Bridge ends the Graph prefix and starts a fresh Relation scope.
         // Earlier Graph-returning calls cannot themselves be JOIN inputs.
-        relation = call.operation == "node_rows" ||
-          call.operation == "edge_rows" ||
-          call.operation == "traverse"
+        relation = has_sga_relation_lowering(call.operation)
         safe = relation
         current_range = None
       }

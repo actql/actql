@@ -7,6 +7,64 @@ pub(all) enum ClientEffectCaptureInventoryIssue {
 }
 
 ///|
+/// A confirmed transferred Artifact carries the receiver's checked context,
+/// while the original acquired fact retains the sender's independent context.
+/// Join their immutable evidence only after checking the complete original
+/// semantic identity and the exact live receiver import. This grants no read,
+/// write or execution authority and reissues no acquisition evidence.
+fn transferred_effect_capture_acquired_context(
+  materials : ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  observed : ClientEffectResultImportObservation,
+  acquired : ClientEffectAcquiredEvidence,
+) -> ClientEffectAcquiredEvidence? {
+  let receiver = observed.artifact
+  if !client_effect_local_artifact_matches_inputs(receiver, inputs) ||
+    !client_effect_local_artifact_matches_computation(
+      receiver,
+      materials.prepared,
+    ) ||
+    !client_effect_local_invocation_matches(
+      receiver.invocation,
+      materials.prepared,
+      0,
+    ) ||
+    !client_effect_local_invocation_matches(
+      acquired.invocation,
+      acquired.owner,
+      0,
+    ) ||
+    prepared_client_effect_identity(acquired.owner) !=
+    prepared_client_effect_identity(materials.prepared) ||
+    prepared_client_effect_computation_definition_cid(acquired.owner) !=
+    prepared_client_effect_computation_definition_cid(materials.prepared) ||
+    prepared_client_effect_computation_semantics_cid(acquired.owner) !=
+    prepared_client_effect_computation_semantics_cid(materials.prepared) ||
+    prepared_client_effect_computation_environment_cid(acquired.owner) !=
+    prepared_client_effect_computation_environment_cid(materials.prepared) ||
+    receiver.invocation.cid != acquired.invocation.cid ||
+    receiver.invocation.wire != acquired.invocation.wire ||
+    receiver.invocation.unit_definition_cid !=
+    acquired.invocation.unit_definition_cid {
+    return None
+  }
+  guard receiver.scope is Some(scope) else { return None }
+  if @publication.publication_contract_identity(scope) !=
+    @publication.publication_contract_identity(acquired.scope) ||
+    @publication.publication_contract_json(scope) !=
+    @publication.publication_contract_json(acquired.scope) ||
+    @publication.publication_contract_identity(receiver.retention) !=
+    @publication.publication_contract_identity(acquired.publication_retention) {
+    return None
+  }
+  Some({
+    ..acquired,
+    owner: materials.prepared,
+    invocation: receiver.invocation,
+  })
+}
+
+///|
 /// Connect one acquired producer and its imported consumer to the existing
 /// Captured Run dependency Owner. Roots come from the exact admitted Effect
 /// source, not a caller-provided CID list. This does not transfer physical
@@ -44,7 +102,6 @@ pub fn issue_client_effect_capture_inventory(
   }
   if !physical_equal(imported.owner, materials.prepared) ||
     !physical_equal(imported.inputs, inputs) ||
-    !physical_equal(acquired.owner, materials.prepared) ||
     imported.observations.length() != 1 ||
     !physical_equal(artifact.invocation, imported.invocation) ||
     !client_effect_local_source_matches(
@@ -59,6 +116,17 @@ pub fn issue_client_effect_capture_inventory(
     return Err(ForeignInput)
   }
   let observed = imported.observations[0]
+  let acquired = if physical_equal(acquired.owner, materials.prepared) {
+    acquired
+  } else {
+    match
+      transferred_effect_capture_acquired_context(
+        materials, inputs, observed, acquired,
+      ) {
+      Some(value) => value
+      None => return Err(ForeignInput)
+    }
+  }
   if !@strategy.captured_effect_result_import_matches(
       observed.captured,
       inputs,
