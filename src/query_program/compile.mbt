@@ -1988,6 +1988,16 @@ fn compile_steps(
               positional_destination_names.push(name)
             }
           }
+        Some(Unpivot(clause)) => {
+          positional_destination_names.push(clause.value_column)
+          positional_destination_names.push(clause.name_column)
+        }
+        Some(UnnestSource(_, element, offset)) => {
+          positional_destination_names.push(element)
+          if offset is Some(name) {
+            positional_destination_names.push(name)
+          }
+        }
         _ => ()
       }
     }
@@ -2255,6 +2265,7 @@ fn compile_steps(
       let expressions = match operation {
         Order(terms) => terms.map(term => term.expression)
         Where(predicate) => [predicate]
+        UnnestSource(expression, _, _) => [expression]
         Set(assignments) => assignments.map(assignment => assignment.1)
         Select(columns, _)
         | Extend(columns)
@@ -2266,6 +2277,7 @@ fn compile_steps(
       }
       let resolve_input = path => {
         if operation is Where(_) ||
+          operation is UnnestSource(_, _, _) ||
           operation is Set(_) ||
           operation is Extend(_) ||
           operation is Select(_, _) ||
@@ -2312,6 +2324,18 @@ fn compile_steps(
         })
         .length() >
         1
+      }
+      if operation is Unpivot(clause) {
+        for name in clause.columns {
+          if positional_private_fields.any(field => {
+              same_name(name, { value: field, quoted: false, })
+            }) {
+            raise Abort(UnknownColumn)
+          }
+          if ambiguous_current_name(name) {
+            raise Abort(AmbiguousColumn)
+          }
+        }
       }
       if operation is Rename(names) {
         for (target, _) in names {
@@ -2405,6 +2429,34 @@ fn compile_steps(
         pipe_rebound = true
         pipe_changed = true
         deferred = true
+        if positional_projection is Some(projection) && i > projection {
+          let names = pipe_visible.map(column => column.0)
+          let bindings = pipe_visible.copy()
+          let selected = pipe_visible.map(column => {
+            construction.object([(column.0, construction.text(column.1))])
+          })
+          let private_fields = privatize_positional_duplicate_columns(
+            construction,
+            names,
+            bindings,
+            selected,
+            active_fields,
+            authored_aliases=Some(positional_authored_aliases),
+            reserved_names=positional_destination_names,
+          )
+          if !private_fields.is_empty() {
+            // UNPIVOT may name a new value/label like a retained column.
+            // Copy each evaluated occurrence; neither value is overwritten.
+            positional_private_fields.append(private_fields)
+            entries.push(("select", construction.array(selected)))
+            active_fields = names.copy()
+            output = names
+            pipe_visible = names.map(name => (name, name))
+            pipe_columns = pipe_visible.copy()
+            pipe_changed = false
+            deferred = false
+          }
+        }
       }
       UnnestSource(expression, element, offset) => {
         let correlated = i != 0 || !@query.relation(query).is_empty()

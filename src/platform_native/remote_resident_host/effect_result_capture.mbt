@@ -2,6 +2,7 @@
 pub(all) enum ResidentEffectResultCaptureIssue {
   Unavailable
   Context(@host.ClientEffectLocalResultArtifactIssue)
+  Bindings(@host.ClientEffectReceiptBindingsIssue)
   Native(ResidentSourceComputeIssue)
   Export(@host.PublicationOutputExportIssue)
   Manifest(@publication.ResultManifestIssuanceIssue)
