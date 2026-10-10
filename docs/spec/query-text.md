@@ -1047,6 +1047,18 @@ name becomes visible. Duplicate, recursive and forward references are
 rejected. A Graph producer is not a Relation alias. RESULT, INFER and EFFECT are
 not permitted in a DATA query body; final queries retain explicit Results.
 
+A DATA body can bind an explicitly projected Graph MATCH Relation, for example:
+
+~~~aql
+DATA selected = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.score AS score;
+~~~
+
+The projection defines its public columns; Graph pattern variables and internal
+identity/path slots are not visible through the DATA name. Normal Relation
+processing can then reuse that producer. The existing keyed MATCH/TRAIL checker
+and execution owner retain identity, label, predicate, path and capacity rules.
+This DATA connection does not expand Graph CTE or derived-table support.
+
 `DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
 [selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#graph-mapping-and-element-identity).
 It does not create a Catalog object or claim ISO GQL constructor syntax.
