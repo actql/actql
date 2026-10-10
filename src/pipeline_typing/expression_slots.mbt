@@ -13,6 +13,7 @@ pub(all) enum ExpressionConsumer {
   GraphTraverseEdgePredicate(Int)
   GraphTraverseNodePredicate(Int)
   GraphNodeSelectorPredicate
+  GraphTargetSelectorPredicate
   InferInput(Int)
 } derive(Eq, Debug)
 
@@ -273,6 +274,17 @@ pub fn collect_expression_slots(
           let start = @graph.traverse_start(checked)
           if @graph.selector_predicate(start) is Some(predicate) {
             slot_predicate(c, step, Some(predicate), GraphNodeSelectorPredicate)
+          }
+          if @graph.traverse_shortest(checked)
+            .map(@graph.shortest_targets)
+            .bind(@graph.selector_predicate)
+            is Some(predicate) {
+            slot_predicate(
+              c,
+              step,
+              Some(predicate),
+              GraphTargetSelectorPredicate,
+            )
           }
           for i in 0..<@graph.traverse_hop_count(checked) {
             let hop = @graph.traverse_hop_at(checked, i).unwrap()

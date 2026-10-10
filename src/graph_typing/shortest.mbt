@@ -169,13 +169,18 @@ pub fn check_shortest(
         }
         EachPair
       }
-      Some(at) =>
+      Some(at) => {
+        if !shortest_set_selector(source_at) &&
+          !shortest_set_selector(target_at) {
+          fail(at, InvalidBody)
+        }
         match decoded(@decode.text(at)) {
           "each_pair" => EachPair
           "nearest_per_source" => NearestPerSource
           "nearest_pair" => NearestPair
           _ => fail(at, InvalidBody)
         }
+      }
     }
     let direction = traversal_direction(
       decoded(@decode.required(root, "direction")),
@@ -326,24 +331,31 @@ pub fn shortest_usage(value : CheckedShortest) -> PredicateUsage {
 
 ///|
 pub fn shortest_pending(value : CheckedShortest) -> Array[ShortestObligation] {
-  let pending = [
-    AdmitShortestGraph,
-    AdmitShortestSelectors,
-    DeduplicateShortestSelectors,
-    RequireShortestMembership,
-    ValidateEveryShortestWeight,
-    RespectShortestHopBound,
-    EnumerateSimpleShortestPaths,
-    SelectCanonicalShortestPaths,
-    RejectSelectedOverrange,
-    CanonicalShortestOutputOrder,
-    ResolveShortestResources,
-    ResolveShortestProfile,
-  ]
+  let pending = []
+  shortest_pending_each(value, item => pending.push(item))
+  pending
+}
+
+///|
+fn shortest_pending_each(
+  value : CheckedShortest,
+  emit : (ShortestObligation) -> Unit,
+) -> Unit {
+  emit(AdmitShortestGraph)
+  emit(AdmitShortestSelectors)
+  emit(DeduplicateShortestSelectors)
+  emit(RequireShortestMembership)
+  emit(ValidateEveryShortestWeight)
+  emit(RespectShortestHopBound)
+  emit(EnumerateSimpleShortestPaths)
+  emit(SelectCanonicalShortestPaths)
+  emit(RejectSelectedOverrange)
+  emit(CanonicalShortestOutputOrder)
+  emit(ResolveShortestResources)
+  emit(ResolveShortestProfile)
   match value.guard_rows {
-    Some(Parameter(name)) => pending.push(BindShortestOutputGuard(name))
-    Some(Literal(_)) => pending.push(EnforceShortestOutputGuard)
+    Some(Parameter(name)) => emit(BindShortestOutputGuard(name))
+    Some(Literal(_)) => emit(EnforceShortestOutputGuard)
     None => ()
   }
-  pending
 }

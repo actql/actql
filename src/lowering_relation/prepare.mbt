@@ -241,12 +241,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphComponentsRows(_) => "SGA.components"
     GraphSubgraphValue(_) => "SGA.subgraph"
-    GraphTraverseRows(checked) =>
-      if @graph.traverse_is_reach(checked) {
-        "SGA.reachable"
-      } else {
-        "SGA.traverse"
-      }
+    GraphTraverseRows(checked) => graph_traverse_operation(checked)
     GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
@@ -490,15 +485,25 @@ pub fn prepare(
         (
           if @graph.traverse_is_reach(checked) {
             "reach"
+          } else if @graph.traverse_shortest(checked) is Some(_) {
+            "shortest_path"
           } else {
             "traverse"
           },
-          if @graph.selector_form(@graph.traverse_start(checked))
+          1 +
+          (if @graph.selector_form(@graph.traverse_start(checked))
             is @graph.RelationIds(..) {
-            2
-          } else {
             1
-          },
+          } else {
+            0
+          }) +
+          (if @graph.traverse_shortest(checked).map(@graph.shortest_targets)
+            is Some(target) &&
+            @graph.selector_form(target) is @graph.RelationIds(..) {
+            1
+          } else {
+            0
+          }),
         )
       GraphConstructionValue(checked) =>
         (

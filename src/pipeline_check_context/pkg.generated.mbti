@@ -3603,6 +3603,7 @@ pub struct TraversalCheck {
   step : @pipeline_typing.CheckedStep
   input : @pipeline_typing.Target
   selector_relation : @pipeline_typing.Target?
+  target_selector_relation : @pipeline_typing.Target?
   operation : @graph_typing.CheckedTraverse
   rule : TraversalRule
 }
@@ -3621,6 +3622,7 @@ pub(all) enum TraversalRule {
   DeduplicatePathIdentities
   SelectMinimumEligibleNodeDepth
   OrderTraversalRows
+  ShortestRule(@graph_typing.ShortestObligation)
 } derive(Eq, @debug.Debug)
 
 pub enum ValuesCapacityIssue {

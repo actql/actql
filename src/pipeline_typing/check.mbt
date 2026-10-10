@@ -1083,30 +1083,79 @@ fn check_impl(
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
+      let selectors : Array[Target?] = []
       for name in ["source", "target"] {
         let at = match @decode.required(root, name) {
           Ok(c) => c
           Err(_) => fail(operation_body, InvalidBody)
         }
-        let _ = if @decode.view(at) is ObjectValue(_) {
-          let o = match
-            @decode.closed_object(at, ["ids", "from", "id", "where"]) {
-            Ok(o) => o
-            Err(_) => fail(at, InvalidBody)
-          }
-          @decode.lookup(o, "from").map(c => resolve_target(b, c, names))
-        } else {
-          None
+        selectors.push(
+          match @decode.open_object(at) {
+            Ok(o) =>
+              @decode.lookup(o, "from").map(c => resolve_target(b, c, names))
+            Err(_) => None
+          },
+        )
+      }
+      let shortest = match
+        @graph.check_shortest(
+          operation_body,
+          carrier(input, inputs, steps),
+          selectors[0].map(t => carrier(t, inputs, steps)),
+          selectors[1].map(t => carrier(t, inputs, steps)),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          let diagnostic = @graph.match_diagnostic(issue, operation_body)
+          raise Stop({
+            kind: GraphMatch(diagnostic.kind),
+            source: operation_body,
+            path: diagnostic.path.copy(),
+            span: diagnostic.span,
+            range: diagnostic.range,
+          })
         }
       }
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
+      let used = @graph.shortest_usage(shortest)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let entries = [{ role: Primary, target: input, }]
+      if selectors[0] is Some(target) {
+        entries.push({ role: Right, target, })
       }
+      if selectors[1] is Some(target) {
+        // Preserve this occurrence even when both selectors read one producer.
+        entries.push({ role: Sample(0), target, })
+      }
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Traverse(
+          selector=selectors[0],
+          checked=@graph.shortest_traversal(shortest),
+        ),
+        output: @graph.shortest_output(shortest),
+        connections: { entries, },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "subgraph" {
       let root = match

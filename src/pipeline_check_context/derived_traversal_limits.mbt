@@ -61,7 +61,9 @@ fn derive_traversal_limits(
       let (operation, output_law) = match
         @pipeline.step_at(pipeline, step).unwrap().operation {
         @pipeline.Traverse(checked=operation, ..) =>
-          if @graph.traverse_is_reach(operation) {
+          if @graph.traverse_shortest(operation) is Some(_) {
+            ("shortest_path", Some("actql.bound.shortest-path"))
+          } else if @graph.traverse_is_reach(operation) {
             ("reach", Some("actql.bound.reach-nodes"))
           } else {
             ("traverse", Some("actql.bound.traverse-nodes"))

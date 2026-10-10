@@ -546,6 +546,10 @@ fn lower_expression_measured(
         let predicate = if binding_index ==
           @graph.traverse_hop_count(checked) * 2 {
           @graph.selector_predicate(selector)
+        } else if binding_index == @graph.traverse_hop_count(checked) * 2 + 1 {
+          @graph.traverse_shortest(checked)
+          .map(@graph.shortest_targets)
+          .bind(@graph.selector_predicate)
         } else {
           let hop_index = binding_index / 2
           guard binding_index >= 0 &&

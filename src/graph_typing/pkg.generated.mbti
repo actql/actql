@@ -321,6 +321,8 @@ pub fn shortest_starts(CheckedShortest) -> CheckedSelector
 
 pub fn shortest_targets(CheckedShortest) -> CheckedSelector
 
+pub fn shortest_traversal(CheckedShortest) -> CheckedTraverse
+
 pub fn shortest_usage(CheckedShortest) -> PredicateUsage
 
 pub fn shortest_weight(CheckedShortest) -> String?
@@ -384,6 +386,8 @@ pub fn traverse_pending(CheckedTraverse) -> Array[TraverseObligation]
 pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
 
 pub fn traverse_pending_count(CheckedTraverse) -> Int
+
+pub fn traverse_shortest(CheckedTraverse) -> CheckedShortest?
 
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 
@@ -741,6 +745,7 @@ pub(all) enum TraverseObligation {
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
   ResolveGraphTraversalProfile
+  ShortestRequirement(ShortestObligation)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum UnionObligation {

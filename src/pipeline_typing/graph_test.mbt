@@ -332,19 +332,8 @@ test "missing or wrong Graph evidence cannot fabricate current MATCH rows" {
 
 ///|
 test "unconnected current Graph consumers cannot manufacture a legacy checked pipeline" {
-  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
-    "0".repeat(64) +
-    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   for
     (name, body) in [
-      (
-        "shortest_path",
-        "{\"source\":{\"ids\":[" +
-        identity +
-        "]},\"target\":{\"ids\":[" +
-        identity +
-        "]},\"direction\":\"out\",\"max_hops\":1}",
-      ),
       (
         "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
       ),

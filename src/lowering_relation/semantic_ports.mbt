@@ -89,6 +89,7 @@ pub fn node_accepts_managed_carrier_view(
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
     "SGA.traverse" => index == 0
+    "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
@@ -107,16 +108,38 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     GraphTraverseRows(checked) =>
       operation(node) ==
-      (if @graph.traverse_is_reach(checked) {
+      (if @graph.traverse_shortest(checked) is Some(_) {
+        "SGA.shortest_path"
+      } else if @graph.traverse_is_reach(checked) {
         "SGA.reachable"
       } else {
         "SGA.traverse"
       }) &&
       (
-        node.input_targets.length() == 2 ||
+        (if @graph.traverse_shortest(checked) is Some(shortest) {
+          let relation = fn(selector) {
+            if @graph.selector_form(selector) is @graph.RelationIds(..) {
+              1
+            } else {
+              0
+            }
+          }
+          node.input_targets.length() ==
+          1 +
+          relation(@graph.shortest_starts(shortest)) +
+          relation(@graph.shortest_targets(shortest))
+        } else {
+          false
+        }) ||
         (
-          @graph.traverse_emission(checked) == @graph.TraversedNodes &&
-          node.input_targets.length() == 1
+          @graph.traverse_shortest(checked) is None &&
+          (
+            node.input_targets.length() == 2 ||
+            (
+              @graph.traverse_emission(checked) == @graph.TraversedNodes &&
+              node.input_targets.length() == 1
+            )
+          )
         )
       )
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
@@ -295,6 +318,13 @@ pub fn node_accepts_managed_relation_view(
   if node.payload is RankingValue(_) {
     return operation(node) == "VEC.merge_rankings" &&
       index >= 0 &&
+      index < node.input_targets.length()
+  }
+  if node.payload is GraphTraverseRows(checked) &&
+    @graph.traverse_shortest(checked) is Some(_) {
+    return operation(node) == "SGA.shortest_path" &&
+      node_supports_selected_managed_execution(node) &&
+      index > 0 &&
       index < node.input_targets.length()
   }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {

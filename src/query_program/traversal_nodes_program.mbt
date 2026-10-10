@@ -64,6 +64,10 @@ fn lower_script_traversal_rows(
   let emissions = call.arguments.filter(argument => argument.0 == "emit")
   let fields = if call.operation == "reach" {
     ["start_id", "node_id", "depth"]
+  } else if call.operation == "shortest_path" {
+    [
+      "source_id", "target_id", "total_cost", "hop_count", "node_ids", "edge_ids",
+    ]
   } else {
     guard emissions.length() == 1 else { raise Abort(UnsupportedGraph) }
     match emissions[0].1 {

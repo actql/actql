@@ -40,6 +40,26 @@ test "Shortest path admits composite single identities and its six-column contra
   assert_true(pending.contains(RespectShortestHopBound))
   assert_true(pending.contains(ResolveShortestResources))
   assert_false(pending.contains(EnforceShortestOutputGuard))
+  let traversal = @graph_typing.shortest_traversal(checked)
+  assert_false(@graph_typing.traverse_is_reach(traversal))
+  assert_true(@graph_typing.traverse_shortest(traversal) is Some(_))
+  assert_eq(@graph_typing.traverse_graph_path_mode(traversal), Acyclic)
+  assert_eq(@graph_typing.traverse_bounds(traversal), (0.0, 3.0))
+  assert_eq(@graph_typing.traverse_emission(traversal), ShortestPaths)
+  let projected = @graph_typing.traverse_pending(traversal)
+  assert_eq(projected.length(), pending.length())
+  for index in 0..<pending.length() {
+    assert_eq(projected[index], ShortestRequirement(pending[index]))
+    assert_eq(
+      @graph_typing.traverse_pending_at(traversal, index),
+      Some(projected[index]),
+    )
+  }
+  assert_eq(@graph_typing.traverse_pending_count(traversal), pending.length())
+  assert_eq(
+    @graph_typing.traverse_pending_at(traversal, pending.length()),
+    None,
+  )
   let rows = @carrier.complete_schema(
     @carrier.relation_rows(@graph_typing.shortest_output(checked)).unwrap(),
   ).unwrap()
@@ -62,6 +82,30 @@ test "Shortest path admits composite single identities and its six-column contra
         assert_false(element.nullable)
       }
     }
+  }
+}
+
+///|
+test "Shortest forbids selection on two single identities before execution" {
+  for selection in ["each_pair", "nearest_per_source", "nearest_pair"] {
+    guard @graph_typing.check_shortest(
+        cursor(
+          shortest_body(
+            current_node_identity(2),
+            current_node_identity(10),
+            ",\"selection\":\"" + selection + "\"",
+          ),
+        ),
+        current_scope_graph(),
+        None,
+        None,
+        None,
+        predicate_limits(),
+      )
+      is Err(issue) else {
+      fail("single identities must omit selection")
+    }
+    assert_true(issue is MatchStructure({ kind: InvalidBody, .. }))
   }
 }
 

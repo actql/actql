@@ -421,6 +421,8 @@ pub fn graph_traverse_output_schema(PreparedGraphTraverse) -> @relation_schema.S
 
 pub fn graph_traverse_patterned(PreparedGraphTraverse) -> Bool
 
+pub fn graph_traverse_shortest(PreparedGraphTraverse) -> @graph_typing.CheckedShortest?
+
 pub fn graph_traverse_start_fields(PreparedGraphTraverse) -> @carrier_contract.Knowledge?
 
 pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
@@ -432,6 +434,10 @@ pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
 pub fn graph_traverse_start_property_position(PreparedGraphTraverse, Int, Int) -> Int?
 
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
+
+pub fn graph_traverse_target_predicate(PreparedGraphTraverse) -> Expression?
+
+pub fn graph_traverse_target_selector(PreparedGraphTraverse) -> @graph_typing.CheckedSelector?
 
 pub fn graph_union_checked(PreparedGraphUnion) -> @graph_typing.CheckedUnion
 

@@ -106,6 +106,7 @@ fn check_supported_source(
               | "match_edges"
               | "traverse"
               | "reach"
+              | "shortest_path"
               | "subgraph"
               | "degree"
               | "graph_bounds"

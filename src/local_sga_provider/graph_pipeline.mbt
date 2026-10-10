@@ -283,7 +283,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         }
         current_graph(carrier) &&
         @lower.operation(node) ==
-        (if @lower.graph_traverse_is_reach(traverse) {
+        (if @lower.graph_traverse_shortest(traverse) is Some(_) {
+          "SGA.shortest_path"
+        } else if @lower.graph_traverse_is_reach(traverse) {
           "SGA.reachable"
         } else {
           "SGA.traverse"
@@ -1091,13 +1093,18 @@ fn advance_execution(
                 Err(_) => return fail_execution(value)
               }
             }
-          Some(@lower.GraphTraverseStep(_)) => {
+          Some(@lower.GraphTraverseStep(traverse)) => {
             // The checked search envelope is independent of output cardinality.
             // Public dispatch always binds it from the captured limit owner.
-            let (paths, rows) = @execution.generated_traversal_ceilings(
+            let ceilings = @execution.generated_traversal_ceilings(
               value.generated,
               value.projection_step,
-            ).unwrap_or(
+            )
+            if @lower.graph_traverse_shortest(traverse) is Some(_) &&
+              ceilings is None {
+              return fail_execution(value)
+            }
+            let (paths, rows) = ceilings.unwrap_or(
               (
                 value.limits.max_workspace_slots.to_int64(),
                 value.max_rows.to_int64(),
@@ -1813,12 +1820,26 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.GraphTraverseStep(traverse)) =>
-          if @lower.graph_traverse_start_relation_field(traverse) is Some(_) {
+        Some(@lower.GraphTraverseStep(traverse)) => {
+          let source_count = if @lower.graph_traverse_start_relation_field(
+              traverse,
+            )
+            is Some(_) {
             1
           } else {
             0
           }
+          let target_count = if @lower.graph_traverse_target_selector(traverse)
+            .map(selector => {
+              @graph_type.selector_form(selector) is @graph_type.RelationIds(..)
+            })
+            .unwrap_or(false) {
+            1
+          } else {
+            0
+          }
+          source_count + target_count
+        }
         _ => 1
       }
       let direct_match = match

@@ -29,18 +29,14 @@ test "Graph argument selector and Carrier violations are distinct from support g
 }
 
 ///|
-test "Graph row classification does not reinterpret unconnected operation options as selectors" {
+test "Shortest retains two explicit Relation selectors through public source compilation" {
   let prefix = graph_rows_prefix() +
     "DATA seeds = FROM g |> node_rows() |> SELECT id; "
-  // shortest_path still has no public execution connection.
   for
     tail in [
       "DATA paths = FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1); FROM paths |> SELECT hop_count",
     ] {
-    assert_true(
-      classified_graph_source(prefix + tail) is Err(UnsupportedGraph),
-      msg=tail,
-    )
+    assert_true(classified_graph_source(prefix + tail) is Ok(_), msg=tail)
   }
 }
 

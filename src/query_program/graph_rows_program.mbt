@@ -189,7 +189,9 @@ fn lower_script_graph_rows(
       current = row_input.unwrap().name
       continue
     }
-    if call.operation == "traverse" || call.operation == "reach" {
+    if call.operation == "traverse" ||
+      call.operation == "reach" ||
+      call.operation == "shortest_path" {
       row_input = Some(
         lower_script_traversal_rows(
           construction, query, call, current, known, limits, steps, reserved,

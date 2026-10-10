@@ -552,6 +552,7 @@ pub(all) enum ExpressionConsumer {
   GraphTraverseEdgePredicate(Int)
   GraphTraverseNodePredicate(Int)
   GraphNodeSelectorPredicate
+  GraphTargetSelectorPredicate
   InferInput(Int)
 } derive(Eq, @debug.Debug)
 

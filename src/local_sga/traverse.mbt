@@ -159,6 +159,13 @@ pub fn traverse_predicate_starts(value : TraverseExecution) -> Int {
 }
 
 ///|
+/// Private selected candidates retained by the existing path owner, not public
+/// Results or permission to publish. Used for boundary diagnostics.
+pub fn traverse_shortest_winner_count(value : TraverseExecution) -> Int {
+  traverse_paths_shortest_winner_count(value.kernel)
+}
+
+///|
 pub fn cleanup_traverse(
   value : TraverseExecution,
 ) -> Result[Bool, TraverseIssue] {

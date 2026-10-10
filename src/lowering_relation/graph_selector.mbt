@@ -3,6 +3,7 @@ fn emit_graph_selector(
   selector : @graph.CheckedSelector,
   out : @encode.Writer,
   predicate? : Expression? = None,
+  input_port? : Int = 1,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
   match @graph.selector_form(selector) {
@@ -19,7 +20,7 @@ fn emit_graph_selector(
     }
     @graph.RelationIds(field~, ..) => {
       @encode.key(out, "input_port")
-      @encode.number_value(out, 1.0)
+      @encode.number_value(out, input_port.to_double())
       @encode.key(out, "id")
       @encode.string_value(out, @schema.reference_name(field))
     }

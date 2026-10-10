@@ -30,6 +30,7 @@ pub(all) enum TraverseObligation {
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
   ResolveGraphTraversalProfile
+  ShortestRequirement(ShortestObligation)
 } derive(Eq, Debug)
 
 ///|
@@ -47,6 +48,7 @@ struct CheckedTraverse {
   usage : PredicateUsage
   path_mode : GraphPathMode
   reachable : Bool
+  shortest : CheckedShortest?
 }
 
 ///|
@@ -355,6 +357,7 @@ fn check_traversal_profile(
       output: output.output,
       path_mode,
       reachable,
+      shortest: None,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -378,6 +381,50 @@ pub fn traverse_source(c : CheckedTraverse) -> @decode.Cursor {
 /// Immutable authored profile; never infer Reach from a coincidental hop shape.
 pub fn traverse_is_reach(c : CheckedTraverse) -> Bool {
   c.reachable
+}
+
+///|
+/// Preserve the authored shortest profile while sharing the finite simple-path
+/// representation. This projection does not discharge runtime obligations.
+pub fn shortest_traversal(c : CheckedShortest) -> CheckedTraverse {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  {
+    input: c.input,
+    source: c.source,
+    start: c.starts,
+    patterned: false,
+    minimum: 0.0,
+    maximum: c.maximum_hops,
+    hops: [
+      {
+        direction: c.direction,
+        types: c.edge_types,
+        edge_predicate: None,
+        node_predicate: None,
+        edge_fields: empty,
+        node_fields: empty,
+        edge_property_positions: [],
+        node_property_positions: [],
+      },
+    ],
+    emit: ShortestPaths,
+    guard_rows: c.guard_rows,
+    output: c.output,
+    usage: c.usage,
+    path_mode: Acyclic,
+    reachable: false,
+    shortest: Some(c),
+  }
+}
+
+///|
+pub fn traverse_shortest(c : CheckedTraverse) -> CheckedShortest? {
+  c.shortest
 }
 
 ///|
@@ -508,6 +555,10 @@ fn traverse_pending_each(
   c : CheckedTraverse,
   emit : (TraverseObligation) -> Unit,
 ) -> Unit {
+  if c.shortest is Some(shortest) {
+    shortest_pending_each(shortest, item => emit(ShortestRequirement(item)))
+    return
+  }
   emit(AdmitTraversalGraph)
   emit(RespectTraversalHopBounds)
   emit(FilterTraversalLabels)

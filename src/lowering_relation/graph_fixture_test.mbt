@@ -48,14 +48,6 @@ fn graph_current_owner(
 test "unconnected lowering consumers cannot issue retired Graph kernels for a current definition" {
   for
     (name, body) in [
-      (
-        "shortest_path",
-        "{\"source\":{\"ids\":[" +
-        graph_match_identity(2) +
-        "]},\"target\":{\"ids\":[" +
-        graph_match_identity(2) +
-        "]},\"direction\":\"out\",\"max_hops\":1}",
-      ),
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
       (
         "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
