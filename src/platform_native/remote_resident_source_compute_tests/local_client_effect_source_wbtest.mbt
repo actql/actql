@@ -354,17 +354,48 @@ test "Native original Effect captures its real acquired producer and local impor
     is Err(@client.Capture(@resident.InvalidLimits)),
   )
   assert_eq(work.usage(), before)
+  let limited = work.prepare_capture_context(
+    retained_compute_effect_retention(),
+    normalization,
+    resident_compute_limits(),
+    65536,
+    4096,
+    64,
+    max_work=1,
+  )
   assert_true(
-    work.prepare_capture_context(
-      retained_compute_effect_retention(),
-      normalization,
-      resident_compute_limits(),
-      65536,
-      4096,
-      64,
-      max_work=1,
-    )
-    is Err(@client.Capture(@resident.Pins(@strategy.PreviewWorkLimit))),
+    limited is Err(@client.Capture(@resident.Pins(@strategy.PreviewWorkLimit))),
+    msg=match limited {
+      Err(@client.Capture(@resident.Invocation(@resident.Invocation(issue)))) =>
+        @debug.to_string(issue)
+      Err(@client.Capture(@resident.Invocation(@resident.ForeignRun))) =>
+        "Foreign original Run"
+      Err(@client.Capture(@resident.Invocation(@resident.Unavailable))) =>
+        "Original Source unavailable"
+      Err(
+        @client.Capture(
+          @resident.Invocation(@resident.Observation(@resident.Unavailable))
+        )
+      ) => "Source observation unavailable"
+      Err(
+        @client.Capture(
+          @resident.Invocation(@resident.Observation(@resident.Identity(_)))
+        )
+      ) => "Source identity unavailable"
+      Err(
+        @client.Capture(
+          @resident.Invocation(@resident.Observation(@resident.Logical(_)))
+        )
+      ) => "Source logical input refused"
+      Err(
+        @client.Capture(
+          @resident.Invocation(@resident.Observation(@resident.Evidence(issue)))
+        )
+      ) => @debug.to_string(issue)
+      Err(@client.Original(_)) => "Original journal or authorization refused"
+      Err(@client.Capture(@resident.Source(_))) => "Source evidence refused"
+      _ => "Unexpected capture budget result"
+    },
   )
   assert_eq(work.usage().held_bytes, before.held_bytes)
   assert_eq(
