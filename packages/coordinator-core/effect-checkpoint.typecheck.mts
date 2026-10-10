@@ -1,4 +1,4 @@
-import {admitDispatchJson, effectCheckpointReports,
+import {admitDispatchJson, effectCheckpointReports, effectResumeDeliveries,
   type EffectCheckpointReport, type EffectCheckpointReply}
   from '@actql/coordinator-core';
 
@@ -23,3 +23,20 @@ effectCheckpointReports.approve(report);
 // @ts-expect-error Admitted facts are immutable.
 facts.reportCid = 'other';
 void [forged, reply];
+
+const auth = {key_id: 'key', reviewer_id: 'reviewer', expected_authority_scope_cid: 'scope',
+  authority_context_cid: 'authority', policy_cid: 'policy', proof_preimage: 'preimage'};
+const reviewers = [{key_id: 'key', reviewer_id: 'reviewer'}] as const;
+const claim = {claimant: 'coordinator', generation: 1n};
+const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32};
+const delivery: string = effectResumeDeliveries.prepareJson(report, '', auth, reviewers, claim, limits);
+// @ts-expect-error A dispatch cannot stand in for the original report custody.
+effectResumeDeliveries.prepareJson(dispatch, '', auth, reviewers, claim, limits);
+// @ts-expect-error Claim generation is an exact signed Int64, not a JS number.
+effectResumeDeliveries.prepareJson(report, '', auth, reviewers, {...claim, generation: 1}, limits);
+void delivery;
+
+const poll: string = effectResumeDeliveries.preparePollJson(report, "", auth, reviewers, claim, limits);
+// @ts-expect-error Routing still requires the original opaque report.
+effectResumeDeliveries.preparePollJson(dispatch, "", auth, reviewers, claim, limits);
+void poll;

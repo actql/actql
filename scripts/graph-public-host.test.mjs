@@ -631,6 +631,21 @@ for (const {mode,profile,name,partition} of graphPublicHostCases) {
         }
         const state = await run.wait();
         assert.equal(state.status, 'succeeded', JSON.stringify(state));
+        // Result publication is durable before the physical completion hook.
+        // Observe that exact hook before asserting its Store receipts/counts;
+        // an absent observation must never become an empty successful receipt.
+        if (!relationSnapshots.has(run.ref.runDefinitionCid)) {
+          const signal = AbortSignal.timeout(5_000);
+          await new Promise((resolve, reject) => {
+            const abort = () => reject(signal.reason);
+            signal.addEventListener('abort', abort, {once: true});
+            snapshotWaiters.set(run.ref.runDefinitionCid, () => {
+              signal.removeEventListener('abort', abort);
+              snapshotWaiters.delete(run.ref.runDefinitionCid);
+              resolve();
+            });
+          });
+        }
         const physicalCount = () => physicalSteps.filter(name =>
           name === 'physical_start_reserved' || name === 'computed').length;
         const completedCount = physicalCount();

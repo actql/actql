@@ -1112,3 +1112,12 @@ alongside its keys for both initial execution and restart. This explicitly
 changes the acceptance setup; it does not exempt Run acceptance or alter
 product authorization. Its first failure remains preserved, not counted as
 Graph execution coverage.
+
+### Adopted parent integration
+
+Parent #1284 is adopted as main `ab8257c21`. Root integration retains its
+bounded selector membership, receiving-column contract, private cleanup and
+Shortest Relation snapshot fixes. Existing exact work/workspace boundaries
+remain; no synchronous membership lookup is restored. Original author
+receipts above retain their source identities. The new combined-source
+acceptance is recorded separately after it executes.

@@ -47,6 +47,9 @@ try {
     join(installation, 'effect-checkpoint-vectors.json'));
   environment.ACTQL_TEST_EFFECT_CHECKPOINT_VECTORS = join(installation,
     'effect-checkpoint-vectors.json');
+  await copyFile(join(repository, 'spec/fixtures/remote-effect-resume-vectors.json'),
+    join(installation, 'effect-resume-vectors.json'));
+  environment.ACTQL_TEST_EFFECT_RESUME_VECTORS = join(installation, 'effect-resume-vectors.json');
   process.stdout.write(run(process.execPath, ['--test', 'effect-checkpoint.test.mjs'], installation));
   run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
     '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',

@@ -30,7 +30,17 @@
     {"source":{"sign":{"literal":null}},"tree":{"sign":{"literal":null}},"parameters":[]},
     {"source":{"strpos":["$value","$part"]},"tree":{"strpos":[{"$param":"value"},{"$param":"part"}]},"parameters":["value","part"]},
     {"source":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"tree":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"parameters":[]},
-    {"source":{"strpos":[{"literal":null},{"literal":null}]},"tree":{"strpos":[{"literal":null},{"literal":null}]},"parameters":[]}
+    {"source":{"strpos":[{"literal":null},{"literal":null}]},"tree":{"strpos":[{"literal":null},{"literal":null}]},"parameters":[]},
+    {"source":{"round":"$value"},"tree":{"round":{"$param":"value"}},"parameters":["value"]},
+    {"source":{"trunc":"$value"},"tree":{"trunc":{"$param":"value"}},"parameters":["value"]},
+    {"source":{"round":{"literal":null}},"tree":{"round":{"literal":null}},"parameters":[]},
+    {"source":{"trunc":{"literal":null}},"tree":{"trunc":{"literal":null}},"parameters":[]},
+    {"source":{"ltrim":"$p"},"tree":{"ltrim":{"$param":"p"}},"parameters":["p"]},
+    {"source":{"ltrim":{"literal":null}},"tree":{"ltrim":{"literal":null}},"parameters":[]},
+    {"source":{"ltrim":{"literal":" 😀é "}},"tree":{"ltrim":{"literal":" 😀é "}},"parameters":[]},
+    {"source":{"rtrim":"$p"},"tree":{"rtrim":{"$param":"p"}},"parameters":["p"]},
+    {"source":{"rtrim":{"literal":null}},"tree":{"rtrim":{"literal":null}},"parameters":[]},
+    {"source":{"rtrim":{"literal":" 😀é "}},"tree":{"rtrim":{"literal":" 😀é "}},"parameters":[]}
   ],
   "negative": [
     "\"right.\"",
@@ -73,6 +83,22 @@
     {"strpos":["x"]},
     {"strpos":["x","y","z"]},
     {"strpos":{"literal":"x"}},
-    {"strpos":["x","y"],"extra":true}
+    {"strpos":["x","y"],"extra":true},
+    {"round":[]},
+    {"trunc":[]},
+    {"round":[{"literal":1}]},
+    {"trunc":[{"literal":1}]},
+    {"round":{"literal":1},"extra":true},
+    {"trunc":{"literal":1},"extra":true},
+    {"ltrim":[]},
+    {"ltrim":[{"literal":"x"}]},
+    {"ltrim":[{"literal":"x"},{"literal":" "}]},
+    {"ltrim":{"literal":"x"},"extra":true},
+    {"ltrim":{"value":{"literal":"x"},"characters":" "}},
+    {"rtrim":[]},
+    {"rtrim":[{"literal":"x"}]},
+    {"rtrim":[{"literal":"x"},{"literal":" "}]},
+    {"rtrim":{"literal":"x"},"extra":true},
+    {"rtrim":{"value":{"literal":"x"},"characters":" "}}
   ]
 }

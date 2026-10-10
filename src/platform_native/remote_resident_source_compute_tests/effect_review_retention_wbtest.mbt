@@ -84,6 +84,9 @@ fn retained_effect_review_retention_store(
     None => prepare(materials, key, limits).unwrap()
   }
   assert_true(retention.report() is Err(Unavailable))
+  assert_true(
+    retention.review_projection(() => true, 65536) is Err(Unavailable),
+  )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   let open = () => {
     @store.open_store(sqlite, path, authority, 536870912L, 8L, 262144L).unwrap()
@@ -115,13 +118,72 @@ fn retained_effect_review_retention_store(
     let pending = consumer.usage().reserved_retention_bytes
     assert_true(pending > baseline)
     assert_true(retention.report() is Err(_))
+    assert_true(retention.review_projection(() => true, 65536) is Err(_))
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
   println("native-original-review: persistence fault retries confirmed")
   let report = retention.persist(store).unwrap()
+  let before_projection = consumer.usage().reserved_retention_bytes
+  assert_true(
+    retention.review_projection(() => false, 65536) is Err(EvidenceDenied),
+  )
+  assert_true(
+    retention.review_projection(() => true, 1) is Err(ProjectionTooLarge),
+  )
+  let evidence_reads = Ref(0)
+  assert_true(
+    retention.review_projection(
+      () => {
+        evidence_reads.val += 1
+        evidence_reads.val < 2
+      },
+      65536,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(evidence_reads.val, 2)
+  let closing_reads = Ref(0)
+  assert_true(
+    retention.review_projection(
+      () => {
+        closing_reads.val += 1
+        if closing_reads.val == 2 {
+          store.close().unwrap() |> ignore
+        }
+        true
+      },
+      65536,
+    )
+    is Err(_),
+  )
+  assert_eq(closing_reads.val, 2)
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  store = open()
+  retention.restore_store(store).unwrap()
+  let (projection_report, projection_wire) = retention
+    .review_projection(() => true, 65536)
+    .unwrap()
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(projection_report),
+    @remote.remote_effect_checkpoint_report_json(report),
+  )
+  assert_eq(projection_wire, wire)
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_checkpoint(projection_report).checkpoint.review_projection_cid,
+    "sha256:" + @sha.hex(@utf8.encode(projection_wire)),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
   let resolution_fixture = if review_work is Some(work) {
+    let (original_report, original_wire) = work
+      .review_projection(() => true, 65536)
+      .unwrap()
+    assert_eq(original_wire, projection_wire)
+    assert_eq(
+      @remote.remote_effect_checkpoint_report_identity(original_report),
+      @remote.remote_effect_checkpoint_report_identity(report),
+    )
     println("native-original-review: retaining journal report")
     let queued = work
       .persist_and_retain_report(
@@ -133,6 +195,7 @@ fn retained_effect_review_retention_store(
       @remote.remote_effect_checkpoint_report_json(queued),
       @remote.remote_effect_checkpoint_report_json(report),
     )
+    retained_holder_upload_original_review(work, original_journal_path.unwrap())
     Some(retained_holder_admit_resolution(work, report))
   } else {
     None
@@ -160,6 +223,41 @@ fn retained_effect_review_retention_store(
   let checkpoint_record = inspection
     .read("effect_checkpoint_custody", holding)
     .unwrap()
+  let continuation_bytes = crypto
+    .open_private_evidence(
+      key,
+      "continuation_record",
+      checkpoint.checkpoint.continuation_state_cid,
+      continuation.body,
+    )
+    .unwrap()
+  assert_eq(
+    checkpoint.checkpoint.continuation_state_cid,
+    "sha256:" + @sha.hex(continuation_bytes),
+  )
+  let doubled = @checkpoint.seal_checkpoint(
+    {
+      ..checkpoint.checkpoint,
+      continuation_state_cid: "sha256:" +
+      @sha.hex(@sha.digest(continuation_bytes)),
+    },
+    limits,
+  ).unwrap()
+  let before_rejected_continuation = store.capacity_usage().unwrap().reserved_bytes
+  assert_true(
+    store.prepare_effect_checkpoint_custody(
+      doubled,
+      @utf8.decode(continuation_bytes),
+      authority,
+      crypto,
+      key,
+    )
+    is Err(DigestMismatch),
+  )
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    before_rejected_continuation,
+  )
   assert_false(@utf8.decode(continuation.body).contains("Count__c"))
   let reserved = consumer.usage().reserved_retention_bytes
   let physical_reserved = store.capacity_usage().unwrap().reserved_bytes
@@ -256,6 +354,9 @@ fn retained_effect_review_retention_store(
   assert_false(retention.retry_cleanup().unwrap())
   assert_true(retention.restore_store(store) is Err(Unavailable))
   assert_true(retention.report() is Err(Unavailable))
+  assert_true(
+    retention.review_projection(() => true, 65536) is Err(Unavailable),
+  )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(consumer.request_for_effect_review(inputs), materials.request)

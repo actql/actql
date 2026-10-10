@@ -142,9 +142,13 @@ fn long_graph_start_admission_fixture(relation : Bool) -> Unit raise {
   assert_eq(text.length(), 519)
   assert_eq(domain.length(), 71)
   let identity_recheck = 32 + 1 + 8
+  // The unchanged two-component identity needs 390 equality polls. Its key
+  // grows from one scalar/unit to 518 scalars and 519 UTF-16 units; both
+  // scalar walks and the unit comparison are charged, then a terminal poll.
+  let comparison_work = 390 + 2 * (518 - 1) + (519 - 1)
   let start_admission = identity_recheck +
-    1 +
-    (if relation { identity_recheck } else { 0 })
+    (if relation { identity_recheck } else { 0 }) +
+    1 + comparison_work + 1
   // Output rechecks have two long identities (40 tree polls each), a number,
   // three reads/terminal polls, and setup. Each identity's value charge has
   // 24 base polls plus nine long-Text fragments; names/values and commit stay

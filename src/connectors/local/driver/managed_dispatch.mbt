@@ -2102,8 +2102,8 @@ pub fn[T] start_local_managed_dispatch(
               !@lower.graph_traverse_emits_paths(traverse) ||
               @lower.graph_traverse_shortest(traverse) is Some(_)
             ) {
-            // Shortest paths are completed Relations too: retain their typed
-            // path columns through the existing snapshot owner.
+            // Shortest's typed path columns are completed Relation values;
+            // persist/reload them through the existing snapshot owner too.
             graph_rows = true
           }
         }

@@ -18,9 +18,9 @@ priv enum TraversePathsPhase {
   InitializeTargetSelection
   InitializeStartSelection
   ResolveStarts
-  RecheckStartInput
   RecheckStartIdentity
-  LookupStart
+  BeginStartMembership
+  CompareStartIdentity
   CollectStarts
   SortStarts
   BeginStart
@@ -103,8 +103,11 @@ priv struct TraversePathsState {
   mut phase : TraversePathsPhase
   mut start_scan : Int
   mut start_recheck : @value.RecheckCursor?
-  mut start_recheck_slots : Int
+  mut start_input_rechecking : Bool
   mut start_identity : @value.CheckedValue?
+  mut start_equality : @value.CompleteEquality?
+  mut start_membership_node : Int
+  mut start_identity_slots : Int
   mut start_selected : Array[Bool]
   start_nodes : Array[Int]
   mut sort_index : Int
@@ -223,6 +226,10 @@ fn traverse_path_start_recheck(
   state : TraversePathsState,
   index : Int,
 ) -> @value.RecheckCursor? {
+  let contract = @carrier.graph_identity(state.graph)
+  let start = fn(value : @value.Value) {
+    @value.start_recheck_runtime_value(value, contract, state.value_limits)
+  }
   match
     (if state.selecting_target { state.targets.unwrap() } else { state.starts }) {
     LiteralPathStarts => {
@@ -233,13 +240,7 @@ fn traverse_path_start_recheck(
       } else {
         @lower.graph_traverse_start_id_at(state.prepared, index)
       }
-      identity.bind(value => {
-        @value.start_recheck_runtime_value(
-          value.value,
-          @carrier.graph_identity(state.graph),
-          state.value_limits,
-        )
-      })
+      identity.bind(value => start(value.value))
     }
     RelationPathStarts(input, column) =>
       @execution.start_producer_read_cell_recheck(
@@ -248,8 +249,43 @@ fn traverse_path_start_recheck(
         column,
         state.value_limits,
       )
-    PredicatePathStarts => None
+    PredicatePathStarts =>
+      graph_read_node_identity(state.source, index).bind(value => {
+        start(value.value)
+      })
   }
+}
+
+///|
+/// Reserve cursor frames before a poll, then return unused capacity. The
+/// Graph and Relation payloads stay borrowed from their existing input owners.
+fn reserve_traverse_start_identity(
+  state : TraversePathsState,
+  slots : Int,
+) -> Bool {
+  let other = state.workspace_slots - state.start_identity_slots
+  if slots < 0 || slots > state.max_workspace_slots - other {
+    return false
+  }
+  state.workspace_slots = other + slots
+  state.start_identity_slots = slots
+  state.workspace_peak = Int::max(state.workspace_peak, state.workspace_slots)
+  true
+}
+
+///|
+fn clear_traverse_start_identity(state : TraversePathsState) -> Unit {
+  if state.start_recheck is Some(cursor) {
+    @value.cancel_recheck_runtime_value(cursor)
+  }
+  if state.start_equality is Some(cursor) {
+    @value.cancel_complete_equality(cursor)
+  }
+  state.start_recheck = None
+  state.start_equality = None
+  state.start_identity = None
+  state.workspace_slots -= state.start_identity_slots
+  state.start_identity_slots = 0
 }
 
 ///|
@@ -792,10 +828,7 @@ fn traverse_paths_step(
             state.phase = PreparePredicate
             continue
           }
-          // Root, cursor and initial continuation are reserved before setup.
-          // Literal identities borrow the checked selector; Relation starts
-          // first retain the exact receiving-column validation as well.
-          if 3 > state.max_workspace_slots - state.workspace_slots {
+          if !reserve_traverse_start_identity(state, 3) {
             return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
           }
           guard traverse_path_start_recheck(state, state.start_scan)
@@ -807,22 +840,13 @@ fn traverse_paths_step(
             )
           }
           state.start_recheck = Some(cursor)
-          state.start_recheck_slots = 3
-          state.workspace_slots += 3
-          state.workspace_peak = Int::max(
-            state.workspace_peak,
-            state.workspace_slots,
-          )
-          state.phase = if (if state.selecting_target {
+          state.start_input_rechecking = (if state.selecting_target {
               state.targets.unwrap()
             } else {
               state.starts
             })
-            is RelationPathStarts(_, _) {
-            RecheckStartInput
-          } else {
-            RecheckStartIdentity
-          }
+            is RelationPathStarts(_, _)
+          state.phase = RecheckStartIdentity
         } else {
           state.start_scan = 0
           if state.selecting_target {
@@ -832,45 +856,42 @@ fn traverse_paths_step(
             state.phase = CollectStarts
           }
         }
-      RecheckStartInput | RecheckStartIdentity => {
+      RecheckStartIdentity => {
         used += 1
         guard state.start_recheck is Some(cursor) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
         }
-        let frames = @value.recheck_pending_frames(cursor)
-        let available = state.max_workspace_slots -
-          (state.workspace_slots - state.start_recheck_slots)
-        // Each poll can grow the continuation stack by one. Reserve it before
-        // advancing, then release the unused growth without dropping input.
-        if available < 3 || frames > available - 3 {
+        // Cursor plus live frames and the maximum one-frame poll growth.
+        if !reserve_traverse_start_identity(
+            state,
+            3 + @value.recheck_pending_frames(cursor),
+          ) {
           return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
-        let slots = 3 + frames
-        state.workspace_slots += slots - state.start_recheck_slots
-        state.start_recheck_slots = slots
-        state.workspace_peak = Int::max(
-          state.workspace_peak,
-          state.workspace_slots,
-        )
         match @value.advance_recheck_runtime_value(cursor) {
-          @value.RecheckContinue => {
-            let retained = 2 + @value.recheck_pending_frames(cursor)
-            state.workspace_slots -= state.start_recheck_slots - retained
-            state.start_recheck_slots = retained
-          }
+          @value.RecheckContinue =>
+            reserve_traverse_start_identity(
+              state,
+              2 + @value.recheck_pending_frames(cursor),
+            )
+            |> ignore
           @value.RecheckFailed =>
             return @bounded.Failed(
-              if state.phase is RecheckStartInput {
-                TraversePathsInputUnavailable
-              } else {
-                TraversePathsKeyOrder(@value.InvalidKey)
-              },
+              TraversePathsKeyOrder(@value.InvalidKey),
               progress,
               used,
             )
           @value.RecheckComplete(identity, _, _) => {
-            state.start_recheck = None
-            if state.phase is RecheckStartInput {
+            if state.start_input_rechecking {
+              // Preserve receiving-column admission before the Graph's
+              // nonnullable identity contract. Neither scan is synchronous.
+              if !reserve_traverse_start_identity(state, 3) {
+                return @bounded.Failed(
+                  TraversePathsWorkspaceLimit,
+                  progress,
+                  used,
+                )
+              }
               guard @value.start_recheck_runtime_value(
                   identity.value,
                   @carrier.graph_identity(state.graph),
@@ -878,50 +899,104 @@ fn traverse_paths_step(
                 )
                 is Some(next) else {
                 return @bounded.Failed(
-                  TraversePathsKeyOrder(@value.InvalidKey),
+                  TraversePathsInputUnavailable,
                   progress,
                   used,
                 )
               }
               state.start_recheck = Some(next)
-              state.workspace_slots -= state.start_recheck_slots - 3
-              state.start_recheck_slots = 3
-              state.phase = RecheckStartIdentity
-            } else {
-              state.start_identity = Some(identity)
-              state.workspace_slots -= state.start_recheck_slots - 1
-              state.start_recheck_slots = 1
-              state.phase = LookupStart
+              state.start_input_rechecking = false
+              continue
             }
+            state.start_recheck = None
+            state.start_identity = Some(identity)
+            reserve_traverse_start_identity(state, 1) |> ignore
+            state.start_membership_node = 0
+            state.phase = BeginStartMembership
           }
         }
       }
-      LookupStart => {
+      BeginStartMembership => {
         used += 1
-        guard state.start_identity is Some(identity) else {
+        // A bounded scan reads existing retained identities in storage order.
+        // Unlike canonical serialization plus Map[String] lookup, no complete
+        // key hash hides inside one tick. It costs one comparison per visited
+        // node; the original work cap bounds this scan, without a new index.
+        if state.start_membership_node >=
+          graph_read_node_count(state.source).unwrap_or(-1) {
+          return @bounded.Failed(TraversePathsStartMissing, progress, used)
+        }
+        if !reserve_traverse_start_identity(state, 3) {
+          return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
+        }
+        guard state.start_identity is Some(identity) &&
+          graph_read_node_identity(state.source, state.start_membership_node)
+          is Some(candidate) else {
+          return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
+        }
+        // Both roots are already admitted. These are comparison counters,
+        // not looser value admission limits: each node/scalar poll also spends
+        // the operation's existing work budget, and each scalar is <= 4 bytes.
+        // Do not re-admit unrelated Graph keys against the selector's limits.
+        let comparison_text = if state.control_work_limit > 2147483647 / 4 {
+          2147483647
+        } else {
+          state.control_work_limit * 4
+        }
+        match
+          @value.start_complete_equality(identity, candidate, {
+            max_nodes: state.control_work_limit,
+            max_depth: state.control_work_limit,
+            max_text_bytes: comparison_text,
+          }) {
+          Err(_) =>
+            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
+          Ok(cursor) => {
+            state.start_equality = Some(cursor)
+            state.phase = CompareStartIdentity
+          }
+        }
+      }
+      CompareStartIdentity => {
+        used += 1
+        guard state.start_equality is Some(cursor) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
         }
-        match graph_read_node_index(state.source, identity) {
-          Err(_) =>
-            return @bounded.Failed(
-              TraversePathsInputUnavailable,
-              progress,
-              used,
-            )
-          Ok(None) =>
-            return @bounded.Failed(TraversePathsStartMissing, progress, used)
-          Ok(Some(node)) =>
-            if state.selecting_target {
-              state.target_selected[node] = true
-            } else {
-              state.start_selected[node] = true
-            }
+        // Checked root, comparison handle and the next frame's growth bound.
+        if !reserve_traverse_start_identity(
+            state,
+            2 + @value.complete_equality_next_frame_bound(cursor),
+          ) {
+          return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
-        state.start_identity = None
-        state.workspace_slots -= state.start_recheck_slots
-        state.start_recheck_slots = 0
-        state.start_scan += 1
-        state.phase = ResolveStarts
+        match @value.advance_complete_equality(cursor, 1) {
+          @value.EqualityContinue(..) =>
+            reserve_traverse_start_identity(
+              state,
+              2 + @value.complete_equality_pending_frames(cursor),
+            )
+            |> ignore
+          @value.EqualityFailed(_, ..) =>
+            return @bounded.Failed(TraversePathsWorkLimit, progress, used)
+          @value.EqualityComplete(equal~, ..) => {
+            state.start_equality = None
+            reserve_traverse_start_identity(state, 1) |> ignore
+            if equal {
+              let node = state.start_membership_node
+              if state.selecting_target {
+                state.target_selected[node] = true
+              } else {
+                state.start_selected[node] = true
+              }
+              clear_traverse_start_identity(state)
+              state.start_scan += 1
+              state.phase = ResolveStarts
+            } else {
+              state.start_membership_node += 1
+              state.phase = BeginStartMembership
+            }
+          }
+        }
       }
       CollectStarts =>
         if state.start_scan < state.start_selected.length() {
@@ -2246,12 +2321,7 @@ fn traverse_paths_step(
 
 ///|
 fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
-  if state.start_recheck is Some(cursor) {
-    @value.cancel_recheck_runtime_value(cursor)
-    state.start_recheck = None
-  }
-  state.start_identity = None
-  state.start_recheck_slots = 0
+  clear_traverse_start_identity(state)
   if state.predicate_recheck is Some(cursor) {
     @value.cancel_recheck_runtime_value(cursor)
     state.predicate_recheck = None
@@ -2313,7 +2383,7 @@ fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
     state.workspace_slots +
     state.predicate_slots +
     state.predicate_recheck_slots +
-    state.start_recheck_slots
+    state.start_identity_slots
   for path in state.frontier {
     count += path.nodes.length() + path.edges.length() + 1
   }
@@ -2621,10 +2691,13 @@ fn start_traverse_paths_read(
       InitializeStartSelection
     },
     start_scan: 0,
-    start_selected: [],
     start_recheck: None,
-    start_recheck_slots: 0,
+    start_input_rechecking: false,
     start_identity: None,
+    start_equality: None,
+    start_membership_node: 0,
+    start_identity_slots: 0,
+    start_selected: [],
     start_nodes: [],
     sort_index: 0,
     sort_cursor: 0,

@@ -66,6 +66,8 @@ pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_canonical_conversion(CanonicalConversion) -> Unit
 
+pub fn cancel_complete_equality(CompleteEquality) -> Unit
+
 pub fn cancel_complete_order(CompleteOrder) -> Unit
 
 pub fn cancel_json_admission(JsonAdmission) -> Unit
@@ -103,6 +105,10 @@ pub fn compare_group_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOr
 pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
 pub fn compare_present_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
+
+pub fn complete_equality_next_frame_bound(CompleteEquality) -> Int
+
+pub fn complete_equality_pending_frames(CompleteEquality) -> Int
 
 pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderIssue]
 

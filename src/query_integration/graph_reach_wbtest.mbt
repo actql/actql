@@ -342,24 +342,39 @@ test "Reach independently counts exact work workspace and every pending handoff 
   // a number recheck, three terminal polls, and charge setup. Logical charge
   // polls are three names/values, two identity trees (24 each), and commit.
   let row_control = 3 + 2 * 32 + 1 + 3 + 1 + (6 + 2 * 24 + 1)
-  // Literal admission adds 32 identity-tree polls, one terminal recheck
-  // poll, and one separate membership-lookup transition.
+  // Selector recheck: 32 frame polls + terminal (1). Membership comparison:
+  // JsonData/Object dispatch (2), field continuations (5), field names (3*28),
+  // definition Text (4), domain Text (1 + 3*71), key array (9), two type
+  // descriptors (72), comparison terminal (1), and membership setup (1).
+  // This is independently counted from the authored identity, not a measured
+  // successful run. Each charged poll remains interruptible.
+  let selector_work = 32 +
+    1 +
+    2 +
+    5 +
+    3 * 28 +
+    4 +
+    (1 + 3 * 71) +
+    9 +
+    72 +
+    1 +
+    1
   let control_work = 3 +
-    32 +
-    1 +
-    1 +
     1 +
     1 +
     3 +
     1 +
     1 +
     (2 + 1) * edge_count +
-    row_control
+    row_control +
+    selector_work
   // Retained row: row wrapper + one number + two 11-node identities. Text
   // is each identity's fixed 50 bytes and 71-byte domain plus output names.
   let output_work = 1 + 1 + 2 * 11 + 2 * (50 + 71) + (5 + 7 + 8)
   let exact_work = control_work + output_work
-  // Seed scanning peaks at five slots. It is released before row emission,
+  // Selector comparison peaks at eight cursor/root/frame slots plus the
+  // selected-start table (1), below the row-emission peak. It is released
+  // before seed scanning and row emission,
   // leaving start/depth/endpoint indices (3), row buffer (4), frames (3).
   let exact_workspace = 3 + 4 + 3
   let preparation = task_test_completion(owner)

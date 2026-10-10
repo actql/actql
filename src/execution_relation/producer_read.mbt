@@ -232,9 +232,9 @@ pub fn producer_read_checked_cell(
 }
 
 ///|
-/// Stage the same receiving-column validation without scanning a cell in the
-/// caller's setup step. The caller retains this exact read and checks its
-/// availability before every advance; only completed admission is usable.
+/// Stage receiving-column validation without scanning a cell during setup.
+/// The caller retains this read and checks availability before every advance;
+/// only a completed admission can be passed to the downstream contract.
 pub fn start_producer_read_cell_recheck(
   value : ProducerRead,
   row : Int,
