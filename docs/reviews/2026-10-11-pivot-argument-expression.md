@@ -47,7 +47,7 @@ checker/expression responsibilities. No executor, capacity limit, identity
 claim, authorization or consumer-side Program correction is added.
 
 Independent public fixtures include matched JSON/source controls, two consumed
-columns, a constant, old/current SET references, nullable arguments, an empty
+columns, a constant, old/current SET references, nullable arguments, empty input (global/keyed), an empty
 bucket, an authored private-looking bucket, a typed parameter and nullable
 object/property values. Refusals include consumed inputs, old ranges, unknown
 references, an undeclared parameter, a nested aggregate and a wrong value type.
@@ -96,3 +96,25 @@ acceptance are the remaining gate at document creation. Record actual tarball
 SHA-256 digests, source revision, child completion and Named Result comparisons
 in the PR body; parser/checker success alone is not public execution completion.
 No full Core/proof/performance/all-packed campaign or vendor differential is claimed.
+
+## Main integration before distribution acceptance
+
+Normally merge main eefdda1a85c4e033d6dcefcc774095949cc97262 (#1339). Keep its
+positional destination allocation, input-reference guard and authored implicit
+key-name collision checks. The Pivot guard now checks the scalar AST references
+and axis without treating an expression's empty legacy path as a column. Pass
+both authored_aliases and argument_value/consumed_fields to the common lowering
+helper; neither fix replaces the other. run-MvVxQQ is 25/25 for positional,
+ordinary and scalar-argument PIVOT after this combined connection.
+
+The whole-corpus inventory remains a fixture-accounting check, not execution
+of its unrelated cases. Read-only freshness and public fixture registration
+run-xzxlPh passed (36/36 fixture cases; compilation manifests, document metadata,
+spec family, canonical identities, Workers and Node fixtures). run-mmWQA6
+was an invalid local wrapper invocation with zero discovered tests; it did not
+execute a product case and was corrected without a fixture or budget change.
+
+run-7JXszh confirms the combined fixture registration, 36/36. The inventory has
+3,696 authored occurrences (2,327 normal, 1,319 refusals, 50 runtime failures),
+SHA-256 bace6aab94789d60faf03ef1e9575f8d17cc9e7ada0c68a3610edc8977bf5f1a.
+Only the selected PIVOT family is scheduled for real distribution acceptance.

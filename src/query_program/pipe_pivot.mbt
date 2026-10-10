@@ -10,6 +10,7 @@ fn compile_pipe_pivot(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   argument_value? : String? = None,
   consumed_fields? : Array[String] = [],
+  authored_aliases? : Array[(String, String)] = [],
 ) -> (@builder.Node, Array[(String, String)]) raise Abort {
   let value = if argument_value is Some(slot) {
     slot
@@ -32,10 +33,13 @@ fn compile_pipe_pivot(
       .map(prefix => prefix.value + "_" + suffix)
       .unwrap_or(suffix)
     if output.any(pair => {
-        same_name({ value: pair.0, quoted: false, }, {
-          value: name,
-          quoted: false,
-        })
+        same_name(
+          {
+            value: positional_authored_column_name(pair.0, authored_aliases),
+            quoted: false,
+          },
+          { value: name, quoted: false, },
+        )
       }) {
       raise Abort(DuplicateOutput)
     }

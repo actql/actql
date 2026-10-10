@@ -1210,3 +1210,53 @@ export const setCorrespondingExecutionFailures = [
     text: positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail,
     sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}], resultNames: ['answer'], sourceReadSessionCount: 1},
 ];
+
+// Unconsumed anonymous values are implicit PIVOT keys, never dropped grouping data.
+export const positionalPivotProgram = {"version":"actql/0.1","id":"fixture.positional_pivot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20},{"x":3,"y":10}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}},"axis":{"literal":"A"}}},{"select":[{"amount":"x"},"neg","axis"]},{"pivot":{"index":["neg"],"column":"axis","value":"amount","values":["A"],"aggregate":"sum"}},{"select":[{"a":"neg"},{"b":"A"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false}},"rows":[{"a":0,"b":0}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const positionalPivotColumns = [{name: 'a', contract: {...number, nullable: true}},
+  {name: 'b', contract: {...number, nullable: true}}];
+const positionalPivot = (name, text, extra = {}) => success('positional-pipe-pivot-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}, {id: 3, amount: 10}],
+    columns: positionalPivotColumns, expected: [{a: -20, b: 2}, {a: -10, b: 4}, {a: 0, b: 0}], ...extra});
+const positionalPivotHead = "SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT id AS value, -amount, 'A' AS axis ";
+const positionalPivotTail = '|> SELECT *) ORDER BY a NULLS LAST, b NULLS LAST';
+setCorrespondingSuccesses.push(
+  positionalPivot('json-control', JSON.stringify(positionalPivotProgram), {format: 'json', sourceReadSessionCount: 0}),
+  positionalPivot('anonymous-group', positionalPivotHead + "|> PIVOT(SUM(value) AS total FOR axis IN('A')) " + positionalPivotTail),
+  positionalPivot('duplicate-group-occurrences', "SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records "
+    + "|> SELECT id AS v, -id AS `V`, amount AS value, 'A' AS axis |> PIVOT(SUM(value) AS total FOR axis IN('A')) "
+    + '|> SELECT *) ORDER BY a, b, c NULLS LAST',
+    {columns: [{name: 'a', contract: number}, {name: 'b', contract: number}, {name: 'c', contract: {...number, nullable: true}}],
+      expected: [{a: 0, b: 0, c: 0}, {a: 1, b: -1, c: 10}, {a: 2, b: -2, c: 20}, {a: 3, b: -3, c: 10}]}),
+  positionalPivot('immutable-aggregate-current-key', "SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records "
+    + "|> SELECT id AS value, -amount, 'A' AS axis |> AS r |> SET value = 7 "
+    + "|> PIVOT(SUM(r.value) AS total FOR axis IN('A')) |> SELECT *) ORDER BY a, b NULLS LAST, c NULLS LAST",
+    {format: 'aql-text', columns: [{name: 'a', contract: number}, {name: 'b', contract: {...number, nullable: true}},
+      {name: 'c', contract: {...number, nullable: true}}], expected: [{a: 0, b: 0, c: 0}, {a: 7, b: -20, c: 2}, {a: 7, b: -10, c: 4}]}),
+  positionalPivot('current-aggregate', positionalPivotHead + "|> SET value = 7 |> PIVOT(SUM(value) AS total FOR axis IN('A')) " + positionalPivotTail,
+    {expected: [{a: -20, b: 7}, {a: -10, b: 14}, {a: 0, b: 0}]}),
+  positionalPivot('bucket-declaration-order', "SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL (FROM records "
+    + "|> SELECT id AS value, -amount, 'A' AS axis |> PIVOT(COUNT(value) AS n FOR axis IN('B' AS later,'A' AS first)) "
+    + '|> SELECT *) ORDER BY a NULLS LAST, b, c',
+    {columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}, {name: 'c', contract: number}],
+      expected: [{a: -20, b: 0, c: 1}, {a: -10, b: 0, c: 2}, {a: 0, b: 0, c: 0}]}),
+  positionalPivot('private-shaped-bucket-name', positionalPivotHead + "|> PIVOT(SUM(value) FOR axis IN('A' AS aql_set_anonymous_5)) " + positionalPivotTail),
+  positionalPivot('nullable-group-key', positionalPivotHead + "|> PIVOT(SUM(value) AS total FOR axis IN('A')) " + positionalPivotTail,
+    {sourceRows: [{id: 1, amount: null}], expected: [{a: 0, b: 0}, {a: null, b: 1}]}),
+  positionalPivot('typed-empty-keyed', positionalPivotHead.replace('AS b UNION', 'AS b WHERE FALSE UNION')
+    + "|> PIVOT(SUM(value) AS total FOR axis IN('A')) " + positionalPivotTail, {sourceRows: [], expected: []}),
+);
+const refusePositionalPivot = (name, projection, argument, axis, buckets, tail = '') => ({
+  name: 'set-corresponding-refuse-pipe-pivot-' + name, format: 'sql',
+  text: 'SELECT 0 AS a, 0 AS b UNION ALL (FROM records |> SELECT ' + projection
+    + ' |> PIVOT(SUM(' + argument + ') FOR ' + axis + ' IN(' + buckets + ')) ' + tail + positionalPivotTail,
+  expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refusePositionalPivot('private-argument', "id AS value, -amount, 'A' AS axis", 'aql_set_anonymous_5', 'axis', "'A'"),
+  refusePositionalPivot('ambiguous-argument', "id AS v, -id AS `V`, amount AS value, 'A' AS axis", 'v', 'axis', "'A'"),
+  refusePositionalPivot('ambiguous-axis', "id AS value, -amount, 'A' AS axis, 'B' AS `AXIS`", 'value', 'axis', "'A'"),
+  refusePositionalPivot('qualified-ambiguous', "id AS v, -id AS `V`, amount AS value, 'A' AS axis |> AS r", 'r.v', 'axis', "'A'"),
+  refusePositionalPivot('logical-output-collision', "id AS v, -id AS `V`, amount AS value, 'A' AS axis", 'value', 'axis', "'A' AS v"),
+  refusePositionalPivot('dropped-input', "id AS value, -amount, 'A' AS axis", 'amount', 'axis', "'A'"),
+  refusePositionalPivot('old-output-range', "id AS value, -amount, 'A' AS axis |> AS old", 'value', 'axis', "'A'", '|> WHERE old.value > 0 '),
+);

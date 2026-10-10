@@ -1992,6 +1992,14 @@ fn compile_steps(
           positional_destination_names.push(clause.value_column)
           positional_destination_names.push(clause.name_column)
         }
+        Some(Pivot(clause)) =>
+          for entry in clause.values {
+            let suffix = entry.1.map(name => name.value).unwrap_or(entry.0)
+            let name = clause.prefix
+              .map(prefix => prefix.value + "_" + suffix)
+              .unwrap_or(suffix)
+            positional_destination_names.push({ value: name, quoted: false, })
+          }
         Some(UnnestSource(_, element, offset)) => {
           positional_destination_names.push(element)
           if offset is Some(name) {
@@ -3474,6 +3482,7 @@ fn compile_steps(
           pipe_ranges,
           argument_value~,
           consumed_fields~,
+          authored_aliases=positional_authored_aliases,
         )
         entries.push(("pivot", pivot))
         step_entries.push(entries)

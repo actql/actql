@@ -213,3 +213,12 @@ for (const [name, text] of [
   ['wrong-expression-type', expressionHead + " |> PIVOT(SUM(axis || 'B') FOR axis IN('A'))"],
 ]) pipePivotRefusals.push({name: 'pipe-pivot-refusal-argument-expression-' + name,
   format: 'aql-text', text, expectedCode: 'ClientProgramInvalidInput'});
+
+pipePivotSuccesses.push(
+  success('argument-expression-empty-global',
+    "SELECT 1 AS amount,'A' AS axis WHERE FALSE |> PIVOT(SUM(amount + 1) FOR axis IN('A'))",
+    [{A: null}], [number('A', true)]),
+  success('argument-expression-empty-keyed',
+    "SELECT 1 AS product,1 AS amount,'A' AS axis WHERE FALSE |> PIVOT(SUM(amount + 1) FOR axis IN('A'))",
+    [], expressionColumns),
+);
