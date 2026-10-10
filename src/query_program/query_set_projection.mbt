@@ -1,7 +1,22 @@
 ///|
+// ORDER and LIMIT preserve the terminal SELECT's columns and ordinal values.
+// A later projection/filter/edit has a distinct language scope, not this role.
+fn positional_set_terminal_projection(query : @query.Query) -> Int? {
+  let mut index = @query.operation_count(query) - 1
+  while index >= 0 {
+    match @query.operation_at(query, index).unwrap() {
+      Order(_) | Limit(_, _) => index -= 1
+      Select(_, _) => return Some(index)
+      _ => return None
+    }
+  }
+  None
+}
+
+///|
 // A terminal positional right operand needs physical fields, not authored
-// aliases. These fields only cross the existing ordinal alignment; no later
-// operation in this operand can resolve them as source-language names.
+// aliases. ORDER may use their positions or evaluated expressions, never
+// their private names. Existing ordinal alignment supplies the public names.
 fn anonymous_set_projection_name(
   projections : Array[@query.Projection],
   physical : Array[String],
@@ -27,7 +42,8 @@ fn privatize_positional_duplicate_columns(
   bindings : Array[(String, String)],
   selected : Array[@builder.Node],
   physical : Array[String],
-) -> Unit raise Abort {
+) -> Array[String] raise Abort {
+  let private_fields : Array[String] = []
   let counts : Map[String, Int] = Map([])
   for name in names {
     let key = ascii_upper(name)
@@ -40,10 +56,12 @@ fn privatize_positional_duplicate_columns(
       reserved.push(name)
       let source = bindings[index].1
       names[index] = name
+      private_fields.push(name)
       bindings[index] = (name, source)
       selected[index] = construction.object([(name, construction.text(source))])
     }
   }
+  private_fields
 }
 
 ///|
