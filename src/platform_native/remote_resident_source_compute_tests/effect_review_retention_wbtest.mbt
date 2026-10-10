@@ -97,6 +97,16 @@ fn retained_effect_review_retention_store(
     )
   }
   assert_true(confirm() is Err(Unavailable))
+  assert_true(
+    retention.original_review_projection(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
   let binding : @checkpoint.ResumeBinding = {
     // The original Local fixture explicitly installed these Host bindings at
     // admission. They are not inferred from Source, Preview or a report.
@@ -277,6 +287,26 @@ fn retained_effect_review_retention_store(
     )
     is Err(Unavailable),
   )
+  assert_true(
+    retention.original_review_projection(
+      consumer,
+      foreign_request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_review_projection(
+      consumer,
+      request,
+      foreign_run,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
   if original_work is Some((work, journal)) {
     guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
       fail("original Local review Run missing")
@@ -308,67 +338,114 @@ fn retained_effect_review_retention_store(
         @client.Journal(@client.Checkpoint(@client.NeedsOriginalContinuation))
       ),
     )
+    let (original_checkpoint, original_wire) = work
+      .review_checkpoint(retention, () => true, 65536)
+      .unwrap()
+    assert_eq(
+      original_checkpoint.checkpoint_cid,
+      persisted.artifact.checkpoint_cid,
+    )
+    assert_eq(original_wire, wire)
+    assert_true(
+      work.review_checkpoint(retention, () => false, 65536)
+      is Err(@client.Retention(@resident.EvidenceDenied)),
+    )
+    guard journal.lookup(request, true) is Ok(@client.Retained(after_read)) else {
+      fail("original Local review Run lost after Evidence read")
+    }
+    assert_eq(
+      @client.native_client_run_record_revision(after_read),
+      revision + 1L,
+    )
     // Discharge this test's actual review obligation before exercising custody
     // cleanup below. No fixture receipt replaces the signed common rejection.
     native_local_effect_reject_review(journal, request, persisted.artifact)
+    // Historical read authority does not require another execution grant and
+    // cannot undo rejection or acquire another Provider-send capability.
+    let (rejected_checkpoint, rejected_wire) = work
+      .review_checkpoint(retention, () => true, 65536)
+      .unwrap()
+    assert_eq(
+      rejected_checkpoint.checkpoint_cid,
+      original_checkpoint.checkpoint_cid,
+    )
+    assert_eq(rejected_wire, original_wire)
     assert_true(
       work.execute_task(1) is Err(@client.NeedsOriginalReconciliation),
     )
   }
-  let projection_wire = if report is Some(report) {
-    let before_projection = consumer.usage().reserved_retention_bytes
-    assert_true(
-      retention.review_projection(() => false, 65536) is Err(EvidenceDenied),
-    )
-    assert_true(
-      retention.review_projection(() => true, 1) is Err(ProjectionTooLarge),
-    )
-    let evidence_reads = Ref(0)
-    assert_true(
-      retention.review_projection(
-        () => {
-          evidence_reads.val += 1
-          evidence_reads.val < 2
-        },
-        65536,
+  let project = (authorize, bound) => {
+    if report is Some(_) {
+      retention
+      .review_projection(authorize, bound)
+      .map(pair => {
+        (@remote.remote_effect_checkpoint_report_checkpoint(pair.0), pair.1)
+      })
+    } else {
+      retention
+      .original_review_projection(
+        consumer,
+        request,
+        materials.run_definition,
+        authorize,
+        bound,
       )
-      is Err(EvidenceDenied),
+      .map(pair => (pair.0.artifact, pair.1))
+    }
+  }
+  let before_projection = consumer.usage().reserved_retention_bytes
+  assert_true(project(() => false, 65536) is Err(EvidenceDenied))
+  assert_true(project(() => true, 1) is Err(ProjectionTooLarge))
+  let evidence_reads = Ref(0)
+  assert_true(
+    project(
+      () => {
+        evidence_reads.val += 1
+        evidence_reads.val < 2
+      },
+      65536,
     )
-    assert_eq(evidence_reads.val, 2)
-    let closing_reads = Ref(0)
-    assert_true(
-      retention.review_projection(
-        () => {
-          closing_reads.val += 1
-          if closing_reads.val == 2 {
-            store.close().unwrap() |> ignore
-          }
-          true
-        },
-        65536,
-      )
-      is Err(_),
+    is Err(EvidenceDenied),
+  )
+  assert_eq(evidence_reads.val, 2)
+  let closing_reads = Ref(0)
+  assert_true(
+    project(
+      () => {
+        closing_reads.val += 1
+        if closing_reads.val == 2 {
+          store.close().unwrap() |> ignore
+        }
+        true
+      },
+      65536,
     )
-    assert_eq(closing_reads.val, 2)
-    assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
-    store = open()
-    retention.restore_store(store).unwrap()
-    let (projection_report, projection_wire) = retention
+    is Err(_),
+  )
+  assert_eq(closing_reads.val, 2)
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  store = open()
+  retention.restore_store(store).unwrap()
+  let (projection_checkpoint, projection_wire) = project(() => true, 65536).unwrap()
+  assert_eq(
+    projection_checkpoint.checkpoint_cid,
+    persisted.artifact.checkpoint_cid,
+  )
+  assert_eq(projection_wire, wire)
+  assert_eq(
+    projection_checkpoint.checkpoint.review_projection_cid,
+    "sha256:" + @sha.hex(@utf8.encode(projection_wire)),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  if report is Some(report) {
+    let (projection_report, remote_wire) = retention
       .review_projection(() => true, 65536)
       .unwrap()
     assert_eq(
       @remote.remote_effect_checkpoint_report_json(projection_report),
       @remote.remote_effect_checkpoint_report_json(report),
     )
-    assert_eq(projection_wire, wire)
-    assert_eq(
-      @remote.remote_effect_checkpoint_report_checkpoint(projection_report).checkpoint.review_projection_cid,
-      "sha256:" + @sha.hex(@utf8.encode(projection_wire)),
-    )
-    assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
-    projection_wire
-  } else {
-    wire
+    assert_eq(remote_wire, projection_wire)
   }
   let resolution_fixture = if review_work is Some(work) {
     let (original_report, original_wire) = work

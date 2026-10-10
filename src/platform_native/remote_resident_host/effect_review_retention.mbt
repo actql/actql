@@ -360,16 +360,19 @@ pub fn ResidentEffectReviewRetention::confirm_original_checkpoint(
 }
 
 ///|
-/// Return only the exact projection whose Preview and paired Checkpoint were
-/// confirmed by the existing custody Owners. This creates no transport grant,
-/// approval or execution permit. The installed caller separately authorizes
-/// disclosure; Source permission does not supply that evidence authority.
-pub fn ResidentEffectReviewRetention::review_projection(
+/// Read the original private review through its actual custody Owners. Local
+/// callers receive a common persistence witness, never a synthetic Remote
+/// dispatch report. Current evidence authorization is independent of Source
+/// access, Effect approval and permission to execute the original Run.
+pub fn ResidentEffectReviewRetention::original_review_projection(
   self : ResidentEffectReviewRetention,
+  consumer : ResidentSourceCompute,
+  request : @host.ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
   authorize_evidence_read : () -> Bool,
   max_bytes : Int,
 ) -> Result[
-  (@remote.RemoteEffectCheckpointReport, String),
+  (@checkpoint.PersistedCheckpoint, String),
   ResidentEffectReviewRetentionIssue,
 ] {
   if !authorize_evidence_read() {
@@ -378,7 +381,7 @@ pub fn ResidentEffectReviewRetention::review_projection(
   if max_bytes < 1 || max_bytes > self.limits.max_wire_bytes {
     return Err(InvalidConfiguration)
   }
-  match self.report() {
+  match self.confirm_original_checkpoint(consumer, request, run_definition) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -389,13 +392,39 @@ pub fn ResidentEffectReviewRetention::review_projection(
   if !authorize_evidence_read() {
     return Err(EvidenceDenied)
   }
-  if self.retiring || !self.consumer.resident_effect_inputs_current(self.inputs) {
-    return Err(Unavailable)
+  // A trusted authorization callback can close the Store or start retirement.
+  // Authenticate all original custody again after that boundary.
+  match self.confirm_original_checkpoint(consumer, request, run_definition) {
+    Ok(persisted) => Ok((persisted, review.review_wire))
+    Err(issue) => Err(issue)
   }
-  // The installed authorization callback can also observe a closing Store.
-  // Confirm the same original custody after that boundary before disclosure.
+}
+
+///|
+/// Remote callers keep the original dispatch report. The private bytes and
+/// persistence witness come from the same custody checks as the Local path;
+/// this report does not commit waiting or authorize approval or execution.
+pub fn ResidentEffectReviewRetention::review_projection(
+  self : ResidentEffectReviewRetention,
+  authorize_evidence_read : () -> Bool,
+  max_bytes : Int,
+) -> Result[
+  (@remote.RemoteEffectCheckpointReport, String),
+  ResidentEffectReviewRetentionIssue,
+] {
+  let (_, wire) = match
+    self.original_review_projection(
+      self.consumer,
+      self.request,
+      self.materials.run_definition,
+      authorize_evidence_read,
+      max_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   match self.report() {
-    Ok(report) => Ok((report, review.review_wire))
+    Ok(report) => Ok((report, wire))
     Err(issue) => Err(issue)
   }
 }
