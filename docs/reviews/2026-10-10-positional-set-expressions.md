@@ -84,11 +84,58 @@ The integrated JS selection passed 22/22 (`run-JSmgm5`,
 `focused-test-gu4fHV`); the two selected Node fixture/inventory files passed
 38/38 (`run-JPfPCF`, `focused-test-yaaOlo`). Restoring main's explicit-alias
 MoonBit case as an additional unchanged positive passed all eight PIVOT tests
-(`run-jtj9Sj`, `focused-test-rSn9HL`). Normal fixed-SHA five-package production, independent digest
-verification and all nine normal/eight refusal cases through Local/HTTPS remain
-required. Public rows, actual Result.describe contracts,
-column order, hidden-field absence, resend/reread and zero admission/provider
-I/O for refusals use the existing runner. UNPIVOT's completed-scratch regression
-will reuse the same verified distribution after the PIVOT consumer succeeds.
-Hosted CI, whole Core and Native/Wasm execution are not claimed. The wider
-frontend goal is still active; no PR merge is performed by B.
+(`run-jtj9Sj`, `focused-test-rSn9HL`). The clean source revision
+`a3b2f77cb174ce9e8ccdf740264b41c3da9907e1` passed normal five-package
+production and independent SHA-256 verification, then the unchanged existing
+consumer completed both cohorts on Embedded Local and authenticated HTTPS:
+
+- PIVOT: nine normal plus eight refusal cases, 17/17 on each transport.
+  Receipt: `worktrees/.codex-scratch/public-query-evidence-7OreHG`.
+- UNPIVOT consuming regression: seven normal plus six refusal cases, 13/13
+  on each transport. Receipt:
+  `worktrees/.codex-scratch/public-query-evidence-y3631T`.
+
+Each receipt has a complete `summary.json`, `010.stdout.log`,
+`010.stderr.log` and both terminal worker/inventory records. Both inventories
+match their authored case digests with zero missing cases or live children.
+Public rows and actual Result.describe contracts, column order, private-field
+absence, same-request resend/reread and zero admission/Source I/O for refusals
+passed through the existing runner. No failed or unknown case was excluded.
+Successful private installations were reclaimed by that runner; retained logs,
+receipts and package manifests remain available.
+
+The bounded heavy gate is `run-FtsQOP` (passed, complete, exit zero, locks
+released). The normally generated distribution is
+`/private/tmp/actql-b-positional-set-a3b2f77cb-pack`. Its manifest identifies
+the clean source revision above and these independently verified tarballs:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `ca7aaf03f3f1d78aff24c42a4ebe94ae2136ce29ba3fdf8ed81478e359e3df60` |
+| sdk | `64eca760cdce9f0da1ea53542ede457ec9f5c80603d9b13721077d90c7b91c1e` |
+| run-host-core | `712228cbe4c27f071c978c7ad7a7d1ad8867ea6fe8d0d5aae9df0552b9ff9c15` |
+| local-node | `ef842b9ce3d6dd35e74c9f99b0342ffd871e532eba6a3399bf7e247abb70a049` |
+| node | `a77756e97078c7df0ea0a318e5ccd74bd7aee2891caa148da2688f9c3eb2d9eb` |
+
+Commands (with the pinned Node/MoonBit environment and the existing exclusive
+bounded local guard):
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_program/pipe_pivot_test.mbt src/query_program/query_set_projection_wbtest.mbt src/query_program/set_inner_by_name_test.mbt src/query_program/set_corresponding_test.mbt src/query_program/set_order_expression_test.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- scripts/pipe-pivot-source-input.test.mjs scripts/public-query-profiles.test.mjs
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_program/pipe_pivot_test.mbt
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-positional-set-a3b2f77cb-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-positional-set-a3b2f77cb-pack node scripts/test-packed-public-query.mjs --pipe-pivot-only
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-positional-set-a3b2f77cb-pack node scripts/test-packed-public-query.mjs --pipe-unpivot-only
+```
+
+The distribution and public results belong to the exact source revision above.
+The subsequent evidence-record commit changes only this informative document;
+it does not relabel those receipts as execution of a later Git revision.
+`git diff a3b2f77cb174ce9e8ccdf740264b41c3da9907e1 HEAD -- packages src adapters spec scripts release`
+checks that all package build inputs remain unchanged.
+
+Hosted CI, whole Core and Native/Wasm execution are not claimed. Current-SHA
+hosted results will be recorded separately on the independent Draft PR. The
+wider frontend goal is still active, including the named unconnected paths
+above; no PR merge is performed by B.
