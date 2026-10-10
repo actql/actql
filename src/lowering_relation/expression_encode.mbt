@@ -166,6 +166,7 @@ fn emit_frames(
                   Negate => "negate"
                   Upper => "upper"
                   Lower => "lower"
+                  Trim => "trim"
                   Floor => "floor"
                   Sqrt => "sqrt"
                   Abs => "abs"
