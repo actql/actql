@@ -20,6 +20,14 @@ class LocalCoreError(RuntimeError):
         super().__init__(f'Local Core {operation} returned {code}')
 
 
+class LocalCoreInitializationError(RuntimeError):
+    """Failed construction still owns native cleanup through the same bridge."""
+
+    def __init__(self, cleanup_core: LocalCore) -> None:
+        self.cleanup_core = cleanup_core
+        super().__init__('Local Core initialization failed with cleanup pending')
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class _Input:
     owner: object
@@ -99,6 +107,7 @@ class LocalCore:
         self._released: set[int] = set()
         self._next_ticket = 1
         self._closed = False
+        self._retired = False
         self._closing = False
         self._invoking = False
         self._engine: Any = None
@@ -153,12 +162,17 @@ class LocalCore:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576))
-        except BaseException:
-            self._dispose()
+        except BaseException as error:
+            self._retired = True
+            self._closing = True
+            try:
+                self._dispose()
+            except Exception:
+                raise LocalCoreInitializationError(self) from error
             raise
 
     def _call(self, family: str, name: str, *arguments: int) -> int:
-        if self._closed:
+        if self._closed or self._retired:
             raise RuntimeError('Local Core is closed')
         if self._invoking:
             raise RuntimeError('Local Core callbacks cannot reenter the instance')
@@ -264,10 +278,12 @@ class LocalCore:
             if self._closed:
                 return True
             self._closing = True
-            code = self._call('buffer', 'close_pool')
-            if code == -9:
-                return False
-            self._check('close_pool', code)
+            if not self._retired:
+                code = self._call('buffer', 'close_pool')
+                if code == -9:
+                    return False
+                self._check('close_pool', code)
+                self._retired = True
             self._dispose()
             return True
 
