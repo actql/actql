@@ -134,3 +134,36 @@ checks pass 54/54 (run-1gooEr, focused-test-UvUPyk). These lightweight Node
 checks do not execute Reach through the real Host or prove package acceptance.
 The normal corpus pin includes the five new success and four refusal oracles;
 its digest is over independent fixture registration, not product output.
+
+## Shortest-path implementation in progress
+
+The typed profile now reuses existing node selector admission, predicate typing,
+Graph identity and path schema ownership. The closed body checks both selectors,
+explicit set selection, direction, a positive finite integer hop bound, label
+filters, an optional output guard, and a required non-null Number property in
+every edge definition when weighted. Runtime membership and validation of all
+observed costs remain explicit obligations, including costs outside visited or
+label-selected paths. Conditional properties remain rejected by the existing
+Graph definition owner; nullable weights are refused by shortest-path typing.
+
+The schema has exactly source_id, target_id, total_cost, hop_count, node_ids and
+edge_ids, preserving complete independent identities and the existing canonical
+schema field order. Independent checker boundary decomposition for the two
+composite single-ID fixture is work 25 + 22 + 8 = 55, nodes 25 + 22 + 2 = 49,
+and text bytes 284 + 252 + 53 = 589. The two path array wrappers and six field
+names alone require work 8, nodes 2 and text bytes 53. One-short checks preserve
+the typed BudgetExceeded cause; they do not replace expectations with measured
+product usage.
+
+JS shortest/profile and existing path/Reach/TRAIL callers pass 13/13 on the
+working source (`run-waAERd`, `focused-test-TwaKeh`):
+`node scripts/local-checks.mjs test moon -- --target js src/graph_typing/shortest_test.mbt src/graph_typing/path_contract_test.mbt src/graph_typing/reach_test.mbt src/graph_typing/traverse_test.mbt`.
+The generated interface comes from pinned `moon info src/graph_typing`.
+
+This is not executable shortest-path support. The normal pipeline and public
+source gate remain refused until the existing bounded traversal owner gains
+target selection, binary64 path cost with absorbing overrange, canonical winner
+selection and atomic output handoff. Remaining connections are the ordered
+source/target Relation ports, predicate expression frames, resource subjects,
+provider selection, AQL routing and packed public retained acceptance. No
+separate scheduler or unbounded synchronous search is introduced as a shortcut.

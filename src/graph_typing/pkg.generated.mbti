@@ -47,6 +47,8 @@ pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_cont
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
+pub fn check_shortest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedShortest, MatchIssue]
+
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
 pub fn check_subtraction(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedSubtraction, Issue]
@@ -295,6 +297,36 @@ pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
 
+pub fn shortest_direction(CheckedShortest) -> Direction
+
+pub fn shortest_edge_type_at(CheckedShortest, Int) -> String?
+
+pub fn shortest_edge_type_count(CheckedShortest) -> Int?
+
+pub fn shortest_input(CheckedShortest) -> @carrier_contract.Carrier
+
+pub fn shortest_maximum_hops(CheckedShortest) -> Double
+
+pub fn shortest_output(CheckedShortest) -> @carrier_contract.Carrier
+
+pub fn shortest_output_guard(CheckedShortest) -> Count?
+
+pub fn shortest_pending(CheckedShortest) -> Array[ShortestObligation]
+
+pub fn shortest_selection(CheckedShortest) -> ShortestSelection
+
+pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
+
+pub fn shortest_starts(CheckedShortest) -> CheckedSelector
+
+pub fn shortest_targets(CheckedShortest) -> CheckedSelector
+
+pub fn shortest_usage(CheckedShortest) -> PredicateUsage
+
+pub fn shortest_weight(CheckedShortest) -> String?
+
+pub fn shortest_weight_position(CheckedShortest, Int) -> Int?
+
 pub fn subgraph_edge_fields(CheckedSubgraph) -> @carrier_contract.Knowledge
 
 pub fn subgraph_edge_property_position(CheckedSubgraph, Int, Int) -> Int?
@@ -413,6 +445,8 @@ type CheckedPathContract
 type CheckedPredicate
 
 type CheckedSelector
+
+type CheckedShortest
 
 type CheckedSubgraph
 
@@ -609,6 +643,7 @@ pub(all) enum NullMeanValue {
 pub(all) enum PathOutput {
   TraversedNodes
   TraversedPaths
+  ShortestPaths
 } derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {
@@ -647,6 +682,29 @@ pub(all) enum SelectorObligation {
   DeduplicateSelectorIdentities
   RequireSelectorMembership
   ResolveSelectorResources
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ShortestObligation {
+  AdmitShortestGraph
+  AdmitShortestSelectors
+  DeduplicateShortestSelectors
+  RequireShortestMembership
+  ValidateEveryShortestWeight
+  RespectShortestHopBound
+  EnumerateSimpleShortestPaths
+  SelectCanonicalShortestPaths
+  RejectSelectedOverrange
+  CanonicalShortestOutputOrder
+  EnforceShortestOutputGuard
+  BindShortestOutputGuard(String)
+  ResolveShortestResources
+  ResolveShortestProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ShortestSelection {
+  EachPair
+  NearestPerSource
+  NearestPair
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SubgraphObligation {
