@@ -474,3 +474,13 @@ test failure messages instead of an uninformative unwrap panic.
 Final clean-SHA runtime verification remains to be recorded separately. No
 release artifact, external installation, packed acceptance or Hosted CI success
 is asserted by this internal connection record.
+
+The clean follow-up `run-j05Me2` at
+`a2b79956309952d54c9e4bb2e64e284755d11598` again passed the 34 Client and
+seven SQLite cases. Its actual Source case reached a confirmed nine-byte
+delivery, then the new fixture incorrectly queried the Store with the formal
+attempt CID instead of the original caller attempt ID. The existing Native
+Store lookup contract uses the latter. The fixture now uses that immutable ID
+and independently refuses the CID as a replacement key. The first failed Store
+and its durable receipt are retained; no payload reopen, grant reconsumption,
+Owner change or expectation replacement resolves this fixture mistake.

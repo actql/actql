@@ -311,8 +311,14 @@ fn local_client_read_committed_result(
   assert_eq(@utf8.decode(Bytes::from_array(bytes)), "{\"id\":3}\n")
   assert_eq(complete.confirmed_bytes, 9L)
   assert_eq(complete.delivered_sha256, @sha.text_hex("{\"id\":3}\n").unwrap())
+  // The physical lookup key is the original caller attempt ID. The formal
+  // attempt CID is its contract identity, not a replacement lookup operation.
+  assert_true(
+    store.inspect_result_delivery(delivery.attempt_cid())
+    is Err(@store.Database(@sqlite.NotFound)),
+  )
   assert_eq(
-    store.inspect_result_delivery(delivery.attempt_cid()).unwrap().result_delivery_receipt_cid,
+    store.inspect_result_delivery(attempt).unwrap().result_delivery_receipt_cid,
     Some(complete.result_delivery_receipt_cid),
   )
   delivery.close().unwrap()
