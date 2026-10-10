@@ -81,3 +81,43 @@ success above is not public execution evidence. Main integration, actual
 package identities and public receipts are recorded separately below.
 Full Core, Wasm/Native, the complete packed corpus and hosted CI have not been
 run locally for this unit. The wider frontend goal remains active.
+
+## Main integration and submitted state
+
+Both #1240 and #1241 are merged. Main
+`ce027a937cf780f617d5ed98bb4d56ecbb010877` was normally merged as
+`8cbd23561836af5d93ea35d676dc9ced2abe9aa7`. The only conflicts were the
+authored fixture inventory and its explicit count/baseline assertions. Both
+main's aggregate scope cases and these JOIN cases remain registered, with no
+workflow or historical declaration changes. The combined inventory has 3,310
+occurrences and digest
+`a9b33dd6c2c27513b90d0d33f96e97bb1dee601f17527639a2cbc16713a51896`.
+This digest enumerates authored inputs and expectations; it does not derive
+expected values from product output.
+
+At that clean integration SHA, the same selected JS callers passed 22/22
+(`run-1MxL73`, `focused-test-F5fHQ7`) and selected Node checks passed 41/41
+(`run-yekO1E`, `focused-test-Ha1945`). An initial wrapper attempt lacked the
+MoonBit executable (`run-xauZ28`) and executed no tests. The subsequent run
+used the repository-pinned MoonBit/Node environment; the failed discovery is
+not counted as a passing check.
+
+The exact-SHA normal-pack/39-case consumer was requested with
+`/private/tmp/actql-b-positional-join-set-packed.mjs`. Its 60-second bounded
+slot wait verified G's active gate using the recorded PID and actual worktree
+cwd, retained the shared lock, and exited 75 without starting either the
+producer or consumer. This is scheduling deferral, not a product failure or
+public acceptance success. No five-package distribution or Local/HTTPS receipt
+for this JOIN fix is claimed yet. The Draft targets main and has no unmerged
+dependency. Public acceptance and submitted-HEAD required CI remain incomplete.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-positional-join-set-8cbd23561-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-positional-join-set-8cbd23561-pack node scripts/test-packed-public-query.mjs --set-corresponding-only
+```
+
+Those commands are the pending producer/consumer steps, not executed evidence.
+The wrapper adds the exclusive gate, pinned tools, 1,200-second aggregate
+deadline and independent verification of the source revision and all five
+tarball digests. A later documentation-only evidence commit must preserve the
+actual tested source SHA rather than relabel older success as new-HEAD success.
