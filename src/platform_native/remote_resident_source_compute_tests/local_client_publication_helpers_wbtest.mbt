@@ -498,7 +498,16 @@ fn local_client_read_result_sink(
     attempt_id: attempt,
   }) {
     Ok(value) => value
-    Err(issue) => fail("actual Source Result access: " + @debug.to_string(issue))
+    Err(@access.InvalidRequest) => fail("actual Source Result access: InvalidRequest")
+    Err(@access.InvalidProgress) => fail("actual Source Result access: InvalidProgress")
+    Err(@access.AccessDenied) => fail("actual Source Result access: AccessDenied")
+    Err(@access.ResultUnavailable) => fail("actual Source Result access: ResultUnavailable")
+    Err(@access.Publication(issue)) => fail("actual Source Result access publication: " + @debug.to_string(issue))
+    Err(@access.Store(@store.ClockRegression)) => fail("actual Source Result access: StoreClockRegression")
+    Err(@access.Store(@store.InvalidConfiguration)) => fail("actual Source Result access: StoreInvalidConfiguration")
+    Err(@access.Store(@store.DeliveryIssuance(issue))) => fail("actual Source Result access delivery: " + @debug.to_string(issue))
+    Err(@access.Store(@store.Database(@sqlite.NotFound))) => fail("actual Source Result access: StoreRecordMissing")
+    Err(@access.Store(_)) => fail("actual Source Result access: StoreBoundary")
   }
   let output : Array[Byte] = []
   let finishes = Ref(0)
