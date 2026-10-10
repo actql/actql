@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <spawn.h>
 #include <unistd.h>
 
 typedef const char *(*actql_sqlite_libversion_fn)(void);
@@ -436,9 +437,19 @@ static bool actql_initialize_schema(
   return true;
 }
 
-// Whitebox fixture: the child commits and exits without SQLite close, leaving
-// the complete schema/record in WAL. The parent removes only this fixture's
-// SHM, so an inspector that ignores WAL or opens the source is detectable.
+// Whitebox fixture only: a separately exec'd process creates the unclosed WAL.
+// Never call SQLite or platform libraries on the child side of fork pre-exec.
+extern char **environ;
+static int fixture_write(int descriptor, const void *value, size_t length) {
+  const unsigned char *bytes = value;
+  while (length) {
+    ssize_t count = write(descriptor, bytes, length);
+    if (count < 0 && errno == EINTR) continue;
+    if (count <= 0) return 0;
+    bytes += count; length -= (size_t)count;
+  }
+  return 1;
+}
 int32_t actql_native_sqlite_test_unclosed_coordinator(
   actql_native_sqlite_library *library,
   moonbit_bytes_t path, int32_t path_length,
@@ -446,47 +457,39 @@ int32_t actql_native_sqlite_test_unclosed_coordinator(
   moonbit_bytes_t body, int32_t body_length,
   int32_t missing_schema
 ) {
+  const char *fixture = getenv("ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE");
+  const char *sqlite_library = getenv("ACTQL_TEST_NATIVE_SQLITE_LIBRARY");
+  if (!library || !fixture || !sqlite_library || key_length <= 0 ||
+      key_length > 65536 || body_length < 0 || body_length > 1048576) return 0;
   char *text = actql_copy_text(path, path_length);
-  if (text == NULL) return 0;
-  pid_t child = fork();
-  if (child < 0) { free(text); return 0; }
-  if (child == 0) {
-    actql_native_sqlite_database database;
-    memset(&database, 0, sizeof(database));
-    database.library = library;
-    if (library->open_v2(text, &database.database,
-        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) != SQLITE_OK ||
-        !actql_initialize_schema(&database) ||
-        actql_exec(&database, "PRAGMA wal_autocheckpoint=0") != SQLITE_OK)
-      _exit(1);
-    sqlite3_stmt *statement = NULL;
-    int code = library->prepare_v2(database.database,
-      "INSERT INTO actql_records VALUES('coordinator_dispatch',?1,0,?2)",
-      -1, &statement, NULL);
-    if (code == SQLITE_OK) code = library->bind_text(statement, 1,
-      (const char *)key, key_length, SQLITE_TRANSIENT);
-    if (code == SQLITE_OK) code = library->bind_blob(statement, 2,
-      body, body_length, SQLITE_TRANSIENT);
-    if (code == SQLITE_OK) code = library->step(statement);
-    if (code != SQLITE_DONE) _exit(2);
-    if (library->finalize(statement) != SQLITE_OK) _exit(3);
-    if (missing_schema && actql_exec(&database,
-        "DROP TABLE actql_capacity") != SQLITE_OK) _exit(4);
-    _exit(0);
-  }
-  int status = -1;
-  int waited;
-  do { waited = waitpid(child, &status, 0); } while (waited < 0 && errno == EINTR);
+  if (!text) return 0;
   size_t length = strlen(text);
-  char *shm = malloc(length + 5);
-  int result = child > 0 && waited == child && WIFEXITED(status) &&
-    WEXITSTATUS(status) == 0 && shm != NULL;
+  char *input = malloc(length + 15), *shm = malloc(length + 5);
+  if (!input || !shm) { free(input); free(shm); free(text); return 0; }
+  snprintf(input, length + 15, "%s.fixture-input", text);
+  int descriptor = open(input, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW, 0600);
+  uint32_t lengths[] = {(uint32_t)key_length, (uint32_t)body_length};
+  int written = descriptor >= 0 && fixture_write(descriptor, lengths, sizeof(lengths)) &&
+    fixture_write(descriptor, key, (size_t)key_length) && fixture_write(descriptor, body, (size_t)body_length);
+  if (descriptor >= 0 && close(descriptor)) written = 0;
+  int result = 0;
+  if (written) {
+    char *arguments[] = {(char *)fixture, (char *)sqlite_library, text, input,
+      missing_schema ? "1" : "0", NULL};
+    pid_t child;
+    int spawned = posix_spawn(&child, fixture, NULL, NULL, arguments, environ);
+    if (!spawned) {
+      int status = -1, waited;
+      do { waited = waitpid(child, &status, 0); } while (waited < 0 && errno == EINTR);
+      result = waited == child && WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    }
+  }
+  // Keep failed fixture inputs as evidence inside the caller's owned namespace.
   if (result) {
     snprintf(shm, length + 5, "%s-shm", text);
-    result = unlink(shm) == 0;
+    result = unlink(shm) == 0 && unlink(input) == 0;
   }
-  free(shm);
-  free(text);
+  free(input); free(shm); free(text);
   return result;
 }
 

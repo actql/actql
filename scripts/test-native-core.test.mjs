@@ -25,6 +25,9 @@ function fixture(t) {
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
+  mkdirSync(join(checkout, 'scripts/fixtures'));
+  copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
+    join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
   writeFileSync(join(checkout, '.github/workflows/ci.yml'),
     JSON.stringify({jobs: {core: {'timeout-minutes': 30, steps: [coreStep]}}}));
@@ -192,6 +195,21 @@ for (const mode of ['failed', 'signal']) {
     f.verifyExternal();
   });
 }
+
+test('WAL fixture compilation failure stops before Native execution and retains its owned root', t => {
+  const f = fixture(t);
+  writeFileSync(join(f.checkout, 'scripts/fixtures/native-unclosed-sqlite.c'),
+    '#error deliberately invalid fixture\n');
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+    '--deny-warn', 'src/platform_native/remote_journal'],
+  {cwd: f.checkout, encoding: 'utf8', env: f.env});
+  const path = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
+  assert.equal(result.status, 1);
+  assert.ok(path && existsSync(path));
+  assert.match(result.stderr, /Native WAL fixture compilation failed/u);
+  assert.doesNotMatch(result.stdout, /CHILD_ROOT=/u);
+  f.verifyExternal();
+});
 
 test('spawn failure retains a diagnosable owned root', t => {
   const f = fixture(t);

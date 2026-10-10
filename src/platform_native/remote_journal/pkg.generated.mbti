@@ -17,6 +17,8 @@ import {
 }
 
 // Values
+pub fn effect_response_body_digest(Bytes) -> String
+
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
 
 pub fn native_output_file_custody_generation(NativeOutputFileCustody) -> @filesystem.NativeFileGeneration
@@ -82,6 +84,7 @@ pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]
 pub fn Journal::effect_checkpoint_report(Self, @remote_site_protocol.DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, @remote_site_protocol.RemoteEffectCheckpointReply?), NativeRemoteJournalIssue]
+pub fn Journal::effect_ledger_custody(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[NativeEffectRowCustody?, NativeRemoteJournalIssue]
 pub fn Journal::effect_ledger_response(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry) -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue]
 pub fn Journal::ensure_output_report_capacity(Self, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::force_loss(Self, @remote_site_protocol.DispatchRecord, Bool) -> Result[Unit, NativeRemoteJournalIssue]
@@ -106,6 +109,12 @@ pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, Nativ
 pub fn Journal::retain_output_report(Self, @remote_site_protocol.RemoteOutputReportCustody) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retry_output_report(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::start_claimant(Self, @remote_site_protocol.DispatchRequest) -> Result[String?, NativeRemoteJournalIssue]
+
+pub struct NativeEffectRowCustody {
+  head : @effect_application.EffectLedgerEntry
+  dispatching : @effect_application.EffectLedgerEntry?
+  response : NativeEffectSavedResponse?
+}
 
 pub(all) struct NativeEffectSavedResponse {
   credential_use_cid : String

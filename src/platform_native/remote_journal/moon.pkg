@@ -28,6 +28,7 @@ options(
   "native-stub": [ "inspection_stub.c" ],
   targets: {
     "effect_ledger_native.mbt": [ "native" ],
+    "effect_ledger_custody_native.mbt": [ "native" ],
     "effect_ledger_native_wbtest.mbt": [ "native" ],
     "effect_ledger_unsupported.mbt": [ "not", "native" ],
     "effect_checkpoint_reports_native.mbt": [ "native" ],
