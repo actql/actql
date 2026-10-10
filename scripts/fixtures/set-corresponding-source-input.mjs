@@ -1107,3 +1107,52 @@ setCorrespondingRefusals.push(
   refusePositionalUnpivot('qualified-private-anonymous', positionalUnpivotHead + '|> UNPIVOT INCLUDE NULLS(value FOR label IN(kept)) '
     + '|> AS fresh |> WHERE fresh.aql_set_anonymous_4 > 0 ' + positionalUnpivotTail),
 );
+
+// Generated UNPIVOT names may collide with kept names; positions retain both values.
+export const positionalUnpivotCollisionProgram = {"version":"actql/0.1","id":"fixture.positional_unpivot_name_collision","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":true}},"rows":[{"x":1,"y":10},{"x":2,"y":20}]},"as":"input"},{"from":"input","derive":{"neg":{"negate":{"field":"y"}}}},{"select":[{"kept":"x"},{"extra":"y"},"neg"]},{"unpivot":{"columns":["kept"],"keep":["extra","neg"],"value_column":"expanded","name_column":"label"}},{"select":[{"a":"extra"},{"b":"neg"},{"c":"expanded"},{"d":"label"}],"as":"right"},{"values":{"schema":{"a":{"type":"number","nullable":false},"b":{"type":"number","nullable":false},"c":{"type":"number","nullable":false},"d":{"type":"string","nullable":false}},"rows":[{"a":0,"b":0,"c":0,"d":"anchor"}]},"as":"left"},{"from":"left","append":{"with":"right"}},{"sort":[{"field":"a","dir":"asc","nulls":"first"},{"field":"b","dir":"asc","nulls":"first"},{"field":"c","dir":"asc","nulls":"first"},{"field":"d","dir":"asc","nulls":"first"}],"as":"ordered"}],"results":{"rows":{"from":"ordered","fields":["a","b","c","d"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const unpivotCollisionColumns = [{name: 'a', contract: {...number, nullable: true}},
+  {name: 'b', contract: {...number, nullable: true}}, {name: 'c', contract: number},
+  {name: 'd', contract: {type: 'string', nullable: false}}];
+const unpivotCollision = (name, text, extra = {}) => success('positional-unpivot-name-collision-' + name, text,
+  {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 20}], columns: unpivotCollisionColumns,
+    expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'},
+      {a: 20, b: -20, c: 2, d: 'kept'}], ...extra});
+const unpivotCollisionHead = "SELECT 0 AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
+  + '|> SELECT id AS kept, amount AS extra, -amount |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) ';
+const unpivotCollisionTail = '|> SELECT *) ORDER BY a NULLS LAST, b NULLS LAST, c, d';
+setCorrespondingSuccesses.push(
+  unpivotCollision('json-control', JSON.stringify(positionalUnpivotCollisionProgram), {format: 'json', sourceReadSessionCount: 0}),
+  unpivotCollision('value-column', unpivotCollisionHead + unpivotCollisionTail),
+  unpivotCollision('name-column', "SELECT 'anchor' AS a, 0 AS b, 0 AS c, 'anchor' AS d UNION ALL (FROM records "
+    + "|> SELECT id AS kept, 'user' AS extra, -amount |> UNPIVOT INCLUDE NULLS(value FOR extra IN(kept)) "
+    + '|> SELECT *) ORDER BY a, b NULLS LAST, c, d',
+    {columns: [{name: 'a', contract: {type: 'string', nullable: false}}, ...unpivotCollisionColumns.slice(1)],
+      expected: [{a: 'anchor', b: 0, c: 0, d: 'anchor'}, {a: 'user', b: -20, c: 2, d: 'kept'},
+        {a: 'user', b: -10, c: 1, d: 'kept'}]}),
+  unpivotCollision('qualified-star', unpivotCollisionHead + '|> AS fresh |> SELECT fresh.*) '
+    + 'ORDER BY a NULLS LAST, b NULLS LAST, c, d', {format: 'aql-text'}),
+  unpivotCollision('immutable-star', unpivotCollisionHead + "|> AS fresh |> SET label = 'changed' "
+    + "|> WHERE fresh.label = 'kept' |> SELECT fresh.*) ORDER BY a NULLS LAST, b NULLS LAST, c, d"),
+  unpivotCollision('distinct-complete-row', unpivotCollisionHead + '|> DISTINCT ' + unpivotCollisionTail,
+    {sourceRows: [{id: 1, amount: 10}, {id: 2, amount: 10}, {id: 1, amount: 10}],
+      expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: 10, b: -10, c: 1, d: 'kept'}, {a: 10, b: -10, c: 2, d: 'kept'}]}),
+  unpivotCollision('drop-all-matching-occurrences', "SELECT 0 AS a, 'anchor' AS b UNION ALL (FROM records "
+    + '|> SELECT id AS kept, amount AS extra, -amount |> UNPIVOT INCLUDE NULLS(extra FOR label IN(kept)) '
+    + '|> DROP extra |> SELECT *) ORDER BY a NULLS LAST, b',
+    {columns: [unpivotCollisionColumns[0], {name: 'b', contract: {type: 'string', nullable: false}}],
+      expected: [{a: -20, b: 'kept'}, {a: -10, b: 'kept'}, {a: 0, b: 'anchor'}]}),
+  unpivotCollision('nullable-kept-values', unpivotCollisionHead + unpivotCollisionTail,
+    {sourceRows: [{id: 1, amount: null}], expected: [{a: 0, b: 0, c: 0, d: 'anchor'}, {a: null, b: null, c: 1, d: 'kept'}]}),
+  unpivotCollision('typed-empty', unpivotCollisionHead.replace("'anchor' AS d UNION", "'anchor' AS d WHERE FALSE UNION")
+    + unpivotCollisionTail, {sourceRows: [], expected: []}),
+);
+const refuseUnpivotCollision = (name, tail) => ({name: 'set-corresponding-refuse-unpivot-name-collision-' + name,
+  format: 'sql', text: unpivotCollisionHead + tail + unpivotCollisionTail, expectedCode: 'ClientProgramInvalidInput'});
+setCorrespondingRefusals.push(
+  refuseUnpivotCollision('ambiguous-bare', '|> WHERE extra > 0 '),
+  refuseUnpivotCollision('ambiguous-qualified', '|> AS fresh |> WHERE fresh.extra > 0 '),
+  refuseUnpivotCollision('ambiguous-rename', '|> RENAME extra AS renamed '),
+  refuseUnpivotCollision('ambiguous-set', '|> SET extra = 1 '),
+  refuseUnpivotCollision('displaced-range', '|> AS old |> AS fresh |> WHERE old.extra > 0 '),
+  refuseUnpivotCollision('private-duplicate', '|> AS fresh |> WHERE fresh.aql_set_duplicate_8 > 0 '),
+);
