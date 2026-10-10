@@ -50,6 +50,9 @@ def exercise(client):
             answer = yield client.resolve_checkpoints([{'checkpoint': dict(checkpoint), 'decision': 'approved'}], signer=signer)
             assert len(answer['results']) == 1
             assert answer['results'][0]['status'] == 'committed'
+            # The shared installation deliberately sets resumeAfterAnswer=False.
+            # The next real Host startup owns continuation of the saved answer.
+            return
         else:
             assert phase == 'finish'
     deadline = time.monotonic() + 60

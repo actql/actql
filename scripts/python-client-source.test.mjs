@@ -56,11 +56,12 @@ for(const facade of ['async','sync'])test(`wheel: ${facade} Source, explicit app
   await host.close();host=await openHost(installation,t);pids.push(host.pid);
   await consume('approve');
   assert.equal(fixture.queries(),1,'restart and approval do not reacquire');
+  assert.equal(fixture.writes().length,0,'the shared fixture resumes the committed answer on the next Host startup');
+  await host.close();host=await openHost(installation,t);pids.push(host.pid);
+  await consume('finish');
   assert.equal(fixture.writes().length,2,'exactly two approved provider writes');
   for(const write of fixture.writes())assert.equal(write.body,expectedBodies[write.path.split('/').at(-1)]);
   assert.deepEqual(fixture.org.records(),expectedOrgAfterSuccess);
-  await host.close();host=await openHost(installation,t);pids.push(host.pid);
-  await consume('finish');
   assert.equal(fixture.queries(),1,'reconnecting to the original Run does not reacquire');
   assert.equal(fixture.writes().length,2,'reconnecting does not resend writes');
   assert.equal(new Set(pids).size,3);
