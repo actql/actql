@@ -28,7 +28,11 @@ test "Local three-stage typed Derive has independent journal bytes and exact ori
   let journal = prepared_client_local_normalization_evidence(owner, issued).unwrap()
   let preimage =
     #|{"entries":[],"rule_catalog_cid":"sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587","version":"actql-normalization-journal/0.1"}
-  assert_eq(@publication.run_evidence_value_json(journal), preimage)
+  // The complete closed wire includes its self CID; the independently hashed
+  // preimage omits it. Neither expectation is copied from the issuer's output.
+  let complete =
+    #|{"entries":[],"journal_cid":"sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880","rule_catalog_cid":"sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587","version":"actql-normalization-journal/0.1"}
+  assert_eq(@publication.run_evidence_value_json(journal), complete)
   assert_eq(
     "sha256:" + @sha.hex(@utf8.encode(preimage)),
     "sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880",
