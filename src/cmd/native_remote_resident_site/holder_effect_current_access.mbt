@@ -178,3 +178,72 @@ fn holder_effect_evidence_allowed(
   )
   allowed && current()
 }
+
+///|
+/// Explicit operator-installed Account file and authenticated Cloud identity
+/// reader. Absence preserves the production deny path. The caller installs
+/// neither a principal inferred from Site credentials nor a delegated answer.
+priv struct HolderEffectHostOperatorInstallation {
+  account : @effect_review.NativeEffectHostAccountInstallation
+  original_identity : @effect_review.NativeEffectCloudHostIdentityRead
+}
+
+///|
+fn holder_effect_operator_admission(
+  original : HolderEffectOriginalPolicyContext,
+  resources : HolderOutputResources,
+  installation : HolderEffectHostOperatorInstallation?,
+) -> HolderEffectHostAdmission? {
+  guard installation is Some(installed) && original.current() else {
+    return None
+  }
+  let selected = installed.account.subject()
+  let context = @publication.run_publication_execution_context(
+    @host.client_effect_allowed_run_admission(original.materials.allowed),
+  )
+  if selected.authorization_context_cid != context {
+    return None
+  }
+  let subject : HolderEffectHostSubject = {
+    principal: selected.principal,
+    account_id: selected.account_id,
+    configuration_cid: selected.configuration_cid,
+    authorization_context_cid: selected.authorization_context_cid,
+    read_connection: selected.read_connection,
+    read_resource: selected.read_resource,
+    publication_connection: selected.publication_connection,
+    publication_resource: selected.publication_resource,
+  }
+  let dispatch_cid = @remote.dispatch_request_identity(original.task.request)
+  Some({
+    original,
+    subject,
+    receiver_origin: resources.destination_origin,
+    observation_url: resources.observation_url,
+    site_key: resources.site_key,
+    site_generation: resources.site_generation,
+    original_identity: installed.original_identity,
+    read_current: purpose => {
+      guard original.current() &&
+        installed.account.read_current_configuration() is Some(configuration) &&
+        original.current() else {
+        return None
+      }
+      Some({
+        configuration,
+        delegated_action: None,
+        current: () => {
+          original.current() &&
+          installed.account.current_permission(
+            dispatch_cid,
+            match purpose {
+              Publication => true
+              Read => false
+            },
+          ) &&
+          original.current()
+        },
+      })
+    },
+  })
+}
