@@ -53,6 +53,22 @@ struct PublicationOutputExport {
 }
 
 ///|
+/// This export must still own the exact Run's retained Result occurrence.
+/// Standalone exports and released pins cannot acquire captured Run custody.
+pub fn PublicationOutputExport::matches_captured_run(
+  self : PublicationOutputExport,
+  run : @strategy.CapturedDAG,
+) -> Bool {
+  match self.retained {
+    Some(Cells(borrow)) =>
+      @strategy.captured_result_borrow_matches_run(borrow, run)
+    Some(Any(borrow)) =>
+      @strategy.captured_any_result_borrow_matches_run(borrow, run)
+    None => false
+  }
+}
+
+///|
 /// Bounded second traversal of the already identified immutable Result view.
 /// It exists so a Store can receive bytes only after the exact semantic and
 /// publication bindings are known.

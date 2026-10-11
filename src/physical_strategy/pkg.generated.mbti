@@ -90,6 +90,8 @@ pub fn captured_any_result_borrow_matches_carrier(CapturedAnyResultBorrow, @exec
 
 pub fn[T] captured_any_result_borrow_matches_managed(CapturedAnyResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
 
+pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedDAG) -> Bool
+
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
@@ -267,6 +269,8 @@ pub fn[T] captured_resident_result_borrow_matches_managed(CapturedResidentResult
 pub fn captured_resident_result_borrow_occurrence(CapturedResidentResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_result_borrow_available(CapturedResultBorrow) -> Bool
+
+pub fn captured_result_borrow_matches_run(CapturedResultBorrow, CapturedDAG) -> Bool
 
 pub fn captured_result_borrow_occurrence(CapturedResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
