@@ -279,9 +279,18 @@ pub fn ResidentEffectReviewInputContext::read_original_review_projection(
     Ok(_) => return Err(BindingMismatch)
     Err(issue) => return Err(Store(issue))
   }
-  match preview.confirm() {
-    Ok((_, wire)) if wire == fields.review_wire => Ok((report, wire))
-    Ok(_) => Err(BindingMismatch)
-    Err(issue) => Err(Store(issue))
+  let original_review = match preview.confirm() {
+    Ok((_, wire)) if wire == fields.review_wire => wire
+    Ok(_) => return Err(BindingMismatch)
+    Err(issue) => return Err(Store(issue))
   }
+  // The final Store confirmation can outlive its preceding permission read.
+  // Revalidate before disclosing the original bytes and retain custody on deny.
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if self.facts(journal) is None {
+    return Err(Unavailable)
+  }
+  Ok((report, original_review))
 }

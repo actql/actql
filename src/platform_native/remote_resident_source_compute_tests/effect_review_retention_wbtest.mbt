@@ -216,6 +216,17 @@ fn retained_effect_review_retention_store(
         is Err(EvidenceDenied),
       )
       assert_eq(original_reads.val, 2)
+      let final_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          final_reads.val += 1
+          final_reads.val < 3
+        })
+        is Err(EvidenceDenied),
+      )
+      assert_eq(final_reads.val, 3)
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+      assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
       let restored = read_original(() => true).unwrap()
       assert_eq(restored.1, projection_wire)
       assert_eq(
