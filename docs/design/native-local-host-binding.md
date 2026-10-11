@@ -501,6 +501,22 @@ requires the independently installed secret binding, original credential-use
 claim and transport entry checks. Restoring public operation identity never
 recreates a Work token or grants permission to resend an unknown observation.
 
+The operation's bounded `reference_record` is the existing exact original
+grant/intent/fence packet, retained before adoption together with its original
+operation CID. `admit_native_local_preparation_grant_reference` recomputes that
+identity and requires the supplied original CID. Decoding gives an identity
+reference, never an operational fence or acknowledgement. There is no new
+wire envelope or alternate identity domain.
+
+`lookup_preparation_grant_operation` requires the original Host/account/scope,
+current `run × read` and the independently current operation-bound issuer
+decision. It queries only the existing original grant journal. Current checks
+bracket issuer acquisition and readback. The result distinguishes retained
+original custody from an unresolved original and exposes no new grant ACK,
+use claim or entry permit. It neither mutates Run revision nor renews expiry,
+allowance or reservation. Missing issued custody remains a typed refusal;
+an unresolved row is not proof that issuance or physical entry never occurred.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract

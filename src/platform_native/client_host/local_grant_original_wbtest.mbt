@@ -4,12 +4,33 @@
 // assert checked Provider authorization, approval or a public grant issuance.
 fn local_grant_storage_fixture(
   name : String,
+  account_body? : Bytes = local_issuer_fixture_account,
 ) -> (
   NativeLocalHostConnection,
   NativeLocalCredentialIssuerBinding,
   NativeLocalGrantOriginal,
 ) {
-  let (host, file) = local_issuer_fixture(name)
+  let (host, file) = local_issuer_fixture(name, account_body~)
+  let original = local_grant_test_original(host, file)
+  let binding = host
+    .acquire_credential_issuer(
+      epoch_test_crypto(),
+      file,
+      "operator",
+      "cli",
+      original.operation_cid,
+    )
+    .unwrap()
+  (host, binding, original)
+}
+
+///|
+// Fixture-only identity/storage setup: constructing an original is not an
+// issuer decision, checked Work fence or operational grant acknowledgement.
+fn local_grant_test_original(
+  host : NativeLocalHostConnection,
+  file : String,
+) -> NativeLocalGrantOriginal {
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let (request, prepared, compiled, definition) = journal_test_run(
@@ -58,16 +79,7 @@ fn local_grant_storage_fixture(
     selected.content_cid,
     grant,
   ).unwrap()
-  let binding = host
-    .acquire_credential_issuer(
-      crypto,
-      file,
-      "operator",
-      "cli",
-      original.operation_cid,
-    )
-    .unwrap()
-  (host, binding, original)
+  original
 }
 
 ///|

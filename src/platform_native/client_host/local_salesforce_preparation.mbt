@@ -1,7 +1,7 @@
 ///|
 // A finite explicitly selected installation original, not metadata evidence,
 // a secret, an issuer decision or a permission inferred from a CLI flag.
-struct NativeLocalSalesforcePreparationSelection {
+priv struct NativeLocalSalesforcePreparationSelection {
   connection_revision : String
   connector_registration : String
   connector_revision : String
