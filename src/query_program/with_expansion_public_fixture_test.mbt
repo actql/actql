@@ -382,8 +382,18 @@ test "WITH public expansion joined-unnest-star-acquired-data" {
       max_text_bytes: 10000,
     },
   ).unwrap()
+  // Prefix typing for correlated object star needs the admitted Catalog.
+  // Reuse its numeric id contract under this query's records binding. The
+  // Catalog's unused payload field is not a public Source/schema assertion.
+  let captured = source_member_context(captured=true)
   let context = {
-    ..cte_capture_context(),
+    ..captured,
+    input_schemas: [("records", captured.input_schemas[0].1)],
+    inputs: [{
+      ..captured.inputs[0],
+      relation: [{ value: "records", quoted: false, }],
+      name: "records",
+    }],
     parameter_declarations: Some(declarations),
   }
   let lowered = match @frontend.lower(
