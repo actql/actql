@@ -2767,6 +2767,23 @@ test('grouped PIVOT Strings retain the complete predecessor Values identity prei
 });
 
 
+// A predecessor's complete Unit/Proof/Program preimages stay original even
+// when a later Scalar increment changes the current containing contract.
+function assertRetainedValuesInputs(frozen) {
+  const d=frozen.values_dependencies, i=frozen.program_identity;
+  assert.equal(cid({version:'actql-local-unit-dependencies/0.1',
+    import_interface_cids:[],incoming_gate_contract_cids:[],
+    local_body_cid:cid(d.local),used_parameter_declarations_cid:cid({}),
+    local_contract_closure_cid:cid({version:'actql-local-contracts/0.1',contracts:d.contracts}),
+    unit_namespace:{node_id:'source',program_id:'client-values'}}),d.unit);
+  assert.equal(cid({version:'actql-bound-proof/0.1',inputs:[],
+    law_id:'actql.bound.values',semantic_ref:`unit:${d.unit}#/steps/0`,unit:'rows',value:2}),d.proof);
+  assert.equal(cid(i.semantics),i.semanticsCid);
+  assert.equal(cid(i.definition),i.programCid);
+  assert.notEqual(valuesDependencyOracle().unit,d.unit);
+  assert.notEqual(valuesProgramOracle().programCid,i.programCid);
+}
+
 test('grouped PIVOT integration retains the exact adopted main preimages', () => {
   const prior = JSON.parse(readFileSync('scripts/fixtures/pre-pivot-grouped-string-main-values-identities.json', 'utf8'));
   assert.equal(prior.source_revision, 'f17e9fb2c93c84d0008d09018692f2c0e3f90d17');
@@ -2776,8 +2793,7 @@ test('grouped PIVOT integration retains the exact adopted main preimages', () =>
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2790,8 +2806,7 @@ test('grouped STRING_AGG delimiter retains the complete adopted predecessor prei
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2804,8 +2819,7 @@ test('grouped STRING_AGG integration retains the exact adopted main preimages', 
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 test('pre-zero-ROWS main retains its complete independent grammar and Run preimages', () => {
@@ -2818,8 +2832,7 @@ test('pre-zero-ROWS main retains its complete independent grammar and Run preima
     {canonicalCandidates: true}), frozen.run_preimages);
   assert.equal(frozen.run_preimages.run.run_definition_cid,
     'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
-  assert.deepEqual(valuesDependencyOracle(), frozen.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), frozen.program_identity);
+  assertRetainedValuesInputs(frozen);
 });
 
 test('zero ROWS integration retains the exact adopted main preimages', () => {
@@ -2831,8 +2844,7 @@ test('zero ROWS integration retains the exact adopted main preimages', () => {
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:ae69a17eeeee065ed495074f3f909bd9f342cae6913f1a438fc1eb9cd0c2092a');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 // The published main preimages remain explicit when only Frontend rules change.
@@ -2855,8 +2867,7 @@ test('grouped LIMIT integration retains the exact adopted main preimages', () =>
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:ed7f1bf1c519f1110597e678b82232e2e5e2e6108dc418a4e286c739a75e9bbb');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2869,8 +2880,7 @@ test('hex integer syntax retains complete pre-extension Values identity preimage
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2883,8 +2893,7 @@ test('hex integer integration retains complete adopted main identity preimages',
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:ae69a17eeeee065ed495074f3f909bd9f342cae6913f1a438fc1eb9cd0c2092a');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2897,8 +2906,7 @@ test('hex integer integration retains complete actual current main preimages', (
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2911,8 +2919,7 @@ test('positive navigation offset closure retains complete adopted main preimages
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290');
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2924,8 +2931,7 @@ test('positive navigation integration retains complete actual current main preim
   assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid, "sha256:ab15f675ec664f9d6e0c4e621c25af7859508256682e0a60fbe0d632a95ca628");
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 
@@ -2954,8 +2960,7 @@ test('positive LIMIT integration retains complete actual current main preimages'
   assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid, "sha256:33b0bfa360655e99545d5113d519949f47e326056e620b59450931dd12aa510a");
-  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
-  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+  assertRetainedValuesInputs(prior);
 });
 
 test('grouped ROWS retains both complete predecessor Values preimages', () => {
@@ -2973,7 +2978,6 @@ test('grouped ROWS retains both complete predecessor Values preimages', () => {
     assert.equal(prior.run_preimages.run.run_definition_cid, expectedRun);
     assert.equal(cid(prior.program_identity.definition), prior.program_identity.programCid);
     assert.equal(cid(prior.program_identity.semantics), prior.program_identity.semanticsCid);
-    assert.deepEqual(prior.values_dependencies, valuesDependencyOracle());
-    assert.equal(prior.program_identity.programCid, valuesProgramOracle().programCid);
+    assertRetainedValuesInputs(prior);
   }
 });

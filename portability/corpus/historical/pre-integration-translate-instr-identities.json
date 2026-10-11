@@ -1,0 +1,1259 @@
+{
+  "version": "actql-translate-instr-identity-vectors/0.1",
+  "description": "Independently authored complete fragment preimages; equal-valued optional INSTR forms and STRPOS remain distinct. No product output.",
+  "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
+  "published_predecessor": "21505177a8a7b54a2c273186b7d30456f757fcc4",
+  "predecessor_control": {
+    "body": {
+      "evaluations": [],
+      "expression_contract_cid": "sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3",
+      "graph": {
+        "output": "derive_1",
+        "sources": {
+          "input": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "derive_1",
+            "in": [
+              "input"
+            ],
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "x": {
+                  "op": "strpos",
+                  "body": [
+                    {
+                      "op": "literal",
+                      "body": "banana"
+                    },
+                    {
+                      "op": "literal",
+                      "body": "an"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "version": "aoa-pipeline/0.1"
+      },
+      "limits": [
+        {
+          "request_pointer": "/max_rows",
+          "resolved_limit": {
+            "author_guard_binding": "absent",
+            "breach": "fail",
+            "candidates": [
+              {
+                "dependencies": [
+                  "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c"
+                ],
+                "derivation": {
+                  "op": "source"
+                },
+                "law_id": "actql.expression-fragment.capacity",
+                "role": "contract_ceiling",
+                "source": {
+                  "contract_cid": "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c",
+                  "field": "/max_rows",
+                  "kind": "contract"
+                },
+                "unit": "rows",
+                "value": 10,
+                "version": "actql-bound-witness/0.1",
+                "witness_cid": "sha256:61684d76b38e9eef9683f48a9530614d2e4d27bdd50d11cbe42d4052511def7a"
+              }
+            ],
+            "effective_max": 10,
+            "enforcement": "engine_atomic",
+            "subject_ref": "/max_rows",
+            "unit": "rows",
+            "version": "actql-resolved-limit/0.1",
+            "resolved_limit_cid": "sha256:9a3af59424cca60f8719524deb1de9df5782d8bc2ce38ef145c51479926f9508"
+          }
+        },
+        {
+          "request_pointer": "/max_value_bytes",
+          "resolved_limit": {
+            "author_guard_binding": "absent",
+            "breach": "fail",
+            "candidates": [
+              {
+                "dependencies": [
+                  "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c"
+                ],
+                "derivation": {
+                  "op": "source"
+                },
+                "law_id": "actql.expression-fragment.capacity",
+                "role": "contract_ceiling",
+                "source": {
+                  "contract_cid": "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c",
+                  "field": "/max_value_bytes",
+                  "kind": "contract"
+                },
+                "unit": "bytes",
+                "value": 1000,
+                "version": "actql-bound-witness/0.1",
+                "witness_cid": "sha256:65f6947daf629932055fc7bc9290e0265aa13440a14307c125738f8bde7a466d"
+              }
+            ],
+            "effective_max": 1000,
+            "enforcement": "engine_atomic",
+            "subject_ref": "/max_value_bytes",
+            "unit": "bytes",
+            "version": "actql-resolved-limit/0.1",
+            "resolved_limit_cid": "sha256:61626f5c5c5b8bba0757c1ce0d1322e71d524a79628f5228533e5e495e404e61"
+          }
+        }
+      ],
+      "output_open": false,
+      "output_schema": {
+        "a": {
+          "type": "number",
+          "nullable": false
+        },
+        "b": {
+          "type": "number",
+          "nullable": false
+        },
+        "x": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      "request": {
+        "max_rows": 10,
+        "max_value_bytes": 1000,
+        "parameters": {},
+        "pipeline": {
+          "output": "derive_1",
+          "sources": {
+            "input": {
+              "sort": "relation"
+            }
+          },
+          "steps": [
+            {
+              "id": "derive_1",
+              "in": [
+                "input"
+              ],
+              "op": "REL.derive",
+              "params": {
+                "exprs": {
+                  "x": {
+                    "strpos": [
+                      {
+                        "literal": "banana"
+                      },
+                      {
+                        "literal": "an"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "version": "aoa-pipeline/0.1"
+        },
+        "source_schemas": {
+          "input": {
+            "a": {
+              "type": "number",
+              "nullable": false
+            },
+            "b": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        }
+      },
+      "roots": [
+        {
+          "contract": {
+            "type": "number",
+            "nullable": false
+          },
+          "demand_paths": {
+            "/roots/0/source": [],
+            "/roots/0/source/strpos/0": [],
+            "/roots/0/source/strpos/1": []
+          },
+          "node": {
+            "op": "strpos",
+            "body": [
+              {
+                "op": "literal",
+                "body": "banana"
+              },
+              {
+                "op": "literal",
+                "body": "an"
+              }
+            ]
+          },
+          "parameter_pointer": "/exprs/x",
+          "source": {
+            "strpos": [
+              {
+                "literal": "banana"
+              },
+              {
+                "literal": "an"
+              }
+            ]
+          },
+          "step_id": "derive_1"
+        }
+      ],
+      "version": "actql-expression-fragment/0.1"
+    },
+    "canonical": "{\"evaluations\":[],\"expression_contract_cid\":\"sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3\",\"graph\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"}],\"op\":\"strpos\"}}}}],\"version\":\"aoa-pipeline/0.1\"},\"limits\":[{\"request_pointer\":\"/max_rows\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\",\"field\":\"/max_rows\",\"kind\":\"contract\"},\"unit\":\"rows\",\"value\":10,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:61684d76b38e9eef9683f48a9530614d2e4d27bdd50d11cbe42d4052511def7a\"}],\"effective_max\":10,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:9a3af59424cca60f8719524deb1de9df5782d8bc2ce38ef145c51479926f9508\",\"subject_ref\":\"/max_rows\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}},{\"request_pointer\":\"/max_value_bytes\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\",\"field\":\"/max_value_bytes\",\"kind\":\"contract\"},\"unit\":\"bytes\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:65f6947daf629932055fc7bc9290e0265aa13440a14307c125738f8bde7a466d\"}],\"effective_max\":1000,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:61626f5c5c5b8bba0757c1ce0d1322e71d524a79628f5228533e5e495e404e61\",\"subject_ref\":\"/max_value_bytes\",\"unit\":\"bytes\",\"version\":\"actql-resolved-limit/0.1\"}}],\"output_open\":false,\"output_schema\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"x\":{\"nullable\":false,\"type\":\"number\"}},\"request\":{\"max_rows\":10,\"max_value_bytes\":1000,\"parameters\":{},\"pipeline\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}}}}],\"version\":\"aoa-pipeline/0.1\"},\"source_schemas\":{\"input\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"}}}},\"roots\":[{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"demand_paths\":{\"/roots/0/source\":[],\"/roots/0/source/strpos/0\":[],\"/roots/0/source/strpos/1\":[]},\"node\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"}],\"op\":\"strpos\"},\"parameter_pointer\":\"/exprs/x\",\"source\":{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]},\"step_id\":\"derive_1\"}],\"version\":\"actql-expression-fragment/0.1\"}",
+    "cid": "sha256:eedc9a812983a0de1bd1da9db6f8bf7c7cd1a7c8acc9843d5c51507428b2ddf2",
+    "bytes": 3030
+  },
+  "cases": [
+    {
+      "id": "instr_default",
+      "source": {
+        "instr": [
+          {
+            "literal": "banana"
+          },
+          {
+            "literal": "an"
+          }
+        ]
+      },
+      "node": {
+        "op": "instr",
+        "body": [
+          {
+            "op": "literal",
+            "body": "banana"
+          },
+          {
+            "op": "literal",
+            "body": "an"
+          }
+        ]
+      },
+      "expected_value": 2,
+      "body": {
+        "evaluations": [],
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
+        "graph": {
+          "output": "derive_1",
+          "sources": {
+            "input": {
+              "sort": "relation"
+            }
+          },
+          "steps": [
+            {
+              "id": "derive_1",
+              "in": [
+                "input"
+              ],
+              "op": "REL.derive",
+              "params": {
+                "exprs": {
+                  "x": {
+                    "op": "instr",
+                    "body": [
+                      {
+                        "op": "literal",
+                        "body": "banana"
+                      },
+                      {
+                        "op": "literal",
+                        "body": "an"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "version": "aoa-pipeline/0.1"
+        },
+        "limits": [
+          {
+            "request_pointer": "/max_rows",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5",
+                    "field": "/max_rows",
+                    "kind": "contract"
+                  },
+                  "unit": "rows",
+                  "value": 10,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:b91aa164c21a32a1963ef21a9dab23878e2be68d2e0ff817ff26e821b0151ac1"
+                }
+              ],
+              "effective_max": 10,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_rows",
+              "unit": "rows",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:457e31ac7629f1c26ab1f4e51542d011ba87452b298835950b651bb2b21a33b0"
+            }
+          },
+          {
+            "request_pointer": "/max_value_bytes",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5",
+                    "field": "/max_value_bytes",
+                    "kind": "contract"
+                  },
+                  "unit": "bytes",
+                  "value": 1000,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:9cf76e95d4c25562c788f1c63dca349494a5dcfc5319d0e0b0558e5c9ef4d574"
+                }
+              ],
+              "effective_max": 1000,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_value_bytes",
+              "unit": "bytes",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:3f1575fd60557ec1b819f740804617fad223aec3d75659f0bf4113c04907422b"
+            }
+          }
+        ],
+        "output_open": false,
+        "output_schema": {
+          "a": {
+            "type": "number",
+            "nullable": false
+          },
+          "b": {
+            "type": "number",
+            "nullable": false
+          },
+          "x": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "request": {
+          "max_rows": 10,
+          "max_value_bytes": 1000,
+          "parameters": {},
+          "pipeline": {
+            "output": "derive_1",
+            "sources": {
+              "input": {
+                "sort": "relation"
+              }
+            },
+            "steps": [
+              {
+                "id": "derive_1",
+                "in": [
+                  "input"
+                ],
+                "op": "REL.derive",
+                "params": {
+                  "exprs": {
+                    "x": {
+                      "instr": [
+                        {
+                          "literal": "banana"
+                        },
+                        {
+                          "literal": "an"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "version": "aoa-pipeline/0.1"
+          },
+          "source_schemas": {
+            "input": {
+              "a": {
+                "type": "number",
+                "nullable": false
+              },
+              "b": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          }
+        },
+        "roots": [
+          {
+            "contract": {
+              "type": "number",
+              "nullable": false
+            },
+            "demand_paths": {
+              "/roots/0/source": [],
+              "/roots/0/source/instr/0": [],
+              "/roots/0/source/instr/1": []
+            },
+            "node": {
+              "op": "instr",
+              "body": [
+                {
+                  "op": "literal",
+                  "body": "banana"
+                },
+                {
+                  "op": "literal",
+                  "body": "an"
+                }
+              ]
+            },
+            "parameter_pointer": "/exprs/x",
+            "source": {
+              "instr": [
+                {
+                  "literal": "banana"
+                },
+                {
+                  "literal": "an"
+                }
+              ]
+            },
+            "step_id": "derive_1"
+          }
+        ],
+        "version": "actql-expression-fragment/0.1"
+      },
+      "canonical": "{\"evaluations\":[],\"expression_contract_cid\":\"sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068\",\"graph\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"}],\"op\":\"instr\"}}}}],\"version\":\"aoa-pipeline/0.1\"},\"limits\":[{\"request_pointer\":\"/max_rows\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5\",\"field\":\"/max_rows\",\"kind\":\"contract\"},\"unit\":\"rows\",\"value\":10,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:b91aa164c21a32a1963ef21a9dab23878e2be68d2e0ff817ff26e821b0151ac1\"}],\"effective_max\":10,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:457e31ac7629f1c26ab1f4e51542d011ba87452b298835950b651bb2b21a33b0\",\"subject_ref\":\"/max_rows\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}},{\"request_pointer\":\"/max_value_bytes\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:23186bc210cceaa3d98e4e68f824028cc7650fef8d87ad7ea4cb81be6e7951b5\",\"field\":\"/max_value_bytes\",\"kind\":\"contract\"},\"unit\":\"bytes\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:9cf76e95d4c25562c788f1c63dca349494a5dcfc5319d0e0b0558e5c9ef4d574\"}],\"effective_max\":1000,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:3f1575fd60557ec1b819f740804617fad223aec3d75659f0bf4113c04907422b\",\"subject_ref\":\"/max_value_bytes\",\"unit\":\"bytes\",\"version\":\"actql-resolved-limit/0.1\"}}],\"output_open\":false,\"output_schema\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"x\":{\"nullable\":false,\"type\":\"number\"}},\"request\":{\"max_rows\":10,\"max_value_bytes\":1000,\"parameters\":{},\"pipeline\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}}}}],\"version\":\"aoa-pipeline/0.1\"},\"source_schemas\":{\"input\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"}}}},\"roots\":[{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"demand_paths\":{\"/roots/0/source\":[],\"/roots/0/source/instr/0\":[],\"/roots/0/source/instr/1\":[]},\"node\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"}],\"op\":\"instr\"},\"parameter_pointer\":\"/exprs/x\",\"source\":{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]},\"step_id\":\"derive_1\"}],\"version\":\"actql-expression-fragment/0.1\"}",
+      "cid": "sha256:aa4a861996f10eafe18b891262db498faabadcf6448c0d0be5e94f476a4b9009",
+      "bytes": 3024
+    },
+    {
+      "id": "instr_position",
+      "source": {
+        "instr": [
+          {
+            "literal": "banana"
+          },
+          {
+            "literal": "an"
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "node": {
+        "op": "instr",
+        "body": [
+          {
+            "op": "literal",
+            "body": "banana"
+          },
+          {
+            "op": "literal",
+            "body": "an"
+          },
+          {
+            "op": "literal",
+            "body": 1
+          }
+        ]
+      },
+      "expected_value": 2,
+      "body": {
+        "evaluations": [],
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
+        "graph": {
+          "output": "derive_1",
+          "sources": {
+            "input": {
+              "sort": "relation"
+            }
+          },
+          "steps": [
+            {
+              "id": "derive_1",
+              "in": [
+                "input"
+              ],
+              "op": "REL.derive",
+              "params": {
+                "exprs": {
+                  "x": {
+                    "op": "instr",
+                    "body": [
+                      {
+                        "op": "literal",
+                        "body": "banana"
+                      },
+                      {
+                        "op": "literal",
+                        "body": "an"
+                      },
+                      {
+                        "op": "literal",
+                        "body": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "version": "aoa-pipeline/0.1"
+        },
+        "limits": [
+          {
+            "request_pointer": "/max_rows",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b",
+                    "field": "/max_rows",
+                    "kind": "contract"
+                  },
+                  "unit": "rows",
+                  "value": 10,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:850cd1068605acf6538f4b0ca195e7a67d1583acee2e798443e04d3459d9d7c1"
+                }
+              ],
+              "effective_max": 10,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_rows",
+              "unit": "rows",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:a9bf48df8912da82ced29773253036feba4e5af53d14614b8c09fcc0088881ff"
+            }
+          },
+          {
+            "request_pointer": "/max_value_bytes",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b",
+                    "field": "/max_value_bytes",
+                    "kind": "contract"
+                  },
+                  "unit": "bytes",
+                  "value": 1000,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:e72f491490d78dfe574897be6fc7404ea6a9f0d1599becc7aff069e8a7d04467"
+                }
+              ],
+              "effective_max": 1000,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_value_bytes",
+              "unit": "bytes",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:59344779ba3a24034612e539336696cffbf7d69210feb900c3d3f5f3dfb5eebd"
+            }
+          }
+        ],
+        "output_open": false,
+        "output_schema": {
+          "a": {
+            "type": "number",
+            "nullable": false
+          },
+          "b": {
+            "type": "number",
+            "nullable": false
+          },
+          "x": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "request": {
+          "max_rows": 10,
+          "max_value_bytes": 1000,
+          "parameters": {},
+          "pipeline": {
+            "output": "derive_1",
+            "sources": {
+              "input": {
+                "sort": "relation"
+              }
+            },
+            "steps": [
+              {
+                "id": "derive_1",
+                "in": [
+                  "input"
+                ],
+                "op": "REL.derive",
+                "params": {
+                  "exprs": {
+                    "x": {
+                      "instr": [
+                        {
+                          "literal": "banana"
+                        },
+                        {
+                          "literal": "an"
+                        },
+                        {
+                          "literal": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "version": "aoa-pipeline/0.1"
+          },
+          "source_schemas": {
+            "input": {
+              "a": {
+                "type": "number",
+                "nullable": false
+              },
+              "b": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          }
+        },
+        "roots": [
+          {
+            "contract": {
+              "type": "number",
+              "nullable": false
+            },
+            "demand_paths": {
+              "/roots/0/source": [],
+              "/roots/0/source/instr/0": [],
+              "/roots/0/source/instr/1": [],
+              "/roots/0/source/instr/2": []
+            },
+            "node": {
+              "op": "instr",
+              "body": [
+                {
+                  "op": "literal",
+                  "body": "banana"
+                },
+                {
+                  "op": "literal",
+                  "body": "an"
+                },
+                {
+                  "op": "literal",
+                  "body": 1
+                }
+              ]
+            },
+            "parameter_pointer": "/exprs/x",
+            "source": {
+              "instr": [
+                {
+                  "literal": "banana"
+                },
+                {
+                  "literal": "an"
+                },
+                {
+                  "literal": 1
+                }
+              ]
+            },
+            "step_id": "derive_1"
+          }
+        ],
+        "version": "actql-expression-fragment/0.1"
+      },
+      "canonical": "{\"evaluations\":[],\"expression_contract_cid\":\"sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068\",\"graph\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"instr\"}}}}],\"version\":\"aoa-pipeline/0.1\"},\"limits\":[{\"request_pointer\":\"/max_rows\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b\",\"field\":\"/max_rows\",\"kind\":\"contract\"},\"unit\":\"rows\",\"value\":10,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:850cd1068605acf6538f4b0ca195e7a67d1583acee2e798443e04d3459d9d7c1\"}],\"effective_max\":10,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:a9bf48df8912da82ced29773253036feba4e5af53d14614b8c09fcc0088881ff\",\"subject_ref\":\"/max_rows\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}},{\"request_pointer\":\"/max_value_bytes\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:ec9a32449d83120ff880ca901e893ebc80ba41ad7a36cb1da83d5e3df82a598b\",\"field\":\"/max_value_bytes\",\"kind\":\"contract\"},\"unit\":\"bytes\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:e72f491490d78dfe574897be6fc7404ea6a9f0d1599becc7aff069e8a7d04467\"}],\"effective_max\":1000,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:59344779ba3a24034612e539336696cffbf7d69210feb900c3d3f5f3dfb5eebd\",\"subject_ref\":\"/max_value_bytes\",\"unit\":\"bytes\",\"version\":\"actql-resolved-limit/0.1\"}}],\"output_open\":false,\"output_schema\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"x\":{\"nullable\":false,\"type\":\"number\"}},\"request\":{\"max_rows\":10,\"max_value_bytes\":1000,\"parameters\":{},\"pipeline\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1}]}}}}],\"version\":\"aoa-pipeline/0.1\"},\"source_schemas\":{\"input\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"}}}},\"roots\":[{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"demand_paths\":{\"/roots/0/source\":[],\"/roots/0/source/instr/0\":[],\"/roots/0/source/instr/1\":[],\"/roots/0/source/instr/2\":[]},\"node\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"instr\"},\"parameter_pointer\":\"/exprs/x\",\"source\":{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1}]},\"step_id\":\"derive_1\"}],\"version\":\"actql-expression-fragment/0.1\"}",
+      "cid": "sha256:833cf2a38a2a7a5b9efac6f2ecce6be83a8ed9f665d1960cf9a6da7682f8bd2d",
+      "bytes": 3133
+    },
+    {
+      "id": "instr_occurrence",
+      "source": {
+        "instr": [
+          {
+            "literal": "banana"
+          },
+          {
+            "literal": "an"
+          },
+          {
+            "literal": 1
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "node": {
+        "op": "instr",
+        "body": [
+          {
+            "op": "literal",
+            "body": "banana"
+          },
+          {
+            "op": "literal",
+            "body": "an"
+          },
+          {
+            "op": "literal",
+            "body": 1
+          },
+          {
+            "op": "literal",
+            "body": 1
+          }
+        ]
+      },
+      "expected_value": 2,
+      "body": {
+        "evaluations": [],
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
+        "graph": {
+          "output": "derive_1",
+          "sources": {
+            "input": {
+              "sort": "relation"
+            }
+          },
+          "steps": [
+            {
+              "id": "derive_1",
+              "in": [
+                "input"
+              ],
+              "op": "REL.derive",
+              "params": {
+                "exprs": {
+                  "x": {
+                    "op": "instr",
+                    "body": [
+                      {
+                        "op": "literal",
+                        "body": "banana"
+                      },
+                      {
+                        "op": "literal",
+                        "body": "an"
+                      },
+                      {
+                        "op": "literal",
+                        "body": 1
+                      },
+                      {
+                        "op": "literal",
+                        "body": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "version": "aoa-pipeline/0.1"
+        },
+        "limits": [
+          {
+            "request_pointer": "/max_rows",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da",
+                    "field": "/max_rows",
+                    "kind": "contract"
+                  },
+                  "unit": "rows",
+                  "value": 10,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:c03c1ad0b34b3cac48b08b6da71835c3788cdd3e0567945a9b17a3777a876234"
+                }
+              ],
+              "effective_max": 10,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_rows",
+              "unit": "rows",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:74ddb8d7348070de06ea8eee54abfc494d706c80bb2e1a31e5be9a520cd75275"
+            }
+          },
+          {
+            "request_pointer": "/max_value_bytes",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da",
+                    "field": "/max_value_bytes",
+                    "kind": "contract"
+                  },
+                  "unit": "bytes",
+                  "value": 1000,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:af127f11d38b005cee0b1ca47e830369ced79763b59ada7cc3935d96467775bd"
+                }
+              ],
+              "effective_max": 1000,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_value_bytes",
+              "unit": "bytes",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:d614e50bd62ce041e2e2c309896dcc7f0f5ec4c55ab3ce038c0f6867ec9872e4"
+            }
+          }
+        ],
+        "output_open": false,
+        "output_schema": {
+          "a": {
+            "type": "number",
+            "nullable": false
+          },
+          "b": {
+            "type": "number",
+            "nullable": false
+          },
+          "x": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "request": {
+          "max_rows": 10,
+          "max_value_bytes": 1000,
+          "parameters": {},
+          "pipeline": {
+            "output": "derive_1",
+            "sources": {
+              "input": {
+                "sort": "relation"
+              }
+            },
+            "steps": [
+              {
+                "id": "derive_1",
+                "in": [
+                  "input"
+                ],
+                "op": "REL.derive",
+                "params": {
+                  "exprs": {
+                    "x": {
+                      "instr": [
+                        {
+                          "literal": "banana"
+                        },
+                        {
+                          "literal": "an"
+                        },
+                        {
+                          "literal": 1
+                        },
+                        {
+                          "literal": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "version": "aoa-pipeline/0.1"
+          },
+          "source_schemas": {
+            "input": {
+              "a": {
+                "type": "number",
+                "nullable": false
+              },
+              "b": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          }
+        },
+        "roots": [
+          {
+            "contract": {
+              "type": "number",
+              "nullable": false
+            },
+            "demand_paths": {
+              "/roots/0/source": [],
+              "/roots/0/source/instr/0": [],
+              "/roots/0/source/instr/1": [],
+              "/roots/0/source/instr/2": [],
+              "/roots/0/source/instr/3": []
+            },
+            "node": {
+              "op": "instr",
+              "body": [
+                {
+                  "op": "literal",
+                  "body": "banana"
+                },
+                {
+                  "op": "literal",
+                  "body": "an"
+                },
+                {
+                  "op": "literal",
+                  "body": 1
+                },
+                {
+                  "op": "literal",
+                  "body": 1
+                }
+              ]
+            },
+            "parameter_pointer": "/exprs/x",
+            "source": {
+              "instr": [
+                {
+                  "literal": "banana"
+                },
+                {
+                  "literal": "an"
+                },
+                {
+                  "literal": 1
+                },
+                {
+                  "literal": 1
+                }
+              ]
+            },
+            "step_id": "derive_1"
+          }
+        ],
+        "version": "actql-expression-fragment/0.1"
+      },
+      "canonical": "{\"evaluations\":[],\"expression_contract_cid\":\"sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068\",\"graph\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"},{\"body\":1,\"op\":\"literal\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"instr\"}}}}],\"version\":\"aoa-pipeline/0.1\"},\"limits\":[{\"request_pointer\":\"/max_rows\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da\",\"field\":\"/max_rows\",\"kind\":\"contract\"},\"unit\":\"rows\",\"value\":10,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:c03c1ad0b34b3cac48b08b6da71835c3788cdd3e0567945a9b17a3777a876234\"}],\"effective_max\":10,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:74ddb8d7348070de06ea8eee54abfc494d706c80bb2e1a31e5be9a520cd75275\",\"subject_ref\":\"/max_rows\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}},{\"request_pointer\":\"/max_value_bytes\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:6bc46be25a67a99bdfac8ad586f2b8e28429de507dfb7bd6c5617da23531b2da\",\"field\":\"/max_value_bytes\",\"kind\":\"contract\"},\"unit\":\"bytes\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:af127f11d38b005cee0b1ca47e830369ced79763b59ada7cc3935d96467775bd\"}],\"effective_max\":1000,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:d614e50bd62ce041e2e2c309896dcc7f0f5ec4c55ab3ce038c0f6867ec9872e4\",\"subject_ref\":\"/max_value_bytes\",\"unit\":\"bytes\",\"version\":\"actql-resolved-limit/0.1\"}}],\"output_open\":false,\"output_schema\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"x\":{\"nullable\":false,\"type\":\"number\"}},\"request\":{\"max_rows\":10,\"max_value_bytes\":1000,\"parameters\":{},\"pipeline\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1},{\"literal\":1}]}}}}],\"version\":\"aoa-pipeline/0.1\"},\"source_schemas\":{\"input\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"}}}},\"roots\":[{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"demand_paths\":{\"/roots/0/source\":[],\"/roots/0/source/instr/0\":[],\"/roots/0/source/instr/1\":[],\"/roots/0/source/instr/2\":[],\"/roots/0/source/instr/3\":[]},\"node\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"},{\"body\":1,\"op\":\"literal\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"instr\"},\"parameter_pointer\":\"/exprs/x\",\"source\":{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1},{\"literal\":1}]},\"step_id\":\"derive_1\"}],\"version\":\"actql-expression-fragment/0.1\"}",
+      "cid": "sha256:c6bfdc0c61ec2388263873a071567bcd18bccc68a39b5716024f0216dd26acf4",
+      "bytes": 3242
+    },
+    {
+      "id": "strpos_control",
+      "source": {
+        "strpos": [
+          {
+            "literal": "banana"
+          },
+          {
+            "literal": "an"
+          }
+        ]
+      },
+      "node": {
+        "op": "strpos",
+        "body": [
+          {
+            "op": "literal",
+            "body": "banana"
+          },
+          {
+            "op": "literal",
+            "body": "an"
+          }
+        ]
+      },
+      "expected_value": 2,
+      "body": {
+        "evaluations": [],
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
+        "graph": {
+          "output": "derive_1",
+          "sources": {
+            "input": {
+              "sort": "relation"
+            }
+          },
+          "steps": [
+            {
+              "id": "derive_1",
+              "in": [
+                "input"
+              ],
+              "op": "REL.derive",
+              "params": {
+                "exprs": {
+                  "x": {
+                    "op": "strpos",
+                    "body": [
+                      {
+                        "op": "literal",
+                        "body": "banana"
+                      },
+                      {
+                        "op": "literal",
+                        "body": "an"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "version": "aoa-pipeline/0.1"
+        },
+        "limits": [
+          {
+            "request_pointer": "/max_rows",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c",
+                    "field": "/max_rows",
+                    "kind": "contract"
+                  },
+                  "unit": "rows",
+                  "value": 10,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:61684d76b38e9eef9683f48a9530614d2e4d27bdd50d11cbe42d4052511def7a"
+                }
+              ],
+              "effective_max": 10,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_rows",
+              "unit": "rows",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:9a3af59424cca60f8719524deb1de9df5782d8bc2ce38ef145c51479926f9508"
+            }
+          },
+          {
+            "request_pointer": "/max_value_bytes",
+            "resolved_limit": {
+              "author_guard_binding": "absent",
+              "breach": "fail",
+              "candidates": [
+                {
+                  "dependencies": [
+                    "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c"
+                  ],
+                  "derivation": {
+                    "op": "source"
+                  },
+                  "law_id": "actql.expression-fragment.capacity",
+                  "role": "contract_ceiling",
+                  "source": {
+                    "contract_cid": "sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c",
+                    "field": "/max_value_bytes",
+                    "kind": "contract"
+                  },
+                  "unit": "bytes",
+                  "value": 1000,
+                  "version": "actql-bound-witness/0.1",
+                  "witness_cid": "sha256:65f6947daf629932055fc7bc9290e0265aa13440a14307c125738f8bde7a466d"
+                }
+              ],
+              "effective_max": 1000,
+              "enforcement": "engine_atomic",
+              "subject_ref": "/max_value_bytes",
+              "unit": "bytes",
+              "version": "actql-resolved-limit/0.1",
+              "resolved_limit_cid": "sha256:61626f5c5c5b8bba0757c1ce0d1322e71d524a79628f5228533e5e495e404e61"
+            }
+          }
+        ],
+        "output_open": false,
+        "output_schema": {
+          "a": {
+            "type": "number",
+            "nullable": false
+          },
+          "b": {
+            "type": "number",
+            "nullable": false
+          },
+          "x": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "request": {
+          "max_rows": 10,
+          "max_value_bytes": 1000,
+          "parameters": {},
+          "pipeline": {
+            "output": "derive_1",
+            "sources": {
+              "input": {
+                "sort": "relation"
+              }
+            },
+            "steps": [
+              {
+                "id": "derive_1",
+                "in": [
+                  "input"
+                ],
+                "op": "REL.derive",
+                "params": {
+                  "exprs": {
+                    "x": {
+                      "strpos": [
+                        {
+                          "literal": "banana"
+                        },
+                        {
+                          "literal": "an"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "version": "aoa-pipeline/0.1"
+          },
+          "source_schemas": {
+            "input": {
+              "a": {
+                "type": "number",
+                "nullable": false
+              },
+              "b": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          }
+        },
+        "roots": [
+          {
+            "contract": {
+              "type": "number",
+              "nullable": false
+            },
+            "demand_paths": {
+              "/roots/0/source": [],
+              "/roots/0/source/strpos/0": [],
+              "/roots/0/source/strpos/1": []
+            },
+            "node": {
+              "op": "strpos",
+              "body": [
+                {
+                  "op": "literal",
+                  "body": "banana"
+                },
+                {
+                  "op": "literal",
+                  "body": "an"
+                }
+              ]
+            },
+            "parameter_pointer": "/exprs/x",
+            "source": {
+              "strpos": [
+                {
+                  "literal": "banana"
+                },
+                {
+                  "literal": "an"
+                }
+              ]
+            },
+            "step_id": "derive_1"
+          }
+        ],
+        "version": "actql-expression-fragment/0.1"
+      },
+      "canonical": "{\"evaluations\":[],\"expression_contract_cid\":\"sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068\",\"graph\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"}],\"op\":\"strpos\"}}}}],\"version\":\"aoa-pipeline/0.1\"},\"limits\":[{\"request_pointer\":\"/max_rows\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\",\"field\":\"/max_rows\",\"kind\":\"contract\"},\"unit\":\"rows\",\"value\":10,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:61684d76b38e9eef9683f48a9530614d2e4d27bdd50d11cbe42d4052511def7a\"}],\"effective_max\":10,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:9a3af59424cca60f8719524deb1de9df5782d8bc2ce38ef145c51479926f9508\",\"subject_ref\":\"/max_rows\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}},{\"request_pointer\":\"/max_value_bytes\",\"resolved_limit\":{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.expression-fragment.capacity\",\"role\":\"contract_ceiling\",\"source\":{\"contract_cid\":\"sha256:a1c20f082eeada03eddcb3bf176c6b7380e138fa37c8cd56acbdc8379b307a3c\",\"field\":\"/max_value_bytes\",\"kind\":\"contract\"},\"unit\":\"bytes\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:65f6947daf629932055fc7bc9290e0265aa13440a14307c125738f8bde7a466d\"}],\"effective_max\":1000,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:61626f5c5c5b8bba0757c1ce0d1322e71d524a79628f5228533e5e495e404e61\",\"subject_ref\":\"/max_value_bytes\",\"unit\":\"bytes\",\"version\":\"actql-resolved-limit/0.1\"}}],\"output_open\":false,\"output_schema\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"x\":{\"nullable\":false,\"type\":\"number\"}},\"request\":{\"max_rows\":10,\"max_value_bytes\":1000,\"parameters\":{},\"pipeline\":{\"output\":\"derive_1\",\"sources\":{\"input\":{\"sort\":\"relation\"}},\"steps\":[{\"id\":\"derive_1\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"exprs\":{\"x\":{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}}}}],\"version\":\"aoa-pipeline/0.1\"},\"source_schemas\":{\"input\":{\"a\":{\"nullable\":false,\"type\":\"number\"},\"b\":{\"nullable\":false,\"type\":\"number\"}}}},\"roots\":[{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"demand_paths\":{\"/roots/0/source\":[],\"/roots/0/source/strpos/0\":[],\"/roots/0/source/strpos/1\":[]},\"node\":{\"body\":[{\"body\":\"banana\",\"op\":\"literal\"},{\"body\":\"an\",\"op\":\"literal\"}],\"op\":\"strpos\"},\"parameter_pointer\":\"/exprs/x\",\"source\":{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]},\"step_id\":\"derive_1\"}],\"version\":\"actql-expression-fragment/0.1\"}",
+      "cid": "sha256:4c6d4ed0f91008775d6ffd2015ab0a526a2f3e5f4f9c5622c061bd9bda11d23a",
+      "bytes": 3030
+    }
+  ]
+}

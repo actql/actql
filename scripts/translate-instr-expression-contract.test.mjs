@@ -170,13 +170,14 @@ test('fixed INSTR optional forms retain exact complete-fragment identities and p
   const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
   const wire = readFileSync('portability/corpus/translate-instr-identities.json', 'utf8');
   assert.equal(createHash('sha256').update(wire).digest('hex'),
-    '99c5077481337f5379176a3faf23447ae1cf0d59d85ac099db7484728e467b36');
+    'f0d2dfe30ec14d858b22c321c141df68b8743bf01257282d7ae3bc075a149889');
+  assert.equal(createHash('sha256').update(readFileSync('portability/corpus/historical/pre-integration-translate-instr-identities.json')).digest('hex'),'99c5077481337f5379176a3faf23447ae1cf0d59d85ac099db7484728e467b36');
   const fixture = JSON.parse(wire);
   const expected = [
-    ['instr_default', 2, 'sha256:aa4a861996f10eafe18b891262db498faabadcf6448c0d0be5e94f476a4b9009'],
-    ['instr_position', 3, 'sha256:833cf2a38a2a7a5b9efac6f2ecce6be83a8ed9f665d1960cf9a6da7682f8bd2d'],
-    ['instr_occurrence', 4, 'sha256:c6bfdc0c61ec2388263873a071567bcd18bccc68a39b5716024f0216dd26acf4'],
-    ['strpos_control', 2, 'sha256:4c6d4ed0f91008775d6ffd2015ab0a526a2f3e5f4f9c5622c061bd9bda11d23a'],
+    ['instr_default', 2, 'sha256:576b4802d1c57547c061b8559873a6df14789545fa578e9f00dd4cd3914ec165'],
+    ['instr_position', 3, 'sha256:e7cabe28686dac621c33bde5274a16453437a49f949e7a735f7784f5dabf0375'],
+    ['instr_occurrence', 4, 'sha256:7e5e6e381992969e1e2fb69c14d5fb1dc0019fe228439f909a7f7879aecf5908'],
+    ['strpos_control', 2, 'sha256:8bdcec19bae24a9dd04e08d6686357a6fa3af2b8e1f712b2e3c114be15710323'],
   ];
   assert.equal(fixture.expression_contract_cid, cid(bodies()[0]));
   assert.equal(fixture.published_predecessor, '21505177a8a7b54a2c273186b7d30456f757fcc4');
