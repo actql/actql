@@ -150,23 +150,32 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
       // authored expression and let that owner reject it before admission.
        "subgraph(nodes: {where: {literal: true}})",
     ] {
-    let actual = compile_with_set(
-      graph_rows_prefix() +
+    let source = graph_rows_prefix() +
       ", selected AS (FROM g |> node_rows() |> SELECT id, node_key) FROM g |> " +
       call +
-      " |> node_rows() |> SELECT node_key",
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        actual,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=call,
-    )
+      " |> node_rows() |> SELECT node_key"
+    // The current WITH owner statically checks every authored binding and
+    // continuation. Preserve the malformed body and its common typed cause.
+    match classified_graph_source(source) {
+      Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => {
+        match call {
+          "subgraph()" | "subgraph(nodes: {from: selected, id: 'id'}, extra: true)" =>
+            assert_eq(issue.kind, @pipeline.InvalidBody)
+          "subgraph(nodes: {ids: []})" =>
+            assert_eq(issue.kind, @pipeline.GraphMatch(Structure(InvalidBody)))
+          "subgraph(nodes: {from: selected, id: 'missing'})" =>
+            assert_eq(issue.kind, @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))))
+          "subgraph(nodes: {from: selected, id: 'node_key'})" =>
+            assert_true(issue.kind is @pipeline.GraphMatch(Structure(ContractMismatch(_))))
+          "subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: 1})" =>
+            assert_eq(issue.kind, @pipeline.GraphMatch(ExpectedBoolean))
+          "subgraph(nodes: {where: {literal: true}})" =>
+            assert_eq(issue.kind, @pipeline.GraphMatch(Structure(UnsupportedGraphOperation)))
+          _ => fail("undeclared malformed Subgraph control")
+        }
+      }
+      _ => fail("expected common static Subgraph refusal: " + call)
+    }
   }
 }
 
