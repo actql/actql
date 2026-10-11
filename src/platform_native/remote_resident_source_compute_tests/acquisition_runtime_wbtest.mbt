@@ -8,6 +8,7 @@ fn acquisition_runtime_case(
   effect? : Bool = false,
   completion_free? : Bool = false,
   completion_free_review? : Bool = false,
+  mapped_create_write? : Bool = false,
   provider? : Bool = false,
   parent_ack_failure? : Bool = false,
   revoke_effect_at_start? : Bool = false,
@@ -707,6 +708,7 @@ fn acquisition_runtime_case(
       effect_producer=original_effect_producer.val,
       provider~,
       completion_free_review~,
+      mapped_create_write~,
       through_consumer_holder~,
       cancel_consumer_before_start~,
       cancel_consumer_after_borrow~,
@@ -1009,6 +1011,18 @@ test "original completion-free Source and consumer persist mapped-create review 
     effect=true,
     completion_free=true,
     completion_free_review=true,
+    through_consumer_holder=true,
+  )
+}
+
+///|
+test "original completion-free mapped-create approval retains one physical write through response custody loss" {
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    completion_free=true,
+    completion_free_review=true,
+    mapped_create_write=true,
     through_consumer_holder=true,
   )
 }

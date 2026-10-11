@@ -146,6 +146,8 @@ fn native_mapped_create_context_review(
   journal : @dispatch_journal.Journal,
   producer : @resident.ResidentEffectProducerExecuted,
   producer_journal : @dispatch_journal.Journal,
+  approved_row? : Bool = false,
+  journal_path? : String? = None,
 ) -> Unit raise {
   let consumer = holder.effect_computation(journal).unwrap()
   println("native-mapped-create: original Source and consumer completed")
@@ -242,9 +244,34 @@ fn native_mapped_create_context_review(
   )
   assert_eq(work.complete().unwrap().preview.wire, complete.preview.wire)
   assert_eq(target_reads.val, 0)
-  native_mapped_create_checkpoint_roundtrip(
-    work, journal, consumer, policy, complete,
-  )
+  if approved_row {
+    // Local trusted signing peer only. The common Owner still admits its
+    // exact original report/Resolution and separately checks current send
+    // authority. This does not establish a production Cloud approval.
+    assert_eq(
+      @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW"),
+      Some("1"),
+    )
+    retained_effect_review_retention_store(
+      consumer,
+      facts.materials,
+      facts.inputs,
+      work.result_capture().unwrap(),
+      invocation,
+      complete.preview.preview,
+      complete.captured,
+      policy.store_authority_cid,
+      complete.preview.wire,
+      @publication.run_evidence_value_identity(complete.preview.authoring),
+      review_work=Some(work),
+      original_journal_path=journal_path,
+    )
+    assert_true(work.retry_cleanup().unwrap())
+  } else {
+    native_mapped_create_checkpoint_roundtrip(
+      work, journal, consumer, policy, complete,
+    )
+  }
   assert_false(work.retry_cleanup().unwrap())
   assert_eq(target_reads.val, 0)
   assert_true(context.close())
