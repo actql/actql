@@ -393,6 +393,47 @@ must supply the opaque Work fence and independent read/issuer decisions.
 Missing original use custody remains a typed query refusal, never an assertion
 that the observation was unentered or permission to resend.
 
+## Direct Local checked Catalog and target request
+
+The existing Salesforce Catalog/projection/declaration/request Owner has
+closed Site and Direct Local binding alternatives. The Site observation and
+capability bodies retain their exact original fields and ordering. Direct
+Local observation uses `actql-salesforce-local-catalog-observation/0.1` and
+binds account configuration/identity, authority scope, adopted Host, original
+Client request intent/scope and Run invocation, plus the actual connection,
+org, principal, namespace, connector, origin and sync occurrence. It contains
+no Site, Site generation or Dispatch substitute. Catalog identity does not
+grant metadata disclosure, observation entry or mutation authority.
+
+Both alternatives use the same resource metadata, field requirements,
+nullability/type checks, declaration and executable Mapping construction.
+The immutable static declaration can be reused only under the same admitted
+installation; each executable request is separately bound to its original
+Run and request. Local capability uses
+`actql-salesforce-local-write-capability/0.1` with the actual installation and
+runtime binding. Its profile omits individual row values and original Run
+identity, while exact execution admission checks those original facts. Equal
+capability content never makes a foreign Run's request interchangeable.
+
+The first Local target-read request is derived from the existing admitted
+update-by-record-ID candidate and current Catalog. Its GET, empty body and
+exact candidate path use the existing REST-byte identity domain
+`actql-salesforce-rest-request/0.1`. The later PATCH body remains a separate
+request identity. Current Local Catalog/credential org and original Host,
+account, request and Run must match before using the GET. An altered target,
+foreign org, mutation scope or mismatched preparation fence is refused.
+
+`observe_native_local_salesforce_effect_target` connects this checked GET to
+the same Native credential transport and target/Preview projection Owners.
+The actual physical response and semantic projection are separate typed
+facts; projection failure retains the received original rather than hiding
+it. Host assembly must reserve and save exact response/use/request originals
+in existing capture custody before durable preparation acknowledgement.
+Receipt/capture failure does not make an entered use unsent or authorize a
+new grant or another GET. Historical named Catalog restoration reprojects
+exact retained response bytes/use evidence through the existing recovery
+function and rejects missing, changed or foreign originals without I/O.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract

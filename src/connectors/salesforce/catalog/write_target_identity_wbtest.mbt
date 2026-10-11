@@ -48,7 +48,10 @@ test "provider target identity aliases 15 and 18 character RecordIds" {
   )
   let other_org = {
     ..update,
-    binding: { ..update.binding, org_id: "00D000000000002EAA", },
+    binding: SiteCatalog({
+      ..site_catalog_test_binding(update.binding),
+      org_id: "00D000000000002EAA",
+    }),
   }
   let foreign = prepare_write_target_identity(
     other_org,

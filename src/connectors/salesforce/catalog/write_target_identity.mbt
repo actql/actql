@@ -139,7 +139,8 @@ pub fn write_projection_boundary_cid(
   if max_identity_bytes < 1 {
     return Err(InvalidLimits)
   }
-  let org_id = match canonical_write_record_id(projection.binding.org_id) {
+  let org_id = match
+    canonical_write_record_id(catalog_binding_org_id(projection.binding)) {
     Some(value) => value
     None => return Err(InvalidTarget)
   }

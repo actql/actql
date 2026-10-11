@@ -23,6 +23,8 @@ import {
 // Values
 pub fn admit_native_effect_resolution(@signature.Library, @checkpoint_runtime.SealedCheckpoint, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
 
+pub fn observe_native_local_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope, String, @catalog.LocalTargetReadRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits, () -> Bool) -> Result[NativeLocalSalesforceTargetObservation, NativeSalesforcePreviewIssue]
+
 pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 
 pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
@@ -57,6 +59,13 @@ pub(all) struct NativeEffectResumeObservation {
   claim : @checkpoint_runtime.ResumeClaim
   now_ms : Int64
   settlement_only : Bool
+}
+
+pub struct NativeLocalSalesforceTargetObservation {
+  request : @catalog.LocalTargetReadRequest
+  response : @credential_resource.NativeCredentialResponse
+  response_sha256 : String
+  projection : Result[(@catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
 }
 
 type NativeResidentEffectApprovedRow
