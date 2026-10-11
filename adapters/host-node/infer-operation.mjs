@@ -338,6 +338,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }}),
     entryCurrent: (entry, preparedCallSet) =>
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
+    bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
+      control.bindCheckedClientInferModelEntryPersistence(plan.compiled, active,
+        plan.runDefinition, preparedCallSet, scope, {...observation,
+          beginEntry: entry => {
+            const originals = moon.clientProgramInferCallEntryOriginals(entry);
+            if (originals === undefined) return undefined;
+            return observation.beginEntry(Object.freeze({entry,
+              slot: originals._0, callWire: originals._1,
+              attemptWire: originals._2, authorityWire: originals._3}));
+          }}),
     bindModelObservation: (preparedCallSet, observe) =>
       moon.clientProgramBindInferModelObservation(active, preparedCallSet, value => {
         // Only the installed metadata observer is called here. Its failure
