@@ -100,6 +100,18 @@ identity/resource obligations and execution remain unverified. The dot scores
 are exactly 1 and 0; session gap equality separates the third event. P1 internal
 coverage does not claim that P2 public vector/temporal syntax is installed.
 
+[compute-context-controls.json](compute-context-controls.json) fixes CTAS whole
+wrapper versus Pure grouping, set/Pipe continuations, literal/comment parentheses
+and retained Result demand independently of parser output. They preserve the
+existing Table Effect owner; execution and complete Program comparisons remain
+unverified. [static-admission-seams.json](static-admission-seams.json) records
+the actual common input/producer APIs and Stage/Cursor ownership checks. Removing
+the current unused-binding refusal alone would lose a checking responsibility;
+the new connection must retain full admission and dynamic debts without I/O.
+[compute-context-static.json](compute-context-static.json) records only metadata
+and inspected source-symbol consistency for these additions, not parser or
+common-checker execution. Earlier static receipts retain their earlier inputs.
+
 ## Retirement and evidence boundaries
 
 Remove the accepted DATA declaration and old pure constructor, count-based
