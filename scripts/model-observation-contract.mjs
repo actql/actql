@@ -47,7 +47,16 @@ export function modelObservationSchemas(artifacts) {
   delete embedded.$schema;
   delete embedded.$id;
   delete embedded.title;
-  bundle.properties.captures.items.properties.evidence = embedded;
+  // New bundles may retain original historical evidence beside new evidence.
+  // Each explicit version discriminates its exact closed schema; embedding
+  // never rewrites the historical body or its original self CID.
+  const embeddedHistorical = structuredClone(historical);
+  delete embeddedHistorical.$schema;
+  delete embeddedHistorical.$id;
+  delete embeddedHistorical.title;
+  bundle.properties.captures.items.properties.evidence = {
+    oneOf: [embeddedHistorical, embedded],
+  };
   return {
     model_invocation_evidence_v02: evidence,
     model_capture_bundle_v02: bundle,

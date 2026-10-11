@@ -92,3 +92,19 @@ source changes. Regenerate compiler/grammar, canonical and metadata artifacts
 from the merged inputs; adjust only current CID expectations from the new
 independent preimage. Preserve main's workflows and historical declarations.
 No broad runtime verification, main gate or old public cohort is rerun.
+
+## Second main integration
+
+Adopt main `8305fdb52a5bca8a41d7f5278077035705cb6e9e` by ordinary merge into
+submitted `44ed60eb187f5a7f2c00ac17a574ec0fb76e6ba7`. Retain the existing
+44ed source/format/freshness record and its preimage data as separate history.
+Only protocol-document metadata conflicts in `spec/spec-family.json`; take
+main's complete family registry and regenerate references from merged inputs.
+Main's Model capture, publication retirement, Python, history and workflow
+changes stay intact. No PIVOT product/fixture expectation is changed.
+
+New static receipts apply only to this merged source; no prior static or
+runtime result is relabeled as a new-HEAD execution. Main's three pending INFER
+requirement registrations and updated canonical capture schemas come from the
+existing generators, not a new Frontend contract or new verified evidence.
+No guard retry, shared Heavy or CI rerun is started.

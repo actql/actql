@@ -4,7 +4,8 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
 import {historicalModelObservation, nullableModelObservation,
-  reportedModelObservation, observationRefusals} from './fixtures/model-observation.mjs';
+  reportedModelObservation, mixedModelObservations,
+  observationRefusals} from './fixtures/model-observation.mjs';
 
 const hash = body => 'sha256:' + createHash('sha256')
   .update(canonicalText(body), 'utf8').digest('hex');
@@ -26,10 +27,10 @@ export function modelObservationVectors() {
   ].map(([id, body]) => ({id, body, expected_cid: hash(body),
     expected_canonical_bytes: canonicalText(body)}));
   const seal = body => `seal_run_evidence_value("model_invocation_evidence", ${literal(body)}, 16384, 1024, 20)`;
-  const read = (body, version) => {
-    const value = bundle(body, version);
+  const readBundle = value => {
     return `read_model_capture_bundle(${literal({...value, bundle_cid: hash(value)})}, ${JSON.stringify(hash(value))}, 16384, 1024, 20)`;
   };
+  const read = (body, version) => readBundle(bundle(body, version));
   let moon = '// Generated from independent scripts/fixtures/model-observation.mjs.\n';
   for (const [index, fixture] of cases.entries()) {
     const old = index === 0;
@@ -67,12 +68,45 @@ export function modelObservationVectors() {
       `  assert_true(${seal(body)} is Err(_))\n}\n`;
   }
   for (const [id, body, version] of [
-    ['old evidence in new bundle', historicalModelObservation, 'actql-model-capture-bundle/0.2'],
     ['new evidence in old bundle', nullableModelObservation, 'actql-model-capture-bundle/0.1'],
     ['unknown bundle version', nullableModelObservation, 'actql-model-capture-bundle/invalid'],
   ]) {
     moon += `\n///|\ntest ${JSON.stringify('Model observation version refusal: ' + id)} {\n` +
       `  assert_true(${read(body, version)} is Err(_))\n}\n`;
+  }
+  const bundleCases = [
+    ['new bundle retaining historical evidence', {
+      version: 'actql-model-capture-bundle/0.2',
+      captures: [record(historicalModelObservation)], barrier_receipts: [],
+    }],
+    ['new bundle retaining mixed original evidence', {
+      version: 'actql-model-capture-bundle/0.2',
+      captures: mixedModelObservations.map(record), barrier_receipts: [],
+    }],
+  ].map(([id, body]) => ({id, body, expected_cid: hash(body),
+    expected_canonical_bytes: canonicalText(body)}));
+  for (const fixture of bundleCases) {
+    moon += `\n///|\ntest ${JSON.stringify('Model observation compatibility: ' + fixture.id)} {\n` +
+      `  let saved = ${readBundle(fixture.body)}.unwrap()\n` +
+      `  assert_eq(model_capture_bundle_count(saved), ${fixture.body.captures.length})\n`;
+    for (const [index, captured] of fixture.body.captures.entries()) {
+      const old = captured.evidence.version === 'actql-model-invocation-evidence/0.1';
+      moon += `  let record_${index} = model_capture_bundle_record(saved, ${index}).unwrap()\n` +
+        `  assert_eq(run_evidence_value_json(model_capture_record_evidence(record_${index})), ${literal(captured.evidence)})\n` +
+        `  assert_eq(run_evidence_value_identity(model_capture_record_evidence(record_${index})), ${JSON.stringify(captured.evidence.model_invocation_evidence_cid)})\n` +
+        `  assert_eq(model_capture_record_observation(record_${index}).unwrap().origin, ${old ? 'HistoricalAdmitted' : 'Reported'})\n`;
+    }
+    moon += `  assert_true(release_model_capture_bundle_read(saved))\n}\n`;
+  }
+  for (const [id, original, wrongVersion] of [
+    ['historical fields with new discriminator', historicalModelObservation,
+      'actql-model-invocation-evidence/0.2'],
+    ['current fields with old discriminator', nullableModelObservation,
+      'actql-model-invocation-evidence/0.1'],
+  ]) {
+    const body = {...original, version: wrongVersion};
+    moon += `\n///|\ntest ${JSON.stringify('Model observation discriminator refusal: ' + id)} {\n` +
+      `  assert_true(${read(body, 'actql-model-capture-bundle/0.2')} is Err(_))\n}\n`;
   }
   for (const [id, mutate] of [
     ['foreign slot', value => {value.captures[0].model_call_slot_cid = 'sha256:' + 'a'.repeat(64);}],
@@ -97,7 +131,46 @@ export function modelObservationVectors() {
     `  assert_eq(observed.raw_response_artifact_cid, Some(${JSON.stringify(reportedModelObservation.raw_response_artifact_cid)}))\n` +
     `  assert_eq(observed.response_profile_cid, Some(${JSON.stringify(reportedModelObservation.response_profile_cid)}))\n` +
     `  assert_true(release_model_capture_bundle_read(saved))\n}\n`;
-  return {corpus: {version: 'actql-model-observation-vectors/0.1', cases}, moon};
+  const currentReplay = {...reportedModelObservation, output_tokens: 11};
+  const historicalReplay = {
+    ...historicalModelObservation,
+    provider_reported_model_id: currentReplay.provider_reported_model_id,
+    provider_request_id: currentReplay.provider_request_id,
+    input_tokens: currentReplay.input_tokens,
+    output_tokens: currentReplay.output_tokens,
+  };
+  moon += `\n///|\ntest "Model replay preserves current observation instead of historical stop" {\n` +
+    `  let original = ${seal(currentReplay)}.unwrap()\n` +
+    `  let reconstructed = ${seal(historicalReplay)}.unwrap()\n` +
+    `  assert_true(check_model_replayed_observation(original, reconstructed) is Ok(_))\n` +
+    `  assert_true(check_model_replayed_observation(reconstructed, reconstructed) is Ok(_))\n` +
+    `  assert_false(run_evidence_value_identity(original) == run_evidence_value_identity(reconstructed))\n` +
+    `  assert_eq(run_evidence_value_json(original), ${literal(complete(currentReplay))})\n}\n`;
+  for (const [field, changed] of [
+    ['model_task_contract_cid', 'sha256:' + 'd'.repeat(64)],
+    ['semantic_request_cid', 'sha256:' + 'd'.repeat(64)],
+    ['model_call_slot_cid', 'sha256:' + 'd'.repeat(64)],
+    ['input_result_artifact_cid', 'sha256:' + 'd'.repeat(64)],
+    ['input_row_identity_cid', 'sha256:' + 'd'.repeat(64)],
+    ['input_row_identity', ['changed-key', 7]],
+    ['authored_model_selector', 'different-selector'],
+    ['structured_response_artifact_cid', 'sha256:' + 'd'.repeat(64)],
+    ['validated_structured_output_cid', 'sha256:' + 'd'.repeat(64)],
+    ['input_tokens', 14],
+    ['output_tokens', 12],
+    ['provider_reported_model_id', 'different-provider-model'],
+    ['provider_request_id', 'different-provider-request'],
+    ['observed_at', '2026-10-11T00:00:01.000Z'],
+  ]) {
+    const mutated = {...historicalReplay, [field]: changed};
+    moon += `\n///|\ntest ${JSON.stringify('Model replay binding refusal: ' + field)} {\n` +
+      `  let original = ${seal(currentReplay)}.unwrap()\n` +
+      `  let changed = ${seal(mutated)}.unwrap()\n` +
+      `  assert_true(check_model_replayed_observation(original, changed) is Err(_))\n` +
+      `  assert_true(check_model_replayed_observation(${seal(historicalReplay)}.unwrap(), changed) is Err(_))\n}\n`;
+  }
+  return {corpus: {version: 'actql-model-observation-vectors/0.1', cases,
+    bundle_cases: bundleCases}, moon};
 }
 
 export function checkModelObservationVectors() {

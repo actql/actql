@@ -1185,8 +1185,8 @@
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "873ca214a9622bfa695244ba66097c78902ba046d8e3469eda40601c6a37bdf0",
       "line": 27,
-      "count": 8,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+      "count": 9,
+      "reason": "Explicit reviewed October 11 M0b and C10 capture compatibility; nine exact original/new evidence fixture contexts, not a global upgrade."
     },
     {
       "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
@@ -1233,8 +1233,8 @@
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "780d5b398916a46d09e3b973cc1365ae384fd941c6d5e8258f7bbc09c2555131",
       "line": 98,
-      "count": 2,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+      "count": 3,
+      "reason": "Explicit reviewed October 11 M0b/C10 original attempt-one refusal vector; three frozen exact contexts, no global version upgrade."
     },
     {
       "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
@@ -1353,8 +1353,8 @@
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "be0f98770aa452e7b610bb323a154df4ad3bd813b85137bda77b49810fdd27b0",
       "line": 194,
-      "count": 1,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+      "count": 15,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
     },
     {
       "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
@@ -1369,8 +1369,8 @@
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "e95f49b7e559d6956d0fe9378bade6e6d3682bcd48980449be33016d6141f5c7",
       "line": 908,
-      "count": 2,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+      "count": 4,
+      "reason": "Explicit reviewed October 11 M0b and C10 capture compatibility; four exact discriminated schema contexts, not a global upgrade."
     },
     {
       "path": "src/run_publication/protocol_schema.generated.mbt",
@@ -1395,6 +1395,214 @@
       "line": 1467,
       "count": 1,
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "08931220a8c07018c1f599f6ab6341d0ca1ace820c39675cd4c1a39f8a7e2e03",
+      "line": 143,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "4b0b1ba72eb52de737807ee54e8da72f868accba42e009beb765aa5413588d38",
+      "line": 150,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "0e79ed16c3454ff7a69d4470074fcffc3f07db872f541a9c036d452a37993684",
+      "line": 186,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "eb6abd9d4f12bdff99a44b77cc6505fcfe92717bfc966ee984328b4f777f2fd7",
+      "line": 191,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "291301b46116fc599b3b9f213ffe9a2961bdf0a140795cd5a8de72d014fd891d",
+      "line": 230,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "9a2b981f3017fce27b1571a0aee249b2a4f58a767bc784ddeaceaa025a3cbecc",
+      "line": 278,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "ee1fc3b255605d7334cdd6849ba4288b936583d1a6c102092519bc95422b2f1c",
+      "line": 278,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "138a828e1105575ac3c1dfd47774e88c7170f998b37a30254254f66ef97064a7",
+      "line": 39,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "5230230edf60056b807fe314b061ae2d362effa9a0b1af9ed671d019802d0b19",
+      "line": 101,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "1202c03ac18bb723a8c5bd8e3a0c8d51e700ce1f2d04ad6794f6e73af9c9f0a6",
+      "line": 79,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "8fb58e53563de0d35ef61adea14c88c4abeed5ac64a727f438e139fda805744b",
+      "line": 83,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "c0aa0170a98beec21df8e80e89f89512ad281ab53b216d766ba65c2872f78ef8",
+      "line": 103,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "66be722b8c407b28fd082259cbf0c49f80c7bf3390192f6f2e7e42de0bf49375",
+      "line": 109,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "6938772927eca02e5ff1f9b9b9342119a1a35eac524d70bf2f68e3d51600ce20",
+      "line": 93605,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/client_infer_host/mixed_capture_replay_wbtest.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "a3737325686fddbb7259ce1a43b80d0161eda7922ddb1b7028d76c60d918fb68",
+      "line": 43,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/client_infer_host/mixed_capture_replay_wbtest.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "81d2338609fd1d264457f69f39a115a9087d45474d8623738fea46c08dc05568",
+      "line": 64,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "9a2b981f3017fce27b1571a0aee249b2a4f58a767bc784ddeaceaa025a3cbecc",
+      "line": 179,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "1ee9a3015f0a3dc98f5bc268c91b539707e28e4e2436bf5f61502c6e2f2441d0",
+      "line": 179,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "373450594484c98439c0df93e71fb8426b4fcbea9431401b903a07a2da778cdf",
+      "line": 186,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "c3170cdc217cc0990bfeaab451f2439a94593c3631b2dab7102575ad1815fdc9",
+      "line": 194,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "35db1a398ba9a3c56e6cd0c2f4f8bec9132fb7404094bbbaf31707049dc0bbd1",
+      "line": 199,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/model_execution/capture_export.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "e875ec5314bbb99d454d3201ef0365f1672dead0fd727e2936de3a5901dad811",
+      "line": 192,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/model_execution/capture_export.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "43dc0f66db7e91de253100cc784a3a8a2790cb7610bad02c8f7b5f02870e361c",
+      "line": 228,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "73fa20ed0cbc6cefb7df6b53593407f0a8c57d76b44de40b7450db721814ee49",
+      "line": 237,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "969e30b629bb9053e28be60ab2205a04e845485789ea3064255ee97936a32f80",
+      "line": 242,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_replay_observation.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "bcbe87ccd7232d416ccdccb49e4d039589991b2649d228d17876934eb3efaeaa",
+      "line": 25,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
     }
   ]
 }

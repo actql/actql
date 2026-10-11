@@ -60,6 +60,8 @@ fn advance_model_evidence(
       ResponseWire(cursor, writer) => {
         if @admitted.advance_wire_emit(cursor) {
           value.response_cid = Some("sha256:" + @encode.finish_hash(writer))
+          @admitted.cancel_wire_emit(cursor)
+          @encode.cancel_writer(writer)
           let bytes = Int64::min(state.limits.max_response_bytes, 2147483647L).to_int()
           let writer = @encode.hashing_writer(
             bytes,
@@ -76,6 +78,8 @@ fn advance_model_evidence(
       OutputWire(cursor, writer) => {
         if @admitted.advance_wire_emit(cursor) {
           value.output_cid = Some("sha256:" + @encode.finish_hash(writer))
+          @admitted.cancel_wire_emit(cursor)
+          @encode.cancel_writer(writer)
           value.phase = Seal
         }
         Ok(None)
@@ -101,6 +105,7 @@ fn seal_model_invocation_evidence(
   let request = value.request
   try {
     let writer = @encode.writer(16384, 1024, 16)
+    errdefer @encode.cancel_writer(writer)
     @encode.begin_object(writer)
     for
       (name, text) in [
@@ -164,23 +169,46 @@ fn seal_model_invocation_evidence(
       value.response.output_tokens.to_string(),
     )
     @encode.end_object(writer)
-    @publication.seal_run_evidence_value(
-      "model_invocation_evidence",
-      @encode.finish(writer),
-      16384,
-      1024,
-      16,
-    ).map_err(issue => InvocationEvidence(issue))
+    let wire = finish_model_invocation_wire(writer)
+    let reconstructed = match
+      @publication.seal_run_evidence_value(
+        "model_invocation_evidence", wire, 16384, 1024, 16,
+      ) {
+      Err(issue) => return Err(InvocationEvidence(issue))
+      Ok(value) => value
+    }
+    if state.restored_evidence is Some(original) {
+      match
+        @publication.check_model_replayed_observation(original, reconstructed) {
+        Err(issue) => return Err(InvocationEvidence(issue))
+        Ok(_) => return Ok(original)
+      }
+    }
+    Ok(reconstructed)
   } catch {
     _ => Err(OutputIdentity)
   }
 }
 
 ///|
+// The completed wire remains available, but the text builder and its frames
+// must not remain live while the strict source and canonical token are built.
+fn finish_model_invocation_wire(
+  writer : @encode.Writer,
+) -> String raise @encode.EncodeFailure {
+  errdefer @encode.cancel_writer(writer)
+  let wire = @encode.finish(writer)
+  @encode.cancel_writer(writer)
+  wire
+}
+
+///|
 fn cancel_model_evidence(value : ModelEvidencePreparation) -> Unit {
   match value.phase {
-    ResponseWire(cursor, _) | OutputWire(cursor, _) =>
+    ResponseWire(cursor, writer) | OutputWire(cursor, writer) => {
       @admitted.cancel_wire_emit(cursor)
+      @encode.cancel_writer(writer)
+    }
     Seal => ()
   }
 }

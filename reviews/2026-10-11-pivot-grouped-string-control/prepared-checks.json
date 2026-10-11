@@ -1,5 +1,5 @@
 {
-  "baseline": "fdd0c76c7975905740078e93c735f910135bafd1",
+  "baseline": "8305fdb52a5bca8a41d7f5278077035705cb6e9e",
   "runtime_executed": false,
   "public_executed": false,
   "heavy_started": false,
@@ -44,5 +44,9 @@
         "nullable": false
       }
     }
-  ]
+  ],
+  "authored_baseline": "fdd0c76c7975905740078e93c735f910135bafd1",
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "Use existing bounded wrapper; do not bypass B process-inspection rejection."
 }

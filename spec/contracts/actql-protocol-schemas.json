@@ -13635,7 +13635,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:8501238a598454b03e98f7d198ec94c97c4ca748c7164ae1f746ad215385ded6",
+  "artifact_registry_cid": "sha256:45399016f9a5d30e55e6c3ec10b94b2bf87cf38a099cbbdee555e378377ea57c",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13698,9 +13698,9 @@
     "decision_answers": "sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2",
     "decision_probability_profile": "sha256:c1430ae14968435f40f7238506e9b603bf575ec462e5665bf3eac0fbc87523b3",
     "model_invocation_evidence_v02": "sha256:805e0cb2268f07fe3170ff6910fcb9dcd6144af9f938bbfbac5b9c374bd89507",
-    "model_capture_bundle_v02": "sha256:4189020dcd411ebb243807e6e4195d4672f1cb35e5959dd77adf7785b96b01e5",
+    "model_capture_bundle_v02": "sha256:081c0eb1ce02e2150ab1464f3f2b1ffe144b298e11b02dea27cad136899d479f",
     "model_invocation_evidence_compatible": "sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756",
-    "model_capture_bundle_compatible": "sha256:d81d8cd5930edcef76afe18085537b0c008a1c7cfeb5f000acd9c1fe121a0e54"
+    "model_capture_bundle_compatible": "sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -92564,211 +92564,332 @@
                 "type": "object"
               },
               "evidence": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "version",
-                  "model_task_contract_cid",
-                  "semantic_request_cid",
-                  "model_call_slot_cid",
-                  "input_result_artifact_cid",
-                  "input_row_identity_cid",
-                  "input_row_identity",
-                  "authored_model_selector",
-                  "provider_reported_model_id",
-                  "provider_request_id",
-                  "attempt",
-                  "structured_response_artifact_cid",
-                  "validated_structured_output_cid",
-                  "input_tokens",
-                  "output_tokens",
-                  "finish_reason",
-                  "observed_at",
-                  "model_invocation_evidence_cid",
-                  "provider_reported_revision",
-                  "gateway_request_id",
-                  "raw_response_artifact_cid",
-                  "response_profile_cid",
-                  "response_complete",
-                  "provider_metadata"
-                ],
-                "properties": {
-                  "version": {
-                    "const": "actql-model-invocation-evidence/0.2"
-                  },
-                  "model_task_contract_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "semantic_request_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "model_call_slot_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "input_result_artifact_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "input_row_identity_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "input_row_identity": {
-                    "oneOf": [
-                      {
-                        "type": [
-                          "string",
-                          "number",
-                          "boolean"
-                        ]
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "model_task_contract_cid",
+                      "semantic_request_cid",
+                      "model_call_slot_cid",
+                      "input_result_artifact_cid",
+                      "input_row_identity_cid",
+                      "input_row_identity",
+                      "authored_model_selector",
+                      "provider_reported_model_id",
+                      "provider_request_id",
+                      "attempt",
+                      "structured_response_artifact_cid",
+                      "validated_structured_output_cid",
+                      "input_tokens",
+                      "output_tokens",
+                      "finish_reason",
+                      "observed_at",
+                      "model_invocation_evidence_cid"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-model-invocation-evidence/0.1"
                       },
-                      {
-                        "type": "array",
-                        "minItems": 2,
-                        "items": {
-                          "type": [
-                            "string",
-                            "number",
-                            "boolean"
-                          ]
-                        }
-                      }
-                    ]
-                  },
-                  "authored_model_selector": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "provider_reported_model_id": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "provider_reported_revision": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "provider_request_id": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "attempt": {
-                    "const": 1
-                  },
-                  "structured_response_artifact_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "validated_structured_output_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "input_tokens": {
-                    "oneOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "output_tokens": {
-                    "oneOf": [
-                      {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "finish_reason": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 256
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "observed_at": {
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
-                  },
-                  "model_invocation_evidence_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "gateway_request_id": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 1024
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "raw_response_artifact_cid": {
-                    "oneOf": [
-                      {
+                      "model_task_contract_cid": {
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "response_profile_cid": {
-                    "type": "string",
-                    "pattern": "^sha256:[0-9a-f]{64}$"
-                  },
-                  "response_complete": {
-                    "const": true
-                  },
-                  "provider_metadata": {
-                    "oneOf": [
-                      {
-                        "type": "object"
+                      "semantic_request_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
                       },
-                      {
-                        "type": "null"
+                      "model_call_slot_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_result_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_row_identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_row_identity": {
+                        "oneOf": [
+                          {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          },
+                          {
+                            "type": "array",
+                            "minItems": 2,
+                            "items": {
+                              "type": [
+                                "string",
+                                "number",
+                                "boolean"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "authored_model_selector": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_reported_model_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_reported_revision": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_request_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "attempt": {
+                        "const": 1
+                      },
+                      "structured_response_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "validated_structured_output_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_tokens": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "output_tokens": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "finish_reason": {
+                        "const": "stop"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                      },
+                      "model_invocation_evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
                       }
-                    ]
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "model_task_contract_cid",
+                      "semantic_request_cid",
+                      "model_call_slot_cid",
+                      "input_result_artifact_cid",
+                      "input_row_identity_cid",
+                      "input_row_identity",
+                      "authored_model_selector",
+                      "provider_reported_model_id",
+                      "provider_request_id",
+                      "attempt",
+                      "structured_response_artifact_cid",
+                      "validated_structured_output_cid",
+                      "input_tokens",
+                      "output_tokens",
+                      "finish_reason",
+                      "observed_at",
+                      "model_invocation_evidence_cid",
+                      "provider_reported_revision",
+                      "gateway_request_id",
+                      "raw_response_artifact_cid",
+                      "response_profile_cid",
+                      "response_complete",
+                      "provider_metadata"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-model-invocation-evidence/0.2"
+                      },
+                      "model_task_contract_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "semantic_request_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "model_call_slot_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_result_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_row_identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_row_identity": {
+                        "oneOf": [
+                          {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          },
+                          {
+                            "type": "array",
+                            "minItems": 2,
+                            "items": {
+                              "type": [
+                                "string",
+                                "number",
+                                "boolean"
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "authored_model_selector": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_reported_model_id": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "provider_reported_revision": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "provider_request_id": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "attempt": {
+                        "const": 1
+                      },
+                      "structured_response_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "validated_structured_output_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_tokens": {
+                        "oneOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "output_tokens": {
+                        "oneOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "finish_reason": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                      },
+                      "model_invocation_evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "gateway_request_id": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "raw_response_artifact_cid": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "response_profile_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "response_complete": {
+                        "const": true
+                      },
+                      "provider_metadata": {
+                        "oneOf": [
+                          {
+                            "type": "object"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
                   }
-                }
+                ]
               }
             }
           }
@@ -93332,211 +93453,332 @@
                     "type": "object"
                   },
                   "evidence": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "version",
-                      "model_task_contract_cid",
-                      "semantic_request_cid",
-                      "model_call_slot_cid",
-                      "input_result_artifact_cid",
-                      "input_row_identity_cid",
-                      "input_row_identity",
-                      "authored_model_selector",
-                      "provider_reported_model_id",
-                      "provider_request_id",
-                      "attempt",
-                      "structured_response_artifact_cid",
-                      "validated_structured_output_cid",
-                      "input_tokens",
-                      "output_tokens",
-                      "finish_reason",
-                      "observed_at",
-                      "model_invocation_evidence_cid",
-                      "provider_reported_revision",
-                      "gateway_request_id",
-                      "raw_response_artifact_cid",
-                      "response_profile_cid",
-                      "response_complete",
-                      "provider_metadata"
-                    ],
-                    "properties": {
-                      "version": {
-                        "const": "actql-model-invocation-evidence/0.2"
-                      },
-                      "model_task_contract_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "semantic_request_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "model_call_slot_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "input_result_artifact_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "input_row_identity_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "input_row_identity": {
-                        "oneOf": [
-                          {
-                            "type": [
-                              "string",
-                              "number",
-                              "boolean"
-                            ]
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "model_task_contract_cid",
+                          "semantic_request_cid",
+                          "model_call_slot_cid",
+                          "input_result_artifact_cid",
+                          "input_row_identity_cid",
+                          "input_row_identity",
+                          "authored_model_selector",
+                          "provider_reported_model_id",
+                          "provider_request_id",
+                          "attempt",
+                          "structured_response_artifact_cid",
+                          "validated_structured_output_cid",
+                          "input_tokens",
+                          "output_tokens",
+                          "finish_reason",
+                          "observed_at",
+                          "model_invocation_evidence_cid"
+                        ],
+                        "properties": {
+                          "version": {
+                            "const": "actql-model-invocation-evidence/0.1"
                           },
-                          {
-                            "type": "array",
-                            "minItems": 2,
-                            "items": {
-                              "type": [
-                                "string",
-                                "number",
-                                "boolean"
-                              ]
-                            }
-                          }
-                        ]
-                      },
-                      "authored_model_selector": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "provider_reported_model_id": {
-                        "oneOf": [
-                          {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "provider_reported_revision": {
-                        "oneOf": [
-                          {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "provider_request_id": {
-                        "oneOf": [
-                          {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "attempt": {
-                        "const": 1
-                      },
-                      "structured_response_artifact_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "validated_structured_output_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "input_tokens": {
-                        "oneOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "output_tokens": {
-                        "oneOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "finish_reason": {
-                        "oneOf": [
-                          {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 256
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "observed_at": {
-                        "type": "string",
-                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
-                      },
-                      "model_invocation_evidence_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "gateway_request_id": {
-                        "oneOf": [
-                          {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 1024
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "raw_response_artifact_cid": {
-                        "oneOf": [
-                          {
+                          "model_task_contract_cid": {
                             "type": "string",
                             "pattern": "^sha256:[0-9a-f]{64}$"
                           },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "response_profile_cid": {
-                        "type": "string",
-                        "pattern": "^sha256:[0-9a-f]{64}$"
-                      },
-                      "response_complete": {
-                        "const": true
-                      },
-                      "provider_metadata": {
-                        "oneOf": [
-                          {
-                            "type": "object"
+                          "semantic_request_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
                           },
-                          {
-                            "type": "null"
+                          "model_call_slot_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_result_artifact_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_row_identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_row_identity": {
+                            "oneOf": [
+                              {
+                                "type": [
+                                  "string",
+                                  "number",
+                                  "boolean"
+                                ]
+                              },
+                              {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "authored_model_selector": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_reported_model_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_reported_revision": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_request_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "attempt": {
+                            "const": 1
+                          },
+                          "structured_response_artifact_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "validated_structured_output_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_tokens": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "output_tokens": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "finish_reason": {
+                            "const": "stop"
+                          },
+                          "observed_at": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "model_invocation_evidence_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
                           }
-                        ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "model_task_contract_cid",
+                          "semantic_request_cid",
+                          "model_call_slot_cid",
+                          "input_result_artifact_cid",
+                          "input_row_identity_cid",
+                          "input_row_identity",
+                          "authored_model_selector",
+                          "provider_reported_model_id",
+                          "provider_request_id",
+                          "attempt",
+                          "structured_response_artifact_cid",
+                          "validated_structured_output_cid",
+                          "input_tokens",
+                          "output_tokens",
+                          "finish_reason",
+                          "observed_at",
+                          "model_invocation_evidence_cid",
+                          "provider_reported_revision",
+                          "gateway_request_id",
+                          "raw_response_artifact_cid",
+                          "response_profile_cid",
+                          "response_complete",
+                          "provider_metadata"
+                        ],
+                        "properties": {
+                          "version": {
+                            "const": "actql-model-invocation-evidence/0.2"
+                          },
+                          "model_task_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "semantic_request_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "model_call_slot_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_result_artifact_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_row_identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_row_identity": {
+                            "oneOf": [
+                              {
+                                "type": [
+                                  "string",
+                                  "number",
+                                  "boolean"
+                                ]
+                              },
+                              {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "number",
+                                    "boolean"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "authored_model_selector": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_reported_model_id": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "provider_reported_revision": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "provider_request_id": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "attempt": {
+                            "const": 1
+                          },
+                          "structured_response_artifact_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "validated_structured_output_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "input_tokens": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "output_tokens": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "finish_reason": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "observed_at": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "model_invocation_evidence_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "gateway_request_id": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1024
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "raw_response_artifact_cid": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "response_profile_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "response_complete": {
+                            "const": true
+                          },
+                          "provider_metadata": {
+                            "oneOf": [
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
                       }
-                    }
+                    ]
                   }
                 }
               }
