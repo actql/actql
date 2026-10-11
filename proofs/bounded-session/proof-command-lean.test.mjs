@@ -32,7 +32,7 @@ test('real Lean child is stopped and reaped before its interrupted runner closes
     const resultPath = join(directory, 'result.json'), runner = join(directory, 'runner.mjs');
     writeFileSync(runner, `import {writeFileSync} from 'node:fs';
 import {runProofCommand} from ${JSON.stringify(helper)};
-const result=await runProofCommand('lean',['--stdin'],{input:'#eval IO.sleep 60000\n'});
+const result=await runProofCommand('lean',['--stdin'],{input:${JSON.stringify('#eval IO.sleep 60000\n')}});
 writeFileSync(${JSON.stringify(resultPath)},JSON.stringify({...result,error:result.error?.code??null}));
 process.exitCode=result.error||result.signal||result.status!==0?1:0;`);
     const parent = spawn(process.execPath, [runner], {stdio: 'pipe'});
@@ -43,6 +43,7 @@ process.exitCode=result.error||result.signal||result.status!==0?1:0;`);
     t.after(() => { if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGTERM'); });
     let leanPid;
     for (let i = 0; i < 3000 && !leanPid; i++) {
+      assert.equal(parent.exitCode, null, output || 'Runner exited before real Lean startup');
       for (const name of readdirSync('/proc').filter(name => /^\d+$/.test(name))) {
         try {
           const status = readFileSync(`/proc/${name}/status`, 'utf8');
