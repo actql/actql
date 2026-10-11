@@ -40,6 +40,7 @@ fn local_resource_test_grant() -> @credential.LocalCredentialGrant {
 ///|
 fn local_resource_test_remote_grant(
   scope : NativeCredentialScope,
+  max_uses? : Int = 2,
 ) -> @credential.RemoteCredentialGrant {
   @credential.prepare_grant(
     "credential-authority-a",
@@ -57,7 +58,7 @@ fn local_resource_test_remote_grant(
     scope.task_attempt,
     scope.dispatch_request_cid,
     2000000000000L,
-    2,
+    max_uses,
   ).unwrap()
 }
 
@@ -207,6 +208,8 @@ test "Native typed credential adapter restores original use without interpreting
     owned_credential_use_cid(value),
   ).unwrap()
   assert_eq(owned_credential_use_id(restored), "use-local")
+  assert_true(owned_credential_use_matches_ordinal(restored, 1L))
+  assert_false(owned_credential_use_matches_ordinal(restored, 2L))
   assert_eq(owned_credential_use_cid(restored), owned_credential_use_cid(value))
   assert_true(
     admit_owned_credential_use(

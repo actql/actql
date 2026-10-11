@@ -661,6 +661,24 @@ pub fn Database::claim_ordinal(
   key : String,
   max_claims : Int64,
 ) -> Result[Int64, NativeSqliteIssue] {
+  self
+  .claim_ordinal_action(scope, key, max_claims)
+  .map(action => {
+    match action {
+      Fresh(ordinal) | Retained(ordinal) => ordinal
+    }
+  })
+}
+
+///|
+/// Preserve the existing transaction's new/original result. A retained claim
+/// must not be promoted to a fresh send when its separate use record is lost.
+pub fn Database::claim_ordinal_action(
+  self : Database,
+  scope : String,
+  key : String,
+  max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -678,7 +696,22 @@ pub fn Database::claim_ordinal(
       key_bytes.length(),
       max_claims,
     ) {
-    0 | 7 => Ok(database_result_revision_ffi(self))
+    0 => {
+      let ordinal = database_result_revision_ffi(self)
+      if ordinal <= 0L {
+        Err(Physical("invalid bounded claim ordinal"))
+      } else {
+        Ok(Fresh(ordinal))
+      }
+    }
+    7 => {
+      let ordinal = database_result_revision_ffi(self)
+      if ordinal <= 0L {
+        Err(Physical("invalid retained claim ordinal"))
+      } else {
+        Ok(Retained(ordinal))
+      }
+    }
     code => Err(operation_issue(self, code))
   }
 }

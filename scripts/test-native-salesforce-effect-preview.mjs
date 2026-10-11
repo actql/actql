@@ -11,6 +11,7 @@ import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
 const originalLocalReview = process.argv.includes('--original-local-review');
+const directLocalClaimCustody = process.argv.includes('--direct-local-claim-custody');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
@@ -18,6 +19,8 @@ const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-ru
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
 const coreIndex = process.argv.indexOf('--core-test-json');
 const coreArgs = coreIndex < 0 ? undefined : JSON.parse(process.argv[coreIndex + 1]);
+assert(!directLocalClaimCustody || (!originalLocalReview && !residentProposals && coreArgs === undefined),
+  'Direct Local claim custody requires its own finite fixture selection');
 if (coreArgs !== undefined) {
   assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
     'Invalid Native core fixture invocation');
@@ -290,7 +293,14 @@ try {
       else testEnv[key] = process.env[key];
     }
   }
-  const selection = originalLocalReview
+  // The ordinary target fixture also executes this refusal case in its same
+  // Native selection. The dedicated flag narrows execution; it adds no job or
+  // successful writes to the existing Provider expectations.
+  if (!residentProposals && !originalLocalReview) testEnv.ACTQL_TEST_NATIVE_DIRECT_LOCAL_CLAIM_CUSTODY = '1';
+  else delete testEnv.ACTQL_TEST_NATIVE_DIRECT_LOCAL_CLAIM_CUSTODY;
+  const selection = directLocalClaimCustody
+    ? 'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'
+    : originalLocalReview
     ? 'src/platform_native/remote_resident_source_compute_tests/local_client_effect_source_wbtest.mbt'
     : residentOriginalHolder
     ? 'src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt'
@@ -298,10 +308,11 @@ try {
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
     : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
   const moonArgs = coreArgs === undefined ? ['--target', 'native', ...(!originalLocalReview ? ['--strip'] : []), selection,
-    ...(!residentProposals && !originalLocalReview ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
+    ...(!residentProposals && !originalLocalReview && !directLocalClaimCustody ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
       'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt',
       'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'] : []),
-    ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
+    ...(directLocalClaimCustody ? ['--filter', 'Native retained credential claim never repairs*']
+      : residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
       : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
       : residentPreview ? ['--filter', 'Native retained consumer*']
       : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
@@ -320,7 +331,9 @@ try {
       createHash('sha256').update(checkpointReportWire).digest('hex'),
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
     captureProgress: residentOriginalHolder ? await readNativeEffectCaptureProgress(join(root, 'retained')) : undefined,
-    scope: originalLocalReview
+    scope: directLocalClaimCustody
+      ? 'Native credential adapter original ordinal/use custody refusal for Local and Remote types; no adopted Local Host, public CLI, approval or Provider write acceptance'
+      : originalLocalReview
       ? 'Actual accepted original Local Run -> acquired Source and imported Result -> checked protocol Preview -> encrypted capture/Preview/Checkpoint -> original journal waiting -> signed explicit rejection -> retryable cleanup; no public CLI or Provider write or separate-process recovery'
       : residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
@@ -332,15 +345,18 @@ try {
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
       : 'Native HTTPS target observation, signed credential admission and exact bounded Provider write transport; no signed Effect approval, Effect Ledger, Source capture, whole Preview or Cloud apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
-  const expectedWrites = residentProposals || originalLocalReview ? 0 : 2;
+  const expectedWrites = residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 2;
   assert.equal(writes, expectedWrites);
-  assert.equal(rejectedWrites, residentProposals || originalLocalReview ? 0 : 1);
+  assert.equal(rejectedWrites, residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   assert.equal(reviewUploads,residentOriginalHolder?3:0);
   assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
   if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
-  if (originalLocalReview) {
+  if (directLocalClaimCustody) {
+    assert.equal(localRejectionRequests, 0);
+    assert.deepEqual(paths, []);
+  } else if (originalLocalReview) {
     assert.equal(localRejectionRequests, 1);
     assert.deepEqual(paths, []);
   } else if (residentProposals) {

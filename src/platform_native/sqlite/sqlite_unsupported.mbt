@@ -198,6 +198,16 @@ pub fn Database::claim_ordinal(
 }
 
 ///|
+pub fn Database::claim_ordinal_action(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::capacity_usage(
   _self : Database,
   _scope : String,

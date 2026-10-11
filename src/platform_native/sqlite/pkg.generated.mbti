@@ -15,6 +15,7 @@ type Database
 pub fn Database::begin_immediate(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::claim_ordinal_action(Self, String, String, Int64) -> Result[NativeOrdinalClaim, NativeSqliteIssue]
 pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::commit(Self) -> Result[Unit, NativeSqliteIssue]
@@ -51,6 +52,11 @@ pub(all) struct NativeJournalEntry {
 pub(all) struct NativeJournalValue {
   revision : Int64
   body : Bytes
+}
+
+pub(all) enum NativeOrdinalClaim {
+  Fresh(Int64)
+  Retained(Int64)
 }
 
 pub(all) enum NativeSqliteIssue {

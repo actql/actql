@@ -21,6 +21,15 @@ pub(all) struct NativeCapacityUsage {
 }
 
 ///|
+/// The existing bounded claim transaction distinguishes a newly committed
+/// claim from its retained original. Neither variant proves Provider sending
+/// or the presence of a separately saved use/outcome record.
+pub(all) enum NativeOrdinalClaim {
+  Fresh(Int64)
+  Retained(Int64)
+}
+
+///|
 pub(all) struct NativeJournalValue {
   revision : Int64
   body : Bytes

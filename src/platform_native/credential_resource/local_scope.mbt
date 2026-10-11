@@ -241,6 +241,23 @@ fn owned_credential_use_id(credential_use : NativeOwnedCredentialUse) -> String 
 }
 
 ///|
+fn owned_credential_use_matches_ordinal(
+  credential_use : NativeOwnedCredentialUse,
+  ordinal : Int64,
+) -> Bool {
+  match credential_use {
+    RemoteUse(value) =>
+      @credential.credential_use_projection(value)[3] == ordinal.to_string()
+    LocalUse(value) => {
+      let (_, _, saved_ordinal) = @credential.local_credential_use_projection(
+        value,
+      )
+      saved_ordinal.to_int64() == ordinal
+    }
+  }
+}
+
+///|
 fn admit_owned_credential_use(
   grant : NativeOwnedCredentialGrant,
   wire : String,

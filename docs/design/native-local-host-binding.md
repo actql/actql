@@ -203,6 +203,21 @@ ordinal. Claimed and unknown outcomes remain distinct from unsent work and
 never authorize automatic resend. These adapter obligations do not replace
 the Run approval, send-start, reconciliation or cleanup Owners.
 
+The physical SQLite claim transaction already distinguishes a fresh ordinal
+from the retained original. Native credential sending preserves this fact:
+only a newly committed claim can install a use and approach I/O. A retained
+claim readmits its exact saved use and checks the original ordinal, then returns
+`UseAlreadyClaimed` without inserting or repairing it. Missing or corrupt use
+custody returns its typed refusal instead. Explicit query uses the same saved
+use readmission; physical uncertainty remains a typed refusal.
+`UseAlreadyClaimed` does not assert a saved outcome or semantic Effect completion.
+
+Credential query reports transport facts only. Its `succeeded` value means a
+stored HTTP success status, not a confirmed Effect outcome or retained response
+body. The existing Effect response and receipt Owners supply those originals.
+A missing use record, claimed use, unknown outcome or terminal-record failure
+does not establish that a request was unsent or can be sent again.
+
 ## Public execution and restoration
 
 Trusted Host assembly connects to the existing original Submission, pre-start

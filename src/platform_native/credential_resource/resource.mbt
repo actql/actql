@@ -595,12 +595,25 @@ fn call_native_credential_resource_owned_scope(
     return Err(AccessDenied)
   }
   let ordinal = match
-    service.database.claim_ordinal(
+    service.database.claim_ordinal_action(
       use_scope(grant_cid),
       use_id,
       max_uses.to_int64(),
     ) {
-    Ok(value) if value <= 2147483647L => value.to_int()
+    Ok(@sqlite.Retained(original_ordinal)) => {
+      // Verify the retained original without constructing a replacement use.
+      // Missing/corrupt custody is a typed refusal, never a fresh send right.
+      let original_use = match
+        read_owned_credential_use(service, grant, use_id) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if !owned_credential_use_matches_ordinal(original_use, original_ordinal) {
+        return Err(Journal(@sqlite.Collision))
+      }
+      return Err(UseAlreadyClaimed)
+    }
+    Ok(@sqlite.Fresh(value)) if value <= 2147483647L => value.to_int()
     Ok(_) => return Err(InvalidConfiguration)
     Err(issue) => return Err(Journal(issue))
   }
@@ -788,29 +801,11 @@ fn query_native_owned_credential_use(
     }) {
     return Err(AccessDenied)
   }
-  let use_record = match service.database.read(use_scope(grant_cid), use_id) {
+  let admitted_use = match read_owned_credential_use(service, grant, use_id) {
     Ok(value) => value
-    Err(issue) => return Err(Journal(issue))
+    Err(issue) => return Err(issue)
   }
-  let use_record_text = @utf8.decode(use_record.body) catch {
-    _ => return Err(Journal(@sqlite.Collision))
-  }
-  guard first_newline(use_record_text) is Some(use_separator) else {
-    return Err(Journal(@sqlite.Collision))
-  }
-  let use_cid = use_record_text.unsafe_substring(start=0, end=use_separator)
-  let use_json = use_record_text.unsafe_substring(
-    start=use_separator + 1,
-    end=use_record_text.length(),
-  )
-  let admitted_use = match
-    admit_owned_credential_use(grant, use_json, use_cid) {
-    Ok(value) => value
-    Err(issue) => return Err(Credential(issue))
-  }
-  if owned_credential_use_id(admitted_use) != use_id {
-    return Err(Journal(@sqlite.Collision))
-  }
+  let use_cid = owned_credential_use_cid(admitted_use)
   if !authorize_owned_credential(service, scope, {
       stage: "return",
       grant_cid,
@@ -844,4 +839,39 @@ fn query_native_owned_credential_use(
     return Err(Journal(@sqlite.Collision))
   }
   Ok({ use_cid, outcome: name, status, })
+}
+
+///|
+// Exact original use readmission shared by retained-claim refusal and query.
+// This performs no claim, record repair, outcome inference or Provider I/O.
+fn read_owned_credential_use(
+  service : NativeCredentialResourceService,
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
+  let grant_cid = owned_credential_grant_cid(grant)
+  let use_record = match service.database.read(use_scope(grant_cid), use_id) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let use_record_text = @utf8.decode(use_record.body) catch {
+    _ => return Err(Journal(@sqlite.Collision))
+  }
+  guard first_newline(use_record_text) is Some(use_separator) else {
+    return Err(Journal(@sqlite.Collision))
+  }
+  let use_cid = use_record_text.unsafe_substring(start=0, end=use_separator)
+  let use_json = use_record_text.unsafe_substring(
+    start=use_separator + 1,
+    end=use_record_text.length(),
+  )
+  let admitted_use = match
+    admit_owned_credential_use(grant, use_json, use_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(Credential(issue))
+  }
+  if owned_credential_use_id(admitted_use) != use_id {
+    return Err(Journal(@sqlite.Collision))
+  }
+  Ok(admitted_use)
 }
