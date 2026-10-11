@@ -85,6 +85,7 @@ class NativeFixture(PhysicalFixture):
 
 fixture = NativeFixture()
 ticket = 0
+projection_inputs = {}
 
 
 def copy(value):
@@ -95,7 +96,25 @@ def copy(value):
 
 
 def call(family, name, *args):
-    return fixture.exports['actql_' + family + '_' + name](fixture.store, fixture.nonce, *args)
+    result = fixture.exports['actql_' + family + '_' + name](fixture.store, fixture.nonce, *args)
+    # These fixture inputs are distinct from the semantic child and its borrow.
+    # Only the original Owner's successful close permits retiring the input.
+    input_position = {
+        ('source_publication', 'reserve'): 1,
+        ('publication', 'reserve'): 1,
+        ('run', 'install_configuration'): 0,
+    }.get((family, name))
+    if input_position is not None and result > 0:
+        projection_inputs[(family, result)] = args[input_position]
+    if (name == 'close' and family in ('source_publication', 'publication') or
+            family == 'run' and name == 'close_configuration') and result == 0:
+        input_handle = projection_inputs.get((family, args[0]))
+        if input_handle is not None:
+            status = fixture.call('close', input_handle)
+            assert status == 0, ('Fixture input cleanup after original Owner close',
+                                 family, args[0], input_handle, status)
+            del projection_inputs[(family, args[0])]
+    return result
 
 
 def assert_status(family, name, expected, *args):
