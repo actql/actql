@@ -134,7 +134,11 @@ fn scan_chat_envelope_field(
           if @decode.array_length(value) == Some(1) &&
             @decode.element_at(value, 0) is Some(choice) &&
             @decode.object_length(choice) is Some(_) {
-            cursor.frames.push({ source: choice, role: ChoiceEnvelope, next: 0, })
+            cursor.frames.push({
+              source: choice,
+              role: ChoiceEnvelope,
+              next: 0,
+            })
           } else {
             facts.malformed = true
           }
@@ -156,7 +160,11 @@ fn scan_chat_envelope_field(
         "usage" =>
           if !@decode.is_null(value) {
             if @decode.object_length(value) is Some(_) {
-              cursor.frames.push({ source: value, role: UsageEnvelope, next: 0, })
+              cursor.frames.push({
+                source: value,
+                role: UsageEnvelope,
+                next: 0,
+              })
             } else {
               facts.malformed = true
             }
@@ -179,7 +187,11 @@ fn scan_chat_envelope_field(
         "message" => {
           facts.message_seen = true
           if @decode.object_length(value) is Some(_) {
-            cursor.frames.push({ source: value, role: MessageEnvelope, next: 0, })
+            cursor.frames.push({
+              source: value,
+              role: MessageEnvelope,
+              next: 0,
+            })
           } else {
             facts.malformed = true
           }
@@ -199,18 +211,12 @@ fn scan_chat_envelope_field(
             Ok(answer) => facts.answer = Some(answer)
             _ => facts.malformed = true
           }
-        "refusal" =>
-          if !@decode.is_null(value) {
-            facts.refused = true
-          }
+        "refusal" => if !@decode.is_null(value) { facts.refused = true }
         "tool_calls" | "annotations" =>
           if !@decode.is_null(value) && @decode.array_length(value) != Some(0) {
             facts.malformed = true
           }
-        "audio" =>
-          if !@decode.is_null(value) {
-            facts.malformed = true
-          }
+        "audio" => if !@decode.is_null(value) { facts.malformed = true }
         _ => ()
       }
     UsageEnvelope =>
