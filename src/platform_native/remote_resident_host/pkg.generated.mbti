@@ -172,6 +172,7 @@ pub(all) struct ResidentDelivery {
 
 type ResidentEffectCaptureCustody
 pub fn ResidentEffectCaptureCustody::confirm(Self) -> Result[@run_publication.PublicationContract, ResidentEffectCaptureCustodyIssue]
+pub fn ResidentEffectCaptureCustody::original_computation_representation_extent(Self, Int, Int, Int) -> Result[Array[@run_publication.PublicationRepresentationExtent], ResidentEffectCaptureCustodyIssue]
 pub fn ResidentEffectCaptureCustody::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectCaptureCustodyIssue]
 pub fn ResidentEffectCaptureCustody::retry_cleanup(Self) -> Result[Bool, ResidentEffectCaptureCustodyIssue]
 

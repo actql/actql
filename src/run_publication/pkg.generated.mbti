@@ -584,6 +584,8 @@ pub fn publication_contract_json(PublicationContract) -> String
 
 pub fn publication_contract_name(PublicationContract) -> String
 
+pub fn publication_contract_representation_extent(PublicationContract, Int, Int, Int) -> Result[PublicationRepresentationExtent, PublicationContractIssue]
+
 pub fn publication_evidence_workspace(Int) -> Int
 
 pub fn publication_finalization_action_code(PublicationFinalizationAction) -> Int
@@ -1431,6 +1433,13 @@ pub(all) enum PublicationPublisherStage {
   Request
   Commit
   ReturnCommitted
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PublicationRepresentationExtent {
+  contract_records : Int64
+  contract_strings : Int64
+  contract_text_utf16_units : Int64
+  canonical : @canonical_json.CanonicalRepresentationExtent
 } derive(Eq, @debug.Debug)
 
 pub(all) struct PublicationRequestContext {
