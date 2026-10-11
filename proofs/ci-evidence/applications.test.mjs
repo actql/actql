@@ -14,7 +14,8 @@ const runtime = {profile: 'controlled-test-runtime', unresolved: []};
 const files = new Map([...sharedFiles.map(path => [path, path]), [catalogPath, encode(catalog)],
   ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'production'],
   ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(path => [`proofs/bounded-session/${path}`, path])]);
-  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
+for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
+  files.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
 function tree(source = files) {
   return {entries: new Map([...source].map(([path]) => [path, {mode: '100644', kind: 'blob'}])),
     read: path => Buffer.from(source.get(path))};

@@ -64,27 +64,37 @@ test('a real Events theorem edit invalidates all Bridge obligations without inva
   }
 });
 
-test('reviewed inventory model admission changes no eager Session input read boundary', () => {
+test('reviewed inventory and runner extension preserve eager Session isolation and retained history', () => {
   const path = pipelineInventoryBoundary.path;
   const old = execFileSync('git', ['--no-replace-objects', 'show', `38f7801241a0a5ce32a2861a8603960016a29769^:${path}`], {cwd: root}).toString();
   const current = original.read(path).toString();
   assert.equal(hash(old), '9a7c1ffef354d2ba1cd60b70f7bbac7c68b49aac378a60cb5a0f66cb4b937e43');
   assert.equal(hash(current), pipelineInventoryBoundary.digest);
-  // Only two Node builtin imports and the separately invoked checkBaseline
-  // function changed. Snapshot/hash and all eager declarations are identical.
+  // The two builtin imports, exact reviewed helper and separately invoked
+  // checkBaseline changed. Snapshot/hash and eager declarations are identical.
   const prefix = text => text.slice(0, text.indexOf('export function checkBaseline('));
   assert.deepEqual(prefix(current)
     .replace("import { spawnSync } from 'node:child_process';\n", '')
-    .replace("import assert from 'node:assert/strict';\n", ''), prefix(old));
-  const introduced = execFileSync('git', ['--no-replace-objects', 'show', `38f7801241a0a5ce32a2861a8603960016a29769:${path}`], {cwd: root});
+    .replace("import assert from 'node:assert/strict';\n", '')
+    .replace("import {checkProofRunnerExtension} from './proof-runner-extension.mjs';\n", ''), prefix(old));
+  const introduced = execFileSync('git', ['--no-replace-objects', 'show', `6e1955f4a2d9598e0292f603a1d928b8d631b108:${path}`], {cwd: root});
   assert.equal(hash(introduced), hash(current), 'Unreviewed function or top-level change');
+  const helperPath = 'proofs/relation-pipeline/proof-runner-extension.mjs';
+  const helper = original.read(helperPath).toString();
+  assert.equal(hash(helper), 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb');
+  assert.equal(hash(execFileSync('git', ['--no-replace-objects', 'show',
+    `6e1955f4a2d9598e0292f603a1d928b8d631b108:${helperPath}`], {cwd: root})), hash(helper));
+  assert.equal(readFileSync(new URL(`../../${helperPath}`, import.meta.url)).toString(), helper);
   assert.equal(readFileSync(new URL(`../../${path}`, import.meta.url)).toString(), current,
     'The executed module must match the actual Git input');
   // Execute the actual module with filesystem/child-process effects refused.
-  // Preload its exact bytes so Node's own filesystem module loader is not
-  // mistaken for an eager effect of the module. Its imports are Node builtins.
-  const execute = source => {
-    const url = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+  // Preload both exact modules so Node's filesystem loader is not mistaken
+  // for an eager effect. Only the reviewed relative import is substituted.
+  const execute = (source, helperSource = helper) => {
+    const helperUrl = `data:text/javascript;base64,${Buffer.from(helperSource).toString('base64')}`;
+    assert.equal(source.split("'./proof-runner-extension.mjs'").length, 2);
+    const loaded = source.replace("'./proof-runner-extension.mjs'", JSON.stringify(helperUrl));
+    const url = `data:text/javascript;base64,${Buffer.from(loaded).toString('base64')}`;
     const input = `import fs from 'node:fs'; import child from 'node:child_process';
     import {syncBuiltinESMExports} from 'node:module';
     const refuse=()=>{throw new Error('Eager inventory effect');};
@@ -100,4 +110,7 @@ test('reviewed inventory model admission changes no eager Session input read bou
   assert.throws(() => execute(`${current}\nreadFileSync('unlisted-scientific-input');\n`),
     error => error.status !== 0 && /Eager inventory effect/u.test(error.stderr),
     'The preload must still refuse an independently introduced eager read');
+  assert.throws(() => execute(current, `${helper}\nspawnSync('unlisted-scientific-command');\n`),
+    error => error.status !== 0 && /Eager inventory effect/u.test(error.stderr),
+    'The transitive preload must refuse an independently introduced eager process');
 });

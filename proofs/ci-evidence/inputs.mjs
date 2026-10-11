@@ -6,13 +6,18 @@ import {reviewedPackageConfiguration, packageConfigurationReview} from './packag
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
-// The only pipeline module evaluated by the shared Session image utilities.
-// At this reviewed boundary it imports Node built-ins only and has no top-level
-// filesystem reads. New bytes require reviewing its imports/effects before a
-// closed key may be issued; changing the digest is not an automatic review.
+// The shared Session image utilities evaluate the inventory and its exact
+// proof-runner extension. The extension imports Node built-ins only; neither
+// module performs top-level I/O. Baseline history reads remain behind explicit
+// function calls. New bytes require reviewing this complete import/effect
+// boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '127927a4a7738ae1f0efa67da9a5ffbc8b6e68eaf6cbc713fee6a9f3763acf50',
+  digest: '4a471bec262620016adef787f3b5a78c652d9c5caf2e2a26ed9d0890874c1cff',
+  dependencies: Object.freeze([Object.freeze({
+    path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
+    digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',
+  })]),
 });
 // The mutation executor also reads these audit inputs during restoration.
 export const mutationSnapshotExtras = Object.freeze([
@@ -25,6 +30,7 @@ const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.t
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
   pipelineInventoryBoundary.path,
+  ...pipelineInventoryBoundary.dependencies.map(entry => entry.path),
   'proofs/ci-evidence/costs.mjs',
   'proofs/ci-evidence/execution-recipes.mjs',
   'proofs/events-bridge/evidence.mjs',
@@ -248,11 +254,13 @@ export function actionInputs({tree, revision, action, runtime}) {
   sharedFiles.forEach(add);
   // Pipeline scientific consumers are now loaded only in explicit local
   // pipeline executions. Their directory is not read/evaluated by Session.
-  // Retain the one eagerly imported inventory module and refuse an unreviewed
-  // expansion of that remaining import/effect boundary.
-  const inventory = tree.entries.get(pipelineInventoryBoundary.path);
-  if (inventory?.kind !== 'blob' || hash(tree.read(pipelineInventoryBoundary.path)) !== pipelineInventoryBoundary.digest)
-    unresolved.add('unreviewed pipeline inventory import/effect boundary');
+  // Bind every evaluated module in the reviewed inventory import graph. A
+  // changed dependency cannot inherit the inventory's unchanged digest.
+  for (const {path, digest} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]) {
+    const entry = tree.entries.get(path);
+    if (entry?.kind !== 'blob' || entry.mode !== '100644' || hash(tree.read(path)) !== digest)
+      unresolved.add('unreviewed pipeline inventory import/effect boundary');
+  }
   function bridgeInputs() {
     listing('proofs/events-bridge', true);
     for (const file of ['Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean',
