@@ -1,10 +1,10 @@
 # Native holder Provider installation for Resume
 
 The Remote holder accepts an optional operator-controlled `--effect-resume-root`
-directory. It opens the existing credential Resource service before the Source
-start claim and supplies it to the original-Reviewer Resume consumer. Absence
-keeps the existing no-send path. An incomplete or invalid present installation
-refuses setup; it does not silently disable the configuration.
+directory. On the first exact Resume it opens the existing credential Resource
+service and supplies it to the original-Reviewer consumer. Absence keeps the
+existing no-send path. An incomplete or invalid present installation retains
+the same task/Review as pending; it does not restart Source or Compute.
 
 ## Trusted configuration
 
@@ -49,7 +49,8 @@ read and existing Native verifier/Host admission still provide that check.
 The holder retains the exact HTTP client and SQLite database until their close
 operations succeed. Each success flag is set after its actual close, so retry
 does not double-close a completed resource. Setup failure retains its primary
-reason while retrying acquired resources, before any Source claim. Installation
+reason while retrying acquired resources, before any Provider use or send. The
+existing Source/Compute/Review and slot obligations remain with their Owners. Installation
 closure is separate from Effect outcome, Ledger cleanup and dispatch release.
 
 ## Completion boundary

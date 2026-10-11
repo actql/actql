@@ -106,6 +106,8 @@ pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPrepared
 
 pub fn prepare_local_preflight_commit_candidate(LocalPublicationPreflight, LocalRunManifest, LocalRunNormalization, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, @execution_authorization.AdmittedAccountConfiguration, LocalPublicationIntentLimits, Int) -> Result[(@run_publication.PublicationContract, @run_publication.PublicationCommitPreparation), LocalPublicationIntentIssue]
 
+pub fn prepare_local_preflight_payload_replay(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRequest, @execution_authorization.AdmittedAccountConfiguration) -> Result[@run_publication_host.PublicationOutputReplay, LocalPublicationPayloadIssue]
+
 pub fn prepare_local_preflight_payload_request(LocalPublicationPreflight, Int, LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int64) -> Result[@publication_payload.PublicationPayloadRequest, LocalPublicationPayloadIssue]
 
 pub fn prepare_local_publication_intent(LocalRunPlan, String, String, String, String, String, String, String?, String, LocalPublicationIntentLimits) -> Result[LocalPublicationIntent, LocalPublicationIntentIssue]

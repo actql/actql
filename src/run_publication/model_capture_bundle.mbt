@@ -143,6 +143,14 @@ pub fn model_capture_bundle_record(
     @json.object_field(record, "structured_response") is Some(response) else {
     return Err(RunEvidenceInvalidShape)
   }
+  // A new bundle's exact discriminator admits old and new records separately.
+  // Check the individual closed record without copying or rewriting its tree;
+  // its original self CID is verified below, not replaced by the bundle CID.
+  if !validate_generated_protocol_shape(
+      "model_invocation_evidence", body, true, 16384, 1024, 16,
+    ) {
+    return Err(RunEvidenceInvalidShape)
+  }
   let evidence = match
     run_evidence_value(
       "model_invocation_evidence", "model_invocation_evidence_cid", body, 16384,

@@ -1879,11 +1879,27 @@ export async function openLocalPublicationStore(
           holding.objects.length !== 1) {
         fail('PublicationPrivateEvidenceUnavailable');
       }
-      const chunks = [];
-      await consumePhysicalHolding(holdingCid, 0,
-        chunk => chunks.push(Buffer.from(chunk)));
+      const expectedBytes = holding.objects[0].byte_count;
+      if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 ||
+          expectedBytes > configuration.maxObjectBytes) {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
+      // The existing holding owns an exact bounded file. Receive directly
+      // into one buffer instead of retaining copied chunks plus their concat.
+      // No bytes escape before consumePhysicalHolding and AEAD both succeed.
+      const bytes = Buffer.alloc(expectedBytes);
+      let receivedBytes = 0;
+      await consumePhysicalHolding(holdingCid, 0, chunk => {
+        if (chunk.byteLength > expectedBytes - receivedBytes) {
+          fail('PublicationPrivateEvidenceCorrupt');
+        }
+        bytes.set(chunk, receivedBytes);
+        receivedBytes += chunk.byteLength;
+      });
+      if (receivedBytes !== expectedBytes) {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
       try {
-        const bytes = Buffer.concat(chunks);
         let envelope;
         try { envelope = JSON.parse(bytes.toString('utf8')); }
         catch (error) { fail('PublicationPrivateEvidenceCorrupt', error); }

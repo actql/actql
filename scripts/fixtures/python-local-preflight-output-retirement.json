@@ -1,0 +1,22 @@
+{
+  "description": "Independently authored retirement expectations; not generated from a Wasm run.",
+  "capacity_bytes": 8388608,
+  "wire_capacity_bytes": 1048576,
+  "physical_copy_allowance_bytes": 2097200,
+  "projection_allocation_bytes": 4194352,
+  "retire_pending_status": -9,
+  "unprepared_retire_status": -33,
+  "retired_projection_length_status": -33,
+  "retired_projection_byte_status": -2,
+  "original_input_close_while_borrowed_status": -9,
+  "original_source_close_while_pinned_status": -9,
+  "successful_output_cleanup_calls": 2,
+  "cases": [
+    "unfinished_projection_cannot_retire_semantic_custody",
+    "same_output_cleanup_retry_releases_only_exact_allocation",
+    "retired_output_refuses_reads_and_keeps_original_input_borrow",
+    "original_commit_candidate_uses_same_retired_output_preflight",
+    "source_close_retains_original_pin_after_transport_retirement",
+    "full_close_returns_same_original_input_borrow_after_tasks"
+  ]
+}

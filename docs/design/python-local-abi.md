@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 20; this private ABI
+before opening the instance. `actql_host_abi_version` returns 26; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -57,6 +57,18 @@ repeat cleanup. Acknowledged input close discards its private loan and completio
 record; repeated transfers do not accumulate released descriptors.
 Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
+
+The private payload-request projection borrows one original completed Result
+publication and its exact physical input. The input contains only the Store
+authority CID, material generation CID and payload byte ceiling. The existing
+Core payload Owner derives the schema, order, logical Result, exact byte count,
+row count and original publication attempt. This projection does not write a
+payload, install a Store, authorize a publisher or acknowledge durable commit.
+Current Run and Source authorization is checked before each production call,
+including reuse of a completed projection. Its output is bounded to 65,536
+bytes; cleanup failure retains the same child, parent pin and input borrow.
+The parent refuses close until that child is released. Retiring the earlier
+preflight transport output preserves the original semantic preflight used here.
 
 All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
 and admitted before the physical callback runs. Input imports are
@@ -1045,3 +1057,31 @@ keeps the same child and reservation available for cleanup retry. No Source or
 Compute replay is part of this operation. Binding output proves neither Store
 commit nor durable publication, admission, recovery or a Run outcome. The
 physical Store must still verify its payload and current publication authority.
+
+
+Private ABI 24 adds `actql_publication_preflight_retire_output`. After the Host
+has copied the original request/attempt projection, this operation retires only
+that output allocation through the existing buffer Owner. Pending physical
+cleanup returns `-9` and retains the same output reservation and handle. Only
+successful cleanup marks the output closed. Repeating successful retirement
+performs no second physical cleanup. Output reads then refuse; the Python bridge
+has also discarded its transport bytes through the original cleanup callback.
+
+The original semantic preflight, admitted request/attempt, Source pin and exact
+input borrow stay live. Task activation and later original commit preparation
+still use that nominal preflight and recheck current authority. Output retirement
+is neither preflight close nor publisher permission. Full preflight close keeps
+its existing child guards and returns the original input borrow only after its
+stop/cleanup responsibilities complete. Failed earlier Source/input close cannot
+release their held capacity. No capacity formula, resource ceiling or fuel budget
+changes, and no Source or Compute is repeated to recover space.
+
+The private ABI26 `actql_publication_retire_output` releases only the completed
+publication wire projection through the existing buffer Owner. A successful
+retirement preserves original Receipt/Captured Run roots, Result pins, preflight
+and exact input borrow for child binding and commit validation. Cleanup failure
+retains the same output handle and allocation; only successful cleanup marks the
+transport closed. Retirement grants neither publisher authority nor Store
+acceptance. Full close still waits for children and returns the original borrow.
+The private Python method discards its copied wire only after the same physical
+cleanup succeeds, while retaining its nominal semantic loan.
