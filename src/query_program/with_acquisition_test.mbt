@@ -98,7 +98,14 @@ test "WITH set and constructor references reuse one captured input" {
     )
     if needs_source_view {
       assert_true(
-        prepared is Err(BindingPreparation(LocalProgram(Pipeline(_, { kind: MissingPropertyProducerDefinition, .. })))),
+        prepared
+        is Err(
+          BindingPreparation(
+            LocalProgram(
+              Pipeline(_, { kind: MissingPropertyProducerDefinition, .. })
+            )
+          )
+        ),
         msg="a bare schema cannot grant Graph producer provenance",
       )
       continue
@@ -188,7 +195,7 @@ test "WITH imports only used inputs and preserves input and Stage budgets" {
 }
 
 ///|
-test "WITH capture preserves published Relation names and WITH alias names" {
+test "WITH Graph capture resolves quoted names before refusing absent provenance" {
   let context = { ..fixture_context(), captured_stage: Some("capture"), }
   for
     text in [
@@ -201,7 +208,13 @@ test "WITH capture preserves published Relation names and WITH alias names" {
         context,
         construction_limits(),
       )
-      is Err(BindingPreparation(LocalProgram(Pipeline(_, { kind: MissingPropertyProducerDefinition, .. })))),
+      is Err(
+        BindingPreparation(
+          LocalProgram(
+            Pipeline(_, { kind: MissingPropertyProducerDefinition, .. })
+          )
+        )
+      ),
       msg="resolved quoted inputs still require common Graph provenance",
     )
   }
