@@ -7,6 +7,7 @@ pub(all) enum LocalResultPublicationIssue {
   Manifest(@publication.ResultManifestIssuanceIssue)
   Normalization(LocalRunNormalizationIssue)
   Receipt(@publication.RunReceiptIssuanceIssue)
+  ForeignReceipt
   Invocation(@publication.RunEvidenceValueIssue)
   Authoring(@host.ClientAuthoringContextIssue)
   Output(@host.PublicationOutputExportIssue)
@@ -315,6 +316,74 @@ pub fn local_run_manifest_contract(
   value : LocalRunManifest,
 ) -> @publication.PublicationContract {
   value.manifest
+}
+
+///|
+/// Connect the original completed inventory to the existing bounded commit
+/// validator. This issues no Store permission, commit fact or Run outcome.
+/// The physical Host must recheck current authority around every yield and
+/// before installing bytes, and retain all inputs until finish or cancel.
+pub fn start_local_publication_commit_check(
+  value : LocalRunManifest,
+  normalization : LocalRunNormalization,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  bindings : Array[@publication.PublicationContract],
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  account : @authorization.AdmittedAccountConfiguration,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace_slots : Int,
+) -> Result[
+  @publication.PublicationCommitPreparation,
+  LocalResultPublicationIssue,
+] {
+  for result in value.results {
+    match validate_local_result_publication_current(result, account) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  // A separately sealed Receipt cannot replace the original admission,
+  // compilation-bound journal, Source facts or complete Result inventory.
+  let original_receipt = match
+    issue_local_run_receipt(
+      value, normalization, account, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(original) => original
+    Err(issue) => return Err(issue)
+  }
+  if @publication.publication_contract_identity(original_receipt) !=
+    @publication.publication_contract_identity(receipt) ||
+    @publication.publication_contract_json(original_receipt) !=
+    @publication.publication_contract_json(receipt) {
+    return Err(ForeignReceipt)
+  }
+  Ok(
+    @publication.start_effect_free_publication_commit_check(
+      value.host.plan.definition,
+      value.invocation.invocation,
+      value.results.map(result => result.definition),
+      value.results.map(result => result.artifact),
+      value.results.map(result => result.derivation),
+      value.results.map(result => result.ordering),
+      value.results.map(result => result.retention),
+      bindings,
+      value.manifest,
+      original_receipt,
+      captured_run,
+      request,
+      attempt,
+      index_entry,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      max_workspace_slots,
+    ),
+  )
 }
 
 ///|

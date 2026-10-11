@@ -109,6 +109,8 @@ pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@exec
 
 pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysicalStart, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[@host.NativeHostRun, LocalNativeSourceIssue]
 
+pub fn start_local_publication_commit_check(LocalRunManifest, LocalRunNormalization, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[@run_publication.PublicationCommitPreparation, LocalResultPublicationIssue]
+
 pub fn start_local_result_publication_snapshot(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication_host.PublicationOutputSnapshotPreparation, LocalResultPublicationIssue]
 
 pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
@@ -178,6 +180,7 @@ pub(all) enum LocalResultPublicationIssue {
   Manifest(@run_publication.ResultManifestIssuanceIssue)
   Normalization(LocalRunNormalizationIssue)
   Receipt(@run_publication.RunReceiptIssuanceIssue)
+  ForeignReceipt
   Invocation(@run_publication.RunEvidenceValueIssue)
   Authoring(@run_publication_host.ClientAuthoringContextIssue)
   Output(@run_publication_host.PublicationOutputExportIssue)
