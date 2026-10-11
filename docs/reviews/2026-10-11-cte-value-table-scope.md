@@ -77,6 +77,41 @@ Pinned Node 22.22.0 and MoonBit 0.10.12+1634b282e were used.
 These runs verify the working source committed in the following change, not
 Hosted CI or packed execution. Receipts are under the worktree's
 `_build/local-checks/attempts/<run>/summary.json`; focused logs are retained.
-Normal five-package production and exact-revision Local/HTTPS execution remain
-pending at this record. Full Core, Wasm/Native execution, Hosted CI and vendor
-differential tests were not run. No merge operation was performed.
+Full Core, Wasm/Native execution, Hosted CI and vendor differential tests were
+not run. No merge operation was performed.
+
+
+## First exact-revision packed attempt and public-entry correction
+
+Source `38869c519bd17c7085ecb1e61ca90b302bdfc02f` produced the ordinary five
+packages successfully (`run-HgpWqx`, 300-second bound). The manifest and SHA256
+checks are retained at
+`/private/tmp/actql-b-cte-value-table-38869c519-pack/packed-client-packages.json`.
+The same-SHA nine-normal/two-refusal acceptance (`run-YnOL0q`, 300-second bound)
+passed the first independent JSON control in both Local and HTTPS, then rejected
+`cte-value-table-scalar` with `ClientProgramInvalidInput`. Later normal cases
+and both refusal cases were not reached. This is not completed public acceptance.
+Evidence is retained in
+`worktrees/.codex-scratch/public-query-evidence-OajfVU` (relative to the workspace
+root), including worker termination receipts. Both children terminated,
+`liveChildren` was zero, the guard reported complete output and released locks,
+and the actual Heavy and worktree lock paths were absent. The shared slot was
+handed to E after that verification, without deleting a lock.
+
+The first compiler tests called `compile_query_script` directly. The public
+SQL/Text entry instead called `compile`, whose ordinary CTE route had not been
+connected to the retained value-table metadata. Two public-entry scalar/object
+regressions failed **0/2** in `run-6Usq9v`, before the routing correction. A prior
+attempt `run-cYDQ8F` failed test compilation because enum values lacked explicit
+type qualification; it is not a product counterexample.
+
+The correction dispatches CTEs containing UNNEST to the existing Script
+producer-binding route. It does not decide their output kind in the dispatcher:
+`compile_steps` still applies SELECT, OFFSET and subsequent operators. Existing
+CTEs without UNNEST retain their route. A focused selection covering the public
+entry, existing CTE forms, capture predicates and parenthesized JOIN passed
+**18/18** (`run-AXtjf4`). Public ordinary-row and exact hidden-name assertions
+were then added as consuming-route coverage and passed **3/3** (`run-dR0stQ`).
+The intermediate `run-jWGAqz` was a test-import qualification error before
+execution, not a product failure. New-SHA packages and public execution must be
+verified separately; the old tarballs are not relabeled.

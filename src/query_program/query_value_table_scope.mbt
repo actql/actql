@@ -51,3 +51,29 @@ fn bind_value_table_scope(
     },
   }
 }
+
+///|
+// Select the existing producer-binding route for CTEs containing UNNEST.
+// This only dispatches lowering; compile_steps determines the actual output
+// kind after SELECT, OFFSET and subsequent operations, without guessing types.
+fn has_cte_unnest_input(query : @query.Query) -> Bool {
+  let pending = [(query, false)]
+  while pending.pop() is Some((current, inside_cte)) {
+    if inside_cte {
+      for index in 0..<@query.operation_count(current) {
+        if @query.operation_at(current, index) is Some(UnnestSource(_, _, _)) {
+          return true
+        }
+      }
+    }
+    for index in 0..<@query.cte_count(current) {
+      pending.push((@query.cte_at(current, index).unwrap().query, true))
+    }
+    for index in 0..<@query.set_part_count(current) {
+      pending.push(
+        (@query.set_part_at(current, index).unwrap().right, inside_cte),
+      )
+    }
+  }
+  false
+}

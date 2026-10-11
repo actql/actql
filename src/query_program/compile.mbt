@@ -6708,7 +6708,8 @@ pub fn compile(
 ) -> Result[@program.Program, Issue] {
   if @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
-    has_pipe_range_input(query) {
+    has_pipe_range_input(query) ||
+    has_cte_unnest_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
