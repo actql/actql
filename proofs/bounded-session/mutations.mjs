@@ -3,7 +3,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import {runRestoredMutation} from './mutation-command.mjs';
 import { snapshot } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -42,20 +42,15 @@ for (const [id, path, original, changed, suite, filter] of cases) {
   const file = join(root, path);
   const source = readFileSync(file, 'utf8');
   if (source.split(original).length !== 2) throw new Error(`Mutation site not unique: ${id}`);
-  let result;
-  try {
-    writeFileSync(file, source.replace(original, changed));
-    result = spawnSync(join(home, 'bin/moon'), ['test', suite, '--target', 'js', '--deny-warn', '--filter', filter], {
-      cwd: root, env, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
+  const result = await runRestoredMutation(file, source, source.replace(original, changed),
+    join(home, 'bin/moon'), ['test', suite, '--target', 'js', '--deny-warn', '--filter', filter], {
+      cwd: root, env, maxBuffer: 4 * 1024 * 1024,
     });
-  } finally {
-    writeFileSync(file, source);
-  }
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `mutation-${id}.log`), output);
   const count = Number(output.match(/Total tests: \d+, passed: \d+, failed: (\d+)/)?.[1] ?? 0);
-  if (result.error || result.status === 0 || count === 0 || /Error: \[\d+\]/.test(output)) {
-    throw result.error ?? new Error(`Mutation ${id} was not killed by a running assertion: ${output}`);
+  if (result.error || result.interrupted || result.signal || result.status === 0 || count === 0 || /Error: \[\d+\]/.test(output)) {
+    throw result.error ?? new Error(`Mutation ${id} was not killed by a running assertion (${result.interrupted ?? result.signal ?? result.status}): ${output}`);
   }
   results.push({ id, path, suite, target: 'js', filter, killed: true, failureCount: count });
   console.log(`${id}: detected by replacement tests`);
