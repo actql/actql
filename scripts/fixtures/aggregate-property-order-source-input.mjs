@@ -159,3 +159,24 @@ export const aggregatePropertyOrderExecutionFailures = [{
 }];
 aggregatePropertyOrderSuccesses.push(...aggregateOrderParameterSuccesses);
 aggregatePropertyOrderRefusals.push(...aggregateOrderParameterRefusals);
+
+
+// Grouped delimiter literals retain decoded bytes and existing aggregate order.
+aggregatePropertyOrderSuccesses.push(
+  success('grouped-delimiter-sql', "SELECT STRING_AGG(name, (('' /* separator */ '|')) ORDER BY payload.score NULLS LAST, id) AS names FROM objects"),
+  success('grouped-delimiter-pipe-raw', "FROM objects |> AGGREGATE STRING_AGG(name, ((r'\\n' '\\r')) ORDER BY payload.score NULLS LAST, id) AS names", {
+    expected: [{names: 'b\\n\rb\\n\ra\\n\rc'}],
+  }),
+  success('grouped-delimiter-empty', "SELECT STRING_AGG(name, ('|') ORDER BY payload.score NULLS LAST, id) AS names FROM objects", {
+    sourceRows: [], expected: [{names: null}],
+  }),
+);
+for (const [kind, value] of [
+  ['number', '((1))'], ['parameter', '((@p1))'],
+  ['null', '((NULL))'], ['computed', "(('a' || 'b'))"],
+]) {
+  aggregatePropertyOrderRefusals.push({name: 'aggregate-property-order-refuse-grouped-delimiter-' + kind,
+    format: 'aql-text', text: data + 'SELECT STRING_AGG(name, ' + value
+      + ' ORDER BY payload.score NULLS LAST, id) AS names FROM objects',
+    parameterDeclarations, parameters, expectedCode: 'ClientProgramInvalidInput'});
+}
