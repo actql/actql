@@ -153,6 +153,18 @@ fn model_reported_response_owned(
       }
       original
     }
+    Some(PhysicalChatResponse(raw)) => {
+      guard call.decoded_response is Some(original) &&
+        original.observation.raw_response_artifact_cid ==
+        Some(raw.raw_response_artifact_cid) &&
+        original.observation.observed_at == raw.observed_at &&
+        raw.transport_eof &&
+        raw.status >= 200 &&
+        raw.status < 300 else {
+        return false
+      }
+      original
+    }
     _ => return false
   }
   physical_equal(original.value, response.value) &&

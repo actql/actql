@@ -76,9 +76,12 @@ fn async_response_fixture(
   release : Ref[Bool],
   observed : @model.ModelPhysicalCallPoll,
   limits? : Limits = standard_limits(),
+  current? : Ref[@authorization.AdmittedAccountConfiguration] = Ref(
+    evidence_account(@authorization.Allow),
+  ),
+  now? : Ref[String] = Ref("2026-10-02T00:00:00.000Z"),
+  observe_call? : (@model.ModelPhysicalCall) -> Unit = _ => (),
 ) -> (Execution, Int64) raise {
-  let current = Ref(evidence_account(@authorization.Allow))
-  let now = Ref("2026-10-02T00:00:00.000Z")
   let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
   let (active, prepared, admission, work) = entry_gate_fixture(
@@ -116,8 +119,9 @@ fn async_response_fixture(
                     release.val
                   },
                 )
-                if call is Some(_) {
+                if call is Some(original) {
                   calls.val += 1
+                  observe_call(original)
                 }
                 call
               },

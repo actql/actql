@@ -1813,6 +1813,10 @@ export async function openLocalPublicationStore(
       let size = 0;
       const stream = handle.createReadStream({autoClose: false});
       for await (const chunk of stream) {
+        if (chunk.byteLength > before.size - size ||
+            chunk.byteLength > configuration.maxObjectBytes - size) {
+          fail('PublicationContractCorrupt');
+        }
         chunks.push(chunk);
         hash.update(chunk);
         size += chunk.byteLength;
@@ -1864,7 +1868,9 @@ export async function openLocalPublicationStore(
     }
     return decoded;
   };
-  const readPrivateEvidence = async (name, semanticCid, holdingCid) => {
+  const readPrivateEvidenceObject = async (
+    name, semanticCid, holdingCid, index = 0, objectCount = 1,
+  ) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
       fail('InvalidPublicationPrivateEvidence');
@@ -1876,10 +1882,10 @@ export async function openLocalPublicationStore(
       const holding = await inspectPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
           holding.manifest_cid !== semanticCid ||
-          holding.objects.length !== 1) {
+          holding.objects.length !== objectCount) {
         fail('PublicationPrivateEvidenceUnavailable');
       }
-      const expectedBytes = holding.objects[0].byte_count;
+      const expectedBytes = holding.objects[index].byte_count;
       if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 ||
           expectedBytes > configuration.maxObjectBytes) {
         fail('PublicationPrivateEvidenceCorrupt');
@@ -1889,7 +1895,7 @@ export async function openLocalPublicationStore(
       // No bytes escape before consumePhysicalHolding and AEAD both succeed.
       const bytes = Buffer.alloc(expectedBytes);
       let receivedBytes = 0;
-      await consumePhysicalHolding(holdingCid, 0, chunk => {
+      await consumePhysicalHolding(holdingCid, index, chunk => {
         if (chunk.byteLength > expectedBytes - receivedBytes) {
           fail('PublicationPrivateEvidenceCorrupt');
         }
@@ -1922,11 +1928,13 @@ export async function openLocalPublicationStore(
       key.fill(0);
     }
   };
-  const preparePrivateEvidence = async (name, wire, semanticCid) => {
+  const readPrivateEvidence = (name, semanticCid, holdingCid) =>
+    readPrivateEvidenceObject(name, semanticCid, holdingCid);
+  const preparePrivateEvidenceBytes = async (name, bytes, semanticCid) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
-        typeof wire !== 'string' ||
-        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+        !(bytes instanceof Uint8Array) ||
+        bytes.byteLength > configuration.maxObjectBytes) {
       fail('InvalidPublicationPrivateEvidence');
     }
     cidHex(semanticCid);
@@ -1935,7 +1943,7 @@ export async function openLocalPublicationStore(
     const cipher = createCipheriv('aes-256-gcm', key, nonce);
     cipher.setAAD(privateEvidenceAad(name, semanticCid));
     const ciphertext = Buffer.concat([
-      cipher.update(wire, 'utf8'), cipher.final(),
+      cipher.update(bytes), cipher.final(),
     ]);
     const envelope = Buffer.from(JSON.stringify({
       version: 'actql-private-publication-evidence/0.1',
@@ -1961,6 +1969,126 @@ export async function openLocalPublicationStore(
       }
       throw error;
     }
+  };
+  // The historical String path retains exactly its old encoding and AAD.
+  const preparePrivateEvidence = (name, wire, semanticCid) => {
+    active();
+    if (typeof wire !== 'string' ||
+        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    return preparePrivateEvidenceBytes(name, Buffer.from(wire, 'utf8'), semanticCid);
+  };
+
+  // The portable Model/Publication issuer supplies the admitted descriptor
+  // binding. This physical port proves exact bytes and Store durability only;
+  // it cannot select a policy, authorize capture, or issue a Model receipt.
+  const validateModelRawBinding = binding => {
+    if (!exactKeys(binding, [
+      'semanticCid', 'holdingCid', 'wire', 'contentCid', 'byteCount',
+    ]) || typeof binding.wire !== 'string' ||
+        Buffer.byteLength(binding.wire, 'utf8') > configuration.maxObjectBytes ||
+        !quantity(binding.byteCount) ||
+        binding.byteCount > configuration.maxObjectBytes) {
+      fail('InvalidPublicationModelRawEvidence');
+    }
+    for (const cid of [binding.semanticCid, binding.holdingCid, binding.contentCid]) {
+      cidHex(cid);
+    }
+  };
+  const verifyModelRawBytes = (binding, bytes) => {
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength !== binding.byteCount ||
+        `sha256:${createHash('sha256').update(bytes).digest('hex')}` !==
+          binding.contentCid) {
+      fail('PublicationModelRawContentMismatch');
+    }
+  };
+  const prepareModelRawEvidence = async (binding, bytes) => {
+    active();
+    validateModelRawBinding(binding);
+    verifyModelRawBytes(binding, bytes);
+    // Hash and encrypt the same borrowed physical bytes before the first
+    // await. No caller callback can change the content between these steps.
+    const content = await preparePrivateEvidenceBytes(
+      'model_raw_content', bytes, binding.semanticCid,
+    );
+    try {
+      const descriptor = await preparePrivateEvidence(
+        'model_raw_descriptor', binding.wire, binding.semanticCid,
+      );
+      return Object.freeze([descriptor, content]);
+    } catch (error) {
+      try { await content.prepared.release(); }
+      catch (cleanupError) {
+        // Keep the existing retry owner rather than losing a prepared object
+        // when construction of the second original object fails.
+        error.cleanupFailure = cleanupError;
+        error.cleanupPending = true;
+        error.cleanupHandle = content.prepared;
+      }
+      throw error;
+    }
+  };
+  const readModelRawEvidence = async binding => {
+    active();
+    validateModelRawBinding(binding);
+    const record = await inspectPhysicalHolding(binding.holdingCid);
+    if (record === undefined) return undefined;
+    if (record.namespace !== 'publication-private' ||
+        record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
+      fail('PublicationPrivateEvidenceUnavailable');
+    }
+    const descriptor = await readPrivateEvidenceObject(
+      'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2,
+    );
+    if (!descriptor.equals(Buffer.from(binding.wire, 'utf8'))) {
+      fail('PublicationPrivateEvidenceConflict');
+    }
+    const bytes = await readPrivateEvidenceObject(
+      'model_raw_content', binding.semanticCid, binding.holdingCid, 1, 2,
+    );
+    verifyModelRawBytes(binding, bytes);
+    return bytes;
+  };
+  const confirmModelRawEvidence = async binding => {
+    const bytes = await readModelRawEvidence(binding);
+    if (bytes === undefined) return undefined;
+    const record = await inspectPhysicalHolding(binding.holdingCid);
+    // A readable directory link is not the nominal saved observation. The
+    // adapter may report saved only after this existing durability boundary.
+    await commitPhysicalHolding(record, []);
+    return Object.freeze({record, bytes});
+  };
+
+  // Availability of exact common-owner-admitted originals, not policy
+  // selection or permission. Keep this check separate from raw-cell commit:
+  // semantic adoption and physical persistence are different observations.
+  const confirmModelRawCaptureOriginals = async (originals, storeAuthorityCid) => {
+    active();
+    const kinds = ['retention_contract', 'metadata_retention_policy',
+      'clock_contract', 'data_policy'];
+    if (storeAuthorityCid !== configuration.storeAuthorityCid ||
+        !Array.isArray(originals) || originals.length !== kinds.length) {
+      fail('InvalidPublicationModelRawOriginals');
+    }
+    // Freeze the finite expected references before any Store await. This does
+    // not clone body trees or reinterpret a body in a JS policy evaluator.
+    const expected = originals.map((original, index) => {
+      if (!exactKeys(original, ['kind', 'cid', 'wire']) ||
+          original.kind !== kinds[index] || typeof original.wire !== 'string' ||
+          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidPublicationModelRawOriginals');
+      }
+      cidHex(original.cid);
+      return Object.freeze({...original});
+    });
+    for (const original of expected) {
+      const stored = await readSemanticBytes(original.cid);
+      if (!stored.equals(Buffer.from(original.wire, 'utf8'))) {
+        fail('PublicationModelRawOriginalMismatch');
+      }
+    }
+    return true;
   };
 
   const readContract = async (cid, contractName) => {
@@ -5096,6 +5224,10 @@ export async function openLocalPublicationStore(
     putSemantic,
     preparePrivateEvidence,
     confirmPrivateEvidence,
+    prepareModelRawEvidence,
+    readModelRawEvidence,
+    confirmModelRawEvidence,
+    confirmModelRawCaptureOriginals,
     putPreparedResultSchema,
     putPublicationContract,
     verifyObject,

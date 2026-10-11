@@ -9,6 +9,8 @@ fn null_response_decode(work : Int, bytes? : Int = 4) -> ModelResponseDecode {
       ).unwrap(),
     ),
     remaining: work,
+    raw_chat: None,
+    observation: None,
     limits: {
       request_bytes: 1,
       response_bytes: bytes,

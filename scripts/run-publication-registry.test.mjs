@@ -25,6 +25,8 @@ test('publication schemas are closed and self identities are explicit', () => {
     delivery_attempt: 'delivery_attempt_cid',
     delivery_record: 'delivery_record_cid',
     public_index_entry: 'public_index_entry_cid',
+    model_raw_capture_policy: 'self_cid',
+    model_raw_response: 'self_cid',
   };
   assert.deepEqual(Object.keys(schemas), Object.keys(selfFields));
   for (const [name, field] of Object.entries(selfFields)) {

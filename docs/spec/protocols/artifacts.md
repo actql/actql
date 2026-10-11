@@ -991,6 +991,61 @@ errors rather than truncating to a first row. Canonical CSV is unchanged; human
 formatting or formula escaping is an explicit transformation producing a distinct
 artifact, while original bytes remain an Artifact.
 
+## Private Model raw response custody
+
+The owned `actql-model-raw-capture-policy/0.1` body fixes a Host-selected
+private capture purpose, original Run/ModelTask/invocation scope, physical
+response profile, Store authority, effective data policy, actual retention
+contract, metadata retention policy and clock contract. Its timestamp members
+are explicit Host selections, not derived from Provider retention or a Result
+policy. Their canonical order is
+`selected_at <= available_until <= delete_by <= extension_ceiling_at` and
+`delete_by <= metadata_delete_by`. Retry, restart and a late saved acknowledgement
+do not extend any of these values. Integrity admission of this body or its
+references is not authority to capture, read, disclose or execute.
+
+The installed Host's private registration must bind these admitted originals
+to the original compiled observation policy, actual private capture permission,
+selected policy applicability, trusted clock and existing Store custody.
+An encryption key, authority string, caller CID or Provider retention claim is
+not this registration. Private saving and disclosure are separately authorized;
+expiry, revocation and cleanup use the existing Artifact/Store owners.
+
+The closed `actql-model-raw-response/0.1` envelope identifies one original Run,
+scope, Slot, attempt (initial index 1), existing `entered` phase, response
+profile, Store authority and selected raw capture policy. It records the exact
+raw content CID, observed byte count, actual HTTP status and transport EOF,
+and the Host's observation timestamp. Missing model/request/usage/media facts
+are not filled. Its identity excludes exactly `self_cid`; raw content is hashed
+as original bytes, independently of the canonical descriptor and later
+structured-response identity. There is no future Invocation reference or
+response-success assertion in either preimage. Existing closed bodies and
+their preimages are unchanged.
+
+The existing private holding retains an encrypted descriptor and original
+encrypted byte object under the same scoped cell. A trusted Store adapter
+reconfirms both byte identities and directory durability before reporting a
+saved observation to the original Model Entry owner. A different Entry cannot
+adopt that observation by presenting equal CID strings. The saved observation
+is not dispatch, completion, retention or disclosure permission. A lost commit
+response reconciles the same cell; unresolved persistence remains pending or
+unknown without another Model send.
+
+Invalid UTF-8, malformed JSON, a rejected shape and partial/no-EOF responses
+may have saved raw observations but do not become successful answers. Only
+fatal UTF-8 decoding of the same confirmed complete body may enter the Chat
+child. All remaining raw bytes, decoded text, parser/answer aliases, Store
+encoding/AEAD buffers and controls remain included in the original Ledger's
+funded simultaneous holding until actually retired. Saving alone does not prove
+heap retirement or enable an unfunded public profile.
+
+<!-- model-raw-capture-pins:start -->
+```text
+../../../spec/contracts/actql-run-publication.json#/schemas/model_raw_capture_policy sha256:f542a5957ce196eb56105b6b5a81aa4f51c38ccc24d335855b8df0dad3dcac21
+../../../spec/contracts/actql-run-publication.json#/schemas/model_raw_response sha256:07f7c91e32a97d3aaf58381b2fee15bed860021875b3cb2b0e5fc646aa5a5ca6
+```
+<!-- model-raw-capture-pins:end -->
+
 <a id="machine-contracts"></a>
 
 ## Machine contracts
@@ -1016,8 +1071,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
 ../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:2e809c8c0fd41f544551bfa7053014b884167a8b51b843969e78206c2e7e5202
-../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:17cc4f2a763d52bee4a75bc8e6b934f62225fac9cb9fd42b93776824bac75e71
-../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:12bb213201492c20dbd28dc66363d75b0b7015f7025bf20cd333ed97a6ef4b04
+../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:d76ac2e50e40e09e63bafeda10e0405ef340d4647d82b25a6743527aaf4c10bf
+../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:c5021666b9906ee2f250962a9e2e9b5521605cb5a3a828dcb58f155e83bf6b28
 ../../../spec/contracts/actql-run-publication.json#/laws sha256:9d6de1a60e727f7ef6b594aa59b9b7a39d7045fa8950d48851574585f8aa6474
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_source sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_barrier sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd

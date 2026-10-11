@@ -22,6 +22,20 @@ pub(all) struct ModelPhysicalEncodedResponse {
 }
 
 ///|
+/// Original non-streaming Chat response custody. These are physical facts,
+/// not a provider's selected answer, completion proof or dispatch authority.
+/// Artifact persistence and its exact raw bytes remain the installed caller's
+/// responsibility; this child never canonicalizes or replaces their identity.
+pub(all) struct ModelPhysicalChatResponse {
+  body : String
+  status : Int
+  transport_eof : Bool
+  raw_response_artifact_cid : String
+  observed_at : String
+  provider_metadata : @canonical.CanonicalValue?
+}
+
+///|
 /// Partial usage survives a rejected response and an unknown remote result.
 /// A missing observation remains None; reservation maxima are not actuals.
 pub(all) struct ModelPhysicalUsage {
@@ -34,6 +48,7 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalPending
   PhysicalResponse(ModelPhysicalResponse)
   PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
+  PhysicalChatResponse(ModelPhysicalChatResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
 }
@@ -186,6 +201,11 @@ fn observe_model_physical_usage(
   call : ModelPhysicalCall,
   observed : ModelPhysicalCallPoll,
 ) -> Result[Unit, ModelExecutionIssue] {
+  // Raw usage has not been decoded yet. Do not cache unknown quantities and
+  // thereby discard actual usage discovered by the original Common child.
+  if observed is PhysicalChatResponse(_) {
+    return call.usage_result.unwrap_or(Ok(()))
+  }
   if call.usage_result is Some(original) {
     return original
   }
@@ -219,7 +239,7 @@ fn observe_original_model_physical_usage(
         output_tokens: response.observation.output_tokens,
       }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
-    PhysicalPending => return Ok(())
+    PhysicalPending | PhysicalChatResponse(_) => return Ok(())
   }
   if !valid_model_optional_tokens(usage.input_tokens) ||
     !valid_model_optional_tokens(usage.output_tokens) {
@@ -285,6 +305,10 @@ fn advance_model_physical_response(
     PhysicalEncodedResponse(response) => {
       observe_model_physical(state, InvokeReturned)
       begin_encoded_model_response(state, prepared, response, reader)
+    }
+    PhysicalChatResponse(response) => {
+      observe_model_physical(state, InvokeReturned)
+      begin_chat_model_response(state, prepared, response, reader)
     }
   }
 }

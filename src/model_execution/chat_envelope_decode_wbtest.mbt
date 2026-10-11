@@ -56,13 +56,8 @@ test "chat envelope preserves original answer and nullable actual metadata at sm
   assert_eq(one.provider_request_id, None)
   assert_eq(one.input_tokens, None)
   assert_eq(one.output_tokens, Some(7L))
-  let object = @decode.open_object(one.original).unwrap()
-  let extra = @decode.lookup(object, "opaque").unwrap()
-  let opaque_object = @decode.open_object(extra).unwrap()
-  assert_eq(
-    @decode.text(@decode.lookup(opaque_object, "__proto__").unwrap()).unwrap(),
-    "original é\r\n",
-  )
+  // Full unknown-data preservation belongs to the original entered raw
+  // terminal/Artifact, exercised by the actual Model caller regression.
 }
 
 ///|
@@ -95,7 +90,6 @@ test "chat envelope rejection retains observed usage regardless of field order" 
     assert_false(chat_envelope_complete(facts))
     assert_eq(facts.input_tokens, Some(3L))
     assert_eq(facts.output_tokens, None)
-    assert_true(@decode.object_length(facts.original) is Some(_))
   }
 }
 
@@ -187,7 +181,6 @@ test "chat envelope field scan exact work is one field plus retirement and trans
       remaining: work,
       frames: [{ source: original, role: RootEnvelope, next: 0, }],
       facts: Some({
-        original,
         answer: None,
         provider_model: None,
         provider_request_id: None,

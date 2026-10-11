@@ -24,10 +24,10 @@ priv struct ChatEnvelopeFrame {
 }
 
 ///|
-// Preserve the entire admitted original, including unknown opaque metadata.
-// No SDK-generated defaults or configured model name enter these facts.
+// Selected actual facts only. The entered physical terminal/Artifact keeps
+// the complete original wire, including unknown data, until custody retires.
+// Do not retain a second decoded root after the envelope child completes.
 priv struct ChatEnvelopeFacts {
-  original : @decode.Cursor
   mut answer : String?
   mut provider_model : String?
   mut provider_request_id : String?
@@ -295,7 +295,6 @@ fn advance_chat_envelope_decode(
             return Err(OutputValue)
           }
           cursor.facts = Some({
-            original: root,
             answer: None,
             provider_model: None,
             provider_request_id: None,
