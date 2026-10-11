@@ -10,6 +10,7 @@ pub(all) enum ResidentEffectOriginalReviewIssue {
   Store(@publication_store.NativePublicationStoreIssue)
   Capture(@publication.PublicationContractIssue)
   Preview(@publication.EffectPreviewIdentityIssue)
+  Chain(@publication.RunEvidenceChainIssue)
 }
 
 ///|
@@ -17,6 +18,7 @@ priv struct OriginalEffectReviewFields {
   captured_wire : String
   review_wire : String
   authoring_cid : String
+  original_computation_wire : String?
 }
 
 ///|
@@ -86,7 +88,13 @@ fn original_effect_review_fields(
     original_review_text(value, "preview_cid") ==
     Some(checkpoint.checkpoint.required_artifact_cid) &&
     @canonical.object_field(value, "provider") is Some(provider) &&
-    @canonical.object_field_count(provider) == Some(6) &&
+    (
+      @canonical.object_field_count(provider) == Some(6) ||
+      (
+        @canonical.object_field_count(provider) == Some(7) &&
+        original_review_text(provider, "original_computation_wire") is Some(_)
+      )
+    ) &&
     original_review_text(provider, "retained_input_binding") ==
     Some(binding_wire) &&
     original_review_text(provider, "store_authority_cid") == Some(authority) &&
@@ -113,7 +121,84 @@ fn original_effect_review_fields(
     checkpoint.checkpoint.review_projection_cid {
     return Err(BindingMismatch)
   }
-  Ok({ captured_wire, review_wire, authoring_cid, })
+  Ok({
+    captured_wire,
+    review_wire,
+    authoring_cid,
+    original_computation_wire: original_review_text(
+      provider, "original_computation_wire",
+    ),
+  })
+}
+
+///|
+/// Parsing proves only contract shape. The caller must join this complete
+/// original snapshot to authenticated Checkpoint bytes, independent original
+/// context and the existing whole computation-chain Owner before using it.
+fn original_computation_evidence_fields(
+  wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[
+  OriginalResidentEffectComputationEvidence,
+  ResidentEffectOriginalReviewIssue,
+] {
+  let value = try {
+    let value = @canonical.from_json(
+      @json.parse(wire),
+      limits.max_nodes,
+      limits.max_depth,
+      limits.max_wire_bytes,
+      data_keys=true,
+    )
+    if @canonical.stringify_value(
+        value,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) !=
+      wire {
+      return Err(MalformedContinuation)
+    }
+    value
+  } catch {
+    _ => return Err(MalformedContinuation)
+  }
+  if @canonical.object_field_count(value) != Some(6) {
+    return Err(BindingMismatch)
+  }
+  let contracts : Array[@publication.PublicationContract] = []
+  for
+    (field, kind) in [
+      ("run_definition_wire", "run_definition"),
+      ("invocation_wire", "run_invocation"),
+      ("result_definition_wire", "result_definition"),
+      ("result_artifact_wire", "result_artifact"),
+      ("result_manifest_wire", "result_manifest"),
+      ("computation_receipt_wire", "run_receipt"),
+    ] {
+    guard original_review_text(value, field) is Some(original) else {
+      return Err(BindingMismatch)
+    }
+    match
+      @publication.admit_publication_contract(
+        kind,
+        original,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => contracts.push(value)
+      Err(issue) => return Err(Capture(issue))
+    }
+  }
+  Ok({
+    run: contracts[0],
+    invocation: contracts[1],
+    definition: contracts[2],
+    artifact: contracts[3],
+    manifest: contracts[4],
+    receipt: contracts[5],
+  })
 }
 
 ///|
@@ -218,7 +303,7 @@ pub fn ResidentEffectReviewInputContext::read_original_review_projection(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match
+  let captured = match
     @publication.admit_publication_contract(
       "captured_run",
       fields.captured_wire,
@@ -226,7 +311,7 @@ pub fn ResidentEffectReviewInputContext::read_original_review_projection(
       limits.max_nodes,
       limits.max_depth,
     ) {
-    Ok(_) => ()
+    Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
   let identity = match
@@ -245,6 +330,39 @@ pub fn ResidentEffectReviewInputContext::read_original_review_projection(
     checkpoint.checkpoint.required_artifact_cid {
     return Err(BindingMismatch)
   }
+  if fields.original_computation_wire is Some(original_wire) {
+    let original = match
+      original_computation_evidence_fields(original_wire, limits) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if @publication.publication_contract_json(original.run) !=
+      @publication.publication_contract_json(facts.materials.run_definition) ||
+      @publication.publication_contract_json(original.invocation) !=
+      @publication.publication_contract_json(facts.producer.invocation) {
+      return Err(BindingMismatch)
+    }
+    match
+      @publication.validate_effectful_computation_evidence_chain(
+        original.run,
+        original.invocation,
+        [original.definition],
+        [original.artifact],
+        original.manifest,
+        original.receipt,
+        captured,
+        identity,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Chain(issue))
+    }
+  }
+  // A projection from an older record remains historical disclosure evidence,
+  // not a full restored computation. Missing originals are never reconstructed
+  // from current values or treated as authority to execute another Effect.
   let preview = match
     store.restore_effect_preview_custody(
       identity,

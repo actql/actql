@@ -236,6 +236,7 @@ pub(all) enum ResidentEffectOriginalReviewIssue {
   Store(@publication_store.NativePublicationStoreIssue)
   Capture(@run_publication.PublicationContractIssue)
   Preview(@run_publication.EffectPreviewIdentityIssue)
+  Chain(@run_publication.RunEvidenceChainIssue)
 }
 
 type ResidentEffectPreviewCustody

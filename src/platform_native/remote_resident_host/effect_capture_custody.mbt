@@ -13,6 +13,20 @@ pub(all) struct ResidentEffectCaptureCustodyFailure {
 }
 
 ///|
+/// The complete original computation chain already accepted by the existing
+/// capture binding Owner. These are bounded contract references, not another
+/// output borrow, execution handle or authority. Cleanup drops them only after
+/// both physical custody and the original reservation are settled.
+priv struct OriginalResidentEffectComputationEvidence {
+  run : @publication.PublicationContract
+  invocation : @publication.PublicationContract
+  definition : @publication.PublicationContract
+  artifact : @publication.PublicationContract
+  manifest : @publication.PublicationContract
+  receipt : @publication.PublicationContract
+}
+
+///|
 /// Independent encrypted capture custody. It never replaces input, receiver,
 /// borrow or Named Result ownership and grants no permission to apply/resume.
 struct ResidentEffectCaptureCustody {
@@ -23,6 +37,7 @@ struct ResidentEffectCaptureCustody {
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   mut released : Bool
+  mut original : OriginalResidentEffectComputationEvidence?
 }
 
 ///|
@@ -93,6 +108,14 @@ pub fn ResidentSourceCompute::persist_effect_capture(
         ledger,
         reservation,
         released: false,
+        original: Some({
+          run: materials.run_definition,
+          invocation,
+          definition: result.definition,
+          artifact: result.artifact,
+          manifest: result.manifest,
+          receipt: result.receipt,
+        }),
       }
       self.effect_captures[holding] = owner
       owner
@@ -155,6 +178,7 @@ pub fn ResidentEffectCaptureCustody::retry_cleanup(
     Ok(_) => ()
     Err(issue) => return Err(Capacity(issue))
   }
+  self.original = None
   self.released = true
   Ok(true)
 }
