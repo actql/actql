@@ -230,7 +230,8 @@ fn finish_checked_topology(
     guard imported is Topology(v) else { abort("mixed preparation modes") }
     v
   })
-  let count = @syntax.export_count(@parameters.program(source))
+  let program = @parameters.complete_program(source)
+  let count = program.map(@syntax.export_count).unwrap_or(0)
   if count > limits.max_exports || count > limits.max_work {
     return Err(BudgetExceeded)
   }
@@ -239,7 +240,7 @@ fn finish_checked_topology(
   let exports : Array[CheckedTopologyExport] = []
   for i in 0..<count {
     let (name, producer, result) = @syntax.export_at(
-      @parameters.program(source),
+      program.unwrap(),
       i,
     ).unwrap()
     for value in [name, producer, result] {

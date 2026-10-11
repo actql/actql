@@ -131,7 +131,7 @@ fn assemble_operations(
   remaining = { ..remaining, max_work: remaining.max_work - reference_count, }
   let index = match
     @references.build(
-      @stage.program_body(source.program),
+      source_body(source),
       source.declarations,
       slots,
       {

@@ -37,6 +37,26 @@ pub struct Program {
 }
 
 ///|
+/// A generated, check-only pipeline prefix. The last Stage has no publication
+/// roots; earlier Stages keep their actual Result definitions and import edges.
+/// This type has no conversion to a complete Program or execution permission.
+pub struct Prefix {
+  id : String
+  priv stages : Array[Stage]
+  priv body : @wire.Cursor
+  priv source_usage : @source.ParseUsage
+}
+
+///|
+priv struct Envelope {
+  id : String
+  stages : Array[Stage]
+  exports : Array[(String, String, String)]
+  body : @wire.Cursor
+  source_usage : @source.ParseUsage
+}
+
+///|
 /// The declared opaque names are public Program structure. Concrete reference
 /// values remain invocation material and are never read through this accessor.
 pub fn program_binding_names(program : Program) -> Array[String] {
@@ -162,6 +182,29 @@ fn decode(
   max_stages : Int,
   source_usage : @source.ParseUsage,
 ) -> Program raise Abort {
+  let value = decode_envelope(root, max_stages, source_usage, prefix=false)
+  { id: value.id, stages: value.stages, exports: value.exports,
+    body: value.body, source_usage: value.source_usage, }
+}
+
+///|
+fn decode_prefix(
+  root : @wire.Cursor,
+  max_stages : Int,
+  source_usage : @source.ParseUsage,
+) -> Prefix raise Abort {
+  let value = decode_envelope(root, max_stages, source_usage, prefix=true)
+  { id: value.id, stages: value.stages,
+    body: value.body, source_usage: value.source_usage, }
+}
+
+///|
+fn decode_envelope(
+  root : @wire.Cursor,
+  max_stages : Int,
+  source_usage : @source.ParseUsage,
+  prefix~ : Bool,
+) -> Envelope raise Abort {
   let view = object(root, [
     "version", "id", "meta", "params", "bindings", "stages", "results",
   ])
@@ -277,7 +320,12 @@ fn decode(
     }
     // Effects are roots even without public Results. This is structural syntax,
     // not authorization: every Effect still needs the common semantic checker.
-    if results.is_empty() && effects.is_empty() {
+    let open_prefix = prefix && stages.length() == nodes.length() - 1
+    if open_prefix {
+      if !results.is_empty() || !effects.is_empty() || !table_inputs.is_empty() {
+        invalid(results_node, PrefixPublication)
+      }
+    } else if results.is_empty() && effects.is_empty() {
       invalid(results_node, EmptyDeclarations)
     }
     let value = {
@@ -297,7 +345,11 @@ fn decode(
   }
   let exports_node = required(view, "results")
   let export_names = names(exports_node, false)
-  if export_names.is_empty() && !stages.any(stage => !stage.effects.is_empty()) {
+  if prefix {
+    if !export_names.is_empty() {
+      invalid(exports_node, PrefixPublication)
+    }
+  } else if export_names.is_empty() && !stages.any(stage => !stage.effects.is_empty()) {
     invalid(exports_node, EmptyDeclarations)
   }
   let exports_view = open(exports_node)
@@ -387,4 +439,15 @@ pub fn effect_names(stage : Stage) -> Array[String] {
 ///|
 pub fn program_body(program : Program) -> @wire.Cursor {
   program.body
+}
+
+///|
+/// Original owned Cursor, including imported origins. No Result is synthesized.
+pub fn prefix_body(prefix : Prefix) -> @wire.Cursor {
+  prefix.body
+}
+
+///|
+pub fn prefix_stages(prefix : Prefix) -> Array[Stage] {
+  prefix.stages.copy()
 }

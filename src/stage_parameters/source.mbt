@@ -1,6 +1,7 @@
 ///|
 struct Source {
-  program : @stage.Program
+  program : @stage.Program?
+  prefix : @stage.Prefix?
   stages : Array[@stage.Stage]
   declarations : @parameter.Declarations
 }
@@ -35,7 +36,7 @@ pub fn prepare(
   match @parameter.read_declarations(@decode.lookup(root, "params"), limits) {
     Err(e) => Err(Declarations(e))
     Ok(declarations) =>
-      Ok({ program, stages: @stage.stages(program), declarations, })
+      Ok({ program: Some(program), prefix: None, stages: @stage.stages(program), declarations, })
   }
 }
 
@@ -45,8 +46,36 @@ pub fn declarations(source : Source) -> @parameter.Declarations {
 }
 
 ///|
+/// Complete sources only. Mixed static callers use complete_program instead.
 pub fn program(source : Source) -> @stage.Program {
+  source.program.unwrap()
+}
+
+///|
+/// A prefix cannot be converted into an admitted complete Program.
+pub fn complete_program(source : Source) -> @stage.Program? {
   source.program
+}
+
+///|
+/// Retain declarations from the actual opaque prefix owner, never a caller map.
+pub fn prepare_prefix(
+  prefix : @stage.Prefix,
+  limits : @parameter.DeclarationLimits,
+) -> Result[Source, Issue] {
+  let root = @decode.open_object(@stage.prefix_body(prefix)).unwrap()
+  match @parameter.read_declarations(@decode.lookup(root, "params"), limits) {
+    Err(e) => Err(Declarations(e))
+    Ok(declarations) => Ok({
+      program: None, prefix: Some(prefix),
+      stages: @stage.prefix_stages(prefix), declarations,
+    })
+  }
+}
+
+///|
+pub fn prefix(source : Source) -> @stage.Prefix? {
+  source.prefix
 }
 
 ///|
@@ -169,4 +198,13 @@ pub fn collection(value : CollectedStage) -> @collection.Collected {
 /// Source input-name checks plus local operation collection work.
 pub fn collection_work(value : CollectedStage) -> Int {
   value.work
+}
+
+///|
+/// Preserve the actual complete or check-only source tree for declaration use.
+pub fn source_body(source : Source) -> @decode.Cursor {
+  match source.program {
+    Some(program) => @stage.program_body(program)
+    None => @stage.prefix_body(source.prefix.unwrap())
+  }
 }
