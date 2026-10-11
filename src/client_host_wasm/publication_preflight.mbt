@@ -271,6 +271,29 @@ pub fn publication_preflight_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+#export_name("actql_publication_preflight_retire_output")
+pub fn retire_publication_preflight_output(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publication_preflights.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.pending || !record.produced || record.preflight is None {
+    return -33
+  }
+  if record.output_closed {
+    return 0
+  }
+  // Only the transient projection retires. Original semantic evidence, Source
+  // custody and the exact input borrow remain until full preflight close.
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code == 0 {
+    record.output_closed = true
+    value.copies.remove(handle) |> ignore
+  }
+  code
+}
+
+///|
 #export_name("actql_publication_preflight_close")
 pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
