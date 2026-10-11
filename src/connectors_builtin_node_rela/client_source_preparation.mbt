@@ -47,6 +47,7 @@ fn client_source_preparation_issue_code(
             // These typed facts come from the existing lowerer. The public
             // submission projection must still establish audience disclosure.
             InvalidQuery
+            | RangeAliasRequiresRelation
             | UnknownColumn
             | AmbiguousColumn
             | AmbiguousRelation

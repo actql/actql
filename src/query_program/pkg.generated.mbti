@@ -97,6 +97,7 @@ pub(all) enum InputSource {
 pub(all) enum Issue {
   InvalidContext
   InvalidQuery
+  RangeAliasRequiresRelation
   UnknownRelation
   UnresolvedRelation(RelationResolutionReference)
   AmbiguousRelation

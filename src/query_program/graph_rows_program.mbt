@@ -124,6 +124,7 @@ fn lower_script_graph_rows(
   positional_set_output? : Bool = false,
   set_head? : Bool = false,
 ) -> Input raise Abort {
+  check_graph_range_alias(query)
   if @query.query_binding_count(query) > 0 ||
     (@query.set_part_count(query) > 0 && !set_head) ||
     @query.join_part_count(query) > 0 ||

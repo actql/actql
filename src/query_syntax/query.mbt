@@ -2631,8 +2631,11 @@ fn QueryParser::pipe(
     if self.has("LABELS") {
       raise QueryAbort("Graph LABELS annotation is retired", self.peek().start)
     }
+    // Preserve authored row aliases for Carrier-specific static checking,
+    // just as marker-free FROM does. The marker grants no row scope.
+    let source_alias = self.optional_source_alias()
     graph = Some({ pattern: None, })
-    (relation, None, [], false)
+    (relation, source_alias, [], false)
   } else if self.has("UNNEST") {
     operations.push(self.unnest_source())
     ([], None, [], false)

@@ -66,6 +66,8 @@ pub(all) enum Issue {
   InvalidContext
   // A proven authored semantic violation, distinct from a lowering gap.
   InvalidQuery
+  // Row range aliases require an actual Relation, independently of FROM spelling.
+  RangeAliasRequiresRelation
   UnknownRelation
   // The existing relation resolver exhausted the admitted inputs for this
   // exact semantic path. This witness alone is not a Source absence proof.
