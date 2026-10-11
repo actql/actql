@@ -139,7 +139,7 @@ fn drive_holder_effect_review(
   tasks : Map[String, HolderTaskCustody],
   journal : @journal.Journal,
   resources : HolderOutputResources,
-  policy : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPolicy?,
+  policy : (HolderEffectOriginalPolicyContext) -> @effect_review.NativeResidentEffectReviewPolicy?,
   publication : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication?,
   authorize_evidence_read : () -> Bool,
 ) -> Bool {
@@ -151,7 +151,34 @@ fn drive_holder_effect_review(
     return false
   }
   if task.effect_review is None {
-    guard policy(task.request) is Some(installed) else { return false }
+    guard holder_effect_original_policy_context(task, tasks, journal)
+      is Some(original) else {
+      return false
+    }
+    guard holder_effect_policy_read_current(
+        () => authorize_evidence_read() && original.current(),
+        () => policy(original),
+      )
+      is Some(installed) else {
+      return false
+    }
+    guard original.invocation(
+        installed.preview_limits.max_wire_bytes,
+        installed.preview_limits.max_nodes,
+        installed.preview_limits.max_depth,
+      )
+      is Some((_, invocation)) &&
+      @effect_catalog.catalog_observation_matches_binding(installed.catalog, {
+        ..installed.catalog.binding,
+        run_invocation_cid: @publication.publication_contract_identity(
+          invocation,
+        ),
+        dispatch_request_cid: @remote.dispatch_request_identity(task.request),
+      }) &&
+      authorize_evidence_read() &&
+      original.current() else {
+      return false
+    }
     if !prepare_holder_effect_review(task, tasks, journal, installed) {
       report("effect-review-pending", [
         ("request_cid", @remote.dispatch_request_identity(task.request)),

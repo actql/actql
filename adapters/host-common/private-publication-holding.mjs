@@ -8,7 +8,7 @@ export function preparePrivatePublicationHolding(store, binding) {
   if (!store || typeof store.confirmPrivateEvidence !== 'function' ||
       typeof store.preparePrivateEvidence !== 'function' ||
       typeof store.commitPhysicalHolding !== 'function' ||
-      !binding || !['effect_preview', 'effect_capture', 'model_capture_bundle',
+      !binding || !['effect_preview', 'effect_capture', 'effect_catalog', 'model_capture_bundle',
         'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
         'model_attempt_outcome', 'model_dispatch_authority', 'observation_set',
         'run_invocation', 'source_evidence']

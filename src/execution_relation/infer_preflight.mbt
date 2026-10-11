@@ -240,14 +240,22 @@ pub fn cleanup_prepared_infer_rows(value : PreparedInferRows) -> Bool {
     for root in value.roots {
       release_logical_root(value.logical, root) |> ignore
     }
-    value.roots.clear()
-    value.keys.clear()
-    value.order.clear()
-    value.values.clear()
+    retire_infer_owned_array(value.roots)
+    retire_infer_owned_array(value.keys)
+    retire_infer_owned_array(value.order)
+    retire_infer_owned_array(value.values)
     release_slots(value.workspace, value.workspace.live)
     value.reclaimed = true
   }
   true
+}
+
+///|
+// Only retire arrays owned by this preparation after their existing custody
+// guard. Non-JS clear alone leaves references in the old backing slots.
+fn[T] retire_infer_owned_array(values : Array[T]) -> Unit {
+  values.clear()
+  values.shrink_to_fit()
 }
 
 ///|
@@ -412,21 +420,21 @@ fn infer_preparation_cleanup(state : InferPreparationState) -> Bool {
   state.recheck = None
   state.comparison = None
   state.snapshot.clear()
-  state.mapped.clear()
+  retire_infer_owned_array(state.mapped)
   if state.sort is Some(sort) {
     close_aggregate_merge_sort(sort)
   }
   state.sort = None
-  state.key_columns.clear()
-  state.source_columns.clear()
+  retire_infer_owned_array(state.key_columns)
+  retire_infer_owned_array(state.source_columns)
   if !state.transferred {
     for root in state.roots {
       release_logical_root(state.logical, root) |> ignore
     }
-    state.roots.clear()
-    state.keys.clear()
-    state.order.clear()
-    state.values.clear()
+    retire_infer_owned_array(state.roots)
+    retire_infer_owned_array(state.keys)
+    retire_infer_owned_array(state.order)
+    retire_infer_owned_array(state.values)
     release_slots(state.workspace, state.workspace.live)
   }
   true
@@ -888,8 +896,8 @@ fn infer_preparation_advance(
       Ok(true) => {
         release_slots(state.workspace, state.key_columns.length())
         release_slots(state.workspace, state.source_columns.length())
-        state.key_columns.clear()
-        state.source_columns.clear()
+        retire_infer_owned_array(state.key_columns)
+        retire_infer_owned_array(state.source_columns)
         state.transferred = true
         return Complete(
           {

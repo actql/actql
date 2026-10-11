@@ -109,3 +109,57 @@ test "Resume Provider installation refuses incomplete and invalid attempts witho
     is None,
   )
 }
+
+///|
+test "Resume Provider installation matches only its actual selected dispatch before resource opening" {
+  let fields = holder_effect_scope_fixture()
+  let scope = holder_effect_provider_scope(
+    fields,
+    "original-workspace",
+    "selected-site",
+    4,
+    "sha256:" + "b".repeat(64),
+    "salesforce",
+    "salesforce/0.1",
+  ).unwrap()
+  let execution = [
+    "selected-site",
+    "4",
+    fields[7],
+    "duckdb",
+    "duckdb/0.1",
+    "strategy",
+    "source-grant",
+    "source-evidence-capability",
+  ]
+  let route = [
+    "coordinator", "selected-site", "4", "dispatch", "run", "task", "3",
+  ]
+  assert_true(
+    holder_effect_provider_dispatch_matches(scope, execution, route, fields[14]),
+  )
+  // Effect grant registration is independent from the Source registration.
+  for index in [0, 1, 2] {
+    let foreign = execution.copy()
+    foreign[index] = "foreign"
+    assert_false(
+      holder_effect_provider_dispatch_matches(scope, foreign, route, fields[14]),
+    )
+  }
+  let foreign_attempt = route.copy()
+  foreign_attempt[6] = "4"
+  assert_false(
+    holder_effect_provider_dispatch_matches(
+      scope,
+      execution,
+      foreign_attempt,
+      fields[14],
+    ),
+  )
+  assert_false(
+    holder_effect_provider_dispatch_matches(scope, execution, route, "foreign"),
+  )
+  assert_false(
+    holder_effect_provider_dispatch_matches(scope, [], [], fields[14]),
+  )
+}
