@@ -1912,6 +1912,16 @@ fn QueryParser::safe_integer(
     Numeric(text) => text
     _ => raise QueryAbort("Expected safe integer literal", token.start)
   }
+  self.safe_integer_text(text, token.start, zero_allowed)
+}
+
+///|
+fn QueryParser::safe_integer_text(
+  self : QueryParser,
+  text : String,
+  start : Int,
+  zero_allowed : Bool,
+) -> Int64 raise QueryAbort {
   let mut result = 0L
   for unit in text {
     self.spend(1)
@@ -1919,12 +1929,12 @@ fn QueryParser::safe_integer(
     if digit < 0 ||
       digit > 9 ||
       result > (9007199254740991L - digit.to_int64()) / 10L {
-      raise QueryAbort("Integer literal exceeds safe range", token.start)
+      raise QueryAbort("Integer literal exceeds safe range", start)
     }
     result = result * 10L + digit.to_int64()
   }
   if !zero_allowed && result == 0L {
-    raise QueryAbort("Expected positive integer literal", token.start)
+    raise QueryAbort("Expected positive integer literal", start)
   }
   result
 }
@@ -1947,7 +1957,24 @@ fn QueryParser::limit_integer(
   self : QueryParser,
   zero_allowed : Bool,
 ) -> QueryInteger raise QueryAbort {
-  if self.peek().value is Parameter(name) {
+  if self.peek().value == Symbol(40) {
+    // Use the bounded expression parser for transparent grouping, then retain
+    // an ordinary integer or Parameter slot. Do not evaluate constant calls,
+    // arithmetic or row references in the Frontend.
+    let expression = self.expression()
+    let mut root = expression_root(expression)
+    while expression_node(expression, root).unwrap().kind
+          is Parenthesized(child) {
+      root = child
+    }
+    let node = expression_node(expression, root).unwrap()
+    match node.kind {
+      Number(text) =>
+        Integer(self.safe_integer_text(text, node.start, zero_allowed))
+      ParameterReference(name) => BoundParameter(name)
+      _ => raise QueryAbort("Expected integer literal or parameter", node.start)
+    }
+  } else if self.peek().value is Parameter(name) {
     ignore(self.advance())
     BoundParameter(self.source.identifier(name))
   } else {
