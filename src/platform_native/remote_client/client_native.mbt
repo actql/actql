@@ -408,6 +408,26 @@ pub fn acknowledge_retained_input_current(
 }
 
 ///|
+/// Report only an opaque reply issued by the existing current-observation
+/// Owner. HTTP success acknowledges transport, not Effect success, a new send
+/// permit, report custody, or cleanup. Failure never retries execution.
+pub fn acknowledge_effect_current(
+  client : @http.Client,
+  url : String,
+  reply : @remote.RemoteEffectCurrentReply,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_effect_current_reply_json(reply)),
+    ) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
 /// Send only a previously committed original report. HTTP failure or receipt
 /// persistence failure leaves that same journal responsibility pending. This
 /// function never re-executes work or infers acceptance from a bare 2xx.
