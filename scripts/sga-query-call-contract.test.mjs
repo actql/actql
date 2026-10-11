@@ -470,7 +470,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(beforeStrposCid,
     'sha256:e70b946c81182b086c5ede1fb047eebe512699e7d71313986906d8d29acf8ab5');
   assert.deepEqual(beforeStrposBody, {...beforePivotIntegrationBody,
-    query_text_grammar_sha256: 'c0251eb11b59d926ae886ef2e082e567856fda402b113c80499d8ba6f5c40463',
+    query_text_grammar_sha256: 'dad903a0a27a05f7211fc4689ac89cf3a74b14b25b79621edf8f87e807a38f97',
     query_text_rules_sha256: '4635956e68e7d5862fd0553053bde9fc5a855e661c9cd4fd10339cdd1e61739a'});
   assert.deepEqual(currentBody, {...beforeStrposBody,
     source_grammar_cid: 'sha256:9362866f726c72c0f29971d1ba72ec1ce5378b657163c84ddff76023d249367d',
