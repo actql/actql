@@ -53,9 +53,10 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   const cleanup = () => {
     if (retired) return true;
     if (saving !== undefined) return false;
-    // A failed raw save can retain commit/cleanup responsibility. Do not drop
-    // it or return its capacity before the original Store owner reconciles it.
-    if (failure !== undefined) {
+    // Every attempted raw save retains its original port until cleanup,
+    // including a successful save's local aliases. This does not erase the
+    // parent's durable receipt/custody. Failed commit/cleanup stays pending.
+    if (saveStarted || failure !== undefined) {
       try {
         if (cleanupRaw(call) !== true) return false;
       } catch { return false; }

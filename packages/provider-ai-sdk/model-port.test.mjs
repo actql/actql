@@ -13,11 +13,11 @@ const limits = {maxBytes: 4096, maxChunkBytes: 4096, maxChunks: 8,
   maxHeaderBytes: 128, observedHeaders: ['content-type']};
 
 function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
-  transportThrow = false, cleanupRaw = () => false} = {}) {
+  transportThrow = false, cleanupRaw = () => true} = {}) {
   const request = Object.freeze({original: Symbol('request owner double')});
   const prepared = Object.freeze({original: Symbol('prepared owner double')});
   const entry = Object.freeze({original: Symbol('consumed Entry double')});
-  const state = {calls: 0, saves: 0, plans: 0, wakes: 0};
+  const state = {calls: 0, saves: 0, plans: 0, wakes: 0, rawCleanups: 0};
   const handle = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
     baseURL: 'https://fixture.invalid/v1', apiKey: 'credential-sentinel',
     maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16,
@@ -54,7 +54,7 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
       durationMs: 500n}, responseLimits: limits, checked: value => value,
     observeAt: () => '2026-10-12T00:00:00.000Z',
-    cleanupRaw,
+    cleanupRaw(call) { state.rawCleanups++; return cleanupRaw(call); },
     notify() { state.wakes++; }, fetch(url, init) {
       state.calls++;
       assert.equal(url, 'https://fixture.invalid/v1/chat/completions');
@@ -101,6 +101,7 @@ test('real SDK preflight retains one plan and starts only its original consumed 
   assert.equal(f.state.saves, 1);
   assert.equal(call.poll().value, observed.value);
   await release(f);
+  assert.equal(f.state.rawCleanups, 1);
   assert.equal(f.state.calls, 1);
 });
 
@@ -133,7 +134,7 @@ test('save await keeps cleanup pending and a saved original response is transfer
 
 test('raw persistence failure preserves the original cleanup responsibility without resend', async () => {
   const failure = Object.assign(new Error('Store ACK unknown'), {rawCustodyRetained: true});
-  const f = fixture({persistRaw: () => { throw failure; }});
+  const f = fixture({persistRaw: () => { throw failure; }, cleanupRaw: () => false});
   const [, plan] = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
@@ -170,6 +171,35 @@ test('same original raw cleanup completion retires the SDK without adopting an u
   assert.equal(f.state.saves, 1);
 });
 
+test('saved raw cleanup remains pending until the original successful save port retires', async () => {
+  let savedCall;
+  let released = false;
+  let cleanupCalls = 0;
+  const f = fixture({persistRaw: call => {
+    savedCall = call;
+    return {response: {nominal: Symbol('saved original response double')}};
+  }, cleanupRaw(call) {
+    assert.equal(call, savedCall);
+    cleanupCalls++;
+    if (cleanupCalls === 1) throw new Error('OriginalRawCleanupUnavailable');
+    return released;
+  }});
+  const [, plan] = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => call.poll(), value => value.kind === 'chat');
+  assert.equal(f.port.preflight.cleanup(), false);
+  assert.equal(f.port.preflight.cleanup(), false);
+  assert.equal(cleanupCalls, 2);
+  released = true;
+  await release(f);
+  assert.equal(cleanupCalls, 3);
+  assert.equal(f.port.preflight.cleanup(), true);
+  assert.equal(cleanupCalls, 3);
+  assert.equal(plan.start(f.entry), undefined);
+  assert.equal(f.state.saves, 1);
+  assert.equal(f.state.calls, 1);
+});
+
 test('lost response has no invented raw body, no saved response and no second request', async () => {
   const f = fixture({transportThrow: true});
   const [, plan] = await planOf(f);
@@ -178,6 +208,7 @@ test('lost response has no invented raw body, no saved response and no second re
   assert.equal(f.state.saves, 0);
   assert.equal(plan.start(f.entry), undefined);
   await release(f);
+  assert.equal(f.state.rawCleanups, 0);
   assert.equal(f.state.calls, 1);
 });
 
