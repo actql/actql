@@ -67,9 +67,9 @@ test "public Text routing retains scoped and empty positional WITH controls" {
       NeedsInputs(_) =>
         fail("public positional WITH controls need no acquisition")
     }
-    assert_true(
-      @frontend.lower(source, Sql, Some(context)) is Err(WrongQueryForm),
-    )
+    // WITH is admitted by the existing SQL selector as well as Text.
+    let sql = @frontend.lower(source, Sql, Some(context)).unwrap()
+    assert_eq(sql.document, lowered.document)
   }
 }
 

@@ -110,16 +110,15 @@ test "standalone positional parentheses reach the usual checker" {
 
 ///|
 test "positional permission never grants authored CTE or BY NAME exports" {
-  let head = "WITH r AS (SELECT 1 AS x; "
   for
     source in [
-      "SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)",
-      "WITH hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
-      "WITH p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
+      "WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)",
+      "WITH r AS (SELECT 1 AS x), hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
+      "WITH r AS (SELECT 1 AS x), p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
     ] {
     assert_true(
       compile_query_script(
-        @query.parse_query_script(head + source, syntax_limits()).unwrap(),
+        @query.parse_query_script(source, syntax_limits()).unwrap(),
         { ..fixture_context(), inputs: [], },
         construction_limits(),
       )

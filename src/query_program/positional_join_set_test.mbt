@@ -24,7 +24,7 @@ test "anonymous JOIN positional operand retains its existing named control" {
 }
 
 ///|
-test "positional JOIN operands preserve CTE DATA and multi-JOIN ceilings" {
+test "positional JOIN operands preserve WITH bindings and multi-JOIN ceilings" {
   for
     (source, joins) in [
       (

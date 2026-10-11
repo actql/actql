@@ -6,5 +6,14 @@
     "Named range snapshots and current values, duplicate authored names and ordinal/anonymous output rules are unchanged. Typed empty outputs and pure-body negative restrictions remain explicit.",
     "The existing compiler structural budget and resource ceilings stay unchanged; no product output is used to rewrite expected values."
   ],
-  "public_execution": "not performed; corresponding public fixture static preservation was checked separately at b90a1a8"
+  "public_execution": "not performed; corresponding public fixture static preservation was checked separately at b90a1a8",
+  "initial_migration_failure": {
+    "source": "637b89201c44005417b2c00bef8548d349a8ca82",
+    "run": "run-rfOa6B",
+    "actual": "JS31/33 exit2",
+    "correction": [
+      "The original DATA SQL refusal does not apply to WITH, admitted by starts_sql and the same lower path. Compare independently selected Sql and Text lowering documents, without changing values or any expression.",
+      "Three refusal strings retain pure binding parentheses/comma delimiters under one WITH. Anonymous exports remain UnsupportedProjection. The original semicolon migration parse failure is retained."
+    ]
+  }
 }
