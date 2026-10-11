@@ -33,6 +33,9 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   const poll = () => {
     if (response !== undefined) return moon.clientProgramModelPhysicalSavedChat(response);
     if (failure !== undefined || startUnknown) return moon.clientProgramModelPhysicalUnknown();
+    if (retired) {
+      throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
+    }
     const observed = pollSdkTransport(preparation);
     const raw = sdkTransportRawObservation(preparation);
     if (raw !== undefined && !saveStarted) {
@@ -52,7 +55,12 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
       ? moon.clientProgramModelPhysicalUnknown()
       : moon.clientProgramModelPhysicalPending();
   };
-  const cancel = () => cancelSdkPreparation(preparation);
+  const cancel = () => {
+    if (retired) {
+      throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
+    }
+    cancelSdkPreparation(preparation);
+  };
   const cleanup = () => {
     if (retired) return true;
     if (saving !== undefined || reconciliationPending) return false;
@@ -71,6 +79,23 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     call = undefined;
     prepared = undefined;
     plan = undefined;
+    // Escaped preflight/call closures must not keep the factory's original
+    // input or installed callbacks after both original owners acknowledge
+    // cleanup. Pending/failed cleanup retains them unchanged for retry.
+    // Escaped immutable views and the primary failure retain their own
+    // responsibility; clearing these aliases does not mutate those originals.
+    request = undefined;
+    preparation = undefined;
+    profile = undefined;
+    installation = undefined;
+    quantities = undefined;
+    fetch = undefined;
+    responseLimits = undefined;
+    persistRaw = undefined;
+    notify = undefined;
+    checked = undefined;
+    observeAt = undefined;
+    cleanupRaw = undefined;
     retired = true;
     return true;
   };
