@@ -170,6 +170,23 @@ Host close must succeed before the reply is published. Actual retained-attempt
 CLI acceptance and the new read admission path remain unfinished; the defined
 process fixtures are not fresh-artifact execution evidence.
 
+Local `checkpoint-state --submission-ref-file <file> --ref-file <file>` reads
+only the original accepted Submission's retained Checkpoint metadata. Current
+adopted Host/Account `run × read` authority is required again on every lookup.
+The reply binds the exact original Submission and Run reference; an admitted
+Run without a Checkpoint returns `checkpoint: null`, while unresolved history,
+missing admission or lost Run custody refuses. It never starts a replacement.
+
+The Checkpoint object contains its original CID, the exact decimal-string Run
+control revision, retained Checkpoint Owner state and `cancellationRequested`.
+The latter is an accepted request, not confirmation of physical stop,
+cancelled settlement or cleanup. This metadata is not an atomic snapshot of
+all Owners. Lookup does not read Preview bodies, resolve/approve/reject a
+Checkpoint, claim resume, open Result payload or issue credentials. It is
+Local-only; Remote mode refuses before transport. The source and typed callers
+are connected, but Native runtime and exited-process CLI acceptance remain
+unexecuted and this command does not complete the approval path.
+
 An optional `native.local.read_file` selects a separate closed
 `actql-config/0.1` file with `native.result_read` settings. It must also occur
 in the existing finite `installation_files` selection. The existing exclusive

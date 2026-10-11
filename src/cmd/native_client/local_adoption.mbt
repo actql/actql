@@ -318,6 +318,8 @@ fn execute_native_local_adoption(
       )
     } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, root, child)
+    } else if operation == "checkpoint-state" {
+      local_checkpoint_metadata_lookup(host, settings, crypto, root, child)
     } else if operation == "lookup-preparation-grant" {
       local_preparation_grant_lookup(host, settings, crypto, root, child)
     } else if operation == "lookup-preparation-raw" {
