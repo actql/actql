@@ -380,6 +380,19 @@ Missing or altered originals and reservations refuse instead of being repaired.
 The checked Direct Local Catalog/request and credential installation remain
 separate prerequisites before exposing this storage seam through the CLI.
 
+The Native credential adapter admits Preparation through a separate typed
+installation callback. Remote and Resume callbacks do not authorize this
+alternative, and a Preparation installation does not authorize either of
+them. The initial installed operation set is limited to
+`salesforce:record:observe`, GET and an empty request body. Exact target path,
+origin, complete original scope and body digest are checked before the same
+existing ordinal claim. Preparation uses the original shared trusted clock,
+durable use record, revocation, outcome persistence and query implementation.
+Its public send entrypoint requires a current guard; trusted Host assembly
+must supply the opaque Work fence and independent read/issuer decisions.
+Missing original use custody remains a typed query refusal, never an assertion
+that the observation was unentered or permission to resend.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract

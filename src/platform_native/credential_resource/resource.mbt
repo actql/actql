@@ -87,6 +87,7 @@ struct NativeCredentialResourceService {
   operations : Array[NativeCredentialOperation]
   authorize : (NativeCredentialAuthorization) -> Bool
   authorize_local : ((NativeLocalCredentialAuthorization) -> Bool)?
+  authorize_preparation : ((NativeLocalPreparationCredentialAuthorization) -> Bool)?
   clock : () -> Int64
 }
 
@@ -351,6 +352,7 @@ fn install_native_credential_resource_service_with_clock(
   authorize : (NativeCredentialAuthorization) -> Bool,
   clock : () -> Int64,
   authorize_local? : ((NativeLocalCredentialAuthorization) -> Bool)? = None,
+  authorize_preparation? : ((NativeLocalPreparationCredentialAuthorization) -> Bool)? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
@@ -370,6 +372,7 @@ fn install_native_credential_resource_service_with_clock(
     operations: operations.map(value => value),
     authorize,
     authorize_local,
+    authorize_preparation,
     clock,
   })
 }

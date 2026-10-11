@@ -21,17 +21,25 @@ pub fn call_native_credential_resource_request_at_path(NativeCredentialResourceS
 
 pub fn call_native_local_credential_resource_guarded_request_at_path(NativeCredentialResourceService, @remote_credential.LocalCredentialGrant, String, @remote_credential.LocalCredentialScope, @http_client.NativeHttpMethod, String, Bytes, () -> Bool) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
 
+pub fn call_native_local_preparation_credential_resource_guarded_request_at_path(NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope, String, () -> Bool) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
+
 pub fn install_native_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn install_native_local_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeLocalCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
+
+pub fn install_native_local_preparation_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeLocalPreparationCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
 pub fn query_native_local_credential_use(NativeCredentialResourceService, @remote_credential.LocalCredentialGrant, String, @remote_credential.LocalCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
+pub fn query_native_local_preparation_credential_use(NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
+
 pub fn revoke_native_credential_grant(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant) -> Result[Unit, NativeCredentialResourceIssue]
 
 pub fn revoke_native_local_credential_grant(NativeCredentialResourceService, @remote_credential.LocalCredentialGrant) -> Result[Unit, NativeCredentialResourceIssue]
+
+pub fn revoke_native_local_preparation_credential_grant(NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant) -> Result[Unit, NativeCredentialResourceIssue]
 
 // Errors
 
@@ -114,6 +122,14 @@ pub(all) struct NativeLocalCredentialAuthorization {
   grant_cid : String
   use_cid : String?
   scope : @remote_credential.LocalCredentialScope
+  request : NativeCredentialRequest?
+}
+
+pub(all) struct NativeLocalPreparationCredentialAuthorization {
+  stage : String
+  grant_cid : String
+  use_cid : String?
+  scope : @remote_credential.LocalPreparationCredentialScope
   request : NativeCredentialRequest?
 }
 

@@ -2,18 +2,21 @@
 priv enum NativeOwnedCredentialGrant {
   RemoteGrant(@credential.RemoteCredentialGrant)
   LocalGrant(@credential.LocalCredentialGrant)
+  PreparationGrant(@credential.LocalPreparationCredentialGrant)
 }
 
 ///|
 priv enum NativeOwnedCredentialScope {
   RemoteScope(NativeCredentialScope)
   LocalScope(@credential.LocalCredentialScope)
+  PreparationScope(@credential.LocalPreparationCredentialScope)
 }
 
 ///|
 priv enum NativeOwnedCredentialUse {
   RemoteUse(@credential.RemoteCredentialUse)
   LocalUse(@credential.LocalCredentialUse)
+  PreparationUse(@credential.LocalPreparationCredentialUse)
 }
 
 ///|
@@ -30,6 +33,15 @@ priv struct NativeOwnedCredentialAuthorizationFacts {
   stage : String
   grant_cid : String
   use_cid : String?
+  request : NativeCredentialRequest?
+}
+
+///|
+pub(all) struct NativeLocalPreparationCredentialAuthorization {
+  stage : String
+  grant_cid : String
+  use_cid : String?
+  scope : @credential.LocalPreparationCredentialScope
   request : NativeCredentialRequest?
 }
 
@@ -60,6 +72,18 @@ fn authorize_owned_credential(
             request: facts.request,
           })
       }
+    PreparationScope(preparation) =>
+      match service.authorize_preparation {
+        None => false
+        Some(authorize) =>
+          authorize({
+            stage: facts.stage,
+            grant_cid: facts.grant_cid,
+            use_cid: facts.use_cid,
+            scope: preparation,
+            request: facts.request,
+          })
+      }
   }
 }
 
@@ -83,6 +107,22 @@ fn owned_operation_for(
       }
       found
     }
+    PreparationScope(preparation) => {
+      let mut found = None
+      for operation in service.operations {
+        if operation.resource_origin == preparation.resource_origin &&
+          operation.operation == preparation.operation &&
+          operation.operation == "salesforce:record:observe" &&
+          operation.verb == @http.Get &&
+          operation.max_request_bytes == 0 {
+          if found is Some(_) {
+            return None
+          }
+          found = Some(operation)
+        }
+      }
+      found
+    }
   }
 }
 
@@ -91,6 +131,8 @@ fn owned_credential_grant_cid(grant : NativeOwnedCredentialGrant) -> String {
   match grant {
     RemoteGrant(value) => @credential.credential_grant_cid(value)
     LocalGrant(value) => @credential.local_credential_grant_cid(value)
+    PreparationGrant(value) =>
+      @credential.local_preparation_credential_grant_cid(value)
   }
 }
 
@@ -106,6 +148,13 @@ fn owned_grant_matches_scope(
       if @credential.local_credential_grant_scope(value) == current &&
         @credential.local_credential_grant_json(value) is Ok(_) {
         Some(@credential.local_credential_grant_limits(value))
+      } else {
+        None
+      }
+    (PreparationGrant(value), PreparationScope(current)) =>
+      if @credential.local_preparation_credential_grant_scope(value) == current &&
+        @credential.local_preparation_credential_grant_json(value) is Ok(_) {
+        Some(@credential.local_preparation_credential_grant_limits(value))
       } else {
         None
       }
@@ -134,6 +183,14 @@ fn owned_request_matches_scope(
       @credential.local_credential_request_body_cid(body) ==
       Ok(direct_scope.request_body_cid)
     }
+    PreparationScope(preparation) =>
+      verb == @http.Get &&
+      preparation.request_method == "GET" &&
+      preparation.operation == "salesforce:record:observe" &&
+      path == preparation.request_path &&
+      body.length() == 0 &&
+      @credential.local_credential_request_body_cid(body) ==
+      Ok(preparation.request_body_cid)
   }
 }
 
@@ -172,6 +229,10 @@ fn prepare_owned_credential_use(
       @credential.prepare_local_credential_use(
         value, use_id, now, used_count, revoked, current,
       ).map(value => LocalUse(value))
+    (PreparationGrant(value), PreparationScope(current)) =>
+      @credential.prepare_local_preparation_credential_use(
+        value, use_id, now, used_count, revoked, current,
+      ).map(value => PreparationUse(value))
     _ => Err(@credential.CredentialGrantInactive)
   }
 }
@@ -205,6 +266,10 @@ fn authorize_owned_credential_use(
       )
     (LocalUse(value), LocalScope(current)) =>
       @credential.authorize_local_credential_use(value, now, revoked, current)
+    (PreparationUse(value), PreparationScope(current)) =>
+      @credential.authorize_local_preparation_credential_use(
+        value, now, revoked, current,
+      )
     _ => Err(@credential.CredentialGrantInactive)
   }
 }
@@ -216,6 +281,8 @@ fn owned_credential_use_cid(
   match credential_use {
     RemoteUse(value) => @credential.credential_use_cid(value)
     LocalUse(value) => @credential.local_credential_use_cid(value)
+    PreparationUse(value) =>
+      @credential.local_preparation_credential_use_cid(value)
   }
 }
 
@@ -226,6 +293,8 @@ fn owned_credential_use_json(
   match credential_use {
     RemoteUse(value) => @credential.credential_use_json(value)
     LocalUse(value) => @credential.local_credential_use_json(value)
+    PreparationUse(value) =>
+      @credential.local_preparation_credential_use_json(value)
   }
 }
 
@@ -235,6 +304,12 @@ fn owned_credential_use_id(credential_use : NativeOwnedCredentialUse) -> String 
     RemoteUse(value) => @credential.credential_use_projection(value)[2]
     LocalUse(value) => {
       let (_, use_id, _) = @credential.local_credential_use_projection(value)
+      use_id
+    }
+    PreparationUse(value) => {
+      let (_, use_id, _) = @credential.local_preparation_credential_use_projection(
+        value,
+      )
       use_id
     }
   }
@@ -250,6 +325,12 @@ fn owned_credential_use_matches_ordinal(
       @credential.credential_use_projection(value)[3] == ordinal.to_string()
     LocalUse(value) => {
       let (_, _, saved_ordinal) = @credential.local_credential_use_projection(
+        value,
+      )
+      saved_ordinal.to_int64() == ordinal
+    }
+    PreparationUse(value) => {
+      let (_, _, saved_ordinal) = @credential.local_preparation_credential_use_projection(
         value,
       )
       saved_ordinal.to_int64() == ordinal
@@ -272,5 +353,10 @@ fn admit_owned_credential_use(
       @credential.admit_local_credential_use_json(value, wire, cid).map(value => {
         LocalUse(value)
       })
+    PreparationGrant(value) =>
+      @credential.admit_local_preparation_credential_use_json(value, wire, cid).map(value => {
+          PreparationUse(value)
+        },
+      )
   }
 }
