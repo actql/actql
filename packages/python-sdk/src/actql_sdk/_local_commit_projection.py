@@ -289,6 +289,22 @@ class OriginalCommitProjection:
             if self._core.close_publication_commit_export(value):
                 self._outputs.remove(value)
 
+    def retire_outputs(self) -> bool:
+        """Explicit same-loan cleanup after physical failure, retaining the view.
+
+        The trusted caller first resolves transaction/consumer cleanup and drops
+        retained byte references/tracebacks. A failure keeps these exact outputs
+        and reservations. Success reclaims no Source/Result parent and grants no
+        lookup, retry, submit or commit permission; the next Owner call still
+        checks its original identity and current authority. This does not reopen
+        a projection whose terminal close has already begun.
+        """
+        with self._core._lock:
+            if self._projecting:
+                raise RuntimeError('Local commit projection is still in use')
+            self._retire_outputs()
+            return not self._outputs
+
     def close(self) -> bool:
         """Retry original output cleanup only; never cancel, submit or commit."""
         with self._core._lock:
