@@ -30,12 +30,25 @@ confirmed; that is not a reason to repeat Provider work. A service close failure
 after Store cleanup does not lose the cleanup confirmation or resurrect reads.
 These local closes do not issue formal dispatch cleanup or Released evidence.
 
-A failure before Store custody exists retains the original response or typed
-read issue. The driver refuses another physical read. If the failure contains
-an original response without Store custody, local cleanup stays pending rather
-than discarding that evidence and claiming release. A subsequent change must
-connect recovery/retirement of that exact response through the existing
-credential and Store Owners; this change does not invent terminal evidence.
+The existing named read Owner's admitted observation and original response are
+retained before Store preparation. A failed Store preparation can therefore
+retry with that same observation, body and credential-use identity, without
+another Provider call. Once custody exists, retry uses that same holding.
+The installation retains the original Store reference; a different Store
+cannot be substituted by a later progress call.
+
+If cleanup starts before Store preparation succeeds, it saves this original
+admitted evidence with adoption authority explicitly false, then retires it
+through the existing Store Owner. Failed preparation, persistence or retirement
+keeps the response/holding and capacity responsibility. A confirmed Store
+cleanup remains confirmed when subsequent service close needs retry.
+
+A typed read failure that never issued an admitted Catalog is retained
+separately, without manufacturing the read-only Store-failure type or a
+successful Catalog. If that issue contains an original response without Store
+custody, local cleanup remains pending. Recovering or retiring that failed-read
+evidence through its existing Owner is still an unconnected boundary; it cannot
+be hidden by another Provider read or a fabricated cleanup terminal.
 
 The production CLI still has no installed Review configuration/publication
 callback. The installation constructor is therefore intentionally unused by

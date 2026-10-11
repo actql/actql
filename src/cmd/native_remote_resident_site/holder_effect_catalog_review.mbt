@@ -4,6 +4,7 @@
 /// it issues no new grant, Ledger, dispatch or cleanup evidence.
 priv struct HolderEffectCatalogReviewCustody {
   installation : HolderEffectCatalogInstallation
+  store : @publication_store.Store
   configuration : @effect_review.NativeResidentEffectReviewConfiguration
   connector_id : String
   describe_limits : @effect_catalog.DescribeLimits
@@ -11,6 +12,10 @@ priv struct HolderEffectCatalogReviewCustody {
   max_observation_bytes : Int
   crypto : @signature.Library
   key : Bytes
+  mut observed : (
+    @effect_catalog.CatalogObservation,
+    @effect_resource.NativeCredentialResponse,
+  )?
   mut context : @resident_host.ResidentEffectReviewInputContext?
   mut retiring : Bool
   mut catalog_cleanup_confirmed : Bool
@@ -18,6 +23,7 @@ priv struct HolderEffectCatalogReviewCustody {
   mut custody : @publication_store.EffectCatalogCustody?
   // Preserve the first failure, including a physical response whose Store
   // preparation failed. A later save failure cannot replace that evidence.
+  mut read_issue : @effect_review.NativeSalesforceNamedCatalogIssue?
   mut read_failure : @effect_review.NativeSalesforceCatalogCustodyFailure?
 }
 
@@ -31,10 +37,20 @@ fn holder_effect_catalog_failure_has_response(
     return true
   }
   match failure.issue {
-    Read(MetadataAuthorizationChanged(_))
-    | Read(MetadataReadUnavailable(_))
-    | Read(CatalogSyncFailure(_, _))
-    | Read(CatalogObservationFailure(_, _)) => true
+    Read(issue) => holder_effect_catalog_read_has_response(issue)
+    _ => false
+  }
+}
+
+///|
+fn holder_effect_catalog_read_has_response(
+  issue : @effect_review.NativeSalesforceNamedCatalogIssue,
+) -> Bool {
+  match issue {
+    MetadataAuthorizationChanged(_)
+    | MetadataReadUnavailable(_)
+    | CatalogSyncFailure(_, _)
+    | CatalogObservationFailure(_, _) => true
     _ => false
   }
 }
@@ -42,6 +58,7 @@ fn holder_effect_catalog_failure_has_response(
 ///|
 fn new_holder_effect_catalog_review_custody(
   installation : HolderEffectCatalogInstallation,
+  store : @publication_store.Store,
   configuration : @effect_review.NativeResidentEffectReviewConfiguration,
   connector_id : String,
   describe_limits : @effect_catalog.DescribeLimits,
@@ -52,6 +69,7 @@ fn new_holder_effect_catalog_review_custody(
 ) -> HolderEffectCatalogReviewCustody {
   {
     installation,
+    store,
     configuration,
     connector_id,
     describe_limits,
@@ -59,11 +77,13 @@ fn new_holder_effect_catalog_review_custody(
     max_observation_bytes,
     crypto,
     key,
+    observed: None,
     context: None,
     retiring: false,
     catalog_cleanup_confirmed: false,
     read_started: false,
     custody: None,
+    read_issue: None,
     read_failure: None,
   }
 }
@@ -81,12 +101,27 @@ fn HolderEffectCatalogReviewCustody::close(
     }
     self.context = None
   }
+  if self.custody is None && self.observed is Some(_) {
+    // Saving original read evidence is not disclosure or another Provider call.
+    ignore(self.save_observed_catalog(() => false))
+    if self.custody is None {
+      return false
+    }
+  }
   // Failed Store preparation leaves a genuine response outside durable Store
   // custody. Handle closure alone cannot discharge that unresolved evidence.
   if !self.catalog_cleanup_confirmed &&
     self.custody is None &&
-    self.read_failure is Some(failure) &&
-    holder_effect_catalog_failure_has_response(failure) {
+    (
+      (
+        self.read_failure is Some(failure) &&
+        holder_effect_catalog_failure_has_response(failure)
+      ) ||
+      (
+        self.read_issue is Some(issue) &&
+        holder_effect_catalog_read_has_response(issue)
+      )
+    ) {
     return false
   }
   if self.custody is Some(custody) {
@@ -94,6 +129,7 @@ fn HolderEffectCatalogReviewCustody::close(
       Ok(_) => {
         self.catalog_cleanup_confirmed = true
         self.custody = None
+        self.observed = None
       }
       _ => return false
     }
@@ -102,6 +138,7 @@ fn HolderEffectCatalogReviewCustody::close(
     return false
   }
   self.read_failure = None
+  self.read_issue = None
   true
 }
 
@@ -114,7 +151,7 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
   resources : HolderOutputResources,
   current : () -> Bool,
 ) -> Bool {
-  if self.retiring || !current() {
+  if self.retiring || !physical_equal(self.store, resources.store) || !current() {
     return false
   }
   if self.custody is Some(pending) {
@@ -123,25 +160,57 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
       )
       is Ok(_)
   }
+  if self.observed is Some(_) {
+    return self.save_observed_catalog(current)
+  }
   if self.read_started {
     return false
   }
   self.read_started = true
   match
-    self.installation.observe(
-      resources,
+    self.installation.read(self.describe_limits, self.max_observation_bytes) {
+    Ok(observed) => {
+      self.observed = Some(observed)
+      // Even if authority changed during read, save its exact original response
+      // before refusing adoption. The existing Store Owner fences disclosure.
+      self.save_observed_catalog(current)
+    }
+    Err(issue) => {
+      self.read_issue = Some(issue)
+      false
+    }
+  }
+}
+
+///|
+/// Retry preparation/persistence using the exact admitted observation, body and
+/// use. The first failure remains available; no service or grant is invoked.
+fn HolderEffectCatalogReviewCustody::save_observed_catalog(
+  self : HolderEffectCatalogReviewCustody,
+  current : () -> Bool,
+) -> Bool {
+  guard self.observed is Some((catalog, response)) else { return false }
+  match
+    @effect_review.retain_native_salesforce_named_catalog_response(
+      self.store,
+      catalog,
+      response,
+      self.installation.binding,
+      self.installation.resource,
       self.describe_limits,
-      self.max_observation_bytes,
       self.crypto,
       self.key,
+      current,
     ) {
     Ok((custody, _)) => {
       self.custody = Some(custody)
-      current()
+      true
     }
     Err(failure) => {
       self.custody = failure.pending
-      self.read_failure = Some(failure)
+      if self.read_failure is None {
+        self.read_failure = Some(failure)
+      }
       false
     }
   }
