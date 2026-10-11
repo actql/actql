@@ -1003,6 +1003,7 @@ test "completion-free original materials execute the physical Source producer on
 
 ///|
 test "original completion-free Source and consumer issue a mapped-create Preview without target IO" {
+  native_mapped_create_phase("case-entered")
   println("native-mapped-create: entering actual acquisition harness")
   acquisition_runtime_case(
     true,
@@ -1011,4 +1012,5 @@ test "original completion-free Source and consumer issue a mapped-create Preview
     completion_free_review=true,
     through_consumer_holder=true,
   )
+  native_mapped_create_phase("harness-cleanup-confirmed")
 }

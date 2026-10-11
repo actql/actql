@@ -177,11 +177,13 @@ fn native_mapped_create_context_review(
   producer : @resident.ResidentEffectProducerExecuted,
   producer_journal : @dispatch_journal.Journal,
 ) -> Unit raise {
+  native_mapped_create_phase("original-holders")
   let consumer = holder.effect_computation(journal).unwrap()
   println("native-mapped-create: original Source and consumer completed")
   let source = producer.source_for_capture(producer_journal).unwrap()
   let source_usage = source.usage()
   let consumer_usage = consumer.usage()
+  native_mapped_create_phase("context-preparing")
   let context = holder
     .prepare_effect_review_inputs(
       journal,
@@ -198,12 +200,15 @@ fn native_mapped_create_context_review(
       64,
     )
     .unwrap()
+  native_mapped_create_phase("context-prepared")
   let facts = context.facts(journal).unwrap()
   let original_request = producer.request_for_capture(producer_journal).unwrap()
   assert_eq(facts.materials.request, Some(original_request))
+  native_mapped_create_phase("normalization-restoring")
   let normalization = @host.restore_client_effect_run_normalization(
     facts.materials,
   ).unwrap()
+  native_mapped_create_phase("normalization-restored")
   assert_eq(
     @publication.run_evidence_value_identity(normalization),
     "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087",
@@ -217,22 +222,29 @@ fn native_mapped_create_context_review(
     invocation,
     mapped_create=true,
   )
+  native_mapped_create_phase("review-preparing")
   let work = @effect_provider.prepare_native_resident_effect_review_from_original_materials(
     holder, journal, context, policy,
   ).unwrap()
+  native_mapped_create_phase("review-prepared")
   let output = work.result_capture().unwrap().output
   assert_eq(
     output.result_schema_wire().unwrap(),
     retained_effect_expected_schema(false),
   )
   assert_eq(output.row_count().unwrap(), 1)
+  native_mapped_create_phase("result-reader-opening")
   let reader = output.replay().unwrap()
+  native_mapped_create_phase("result-reader-opened")
   let rows = StringBuilder()
   while reader.next().unwrap() is Some(chunk) {
+    native_mapped_create_phase("result-chunk-read")
     rows.write_string(chunk)
   }
+  native_mapped_create_phase("result-eof")
   rows.write_string(reader.finish().unwrap())
   assert_eq(rows.to_string(), "[{\"id\":3}]")
+  native_mapped_create_phase("result-verified")
   let target_reads = Ref(0)
   let observe = () => {
     work.observe((_, _) => {
@@ -243,11 +255,25 @@ fn native_mapped_create_context_review(
   assert_eq(observe().unwrap().length(), 0)
   assert_eq(observe().unwrap().length(), 0)
   assert_eq(target_reads.val, 0)
+  native_mapped_create_phase("target-observation-complete")
   let complete = work
-    .complete(phase_observe=phase => {
-      println("native-mapped-create: review " + phase)
-    })
+    .complete(
+      phase_observe=phase => {
+        native_mapped_create_phase("review-" + phase)
+        println("native-mapped-create: review " + phase)
+      },
+      capture_progress=(phase, _, _) => {
+        let name = match phase {
+          Preparing => "preparing"
+          Prepared => "prepared"
+          Advancing => "advancing"
+          Completed => "completed"
+        }
+        native_mapped_create_phase("capture-" + name)
+      },
+    )
     .unwrap()
+  native_mapped_create_phase("review-completed")
   assert_true(complete.preview.proof is None)
   assert_eq(complete.preview.keys.length(), 1)
   assert_true(
@@ -272,6 +298,7 @@ fn native_mapped_create_context_review(
   )
   assert_eq(work.complete().unwrap().preview.wire, complete.preview.wire)
   assert_eq(target_reads.val, 0)
+  native_mapped_create_phase("cleanup-started")
   assert_true(work.retry_cleanup().unwrap())
   assert_false(work.retry_cleanup().unwrap())
   assert_true(context.close())
@@ -286,6 +313,22 @@ fn native_mapped_create_context_review(
     consumer.usage().reserved_retention_bytes,
     consumer_usage.reserved_retention_bytes,
   )
+  native_mapped_create_phase("review-cleanup-confirmed")
+}
+
+///|
+/// Fixed, nonsecret fixture markers survive a killed test and buffered stdout.
+/// They establish only entry at this boundary, never completion of later work.
+/// Repeated progress at the same phase keeps a single marker directory.
+fn native_mapped_create_phase(phase : String) -> Unit {
+  let root = @filesystem.open_root(
+    retained_runtime_required_env("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT"),
+  ).unwrap()
+  let name = "mapped-create-phase-" + phase
+  if root.inspect_directory(name).unwrap() is None {
+    root.create_directory(name).unwrap() |> ignore
+    root.sync_directory().unwrap()
+  }
 }
 
 ///|
