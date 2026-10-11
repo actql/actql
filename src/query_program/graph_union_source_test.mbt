@@ -143,7 +143,7 @@ test "complete public edge union source has one query and passes ordinary checke
 }
 
 ///|
-fn expect_with_graph_static_refusal(text : String) raise {
+fn expect_with_graph_static_refusal(text : String) -> Unit raise {
   match classified_graph_source(text) {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
       match issue.kind {
