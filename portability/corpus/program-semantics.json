@@ -5,22 +5,22 @@
     {
       "import_mode": 0,
       "accepted": false,
-      "expected_cid": "sha256:cffc7d0d8985759d4660dd906f2763603caa16935c35134840b74a172bac8aac"
+      "expected_cid": "sha256:117a3f313f75bc2fed335f36fcc34cb73ba8ad6368d73e5f81c484bd65db954a"
     },
     {
       "import_mode": 0,
       "accepted": true,
-      "expected_cid": "sha256:630c4003e045b9906cc631fe366eef3187e78dd4f2d57ba0e2d12e1f87653d38"
+      "expected_cid": "sha256:4a71940a17778819f168e1fa6af11e204f7f1f46d715d2e39d686c79c59c2ddc"
     },
     {
       "import_mode": 1,
       "accepted": false,
-      "expected_cid": "sha256:89c2f5e5299f754ca83feeb55ad59d63e58678fff79041ddc36357446652433d"
+      "expected_cid": "sha256:08d1ba20ae71b8e430c79f6cf16fa0a91739e33341c8199ceb1911be0f82e8d5"
     },
     {
       "import_mode": 2,
       "accepted": false,
-      "expected_cid": "sha256:533f847cdc54543b9e16e3cb1745b57c48f573905300be988f6c85721382e3fe"
+      "expected_cid": "sha256:d0d52a3678f03ea71dfc8fab55e02a94f822f673c98528f52ba94f27d3fb3086"
     }
   ]
 }

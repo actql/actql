@@ -546,6 +546,10 @@ pub fn boolean_pair(
     | ConcatStrict
     | Replace
     | Substring
+    | LeftString
+    | RightString
+    | LPad
+    | RPad
     | Between
     | Greatest
     | Least => Err(InvalidOperand)

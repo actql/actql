@@ -31,8 +31,10 @@ test('number-extrema retains complete predecessor bodies and identity preimages'
 });
 
 test('number-extrema adds only its exact closed source and machine alternatives and laws',()=>{
-  const expression=read('spec/contracts/actql-expressions.json');
-  const program=read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Preserve the adopted extrema bodies while later scalar increments extend current inputs.
+  const adopted=Object.fromEntries(read('portability/corpus/historical/pre-pad-sides-contract-identities.json').contracts.map(item=>[item.id,item.body]));
+  const expression=adopted.expression_contract;
+  const program=adopted.program_schema;
   const shapes={"greatest":{"min":1},"least":{"min":1}},names=new Set(Object.keys(shapes)),counts={};
   function withoutIncrement(value){
     if(Array.isArray(value))return value.map(withoutIncrement);
@@ -52,20 +54,10 @@ test('number-extrema adds only its exact closed source and machine alternatives 
   const before=withoutIncrement(expression);
   for(const name of names){assert.ok(expression.laws[name]);delete before.laws[name];}
   before.grammar_sha256=earlier.expression_contract.grammar_sha256;
-  // The earlier public parent retains its original target-selected laws.
-  // The normally adopted #1375 repair is a separate, byte-pinned increment;
-  // never rewrite that predecessor or infer this delta from product output.
-  const kernel=read('portability/corpus/historical/adopted-portable-numeric-kernel-laws.json');
-  assert.equal(cid(kernel), 'sha256:78336d1cbf683b75363fd316cbf52b9880c6ed6092ba6d908b28b231cfa4b286');
-  assert.equal(kernel.source_revision, '4dff63ffc946926dd17b100aea445b4ef5a31ef5');
-  for(const [name,law] of Object.entries(kernel.laws)){
-    assert.deepEqual(before.laws[name], law, name+' adopted kernel law');
-    before.laws[name]=structuredClone(earlier.expression_contract.laws[name]);
-  }
   assert.deepEqual(before,earlier.expression_contract);
   assert.deepEqual(withoutIncrement(program),earlier.program_schema);
   assert.deepEqual(Object.keys(counts).sort(),[...names].sort());
   for(const count of Object.values(counts))assert.equal(count,8);
   assert.notEqual(cid(expression),cid(earlier.expression_contract));assert.notEqual(cid(program),cid(earlier.program_schema));
-  for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(read(path),earlier[id]);
+  for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(adopted[id],earlier[id]);
 });

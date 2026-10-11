@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "74c177f745f76be281875cfcbe992f0f4b63b4c21dc2909b555fde693c3ecbbf",
+  "grammar_sha256": "faf7f5f9ee66076a6bf283f088c4436e6da9e11ea694375b660fe452daaf92e0",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5495,6 +5495,74 @@
                     "value": {
                       "type": "string"
                     }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "left"
+              ],
+              "properties": {
+                "left": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "right"
+              ],
+              "properties": {
+                "right": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lpad"
+              ],
+              "properties": {
+                "lpad": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rpad"
+              ],
+              "properties": {
+                "rpad": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
                   }
                 }
               }
@@ -11423,6 +11491,90 @@
                   ],
                   "properties": {
                     "$json": {}
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "left"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "right"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "lpad"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "rpad"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
                   }
                 }
               }
@@ -22862,6 +23014,74 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "left"
+              ],
+              "properties": {
+                "left": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "right"
+              ],
+              "properties": {
+                "right": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lpad"
+              ],
+              "properties": {
+                "lpad": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rpad"
+              ],
+              "properties": {
+                "rpad": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -27889,6 +28109,90 @@
                   ],
                   "properties": {
                     "$json": {}
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "left"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "right"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "lpad"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "rpad"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
                   }
                 }
               }
@@ -35360,6 +35664,74 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "left"
+              ],
+              "properties": {
+                "left": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "right"
+              ],
+              "properties": {
+                "right": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lpad"
+              ],
+              "properties": {
+                "lpad": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rpad"
+              ],
+              "properties": {
+                "rpad": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -40390,6 +40762,90 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "left"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "right"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "lpad"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "rpad"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -41300,6 +41756,30 @@
       "value": "Return the least operand in the existing finite numeric order. Any NULL operand produces NULL, including a singleton NULL. A non-null singleton returns itself. Equal values and repeated operands preserve their value; zero uses the existing canonical positive zero. No arithmetic overflow, precision reduction or non-finite result is introduced.",
       "evaluation": "Evaluate every demanded child exactly once in authored order, including all later children after NULL, and preserve the first child failure. NULL does not short-circuit the argument list. Enclosing lazy demand, logical entry/operand/result charges, retained live roots, control/workspace bounds and cancellation cleanup remain owned by the common expression continuation. Fold accumulators are not additional semantic expression results.",
       "identity": "The closed source form is {least: [first, ...]} and the machine node is {op: least, body: [first_node, ...]} with a nonempty array. Retain the authored operation, argument order, repetitions and singleton node; do not sort, deduplicate or constant fold children. Earlier contract CIDs retain their earlier meanings."
+    },
+    "left": {
+      "signature": "STRING value and a safe-integer-valued finite binary64 number length. Untyped NULL takes the positional signature. Result is STRING with nullability from every supplied operand. No implicit conversions, BYTES, collation or full GoogleSQL INT64 domain is admitted. Exactly two arguments. Retain known input max_codepoints/max_utf8_bytes and drop min_length.",
+      "value": "Return the requested leftmost scalars, or the entire input if length is at least the input scalar count. Zero length returns empty. Lengths count Unicode scalars, not bytes, UTF-16 units or grapheme clusters. Preserve astral characters, combining marks, NUL and line breaks exactly without normalization. Negative, nonintegral or unsafe lengths fail only on a demanded non-null call.",
+      "evaluation": "Evaluate every supplied child once in authored order: value, length, then optional pattern. Apply strict NULL only after all children succeed and before length/pattern domain validation. A NULL or zero requested length never suppresses a demanded child failure. Preserve the first child failure, enclosing lazy demand, cancellation, control work, logical work, live-value/output-byte limits and workspace limits. Use the existing scalar text continuation for cooperative scalar counting, boundary location, exact output sizing and construction. Admit every output byte and storage unit before allocating the output buffer; never allocate a repeated pattern or whole intermediate output first.",
+      "identity": "The closed source is {left: [value, length]}; the machine node is {op: left, body: [value, length]}. SQL LEFT selects this operation. Preserve both authored children without folding or duplication."
+    },
+    "right": {
+      "signature": "STRING value and a safe-integer-valued finite binary64 number length. Untyped NULL takes the positional signature. Result is STRING with nullability from every supplied operand. No implicit conversions, BYTES, collation or full GoogleSQL INT64 domain is admitted. Exactly two arguments. Retain known input max_codepoints/max_utf8_bytes and drop min_length.",
+      "value": "Return the requested rightmost scalars, or the entire input if length is at least the input scalar count. Zero length returns empty. Lengths count Unicode scalars, not bytes, UTF-16 units or grapheme clusters. Preserve astral characters, combining marks, NUL and line breaks exactly without normalization. Negative, nonintegral or unsafe lengths fail only on a demanded non-null call.",
+      "evaluation": "Evaluate every supplied child once in authored order: value, length, then optional pattern. Apply strict NULL only after all children succeed and before length/pattern domain validation. A NULL or zero requested length never suppresses a demanded child failure. Preserve the first child failure, enclosing lazy demand, cancellation, control work, logical work, live-value/output-byte limits and workspace limits. Use the existing scalar text continuation for cooperative scalar counting, boundary location, exact output sizing and construction. Admit every output byte and storage unit before allocating the output buffer; never allocate a repeated pattern or whole intermediate output first.",
+      "identity": "The closed source is {right: [value, length]}; the machine node is {op: right, body: [value, length]}. SQL RIGHT selects this operation. Preserve both authored children; do not expand to a substring expression that evaluates length twice."
+    },
+    "lpad": {
+      "signature": "STRING value and a safe-integer-valued finite binary64 number length. Untyped NULL takes the positional signature. Result is STRING with nullability from every supplied operand. No implicit conversions, BYTES, collation or full GoogleSQL INT64 domain is admitted. Exactly two or three arguments, with optional STRING pattern. Drop input String bounds because a dynamic requested length can expand beyond them.",
+      "value": "If requested length does not exceed input scalar length, return that many leftmost input scalars. Otherwise prepend repeated pattern scalars, using only the needed prefix of the last repetition, to produce the requested length. The omitted pattern is U+0020; an explicit empty pattern fails even for truncation, equal or zero length. Lengths count Unicode scalars, not bytes, UTF-16 units or grapheme clusters. Preserve astral characters, combining marks, NUL and line breaks exactly without normalization. Negative, nonintegral or unsafe lengths fail only on a demanded non-null call.",
+      "evaluation": "Evaluate every supplied child once in authored order: value, length, then optional pattern. Apply strict NULL only after all children succeed and before length/pattern domain validation. A NULL or zero requested length never suppresses a demanded child failure. Preserve the first child failure, enclosing lazy demand, cancellation, control work, logical work, live-value/output-byte limits and workspace limits. Use the existing scalar text continuation for cooperative scalar counting, boundary location, exact output sizing and construction. Admit every output byte and storage unit before allocating the output buffer; never allocate a repeated pattern or whole intermediate output first.",
+      "identity": "The closed source is {lpad: [value, length, pattern?]}; the machine node is {op: lpad, body: [value, length, pattern?]}. SQL LPAD selects this operation. Preserve omission as omission, distinct from explicit NULL or an explicit space pattern."
+    },
+    "rpad": {
+      "signature": "STRING value and a safe-integer-valued finite binary64 number length. Untyped NULL takes the positional signature. Result is STRING with nullability from every supplied operand. No implicit conversions, BYTES, collation or full GoogleSQL INT64 domain is admitted. Exactly two or three arguments, with optional STRING pattern. Drop input String bounds because a dynamic requested length can expand beyond them.",
+      "value": "If requested length does not exceed input scalar length, return that many leftmost input scalars. Otherwise append repeated pattern scalars, using only the needed prefix of the last repetition, to produce the requested length. The omitted pattern is U+0020; an explicit empty pattern fails even for truncation, equal or zero length. Lengths count Unicode scalars, not bytes, UTF-16 units or grapheme clusters. Preserve astral characters, combining marks, NUL and line breaks exactly without normalization. Negative, nonintegral or unsafe lengths fail only on a demanded non-null call.",
+      "evaluation": "Evaluate every supplied child once in authored order: value, length, then optional pattern. Apply strict NULL only after all children succeed and before length/pattern domain validation. A NULL or zero requested length never suppresses a demanded child failure. Preserve the first child failure, enclosing lazy demand, cancellation, control work, logical work, live-value/output-byte limits and workspace limits. Use the existing scalar text continuation for cooperative scalar counting, boundary location, exact output sizing and construction. Admit every output byte and storage unit before allocating the output buffer; never allocate a repeated pattern or whole intermediate output first.",
+      "identity": "The closed source is {rpad: [value, length, pattern?]}; the machine node is {op: rpad, body: [value, length, pattern?]}. SQL RPAD selects this operation. Preserve omission as omission, distinct from explicit NULL or an explicit space pattern."
     }
   },
   "regex_ast_contract": {
