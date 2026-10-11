@@ -62,6 +62,37 @@ test('Model input release is exact-token guarded and preserves another consumer'
   assert.throws(() => controller.verifier.admitCallSet(record.originals), {code: 'ModelFixedInputCustodyUnavailable'});
 });
 
+test('released Model token retires its snapshot without erasing another lease or waiting proof', async () => {
+  const {controller, record, finish} = await setup();
+  const first = await controller.prime(record);
+  const second = await controller.prime(record);
+  const borrowed = first.snapshot;
+  assert.equal(Object.isFrozen(first), true);
+  assert.equal(first.snapshot, borrowed);
+  assert.deepEqual(second.snapshot, borrowed);
+  const receipt = first.receipt;
+  controller.release({...first});
+  assert.equal(first.snapshot, borrowed, 'a copied token cannot retire the original lease');
+  controller.release(first);
+  assert.equal(first.available, false);
+  assert.equal(first.snapshot === undefined, true, 'an escaped token must not retain its decoded input');
+  assert.equal(first.receipt, receipt, 'small authenticated receipt metadata remains unchanged');
+  assert.equal(second.available, true);
+  assert.deepEqual(second.snapshot, borrowed, 'another consumer still owns its independently read input');
+  assert.equal(controller.verifier.admitCallSet(record.originals).scopeCid, record.scopeCid);
+  controller.release(first);
+  assert.equal(controller.usage().retainedInputs, 1);
+  controller.release(second);
+  assert.equal(second.snapshot, undefined);
+  assert.equal(controller.usage().retainedInventoryScopes, 1, 'waiting reconciliation proof is not discarded');
+  assert.equal(controller.verifier.admitCallSet(record.originals).scopeCid, record.scopeCid);
+  assert.deepEqual(borrowed.originals, record.originals,
+    'retiring our reference neither mutates nor invalidates a separately held immutable borrow');
+  finish();
+  controller.retire(record);
+  assert.equal(controller.usage().retainedInventoryScopes, 0);
+});
+
 test('failed Model inventory admission releases only its own new input lease', async () => {
   const {controller, record, snapshot} = await setup();
   const original = await controller.prime(record);
