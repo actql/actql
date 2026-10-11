@@ -286,7 +286,7 @@ test "Graph producer references use the shared query name rules" {
 
 ///|
 test "Graph mapping lowers to an independent keyed Program" {
-  let text = "PROPERTY GRAPH (NODE TABLES (`nodes` AS N KEY (`ID`) LABEL Node PROPERTIES (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES `n` (`id`) DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES ARE ALL COLUMNS EXCEPT (src, dst)))"
+  let text = "GRAPH (NODE TABLES (`nodes` AS N KEY (`ID`) LABEL Node PROPERTIES (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES `n` (`id`) DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES ARE ALL COLUMNS EXCEPT (src, dst)))"
   let program = property_mapping_program(text, property_mapping_inputs()).unwrap()
   // Written from the adopted mapping contract: no domain, Result, sort,
   // acquisition or storage is invented by the constructor lowering.
@@ -302,7 +302,7 @@ test "Graph mapping lowers to an independent keyed Program" {
 
 ///|
 test "Graph references resolve element definitions separately" {
-  let base = "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id) NO PROPERTIES) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES "
+  let base = "GRAPH (NODE TABLES (nodes AS N KEY (id) NO PROPERTIES) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES "
   for
     (name, expected) in [
       ("nodes", "UnknownRelation"),
@@ -331,17 +331,17 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
   for
     (text, expected) in [
       (
-        "PROPERTY GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation",
+        "GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation",
       ),
       (
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn",
+        "GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn",
       ),
       (
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id), nodes AS `n` KEY (id)))",
+        "GRAPH (NODE TABLES (nodes AS N KEY (id), nodes AS `n` KEY (id)))",
         "AmbiguousRelation",
       ),
       (
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES N (missing) DESTINATION KEY (dst) REFERENCES N))",
+        "GRAPH (NODE TABLES (nodes AS N KEY (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES N (missing) DESTINATION KEY (dst) REFERENCES N))",
         "UnknownColumn",
       ),
     ] {
@@ -355,7 +355,7 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
   assert_eq(
     mapping_issue(
       property_mapping_program(
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id)))", both,
+        "GRAPH (NODE TABLES (nodes AS N KEY (id)))", both,
       ),
     ),
     "AmbiguousRelation",
@@ -371,7 +371,7 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
   assert_eq(
     mapping_issue(
       property_mapping_program(
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id)))", fields,
+        "GRAPH (NODE TABLES (nodes AS N KEY (id)))", fields,
       ),
     ),
     "AmbiguousColumn",
