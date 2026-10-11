@@ -185,6 +185,24 @@ or body digest cannot expand the installed operation allowlist. Grant issuance
 must have explicit trusted inputs; adoption, Program submission and approval
 alone do not create credential permission or a new grant.
 
+The Native adapter dispatches the distinct Local and Remote grant/use types
+into the same credential claim, send, outcome and query implementation. Both
+domains use the existing database, trusted clock, revocation records and
+credential-use scopes. Local installation requires its own typed authorization
+callback; a Remote installation cannot authorize a Local use by default.
+The Local send entrypoint also requires a current guard. Trusted Host assembly
+must check original adoption, current authority, checked operation and the
+opaque execution claim in those callbacks. Pure scope equality and a caller's
+Boolean are not evidence that these checks have occurred.
+
+Before claiming a Local use, the adapter isolates the transport bytes and
+matches their digest, method and installed path against the grant. It retains
+the existing durable ordinal/use claim before I/O, current checks before send
+and saved outcome after I/O. Restoring or querying a use does not claim another
+ordinal. Claimed and unknown outcomes remain distinct from unsent work and
+never authorize automatic resend. These adapter obligations do not replace
+the Run approval, send-start, reconciliation or cleanup Owners.
+
 ## Public execution and restoration
 
 Trusted Host assembly connects to the existing original Submission, pre-start
