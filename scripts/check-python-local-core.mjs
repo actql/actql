@@ -14,7 +14,8 @@ assert.ok(python,'Select the isolated Python Wasmtime environment');
 const physicalBoundary=process.argv.includes('--physical-boundary');
 const dispatchBoundary=process.argv.includes('--dispatch-boundary');
 const submissionBoundary=process.argv.includes('--submission-boundary');
-assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary].filter(Boolean).length<=1,
+const sourcePublicationBoundary=process.argv.includes('--source-publication-boundary');
+assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary,sourcePublicationBoundary].filter(Boolean).length<=1,
   'Select one focused boundary');
 
 function run(command,args,timeout=60000){
@@ -50,7 +51,35 @@ if(process.argv.includes('--build-and-consume')){
   const result=JSON.parse(output);
   assert.equal(result.success,true);
   assert.equal(result.module_sha256,digest);
-  if(submissionBoundary){
+  if(sourcePublicationBoundary){
+    const library=process.env.ACTQL_PYTHON_DUCKDB_LIBRARY;
+    const libraryDigest=process.env.ACTQL_PYTHON_DUCKDB_SHA256;
+    assert.ok(library && /^[0-9a-f]{64}$/u.test(libraryDigest ?? ''),
+      'Select the exact standalone DuckDB test library and digest');
+    assert.equal(createHash('sha256').update(await readFile(library)).digest('hex'),libraryDigest);
+    const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
+    assert.equal(physical.success,true);
+    assert.equal(physical.module_sha256,digest);
+    const native=JSON.parse(run(python,['scripts/fixtures/python-local-native-result-abi.py',
+      module,library,libraryDigest,'--bounded-inventory-root','--source-publication'],120000));
+    assert.equal(native.success,true);
+    assert.equal(native.module_sha256,digest);
+    assert.equal(native.cases.length,14);
+    assert.equal(native.source_publication_cases.length,8);
+    const record={source_sha:source,module,module_sha256:digest,
+      scope:'private_captured_source_publication_facts',
+      moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,native,
+      public_local_acceptance:false,durable_run_acceptance:false,
+      default_fuel_acceptance:false,global_memory_accounting:false};
+    const file=join(receipt,'source-publication-boundary-receipt.json');
+    try{
+      await writeFile(file,JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+    }catch(error){
+      if(error.code!=='EEXIST')throw error;
+      assert.deepEqual(JSON.parse(await readFile(file,'utf8')),record,
+        'Do not replace an existing fixed-source Source publication receipt');
+    }
+  }else if(submissionBoundary){
     const submission=JSON.parse(run(python,['scripts/fixtures/python-local-submission-abi.py',module]));
     assert.equal(submission.success,true);
     assert.equal(submission.module_sha256,digest);
@@ -138,6 +167,7 @@ if(process.argv.includes('--build-and-consume')){
     name:physicalBoundary?'Actual Python/Core physical boundary':'Actual Python/Core buffer ABI',command:process.execPath,
     args:[fileURLToPath(import.meta.url),'--build-and-consume',...(physicalBoundary?['--physical-boundary']:[]),
       ...(dispatchBoundary?['--dispatch-boundary']:[]),
-      ...(submissionBoundary?['--submission-boundary']:[])],
+      ...(submissionBoundary?['--submission-boundary']:[]),
+      ...(sourcePublicationBoundary?['--source-publication-boundary']:[])],
   }]});
 }

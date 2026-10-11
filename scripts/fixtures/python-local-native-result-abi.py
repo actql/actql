@@ -19,8 +19,11 @@ from actql_sdk._local_duckdb import DuckDBLibrary, DuckDBConnection, DuckDBTrans
 
 module_path, library_path, library_digest = sys.argv[1:4]
 cleanup_only = sys.argv[4:] == ['--native-cleanup-only']
-inventory_root = sys.argv[4:] == ['--bounded-inventory-root']
-assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'])
+inventory_root = '--bounded-inventory-root' in sys.argv[4:]
+source_publication = '--source-publication' in sys.argv[4:]
+assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
+                       ['--bounded-inventory-root', '--source-publication'])
+source_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -140,7 +143,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 16
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 17
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -227,6 +230,107 @@ try:
         compute = call('compute', 'reserve', fixture.attempt, copy({**read_account, **bodies}))
         assert compute > 0 and call('compute', 'configure', compute) == 0
         assert call('compute', 'configured', compute) == 0
+        if source_publication:
+            def source_loan(max_work=1000000, **changes):
+                global ticket
+                request_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
+                                      'max_work': max_work, 'max_workspace_slots': 1000000, **changes})
+                ticket += 1
+                output_ticket = ticket
+                fixture.inputs[output_ticket] = b''
+                handle = call('source_publication', 'reserve', compute, request_input,
+                              output_ticket, 131200)
+                assert handle > 0
+                return handle
+
+            malformed = source_loan(observed_at=None)
+            assert call('source_publication', 'prepare', malformed, configuration) == -31
+            assert call('source_publication', 'close', malformed) == 0
+            source_cases.append('source_request_null_is_not_absent')
+            abandoned = source_loan()
+            assert call('source_publication', 'prepare', abandoned, configuration) == 0
+            assert call('source_publication', 'finish', abandoned, configuration) == -7
+            assert call('source_publication', 'advance', abandoned, 1) == 0
+            assert call('source_publication', 'progress', abandoned, 2) == 1
+            assert call('source_publication', 'close', abandoned) == 0
+            assert call('compute', 'configured', compute) == 0
+            source_cases.append('source_unfinished_cancel_keeps_original_capture')
+            exhausted = source_loan(max_work=1)
+            assert call('source_publication', 'prepare', exhausted, configuration) == 0
+            assert call('source_publication', 'advance', exhausted, 1) == 0
+            assert call('source_publication', 'advance', exhausted, 1) == -32
+            assert call('source_publication', 'progress', exhausted, 2) == 1
+            assert call('source_publication', 'close', exhausted) == 0
+            source_cases.append('source_budget_exhaustion_keeps_monotone_work')
+            denied_account = json.loads(account)
+            denied_account['entries'][0]['outcome'] = 'deny'
+            denied_configuration = call('run', 'install_configuration', copy({
+                **CONFIGURATION, 'account': encode(denied_account).decode()}))
+            assert denied_configuration > 0
+            revoked = source_loan()
+            assert call('source_publication', 'prepare', revoked, configuration) == 0
+            for _ in range(10000):
+                assert call('source_publication', 'advance', revoked, 7) == 0
+                if call('source_publication', 'progress', revoked, 0) == 1:
+                    break
+            else:
+                raise AssertionError('Source identity did not complete within the fixture bound')
+            assert call('source_publication', 'finish', revoked, denied_configuration) == -32
+            assert call('source_publication', 'length', revoked) == -33
+            assert call('source_publication', 'close', revoked) == 0
+            assert call('run', 'close_configuration', denied_configuration) == 0
+            source_cases.append('source_revocation_before_issuance_refused')
+            expected_work = None
+            expected_body = None
+            for quantum in (1, 7, 100):
+                source_output = source_loan()
+                assert call('source_publication', 'prepare', source_output, configuration) == 0
+                spent = 0
+                for _ in range(10000):
+                    assert call('source_publication', 'advance', source_output, quantum) == 0
+                    work = call('source_publication', 'progress', source_output, 1)
+                    assert 0 <= work <= quantum
+                    spent += work
+                    if call('source_publication', 'progress', source_output, 0) == 1:
+                        break
+                else:
+                    raise AssertionError('Source identity did not complete within the fixture bound')
+                assert call('source_publication', 'progress', source_output, 2) == spent
+                if expected_work is None:
+                    expected_work = spent
+                assert spent == expected_work
+                assert call('source_publication', 'finish', source_output, configuration) == 0
+                length = call('source_publication', 'length', source_output)
+                assert 0 < length <= 65536
+                wire = bytes(fixture.call('byte', source_output, index) for index in range(length))
+                body = json.loads(wire)
+                assert set(body) == {'logical', 'evidence'}
+                logical, evidence = json.loads(body['logical']), json.loads(body['evidence'])
+                assert logical['version'] == 'actql-source-input-logical/0.1'
+                # Independent registered preimage for the checked acquire stage:
+                # {"sort":"relation","value":[{"id":3}]} (filter, then select).
+                assert logical['logical_relation_cid'] == (
+                    'sha256:571faa1e5e1447b632772f94003f0e079c7157e175331a568f6ceecf50b75dfc')
+                assert evidence['version'] == 'actql-source-evidence/0.1'
+                assert logical['completeness'] == evidence['completeness'] == 'complete'
+                assert evidence['source_ref'] == 'connector://crm/main/r#v'
+                assert evidence['input_logical_cid'] == logical['input_logical_cid']
+                assert evidence['authority_scope_cid'] == CONFIGURATION['authority_scope_cid']
+                assert evidence['observed_at'] == '2026-10-10T00:00:01.000Z'
+                assert evidence['source_data_policy_cid'] == evidence['effective_data_policy_cid'] == (
+                    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf')
+                if expected_body is None:
+                    expected_body = body
+                assert body == expected_body, 'Quantum cannot change existing Owner identity'
+                fixture.cleanup_ready = False
+                assert call('source_publication', 'close', source_output) == -9
+                fixture.cleanup_ready = True
+                assert call('source_publication', 'close', source_output) == 0
+                assert fixture.queries == 3, 'Identity issuance must not reacquire Source'
+                source_cases.append('source_quantum_' + str(quantum) + '_identity_and_cleanup')
+            source_pin = source_loan()
+            assert call('source_publication', 'prepare', source_pin, configuration) == 0
+            assert call('source_publication', 'advance', source_pin, 1) == 0
         tasks = []
         for _ in range(2):
             task = call('task', 'reserve', compute, configuration)
@@ -328,6 +432,10 @@ try:
         assert call('result', 'close', result) == 0
         for task in reversed(tasks):
             assert call('task', 'close', task) == 0
+        if source_publication:
+            assert call('compute', 'close', compute) == -9
+            assert call('source_publication', 'close', source_pin) == 0
+            source_cases.append('source_child_pins_parent_until_explicit_close')
         assert call('compute', 'close', compute) == 0
     root_before_cleanup = fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce)
     # Fixed Wasm memory + physical DuckDB workspace + full transfer pool.
@@ -370,6 +478,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'public_local_acceptance': False, 'durable_run_acceptance': False,
                   'default_fuel_acceptance': False,
                   'global_memory_accounting': False,
+                  'source_publication_cases': source_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']
