@@ -102,7 +102,11 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     } catch { return [true, undefined]; }
     return [true, plan];
   };
-  const preflight = moon.clientProgramModelRequestPreflight(advance, cleanup);
+  // The pinned MoonBit JS tuple ABI is a field record, not a JS Array.
+  const preflight = moon.clientProgramModelRequestPreflight(() => {
+    const [terminal, physicalPlan] = advance();
+    return {_0: terminal, _1: physicalPlan};
+  }, cleanup);
   return Object.freeze({preflight,
     bindPrepared(original) {
       if (retired || prepared !== undefined) throw new TypeError('SdkPreparedAlreadyBound');

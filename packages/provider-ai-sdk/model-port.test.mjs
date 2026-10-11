@@ -87,13 +87,13 @@ async function until(read, predicate) {
   }
   assert.fail('Finite private physical caller did not reach its observation');
 }
-const planOf = f => until(() => f.port.preflight.advance(), value => value[0]);
+const planOf = f => until(() => f.port.preflight.advance(), value => value._0);
 const release = f => until(() => f.port.preflight.cleanup(), value => value);
 
 test('real SDK preflight retains one plan and starts only its original consumed call', async () => {
   const f = fixture();
-  const [, plan] = await planOf(f);
-  assert.equal(f.port.preflight.advance()[1], plan);
+  const {_1: plan} = await planOf(f);
+  assert.equal(f.port.preflight.advance()._1, plan);
   assert.equal(f.state.plans, 1);
   assert.equal(f.state.calls, 0);
   const call = plan.start(f.entry);
@@ -113,7 +113,7 @@ test('real SDK preflight retains one plan and starts only its original consumed 
 test('rejected plan or foreign call cannot enter physical fetch', async () => {
   for (const options of [{rejectPlan: true}, {rejectCall: true}]) {
     const f = fixture(options);
-    const [, plan] = await planOf(f);
+    const {_1: plan} = await planOf(f);
     assert.equal(plan?.start(f.entry), undefined);
     assert.equal(f.state.calls, 0);
     assert.equal(f.state.plans, 1);
@@ -125,7 +125,7 @@ test('save await keeps cleanup pending and a saved original response is transfer
   let finish;
   const saved = new Promise(resolve => { finish = resolve; });
   const f = fixture({persistRaw: () => saved});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), () => f.state.saves === 1);
   assert.equal(f.port.preflight.cleanup(), false);
@@ -140,7 +140,7 @@ test('save await keeps cleanup pending and a saved original response is transfer
 test('raw persistence failure preserves the original cleanup responsibility without resend', async () => {
   const failure = Object.assign(new Error('Store ACK unknown'), {rawCustodyRetained: true});
   const f = fixture({persistRaw: () => { throw failure; }, cleanupRaw: () => false});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   assert.equal(f.port.rawFailure(), failure);
@@ -162,7 +162,7 @@ test('same original raw cleanup completion retires the SDK without adopting an u
       assert.equal(call, seenCall);
       return rawReleased;
     }});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   assert.equal(f.port.preflight.cleanup(), false);
@@ -189,7 +189,7 @@ test('saved raw cleanup remains pending until the original successful save port 
     if (cleanupCalls === 1) throw new Error('OriginalRawCleanupUnavailable');
     return released;
   }});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'chat');
   assert.equal(f.port.preflight.cleanup(), false);
@@ -207,7 +207,7 @@ test('saved raw cleanup remains pending until the original successful save port 
 
 test('lost response has no invented raw body, no saved response and no second request', async () => {
   const f = fixture({transportThrow: true});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   assert.equal(f.state.saves, 0);
@@ -235,7 +235,7 @@ test('explicit raw reconciliation reuses the original call without rewriting Unk
     assert.equal(raw, originalRaw);
     return new Promise(resolve => { finish = resolve; });
   }});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   await assert.rejects(f.port.reconcileRaw({}),
@@ -272,7 +272,7 @@ test('failed explicit raw reconciliation retains Unknown and cleanup responsibil
   const next = new Error('Same original receipt unavailable');
   const f = fixture({persistRaw() { throw f.state.saves === 1 ? first : next; },
     cleanupRaw: () => false});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   const reconfirmation = f.port.reconcileRaw(call);
@@ -295,7 +295,7 @@ test('cancel during original reconfirmation preserves its single view and pendin
     if (f.state.saves === 1) throw failure;
     return new Promise(resolve => { finish = resolve; });
   }, cleanupRaw: () => released});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   const original = f.port.reconcileRaw(call);
@@ -325,7 +325,7 @@ test('incomplete transport preserves exact observed prefix for raw persistence, 
       throw new Error('physical lost body');
     }, async cancel() {}, releaseLock() {}}; },
   }})});
-  const [, plan] = await planOf(f);
+  const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
   const observed = await until(() => call.poll(), value => value.kind === 'chat');
   assert.deepEqual(observed.value.originalRaw.body, prefix);

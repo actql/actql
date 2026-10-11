@@ -133,7 +133,7 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
     responseLimits, persistRaw: persistence, cleanupRaw: persistence.cleanup,
     notify: io.notify, checked, observeAt: () => observedAt});
   port.bindPrepared(prepared);
-  const [, plan] = await wait(() => port.preflight.advance(), value => value[0]);
+  const {_1: plan} = await wait(() => port.preflight.advance(), value => value._0);
   t.diagnostic('joined boundary: fixed SDK preflight prepared');
   assert.equal(serverState.requests, 0);
   assert.equal(physicalStarts, 0);
