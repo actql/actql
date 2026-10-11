@@ -27,13 +27,15 @@ final_publication = '--final-publication' in sys.argv[4:]
 result_binding = '--result-binding' in sys.argv[4:]
 commit_candidate = '--commit-candidate' in sys.argv[4:]
 payload_request = '--payload-request' in sys.argv[4:]
+payload_replay = '--payload-replay' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -44,6 +46,7 @@ preflight_inputs = {}
 preflight_output_tickets = {}
 commit_cases = []
 payload_request_cases = []
+payload_replay_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -191,7 +194,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 26
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 27
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -829,6 +832,10 @@ try:
                     assert fixture.call('close', input_handle) == 0
                     payload_request_cases.append('closed_request_preserves_absent_null_and_rejects_supplied_result_identity')
                     child, input_handle = payload_loan(payload_facts)
+                    if payload_replay:
+                        assert_status('payload_request', 'start_replay', -33, child, configuration)
+                        assert_status('payload_chunk', 'reserve', -2, child, 65500, 131300)
+                        payload_replay_cases.append('unfinished_request_cannot_open_replay')
                     assert_status('payload_request', 'produce', -32, child, denied_configuration)
                     assert_status('payload_request', 'produce', 0, child, configuration)
                     size = call('payload_request', 'length', child)
@@ -851,6 +858,59 @@ try:
                     assert_status('payload_request', 'produce', 0, child, configuration)
                     assert bytes(fixture.call('byte', child, i) for i in range(size)) == payload_wire
                     payload_request_cases.append('current_authority_revalidated_after_cached_projection')
+                    if payload_replay:
+                        replay_expected = json.loads((root / 'scripts/fixtures/python-local-payload-replay.json').read_text())
+                        assert_status('payload_request', 'start_replay', -32, child, denied_configuration)
+                        assert_status('payload_request', 'start_replay', 0, child, configuration)
+                        assert_status('payload_request', 'start_replay', 0, child, configuration)
+                        payload_replay_cases.append('original_request_and_result_open_once_under_current_custody')
+                        ticket += 1
+                        assert_status('payload_chunk', 'reserve', -4, child, ticket, 8388608)
+                        payload_replay_cases.append('capacity_refusal_before_replay_advance')
+                        payload_parts = []
+                        for _ in range(100):
+                            ticket += 1
+                            fixture.inputs[ticket] = b''
+                            chunk = call('payload_chunk', 'reserve', child, ticket, replay_expected['physical_copy_bytes'])
+                            assert chunk > 0
+                            assert_status('payload_chunk', 'reserve', -3, child, ticket + 1, replay_expected['physical_copy_bytes'])
+                            assert_status('payload_chunk', 'produce', -32, chunk, denied_configuration)
+                            assert_status('payload_chunk', 'produce', 0, chunk, configuration)
+                            assert_status('payload_chunk', 'produce', 0, chunk, configuration)
+                            assert_status('payload_chunk', 'validate', -32, chunk, denied_configuration)
+                            assert_status('payload_chunk', 'validate', 0, chunk, configuration)
+                            length = call('payload_chunk', 'length', chunk)
+                            assert 0 <= length <= replay_expected['max_chunk_bytes']
+                            wire = bytes(fixture.call('byte', chunk, index) for index in range(length))
+                            assert bytes(fixture.call('byte', chunk, index) for index in range(length)) == wire
+                            payload_parts.append(wire)
+                            final = call('payload_chunk', 'final', chunk)
+                            assert final in (0, 1)
+                            if final:
+                                assert_status('payload_request', 'close', -9, child)
+                                assert fixture.call('close', input_handle) == -9
+                            held = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('payload_chunk', 'close', -9, chunk)
+                            assert fixture.call('allocated') == held
+                            fixture.cleanup_ready = True
+                            assert_status('payload_chunk', 'close', 0, chunk)
+                            assert fixture.call('allocated') == held - (2 * 65536 + replay_expected['physical_copy_bytes'])
+                            assert_status('payload_chunk', 'produce', -2, chunk, configuration)
+                            assert_status('payload_chunk', 'validate', -2, chunk, configuration)
+                            if final:
+                                break
+                        else:
+                            raise AssertionError('No original payload replay terminator')
+                        assert b''.join(payload_parts) == replay_expected['exact_payload'].encode('utf-8')
+                        assert fixture.queries == expected['source_queries']
+                        payload_replay_cases.extend([
+                            'bounded_chunk_and_lost_ack_use_same_original_bytes',
+                            'current_authority_rechecked_for_production_and_cached_read',
+                            'failed_chunk_cleanup_retains_exact_allocation_for_retry',
+                            'live_final_chunk_keeps_parent_request_and_original_borrow',
+                            'exact_replay_eof_and_stale_chunk_refusal_without_source_compute_repeat'])
+                        assert payload_replay_cases == replay_expected['cases']
                     allocated = fixture.call('allocated')
                     fixture.cleanup_ready = False
                     assert_status('payload_request', 'close', -9, child)
@@ -1211,6 +1271,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'publication_retirement_cases': publication_retirement_cases,
                   'commit_candidate_cases': commit_cases,
                   'payload_request_cases': payload_request_cases,
+                  'payload_replay_cases': payload_replay_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

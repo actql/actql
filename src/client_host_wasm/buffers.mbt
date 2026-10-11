@@ -47,6 +47,7 @@ priv struct Instance {
   result_bindings : Map[Int, StoredResultBinding]
   commit_exports : Map[Int, StoredPublicationCommitExport]
   payload_requests : Map[Int, StoredPayloadRequest]
+  payload_chunks : Map[Int, StoredPayloadChunk]
   tasks : Map[Int, StoredManagedTask]
   result_exports : Map[Int, StoredResultExport]
   result_chunks : Map[Int, StoredResultChunk]
@@ -160,6 +161,7 @@ pub fn open(
         result_bindings: {},
         commit_exports: {},
         payload_requests: {},
+        payload_chunks: {},
         tasks: {},
         result_exports: {},
         result_chunks: {},
@@ -327,6 +329,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     !value.result_bindings.is_empty() ||
     !value.commit_exports.is_empty() ||
     !value.payload_requests.is_empty() ||
+    !value.payload_chunks.is_empty() ||
     !value.tasks.is_empty() ||
     !value.result_exports.is_empty() ||
     !value.result_chunks.is_empty() {
@@ -366,6 +369,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.result_bindings.clear()
     value.commit_exports.clear()
     value.payload_requests.clear()
+    value.payload_chunks.clear()
     value.tasks.clear()
     value.result_exports.clear()
     value.result_chunks.clear()

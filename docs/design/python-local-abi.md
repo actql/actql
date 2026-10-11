@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 26; this private ABI
+before opening the instance. `actql_host_abi_version` returns 27; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1085,3 +1085,14 @@ transport closed. Retirement grants neither publisher authority nor Store
 acceptance. Full close still waits for children and returns the original borrow.
 The private Python method discards its copied wire only after the same physical
 cleanup succeeds, while retaining its nominal semantic loan.
+
+
+Private ABI27 keeps a child replay under the original typed payload request,
+preflight and completed Result. Core's existing completed-output replay Owner
+provides bounded chunks and proves its final digest. Each production and cached
+read rechecks the original current Run/Source/custody boundary. One reserved
+chunk pins its request until exact cleanup succeeds; lost acknowledgements use
+the same chunk rather than consuming more bytes. Request close cancels only its
+child replay, retains live chunks and retries the same original input borrow.
+Python exposes exact bytes and the Core EOF marker. It does not infer durable
+payload sealing, Store installation, publisher authority or Run completion.
