@@ -11,8 +11,15 @@ fn original_startup_test_grant(
     @resources.configure_quantities(ledger, value).unwrap()
   }
   let capacity = @resources.reserve_capacity(ledger, 100L, 5L).unwrap()
-  { rows, scope: None, ledger, capacity, retained_bytes: 100L,
-    execution_bytes: 5L, used: false, }
+  {
+    rows,
+    scope: None,
+    ledger,
+    capacity,
+    retained_bytes: 100L,
+    execution_bytes: 5L,
+    used: false,
+  }
 }
 
 ///|
@@ -26,10 +33,17 @@ fn original_startup_test_start(
     abort("A masked private startup must never send")
   }).unwrap()
   start_model_owned(
-    rows, Provider(provider), "sha256:" + "a".repeat(64), limits, None,
+    rows,
+    Provider(provider),
+    "sha256:" + "a".repeat(64),
+    limits,
+    None,
     durable_calls=true,
-    send_mask=Some(Array::make(@relation.prepared_infer_rows_count(rows), false)),
-    quantity_capacity=quantities, original_startup=Some(grant),
+    send_mask=Some(
+      Array::make(@relation.prepared_infer_rows_count(rows), false),
+    ),
+    quantity_capacity=quantities,
+    original_startup=Some(grant),
   )
 }
 
@@ -43,7 +57,11 @@ test "original Model startup uses same Ledger once and keeps pending output cust
   assert_true(physical_equal(active.state.ledger, grant.ledger))
   assert_eq(@resources.ledger_usage(grant.ledger), before)
   assert_true(grant.used)
-  assert_true(original_startup_test_start(rows, grant, limits, None) is Err(RequestIdentity))
+  assert_false(cleanup_original_model_startup(grant).unwrap())
+  assert_true(
+    original_startup_test_start(rows, grant, limits, None)
+    is Err(RequestIdentity),
+  )
   assert_eq(@resources.ledger_usage(grant.ledger), before)
   let cleanup_done = Ref(false)
   active.state.physical_cursors.push({
@@ -63,9 +81,36 @@ test "original Model startup uses same Ledger once and keeps pending output cust
   assert_true(cleanup_model_execution(active).unwrap())
   assert_true(active.state.original_startup is None)
   assert_false(@resources.capacity_reservation_open(grant.capacity))
+  assert_true(cleanup_original_model_startup(grant).unwrap())
   assert_true(cleanup_model_execution(active).unwrap())
-  assert_true(original_startup_test_start(rows, grant, limits, None) is Err(RequestIdentity))
+  assert_true(
+    original_startup_test_start(rows, grant, limits, None)
+    is Err(RequestIdentity),
+  )
   assert_true(@relation.cleanup_prepared_infer_rows(rows))
+}
+
+///|
+test "original Model startup unconsumed cleanup checks original row retirement without caller proof" {
+  let rows = prepared_capacity_test_rows()
+  let limits = prepared_capacity_test_limits(100L)
+  let grant = original_startup_test_grant(rows, limits, None)
+  let before = @resources.ledger_usage(grant.ledger)
+  let input_use = @relation.acquire_prepared_infer_rows(rows).unwrap()
+  assert_false(cleanup_original_model_startup(grant).unwrap())
+  assert_false(grant.used)
+  assert_true(@resources.capacity_reservation_open(grant.capacity))
+  assert_eq(@resources.ledger_usage(grant.ledger), before)
+  assert_true(@relation.release_prepared_infer_rows_use(input_use))
+  assert_true(cleanup_original_model_startup(grant).unwrap())
+  assert_true(grant.used)
+  assert_false(@resources.capacity_reservation_open(grant.capacity))
+  assert_true(cleanup_original_model_startup(grant).unwrap())
+  assert_true(
+    original_startup_test_start(rows, grant, limits, None)
+    is Err(RequestIdentity),
+  )
+  assert_eq(@resources.ledger_usage(grant.ledger).reserved_retention_bytes, 0L)
 }
 
 ///|
@@ -75,8 +120,19 @@ test "original Model startup refusal does not consume or settle the original gra
   let limits = prepared_capacity_test_limits(100L)
   let grant = original_startup_test_grant(rows, limits, None)
   let before = @resources.ledger_usage(grant.ledger)
-  assert_true(original_startup_test_start(foreign_rows, grant, limits, None) is Err(RequestIdentity))
-  assert_true(original_startup_test_start(rows, grant, prepared_capacity_test_limits(101L), None) is Err(RequestIdentity))
+  assert_true(
+    original_startup_test_start(foreign_rows, grant, limits, None)
+    is Err(RequestIdentity),
+  )
+  assert_true(
+    original_startup_test_start(
+      rows,
+      grant,
+      prepared_capacity_test_limits(101L),
+      None,
+    )
+    is Err(RequestIdentity),
+  )
   assert_false(grant.used)
   assert_eq(@resources.ledger_usage(grant.ledger), before)
   assert_true(@resources.capacity_reservation_open(grant.capacity))
@@ -84,10 +140,17 @@ test "original Model startup refusal does not consume or settle the original gra
   let provider = install_model_provider("models/fixture", _ => {
     abort("Retired rows cannot invoke a provider")
   }).unwrap()
-  assert_true(start_model_owned(
-    rows, Provider(provider), "sha256:" + "a".repeat(64), limits, None,
-    original_startup=Some(grant),
-  ) is Err(OutputIdentity))
+  assert_true(
+    start_model_owned(
+      rows,
+      Provider(provider),
+      "sha256:" + "a".repeat(64),
+      limits,
+      None,
+      original_startup=Some(grant),
+    )
+    is Err(OutputIdentity),
+  )
   assert_false(grant.used)
   assert_true(@resources.capacity_reservation_open(grant.capacity))
   assert_eq(@resources.ledger_usage(grant.ledger), before)
@@ -105,12 +168,24 @@ test "original Model startup preserves configured quantities and unknown usage" 
   }
   let grant = original_startup_test_grant(rows, limits, Some(quantities.limits))
   let attempt = @resources.reserve_attempt(
-    grant.ledger, 0L, 0L, 0L, quantities=Some(quantities.per_attempt),
+    grant.ledger,
+    0L,
+    0L,
+    0L,
+    quantities=Some(quantities.per_attempt),
   ).unwrap()
   @resources.mark_quantities_uncertain(grant.ledger, attempt).unwrap()
   let usage = @resources.quantity_usage(grant.ledger)
-  assert_true(original_startup_test_start(rows, grant, limits, None) is Err(RequestIdentity))
-  let active = original_startup_test_start(rows, grant, limits, Some(quantities)).unwrap()
+  assert_true(
+    original_startup_test_start(rows, grant, limits, None)
+    is Err(RequestIdentity),
+  )
+  let active = original_startup_test_start(
+    rows,
+    grant,
+    limits,
+    Some(quantities),
+  ).unwrap()
   assert_eq(@resources.quantity_usage(active.state.ledger), usage)
   assert_true(request_model_cancel(active))
   advance_model_execution(active, 1).unwrap() |> ignore
@@ -129,7 +204,10 @@ test "original Model startup parent fuel keeps spent work without refund" {
   let active = original_startup_test_start(rows, grant, limits, None).unwrap()
   assert_true(advance_model_execution(active, 1).unwrap() is Continue(_, _))
   assert_eq(@resources.ledger_usage(grant.ledger).planning_work, 2)
-  assert_true(advance_model_execution(active, 1).unwrap() is Failed(Ledger(@resources.PlanningLimit), _, _))
+  assert_true(
+    advance_model_execution(active, 1).unwrap()
+    is Failed(Ledger(@resources.PlanningLimit), _, _),
+  )
   assert_eq(active.state.work, 1)
   assert_true(cleanup_model_execution(active).unwrap())
   assert_eq(@resources.ledger_usage(grant.ledger).planning_work, 2)
@@ -143,7 +221,10 @@ test "original Model startup zero rows retain a positive base and closed tokens 
   let limits = prepared_capacity_test_limits(100L)
   let grant = original_startup_test_grant(rows, limits, None)
   let active = original_startup_test_start(rows, grant, limits, None).unwrap()
-  assert_eq(@resources.ledger_usage(grant.ledger).reserved_retention_bytes, 100L)
+  assert_eq(
+    @resources.ledger_usage(grant.ledger).reserved_retention_bytes,
+    100L,
+  )
   assert_true(request_model_cancel(active))
   advance_model_execution(active, 1).unwrap() |> ignore
   assert_true(cleanup_model_execution(active).unwrap())
@@ -151,7 +232,10 @@ test "original Model startup zero rows retain a positive base and closed tokens 
   let live_rows = prepared_capacity_test_rows()
   let closed = original_startup_test_grant(live_rows, limits, None)
   @resources.settle_capacity(closed.ledger, closed.capacity).unwrap()
-  assert_true(original_startup_test_start(live_rows, closed, limits, None) is Err(RequestIdentity))
+  assert_true(
+    original_startup_test_start(live_rows, closed, limits, None)
+    is Err(RequestIdentity),
+  )
   assert_false(closed.used)
   assert_true(@relation.cleanup_prepared_infer_rows(live_rows))
 }

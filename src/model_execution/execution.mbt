@@ -806,17 +806,22 @@ fn start_model_owned(
     return Err(InvalidLimits)
   }
   if original_startup is Some(original) &&
-    (prepared_capacity is Some(_) ||
-    !(source is Provider(_)) ||
-    !original_model_startup_matches(original, rows, call_scope, limits, quantity_capacity)) {
+    (
+      prepared_capacity is Some(_) ||
+      !(source is Provider(_)) ||
+      !original_model_startup_matches(
+        original, rows, call_scope, limits, quantity_capacity,
+      )
+    ) {
     return Err(RequestIdentity)
   }
   let ledger = match original_startup {
     Some(original) => original.ledger
-    None => match @resources.create_ledger(limits.ledger) {
-      Ok(value) => value
-      Err(issue) => return Err(Ledger(issue))
-    }
+    None =>
+      match @resources.create_ledger(limits.ledger) {
+        Ok(value) => value
+        Err(issue) => return Err(Ledger(issue))
+      }
   }
   if quantity_capacity is Some(capacity) {
     if !(source is Provider(_)) ||
@@ -844,10 +849,11 @@ fn start_model_owned(
   // No public caller supplies this descriptor yet; no new key is retained.
   let capacity = match original_startup {
     Some(original) => Some(original.capacity)
-    None => match reserve_prepared_model_capacity(ledger, count, prepared_capacity) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
+    None =>
+      match reserve_prepared_model_capacity(ledger, count, prepared_capacity) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
   }
   guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
     if original_startup is None && capacity is Some(reservation) {

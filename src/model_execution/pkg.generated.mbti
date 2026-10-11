@@ -59,6 +59,8 @@ pub fn cleanup_model_observation_verification(ModelObservationVerification) -> R
 
 pub fn cleanup_model_output_preparation(ModelOutputPreparation) -> Result[Bool, ModelExecutionIssue]
 
+pub fn cleanup_original_model_startup(OriginalModelStartup) -> Result[Bool, ModelExecutionIssue]
+
 pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
@@ -135,6 +137,8 @@ pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
 
+pub fn prepare_original_model_startup(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
+
 pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn prepared_model_call_count(ModelPreparedCallSet) -> Int?
@@ -192,6 +196,8 @@ pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvide
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
+
+pub fn start_original_model_execution(OriginalModelStartup, @execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, @run_publication_host.ClientInferCallScope, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, durable_calls? : Bool, send_mask? : Array[Bool]?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, @run_publication.ModelCaptureBundleRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
@@ -463,6 +469,8 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+type OriginalModelStartup
 
 pub struct VerifiedModelCapture {
   owner : ModelExecution
