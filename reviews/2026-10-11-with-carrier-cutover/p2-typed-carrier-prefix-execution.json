@@ -1,0 +1,566 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "base": "main",
+  "adopted_main": "2e8fa9308f13de328a6e1eae43b9c16090f4c982",
+  "main_merge": "c4813c6303ba432fd929f45a2bce1af26f096308",
+  "common_prefix_fix_main": "53e6de2c01a85704a4f6094a32f0bd9b2536a8cf",
+  "tested_source": "25fb698c0479d9764fe359b74b8ee43e07f3b11e",
+  "tested_tree": "086a71cf04a4ebb36f19d1e014e808cad91b060f",
+  "formatted_source": "2aae93feafe945a58b01354cb18a92774fbe4901",
+  "formatted_tree": "e37b6909a7ffd0acf18af40d730f78209e5ea999",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "runs": [
+    {
+      "run": "run-7gjpbF",
+      "source": "7a63a17bce98e7e7d4292c7ed5ef5274a22ee116",
+      "tree": "9d1dd002c80e0df243926ac96b9b43813cec74e5",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 18461,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 16,
+          "passed": 12,
+          "failed": 4
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "--target",
+          "js",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/with_binding_preparation_test.mbt",
+          "src/query_program/with_binding_static_order_gap_test.mbt",
+          "src/query_program/source_member_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-7gjpbF/summary.json",
+          "sha256": "94d0a1868f719fdbe2bd78ad350d3a190919015af3831cf0823658932cbf2991"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-7gjpbF/output.log",
+          "sha256": "461b2084beb1f145ef288ccfa3dc84f2b0ed46216d459437cbf524ce891ac229"
+        }
+      }
+    },
+    {
+      "run": "run-iP7xDg",
+      "source": "7d0d6f1f2f93223d163895ce7e29d9052f766c47",
+      "tree": "a5aa099f6fb9dd324133d3f6ef97b5d41ef46711",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 26751,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 27,
+          "passed": 27,
+          "failed": 0
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "--target",
+          "js",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/with_binding_preparation_test.mbt",
+          "src/query_program/with_binding_static_order_gap_test.mbt",
+          "src/query_program/source_member_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/graph_member_test.mbt",
+          "src/query_program/quoted_graph_macro_test.mbt",
+          "src/query_program/grouped_graph_macro_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-iP7xDg/summary.json",
+          "sha256": "6ce2fe4cec07c36df6549c5ec50e99e4aef537a14b6dd8e1da29b1d1e174598e"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-iP7xDg/output.log",
+          "sha256": "bb6b0b5d1cc365613b3bf97288823e36dba53edf8440541ca4f2eae8e3a585a6"
+        }
+      }
+    },
+    {
+      "run": "run-8l7hd9",
+      "source": "da5fbfcf224441c274d244ee9c1c9140206a7f86",
+      "tree": "c7f1e7afa62a01c946ad55be2932b0d0ab8af6aa",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 30333,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [],
+      "commands": [
+        [
+          "moon",
+          "info",
+          "--target",
+          "js",
+          "src/query_syntax",
+          "src/query_program"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-8l7hd9/summary.json",
+          "sha256": "5ef18c833aee994ec2fcd573a2a4ec47fcfcba9e3486895cedc06547ca46330a"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-8l7hd9/output.log",
+          "sha256": "68159302535bf021bbadbce9522f13b10e3ecd77ff739387b6c3fa4e2bc0c612"
+        }
+      }
+    },
+    {
+      "run": "run-YJ1Egx",
+      "source": "baec742e378fbeb80cf61631233b6616a6f1c175",
+      "tree": "03de5a3107d71e074267c3dab626374e0ef112e8",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 30648,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [],
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_program/query_binding_check.mbt",
+          "src/query_program/member_program_prefix.mbt",
+          "src/query_program/member_resolution.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_program/query_script_inputs.mbt",
+          "src/query_program/query_script_program.mbt",
+          "src/query_program/query_binding_program.mbt",
+          "src/query_program/traversal_nodes_program.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/source_member_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-YJ1Egx/summary.json",
+          "sha256": "06f13a5d12d5cecc4bb1409830d909c1742e343dbfc88ec004735d0f394acfdc"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-YJ1Egx/output.log",
+          "sha256": "37b9ce71b53427e25641d9a81ebde3687e1695cac663bdb56b92c48a83a44b18"
+        }
+      }
+    },
+    {
+      "run": "run-iSmyah",
+      "source": "78082edca87c83db2436f220f2422b1da6199484",
+      "tree": "e55158d03c16330a438d23e4c27c740f711e9641",
+      "complete": false,
+      "exit_code": 1,
+      "owner_pid": 32397,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 82,
+          "failed": 3,
+          "passed": 79,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "topLevel": 82,
+          "suites": 0
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"node\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "scripts/frontend-profile.test.mjs",
+          "scripts/sga-query-call-contract.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-iSmyah/summary.json",
+          "sha256": "0695e7b37726d8bf513adc00584bd92aa6e5adeddb1c84ff5b192f82f8b06cc5"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-iSmyah/output.log",
+          "sha256": "ccc1a41787d295a2de23995caa5a097688e850ed04459d3544b082fbcc95d306"
+        }
+      }
+    },
+    {
+      "run": "run-T82hgx",
+      "source": "89b08d548ee0632dc47084893815510854548fde",
+      "tree": "1cd474638ae1b16c4d0cb8a66098096f5bec93ff",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 33863,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 38,
+          "passed": 38,
+          "failed": 0
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "--target",
+          "js",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/with_binding_preparation_test.mbt",
+          "src/query_program/with_binding_static_order_gap_test.mbt",
+          "src/query_program/source_member_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/graph_member_test.mbt",
+          "src/query_program/quoted_graph_macro_test.mbt",
+          "src/query_program/grouped_graph_macro_test.mbt",
+          "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+          "src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-T82hgx/summary.json",
+          "sha256": "f37d2f2ff6901aa349558e1b9304a08f7e415881bd64502bd653e09d4b28342e"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-T82hgx/output.log",
+          "sha256": "ce0b8640e05e71aa52aee309a17cc689d0ae70ddf3c4431b5ba718aa07f6b996"
+        }
+      }
+    },
+    {
+      "run": "run-apvvhZ",
+      "source": "93d037f5682887a9661458d1d601628211bfd7a1",
+      "tree": "1679c7bc6f286d0a8e70ad268227ef0ad834334c",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 34919,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 4,
+          "passed": 3,
+          "failed": 1
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "--target",
+          "js",
+          "src/query_program/with_vectors_events_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-apvvhZ/summary.json",
+          "sha256": "ae7280fc17a96f2fbe025b4583e7a1f99c3094091d0aaf89727320a2948420ac"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-apvvhZ/output.log",
+          "sha256": "10bc01020081227ab68d85115450bb718b45bab7be467bf4d74b9f994017fb4b"
+        }
+      }
+    },
+    {
+      "run": "run-VogCEb",
+      "source": "5e76662649933e80a867d081594247e0f902cac1",
+      "tree": "edcc84b74bab7e06335bd3555c89652d54bd6b4e",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 35314,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [],
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_program/query_binding_check.mbt",
+          "src/query_program/member_program_prefix.mbt",
+          "src/query_program/member_resolution.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_program/query_script_inputs.mbt",
+          "src/query_program/query_script_program.mbt",
+          "src/query_program/query_binding_program.mbt",
+          "src/query_program/traversal_nodes_program.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/source_member_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-VogCEb/summary.json",
+          "sha256": "e5f0c3f8d12553bfc62a4e029b949dea81683367074defa2196071bdf605dc2a"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-VogCEb/output.log",
+          "sha256": "fdeac0cb9c6e2b54238fb170ff75ef059691ae05d4483d58b9936f5767bc060f"
+        }
+      }
+    },
+    {
+      "run": "run-ON4Ebh",
+      "source": "cf06177e129acf3eceba3dc9dd82a757975ff4f8",
+      "tree": "ce15bfe161982098ad61eef18a5241f12dc921ad",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 35919,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 39,
+          "passed": 38,
+          "failed": 1
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "--target",
+          "js",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/with_binding_preparation_test.mbt",
+          "src/query_program/with_binding_static_order_gap_test.mbt",
+          "src/query_program/source_member_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/graph_member_test.mbt",
+          "src/query_program/quoted_graph_macro_test.mbt",
+          "src/query_program/grouped_graph_macro_test.mbt",
+          "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+          "src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-ON4Ebh/summary.json",
+          "sha256": "b53289a43276978eeb1ea2c3e69271c4bf740f0724226284c93f1bdc99274955"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-ON4Ebh/output.log",
+          "sha256": "c493b18fd2b4d74425af4b16c75651192ff6e0bb5105c79219f66be97e2a1598"
+        }
+      }
+    },
+    {
+      "run": "run-XsNte8",
+      "source": "25fb698c0479d9764fe359b74b8ee43e07f3b11e",
+      "tree": "086a71cf04a4ebb36f19d1e014e808cad91b060f",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 37067,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 39,
+          "passed": 39,
+          "failed": 0
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "--target",
+          "js",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/with_binding_preparation_test.mbt",
+          "src/query_program/with_binding_static_order_gap_test.mbt",
+          "src/query_program/source_member_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/graph_member_test.mbt",
+          "src/query_program/quoted_graph_macro_test.mbt",
+          "src/query_program/grouped_graph_macro_test.mbt",
+          "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+          "src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-XsNte8/summary.json",
+          "sha256": "6123146fef005b24dde0ad17dc28718d44500a0d41b8d185f245decb06315f88"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-XsNte8/output.log",
+          "sha256": "17a20fee2af231d629160705972099e3bb483b93d503810a9b4fe71242a2cae6"
+        }
+      }
+    },
+    {
+      "run": "run-IxOPUW",
+      "source": "25fb698c0479d9764fe359b74b8ee43e07f3b11e",
+      "tree": "086a71cf04a4ebb36f19d1e014e808cad91b060f",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 37687,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [
+        {
+          "tests": 82,
+          "failed": 0,
+          "passed": 82,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "topLevel": 82,
+          "suites": 0
+        }
+      ],
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"node\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "scripts/frontend-profile.test.mjs",
+          "scripts/sga-query-call-contract.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs"
+        ],
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-IxOPUW/summary.json",
+          "sha256": "09604ec9122c5ee8197ea547909c3bcde8a5dc8662f2c283dfb058bd0bcfa63f"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-IxOPUW/output.log",
+          "sha256": "c02ad8c339b58ceace39c687735017ca0a260f453429bdc4caaa653b89c5cfa1"
+        }
+      }
+    },
+    {
+      "run": "run-kvp3dv",
+      "source": "25fb698c0479d9764fe359b74b8ee43e07f3b11e",
+      "tree": "086a71cf04a4ebb36f19d1e014e808cad91b060f",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 38577,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "counts": [],
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_program/query_binding_check.mbt",
+          "src/query_program/member_program_prefix.mbt",
+          "src/query_program/member_resolution.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_program/query_script_inputs.mbt",
+          "src/query_program/query_script_program.mbt",
+          "src/query_program/query_binding_program.mbt",
+          "src/query_program/traversal_nodes_program.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/query_program/graph_projection_property_test.mbt",
+          "src/query_program/source_member_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-kvp3dv/summary.json",
+          "sha256": "09a7b85efd64b5581344bcaf1ab123a28fc3472ba26dd16eced820910a870c30"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/typed-carrier-prefix-evidence/run-kvp3dv/output.log",
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      }
+    }
+  ],
+  "independent_controls": [
+    "src/query_program/with_vectors_events_test.mbt:with_vector_control",
+    "src/query_program/with_vectors_events_test.mbt:with_event_control",
+    "scripts/fixtures/pre-with-typed-carrier-calls-values-identities.json",
+    "scripts/fixtures/submitted-with-carrier-cutover-values-identities.json"
+  ],
+  "verified": [
+    "JS39/39 on tested_source",
+    "Node82/82 on tested_source",
+    "read-only compilation manifests/document metadata/spec family/canonical554 on tested_source",
+    "actual generated query_syntax interface and bounded formatter"
+  ],
+  "unverified": [
+    "packed Local/HTTPS four Carrier/P2 acceptance",
+    "remaining current DATA callers and normative examples cutover",
+    "complete P2 algebra adapters",
+    "all-target runtime and hosted CI"
+  ],
+  "failure_policy": "Original failed runs remain failed. No expected row/type/capacity change. Final formatter changes only whitespace in query_script_program.mbt; no runtime success is asserted for the later evidence-only commit."
+}

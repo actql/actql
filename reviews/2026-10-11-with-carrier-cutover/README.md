@@ -2,6 +2,35 @@
 
 ## Current finite source
 
+The current private #1506 source normally adopts main
+`2e8fa9308f13de328a6e1eae43b9c16090f4c982`, including Root's #1522
+`ForeignProgram` refusal for check-only Prefix Effect binding. B did not
+reimplement that repair. [Typed Carrier execution](p2-typed-carrier-prefix-execution.json)
+records fixed `25fb698c0479d9764fe359b74b8ee43e07f3b11e`: JS39/39,
+Node82/82, four read-only freshness checks and all earlier failures. The later
+formatter changes whitespace only; its source and receipt remain separate.
+
+Seven existing Vectors/Events calls now lower through the real common Prefix
+and checked Carrier topology. Independent JSON controls preserve argument
+roles, explicit bridges and common type checking; no fake Result or alternate
+execution owner is supplied. An independent counterexample caught a Graph
+call being discarded after Carrier conversion. The lowerer now refuses an
+unlowered call and the root dispatch respects the initial Carrier operation.
+Original `run-apvvhZ` and `run-ON4Ebh` failures are retained.
+
+Grammar/profile/generated manifests and the current Values Run vector are
+aligned with the new typed argument surface. The preceding complete preimage
+is frozen independently; historical Runs are not rebound. Public diagnostic
+and private table Source callers plus the two-Source text fixture now use WITH,
+with original predicates, limits and expected values unchanged. Those Node
+Host integration cases have not been executed with new packages.
+
+Full four-Carrier/P2, remaining current DATA callers/examples and public
+Local/HTTPS acceptance are **incomplete**. No new Heavy, producer or hosted CI
+was started. The 119 supplied and 130 complete acceptance IDs are unchanged.
+
+## Earlier finite evidence
+
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally
 adopted published main `23697f7430c227327b4b0b3735ad14806eed321a` after its
 previous gate terminated. Common check-only #1502 is integrated; INFER/Debug

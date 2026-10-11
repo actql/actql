@@ -1,0 +1,55 @@
+{
+  "startedAt": "2026-10-11T20:21:02.342Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH actual prefixes and strict common Source/type/order callers",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+        "--",
+        "--target",
+        "js",
+        "src/query_program/with_vectors_events_test.mbt",
+        "src/query_program/with_binding_preparation_test.mbt",
+        "src/query_program/with_binding_static_order_gap_test.mbt",
+        "src/query_program/source_member_test.mbt",
+        "src/query_program/graph_projection_property_test.mbt",
+        "src/query_program/graph_member_test.mbt",
+        "src/query_program/quoted_graph_macro_test.mbt",
+        "src/query_program/grouped_graph_macro_test.mbt"
+      ],
+      "startedAt": "2026-10-11T20:21:02.395Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:21:09.661Z",
+      "endedAt": "2026-10-11T20:21:09.662Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5cdb6e4d-8132-411a-a1bf-d581d514f437",
+    "pid": 26751,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T20:21:02.392Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iP7xDg"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T20:21:09.722Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

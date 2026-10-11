@@ -1,12 +1,12 @@
 {
   "owner": "B",
   "integration_owner": "Root",
-  "phase": "P1 WITH/Graph operation caller migration and E public diagnostic connection verified locally; four Carrier/P2 and public acceptance incomplete",
+  "phase": "WITH Carrier prefix uses the normally integrated common Prefix Owner; limited JS/Node and identity coherence verified, whole cutover/public acceptance incomplete",
   "branch": "feat/frontend-with-carrier-cutover",
   "base": "main",
   "pending_integration": [],
   "start_condition": "Normally adopt the submitted Frontend integration on main; INFER and Debug completion are not prerequisites.",
-  "finite_next_unit": "Implement the delegated retained-Cursor check-only prefix without synthetic Results; continue finite current caller and four Carrier/P2 cutover.",
+  "finite_next_unit": "Finish remaining current DATA caller/examples retirement and remaining adopted P2 adapters; prepare the existing four-Carrier public cohort without new Heavy allocation.",
   "no_new_scope": [
     "new GoogleSQL compatibility search",
     "compat parser or migrator",
@@ -14,16 +14,16 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "p1-operation-caller-execution.json: clean 0ebb JS25/25, Node7/7, actual Core public diagnostic reports6; no Host/Local/HTTPS acceptance.",
+  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4; final formatter/evidence source distinguished. No Host/Local/HTTPS acceptance.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,
     "all": 130,
     "status": "Root reported static document validation exit zero; no product execution"
   },
-  "adopted_main": "23697f7430c227327b4b0b3735ad14806eed321a",
-  "adoption_merge": "787ecc42d9f45ca2ad9e883a9105849419299433",
+  "adopted_main": "2e8fa9308f13de328a6e1eae43b9c16090f4c982",
+  "adoption_merge": "c4813c6303ba432fd929f45a2bce1af26f096308",
   "adoption_tree": "54f6f118ced6db8e2628221768ffac0390618078",
-  "integration_observation": "#1474 and #1476 normally integrated by Root; author branches preserved.",
+  "integration_observation": "Root common #1522 ForeignProgram refusal normally adopted; no duplicate common repair.",
   "adopted_E": "54d7852347e087b01de17f698eff154cd050c74b"
 }
