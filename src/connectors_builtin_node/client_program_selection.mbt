@@ -115,6 +115,7 @@ fn installed_client_family_providers(
       snapshot_policy=Some(selected_graph_snapshot_policy()),
       delta_policy=Some(selected_graph_delta_policy()),
       union_policy=Some(selected_graph_union_policy()),
+      mean_policy=Some(selected_graph_mean_policy()),
     ),
     @local_tea_provider.provider(records, 100000L, capacity),
     @local_tea_provider.time_series_provider(records, capacity),
@@ -163,8 +164,25 @@ fn selected_client_sga_providers(
           snapshot_policy=Some(selected_graph_snapshot_policy()),
           delta_policy=Some(selected_graph_delta_policy()),
           union_policy=Some(selected_graph_union_policy()),
+          mean_policy=Some(selected_graph_mean_policy()),
         ),
       ])
     None => None
+  }
+}
+
+///|
+/// Exact mean uses a finite list and coefficient envelope on the existing
+/// provider. Scratch is separate from the unchanged output/value quotas.
+fn selected_graph_mean_policy() -> @local_sga_provider.MeanPolicy {
+  {
+    limits: {
+      max_samples: 64,
+      max_exact_operations: 100000,
+      max_coefficient_bits: 8192,
+      max_temporary_bytes: 36400,
+    },
+    max_workspace_slots: 2000000,
+    workspace_bytes: 67108864L,
   }
 }

@@ -170,7 +170,7 @@ export async function openReadOpeningFixture(directory, loss,
     authorizedScope: () => allowed ? scope : undefined,
     prepareSubmit: request => services.prepareSubmit(request), submit: services.submit,
     lookupRequest: services.lookupRequest});
-  services.submitIntent = submission.submitIntent;
+  services.submitIntent = submission.submitAttempt;
   services.lookupSubmission = submission.lookupSubmission;
   return {services, counts, store, journal, deliveryOrders,
     retainedAdmission: ref => journal.lookupRunDefinition(ref, moon, control)?.runAdmissionEvidence,

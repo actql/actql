@@ -1,0 +1,81 @@
+{
+  "version": "actql-remote-effect-current-vectors/0.1",
+  "scope": "Independent Python canonical oracle over fixed original report inputs; metadata framing only, no physical observation or current authority proof",
+  "source_fixture": "spec/fixtures/remote-effect-resume-vectors.json",
+  "source_fixture_sha256": "5164444ea28956e7a00457ba0f3d288166784a3a7a21a212dfaa48d6f81ee08f",
+  "query": {
+    "body": {
+      "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+      "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+      "effect_id": "write-1",
+      "query_id": "query-original",
+      "report_cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+      "version": "actql-remote-effect-current-query/0.1"
+    },
+    "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"effect_id\":\"write-1\",\"query_id\":\"query-original\",\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"version\":\"actql-remote-effect-current-query/0.1\"}",
+    "cid": "sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb"
+  },
+  "replies": [
+    {
+      "id": "not-started",
+      "body": {
+        "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+        "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+        "effect_id": "write-1",
+        "query_id": "query-original",
+        "report_cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+        "query_cid": "sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb",
+        "version": "actql-remote-effect-current-reply/0.1",
+        "ledger_head_cid": "",
+        "recovery_action": 0,
+        "response_saved": false
+      },
+      "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"effect_id\":\"write-1\",\"ledger_head_cid\":\"\",\"query_cid\":\"sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb\",\"query_id\":\"query-original\",\"recovery_action\":0,\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"response_saved\":false,\"version\":\"actql-remote-effect-current-reply/0.1\"}",
+      "cid": "sha256:9f41aae53431191530f1fb11e9aaf30405b436f1e09a6d6ad175eda4dc97680f"
+    },
+    {
+      "id": "pending-saved",
+      "body": {
+        "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+        "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+        "effect_id": "write-1",
+        "query_id": "query-original",
+        "report_cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+        "query_cid": "sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb",
+        "version": "actql-remote-effect-current-reply/0.1",
+        "ledger_head_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "recovery_action": 3,
+        "response_saved": true
+      },
+      "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"effect_id\":\"write-1\",\"ledger_head_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"query_cid\":\"sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb\",\"query_id\":\"query-original\",\"recovery_action\":3,\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"response_saved\":true,\"version\":\"actql-remote-effect-current-reply/0.1\"}",
+      "cid": "sha256:f438eee556725bc50107d1785fd9074d4fc65cd517c28e03b205d568424a2b76"
+    },
+    {
+      "id": "applied-saved",
+      "body": {
+        "checkpoint_cid": "sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d",
+        "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+        "effect_id": "write-1",
+        "query_id": "query-original",
+        "report_cid": "sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996",
+        "query_cid": "sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb",
+        "version": "actql-remote-effect-current-reply/0.1",
+        "ledger_head_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "recovery_action": 5,
+        "response_saved": true
+      },
+      "canonical": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"effect_id\":\"write-1\",\"ledger_head_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"query_cid\":\"sha256:91d733911e2832e78dba7b3c727943ca1e1cee0081a2cf2005f909d6411e64fb\",\"query_id\":\"query-original\",\"recovery_action\":5,\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"response_saved\":true,\"version\":\"actql-remote-effect-current-reply/0.1\"}",
+      "cid": "sha256:5ec607751940ffb5c1b8dc91830d6ff3219707d3856886df4f3294cb1dc47bfd"
+    }
+  ],
+  "poll": {
+    "body": {
+      "dispatch_request_cid": "sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93",
+      "query_json": "{\"checkpoint_cid\":\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\",\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"effect_id\":\"write-1\",\"query_id\":\"query-original\",\"report_cid\":\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\",\"version\":\"actql-remote-effect-current-query/0.1\"}",
+      "request_json": "{\"budget_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"coordinator_authority\":\"coordinator-a\",\"dispatch_id\":\"consumer-a\",\"evidence_issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"grant_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_binding_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"task_attempt\":1,\"task_key\":\"task-a\",\"version\":\"actql-remote-dispatch-request/0.1\"}",
+      "version": "actql-remote-poll-effect-current/0.1"
+    },
+    "canonical": "{\"dispatch_request_cid\":\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\",\"query_json\":\"{\\\"checkpoint_cid\\\":\\\"sha256:5f519ab12d76e539039de72a94b1b2f337654c8741ea17cee0266231a56ec10d\\\",\\\"dispatch_request_cid\\\":\\\"sha256:3b5d3a0baae35a4c3ed4f9d3a9bbf3bab875cdb325db11b18ea8b5dd1af04f93\\\",\\\"effect_id\\\":\\\"write-1\\\",\\\"query_id\\\":\\\"query-original\\\",\\\"report_cid\\\":\\\"sha256:31bcdabc6df955bda9b2f862d7a8ef59554b566b19ca4a3406ba13a861d85996\\\",\\\"version\\\":\\\"actql-remote-effect-current-query/0.1\\\"}\",\"request_json\":\"{\\\"budget_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"connector_registration\\\":\\\"local\\\",\\\"connector_revision\\\":\\\"local/1\\\",\\\"coordinator_authority\\\":\\\"coordinator-a\\\",\\\"dispatch_id\\\":\\\"consumer-a\\\",\\\"evidence_issuer_capability_cid\\\":\\\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\\\",\\\"grant_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"input_binding_cid\\\":\\\"sha256:1111111111111111111111111111111111111111111111111111111111111111\\\",\\\"obligations_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"run_definition_cid\\\":\\\"sha256:0000000000000000000000000000000000000000000000000000000000000000\\\",\\\"runtime_bundle_cid\\\":\\\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"site_generation\\\":1,\\\"site_key\\\":\\\"site-a\\\",\\\"strategy_revision\\\":\\\"strategy/1\\\",\\\"task_attempt\\\":1,\\\"task_key\\\":\\\"task-a\\\",\\\"version\\\":\\\"actql-remote-dispatch-request/0.1\\\"}\",\"version\":\"actql-remote-poll-effect-current/0.1\"}",
+    "cid": "sha256:f71e8afcef6b1faae04960cd2cc937e7c966098a0a5daacd1664c1297bb53819"
+  }
+}

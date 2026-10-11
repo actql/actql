@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { hash } from './inventory.mjs';
 import { providerConstructionBound, inspectProviderConstruction } from './capacity/parent-control/provider-construction.mjs';
 import {constructionSourceReview, reviewedFunction, selectedFactoryOutsideAccepts,
-  managedBeforePausePolls, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup} from './capacity/parent-control/provider-construction-source-review.mjs';
+  managedBeforePausePolls, selectedBeforeInputOnly, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup} from './capacity/parent-control/provider-construction-source-review.mjs';
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
 // Synthetic admission tests, separate from the archived real native reader.
 const fact = () => ({ kind: 'provider construction observation', providers: 11,
@@ -53,6 +53,21 @@ test('scalar callback counts never become measured extents or a complete byte gu
 const recipeIntroduction = '58fd19eade59cf3bcbf6a859c9821471346e3b41';
 const historical = (path, revision = recipeIntroduction) => execFileSync('git', ['--no-replace-objects', 'show',
   `${revision}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
+test('input-only support changes only the exact acceptance and execution branches', () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const current = read(path).toString();
+  const previous = historical(path, 'fdb902734d253cc171fa2c0c7e478f8611064de2').toString();
+  assert.equal(hash(previous), '3fed93a0919b10bc204c93d90d8e217344dc44831c87b6337cfdb7f08e168d4a');
+  assert.equal(selectedBeforeInputOnly(current), previous);
+  for (const [from, to] of [
+    ['@lower.preparation_input_count(prepared) == 1', '@lower.preparation_input_count(prepared) >= 1'],
+    ['sequence, input, execution, max_value_bytes, -1,', 'sequence, input, execution, max_value_bytes, 0,'],
+  ]) {
+    assert.equal(current.split(from).length, 2);
+    assert.throws(() => selectedBeforeInputOnly(current.replace(from, to)),
+      /reviewed representation delta/u);
+  }
+});
 test('current lifecycle review changes only cleanup completion and detached built-in eligibility', () => {
   const path = 'src/connectors/local/selected_relation_provider.mbt';
   const source = read(path).toString();
@@ -61,7 +76,7 @@ test('current lifecycle review changes only cleanup completion and detached buil
   assert.equal(selectedBeforeReviewedLifecycle(source), previous);
   for (const name of ['selected_relation_provider', 'bounded_relation_chain_execution_state',
     'bounded_relation_chain_capacity']) {
-    assert.equal(reviewedFunction(source, name), reviewedFunction(previous, name),
+    assert.equal(reviewedFunction(selectedBeforeInputOnly(source), name), reviewedFunction(previous, name),
       `Unreviewed factory/state/capacity change: ${name}`);
   }
   const bound = providerConstructionBound(read);
@@ -112,7 +127,7 @@ test('Append, analytic and UNPIVOT scratch eligibility leaves every construction
   const path = 'src/connectors/local/selected_relation_provider.mbt';
   const previous = historical(path, 'eb3a7a78a7426a9be397b62545e76984a25aba43').toString();
   assert.equal(hash(previous), '40dbff3cc79f6d83d2dffd2f2d41bf514738bcaa5c1a728b810fcf6d343b892f');
-  const current = read(path).toString();
+  const current = selectedBeforeInputOnly(read(path).toString());
   let remaining = current;
   for (const addition of [
     '      Some(@lower.AppendStep(_)) => ()\n',
@@ -143,7 +158,7 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
   const source = read(path).toString();
   let remaining = source.replace('      | @lower.GraphConstructionStep(_)\n',
     '      | @lower.PropertyGraphConstructionStep(_)\n');
-  for (const operation of ['GraphUnionStep', 'GraphSubtractionStep']) {
+  for (const operation of ['GraphUnionStep', 'GraphSubtractionStep', 'GraphMeanStep']) {
     const branch = `      | @lower.${operation}(_)\n`;
     assert.equal(remaining.split(branch).length, 2, `Missing or duplicated ${operation} exclusion`);
     remaining = remaining.replace(branch, '');
@@ -154,10 +169,26 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
   // certify the inherited main changes. Those original checks stay mandatory.
 });
 
-test('receiving metadata cursors leave the actual provider factory byte-identical', () => {
+test('Mean exclusion preserves the complete integrated construction source and byte model', () => {
+  const path = 'src/execution_relation/generated_sequence.mbt';
+  const before = historical(path, 'ba0779ad8551bb06476c275cc74cebeef4463751').toString();
+  assert.equal(hash(before), '7e71c827d4004e769a22891f97dba162e7854a87f45e081dcb9a5c50bbbc460a');
+  const source = read(path).toString();
+  const branch = '      | @lower.GraphMeanStep(_)\n';
+  assert.equal(source.split(branch).length, 2, 'Mean is one reviewed false-branch alternative');
+  assert.equal(source.replace(branch, ''), before,
+    'Mean changed construction, records, callbacks, captures, arrays or unrelated paths');
+  const bound = providerConstructionBound(read);
+  assert.equal(bound.bytes, 2344);
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+  assert.equal(bound.completeParentUpper, false);
+  assert.equal(bound.completePipelineUpper, false);
+});
+
+test('receiving metadata and reviewed input-only callback delta preserve constructor grounds', () => {
   const path = 'src/connectors/local/selected_relation_provider.mbt';
   const before = historical(path, 'b98a50ff763d1367e344fdfa8aea380ec8749132').toString();
-  const current = read(path).toString();
+  const current = selectedBeforeInputOnly(read(path).toString());
   assert.equal(reviewedFunction(current, 'selected_relation_provider'),
     reviewedFunction(before, 'selected_relation_provider'));
   assert.equal(hash(reviewedFunction(current, 'selected_relation_provider')),
@@ -282,7 +313,7 @@ test('current wrappers and selected construction outside accepts equal the origi
     assert.equal(reviewedFunction(managed, name), reviewedFunction(original, name));
   }
   const selectedPath = 'src/connectors/local/selected_relation_provider.mbt';
-  assert.equal(selectedFactoryOutsideAccepts(read(selectedPath).toString()),
+  assert.equal(selectedFactoryOutsideAccepts(selectedBeforeInputOnly(read(selectedPath).toString())),
     selectedFactoryOutsideAccepts(historical(selectedPath).toString()));
   assert.equal(managedBeforePausePolls(managed),
     historical(managedPath, constructionSourceReview.historicalReviewRevision).toString());

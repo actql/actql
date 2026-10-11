@@ -3,12 +3,25 @@ supported_targets = "wasm"
 pkgtype(kind: "foreign_library")
 
 import {
+  "actql/actql/source_value" @source,
   "actql/actql/client_host_buffers" @buffers,
+  "actql/actql/physical_resources" @resources,
   "actql/actql/client_local_preparation" @preparation,
+  "actql/actql/client_local_run" @local_run,
+  "actql/actql/client_local_host" @local_host,
+  "actql/actql/connectors/local/driver" @managed,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_authorization" @authorization,
   "actql/actql/run_publication_host" @host,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/logical_request_scope" @identity,
   "actql/actql/program_check" @checked,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/decode_core" @decode,
+  "actql/actql/connectors/duckdb/host" @native_host,
+  "actql/actql/connectors/duckdb/acquisition" @native_acquisition,
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
+  "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
 }
 

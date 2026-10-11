@@ -22,6 +22,7 @@ pub(all) enum OperationExecutionCheck {
   GraphNormalizeExecution(GraphNormalizeCheck)
   GraphDeltaExecution(GraphDeltaCheck)
   GraphUnionExecution(GraphUnionCheck)
+  GraphMeanExecution(GraphMeanCheck)
   GraphSubtractionExecution(GraphSubtractionCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
@@ -139,6 +140,16 @@ pub fn operation_execution_phase(
         | @graph.ApplyUnionPropertyStrategies
         | @graph.CanonicalUnionOrder => BeforeOperationOutput
       }
+    GraphMeanExecution(v) =>
+      match v.rule {
+        @graph.AdmitMeanInputs | @graph.ResolveMeanResources =>
+          BeforeOperationInputUse
+        @graph.PreserveMeanIdentities
+        | @graph.CheckMeanLabelsAndEndpoints
+        | @graph.ApplyExactMeanSupport
+        | @graph.ApplyMeanPropertyStrategies
+        | @graph.CanonicalMeanOrder => BeforeOperationOutput
+      }
     GraphDeltaExecution(v) =>
       match v.rule {
         AdmitGraphOperands
@@ -224,6 +235,15 @@ pub fn operation_execution_phase(
     TraversalExecution(v) =>
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
+        ShortestRule(rule) =>
+          match rule {
+            AdmitShortestGraph
+            | AdmitShortestSelectors
+            | DeduplicateShortestSelectors
+            | RequireShortestMembership
+            | ValidateEveryShortestWeight => BeforeOperationInputUse
+            _ => BeforeOperationOutput
+          }
         RespectAuthoredHops
         | FilterAuthoredLabels
         | EnumerateGraphPaths
@@ -339,6 +359,7 @@ pub fn operation_execution_failure(
     | GraphNormalizeExecution(_)
     | GraphDeltaExecution(_)
     | GraphUnionExecution(_)
+    | GraphMeanExecution(_)
     | GraphSubtractionExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)

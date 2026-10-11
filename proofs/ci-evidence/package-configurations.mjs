@@ -4,12 +4,13 @@
 // JS execution path they select bound source files but cannot run a native
 // linker/stub compiler. All package/source bytes and memberships remain inputs.
 // The current import/custody split is reviewed in
-// docs/reviews/2026-10-10-session-package-configuration-review.md.
+// docs/reviews/2026-10-10-session-package-configuration-review.md and
+// docs/reviews/2026-10-11-session-local-import-configuration-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 export const packageConfigurationReview = Object.freeze({
-  revision: '58710094a4698c16587c6cfffac25f050d93c92d',
+  revision: 'aae65b850faa3a6d02247c40f8270c8b5bd2d62c',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -32,7 +33,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/runtime_bundle/moon.pkg': 'a853c9fd5ca1ae9c3ca8744b48efaf1ffbc41c13d7c2b5fa67989d3b9950e9cc',
   'src/platform_native/signature/moon.pkg': '4b3e2bfdf20da7bbdd9dd04667eabaa8d804c3467c589cd7eea54e57fd39beaf',
   'src/platform_native/sqlite/moon.pkg': '05340cbc4e922feb361cd58cc8da0cec23671f76eacaaf28aafdfba682ec049d',
-  'src/query_integration/moon.pkg': '9578b160eced183af8e892bfb627eb1ea5a4bdde28e4623521c290c77f3b038f',
+  'src/query_integration/moon.pkg': '386b2001819b39580db802f96d0daf0bf0e43453d404b4330a11aac60bcf8cc3',
 });
 
 export function reviewedPackageConfiguration({path, digest, target, toolchainDigest}) {

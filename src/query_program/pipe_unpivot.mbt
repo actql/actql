@@ -11,25 +11,44 @@ fn lower_pipe_unpivot(
   Array[(String, String)],
   Array[String],
 ) raise Abort {
-  if clause.columns.is_empty() {
+  if clause.column_sets.is_empty() || clause.value_columns.is_empty() {
     raise Abort(UnsupportedProjection)
   }
-  if same_name(clause.value_column, clause.name_column) ||
-    clause.columns.any(column => {
-      same_name(column, clause.value_column) ||
-      same_name(column, clause.name_column)
+  if clause.row_labels.length() != clause.column_sets.length() {
+    raise Abort(InvalidContext)
+  }
+  // INT64 row labels require their own exact common value contract. Never
+  // silently convert them to binary64 numbers or String labels.
+  if clause.row_labels.any(label => label is Some(@query.IntegerLabel(_))) {
+    raise Abort(UnsupportedProjection)
+  }
+  if clause.column_sets.any(columns => {
+      columns.length() != clause.value_columns.length()
+    }) {
+    raise Abort(InvalidContext)
+  }
+  if clause.value_columns.length() > 1 {
+    return lower_multi_column_unpivot(construction, clause, columns)
+  }
+  let value_column = clause.value_columns[0]
+  let selected_names = clause.column_sets.map(columns => columns[0])
+  let has_labels = clause.row_labels.any(label => label is Some(_))
+  if same_name(value_column, clause.name_column) ||
+    selected_names.any(column => {
+      same_name(column, value_column) || same_name(column, clause.name_column)
     }) {
     raise Abort(DuplicateOutput)
   }
   // Rebind only when a selected field has a private/renamed physical slot.
   // The ordinary projection copies evaluated values; it adds no label value
   // or expression evaluation to each expanded output row.
-  let rebind = clause.columns.any(name => {
-    columns.any(column => {
-      same_name(name, { value: column.0, quoted: false, }) &&
-      column.0 != column.1
+  let rebind = !has_labels &&
+    selected_names.any(name => {
+      columns.any(column => {
+        same_name(name, { value: column.0, quoted: false, }) &&
+        column.0 != column.1
+      })
     })
-  })
   let mapped = if rebind {
     columns.map(column => (column.0, column.0))
   } else {
@@ -37,7 +56,7 @@ fn lower_pipe_unpivot(
   }
   let physical = mapped.map(column => column.1)
   let selected : Array[(String, String)] = []
-  for name in clause.columns {
+  for name in selected_names {
     let matching = mapped.filter(column => {
       same_name(name, { value: column.0, quoted: false, })
     })
@@ -50,6 +69,11 @@ fn lower_pipe_unpivot(
     selected.push(matching[0])
   }
   let keep = mapped.filter(column => !selected.any(value => value.1 == column.1))
+  if has_labels {
+    return lower_unpivot_row_labels(
+      construction, clause, columns, selected, keep,
+    )
+  }
   let name_slot = pipe_physical_name(physical, "aql_unpivot_name_")
   physical.push(name_slot)
   let value_slot = pipe_physical_name(physical, "aql_unpivot_value_")
@@ -106,9 +130,6 @@ fn lower_pipe_unpivot(
     ])
   }
   let visible = keep +
-    [
-      (clause.value_column.value, value_slot),
-      (clause.name_column.value, name_slot),
-    ]
+    [(value_column.value, value_slot), (clause.name_column.value, name_slot)]
   (steps, visible, keep.map(column => column.1) + [name_slot, value_slot])
 }

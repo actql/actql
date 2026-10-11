@@ -26,6 +26,8 @@ fn retained_consumer_holder_case(
   effect_materials? : @host.ClientEffectRunMaterials? = None,
   effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
   provider? : Bool = false,
+  completion_free_review? : Bool = false,
+  mapped_create_write? : Bool = false,
 ) -> Unit raise {
   // Every completed resident consumer has durable file custody. Chain cases
   // additionally make the original Source path unavailable to later tasks.
@@ -148,6 +150,7 @@ fn retained_consumer_holder_case(
   if effect_materials is Some(_) {
     assert_eq(
       @resident.resident_effect_retained_consumer_producer_identity(
+        producer_journal,
         admission,
         retained_compute_effect_limits(),
         configuration,
@@ -182,16 +185,29 @@ fn retained_consumer_holder_case(
       "another-effect-caller",
       @host.source_free_caller_input_intent_cid(),
     ).unwrap()
-    let changed_wire = @host.issue_client_effect_run_materials(
-      effect.allowed,
-      effect.run_definition,
-      effect_environment_owner,
-      effect_environment,
-      effect_document,
-      None,
-      retained_compute_effect_limits(),
-      request=Some(changed),
-    ).unwrap()
+    let changed_wire = if completion_free_review {
+      // Deliberately substitute a valid foreign request in a refusal candidate.
+      // This is never used as positive original material evidence.
+      let candidate = provider_json(wire)
+      guard candidate is Object(fields) else {
+        fail("material refusal candidate")
+      }
+      fields["client_request_identity"] = Json::string(
+        @host.client_request_identity_record_wire(changed).unwrap(),
+      )
+      provider_canonical(candidate)
+    } else {
+      @host.issue_client_effect_run_materials(
+        effect.allowed,
+        effect.run_definition,
+        effect_environment_owner,
+        effect_environment,
+        effect_document,
+        None,
+        retained_compute_effect_limits(),
+        request=Some(changed),
+      ).unwrap()
+    }
     let changed_poll = @remote.admit_remote_poll_dispatch_json(
       @remote.remote_poll_dispatch_materials_json(
         dispatch, binding, changed_wire,
@@ -546,20 +562,31 @@ fn retained_consumer_holder_case(
         duplicate.effect_computation(journal).unwrap(),
       ),
     )
-    if !provider {
+    if completion_free_review {
+      native_mapped_create_context_review(
+        owner,
+        journal,
+        effect_producer.unwrap(),
+        producer_journal,
+        approved_row=mapped_create_write,
+        journal_path=Some(root_path + "/" + name + ".runtime/execution.sqlite3"),
+      )
+    } else if !provider {
       retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
     }
-    retained_holder_effect_transfer_capture(
-      owner,
-      journal,
-      effect_producer.unwrap(),
-      producer_journal,
-      input,
-      site,
-      provider~,
-      root_path~,
-      name~,
-    )
+    if !completion_free_review {
+      retained_holder_effect_transfer_capture(
+        owner,
+        journal,
+        effect_producer.unwrap(),
+        producer_journal,
+        input,
+        site,
+        provider~,
+        root_path~,
+        name~,
+      )
+    }
     assert_eq(entries.val, 1)
     assert_eq(borrows.val, 1)
   } else {
@@ -580,30 +607,49 @@ fn retained_consumer_holder_case(
   }
   let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
   let missing_intent = "sha256:" + "e".repeat(64)
-  if effect_materials is Some(_) {
+  if effect_materials is Some(effect) {
     // Computation output remains private. An ordinary public Output entry
     // cannot admit the original Effect Run or manufacture its publication.
-    assert_true(
-      @resident.prepare_resident_saved_output(
-        journal,
-        site,
-        admission,
-        delegated,
-        attempt,
-        missing_intent,
-        () => at,
-        () => true,
-      )
-      is Err(
-        @resident.Refused(
-          @resident_protocol.MaterialsRejected(
-            @host.ClientValuesRunMaterialsIssue::MaterialsProgram(
-              @host.ClientProgramPreparationIssue::EffectNotSupported(_)
+    let denied = @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => at,
+      () => true,
+    )
+    if effect.normalization is Some(_) {
+      // The ordinary Effect-free materials codec refuses an issued journal
+      // before preparing the Program. Keep that earlier admission boundary;
+      // never strip original normalization to reach a later Effect guard.
+      assert_true(
+        denied
+        is Err(
+          @resident.Refused(
+            @resident_protocol.MaterialsRejected(
+              @host.ClientValuesRunMaterialsIssue::MaterialsEvidence(
+                "normalization_journal"
+              )
             )
           )
-        )
-      ),
-    )
+        ),
+      )
+    } else {
+      assert_true(
+        denied
+        is Err(
+          @resident.Refused(
+            @resident_protocol.MaterialsRejected(
+              @host.ClientValuesRunMaterialsIssue::MaterialsProgram(
+                @host.ClientProgramPreparationIssue::EffectNotSupported(_)
+              )
+            )
+          )
+        ),
+      )
+    }
   } else if chain_task != Some(1) {
     let saved_revision = @remote.dispatch_record_revision(
       journal.require(dispatch).unwrap(),

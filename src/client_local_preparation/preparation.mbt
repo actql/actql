@@ -15,7 +15,34 @@ struct LocalInputContext {
 }
 
 ///|
+/// One common-Checker result and its lowerer's durable Program document.
+/// The original input remains separate from generated Program coordinates.
+pub struct LocalPreparedInput {
+  prepared : @host.PreparedClientProgram
+  original : LocalInput
+  document : String
+}
+
+///|
+pub fn local_prepared_program(
+  value : LocalPreparedInput,
+) -> @host.PreparedClientProgram {
+  value.prepared
+}
+
+///|
+pub fn local_prepared_original(value : LocalPreparedInput) -> LocalInput {
+  value.original
+}
+
+///|
+pub fn local_prepared_document(value : LocalPreparedInput) -> String {
+  value.document
+}
+
+///|
 pub(all) enum LocalPreparationIssue {
+  Publication(@publication.PublicationIssue)
   Context(@frontend.AliasIssue)
   ForeignEnvironment
   Frontend(@frontend.Issue)
@@ -61,6 +88,19 @@ pub fn prepare_local_input(
   context : LocalInputContext?,
   limits : @host.ClientProgramPreparationLimits,
 ) -> Result[@host.PreparedClientProgram, LocalPreparationIssue] {
+  prepare_local_input_material(input, environment, bindings, context, limits).map(
+    local_prepared_program,
+  )
+}
+
+///|
+pub fn prepare_local_input_material(
+  input : LocalInput,
+  environment : @checked.CheckEnvironment,
+  bindings : @decode.Cursor?,
+  context : LocalInputContext?,
+  limits : @host.ClientProgramPreparationLimits,
+) -> Result[LocalPreparedInput, LocalPreparationIssue] {
   if context is Some(context) &&
     context.environment_cid != @checked.checking_environment_cid(environment) {
     return Err(ForeignEnvironment)
@@ -98,7 +138,26 @@ pub fn prepare_local_input(
       max_work=1000000,
       max_slots=100000,
     ) {
-    Ok(_) => Ok(prepared)
+    Ok(_) => Ok({ prepared, original: input, document: lowered.document, })
     Err(issue) => Err(ArrayProfile(issue))
   }
+}
+
+///|
+/// Interpret the same installed publication used by the Node Host. The
+/// publication Owner checks the exact environment, Source view, policy,
+/// schema and alias. Success is name binding, not Run or read admission.
+pub fn bind_local_published_input_context(
+  environment : @checked.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[LocalInputContext, LocalPreparationIssue] {
+  @publication.bind_published_query_context(
+    environment, publication, declarations,
+  )
+  .map(query => {
+    environment_cid: @checked.checking_environment_cid(environment),
+    query,
+  })
+  .map_err(issue => Publication(issue))
 }

@@ -314,6 +314,7 @@ pub fn local_managed_sequence_supported(
       @lower.GraphNormalizeStep(_) => false
       @lower.GraphDeltaStep(_) => false
       @lower.GraphUnionStep(_) => false
+      @lower.GraphMeanStep(_) => false
       @lower.GraphSubtractionStep(_) => false
       @lower.GraphConstructionStep(_) => false
       @lower.VectorStep(_) => false

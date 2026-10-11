@@ -68,6 +68,7 @@ pub enum Payload {
   GraphNormalizeValue(@graph.CheckedNormalize)
   GraphDeltaValue(@graph.CheckedDelta)
   GraphUnionValue(@graph.CheckedUnion)
+  GraphMeanValue(@graph.CheckedMean)
   GraphSubtractionValue(@graph.CheckedSubtraction)
   GraphComponentsRows(@graph.CheckedComponents)
   GraphSubgraphValue(@graph.CheckedSubgraph)
@@ -227,7 +228,13 @@ pub fn operation(value : PreparedNode) -> String {
     GraphDegreeRows(_) => "SGA.degree_metrics"
     GraphEqualityRows(_) => "SGA.equal"
     GraphNormalizeValue(_) => "SGA.normalize"
-    GraphUnionValue(_) => "SGA.union_structural"
+    GraphUnionValue(value) =>
+      if @graph.union_is_graft(value) {
+        "SGA.graft"
+      } else {
+        "SGA.union_structural"
+      }
+    GraphMeanValue(_) => "SGA.mean_structural"
     GraphSubtractionValue(_) => "SGA.diff_structural"
     GraphDeltaValue(value) =>
       match @graph.delta_operation(value) {
@@ -236,7 +243,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphComponentsRows(_) => "SGA.components"
     GraphSubgraphValue(_) => "SGA.subgraph"
-    GraphTraverseRows(_) => "SGA.traverse"
+    GraphTraverseRows(checked) => graph_traverse_operation(checked)
     GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
@@ -315,6 +322,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
     GraphDelta(checked~, ..) => Some(GraphDeltaValue(checked))
     GraphUnion(checked~, ..) => Some(GraphUnionValue(checked))
+    GraphMean(checked~, ..) => Some(GraphMeanValue(checked))
     GraphSubtraction(checked~, ..) => Some(GraphSubtractionValue(checked))
     GraphComponents(value) => Some(GraphComponentsRows(value))
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
@@ -446,7 +454,19 @@ pub fn prepare(
       GraphDegreeRows(_) => ("degree", 1)
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphUnionValue(value) =>
-        ("union_graphs", @graph.union_input_count(value))
+        (
+          if @graph.union_is_graft(value) {
+            "graft_graph"
+          } else {
+            "union_graphs"
+          },
+          @graph.union_input_count(value),
+        )
+      GraphMeanValue(value) =>
+        (
+          "mean_graphs",
+          @graph.mean_sample_count(@graph.checked_mean_options(value)),
+        )
       GraphSubtractionValue(_) => ("subtract_graphs", 2)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
       GraphDeltaValue(value) =>
@@ -471,13 +491,27 @@ pub fn prepare(
         )
       GraphTraverseRows(checked) =>
         (
-          "traverse",
-          if @graph.selector_form(@graph.traverse_start(checked))
-            is @graph.RelationIds(..) {
-            2
+          if @graph.traverse_is_reach(checked) {
+            "reach"
+          } else if @graph.traverse_shortest(checked) is Some(_) {
+            "shortest_path"
           } else {
-            1
+            "traverse"
           },
+          1 +
+          (if @graph.selector_form(@graph.traverse_start(checked))
+            is @graph.RelationIds(..) {
+            1
+          } else {
+            0
+          }) +
+          (if @graph.traverse_shortest(checked).map(@graph.shortest_targets)
+            is Some(target) &&
+            @graph.selector_form(target) is @graph.RelationIds(..) {
+            1
+          } else {
+            0
+          }),
         )
       GraphConstructionValue(checked) =>
         (
@@ -683,6 +717,7 @@ pub fn prepare(
       GraphNormalizeValue(_) => None
       GraphDeltaValue(_) => None
       GraphUnionValue(_) => None
+      GraphMeanValue(_) => None
       GraphSubtractionValue(_) => None
       GraphTraverseRows(_) => None
       GraphConstructionValue(_) => None

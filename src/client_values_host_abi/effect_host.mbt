@@ -80,6 +80,7 @@ fn client_values_host_effect_manifests() -> Result[
 #export_name("clientValuesHostCompileEffect")
 pub fn client_values_host_compile_effect(
   prepared : @host.PreparedClientEffectComputation,
+  normalization_profile : Bool,
 ) -> Result[
   @host.ClientEffectCompilation,
   ClientValuesHostEffectCompilationIssue,
@@ -87,6 +88,14 @@ pub fn client_values_host_compile_effect(
   let manifests = match client_values_host_effect_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
+  }
+  let normalization = if normalization_profile {
+    match @host.issue_prepared_client_effect_normalization(prepared) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(Compilation(Normalization(issue)))
+    }
+  } else {
+    None
   }
   @host.issue_prepared_client_effect_compilation(
     prepared,
@@ -97,6 +106,7 @@ pub fn client_values_host_compile_effect(
     1000000,
     100000,
     100,
+    normalization~,
   ).map_err(issue => Compilation(issue))
 }
 
@@ -213,6 +223,53 @@ pub fn client_values_host_issue_effect_run_materials(
 }
 
 ///|
+/// Original checked preparation only: the issuer supplies normalization from
+/// its actual retained completion inventory, not caller wire or Program shape.
+#export_name("clientValuesHostIssuePreparedEffectRunMaterials")
+pub fn client_values_host_issue_prepared_effect_run_materials(
+  prepared : @host.PreparedClientEffectComputation,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity?,
+) -> Result[
+  @host.ClientEffectIssuedNormalizationMaterials,
+  @host.ClientEffectRunMaterialsIssue,
+] {
+  match @host.bind_client_effect_compiled_run(prepared, allowed, definition) {
+    Ok(_) => ()
+    Err(issue) => return Err(Binding(issue))
+  }
+  let normalization = match
+    @host.issue_prepared_client_effect_normalization(prepared) {
+    Ok(value) => value
+    Err(issue) => return Err(Normalization(issue))
+  }
+  @host.issue_prepared_client_effect_normalization_materials(
+    allowed,
+    definition,
+    normalization,
+    request~,
+  )
+}
+
+///|
+#export_name("clientValuesHostIssuedEffectRunMaterialsWire")
+pub fn client_values_host_issued_effect_run_materials_wire(
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+) -> String {
+  @host.client_effect_issued_normalization_materials_wire(issued)
+}
+
+///|
+/// Restore through the actual admitted material Owner without journal issuance.
+#export_name("clientValuesHostRestoreEffectRunNormalization")
+pub fn client_values_host_restore_effect_run_normalization(
+  materials : @host.ClientEffectRunMaterials,
+) -> Result[@publication.RunEvidenceValue, @host.ClientEffectNormalizationIssue] {
+  @host.restore_client_effect_run_normalization(materials)
+}
+
+///|
 pub(all) enum ClientValuesHostEffectRestorationIssue {
   Manifests(@host.ClientCompilationManifestIssue)
   Materials(@host.ClientEffectRunMaterialsIssue)
@@ -231,6 +288,8 @@ pub fn client_values_host_admit_effect_run_materials(
   tea : Bool,
   calendar : Bool,
   text_rank : Bool,
+  original : @host.ClientEffectIssuedNormalizationMaterials?,
+  expected_request : @host.ClientRequestIdentity?,
 ) -> Result[
   @host.ClientEffectRunMaterials,
   ClientValuesHostEffectRestorationIssue,
@@ -255,6 +314,8 @@ pub fn client_values_host_admit_effect_run_materials(
       max_evidence_depth: 100,
     },
     client_values_host_effect_limits(),
+    original_materials=original,
+    expected_request~,
   ).map_err(issue => Materials(issue))
 }
 

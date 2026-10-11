@@ -83,12 +83,20 @@ pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.Query
 
 pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
 
+pub fn start_captured_source_identity(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[CapturedSourceIdentityPreparation, CapturedSourceIssue]
+
 pub fn start_captured_source_result_export(CapturedInputSource, @execution_relation.ManagedResultOccurrence, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 // Errors
 
 // Types and methods
 type CapturedInputSource
+
+type CapturedSourceIdentityPreparation
+pub fn CapturedSourceIdentityPreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedSourceIssue]
+pub fn CapturedSourceIdentityPreparation::cancel(Self) -> Bool
+pub fn CapturedSourceIdentityPreparation::finish(Self) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
+pub fn CapturedSourceIdentityPreparation::work(Self) -> Int64
 
 type CapturedSourceIdentityScan
 

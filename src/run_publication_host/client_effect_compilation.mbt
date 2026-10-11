@@ -9,6 +9,7 @@ pub(all) enum ClientEffectCompilationIssue {
   Plan(ClientValuesExecutablePlanIssue)
   Compilation(ClientTaskCompilationIssue)
   Encoding
+  Normalization(ClientEffectNormalizationIssue)
 }
 
 ///|
@@ -23,6 +24,7 @@ pub(all) enum ClientEffectCompilationAdmissionIssue {
 pub struct ClientEffectCompilation {
   owner : PreparedClientEffectComputation
   compiled : ClientTaskCompilation
+  normalization_profile : Bool
 }
 
 ///|
@@ -92,7 +94,52 @@ pub fn issue_prepared_client_effect_compilation(
   max_nodes : Int,
   max_depth : Int,
   infer? : ClientInferPlanGraph? = None,
+  normalization? : ClientEffectNormalization? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
+  match normalization {
+    Some(original) =>
+      match prepared_client_effect_normalization_evidence(owner, original) {
+        Ok(_) => ()
+        Err(issue) => return Err(Normalization(issue))
+      }
+    None => ()
+  }
+  issue_client_effect_compilation_internal(
+    owner,
+    manifests,
+    sequence_limits,
+    max_facts,
+    max_witnesses,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    normalization is Some(_),
+    infer~,
+  )
+}
+
+///|
+/// Restoration selects a candidate profile only provisionally. The saved
+/// invocation/authorization and expected original Run CID must then bind it.
+/// This verifies an inventory but never issues a new normalization journal.
+fn issue_client_effect_compilation_internal(
+  owner : PreparedClientEffectComputation,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  normalization_profile : Bool,
+  infer? : ClientInferPlanGraph? = None,
+) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
+  if normalization_profile {
+    match @checked.effect_program_completion_free_inventory(owner.candidate) {
+      Ok(_) => ()
+      Err(issue) => return Err(Normalization(Inventory(issue)))
+    }
+  }
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let headers = @checked.effect_program_static_headers(owner.candidate)
   let count = @syntax.effect_header_count(headers)
@@ -159,6 +206,14 @@ pub fn issue_prepared_client_effect_compilation(
           @environment.compiler_inference_barrier_contract_cid(),
         ),
       ]
+  }
+  if normalization_profile {
+    required_profiles.push(
+      (
+        "actql-resident-effect-completion-free/0.1",
+        client_effect_completion_free_catalog_cid(),
+      ),
+    )
   }
   let roots : Array[(String, Int)] = []
   let plan_cids : Array[(String, String)] = []
@@ -301,7 +356,7 @@ pub fn issue_prepared_client_effect_compilation(
     Ok(compiled) => compiled
     Err(issue) => return Err(Compilation(issue))
   }
-  Ok({ owner, compiled, })
+  Ok({ owner, compiled, normalization_profile, })
 }
 
 ///|

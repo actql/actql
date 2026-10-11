@@ -78,9 +78,9 @@ property_pair = identifier, ":", expression ;
 graph_quantifier = "{", integer, "}"
                  | "{", [ integer ], ",", integer, "}" ;
 source        = table_source | unnest_source ;
-table_source  = path, [ source_alias ]
+table_source  = path, [ source_alias ], [ pivot_operator | unpivot_operator ]
               | "(", relational_body, ")",
-                source_alias ;
+                [ source_alias ], [ pivot_operator | unpivot_operator ] ;
 source_alias  = [ "AS" ], identifier ;
 unnest_source = "UNNEST", "(", expression, ")", source_alias,
                 [ "WITH", "OFFSET", [ source_alias ] ] ;
@@ -176,16 +176,19 @@ relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELE
               | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
-(* Initial Pipe PIVOT: one column aggregate and static String bucket values. *)
-pivot_operator = "PIVOT", "(", pivot_aggregate, "(", path, ")",
+(* Pipe PIVOT: one scalar-argument aggregate or COUNT star and static String buckets. *)
+pivot_operator = "PIVOT", "(", pivot_call,
                  [ [ "AS" ], identifier ], "FOR", path, "IN", "(",
                  pivot_value, { ",", pivot_value }, ")", ")",
                  [ [ "AS" ], identifier ] ;
+pivot_call = pivot_aggregate, "(", expression, ")" | "COUNT", "(", "*", ")" ;
 pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
 pivot_value = query_string, [ [ "AS" ], identifier ] ;
 unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
-                   "(", identifier, "FOR", identifier, "IN", "(",
-                   identifier, { ",", identifier }, ")", ")", [ source_alias ] ;
+                   "(", unpivot_column_set, "FOR", identifier, "IN", "(",
+                   unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;
+unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
+unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",

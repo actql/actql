@@ -1,0 +1,6 @@
+{
+  "catalog_preimage": "{\"applicability\":{\"audit_work_limit\":10000,\"checked_operations\":[\"derive\",\"filter\",\"select\",\"values\"],\"effect_kind\":\"none\",\"expression_nodes\":[\"add\",\"and\",\"eq\",\"field\",\"gt\",\"gte\",\"literal\",\"lt\",\"lte\",\"multiply\",\"neq\",\"not\",\"or\",\"subtract\",\"typed_literal\"],\"max_source_inputs\":1,\"max_stages\":3,\"parameter_declarations\":\"none\",\"proof\":\"original-checked-owner-audit\",\"source_selection\":\"explicit\"},\"profile\":\"actql-effect-free-local-completion-free/0.1\",\"rules\":[],\"version\":\"actql-normalization-rule-catalog/0.1\"}",
+  "catalog_cid": "sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587",
+  "journal_preimage": "{\"entries\":[],\"rule_catalog_cid\":\"sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587\",\"version\":\"actql-normalization-journal/0.1\"}",
+  "journal_cid": "sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880"
+}

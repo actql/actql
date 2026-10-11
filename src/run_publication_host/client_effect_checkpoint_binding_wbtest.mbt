@@ -71,6 +71,28 @@ test "Effect Checkpoint binding validates original Run unit and sealed metadata"
   ).unwrap()
   assert_eq(accepted.wire, sealed_checkpoint.wire)
   assert_eq(accepted.checkpoint_cid, sealed_checkpoint.checkpoint_cid)
+  assert_eq(
+    client_effect_review_checkpoint_members(
+      allowed,
+      definition,
+      sealed_checkpoint.wire,
+      limits,
+      64,
+      10000,
+    ).unwrap(),
+    ["save"],
+  )
+  assert_true(
+    client_effect_review_checkpoint_members(
+      allowed,
+      definition,
+      sealed_checkpoint.wire,
+      limits,
+      0,
+      10000,
+    )
+    is Err(InvalidLimits),
+  )
   // Synthetic artifact CIDs test metadata admission only. They prove no
   // physical capture, Preview, Store confirmation, waiting commit or approval.
   for

@@ -52,6 +52,16 @@ test('split adds only its exact closed source and machine alternatives and laws'
   const before=withoutIncrement(expression);
   for(const name of names){assert.ok(expression.laws[name]);delete before.laws[name];}
   before.grammar_sha256=earlier.expression_contract.grammar_sha256;
+  // The earlier public parent retains its original target-selected laws.
+  // The normally adopted #1375 repair is a separate, byte-pinned increment;
+  // never rewrite that predecessor or infer this delta from product output.
+  const kernel=read('portability/corpus/historical/adopted-portable-numeric-kernel-laws.json');
+  assert.equal(cid(kernel), 'sha256:78336d1cbf683b75363fd316cbf52b9880c6ed6092ba6d908b28b231cfa4b286');
+  assert.equal(kernel.source_revision, '4dff63ffc946926dd17b100aea445b4ef5a31ef5');
+  for(const [name,law] of Object.entries(kernel.laws)){
+    assert.deepEqual(before.laws[name], law, name+' adopted kernel law');
+    before.laws[name]=structuredClone(earlier.expression_contract.laws[name]);
+  }
   assert.deepEqual(before,earlier.expression_contract);
   assert.deepEqual(withoutIncrement(program),earlier.program_schema);
   assert.deepEqual(Object.keys(counts).sort(),[...names].sort());
