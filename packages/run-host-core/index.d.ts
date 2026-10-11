@@ -7,6 +7,7 @@ declare const taskCompilationBrand: unique symbol;
 declare const effectPreparationBrand: unique symbol;
 declare const effectCompilationBrand: unique symbol;
 declare const effectAllowedBrand: unique symbol;
+declare const issuedEffectMaterialsBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
@@ -113,11 +114,23 @@ export function issueEffectRunMaterials(allowed: AllowedEffectRun,
   definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
     environment: CheckEnvironment; environmentWire: string;
     parametersWire?: string}>, request?: RequestIdentity): string;
+/** Process-local opaque issuance proof. Copying its visible wire loses custody. */
+export interface IssuedEffectRunMaterials {
+  readonly [issuedEffectMaterialsBrand]: true;
+  readonly wire: string;
+}
+/** Original checked preparation owns completion-free issuance; no replacement inputs. */
+export function issuePreparedEffectRunMaterials(allowed: AllowedEffectRun,
+  definition: RunDefinition, request?: RequestIdentity): IssuedEffectRunMaterials;
+export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
+  compilation: EffectCompilation; allowed: AllowedEffectRun;
+  definition: RunDefinition; request?: RequestIdentity}>;
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
-    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>):
-  Readonly<{prepared: PreparedEffectProgram; compilation: EffectCompilation;
-    allowed: AllowedEffectRun; definition: RunDefinition; request?: RequestIdentity}>;
+    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
+  original?: IssuedEffectRunMaterials): RestoredEffectRun;
+/** Requires the exact admitted material object; does not grant approval. */
+export function restoreEffectRunNormalization(materials: RestoredEffectRun): RunEvidence;
 /** Original saved policy lifetime, not current Host authority or approval. */
 export function effectRunStartCurrent(allowed: AllowedEffectRun,
   definition: RunDefinition, at: string): boolean;

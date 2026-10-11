@@ -1,0 +1,130 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {buildSync} from 'esbuild';
+import {admitEnvironment, prepareEffect, compileEffect, effectExecutionShape,
+  issueAllowedEffectRun, issueEffectRunDefinition, privateRunDefinition,
+  privateEffectRunEvidence, prepareEffectRequest, requestFields,
+  issuePreparedEffectRunMaterials, admitEffectRunMaterials,
+  restoreEffectRunNormalization, sealRunEvidenceValue} from '@actql/run-host-core';
+
+// Existing authoring inputs only. No normalization or execution fixture is
+// supplied to the issuer: the actual original checked Owner proves its scope.
+const read = name => readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8').trimEnd();
+const document = read('completion-free-effect.program.json');
+const environmentWire = read('completion-free-effect.environment.json');
+const profiles = {rela: true};
+const environment = admitEnvironment(environmentWire,
+  'sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7', profiles);
+const fixed = character => 'sha256:' + character.repeat(64);
+const catalogCid = 'sha256:ea21a2a2ab522cbf960c5e97120648e351db7c127768101502210ed7d8fcfb38';
+const journalCid = 'sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087';
+const expectedJournal = {entries: [], journal_cid: journalCid,
+  rule_catalog_cid: catalogCid, version: 'actql-normalization-journal/0.1'};
+
+function issued(program = document) {
+  const prepared = prepareEffect(program, 'json', environment);
+  const compilation = compileEffect(prepared);
+  const allowed = issueAllowedEffectRun(prepared, compilation,
+    {executionContextCid: fixed('a'), hostPolicyCid: fixed('b'),
+      expiresAt: '2099-01-01T00:00:00.000Z'});
+  const definition = issueEffectRunDefinition(allowed, 'original-scope', 'original-run',
+    '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const request = prepareEffectRequest(prepared, compilation, fixed('c'), 'original-caller');
+  return {prepared, compilation, allowed, definition, request};
+}
+
+function restore(original, wire, proof) {
+  return admitEffectRunMaterials(wire, privateRunDefinition(original.definition).cid, profiles, proof);
+}
+
+test('original package issuer carries preparation-owned journal and exact original Run', () => {
+  const original = issued();
+  assert.deepEqual(effectExecutionShape(original.prepared, original.compilation),
+    {taskCount: 2, acquisitionCount: 1, effectCount: 1});
+  const proof = issuePreparedEffectRunMaterials(original.allowed, original.definition, original.request);
+  const wire = proof.wire;
+  assert.equal(issuePreparedEffectRunMaterials(original.allowed, original.definition, original.request).wire, wire);
+  const body = JSON.parse(wire);
+  assert.deepEqual(JSON.parse(body.normalization_journal_json), expectedJournal);
+  assert.deepEqual(JSON.parse(body.program), JSON.parse(document));
+  assert.deepEqual(JSON.parse(body.check_environment), JSON.parse(environmentWire));
+  const evidence = privateEffectRunEvidence(original.allowed);
+  assert.equal(body.prepared_invocation, evidence.preparedInvocationWire);
+  assert.equal(body.run_authorization, evidence.authorizationWire);
+  assert.equal(body.run_id, 'original-run');
+  assert.equal(body.created_at, '2026-10-09T00:00:00.000Z');
+  assert.equal(body.valid_until, '2098-01-01T00:00:00.000Z');
+  const saved = restore(original, wire, proof);
+  assert.deepEqual(privateRunDefinition(saved.definition), privateRunDefinition(original.definition));
+  assert.deepEqual(requestFields(saved.request), requestFields(original.request));
+  assert.deepEqual(privateEffectRunEvidence(saved.allowed), evidence);
+  for (let count = 0; count < 2; count++) {
+    const restored = restoreEffectRunNormalization(saved);
+    assert.equal(restored.cid, journalCid);
+    assert.equal(restored.wire, body.normalization_journal_json);
+  }
+  assert.throws(() => restoreEffectRunNormalization({...saved}), /ForeignRunHostHandle/u);
+  assert.throws(() => restore(original, wire), {code: 'RunHostEffectRestorationRejected'});
+  assert.throws(() => restore(original, wire, {...proof}), /ForeignRunHostHandle/u);
+  assert.throws(() => restore(original, wire + ' ', proof), {code: 'RunHostEffectRestorationRejected'});
+});
+
+test('original package issuer rejects foreign Run and request without replacement input', () => {
+  const original = issued();
+  const changed = JSON.parse(document);
+  changed.stages[0].steps[0].filter.gte[1].literal = 1;
+  const other = issued(JSON.stringify(changed));
+  assert.throws(() => issuePreparedEffectRunMaterials(original.allowed, other.definition, original.request),
+    {code: 'RunHostEffectOriginalMaterialsRejected'});
+  assert.throws(() => issuePreparedEffectRunMaterials(original.allowed, original.definition, other.request),
+    {code: 'RunHostEffectOriginalMaterialsRejected'});
+  assert.throws(() => issuePreparedEffectRunMaterials({...original.allowed}, original.definition),
+    /ForeignRunHostHandle/u);
+  assert.throws(() => issuePreparedEffectRunMaterials(original.allowed, original.definition, {...original.request}),
+    /ForeignRunHostHandle/u);
+  // Mutating authoring data after preparation cannot replace the retained input;
+  // this API has no document/environment/parameter argument to re-prepare.
+  const projected = JSON.parse(issuePreparedEffectRunMaterials(original.allowed, original.definition).wire);
+  assert.deepEqual(JSON.parse(projected.program), JSON.parse(document));
+});
+
+test('actual sole-view completion and unsupported processing cannot take the empty package path', () => {
+  const sole = JSON.parse(document);
+  delete sole.stages[0].inputs.table.view;
+  const completed = issued(JSON.stringify(sole));
+  assert.throws(() => issuePreparedEffectRunMaterials(completed.allowed, completed.definition),
+    {code: 'RunHostEffectOriginalMaterialsRejected'});
+  const unsupported = JSON.parse(document);
+  unsupported.stages[1].steps.push({take: 1});
+  const other = issued(JSON.stringify(unsupported));
+  assert.throws(() => issuePreparedEffectRunMaterials(other.allowed, other.definition),
+    {code: 'RunHostEffectOriginalMaterialsRejected'});
+});
+
+test('package normalization restoration refuses absent and substituted saved evidence', () => {
+  const original = issued();
+  const body = JSON.parse(issuePreparedEffectRunMaterials(original.allowed, original.definition).wire);
+  const without = {...body};
+  delete without.normalization_journal_json;
+  assert.throws(() => restoreEffectRunNormalization(restore(original, JSON.stringify(without))),
+    {code: 'RunHostEffectNormalizationRejected'});
+  const substituted = sealRunEvidenceValue('normalization_journal',
+    JSON.stringify({version: 'actql-normalization-journal/0.1',
+      rule_catalog_cid: fixed('f'), entries: []}),
+    {maxWireBytes: 1024, maxNodes: 32, maxDepth: 8});
+  body.normalization_journal_json = substituted.wire;
+  assert.throws(() => restore(original, JSON.stringify(body)),
+    {code: 'RunHostEffectRestorationRejected'});
+});
+
+test('original material and normalization exports remain Worker-portable', () => {
+  const result = buildSync({stdin: {contents:
+    "export {issuePreparedEffectRunMaterials, restoreEffectRunNormalization} from '@actql/run-host-core';",
+  resolveDir: import.meta.dirname}, bundle: true, write: false, platform: 'browser',
+  format: 'esm', target: 'es2022', metafile: true});
+  const inputs = Object.keys(result.metafile.inputs);
+  assert(inputs.some(path => path.endsWith('/dist/client_values_host_abi.js')));
+  assert(inputs.every(path => !path.includes('host-node') &&
+    !path.includes('local-node') && !path.startsWith('node:')));
+});

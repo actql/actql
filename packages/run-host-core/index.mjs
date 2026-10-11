@@ -17,6 +17,8 @@ const taskCompilations = new WeakMap();
 const effectPreparations = new WeakMap();
 const effectCompilations = new WeakMap();
 const effectAllowedRuns = new WeakMap();
+const effectMaterialOwners = new WeakMap();
+const issuedEffectMaterials = new WeakMap();
 const requests = new WeakMap();
 const cancellationIdentities = new WeakMap();
 const submissionEpochs = new WeakMap();
@@ -321,23 +323,46 @@ export function issueEffectRunMaterials(allowed, definition, retained, request) 
     request === undefined ? undefined : requireHandle(requests, request)), 'RunHostEffectRunMaterialsRejected');
 }
 
+/** Issue original materials and checked normalization without replacement inputs.
+ * This finite profile refuses actual completions and unsupported operations. */
+export function issuePreparedEffectRunMaterials(allowed, definition, request) {
+  const {value, prepared} = requireHandle(effectAllowedRuns, allowed);
+  const issued = checked(owner.clientValuesHostIssuePreparedEffectRunMaterials(
+    requireHandle(effectPreparations, prepared), value,
+    requireHandle(definitions, definition),
+    request === undefined ? undefined : requireHandle(requests, request)),
+  'RunHostEffectOriginalMaterialsRejected');
+  const material = Object.freeze({wire: owner.clientValuesHostIssuedEffectRunMaterialsWire(issued)});
+  issuedEffectMaterials.set(material, issued);
+  return material;
+}
+
+/** Restore saved journal bytes from this exact material admission; no approval. */
+export function restoreEffectRunNormalization(materials) {
+  return runEvidence(checked(owner.clientValuesHostRestoreEffectRunNormalization(
+    requireHandle(effectMaterialOwners, materials)), 'RunHostEffectNormalizationRejected'));
+}
+
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
-export function admitEffectRunMaterials(wire, definitionCid, profiles) {
+export function admitEffectRunMaterials(wire, definitionCid, profiles, original) {
   if (typeof wire !== 'string' || typeof definitionCid !== 'string') {
     throw new TypeError('InvalidRunHostRunMaterialsInput');
   }
   const selected = checkedProfileSelection(profiles, 'InvalidRunHostProfiles');
   const restored = checked(owner.clientValuesHostAdmitEffectRunMaterials(wire,
     definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
-    selected.tea, selected.calendar, selected.textRank), 'RunHostEffectRestorationRejected');
+    selected.tea, selected.calendar, selected.textRank,
+    original === undefined ? undefined : requireHandle(issuedEffectMaterials, original)), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
   if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
   const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
-  return Object.freeze({prepared, ...(request === undefined ? {} : {request}),
+  const materials = Object.freeze({prepared, ...(request === undefined ? {} : {request}),
     compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
     allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
     definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
+  effectMaterialOwners.set(materials, restored);
+  return materials;
 }
 
 /** Original policy/Run expiry check only; current Host authority is independent. */
