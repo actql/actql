@@ -20,7 +20,16 @@ test "WITH CTE SQL and Pipe bodies preserve one logical producer" {
       construction_limits(),
     ).unwrap()
     assert_eq(semantic(program), semantic(expected))
+    // The public query entry uses the same unified binding owner. Keep the
+    // complete independent control instead of asserting only route equality.
+    let public_program = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(public_program), semantic(expected))
     assert_eq(@program.stage_count(program), 1)
+    assert_eq(@program.stage_count(public_program), 1)
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
       Checked(_) => ()
@@ -43,6 +52,12 @@ test "WITH CTEs reuse a retained capture through nested and set queries" {
       { ..fixture_context(), captured_stage: Some("capture"), },
       construction_limits(),
     ).unwrap()
+    let public_program = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      { ..fixture_context(), captured_stage: Some("capture"), },
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(public_program), semantic(program))
     assert_eq(@program.stage_count(program), 2)
     assert_eq(@program.export_count(program), 1)
     let body = semantic(program)
