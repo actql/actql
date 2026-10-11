@@ -61,11 +61,17 @@ pub fn local_run_prepared(LocalRunPlan) -> @run_publication_host.PreparedClientP
 
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
 
+pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publication.RunEvidenceValue
+
+pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publication.RunEvidenceValue
+
 pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Bool, LocalRunIssue]
 
 pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
+
+pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
 
 pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
@@ -152,6 +158,32 @@ pub struct LocalRunPlan {
   tuple : @execution_authorization.AccessTuple
   execution_context_cid : String
 }
+
+pub struct LocalSourcePublication {
+  logical : @run_publication.RunEvidenceValue
+  evidence : @run_publication.RunEvidenceValue
+}
+
+pub(all) enum LocalSourcePublicationIssue {
+  ForeignCompute
+  Authorization(LocalNativeSourceIssue)
+  Source(@execution_query.CapturedSourceIssue)
+  Evidence(@host.NativeSourceEvidenceIssue)
+  Logical(@run_publication_host.ClientCapturedSourceLogicalIssue)
+  MissingFacts
+}
+
+pub struct LocalSourcePublicationPreparation {
+  configuration : LocalNativeSourceConfiguration
+  host : LocalComputeHost
+  capture : @host.NativeHostSourceCapture
+  context : @host.NativeSourceEvidenceContext
+  scan : @execution_query.CapturedSourceIdentityPreparation
+}
+pub fn LocalSourcePublicationPreparation::advance(Self, Int) -> Result[(Bool, Int), LocalSourcePublicationIssue]
+pub fn LocalSourcePublicationPreparation::cancel(Self) -> Bool
+pub fn LocalSourcePublicationPreparation::finish(Self, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalSourcePublication, LocalSourcePublicationIssue]
+pub fn LocalSourcePublicationPreparation::work(Self) -> Int64
 
 // Type aliases
 
