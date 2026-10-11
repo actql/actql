@@ -63,6 +63,29 @@ retry fresh initialization, send a Provider request or create another Run.
 Physical cleanup failures retain the existing Owner and retry handle; the
 failure must not convert unfinished adoption into a fresh environment.
 
+The first assembly slice selects private user-owned configuration and state
+parent directories explicitly. It exclusively creates one named state child
+and binds both real roots, the source file generation, exact source bytes,
+admitted account/CID and original initialization nonce. The account document
+budget is 1 MiB; initialization and physical configuration witnesses are
+bounded to 8 KiB each. Explicit entries, including an empty entry set, are
+accepted without generating a bootstrap profile. A named bootstrap profile is
+refused until its original is installed and verified.
+
+The immutable initialization intent precedes exclusive configuration creation.
+The separately persisted configuration witness binds its actual device, inode,
+length and original intent CID. An existing state child without its intent,
+or copied configuration without its creation witness, cannot become fresh by
+retrying adoption. Completed staging and an intent preceding creation can be
+reopened under the same filesystem lock and original bindings. This staging
+boundary is not final journal adoption and grants no protected execution.
+
+Restoration uses the existing SQLite adapter's retained-only open, after format
+and custody admission. It refuses missing/empty databases and missing schema
+constituents without creation, migration or schema repair. Fresh initialization
+has a separate exclusive creation proof; ordinary open or physical absence is
+not that proof.
+
 ## Direct Local credential grant/use scope
 
 Add a distinct typed Direct Local scope to the existing common credential

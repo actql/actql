@@ -189,23 +189,7 @@ fn initialize_native_client_epoch_authority(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  let result = match database.scan_after("client_submission_epoch", "") {
-    Ok(_) => Err(AlreadyInitialized)
-    Err(@sqlite.NotFound) =>
-      match crypto.random_bytes(32) {
-        Err(issue) => Err(Crypto(issue))
-        Ok(key) =>
-          match epoch_custody_body(key, 0.0) {
-            Err(issue) => Err(issue)
-            Ok(body) =>
-              database
-              .insert("client_submission_epoch", "authority", body)
-              .map(_ => ())
-              .map_err(issue => Physical(issue))
-          }
-      }
-    Err(issue) => Err(Physical(issue))
-  }
+  let result = initialize_native_client_epoch_in_transaction(database, crypto)
   match result {
     Ok(_) =>
       match database.commit() {
@@ -223,6 +207,35 @@ fn initialize_native_client_epoch_authority(
           Err(TransactionUnknown)
         }
       }
+  }
+}
+
+///|
+// Caller holds the existing SQLite transaction. This lets trusted Local
+// assembly finalize the epoch key and other Client custody atomically.
+fn initialize_native_client_epoch_in_transaction(
+  database : @sqlite.Database,
+  crypto : @crypto.Library,
+) -> Result[Unit, NativeClientEpochIssue] {
+  if database.transaction_fenced() {
+    return Err(Fenced)
+  }
+  match database.scan_after("client_submission_epoch", "") {
+    Ok(_) => Err(AlreadyInitialized)
+    Err(@sqlite.NotFound) =>
+      match crypto.random_bytes(32) {
+        Err(issue) => Err(Crypto(issue))
+        Ok(key) =>
+          match epoch_custody_body(key, 0.0) {
+            Err(issue) => Err(issue)
+            Ok(body) =>
+              database
+              .insert("client_submission_epoch", "authority", body)
+              .map(_ => ())
+              .map_err(issue => Physical(issue))
+          }
+      }
+    Err(issue) => Err(Physical(issue))
   }
 }
 
