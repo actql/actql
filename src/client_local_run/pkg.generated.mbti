@@ -105,11 +105,17 @@ pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInpu
 
 pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
+pub fn reuse_local_result_publication(LocalResultPublication, LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalResultPublicationIssue]
+
 pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
 
 pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysicalStart, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[@host.NativeHostRun, LocalNativeSourceIssue]
 
 pub fn start_local_result_publication_snapshot(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication_host.PublicationOutputSnapshotPreparation, LocalResultPublicationIssue]
+
+pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
+
+pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]
 
 // Errors
 
@@ -171,10 +177,12 @@ pub(all) enum LocalResultPublicationIssue {
   AuthorizationMismatch
   Source(LocalSourcePublicationIssue)
   MissingFacts
+  ForeignPublication
   Manifest(@run_publication.ResultManifestIssuanceIssue)
   Normalization(LocalRunNormalizationIssue)
   Receipt(@run_publication.RunReceiptIssuanceIssue)
   Invocation(@run_publication.RunEvidenceValueIssue)
+  Authoring(@run_publication_host.ClientAuthoringContextIssue)
   Output(@run_publication_host.PublicationOutputExportIssue)
 }
 
