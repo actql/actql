@@ -35,6 +35,7 @@ struct CaptureExportState {
   mut identity : String?
   mut chunk : String
   mut work : Int
+  mut current_observations : Bool
 }
 
 ///|
@@ -141,6 +142,7 @@ fn start_capture_export(
     identity: None,
     chunk: "",
     work: 0,
+    current_observations: false,
   }
   let control = @bounded.control()
   let (session, token) = @bounded.start(
@@ -184,11 +186,15 @@ fn emit_capture_export_step(
     Evidence => {
       // Invocation evidence is a flat admitted 16-KiB/1,024-node document.
       // This cap does not permit an entire response subtree in one step.
+      let evidence = owner.invocation_evidence[state.index]
+      match @publication.model_invocation_evidence_version(evidence) {
+        Some("actql-model-invocation-evidence/0.1") => ()
+        Some("actql-model-invocation-evidence/0.2") =>
+          state.current_observations = true
+        _ => raise @encode.InvalidStructure
+      }
       let document = @publication.run_evidence_value_document(
-        owner.invocation_evidence[state.index],
-        16384,
-        1024,
-        16,
+        evidence, 16384, 1024, 16,
       )
       @encode.emit_document(writer, document)
       let slot = owner.captures[state.index]
@@ -213,7 +219,14 @@ fn emit_capture_export_step(
     EndPass => {
       @encode.end_array(writer)
       @encode.key(writer, "version")
-      @encode.string_value(writer, "actql-model-capture-bundle/0.1")
+      @encode.string_value(
+        writer,
+        if state.current_observations {
+          "actql-model-capture-bundle/0.2"
+        } else {
+          "actql-model-capture-bundle/0.1"
+        },
+      )
       @encode.end_object(writer)
       if state.pass == 0 {
         state.identity = Some("sha256:" + @encode.finish_hash(writer))
