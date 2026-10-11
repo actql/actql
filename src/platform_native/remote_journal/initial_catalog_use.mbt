@@ -5,7 +5,7 @@
 /// original Run policy before this private preparation path can be enabled.
 pub(all) struct NativeInitialCatalogUseEnvelope {
   record_bytes : Int64
-  retained_bytes : Int64
+  control_bytes : Int64
   workspace_bytes : Int64
 }
 
@@ -14,7 +14,8 @@ fn initial_catalog_use_envelope_valid(
   value : NativeInitialCatalogUseEnvelope,
 ) -> Bool {
   value.record_bytes > 0L &&
-  value.retained_bytes >= value.record_bytes &&
+  value.control_bytes > 0L &&
+  value.record_bytes <= 9223372036854775807L - value.control_bytes &&
   value.workspace_bytes > 0L
 }
 

@@ -29,7 +29,7 @@ pub fn Journal::accept_with_initial_catalog_use(
       let reservation = match
         @resources.reserve_capacity(
           original_run_ledger,
-          envelope.retained_bytes,
+          envelope.record_bytes + envelope.control_bytes,
           envelope.workspace_bytes,
         ) {
         Ok(value) => value

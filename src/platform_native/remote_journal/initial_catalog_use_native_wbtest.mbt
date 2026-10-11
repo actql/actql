@@ -39,7 +39,7 @@ fn initial_catalog_test_ledger(
 // Model envelope values exercise accounting, not a selected production cost
 // coefficient or measured SQLite/allocator footprint.
 fn initial_catalog_test_envelope() -> NativeInitialCatalogUseEnvelope {
-  { record_bytes: 8192L, retained_bytes: 16384L, workspace_bytes: 8192L, }
+  { record_bytes: 8192L, control_bytes: 8192L, workspace_bytes: 8192L, }
 }
 
 ///|

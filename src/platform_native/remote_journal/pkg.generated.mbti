@@ -145,7 +145,7 @@ type NativeInitialCatalogUseCustody
 
 pub(all) struct NativeInitialCatalogUseEnvelope {
   record_bytes : Int64
-  retained_bytes : Int64
+  control_bytes : Int64
   workspace_bytes : Int64
 }
 
