@@ -433,7 +433,8 @@ pub fn compile_query_script(
       let graph_row_set = script_has_graph_rows(current) &&
         @query.set_part_count(current) > 0
       let result = if script_has_graph_rows(current) &&
-        !graph_row_set && !script_has_carrier_calls(current) {
+        !graph_row_set &&
+        !script_has_carrier_calls(current) {
         guard current_script_graph(primary_graph, current, graphs)
           is Some(graph) else {
           if stage_known.any(input => {
