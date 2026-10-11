@@ -244,6 +244,15 @@ export function sdkTransportResponse(handle) {
   return state.transport.raw;
 }
 
+// Retain an actually observed partial/error body as well as a complete body.
+// This does not turn an incomplete transport into a successful response. The
+// original capture caller must preserve its exact bytes and EOF separately.
+export function sdkTransportRawObservation(handle) {
+  const transport = record(handle).transport;
+  if (transport === undefined) throw issue('ForeignSdkTransport');
+  return transport.settled ? transport.raw : undefined;
+}
+
 // Feed an already bounded owned response to the same suspended SDK invocation.
 // This does not send, authorize, validate completeness or issue a success token.
 // The transport/raw-response Owner must retain its independent original bytes.
