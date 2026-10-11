@@ -366,6 +366,15 @@ fn retained_holder_write_row(
   assert_eq(observed_use.outcome, "succeeded")
   assert_eq(observed_use.status, Some(response_status))
   assert_true(row.send(access) is Err(ReconciliationRequired))
+  let retry_accesses = Ref(0)
+  let retry_access = (_ : @catalog.SingleWriteRequest) => {
+    retry_accesses.val += 1
+    abort("claimed row selected another mutation credential")
+  }
+  // The physical response exists but its journal write is still blocked.
+  // The same adapter retries response custody, never Provider access or send.
+  assert_true(row.execute_or_settle(retry_access) is Err(Journal(Physical(_))))
+  assert_eq(retry_accesses.val, 0)
   peer.rollback().unwrap()
   println("native-approved-row: retrying original raw response custody")
   assert_eq(row.retry_response_custody().unwrap(), true)
@@ -443,6 +452,8 @@ fn retained_holder_write_row(
     "native-approved-row: retaining responsibility after terminal save failure",
   )
   assert_true(work.settle_saved_row(limits) is Err(Journal(Physical(_))))
+  assert_true(work.retry_approved_row_custody() is Err(Journal(Physical(_))))
+  assert_eq(retry_accesses.val, 0)
   mark("terminal-failure-start")
   assert_true(
     work.complete_saved_effect(() => true, limits)
@@ -530,13 +541,17 @@ fn retained_holder_write_row(
   assert_eq(original.revision, 1L)
   let repeated = work.settle_saved_row(limits).unwrap()
   assert_eq(
-    @effect.effect_ledger_entry_cid(row.settle().unwrap().1),
+    @effect.effect_ledger_entry_cid(
+      row.execute_or_settle(retry_access).unwrap().1,
+    ),
     @effect.effect_ledger_entry_cid(terminal),
   )
+  assert_eq(retry_accesses.val, 0)
   assert_eq(
     @effect.effect_ledger_entry_cid(repeated.1),
     @effect.effect_ledger_entry_cid(terminal),
   )
+  assert_eq(work.retry_approved_row_custody().unwrap(), false)
   assert_eq(
     peer
     .read(
