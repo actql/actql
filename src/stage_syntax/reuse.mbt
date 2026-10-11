@@ -79,11 +79,21 @@ fn check_usage(
 ///|
 /// Retained prefix limits use the same measurements as complete Programs.
 pub fn prefix_usage(prefix : Prefix) -> ProgramUsage {
-  { source: prefix.source_usage, tree: @wire.admission_usage(prefix.body),
-    stages: prefix.stages.length(), }
+  {
+    source: prefix.source_usage,
+    tree: @wire.admission_usage(prefix.body),
+    stages: prefix.stages.length(),
+  }
 }
 
 ///|
-pub fn validate_prefix_reuse(prefix : Prefix, limits : Limits) -> Result[Unit, SyntaxError] {
-  check_usage(prefix_usage(prefix), limits, @wire.cursor_span(prefix.body).source_path)
+pub fn validate_prefix_reuse(
+  prefix : Prefix,
+  limits : Limits,
+) -> Result[Unit, SyntaxError] {
+  check_usage(
+    prefix_usage(prefix),
+    limits,
+    @wire.cursor_span(prefix.body).source_path,
+  )
 }
