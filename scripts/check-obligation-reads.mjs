@@ -38,7 +38,8 @@ export function validateProfileObligationCoverage(apis, selector) {
       for (const v of body[2].matchAll(/^\s*(\w*Profile)(?:\([^\n]*\))?\s*$/gm)) add(expected, v[1]);
     }
   }
-  for (const v of selector.matchAll(/\b(\w*Profile)(?:\([^\n]*\))?\s*=>\s*Some\(/g)) add(actual, v[1]);
+  // A profile variant can be nested in an operation's obligation wrapper.
+  for (const v of selector.matchAll(/\b(\w*Profile)(?:\([^\n]*\))?\)*\s*=>\s*Some\(/g)) add(actual, v[1]);
   const sorted = map => [...map].sort(([a], [b]) => a.localeCompare(b));
   assert.deepEqual(sorted(actual), sorted(expected), 'profile obligation mapping coverage differs from declared enums');
   return [...expected.values()].reduce((a, b) => a + b, 0);
