@@ -157,23 +157,31 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
     // The current WITH owner statically checks every authored binding and
     // continuation. Preserve the malformed body and its common typed cause.
     match classified_graph_source(source) {
-      Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => {
+      Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
         match call {
-          "subgraph()" | "subgraph(nodes: {from: selected, id: 'id'}, extra: true)" =>
+          "subgraph()"
+          | "subgraph(nodes: {from: selected, id: 'id'}, extra: true)" =>
             assert_eq(issue.kind, @pipeline.InvalidBody)
           "subgraph(nodes: {ids: []})" =>
             assert_eq(issue.kind, @pipeline.GraphMatch(Structure(InvalidBody)))
           "subgraph(nodes: {from: selected, id: 'missing'})" =>
-            assert_eq(issue.kind, @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))))
+            assert_eq(
+              issue.kind,
+              @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))),
+            )
           "subgraph(nodes: {from: selected, id: 'node_key'})" =>
-            assert_true(issue.kind is @pipeline.GraphMatch(Structure(ContractMismatch(_))))
+            assert_true(
+              issue.kind is @pipeline.GraphMatch(Structure(ContractMismatch(_))),
+            )
           "subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: 1})" =>
             assert_eq(issue.kind, @pipeline.GraphMatch(ExpectedBoolean))
           "subgraph(nodes: {where: {literal: true}})" =>
-            assert_eq(issue.kind, @pipeline.GraphMatch(Structure(UnsupportedGraphOperation)))
+            assert_eq(
+              issue.kind,
+              @pipeline.GraphMatch(Structure(UnsupportedGraphOperation)),
+            )
           _ => fail("undeclared malformed Subgraph control")
         }
-      }
       _ => fail("expected common static Subgraph refusal: " + call)
     }
   }
