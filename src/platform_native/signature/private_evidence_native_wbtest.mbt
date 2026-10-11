@@ -86,6 +86,7 @@ test "native continuation checkpoint and Catalog roles authenticate independent 
       ("continuation_record", "3yJDT2CxbtjfVQftN2GjCg=="),
       ("checkpoint", "nNFQ/3TzvkCWXAw8mHf78g=="),
       ("effect_catalog", "Lp6w6J1zL2EI2B/BmufyJQ=="),
+      ("credential_raw_observation", "M5MACSiYVAwOAhJ4P/F8Tw=="),
     ] {
     // Public deterministic AES-GCM vector generated independently by Node's
     // crypto API, not copied from the Native implementation's output.
@@ -100,7 +101,8 @@ test "native continuation checkpoint and Catalog roles authenticate independent 
     )
     for
       foreign in [
-        "effect_capture", "effect_preview", "effect_catalog", "checkpoint", "continuation_record",
+        "effect_capture", "effect_preview", "effect_catalog", "credential_raw_observation",
+        "checkpoint", "continuation_record",
       ] {
       if foreign != role {
         assert_true(

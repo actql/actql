@@ -810,6 +810,13 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("operation-cid", required=true),
         @argparse.OptionArg("issuer-file", required=true),
       ]),
+      @argparse.Command("lookup-preparation-raw", options=[
+        @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("grant-ref-file", required=true),
+        @argparse.OptionArg("operation-cid", required=true),
+        @argparse.OptionArg("use-id", required=true),
+      ]),
       @argparse.Command("lookup-request", options=[
         @argparse.OptionArg("request-id", required=true),
       ]),
@@ -866,7 +873,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     "remote" =>
       if matches.subcommand is Some(("check", _)) ||
         matches.subcommand is Some(("adopt", _)) ||
-        matches.subcommand is Some(("lookup-preparation-grant", _)) {
+        matches.subcommand is Some(("lookup-preparation-grant", _)) ||
+        matches.subcommand is Some(("lookup-preparation-raw", _)) {
         stop("operation requires an explicit Local configuration")
       }
     _ => stop("unsupported Client mode")
