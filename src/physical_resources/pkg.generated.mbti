@@ -34,6 +34,8 @@ pub fn[T] enter_funded_read_consumer(FundedReadConsumer[T], T, Int64, Int64) -> 
 
 pub fn execution_delegation_limits(ExecutionDelegation) -> LedgerLimits
 
+pub fn[T] finish_funded_read_inventory(FundedReadClaim[T], T, Bool) -> Result[Bool, OriginalReadIssue]
+
 pub fn finish_original_ledger_inventory(Ledger, Bool) -> Result[Bool, OriginalReadIssue]
 
 pub fn[T] fund_original_read(Ledger, T, OriginalLedgerDescriptor[T], Int64, Int64) -> Result[FundedReadClaim[T], OriginalReadIssue]

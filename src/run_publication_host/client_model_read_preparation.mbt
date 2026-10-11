@@ -214,3 +214,24 @@ pub fn settle_client_model_read(
     },
   )
 }
+
+///|
+// The original owning Run calls this only on its final cleanup path. Read
+// retirement alone does not acknowledge other Run children/FD/Store cleanup.
+// No Ledger getter or reconstructed origin is added for this finalization.
+pub fn finish_client_model_read_inventory(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, ClientModelReadPreparationIssue] {
+  if !client_model_read_origin_matches(value, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.finish_funded_read_inventory(
+    value.claim,
+    value.origin,
+    original_run_cleanup_complete,
+  ).map_err(issue => Resource(issue))
+}
