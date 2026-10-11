@@ -3,6 +3,7 @@ package "actql/actql/model_execution"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
@@ -18,6 +19,8 @@ pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> Mod
 pub fn acknowledge_model_call_settlement(ModelCallSettlement) -> Bool
 
 pub fn acknowledge_saved_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?
+
+pub fn acknowledge_saved_model_raw_capture(ModelRawCaptureSave) -> Result[ModelSavedRawReceipt, ModelRawCaptureSaveIssue]
 
 pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
 
@@ -139,9 +142,21 @@ pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, Strin
 
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
+pub fn model_raw_capture_save_binding(ModelRawCaptureSave) -> @run_publication.BoundModelRawResponse
+
+pub fn model_raw_capture_save_current(ModelRawCaptureSave) -> Result[Unit, ModelRawCaptureSaveIssue]
+
+pub fn model_raw_capture_save_originals(ModelRawCaptureSave) -> Array[@run_publication.CapturedEffectDependencyBody]
+
+pub fn model_saved_raw_receipt_matches(ModelSavedRawReceipt, ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
+
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
+pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
+
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
+
+pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
 
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
 
@@ -398,8 +413,18 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalPending
   PhysicalResponse(ModelPhysicalResponse)
   PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
+  PhysicalChatResponse(ModelPhysicalChatResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
+}
+
+pub(all) struct ModelPhysicalChatResponse {
+  body : String
+  status : Int
+  transport_eof : Bool
+  raw_response_artifact_cid : String
+  observed_at : String
+  provider_metadata : @canonical_json.CanonicalValue?
 }
 
 pub(all) struct ModelPhysicalEncodedResponse {
@@ -485,6 +510,18 @@ pub(all) struct ModelQuantityCapacity {
   per_attempt : @physical_resources.QuantityAmounts
 }
 
+pub struct ModelRawCaptureSave {
+  // private fields
+}
+
+pub(all) enum ModelRawCaptureSaveIssue {
+  ForeignCall
+  Stopped
+  Capture(@run_publication_host.ClientModelRawCaptureIssue)
+  ResponseLimit
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
 pub(all) struct ModelRequest {
   task : @check_environment.ModelTaskContract
   slot : Int
@@ -514,6 +551,10 @@ pub struct ModelResponseReconciliation {
   attempt : @run_publication.RunEvidenceValue
   authority : @run_publication.RunEvidenceValue
   mut adopted : Bool
+}
+
+pub struct ModelSavedRawReceipt {
+  // private fields
 }
 
 pub(all) struct ModelSlotCapture {

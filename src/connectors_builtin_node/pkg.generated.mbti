@@ -69,6 +69,8 @@ pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCa
 
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
 
+pub fn client_program_acknowledge_saved_infer_raw_capture(@model_execution.ModelRawCaptureSave) -> Result[@model_execution.ModelSavedRawReceipt, @model_execution.ModelRawCaptureSaveIssue]
+
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
 
 pub fn client_program_acquire_infer_outcomes(@client_infer_host.Execution) -> @model_execution.ModelOutcomeRead?
@@ -799,6 +801,12 @@ pub fn client_program_infer_publication_usage(@physical_resources.Ledger) -> (In
 
 pub fn client_program_infer_quantity_usage(@client_infer_host.Execution) -> @physical_resources.QuantityUsage?
 
+pub fn client_program_infer_raw_capture_save_binding(@model_execution.ModelRawCaptureSave) -> (String, String, String, String, Int)
+
+pub fn client_program_infer_raw_capture_save_current(@model_execution.ModelRawCaptureSave) -> Result[Unit, @model_execution.ModelRawCaptureSaveIssue]
+
+pub fn client_program_infer_raw_capture_save_originals(@model_execution.ModelRawCaptureSave) -> Array[(String, String, String)]
+
 pub fn client_program_infer_request_preflight_pending(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_result_definition(@run_publication_host.ClientResultTransformation) -> @run_publication.PublicationContract
@@ -818,6 +826,8 @@ pub fn client_program_infer_result_export_seal(@run_publication_host.Publication
 pub fn client_program_infer_result_name(@run_publication_host.ClientResultTransformation) -> String
 
 pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransformation) -> Int
+
+pub fn client_program_infer_saved_raw_receipt_matches(@model_execution.ModelSavedRawReceipt, @model_execution.ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
 
 pub fn client_program_infer_stopped_attempt_count(@client_infer_host.Execution) -> Int?
 
