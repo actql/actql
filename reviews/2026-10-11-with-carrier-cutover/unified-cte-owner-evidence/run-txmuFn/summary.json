@@ -1,0 +1,51 @@
+{
+  "startedAt": "2026-10-11T21:05:44.405Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Existing unified WITH public entry and unused binding obligations",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/with_cte_composition_test.mbt",
+        "src/query_program/with_binding_preparation_test.mbt",
+        "src/query_program/with_binding_static_order_gap_test.mbt",
+        "src/query_program/with_binding_demand_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:05:44.499Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:05:56.468Z",
+      "endedAt": "2026-10-11T21:05:56.471Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "67ba3cf8-1032-4469-8ffd-39162937bde9",
+    "pid": 62140,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:05:44.486Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-txmuFn"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:05:56.548Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

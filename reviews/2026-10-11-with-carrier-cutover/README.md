@@ -75,6 +75,31 @@ entry. The original caller is retained in
 Owner/group/ownlock absence was observed for both limited attempts. This is
 public Source API lowering evidence, not Host or Named Result execution.
 
+## Unified WITH owner and retained NEAREST callers
+
+[p1-unified-cte-owner-execution.json](p1-unified-cte-owner-execution.json)
+records the existing public `compile` counterexamples and Binding static/demand
+checks: `54665a96` JS16/16, then `4f79dbdf` JS16/16 after removing the exclusive
+unused JOIN helper. The latter run has no compiler warnings. Full original
+source and reference-closure proof remain in
+[retired-unreachable-cte-source.json](retired-unreachable-cte-source.json).
+The later binding dispatch and its parallel CTE compiler were unreachable;
+shared query/set/JOIN, capture and strict checking/publication helpers remain.
+This removal does not change a language rule or add a gate.
+
+Retained NEAREST callers now use ordinary WITH bindings. Clean `d5561f16`
+executes JS4/4, including public query compile, candidate use, shared input,
+pair-key correspondence, nullable KEEP and forward/undeclared refusals.
+The complete Program oracle is unchanged from the independently authored old
+control. `run-MzSry9` JS2/4 remains a failed fixture migration attempt: it forgot
+two installed input names when deriving seed allocation. The correction is
+independently explained in [with-nearest-allocation-correction.json](with-nearest-allocation-correction.json).
+The stale separate-owner `UnsupportedCte` expectation is retired, not made a
+current language restriction. No Host, inference, NEAREST runtime or packed
+execution was run. Formatter and all actual Owner/group/ownlock releases are
+recorded separately. Full P2/current caller/docs and public acceptance remain
+unfinished.
+
 ## Earlier finite evidence
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally

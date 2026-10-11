@@ -1,7 +1,7 @@
 {
   "owner": "B",
   "integration_owner": "Root",
-  "phase": "Normally integrated common Prefix and current CTE/set/positional/composition callers are limited-checked; full WITH/P2/current caller cutover and public acceptance remain incomplete",
+  "phase": "Unified WITH owner cleanup and retained NEAREST public compile are limited-checked; full WITH/P2/current caller/docs cutover and public acceptance remain incomplete",
   "branch": "feat/frontend-with-carrier-cutover",
   "base": "main",
   "pending_integration": [],
@@ -14,7 +14,7 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance. p1-unified-source-retirement-execution.json: bb400e67 JS8/8 and no-change formatter; still no Host execution.",
+  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance. p1-unified-source-retirement-execution.json: bb400e67 JS8/8 and no-change formatter; still no Host execution. p1-unified-cte-owner-execution.json: 54665 JS16/16; 4f79 JS16/16 after exclusive helper removal; d556 JS4/4 NEAREST. Original MzSry9 fixture JS2/4 retained; no Host/packed execution.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,
