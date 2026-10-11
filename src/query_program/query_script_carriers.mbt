@@ -161,9 +161,13 @@ fn lower_script_carrier_calls(
     query
   }
   for index in 0..<@query.operation_count(query) {
-    guard @query.operation_at(query, index) is Some(GraphCall(call)) &&
-      script_carrier_operation(call.operation) else {
+    guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
+    }
+    // after_graph_calls removes the whole leading call sequence. Every call
+    // in that sequence must have been lowered, never silently discarded.
+    if !script_carrier_operation(call.operation) {
+      raise Abort(UnsupportedGraph)
     }
     let fields = match call.operation {
       "to_vectors" => ["id", "vector"]
