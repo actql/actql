@@ -148,7 +148,8 @@ fn expect_with_graph_static_refusal(text : String) raise {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
       match issue.kind {
         Graph(_) | GraphMatch(_) => ()
-        other => fail("expected common Graph refusal: " + @debug.to_string(other))
+        other =>
+          fail("expected common Graph refusal: " + @debug.to_string(other))
       }
     _ => fail("expected common static Graph admission refusal: " + text)
   }
