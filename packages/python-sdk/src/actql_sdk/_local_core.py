@@ -149,6 +149,7 @@ _PROGRAM_SIGNATURES = {
     'close_environment': ('i64 i32', 'i32'),
 }
 _RUN_SIGNATURES = {
+    'dispatch_action': ('i64 i32 i32 i32', 'i32'),
     'install_configuration': ('i64 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32', 'i32'),
     'prepare': ('i64 i32', 'i32'),
@@ -351,7 +352,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 14:
+            if self._exports['actql_host_abi_version'](self._store) != 15:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -481,6 +482,19 @@ class LocalCore:
         self._owned(value)
         if type(value) is not _Input:
             raise ValueError('Local transfer requires an input loan')
+
+    def dispatch_action(self, run: int, current_configuration: int, facts: _Input) -> int:
+        """Project the existing Owner decision; no durable reservation or I/O."""
+        with self._lock:
+            self._owned_input(facts)
+            if (self._closing or type(run) is not int or not 0 < run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid Local dispatch projection')
+            action = self._call('run', 'dispatch_action', run, current_configuration, facts.handle)
+            if type(action) is not int or action not in (1, 2):
+                raise LocalCoreError('dispatch_action', action)
+            return action
 
     def reserve_workspace(self, bytes: int, *, stopped: Callable[[], bool],
                           cleanup: Callable[[], bool]) -> _Workspace:

@@ -21,6 +21,72 @@ fn required_boolean(object : @decode.ObjectView, name : String) -> Bool? {
 }
 
 ///|
+/// Inspect retained physical journal facts before the Host's atomic dispatch
+/// reservation. This pure projection neither stores a reservation nor permits
+/// Source or Compute. The separate physical-start Owner remains mandatory.
+#export_name("actql_run_dispatch_action")
+pub fn dispatch_action(
+  nonce : Int64,
+  run : Int,
+  current_configuration : Int,
+  input : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.runs.get(run) is Some({ outcome: Some(Ok(plan)), .. }) &&
+    value.run_configurations.get(current_configuration) is Some(current) &&
+    value.copies.get(input) is Some((slot, _)) else {
+    return -2
+  }
+  if value.closing || value.runtime_closing {
+    return -5
+  }
+  guard input_cursor(value, slot) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "request", "definition_cid", "reserved", "physically_unstarted", "cancellation_requested",
+      "pre_start_failure_confirmed",
+    ])
+    is Ok(object) &&
+    required_text(object, "request") is Some(wire) &&
+    @host.admit_client_request_identity_record_wire(wire) is Ok(request) &&
+    required_text(object, "definition_cid") is Some(definition_cid) &&
+    required_boolean(object, "reserved") is Some(reserved) &&
+    required_boolean(object, "physically_unstarted") is Some(_) &&
+    required_boolean(object, "cancellation_requested") is Some(_) &&
+    required_boolean(object, "pre_start_failure_confirmed") is Some(_) else {
+    return -31
+  }
+  let subject = @host.prepared_client_identity(
+      @local_run.local_run_prepared(plan),
+    ).program_definition_cid
+  let permit = match
+    @authorization.bind_dispatch_authorization(
+      current.account,
+      current.tuple,
+      @authorization.Activation,
+      subject,
+      current.context_cid,
+    ) {
+    Ok(permit) => permit
+    Err(_) => return -32
+  }
+  match
+    @local_run.prepare_local_run_start(
+      plan,
+      request,
+      definition_cid,
+      reserved,
+      permit,
+      current.account,
+      current.tuple,
+      current.context_cid,
+    ) {
+    Ok(@host.ReserveDispatch) => 1
+    Ok(@host.ReconcileReservedDispatch) => 2
+    Err(_) => -32
+  }
+}
+
+///|
 /// The physical Host retains custody before Owner evaluation can be interrupted.
 /// It supplies journal facts; neither authored input nor a Client controls them.
 #export_name("actql_run_reserve_physical_start")
