@@ -9,7 +9,7 @@ from importlib import import_module
 import secrets
 import sys
 from threading import RLock
-from typing import Any
+from typing import Any, Literal
 
 
 class LocalCoreError(RuntimeError):
@@ -256,7 +256,13 @@ _PUBLICATION_PREFLIGHT_SIGNATURES = {
     'retire_output': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_CommitMaterialField = Literal['wire', 'name', 'identity_field', 'identity']
+_COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity': 3}
+
+
 _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
+    'count': ('i64 i32 i32', 'i32'),
+    'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -557,7 +563,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 35:
+            if self._exports['actql_host_abi_version'](self._store) != 36:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1220,6 +1226,44 @@ class LocalCore:
                 raise ValueError('Invalid current publication configuration')
             self._check('produce_publication_commit_export', self._call(
                 'publication_commit_export', 'produce', value.handle, current_configuration))
+
+    def publication_commit_material_count(self, publication: _Output,
+                                          current_configuration: int) -> int:
+        """Count original validated references, not durable Store entries."""
+        with self._lock:
+            self._publication_configuration(publication, current_configuration)
+            count = self._call('publication_commit_export', 'count',
+                               publication.handle, current_configuration)
+            if type(count) is not int or not 8 <= count < 2**31:
+                code = count if type(count) is int and count < 0 else -33
+                raise LocalCoreError('publication_commit_material_count', code)
+            return count
+
+    def produce_publication_commit_material(self, value: _Output,
+                                            current_configuration: int, ordinal: int, *,
+                                            field: _CommitMaterialField = 'wire') -> None:
+        """Project one exact original field into a single accounted child.
+
+        Core fixes the child's ordinal and field at first production. Changing
+        them requires a fresh reservation; this never writes or grants a Store.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(ordinal) is not int or not 0 <= ordinal < 2**31:
+                raise ValueError('Invalid original commit material ordinal')
+            if type(field) is not str or field not in _COMMIT_MATERIAL_FIELDS:
+                raise ValueError('Invalid original commit material field')
+            self._check('produce_publication_commit_material', self._call(
+                'publication_commit_export', 'produce_material', value.handle,
+                current_configuration, ordinal, _COMMIT_MATERIAL_FIELDS[field]))
+
+    def read_publication_commit_material(self, value: _Output) -> bytes:
+        """Read original raw bytes, without parsing or recreating a contract."""
+        return self._read_output(value, 'publication_commit_export', 'length')
 
     def read_publication_commit_export(self, value: _Output) -> bytes:
         return self._read_output(value, 'publication_commit_export', 'length')

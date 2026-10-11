@@ -27,6 +27,7 @@ explicit_view = '--explicit-view' in sys.argv[4:]
 final_publication = '--final-publication' in sys.argv[4:]
 result_binding = '--result-binding' in sys.argv[4:]
 commit_candidate = '--commit-candidate' in sys.argv[4:]
+commit_materials = '--commit-materials' in sys.argv[4:]
 payload_request = '--payload-request' in sys.argv[4:]
 payload_replay = '--payload-replay' in sys.argv[4:]
 payload_record = '--payload-record' in sys.argv[4:]
@@ -46,6 +47,7 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--commit-materials'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--publisher-port'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
@@ -68,6 +70,7 @@ publication_retirement_cases = []
 preflight_inputs = {}
 preflight_output_tickets = {}
 commit_cases = []
+commit_material_cases = []
 payload_request_cases = []
 payload_replay_cases = []
 payload_record_cases = []
@@ -247,7 +250,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 35
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 36
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -1274,6 +1277,10 @@ try:
                                              'committed_at': commit_expected['committed_at']})
                         assert_status('publication', 'prepare_commit', 0, value, commit_input, configuration)
                         assert_status('publication', 'finish_commit', -7, value, configuration)
+                        if commit_materials:
+                            material_expected = json.loads((root / 'scripts/fixtures/python-local-commit-material.json').read_text())
+                            assert_status('publication_commit_export', 'count', -32, value, configuration)
+                            commit_material_cases.append('unfinished_original_view_refuses_count')
                         assert_status('publication_commit_export', 'reserve', -2, value, ticket + 1, 2097200)
                         commit_start_work = call('publication', 'commit_progress', value, 2)
                         commit_work = 0
@@ -1300,6 +1307,89 @@ try:
                         assert fixture.call('close', commit_input) == -9
                         commit_cases.append('full_chain_validation_and_shared_work_budget')
 
+                        if commit_materials:
+                            assert_status('publication_commit_export', 'count', material_expected['count'], value, configuration)
+                            assert_status('publication_commit_export', 'count', -32, value, denied_configuration)
+                            assert_status('publication_commit_export', 'count', -2, value + 100000, configuration)
+                            commit_material_cases.append('original_count_and_current_authority_refusal')
+
+                            def material_child():
+                                global ticket
+                                ticket += 1
+                                fixture.inputs[ticket] = b''
+                                loan = call('publication_commit_export', 'reserve', value, ticket, 2097200)
+                                assert loan > 0
+                                return loan
+
+                            def material_bytes(loan):
+                                size = call('publication_commit_export', 'length', loan)
+                                assert 0 < size <= 1048576
+                                return bytes(fixture.call('byte', loan, i) for i in range(size))
+
+                            # Names, identity fields, count and order are independently
+                            # fixed. Comparing retained original wires proves byte
+                            # custody, not a generated semantic expectation.
+                            original_wires = {2: body['manifest'], 3: body['receipt'],
+                                              4: body['captured_run'], 5: preflight_body['request'],
+                                              6: preflight_body['attempt'], 13: binding_wire}
+                            for ordinal, (name, identity_field) in enumerate(material_expected['materials']):
+                                original_body = None
+                                for field in range(4):
+                                    loan = material_child()
+                                    assert_status('publication_commit_export', 'produce_material', -32,
+                                                  loan, denied_configuration, ordinal, field)
+                                    assert_status('publication_commit_export', 'produce_material', 0,
+                                                  loan, configuration, ordinal, field)
+                                    raw = material_bytes(loan)
+                                    if field == 0:
+                                        original_body = json.loads(raw)
+                                        assert original_body['version'].startswith('actql-')
+                                        if ordinal in original_wires:
+                                            assert raw == original_wires[ordinal].encode('utf-8')
+                                    elif field == 1:
+                                        assert raw == name.encode('utf-8')
+                                    elif field == 2:
+                                        assert raw == identity_field.encode('utf-8')
+                                    else:
+                                        assert original_body is not None
+                                        assert raw == original_body[identity_field].encode('utf-8')
+                                    assert_status('publication_commit_export', 'close', 0, loan)
+                                    assert_status('publication_commit_export', 'length', -2, loan)
+                            commit_material_cases.append('all_original_ordinals_and_four_raw_fields')
+                            commit_material_cases.append('original_root_and_binding_bytes_match_retained_custody')
+                            loan = material_child()
+                            assert_status('publication_commit_export', 'produce_material', 0, loan, configuration, 5, 0)
+                            assert_status('publication_commit_export', 'produce_material', 0, loan, configuration, 5, 0)
+                            assert_status('publication_commit_export', 'produce_material', -32, loan, denied_configuration, 5, 0)
+                            assert_status('publication_commit_export', 'produce_material', -33, loan, configuration, 6, 0)
+                            assert_status('publication_commit_export', 'produce_material', -33, loan, configuration, 5, 1)
+                            assert_status('publication_commit_export', 'produce', -33, loan, configuration)
+                            assert material_bytes(loan) == preflight_body['request'].encode('utf-8')
+                            commit_material_cases.append('immutable_child_projection_and_cached_current_access')
+                            assert_status('publication_commit_export', 'produce_material', -3, loan, configuration, -1, 0)
+                            assert_status('publication_commit_export', 'produce_material', -3, loan, configuration, 5, 4)
+                            assert_status('publication_commit_export', 'close', 0, loan)
+                            loan = material_child()
+                            assert_status('publication_commit_export', 'produce_material', -32, loan, configuration, 14, 0)
+                            assert_status('publication_commit_export', 'length', -33, loan)
+                            # Invalid selection made no production; a valid original
+                            # ordinal is still usable without a second execution.
+                            assert_status('publication_commit_export', 'produce_material', 0, loan, configuration, 5, 0)
+                            commit_material_cases.append('invalid_controls_and_out_of_range_refusal')
+                            allocated = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('publication_commit_export', 'close', -9, loan)
+                            assert fixture.call('allocated') == allocated
+                            assert_status('publication_commit_export', 'produce_material', -5, loan, configuration, 5, 0)
+                            assert_status('publication_commit_export', 'length', -33, loan)
+                            assert fixture.call('close', commit_input) == -9
+                            fixture.cleanup_ready = True
+                            assert_status('publication_commit_export', 'close', 0, loan)
+                            assert_status('publication_commit_export', 'length', -2, loan)
+                            assert_status('publication_commit_export', 'count', material_expected['count'], value, configuration)
+                            assert fixture.queries == expected['source_queries']
+                            assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
+                            commit_material_cases.append('same_material_cleanup_retry_and_retired_read_refusal')
                         ticket += 1
                         fixture.inputs[ticket] = b''
                         commit_export = call('publication_commit_export', 'reserve', value, ticket, 2097200)
@@ -1307,6 +1397,8 @@ try:
                         assert_status('publication_commit_export', 'length', -33, commit_export)
                         assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
                         assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
+                        if commit_materials:
+                            assert_status('publication_commit_export', 'produce_material', -33, commit_export, configuration, 5, 0)
                         assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
                         assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
                         size = call('publication_commit_export', 'length', commit_export)
@@ -1451,6 +1543,11 @@ try:
                     binding_cases.append('parent_close_retains_child_without_source_compute_replay')
                     if commit_candidate:
                         assert_status('publication_commit_export', 'produce', -5, commit_export, configuration)
+                        if commit_materials:
+                            assert_status('publication_commit_export', 'count', -5, value, configuration)
+                            assert fixture.queries == expected['source_queries']
+                            commit_material_cases.append('parent_close_refuses_count_without_reexecution')
+                            assert commit_material_cases == material_expected['cases']
                         reserved = fixture.call('reserved')
                         fixture.cleanup_ready = False
                         assert_status('publication_commit_export', 'close', -9, commit_export)
@@ -1588,6 +1685,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'preflight_retirement_cases': preflight_retirement_cases,
                   'publication_retirement_cases': publication_retirement_cases,
                   'commit_candidate_cases': commit_cases,
+                  'commit_material_cases': commit_material_cases,
                   'payload_request_cases': payload_request_cases,
                   'payload_replay_cases': payload_replay_cases,
                   'payload_record_cases': payload_record_cases,

@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 35; this private ABI
+before opening the instance. `actql_host_abi_version` returns 36; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1511,3 +1511,35 @@ permission checks submit, execute, resend, or cancel a Run. Remote-only import
 has no additional engine dependency. A private bridge and strict caller compile
 are distinct from actual Wasm execution, durable Store publication and wheel
 acceptance.
+
+
+## Original commit material projection
+
+Private ABI 36 adds `actql_publication_commit_export_count` on the original
+publication and `actql_publication_commit_export_produce_material` on an
+existing reserved output child. Both require the original completed validator
+view, its exact nominal index, and current Run/Source access. Counting reads the
+fixed eight roots and six inventory lengths. Selection uses the original view's
+fixed inventory boundaries; it never scans or reparses the inventory.
+
+Each child is fixed to either the existing candidate or one ordinal/field at
+first production. A different projection refuses with -33, including switching
+between candidate and material. Repeating the same produced projection still
+rechecks current access. A failed production keeps its original reservation and
+handle until explicit cleanup. Invalid controls refuse with -3; unavailable
+original custody/current access or an out-of-range ordinal refuses with -32.
+
+Fields 0 through 3 are exact UTF-8 `wire`, `name`, `identity_field` and `identity`
+from the original immutable contract. They are raw fields, without a JSON
+wrapper that could double-escape the original bounded wire. The existing
+1,048,576-byte output and overlapping physical copy allowance are unchanged.
+Python neither parses nor canonicalizes these bytes. A caller reserves, reads
+and closes one field at a time; original input/view custody survives until all
+children and original physical borrows have stopped. Cleanup failure retains
+the same handle and capacity; successful cleanup prevents further reads.
+
+The loader requires the new closed scalar signatures and ABI 36, with no legacy
+fallback. These private projections provide no Store key selection, write,
+current publisher grant, durable acknowledgement or restored Run state. Actual
+Wasm consumption, product aggregate accounting and public Local/wheel acceptance
+remain separate from compile and physical-adapter facade tests.
