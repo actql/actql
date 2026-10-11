@@ -208,10 +208,16 @@ test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
     )
     is Err(_),
   )
-  assert_true(
-    parse_query("SELECT id FROM (SELECT id FROM orders)", query_limits())
-    is Err(_),
-  )
+  let unaliased = parse_query(
+    "SELECT id FROM (SELECT id FROM orders)",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(unaliased), 1)
+  assert_eq(relation_alias(unaliased), None)
+  assert_eq(relation(unaliased), [cte_at(unaliased, 0).unwrap().name])
+  assert_eq(relation(cte_at(unaliased, 0).unwrap().query), [
+    { value: "orders", quoted: false, },
+  ])
   let reserved = parse_query(
     "WITH aql_query_source_0 AS (SELECT id FROM orders) SELECT s.id FROM (SELECT id FROM aql_query_source_0) AS s",
     query_limits(),
@@ -445,13 +451,19 @@ test "JOIN subquery is a named source with one synthetic CTE" {
   assert_eq(join_part_at(pipe, 0).unwrap().relation, [
     cte_at(pipe, 0).unwrap().name,
   ])
-  assert_true(
-    parse_query(
-      "SELECT l.id FROM base AS l JOIN (SELECT id FROM base) ON l.id = id",
-      query_limits(),
-    )
-    is Err(_),
-  )
+  let unaliased = parse_query(
+    "SELECT l.id FROM base AS l JOIN (SELECT id FROM base) ON l.id = id",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_count(unaliased), 1)
+  assert_eq(relation_alias(unaliased), Some({ value: "l", quoted: false, }))
+  assert_eq(join_part_at(unaliased, 0).unwrap().source_alias, None)
+  assert_eq(join_part_at(unaliased, 0).unwrap().relation, [
+    cte_at(unaliased, 0).unwrap().name,
+  ])
+  assert_eq(relation(cte_at(unaliased, 0).unwrap().query), [
+    { value: "base", quoted: false, },
+  ])
   let one_cte = { ..query_limits(), max_cte_count: 1, }
   assert_true(
     parse_query(
