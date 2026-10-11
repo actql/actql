@@ -183,8 +183,8 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
   assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
   assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
-  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \|\| inputStageResultOnly\s*\? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
-    'observer credentials are limited to explicit Graph or input-only cohorts on both Hosts');
+  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \|\| inputStageResultOnly \|\| typedSubscriptOnly\s*\? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
+    'observer credentials are limited to explicit Graph, input-only or typed-subscript cohorts on both Hosts');
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 
