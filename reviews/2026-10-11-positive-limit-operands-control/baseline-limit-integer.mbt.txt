@@ -1,0 +1,29 @@
+fn QueryParser::limit_integer(
+  self : QueryParser,
+  zero_allowed : Bool,
+) -> QueryInteger raise QueryAbort {
+  if self.peek().value == Symbol(40) {
+    // Use the bounded expression parser for transparent grouping, then retain
+    // an ordinary integer or Parameter slot. Do not evaluate constant calls,
+    // arithmetic or row references in the Frontend.
+    let expression = self.expression()
+    let mut root = expression_root(expression)
+    while expression_node(expression, root).unwrap().kind
+          is Parenthesized(child) {
+      root = child
+    }
+    let node = expression_node(expression, root).unwrap()
+    match node.kind {
+      Number(text) =>
+        Integer(self.safe_integer_text(text, node.start, zero_allowed))
+      ParameterReference(name) => BoundParameter(name)
+      _ => raise QueryAbort("Expected integer literal or parameter", node.start)
+    }
+  } else if self.peek().value is Parameter(name) {
+    ignore(self.advance())
+    BoundParameter(self.source.identifier(name))
+  } else {
+    Integer(self.safe_integer(zero_allowed))
+  }
+}
+

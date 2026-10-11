@@ -1957,15 +1957,17 @@ fn QueryParser::limit_integer(
   self : QueryParser,
   zero_allowed : Bool,
 ) -> QueryInteger raise QueryAbort {
-  if self.peek().value == Symbol(40) {
-    // Use the bounded expression parser for transparent grouping, then retain
-    // an ordinary integer or Parameter slot. Do not evaluate constant calls,
+  if self.peek().value == Symbol(40) || self.peek().value == Symbol(43) {
+    // Grouping and numeric unary plus preserve an integer or Parameter slot.
+    // Use the bounded expression parser, never evaluate constant calls,
     // arithmetic or row references in the Frontend.
     let expression = self.expression()
     let mut root = expression_root(expression)
-    while expression_node(expression, root).unwrap().kind
-          is Parenthesized(child) {
-      root = child
+    while true {
+      match expression_node(expression, root).unwrap().kind {
+        Parenthesized(child) | Unary("+", child) => root = child
+        _ => break
+      }
     }
     let node = expression_node(expression, root).unwrap()
     match node.kind {

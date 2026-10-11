@@ -13,6 +13,7 @@ test "grouped LIMIT Parameters match the complete independently authored take Pr
   for
     text in [
       "SELECT id, amount FROM orders ORDER BY id LIMIT ((@p)) OFFSET (@p)", "FROM orders |> SELECT id, amount |> ORDER BY id |> LIMIT (@p) OFFSET ((@p))",
+      "SELECT id, amount FROM orders ORDER BY id LIMIT +@p OFFSET +(@p)", "FROM orders |> SELECT id, amount |> ORDER BY id |> LIMIT (+@p) OFFSET ++((@p))",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
@@ -58,6 +59,7 @@ test "grouped literal LIMIT keeps count offset and complete output contracts" {
   for
     text in [
       "SELECT id, amount FROM orders ORDER BY id LIMIT ((1)) OFFSET (1)", "FROM orders |> SELECT id, amount |> ORDER BY id |> LIMIT (1) OFFSET ((1))",
+      "SELECT id, amount FROM orders ORDER BY id LIMIT +1 OFFSET +(1)", "FROM orders |> SELECT id, amount |> ORDER BY id |> LIMIT (+1) OFFSET ++((1))",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
