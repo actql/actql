@@ -5,17 +5,25 @@ fn original_model_ledger_limits(
   plan : @publication_host.ClientInferPlanGraph,
   limits : @model.ModelExecutionLimits,
 ) -> @resources.LedgerLimits {
-  let execution = @publication_host.client_infer_plan_graph_execution_contract(plan)
+  let execution = @publication_host.client_infer_plan_graph_execution_contract(
+    plan,
+  )
   let ledger = limits.ledger
   {
     ..ledger,
     attempts: Int64::min(
       ledger.attempts.to_int64(),
-      @environment.model_execution_ceiling(execution, @environment.TotalAttempts),
+      @environment.model_execution_ceiling(
+        execution,
+        @environment.TotalAttempts,
+      ),
     ).to_int(),
     transfer_bytes: Int64::min(
       ledger.transfer_bytes,
-      @environment.model_execution_ceiling(execution, @environment.TotalWireBytes),
+      @environment.model_execution_ceiling(
+        execution,
+        @environment.TotalWireBytes,
+      ),
     ),
   }
 }
@@ -38,7 +46,8 @@ pub fn begin_original_model_read_scope(
   max_holdings : Int,
   max_delegations : Int,
 ) -> Result[@publication_host.ClientModelReadScope, Issue] {
-  let ledger = match @resources.create_ledger(original_model_ledger_limits(plan, limits)) {
+  let ledger = match
+    @resources.create_ledger(original_model_ledger_limits(plan, limits)) {
     Ok(value) => value
     Err(issue) => return Err(Model(@model.Ledger(issue)))
   }
@@ -51,24 +60,25 @@ pub fn begin_original_model_read_scope(
       Err(issue) => return Err(Model(@model.Ledger(issue)))
     }
   }
-  let bootstrap = match @resources.reserve_capacity(
-    ledger, bootstrap_retained_bytes, bootstrap_execution_bytes,
-  ) {
+  let bootstrap = match
+    @resources.reserve_capacity(
+      ledger, bootstrap_retained_bytes, bootstrap_execution_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Model(@model.Ledger(issue)))
   }
-  match @publication_host.begin_client_model_read_scope(
-    compiled, definition, plan, ledger, bootstrap,
-    max_reservations, max_holdings, max_delegations,
-  ) {
+  match
+    @publication_host.begin_client_model_read_scope(
+      compiled, definition, plan, ledger, bootstrap, max_reservations, max_holdings,
+      max_delegations,
+    ) {
     Ok(scope) => Ok(scope)
-    Err(issue) => {
+    Err(issue) =>
       // This synchronous refusal has issued no scope, descriptor, child or IO.
       // The exact local reservation cannot escape or be mutated by callbacks.
       match @resources.settle_capacity(ledger, bootstrap) {
         Ok(_) => Err(OriginalCapacity(@publication_host.Read(issue)))
         Err(cleanup_issue) => Err(Model(@model.Ledger(cleanup_issue)))
       }
-    }
   }
 }

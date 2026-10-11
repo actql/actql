@@ -706,6 +706,59 @@ pub fn client_program_infer_original_preparation_available(
 }
 
 ///|
+/// Private original-Run bootstrap. The installation supplies justified limits;
+/// this moves the same Common Model Ledger before read, without exposing it.
+#export_name("clientProgramBeginInferOriginalReadScope")
+pub fn client_program_begin_infer_original_read_scope(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  quantity_capacity : @model.ModelQuantityCapacity?,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[@publication_host.ClientModelReadScope, @infer_host.Issue] {
+  @infer_host.begin_original_model_read_scope(
+    compiled,
+    definition,
+    graph,
+    @infer_host.standard_limits().model,
+    quantity_capacity,
+    retained_bytes,
+    execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+  )
+}
+
+///|
+/// The same scoped original Ledger admits the installed complete read envelope.
+/// C's original binding/layout issuer supplies the opaque result, not Node.
+#export_name("clientProgramPrepareInferNodeReadLayout")
+pub fn client_program_prepare_infer_node_read_layout(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+) -> Result[
+  @publication_host.ClientModelReadPreparation,
+  @publication_host.ClientModelPreparationLayoutIssue,
+] {
+  @publication_host.prepare_client_node_model_read_layout(
+    scope, compiled, definition, graph, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}
+
+///|
 /// Claim the original funded read once before Node IO/control allocation.
 #export_name("clientProgramClaimInferOriginalPreparation")
 pub fn client_program_claim_infer_original_preparation(
