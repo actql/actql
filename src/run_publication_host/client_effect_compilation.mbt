@@ -24,7 +24,7 @@ pub(all) enum ClientEffectCompilationAdmissionIssue {
 pub struct ClientEffectCompilation {
   owner : PreparedClientEffectComputation
   compiled : ClientTaskCompilation
-  normalization_profile : Bool
+  normalization_profile : ClientEffectNormalizationInventory?
 }
 
 ///|
@@ -113,7 +113,7 @@ pub fn issue_prepared_client_effect_compilation(
     max_wire_bytes,
     max_nodes,
     max_depth,
-    normalization is Some(_),
+    normalization.map(fn(original) { original.inventory }),
     infer~,
   )
 }
@@ -131,14 +131,12 @@ fn issue_client_effect_compilation_internal(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-  normalization_profile : Bool,
+  normalization_profile : ClientEffectNormalizationInventory?,
   infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
-  if normalization_profile {
-    match @checked.effect_program_completion_free_inventory(owner.candidate) {
-      Ok(_) => ()
-      Err(issue) => return Err(Normalization(Inventory(issue)))
-    }
+  if normalization_profile is Some(inventory) &&
+    !client_effect_normalization_inventory_matches(inventory, owner) {
+    return Err(Normalization(ForeignPreparation))
   }
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let headers = @checked.effect_program_static_headers(owner.candidate)
@@ -207,12 +205,9 @@ fn issue_client_effect_compilation_internal(
         ),
       ]
   }
-  if normalization_profile {
+  if normalization_profile is Some(inventory) {
     required_profiles.push(
-      (
-        "actql-resident-effect-completion-free/0.1",
-        client_effect_completion_free_catalog_cid(),
-      ),
+      client_effect_normalization_inventory_profile(inventory),
     )
   }
   let roots : Array[(String, Int)] = []

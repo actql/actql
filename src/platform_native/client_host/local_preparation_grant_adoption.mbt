@@ -220,6 +220,13 @@ fn NativeLocalPreparationGrantAcknowledgement::require_current(
     Ok(_) => return Err(Journal(CustodyLost))
     Err(issue) => return Err(Journal(issue))
   }
+  match
+    self.operation.provider.host.journal.transaction(() => {
+      self.operation.require_original_target_locked()
+    }) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
   self.operation.require_current()
 }
 

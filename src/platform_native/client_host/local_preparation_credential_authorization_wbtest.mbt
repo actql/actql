@@ -118,12 +118,93 @@ test "Native preparation callback cannot authorize query disclosure or malformed
       ("send", None),
       ("send", Some("")),
       ("unknown", None),
+      ("raw-query", Some("sha256:" + "7".repeat(64))),
+      ("raw-return", Some("sha256:" + "7".repeat(64))),
     ] {
     assert_false(
       local_preparation_credential_request_matches(grant, {
         ..original,
         stage,
         use_cid,
+      }),
+    )
+  }
+}
+
+///|
+test "Native preparation raw lookup has a distinct closed stage and original request domain" {
+  let (grant, claim) = preparation_callback_fixture()
+  let use_cid = "sha256:" + "7".repeat(64)
+  for
+    facts in [
+      { ..claim, stage: "query", request: None, },
+      { ..claim, stage: "return", use_cid: Some(use_cid), request: None, },
+      { ..claim, stage: "raw-query", use_cid: Some(use_cid), },
+      { ..claim, stage: "raw-return", use_cid: Some(use_cid), },
+    ] {
+    assert_true(local_preparation_raw_request_matches(grant, facts))
+    assert_false(local_preparation_credential_request_matches(grant, facts))
+  }
+  // These authored matches confer no permission or response. The production
+  // connection rechecks current Run/target read and immutable original custody.
+  for
+    (stage, original_use, request) in [
+      ("claim", None, claim.request),
+      ("send", Some(use_cid), claim.request),
+      ("query", Some(use_cid), None),
+      ("query", None, claim.request),
+      ("return", None, None),
+      ("return", Some(use_cid), claim.request),
+      ("raw-query", None, claim.request),
+      ("raw-return", Some(""), claim.request),
+      ("raw-return", Some(use_cid), None),
+      ("unknown", Some(use_cid), claim.request),
+    ] {
+    assert_false(
+      local_preparation_raw_request_matches(grant, {
+        ..claim,
+        stage,
+        use_cid: original_use,
+        request,
+      }),
+    )
+  }
+}
+
+///|
+test "Native preparation raw read refuses another grant scope target verb or body" {
+  let (grant, claim) = preparation_callback_fixture()
+  let facts = {
+    ..claim,
+    stage: "raw-return",
+    use_cid: Some("sha256:" + "7".repeat(64)),
+  }
+  let cid = "sha256:" + "9".repeat(64)
+  assert_false(
+    local_preparation_raw_request_matches(grant, { ..facts, grant_cid: cid, }),
+  )
+  for
+    scope in [
+      { ..facts.scope, attempt_id: "foreign-attempt", },
+      { ..facts.scope, host_adoption_cid: cid, },
+      { ..facts.scope, run_invocation_cid: cid, },
+      { ..facts.scope, request_cid: cid, },
+      { ..facts.scope, principal: "other-operator", },
+    ] {
+    assert_false(
+      local_preparation_raw_request_matches(grant, { ..facts, scope, }),
+    )
+  }
+  let requests : Array[@credential_resource.NativeCredentialRequest] = [
+    { verb: @http.Post, path: facts.scope.request_path, body: b"", },
+    { verb: @http.Get, path: facts.scope.request_path + "-other", body: b"", },
+    { verb: @http.Get, path: facts.scope.request_path, body: b"null", },
+  ]
+  for request in requests {
+    assert_false(
+      local_preparation_raw_request_matches(grant, {
+        ..facts,
+        request: Some(request),
       }),
     )
   }
