@@ -145,6 +145,9 @@ pub fn operation_scalar_demand(
     TraverseRequirement(v) =>
       match v {
         BindTraversalOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
+        ShortestRequirement(BindShortestOutputGuard(name)) =>
+          Some(SafeInteger(name, minimum=1L))
+        ShortestRequirement(_) => None
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | FilterTraversalLabels
@@ -176,6 +179,7 @@ pub fn operation_scalar_demand(
     | NormalizeRequirement(_)
     | DeltaRequirement(_)
     | UnionRequirement(_)
+    | MeanRequirement(_)
     | SubtractionRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)

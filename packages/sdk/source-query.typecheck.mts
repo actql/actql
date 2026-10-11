@@ -1,7 +1,7 @@
-import type {Client, DynamicRow, Execution, Result, ResultPromise} from './index.js';
-import {open, type LocalSession} from '../node/index.js';
+import type {Client, DynamicRow, Execution, Result, ResultPromise} from '@actql/sdk';
+import {open, type LocalSession} from '@actql/node';
 import {explainRunObservationFailure, formatRunObservationFailure,
-  getSubmissionInput} from './index.js';
+  getSubmissionInput} from '@actql/sdk';
 declare const client: Client;
 const query: ResultPromise = client.sql('SELECT @id AS id', {id: 1}, {
   parameterDeclarations: {id: {type: 'number'}}, submissionRef: client.newSubmission({nonce: 'saved'}), result: 'answer',

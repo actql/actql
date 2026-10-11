@@ -119,6 +119,17 @@ pub fn checked_publication_inventory_definition_cid(
 }
 
 ///|
+/// Project the original sealed definition without serializing or replacing it.
+pub fn checked_publication_inventory_definition(
+  inventory : CheckedPublicationInventory,
+  index : Int,
+) -> Result[PublicationContract, PublicationInventoryIssue] {
+  checked_occurrence(inventory, index).map(occurrence => {
+    result_definition_contract(occurrence.definition)
+  })
+}
+
+///|
 pub fn checked_publication_inventory_definition_json(
   inventory : CheckedPublicationInventory,
   index : Int,

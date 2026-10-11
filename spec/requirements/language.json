@@ -2258,6 +2258,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.finite-math-target-independent-kernel",
+      "statement_sha256": "c89427725920aac09b6915a8af214f4c6e6c7eac8542ea7add4eaad6f0c104ba",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.number-extrema",
       "statement_sha256": "378d6068969f8aca4a285a3a8b79300f73b98e8e2f62219e1b77354d70417290",
       "status": "pending",
@@ -9233,7 +9244,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "1005c50c1966500608ad4c93e95bcd06fe06bd906af2d46ce10a70fab83e3d74",
+      "statement_sha256": "6dfe225369833ac486f5d12fc6f04714d0165fcce37592602339577b755ff80f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

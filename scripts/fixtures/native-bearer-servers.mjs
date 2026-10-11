@@ -46,7 +46,7 @@ async function listen(server, host) {
   return `https://${host}:${address.port}`;
 }
 
-export async function startNativeBearerServers({host, key, cert, root, allowEffectWrite = false}) {
+export async function startNativeBearerServers({host, key, cert, root, allowEffectWrite = false, allowEffectCreate = false}) {
   const directory = join(root, 'bearer');
   await mkdir(directory, {recursive: true, mode: 0o700});
   const files = {
@@ -68,6 +68,7 @@ export async function startNativeBearerServers({host, key, cert, root, allowEffe
   let probes = 0;
   let effectTargetReads = 0;
   let effectTargetWrites = 0;
+  const effectCreatedValues = [];
   let effectTargetValue = 7;
   const foreignRequests = [];
   const foreign = createServer({key, cert}, async (request, response) => {
@@ -87,6 +88,21 @@ export async function startNativeBearerServers({host, key, cert, root, allowEffe
     const body = await readBody(request);
     const authorization = request.headers.authorization;
     const control = authorization === `Bearer ${controlToken}`;
+    if (request.url === '/services/data/v66.0/sobjects/ActQL_Test_Record__c/' &&
+        request.method === 'POST' && allowEffectCreate) {
+      if (!control || request.headers['content-type'] !== 'application/json') {
+        reply(response, 403, {refused: true}); return;
+      }
+      if (body.toString('utf8') !== '{"Count__c":3}') {
+        reply(response, 422, {refused: true}); return;
+      }
+      effectTargetWrites++;
+      // Independent Provider-created identity. Never derive an approval,
+      // Ledger terminal or Result receipt from this fixture response.
+      effectCreatedValues.push({Id: '001000000000001AAA', Count__c: 3});
+      reply(response, 201, {id: '001000000000001AAA', success: true, errors: []});
+      return;
+    }
     if (request.url === '/services/data/v66.0/sobjects/ActQL_Test_Record__c/001000000000001') {
       if (allowEffectWrite && control && request.method === 'PATCH') {
         if (body.toString('utf8') !== '{"Count__c":3}') {
@@ -158,6 +174,7 @@ export async function startNativeBearerServers({host, key, cert, root, allowEffe
     directory,
     effectTargets() { return {reads: effectTargetReads, writes: effectTargetWrites}; },
     effectTargetValue() { return effectTargetValue; },
+    effectCreatedValues() { return effectCreatedValues.map(value => ({...value})); },
     // Authorization header value expected by the mutual TLS server's
     // combined-authentication route.
     controlAuthorization: `Bearer ${controlToken}`,

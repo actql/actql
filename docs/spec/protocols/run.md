@@ -12,9 +12,49 @@ normative_dependencies: [actql.execution, actql.protocol.contracts, actql.protoc
 <!-- normative-import: actql.execution actql/0.1 -->
 <!-- normative-import: actql.protocol.contracts actql/0.1 -->
 <!-- normative-import: actql.protocol.artifacts actql/0.1 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_resume_delivery sha256:d1120b333ee833e2f27b4c9c399708969a32699e2a59809ce90be23b11b42cd5 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_resume sha256:583de328093d30eceab4bf49a9ac1b11ceec46f7ebd385da956bb9675275a265 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_current_reply sha256:d898c42ea28d2f776df4dbd1d910b27b3d13afe7f9479edca364a1387ef9e380 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/effect_current_query sha256:a11afe0b0327e7c253cc2a8d621282cfc5c994fbb304ec2178ce5d2132a7e343 -->
+<!-- machine-import: ../../../spec/contracts/actql-remote-site-wire.json#/schemas/poll_effect_current sha256:ec96478794b68708c384b01df952e25d99961e909927137398a9a05c4920079f -->
 
 This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, apply-receipt, reconciliation-receipt. It does not define other owners' wire protocols or a particular Host implementation. Cross-owner links outside the declared dependencies are informative navigation to protocol bindings or conformance evidence; they do not import those documents' requirements. Narrow machine contracts remain authoritative for their explicitly referenced values and envelopes.
 
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_quantity sha256:4b2b7ef61e4ca0c4ec8f4c5ee5526305e4b97d0e11acba5be33ee15787399488 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_money sha256:3ff2b76540c468cfb8465fc1ef353fa60ce79c0680ff07baa2a3e2108e73ebbf -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_guards sha256:78042c86816324a2a74619155ab4279ae7329b6f654144da5e45dbb34cdf7771 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_interval sha256:96c7f78a4f3b7fa1c28767a62af8bb2b30d9b0e6d149221637161fa661caaa27 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_profile sha256:de509d6973a97005a404c6312ec5dcec7a72088842659d4480990b0b672b43e3 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_request_intent sha256:a6b7aac22908f080c9e98fbbcd318cbf44f2ba1524c3b035892f3df1d1f9b6cc -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_admission sha256:f71d8bc18652162c270821b33feb3310f2747cab5d874fa3674a5796de5fc008 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_step_key sha256:493523f1d72c47ac9486c8578b48d9e969c95cf02cdb8826f0fcba6033101070 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_port_key sha256:5e6d862b4a4a1b778c39e466598ccf88eeeb4a2395f8b990a69f6dfa271cac86 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_source_locator sha256:40d85149915b4f67a9ee59a8ed043dcf1e8e78b89b29762021d182683a764a08 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_port sha256:f9bf3a936eded99c37d35dca9552e16e6344e290e1626278b06740f158131c8a -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_step sha256:358b99d025a24cb2136eecd815d76d4420ebca12376ab6e3f2ef9b8a2abb8038 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/logical_map sha256:89c090b128f4cd79aa09cc767eb439890032f8c897f3f44ec93c0159b4495df4 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_control_capabilities sha256:8ef39dfb5463ce5518cc213da341906af7fc9f74996a172608f574dd874a6794 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/plan_view sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_resume_origin sha256:a6aecb1e607745939e7d1e3a16a89c61ec9d0d6ff272aab22e000f40687ea13f -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/controlled_run_state sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_command sha256:3652d5b0ccd085bcb7077cae918e6c802fa6d8e7d2ef57fdf533b591bcb23365 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_ref sha256:789a793ad961d9b353c7ce7e7291c5ea6332c5c5eda5626a86ddeb89b762f2b8 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_receipt sha256:22eeab3c3f9f494a4bb19441508e774e9fe647e7df0cf7bf4b63ac2a895c0822 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_observation sha256:a3b7c22419a2a4de7c2573080d71b98f6f899dff632bf68a19f86e1c34d9668b -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_lookup sha256:7d5e46b305d4ba94016a79f624d1bc1a3c2011fca87c7821ae529a599078f606 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_source sha256:ccffb92dfb366ccab5346593fd071e6baf6c943b74fd895c256a56dde3187d84 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_capture sha256:dd9dd44cf547d9350fa1035eb3ac43cb07ab86d9efb4e413a60c0ddfc29bcdc6 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_cell sha256:c60e20a17f880fb29e963a31cdbfd1bf77f93b128baccfd086d7ad31efd27aee -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_relation sha256:f2f21a34ac9ca8f2d90960c05c26e84e60030e344c0da8726cdb0ebbf4bdad6b -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_graph sha256:28cd043650698fa9ffa3a5ce63df35fb9842d428495b25329a680521531a1102 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_vectors sha256:aac6c7925d0d1530470025c220cd318ae05478e3e6a3fc549f3650e4347a412b -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_events sha256:b1f560c21d34be458106a6d9bba1beda6c0fae10c4495b2e719de752ae7aa067 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_sample sha256:2dd54eb2b19fa3a2711de876dea2b965a3490c69482df328915415f8c24f1bf6 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_view sha256:080a02459f184f92fb956141c2105b3ea36d0ac7f2efd02f06dcc9ac4b08a293 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:f4418a7ecfc20cede8ab00dbd961804e82ff96cbb78c20ff342fb6bcf504b6b3 -->
 <!-- page-contents:start -->
 ## On this page
 
@@ -30,6 +70,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 - [Authorized private inspection](#private-inspection)
 - [Execution-account configuration](#account-config)
 - [Machine contracts](#machine-contracts)
+- [Negotiated Interactive Run Control](#interactive-run-control)
 <!-- page-contents:end -->
 
 <a id="run-terms"></a>
@@ -805,3 +846,156 @@ A cancellation confirmed before physical start can have outcome `cancelled`.
 An accepted request after physical start MUST NOT rewrite a committed success
 or an uncertain publication outcome. Physical stop confirmation remains
 independent of Result availability and delivery completion.
+
+<a id="resident-effect-resume-transport"></a>
+
+### Resident Effect resume transport
+
+<!-- requirement-block: resident-effect-resume-routing resident-effect-resume-preservation -->
+The `actql-remote-poll-effect-resume/0.1` envelope carries the exact original
+Dispatch Request JSON and the report-bound Effect resume delivery JSON. Its
+`dispatch_request_cid` MUST match both the admitted request identity and the
+embedded delivery's dispatch identity. The envelope MUST NOT replace materials,
+refresh the original Run lifetime, create an execution attempt or imply that the
+transported claim is current authorization.
+
+<!-- requirement-block: resident-effect-resume-admission resident-effect-resume-pending -->
+Routing admission is distinct from approval and execution admission. The
+retained holder MUST admit the unchanged delivery against its own durable
+accepted Checkpoint report, independently installed authentication and current
+resume fence before an Effect send. A missing receiving review Owner MUST leave
+the original responsibility pending; receipt of the envelope is not execution,
+settlement, publication or cleanup evidence. The inner delivery is limited to
+262144 UTF-8 bytes and the canonical outer envelope to 1048576 UTF-8 bytes.
+
+
+<a id="resident-effect-current-query"></a>
+
+### Original resident Effect current queries
+
+<!-- requirement-block: resident-effect-current-query-binding resident-effect-current-query-binding.2 resident-effect-current-query-binding.3 -->
+`actql-remote-effect-current-query/0.1` MUST bind a fresh query ID, its canonical
+CID, the original dispatch, accepted report, Checkpoint and checked Effect
+member. The Host MUST obtain that member from the original checked Owner,
+and the Native receiver MUST reject a different member or original report.
+This query is not an execution attempt, approval or dispatch permission.
+
+<!-- requirement-block: resident-effect-current-reply-binding resident-effect-current-reply-binding.2 resident-effect-current-reply-binding.3 resident-effect-current-reply-binding.4 -->
+`actql-remote-effect-current-reply/0.1` MUST retain that exact query correlation,
+the original report scope, optional original Ledger head, common recovery-action
+code and saved-response presence. An absent head MUST have action 0 and no saved
+response. A present head MUST have action 1, 3, 4, 5, 6 or 7; a prepared head
+(action 1) MUST NOT claim saved response. Invalid or contradictory custody is a
+refusal, never an empty successful observation. A saved response with possible
+or unknown dispatch remains unresolved until its original Ledger terminal is
+admitted; the response body and credential-use data stay private.
+
+<!-- requirement-block: resident-effect-current-transport-freshness resident-effect-current-transport-freshness.2 resident-effect-current-transport-freshness.3 resident-effect-current-transport-freshness.4 -->
+The receiving Host MUST authenticate the current Site/generation and match its
+own outstanding query before using a reply as a current observation. It MUST
+issue a fresh challenge after reconstruction; old saved replies are historical
+evidence, not current facts. The Native receiver MUST authorize original evidence
+access before Store reads and recheck it before disclosure. Query/reply admission
+and canonical CID agreement MUST NOT imply current approval, permission to send,
+physical stop, publication, cleanup completion or reservation return. Current
+Run/cancellation/authority/holding and Ledger fences remain separate.
+
+<a id="interactive-run-control"></a>
+
+## Negotiated Interactive Run Control contracts
+
+The initial `actql-interactive-run-control-registry/0.1` registers separate
+controlled state, Plan/Run views, control Profile, original request intent,
+resolved admission, logical map/ports, commands, immutable receipts, later
+observations and typed Carrier Samples. Registration is not runtime support.
+The four Sample projections are not full Carrier snapshots or Result schemas.
+The existing compiler, Run, Checkpoint, Ledger, material and publication Owners
+remain authoritative; a read projection does not decide lifecycle transitions.
+
+<!-- requirement-block: interactive-original-intent interactive-legacy-projection interactive-control-cas interactive-receipt interactive-map interactive-sample interactive-observation interactive-pending-observation interactive-pending-unknown interactive-capability -->
+Negotiated admission MUST first bind the original SubmissionRef, unchanged
+legacy request fingerprint, normalized requested Profile and optional expected
+Plan, then immutably bind that intent to the originally adopted Plan/map and
+resolved Profile; a duplicate uses the original binding without preparation.
+
+Legacy `actql-run-state/0.1`, legacy start and RunDefinition preimages MUST
+remain unchanged; old status/wait use exact old-state projection or
+`RunStateVersionUnsupported` for paused/manual-origin resuming, with genuine
+Checkpoint/Resolution evidence required for formal-origin resuming.
+
+Control intent MUST use the original Run and existing integer revision
+`0..2147483647`/CAS fence, with `ControlRevisionExhausted` on exhaustion,
+separate manual command/continuation/fence and actual Checkpoint/Resolution
+origins, and no new authority, revision clock or automatic resend.
+
+An initial OperationReceipt MUST remain immutable with accepted/completed/
+unknown meaning at issue time, while later suppression or completion is a
+separate original-receipt-linked observation; not-found/history-unavailable
+is not permission to resend or proof of no acceptance.
+
+Logical IDs and ports MUST bind the actual adopted Compiled Plan, checked
+Stage/operation occurrence and role/ordinal, preserving input-only output
+as `input_output` rather than a fabricated produced operation; exact names
+and authorized input selection come from the original immutable map.
+
+Sample contracts MUST preserve typed original source/capture identity,
+Carrier kind, absence versus NULL, occurrence/order evidence and independent
+finite holding claims, with forbidden containing no source/shape/count/ref,
+selection-required for ambiguous input, and no acquisition or recomputation.
+
+Run Inspect MUST use current read/egress authority and existing Owner-local
+provenance, declaring non-atomic composition and unknown quantities rather
+than a global synchronized cut, guessed zero usage or newly generated preview.
+The negotiated `pause_pending`, `expiry_pending` and `cleanup_pending` fields
+MUST be emitted as booleans only when obtained from their existing Owner.
+An omitted field means an unknown observation and MUST NOT be completed as
+`false`. Unsupported capability is separate from an unknown observation.
+
+Installed capability publication MUST distinguish static planning/inspection,
+durable control, Sample collection, full intermediates and cost Guards, and
+advertise only independently implemented and publicly verified paths.
+
+All new identity-bearing envelopes hash their complete canonical body excluding
+only `self_cid`, using the existing SHA-256 canonical JSON rules. The version
+field is the identity domain. No response, later observation or containing
+receipt is included indirectly in its own preimage. New Profile is an external
+binding, not a field added to old Program/Plan/RunDefinition bodies. Original
+selector order is retained; effective target inventory is compiler-resolved
+once. Control identity is not proof of authority or dispatch.
+
+The logical Step key is `{version, compiled_plan_cid, stage_ordinal,
+occurrence}` where occurrence is either operation ordinal or input-output port
+ordinal. Port keys bind Plan, Step identity, role and port ordinal. Source
+locators name the actual Stage input or original logical producer output.
+Numbers here are checked semantic positions, not physical task numbers,
+execution order, workers or retry counters. Schema validation and self-CID
+validation are separate from matching referenced bodies and current authority.
+
+Required retention resolves its entire checked target inventory before support
+filtering. Optional deficiency stays an honest diagnostic, not a business
+failure exemption for corruption or global resource violations. Sample-only,
+full intermediate and required continuation claims have separate lifetimes.
+Host-installed limits govern sizes/duration; wire integers do not invent a
+global default budget. Four typed Sample schemas register no sampler.
+
+Profile cost and interval override use distinct original cumulative origins;
+real Checkpoints do not reset either. Unknown charges remain unknown, with
+registered admission `GuardExceeded`/`GuardUnavailable` separate from paused
+stop reasons. This registration implements neither a money estimator nor a
+cost Guard. Batch control remains a separate unsupported advanced capability.
+
+The new negotiated money amount domain is a canonical decimal **string** in
+`0..9223372036854775807` micro-units. This finite range matches existing
+Ledger `cost_units` checked Int64 aggregation; it is not a limit on general
+mathematical Money or other language numeric domains. Zero is `"0"`; leading
+zeros, signs, exponents, whitespace and fractions are invalid in `amount_micro`.
+Exact facade decimal-unit normalization is separate: `USD:5.00` yields
+`amount_micro="5000000"` without binary floating-point arithmetic. Overflow
+is rejected, never wrapped or clamped; unknown is never converted to zero.
+
+Currency syntax is three uppercase ASCII letters, following the alphabetic
+code convention of [ISO 4217](https://www.iso.org/iso-4217-currency-codes.html).
+Syntax alone does not certify a code or price. A future supported Guard must
+strictly match its currency to the selected revision-bound tariff and covered
+scope, including support and freshness. This registration creates neither a
+currency Catalog nor a price Owner; read-only P1 advertises cost unsupported.

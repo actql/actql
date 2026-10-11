@@ -4,19 +4,21 @@ test "shortest refusal preserves current Graph knowledge and Carrier kind diagno
     "[{\"from\":\"g\",\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":1}}]",
   )
   let cases : Array[(@carrier.Carrier, @pipeline_typing.IssueKind)] = [
-    (graph_input(), Graph(@graph.UnsupportedGraphOperation)),
-    (@carrier.unknown_carrier(GraphKind), Graph(@graph.IncompleteGraph)),
+    (
+      @carrier.unknown_carrier(GraphKind),
+      GraphMatch(@graph.Structure(@graph.IncompleteGraph)),
+    ),
     (
       @carrier.unknown_carrier(RelationKind),
-      Graph(@graph.WrongCarrier(RelationKind)),
+      GraphMatch(@graph.Structure(@graph.WrongCarrier(RelationKind))),
     ),
     (
       @carrier.unknown_carrier(EventsKind),
-      Graph(@graph.WrongCarrier(EventsKind)),
+      GraphMatch(@graph.Structure(@graph.WrongCarrier(EventsKind))),
     ),
     (
       @carrier.unknown_carrier(VectorsKind),
-      Graph(@graph.WrongCarrier(VectorsKind)),
+      GraphMatch(@graph.Structure(@graph.WrongCarrier(VectorsKind))),
     ),
   ]
   for (input, expected) in cases {

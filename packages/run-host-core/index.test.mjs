@@ -6,6 +6,7 @@ import './retained-input.test.mjs';
 import './cancellation-operation.test.mjs';
 import './submission-owner.test.mjs';
 import './effect-run.test.mjs';
+import './original-effect-materials.test.mjs';
 import './program-preparation.test.mjs';
 import {valuesUnitIdentity, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';

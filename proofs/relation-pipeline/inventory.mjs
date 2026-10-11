@@ -3,6 +3,7 @@ import { join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
+import {checkProofRunnerExtension} from './proof-runner-extension.mjs';
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const snapshotDirectories = Object.freeze(['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain', 'proofs/relation-capacity', 'proofs/relation-pipeline']);
 export const snapshotFiles = Object.freeze(['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md']);
@@ -44,12 +45,15 @@ export function checkBaseline(root, {read = path => readFileSync(join(root, path
   assert.equal(hash(blob(baseline.revision, checker)), extension.priorDigest, 'Changed historical checker bytes');
   for (const [path, expected] of Object.entries(extension.files)) {
     assert.equal(hash(blob(extension.revision, path)), expected, 'Unrelated model extension history');
-    assert.equal(hash(read(path)), expected, `Changed reviewed model extension: ${path}`);
+    const currentExpected = path === checker && baseline.runnerExtension
+      ? baseline.runnerExtension.files[checker] : expected;
+    assert.equal(hash(read(path)), currentExpected, `Changed reviewed model extension: ${path}`);
   }
   for (const [path, expected] of Object.entries(baseline.unchangedCommon)) {
     assert.equal(hash(blob(baseline.revision, path)), expected, `Changed original common model history: ${path}`);
     if (path !== checker && hash(read(path)) !== expected) throw new Error(`Changed common proof/history: ${path}`);
   }
+  if (baseline.runnerExtension) checkProofRunnerExtension(root, baseline.runnerExtension, read);
   for (const item of baseline.existingGroup) {
     if (!read(item.path).toString('utf8').includes(`test "${item.test}"`)) throw new Error(`Missing retained fixture ${item.test}`);
   }

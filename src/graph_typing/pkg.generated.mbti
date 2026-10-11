@@ -25,6 +25,8 @@ pub fn check_components(@decode_core.Cursor, @carrier_contract.Carrier, @paramet
 
 pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedDegree, Issue]
 
+pub fn check_graft(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
+
 pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
 
 pub fn check_graph_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedGraphConstruction, Issue]
@@ -35,13 +37,19 @@ pub fn check_graph_equality(@decode_core.Cursor, @carrier_contract.Carrier, @car
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
+pub fn check_mean(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedMean, Issue]
+
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
 pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedNormalize, Issue]
 
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
+pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
+
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
+
+pub fn check_shortest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedShortest, MatchIssue]
 
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
@@ -50,6 +58,8 @@ pub fn check_subtraction(@decode_core.Cursor, @carrier_contract.Carrier, @carrie
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn check_union(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
+
+pub fn checked_mean_options(CheckedMean) -> CheckedMeanOptions
 
 pub fn components_input(CheckedComponents) -> @carrier_contract.Carrier
 
@@ -221,11 +231,21 @@ pub fn match_types(CheckedMatch) -> Array[String]?
 
 pub fn match_usage(CheckedMatch) -> PredicateUsage
 
+pub fn mean_definition_at(CheckedMean, Int, Int, edge~ : Bool) -> Int?
+
+pub fn mean_input_at(CheckedMean, Int) -> @carrier_contract.Carrier?
+
 pub fn mean_input_names(CheckedMeanOptions) -> Array[String]
 
 pub fn mean_options_source(CheckedMeanOptions) -> @decode_core.Cursor
 
 pub fn mean_options_usage(CheckedMeanOptions) -> Usage
+
+pub fn mean_output(CheckedMean) -> @carrier_contract.Carrier
+
+pub fn mean_pending_at(CheckedMean, Int) -> MeanObligation?
+
+pub fn mean_pending_count(CheckedMean) -> Int
 
 pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
 
@@ -233,9 +253,13 @@ pub fn mean_property_at(CheckedMeanOptions, EntityKind, Int) -> MeanProperty?
 
 pub fn mean_property_count(CheckedMeanOptions, EntityKind) -> Int
 
+pub fn mean_property_input_at(CheckedMean, Int, Int, Int, edge~ : Bool) -> Int?
+
 pub fn mean_sample_count(CheckedMeanOptions) -> Int
 
 pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
+
+pub fn mean_usage(CheckedMean) -> Usage
 
 pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
@@ -265,6 +289,8 @@ pub fn predicate_reference_name(CheckedPredicate, Int) -> String?
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
 
+pub fn selector_fields(CheckedSelector) -> @carrier_contract.Knowledge?
+
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
 pub fn selector_id_at(CheckedSelector, Int) -> @value_admission.CheckedValue?
@@ -281,9 +307,45 @@ pub fn selector_pending_at(CheckedSelector, Int) -> SelectorObligation?
 
 pub fn selector_pending_count(CheckedSelector) -> Int
 
+pub fn selector_predicate(CheckedSelector) -> CheckedPredicate?
+
+pub fn selector_property_position(CheckedSelector, Int, Int) -> Int?
+
 pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
+
+pub fn shortest_direction(CheckedShortest) -> Direction
+
+pub fn shortest_edge_type_at(CheckedShortest, Int) -> String?
+
+pub fn shortest_edge_type_count(CheckedShortest) -> Int?
+
+pub fn shortest_input(CheckedShortest) -> @carrier_contract.Carrier
+
+pub fn shortest_maximum_hops(CheckedShortest) -> Double
+
+pub fn shortest_output(CheckedShortest) -> @carrier_contract.Carrier
+
+pub fn shortest_output_guard(CheckedShortest) -> Count?
+
+pub fn shortest_pending(CheckedShortest) -> Array[ShortestObligation]
+
+pub fn shortest_selection(CheckedShortest) -> ShortestSelection
+
+pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
+
+pub fn shortest_starts(CheckedShortest) -> CheckedSelector
+
+pub fn shortest_targets(CheckedShortest) -> CheckedSelector
+
+pub fn shortest_traversal(CheckedShortest) -> CheckedTraverse
+
+pub fn shortest_usage(CheckedShortest) -> PredicateUsage
+
+pub fn shortest_weight(CheckedShortest) -> String?
+
+pub fn shortest_weight_position(CheckedShortest, Int) -> Int?
 
 pub fn subgraph_edge_fields(CheckedSubgraph) -> @carrier_contract.Knowledge
 
@@ -329,6 +391,8 @@ pub fn traverse_hop_count(CheckedTraverse) -> Int
 
 pub fn traverse_input(CheckedTraverse) -> @carrier_contract.Carrier
 
+pub fn traverse_is_reach(CheckedTraverse) -> Bool
+
 pub fn traverse_output(CheckedTraverse) -> @carrier_contract.Carrier
 
 pub fn traverse_output_guard(CheckedTraverse) -> Count?
@@ -340,6 +404,8 @@ pub fn traverse_pending(CheckedTraverse) -> Array[TraverseObligation]
 pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
 
 pub fn traverse_pending_count(CheckedTraverse) -> Int
+
+pub fn traverse_shortest(CheckedTraverse) -> CheckedShortest?
 
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 
@@ -354,6 +420,8 @@ pub fn union_fold_output(CheckedUnion, Int) -> @carrier_contract.Carrier?
 pub fn union_input_at(CheckedUnion, Int) -> @carrier_contract.Carrier?
 
 pub fn union_input_count(CheckedUnion) -> Int
+
+pub fn union_is_graft(CheckedUnion) -> Bool
 
 pub fn union_output(CheckedUnion) -> @carrier_contract.Carrier
 
@@ -390,6 +458,8 @@ type CheckedGraphEquality
 
 type CheckedMatch
 
+type CheckedMean
+
 type CheckedMeanOptions
 
 type CheckedNormalize
@@ -399,6 +469,8 @@ type CheckedPathContract
 type CheckedPredicate
 
 type CheckedSelector
+
+type CheckedShortest
 
 type CheckedSubgraph
 
@@ -566,6 +638,16 @@ pub(all) enum MatchObligation {
   ResolveGraphMatchProfile
 } derive(Eq, @debug.Debug)
 
+pub(all) enum MeanObligation {
+  AdmitMeanInputs
+  PreserveMeanIdentities
+  CheckMeanLabelsAndEndpoints
+  ResolveMeanResources
+  ApplyExactMeanSupport
+  ApplyMeanPropertyStrategies
+  CanonicalMeanOrder
+} derive(Eq, @debug.Debug)
+
 pub struct MeanProperty {
   name : String
   strategy : MeanStrategy
@@ -595,6 +677,7 @@ pub(all) enum NullMeanValue {
 pub(all) enum PathOutput {
   TraversedNodes
   TraversedPaths
+  ShortestPaths
 } derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {
@@ -624,6 +707,7 @@ pub(all) struct PredicateUsage {
 pub enum SelectorForm {
   ExplicitIds
   RelationIds(from~ : String, field~ : @relation_schema.FieldName)
+  NodeWhere
 }
 
 pub(all) enum SelectorObligation {
@@ -632,6 +716,29 @@ pub(all) enum SelectorObligation {
   DeduplicateSelectorIdentities
   RequireSelectorMembership
   ResolveSelectorResources
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ShortestObligation {
+  AdmitShortestGraph
+  AdmitShortestSelectors
+  DeduplicateShortestSelectors
+  RequireShortestMembership
+  ValidateEveryShortestWeight
+  RespectShortestHopBound
+  EnumerateSimpleShortestPaths
+  SelectCanonicalShortestPaths
+  RejectSelectedOverrange
+  CanonicalShortestOutputOrder
+  EnforceShortestOutputGuard
+  BindShortestOutputGuard(String)
+  ResolveShortestResources
+  ResolveShortestProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ShortestSelection {
+  EachPair
+  NearestPerSource
+  NearestPair
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SubgraphObligation {
@@ -668,6 +775,7 @@ pub(all) enum TraverseObligation {
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
   ResolveGraphTraversalProfile
+  ShortestRequirement(ShortestObligation)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum UnionObligation {

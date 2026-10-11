@@ -127,6 +127,114 @@ const effectCheckpointValue = handle => {
   if (value === undefined) throw new TypeError('InvalidEffectCheckpointReport');
   return value;
 };
+const effectResumeAuthenticationFields = ['key_id', 'reviewer_id',
+  'expected_authority_scope_cid', 'authority_context_cid', 'policy_cid', 'proof_preimage'];
+const snapshotTextRecord = (value, fields) => {
+  if (value === null || typeof value !== 'object' ||
+      Object.keys(value).length !== fields.length ||
+      !fields.every(key => Object.hasOwn(value, key))) return null;
+  const snapshot = fields.map(key => value[key]);
+  return snapshot.every(item => typeof item === 'string') ? snapshot : null;
+};
+
+// This only serializes an original, approved common Resolution. Authenticate
+// and persist the claim through the existing Run Owner, then fence immediately
+// before handout. A transported claim is never a current Site observation.
+const prepareEffectResumeDeliveryJson = (serialize, report, resolutionWire, authentication, reviewers, claim, limits) => {
+  const invalid = () => { throw new TypeError('InvalidEffectResumeDeliveryInput'); };
+  if (typeof resolutionWire !== 'string' || !Array.isArray(reviewers)) invalid();
+  const count = reviewers.length;
+  if (count > 64 || claim === null || typeof claim !== 'object' || Object.keys(claim).length !== 2 ||
+      !Object.hasOwn(claim, 'claimant') || !Object.hasOwn(claim, 'generation') ||
+      limits === null || typeof limits !== 'object') invalid();
+  // Snapshot caller values once; validation and the Owner see the same facts.
+  const claimant = claim.claimant, generation = claim.generation;
+  const bounds = [limits.maxWireBytes, limits.maxNodes, limits.maxDepth];
+  if (typeof claimant !== 'string' || claimant.length === 0 || claimant.length > 256 ||
+      !siteInteger(generation) || generation === 0n ||
+      !bounds.every((value, index) => Number.isSafeInteger(value) && value > 0 &&
+        value <= [262144, 4096, 32][index])) invalid();
+  const fields = snapshotTextRecord(authentication, effectResumeAuthenticationFields);
+  if (fields === null) invalid();
+  const keys = [], ids = [];
+  for (let index = 0; index < count; index++) {
+    if (!Object.hasOwn(reviewers, index)) invalid();
+    const pair = snapshotTextRecord(reviewers[index], ['key_id', 'reviewer_id']);
+    if (pair === null) invalid();
+    keys.push(pair[0]);
+    ids.push(pair[1]);
+  }
+  const utf8 = new TextEncoder();
+  // UTF-16 length is a safe lower bound on UTF-8 bytes. Reject first so the
+  // encoder cannot allocate an arbitrarily large buffer for a refused input.
+  const byteLength = (value, maximum) => {
+    if (value.length > maximum) invalid();
+    const length = utf8.encode(value).length;
+    if (length > maximum) invalid();
+    return length;
+  };
+  byteLength(claimant, 256);
+  let remaining = bounds[0];
+  for (const value of [resolutionWire, ...fields, ...keys, ...ids]) {
+    remaining -= byteLength(value, remaining);
+  }
+  return checked(serialize(effectCheckpointValue(report),
+    resolutionWire, fields, keys, ids, claimant, generation, ...bounds));
+};
+export const effectResumeDeliveries = Object.freeze({
+  prepareJson: (...args) => prepareEffectResumeDeliveryJson(owner.coordinatorEffectResumeDeliveryJson, ...args),
+  preparePollJson: (...args) => prepareEffectResumeDeliveryJson(owner.coordinatorEffectResumePollJson, ...args),
+});
+const effectCurrentQueries = new WeakMap(), effectCurrentReplies = new WeakMap();
+const effectCurrentValue = (values, handle) => {
+  const value = values.get(handle);
+  if (value === undefined) throw new TypeError('InvalidEffectCurrentHandle');
+  return value;
+};
+const effectCurrentLimits = supplied => {
+  if (supplied === null || typeof supplied !== 'object') throw new TypeError('InvalidEffectCurrentLimits');
+  const names = ['maxWireBytes', 'maxNodes', 'maxDepth'], values = names.map(name => supplied[name]);
+  if (!values.every((value, index) => Number.isSafeInteger(value) && value > 0 && value <= [65536, 4096, 32][index])) {
+    throw new TypeError('InvalidEffectCurrentLimits');
+  }
+  return values;
+};
+const effectCurrentText = value => {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 256 ||
+      new TextEncoder().encode(value).length > 256) throw new TypeError('InvalidEffectCurrentInput');
+  return value;
+};
+export const effectCurrentObservations = Object.freeze({
+  prepareQuery: (report, effectId, queryId, limits) => {
+    const bounds = effectCurrentLimits(limits);
+    const value = checked(owner.coordinatorEffectCurrentQueryPrepare(effectCheckpointValue(report),
+      effectCurrentText(effectId), effectCurrentText(queryId), ...bounds));
+    const handle = Object.freeze({}); effectCurrentQueries.set(handle, value); return handle;
+  },
+  queryJson: query => owner.coordinatorEffectCurrentQueryProjection(effectCurrentValue(effectCurrentQueries, query))[0],
+  pollJson: query => checked(owner.coordinatorEffectCurrentPollJson(effectCurrentValue(effectCurrentQueries, query))),
+  queryFacts: query => {
+    const [, queryCid, reportCid, dispatchCid, checkpointCid, effectId, queryId] =
+      owner.coordinatorEffectCurrentQueryProjection(effectCurrentValue(effectCurrentQueries, query));
+    return Object.freeze({queryCid, reportCid, dispatchCid, checkpointCid, effectId, queryId});
+  },
+  admitReplyJson: (query, body, limits) => {
+    const bounds = effectCurrentLimits(limits);
+    if (typeof body !== 'string' || body.length > bounds[0] || new TextEncoder().encode(body).length > bounds[0]) {
+      throw new TypeError('InvalidEffectCurrentInput');
+    }
+    const value = checked(owner.coordinatorEffectCurrentReplyAdmit(effectCurrentValue(effectCurrentQueries, query), body, ...bounds));
+    const handle = Object.freeze({}); effectCurrentReplies.set(handle, {value, query}); return handle;
+  },
+  replyFacts: reply => {
+    const {value, query} = effectCurrentValue(effectCurrentReplies, reply);
+    const [, replyCid, head, action, saved] = owner.coordinatorEffectCurrentReplyProjection(value);
+    const facts = effectCurrentObservations.queryFacts(query), recoveryAction = Number(action);
+    return Object.freeze({...facts, replyCid, ledgerHeadCid: head === '' ? undefined : head,
+      recoveryAction, responseSaved: saved === 'true',
+      unknownEffects: Object.freeze(recoveryAction === 3 || recoveryAction === 4 ? [facts.effectId] : [])});
+  },
+});
 export const effectCheckpointReports = Object.freeze({
   admit: (body, request, limits) => {
     if (typeof body !== 'string' || limits === null || typeof limits !== 'object' ||

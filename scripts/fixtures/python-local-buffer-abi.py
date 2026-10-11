@@ -21,6 +21,37 @@ try:
     assert left.call('reserved') == 256
     assert right.exports['actql_buffer_byte'](right.store, left.nonce, handle, 0) == -1
     assert right.reads == 0
+    # Completion cannot be synthesized from arbitrary transport handles.
+    assert left.exports['actql_compute_reserve'](left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_compute_configure'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_compute_close'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_task_reserve'](left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_task_start'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_task_complete'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_task_close'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_result_reserve'](left.store, left.nonce, handle, 0) == -2
+    assert left.exports['actql_result_reserve_chunk'](left.store, left.nonce, handle, 3, 128) == -2
+    assert left.exports['actql_result_produce_chunk'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_result_close_chunk'](left.store, left.nonce, handle) == -2
+    assert left.exports['actql_result_close'](left.store, left.nonce, handle) == -2
+    # Arbitrary transfer handles cannot claim original publication custody.
+    assert left.exports['actql_publication_prepare_commit'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_publication_advance_commit'](
+        left.store, left.nonce, handle, handle, 1) == -2
+    assert left.exports['actql_publication_commit_progress'](
+        left.store, left.nonce, handle, 0) == -2
+    assert left.exports['actql_publication_finish_commit'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_result_binding_reserve'](
+        left.store, left.nonce, handle, 0, handle, 2, 131300) == -2
+    assert left.exports['actql_result_binding_produce'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_result_binding_length'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_result_binding_close'](
+        left.store, left.nonce, handle) == -2
+    assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4
     assert left.call('fill', handle, 0, 1) == -5
@@ -64,4 +95,4 @@ finally:
 
 print(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),
     'cases': ['exact_values', 'instance_identity', 'aggregate_capacity',
-              'borrow_retirement', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))
+              'borrow_retirement', 'uncompleted_source_compute_refusal', 'unconfigured_task_refusal', 'uncompleted_result_refusal', 'cleanup_retry', 'stale_handles', 'invalid_byte', 'pool_close']}))

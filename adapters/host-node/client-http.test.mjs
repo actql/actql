@@ -53,14 +53,15 @@ test('epoch-bound submit has one outcome contract over HTTP and in-process', asy
           maxRowBytes: 1024,
           // These controlled wire outcomes test the facade/transport contract;
           // real durable custody and preflight are tested by the bridge fixture.
-          submitIntent: ({submissionRef, intentCid}) => {
+          submitIntent: ({submissionRef, intentCid, attemptRef}) => {
+            const recorded = outcome => ({kind: 'recorded', attemptRef, outcome});
             const requestId = submissionRef.nonce;
             sentId = requestId;
             if (scenario === 'prepare-refused' || scenario === 'refused') {
-              return {kind: scenario === 'prepare-refused' ? 'not_accepted' : 'preparation_failed',
+              return recorded({kind: scenario === 'prepare-refused' ? 'not_accepted' : 'preparation_failed',
                 submissionRef, intentCid, problem: {code: scenario === 'prepare-refused'
                   ? 'ClientProgramRejected' : 'ClientRunStartDenied',
-                classification: scenario === 'prepare-refused' ? 'operation_failed' : 'authorization'}};
+                classification: scenario === 'prepare-refused' ? 'operation_failed' : 'authorization'}});
             }
             accepts++;
             const admission = {ref, durability: 'durable', revision: 1};
@@ -75,15 +76,15 @@ test('epoch-bound submit has one outcome contract over HTTP and in-process', asy
             }
             if (scenario === 'invalid-reply') return {kind: 'ready', submissionRef, intentCid, admission: {revision: 1}};
             if (scenario === 'held' || scenario === 'foreign-held') {
-              return {kind: 'held', submissionRef, intentCid, held: {kind: 'held', requestId: scenario === 'held' ? requestId :
+              return recorded({kind: 'held', submissionRef, intentCid, held: {kind: 'held', requestId: scenario === 'held' ? requestId :
                 'another-request', prepareAttemptId: 'prepare-a',
               state: 'waiting_checkpoint', durability: 'durable',
               lookupExpiresAt: '2026-10-03T00:00:00.000Z',
               checkpoint: {checkpointId: 'prepare-a-preflight',
                 checkpointCid: `sha256:${'c'.repeat(64)}`, kind: 'run_scope',
-                expiresAt: '2026-10-02T00:00:00.000Z'}}};
+                expiresAt: '2026-10-02T00:00:00.000Z'}}});
             }
-            return {kind: 'ready', submissionRef, intentCid, admission};
+            return recorded({kind: 'ready', submissionRef, intentCid, admission});
           },
         };
         const exercise = async (client, endpoint) => {

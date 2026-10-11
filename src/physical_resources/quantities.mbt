@@ -46,7 +46,7 @@ fn subtract_quantities(
 }
 
 ///|
-/// Install exactly once before any attempt or delegated capacity. Ordinary
+/// Install exactly once before any attempt, read custody or delegated capacity. Ordinary
 /// ledgers remain unchanged; an installed quantity budget cannot be bypassed
 /// by calling the existing byte-only reservation API.
 pub fn configure_quantities(
@@ -58,7 +58,8 @@ pub fn configure_quantities(
   }
   if ledger.quantity_limits is Some(_) ||
     ledger.usage.attempts != 0 ||
-    ledger.delegated_attempts != 0 {
+    ledger.delegated_attempts != 0 ||
+    ledger.next_capacity_serial != Some(-1) {
     return Err(InvalidCharge)
   }
   ledger.quantity_limits = Some(limits)

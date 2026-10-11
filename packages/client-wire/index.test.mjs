@@ -81,9 +81,10 @@ test('Host request preparation owns each submission request with its existing sn
   for (const operation of ['submit-intent', 'restart-intent', 'lookup-submission']) {
     const selected = {...connection, workspaceId:'workspace-A'};
     const submissionRef = {epoch:{...epoch}, nonce:'current-submission'};
+    const attemptRef = {operation:'submit', attemptId:'original-submission-attempt'};
     const body = {connection:selected, submissionRef,
       ...(operation === 'lookup-submission' ? {} : {
-        intentCid:`sha256:${'f'.repeat(64)}`, kind:'program', input:{}, parameters:{n:1}}),
+        intentCid:`sha256:${'f'.repeat(64)}`, kind:'program', input:{}, parameters:{n:1}, attemptRef}),
       ...(operation === 'restart-intent' ? {unresolvedHistory:{
         acknowledgement:'possible_prior_execution_and_effects',
         submissionRef:{epoch:{...epoch, epochNonce:'e'.repeat(64),
@@ -94,6 +95,8 @@ test('Host request preparation owns each submission request with its existing sn
     selected.workspaceId = 'workspace-B';
     submissionRef.nonce = 'changed';
     submissionRef.epoch.authenticator = '0'.repeat(64);
+    attemptRef.attemptId = 'changed-attempt';
+    attemptRef.operation = 'cancel';
     if (body.parameters) body.parameters.n = 2;
     if (body.unresolvedHistory) body.unresolvedHistory.submissionRef.nonce = 'changed-prior';
     assert.deepEqual(prepared.body, expected, operation);
@@ -109,7 +112,14 @@ test('Host request preparation owns each submission request with its existing sn
 
 test('public wire accepts the exact connected request shapes', () => {
   // Run, request, submission-intent, check, Checkpoint and Resource operations.
-  assert.equal(clientHostOperations.length, 23);
+  assert.deepEqual([...clientHostOperations].sort(), [
+    'connect', 'submit', 'submit-intent', 'restart-intent', 'lookup-submission',
+    'check', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
+    'lookup-cancellation', 'reconcile', 'read', 'result-describe',
+    'delivery-attempt', 'checkpoints', 'checkpoint-review', 'resolve',
+    'cancel-request', 'resources', 'resource-inspect', 'resource-peek',
+    'owner-observations',
+  ].sort());
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
@@ -122,7 +132,8 @@ test('public wire accepts the exact connected request shapes', () => {
   nonce: 'original-submission'};
   const submitted = {connection, submissionRef,
     intentCid: 'sha256:5ad281d9145e26cfb0bf5b7b0fa37c11cb2b065687350ae53a36f714bca0fe44',
-    kind: 'program', input: {}, parameters: null};
+    kind: 'program', input: {}, parameters: null,
+    attemptRef: {operation: 'submit', attemptId: 'original-submission-attempt'}};
   assert.equal(validClientBody('submit-intent', submitted), true);
   const fresh = {...submissionRef, epoch: {...submissionRef.epoch,
     epochNonce: 'e'.repeat(64), notBefore: 1800000001000, expiresAt: 1800000002000}, nonce: 'fresh'};
@@ -139,6 +150,8 @@ test('public wire accepts the exact connected request shapes', () => {
   }
   assert.equal(validClientBody('lookup-submission', {connection, submissionRef}), true);
   for (const changed of [{requestId: 'unbound'}, {intentCid: 'invalid'},
+    {attemptRef: undefined}, {attemptRef: {operation:'cancel', attemptId:'wrong-operation'}},
+    {attemptRef: {operation:'submit', attemptId:''}},
     {submissionRef: {...submissionRef, epoch: {...submissionRef.epoch, expiresAt: 1800000000000}}},
     {submissionRef: {...submissionRef, nonce: 'e\u0301'}}]) {
     assert.equal(validClientBody('submit-intent', {...submitted, ...changed}), false);

@@ -31,8 +31,11 @@ fn traversal_limits_check(
         return Err(ForeignOccurrence(site.step))
       }
       match requirement {
-        ResolveTraversalResources => Ok(TraversalLimits(check))
-        EnforceTraversalOutputGuard =>
+        ResolveTraversalResources
+        | ShortestRequirement(ResolveShortestResources) =>
+          Ok(TraversalLimits(check))
+        EnforceTraversalOutputGuard
+        | ShortestRequirement(EnforceShortestOutputGuard) =>
           if @step_bounds.traversal_limit_guard_value(limits) is Some(_) {
             Ok(TraversalOutputGuard(check))
           } else {
@@ -54,6 +57,10 @@ fn traversal_limits_candidate(
     is @pipeline.TraverseRequirement(
       ResolveTraversalResources
       | EnforceTraversalOutputGuard
+      | ShortestRequirement(
+        ResolveShortestResources
+        | EnforceShortestOutputGuard
+      )
     ) else {
     return Ok(None)
   }

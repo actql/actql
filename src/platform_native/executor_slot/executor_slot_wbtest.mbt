@@ -75,6 +75,38 @@ test "executor slot is kept by the caller when the holder cannot start" {
 }
 
 ///|
+test "executor slot retains custody for a directory or nonexecutable file" {
+  guard slot_test_root() is Some(root) else { return }
+  let nonexecutable = root + "/nonexecutable-holder"
+  assert_true(native_append_evidence_line(nonexecutable, "not executable"))
+  let path = root + "/unusable-holder.lock"
+  let parent = open_native_executor_slot(path).unwrap()
+  let other = open_native_executor_slot(path).unwrap()
+  assert_true(parent.try_acquire().unwrap())
+  for target in [root, nonexecutable] {
+    assert_true(parent.spawn_holder(target, []) is Err(SpawnFailed))
+    parent.verify_current_hold().unwrap()
+    assert_false(other.try_acquire().unwrap())
+  }
+  assert_true(parent.close())
+  assert_true(other.try_acquire().unwrap())
+  assert_true(other.close())
+}
+
+///|
+test "executor slot keeps a real child exit 127 distinct from admission failure" {
+  guard slot_test_root() is Some(root) else { return }
+  let path = root + "/child-exit-127.lock"
+  let parent = open_native_executor_slot(path).unwrap()
+  assert_true(parent.try_acquire().unwrap())
+  let child = parent.spawn_holder("/bin/sh", ["-c", "exit 127"]).unwrap()
+  assert_true(parent.try_acquire() is Err(Closed))
+  assert_eq(child.wait(true).unwrap(), Some(Exited(127)))
+  assert_eq(child.wait(false).unwrap(), Some(Exited(127)))
+  assert_true(slot_becomes_free(path))
+}
+
+///|
 test "executor slot refuses a holder when the slot is not held or replaced" {
   guard slot_test_root() is Some(root) else { return }
   let path = root + "/refusal.lock"

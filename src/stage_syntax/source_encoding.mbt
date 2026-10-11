@@ -60,3 +60,14 @@ pub fn emit_program_source(
 ) -> Unit raise @encode.EncodeFailure {
   emit_body(program_body(program), out)
 }
+
+///|
+/// Serialize an admitted immutable source value through the same bounded
+/// source writer. Preserve authored strings, object order and array order;
+/// this is interchange, not configuration canonicalization or checking.
+pub fn emit_admitted_source_value(
+  value : @wire.Cursor,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_body(value, out)
+}

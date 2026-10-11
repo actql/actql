@@ -105,7 +105,7 @@ fn retained_effect_provider_capture(
     inputs,
     invocation,
     prepared.preview,
-    prepared.proof,
+    prepared.proof.unwrap(),
     source,
     local_source,
     inventory,

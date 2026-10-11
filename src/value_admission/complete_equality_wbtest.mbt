@@ -57,6 +57,55 @@ fn values_equal(
 }
 
 ///|
+test "complete equality exposes bounded frame growth and cancels only its frames" {
+  let contract = equality_contract("{\"type\":\"string\",\"nullable\":false}")
+  let left = equality_value(contract, "\"" + "x".repeat(256) + "\"")
+  let right = equality_value(contract, "\"" + "x".repeat(256) + "\"")
+  let cursor = start_complete_equality(left, right, {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 512,
+  }).unwrap()
+  assert_eq(complete_equality_pending_frames(cursor), 1)
+  assert_eq(complete_equality_next_frame_bound(cursor), 3)
+  assert_true(advance_complete_equality(cursor, 1) is EqualityContinue(work=1))
+  assert_eq(complete_equality_pending_frames(cursor), 3)
+  // ChargeText has no container growth, even with three live continuations.
+  assert_eq(complete_equality_next_frame_bound(cursor), 3)
+  cancel_complete_equality(cursor)
+  assert_eq(complete_equality_pending_frames(cursor), 0)
+  assert_true(
+    advance_complete_equality(cursor, 1)
+    is EqualityFailed(CompleteEqualityTerminal, work=0),
+  )
+  for quantum in [1, 7, 256] {
+    // One dispatch plus two scalar walks and one UTF-16 comparison per byte.
+    assert_eq(values_equal(left, right, quantum~).unwrap(), (true, 1 + 3 * 256))
+  }
+}
+
+///|
+test "typed graph identity equality has an independent structural work count" {
+  let body = "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[\"a\",1],\"key_types\":[{\"kind\":\"string\"},{\"kind\":\"number\"}]}"
+  let limits : Limits = {
+    max_nodes: 1000,
+    max_depth: 20,
+    max_text_bytes: 10000,
+  }
+  let left = admit_json_literal(body, limits).unwrap().0
+  let right = admit_json_literal(body, limits).unwrap().0
+  // Two root dispatches, five field continuations; both field-name walks
+  // and comparison (3*28), definition (4), domain (214), key array (9),
+  // and two type descriptors with their enclosing array (72).
+  let expected = 2 + 5 + 3 * 28 + 4 + (1 + 3 * 71) + 9 + 72
+  for quantum in [1, 7, 256] {
+    assert_eq(values_equal(left, right, quantum~).unwrap(), (true, expected))
+  }
+}
+
+///|
 test "complete equality handles nullable and nested property values" {
   let nullable_text = equality_contract(
     "{\"type\":\"string\",\"nullable\":true}",

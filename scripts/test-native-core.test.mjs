@@ -7,10 +7,81 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
+import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
+
+test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const suffix of ['preparing-0-0', 'prepared-0-0', 'advancing-1-16', 'advancing-2-32']) {
+    mkdirSync(join(root, 'original.review-capture-' + suffix));
+  }
+  writeFileSync(join(root, 'original.review-capture-completed-4-48'), 'not a phase directory');
+  writeFileSync(join(root, 'custody.sqlite3'), 'private original receipt');
+  const progress = await readNativeEffectCaptureProgress(root);
+  assert.equal(progress.status, 'observed');
+  assert.deepEqual(progress.phases.map(({phase, advances, logicalWork}) => ({phase, advances, logicalWork})), [
+    {phase: 'preparing', advances: '0', logicalWork: '0'},
+    {phase: 'prepared', advances: '0', logicalWork: '0'},
+    {phase: 'advancing', advances: '1', logicalWork: '16'},
+    {phase: 'advancing', advances: '2', logicalWork: '32'},
+  ]);
+  assert(!JSON.stringify(progress).includes('private original receipt'));
+  assert.equal(readFileSync(join(root, 'custody.sqlite3'), 'utf8'), 'private original receipt');
+});
+
+test('Native Effect capture progress does not follow a root or completion-marker symlink', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-capture-symlink-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const retained = join(root, 'retained'); const external = join(root, 'external');
+  mkdirSync(retained); mkdirSync(external);
+  writeFileSync(join(external, 'credential'), 'external secret');
+  symlinkSync(external, join(root, 'borrowed-root'), 'dir');
+  assert.deepEqual(await readNativeEffectCaptureProgress(join(root, 'borrowed-root')),
+    {status: 'unavailable', reason: 'unsafe-root'});
+  symlinkSync(external, join(retained, 'original.review-capture-completed-1-16'), 'dir');
+  assert.deepEqual(await readNativeEffectCaptureProgress(retained), {status: 'observed', phases: []});
+  assert.equal(readFileSync(join(external, 'credential'), 'utf8'), 'external secret');
+});
+
+test('Native Effect capture progress missing evidence remains unavailable', async () => {
+  assert.deepEqual(await readNativeEffectCaptureProgress(join(tmpdir(), 'absent-actql-capture-' + crypto.randomUUID())),
+    {status: 'unavailable', reason: 'collection-failed'});
+});
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+
+test('common Core stack prerequisite is confined to Linux Native children', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-stack-scope-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const bin = join(root, 'bin');
+  mkdirSync(bin);
+  // Observe the real shell limits without launching another Core campaign.
+  for (const name of ['node', 'moon']) {
+    const command = join(bin, name);
+    writeFileSync(command, '#!/bin/sh\nprintf "%s:%s\\n" "$(ulimit -S -s)" "$(ulimit -H -s)"\n');
+    chmodSync(command, 0o755);
+  }
+  for (const target of ['js', 'wasm', 'native']) {
+    const hardLimit = spawnSync('bash', ['-c', 'ulimit -H -s'], {
+      encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(hardLimit.status, 0, hardLimit.stderr);
+    const script = 'ulimit -S -s 8192\n' +
+      coreStep.run.replaceAll('${{ matrix.target }}', target);
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
+      cwd: root, encoding: 'utf8', timeout: 5000,
+      env: {...process.env, PATH: bin + ':' + process.env.PATH},
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.signal, null);
+    const observed = result.stdout.trim().split('\n');
+    const expected = target === 'native' && process.platform === 'linux' ? 65536 : 8192;
+    assert.deepEqual(observed, Array(target === 'native' ? 2 : 1)
+      .fill(`${expected}:${hardLimit.stdout.trim()}`));
+  }
+});
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));

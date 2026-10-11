@@ -98,6 +98,60 @@ test "set alignment composes evaluated column aliases and retains strict boundar
 }
 
 ///|
+test "implicit set alignment preserves its receiver and rejects extra operations" {
+  for
+    (text, accepted) in [
+      ("{\"select\":[{\"b\":\"right\"},{\"a\":\"left\"}],\"as\":\"out\"}", true),
+      ("{\"select\":[{\"a\":{\"literal\":1}},\"b\"],\"as\":\"out\"}", false),
+      (
+        "{\"select\":[\"b\",\"a\"],\"as\":\"out\",\"distinct\":[\"a\",\"b\"]}", false,
+      ),
+    ] {
+    let document = @origin.document(text, 10000).unwrap()
+    let builder = @builder.create(document, mapping_limits().source).unwrap()
+    let construction : Construction = {
+      builder,
+      generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
+      model_tasks: None,
+      parameter_names: None,
+    }
+    let parsed = @wire.admit(
+      @source.parse_json(text, mapping_limits().source.source).unwrap(),
+      mapping_limits().source.tree,
+    ).unwrap()
+    let steps = [
+      @builder.import_cursor(builder, parsed, construction.generated).unwrap(),
+    ]
+    assert_eq(
+      fold_script_set_terminal_select(
+        construction,
+        steps,
+        0,
+        "out",
+        ["id", "amount"],
+        ["a", "b"],
+      ),
+      accepted,
+    )
+    let object = @wire.open_object(
+      @builder.cursor(@builder.finish(builder, steps[0]).unwrap()),
+    ).unwrap()
+    assert_true(@wire.lookup(object, "from") is None)
+    if accepted {
+      let select = @wire.lookup(object, "select").unwrap()
+      for (index, expected) in [(0, ("id", "left")), (1, ("amount", "right"))] {
+        let (name, value) = @wire.field_at(
+          @wire.element_at(select, index).unwrap(),
+          0,
+        ).unwrap()
+        assert_eq(name, expected.0)
+        assert_eq(@wire.text(value), Ok(expected.1))
+      }
+    }
+  }
+}
+
+///|
 test "set result binding preserves bounded arguments and excludes shared steps" {
   let text = "{\"from\":\"ordered\",\"take\":{\"count\":{\"$param\":\"count\"},\"offset\":1},\"as\":\"limited\"}"
   for
@@ -139,4 +193,28 @@ test "set result binding preserves bounded arguments and excludes shared steps" 
     assert_eq(@wire.text(@wire.lookup(count, "$param").unwrap()), Ok("count"))
     assert_eq(@wire.safe_integer(@wire.lookup(take, "offset").unwrap()), Ok(1L))
   }
+}
+
+///|
+test "positional range names exclude anonymous storage without losing duplicate value slots" {
+  let columns = [
+    ("aql_set_anonymous_4", "aql_set_anonymous_4"),
+    ("aql_set_duplicate_5", "aql_set_duplicate_5"),
+    ("aql_set_duplicate_6", "aql_set_duplicate_6"),
+    ("other", "other_slot"),
+    ("aql_set_anonymous_100", "authored_slot"),
+  ]
+  assert_eq(
+    positional_named_expression_columns(
+      columns,
+      ["aql_set_anonymous_4", "aql_set_duplicate_5", "aql_set_duplicate_6"],
+      [("aql_set_duplicate_5", "v"), ("aql_set_duplicate_6", "V")],
+    ),
+    [
+      ("v", "aql_set_duplicate_5"),
+      ("V", "aql_set_duplicate_6"),
+      ("other", "other_slot"),
+      ("aql_set_anonymous_100", "authored_slot"),
+    ],
+  )
 }

@@ -1,0 +1,28 @@
+{
+  "status": "independent authored-literal derivation; not a runtime/schema observation",
+  "outputColumn": "month",
+  "authoredBranches": [
+    {
+      "literal": "Jan",
+      "utf8Bytes": 3
+    },
+    {
+      "literal": "Feb",
+      "utf8Bytes": 3
+    }
+  ],
+  "joinUpperBound": 3,
+  "contract": {
+    "type": "string",
+    "nullable": false,
+    "max_utf8_bytes": 3
+  },
+  "emptyInputUsesSameExpressionContract": true,
+  "basis": [
+    "src/expression_typing/signatures.mbt: literal TextValue contract",
+    "src/value_contract/relations.mbt: joined Text max_utf8_bytes upper bound"
+  ],
+  "productOutputUsed": false,
+  "previousUnboundedExpectationPreservedAt": "4a3013001bf94b3d8f45c08e05c7cd886c4c573f",
+  "currentStringLabelPrChanged": false
+}

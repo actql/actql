@@ -62,7 +62,14 @@ fn assemble_traversal_limit(
   }
   let applications = @step_bounds.traversal_limit_program(selected.limits)
   let (operation_name, guard_law) = match selected.step.operation {
-    @pipeline.Traverse(..) => ("traverse", Some("actql.guard.traverse-output"))
+    @pipeline.Traverse(checked=operation, ..) =>
+      if @graph.traverse_shortest(operation) is Some(_) {
+        ("shortest_path", Some("actql.guard.shortest-output"))
+      } else if @graph.traverse_is_reach(operation) {
+        ("reach", Some("actql.guard.traverse-output"))
+      } else {
+        ("traverse", Some("actql.guard.traverse-output"))
+      }
     _ => raise ForeignOwner
   }
   let guard_witness = match
