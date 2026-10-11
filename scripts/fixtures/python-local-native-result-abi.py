@@ -28,6 +28,7 @@ result_binding = '--result-binding' in sys.argv[4:]
 commit_candidate = '--commit-candidate' in sys.argv[4:]
 payload_request = '--payload-request' in sys.argv[4:]
 payload_replay = '--payload-replay' in sys.argv[4:]
+payload_record = '--payload-record' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
@@ -35,7 +36,8 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -47,6 +49,7 @@ preflight_output_tickets = {}
 commit_cases = []
 payload_request_cases = []
 payload_replay_cases = []
+payload_record_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -194,7 +197,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 27
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 28
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -832,6 +835,9 @@ try:
                     assert fixture.call('close', input_handle) == 0
                     payload_request_cases.append('closed_request_preserves_absent_null_and_rejects_supplied_result_identity')
                     child, input_handle = payload_loan(payload_facts)
+                    if payload_record:
+                        assert_status('payload_record', 'reserve', -2, child, 65400, 131300)
+                        payload_record_cases.append('unfinished_request_cannot_export_initial_record')
                     if payload_replay:
                         assert_status('payload_request', 'start_replay', -33, child, configuration)
                         assert_status('payload_chunk', 'reserve', -2, child, 65500, 131300)
@@ -858,6 +864,111 @@ try:
                     assert_status('payload_request', 'produce', 0, child, configuration)
                     assert bytes(fixture.call('byte', child, i) for i in range(size)) == payload_wire
                     payload_request_cases.append('current_authority_revalidated_after_cached_projection')
+                    if payload_record:
+                        import sqlite3
+                        from tempfile import TemporaryDirectory
+                        from unittest.mock import patch
+                        from actql_sdk._local_storage import ByteWrite, LocalByteStore, StoredBytes
+
+                        record_expected = json.loads((root / 'scripts/fixtures/python-local-payload-record.json').read_text())
+                        record_request, record_input = payload_loan(payload_facts)
+                        assert_status('payload_request', 'produce', 0, record_request, configuration)
+                        ticket += 1
+                        record_ticket = ticket
+                        fixture.inputs[ticket] = b''
+                        record_child = call('payload_record', 'reserve', record_request, ticket, record_expected['physical_copy_bytes'])
+                        assert record_child > 0, ('Original payload record reserve', record_child)
+                        assert_status('payload_record', 'produce', -32, record_child, denied_configuration)
+                        assert_status('payload_record', 'produce', 0, record_child, configuration)
+                        record_length = call('payload_record', 'length', record_child)
+                        assert 0 < record_length <= record_expected['max_record_bytes']
+                        record_wire = bytes(fixture.call('byte', record_child, i) for i in range(record_length))
+                        record_body = json.loads(record_wire)
+                        assert set(record_body) == set(record_expected['initial_fields']) | {'request_cid', 'request_json', 'version'}
+                        assert record_body['version'] == record_expected['record_version']
+                        for field, expected_value in record_expected['initial_fields'].items():
+                            assert record_body[field] == expected_value, (field, record_body[field])
+                        assert record_body['request_json'].encode() == payload_wire
+                        assert_status('payload_record', 'validate', -32, record_child, denied_configuration)
+                        assert_status('payload_record', 'validate', 0, record_child, configuration)
+                        payload_record_cases.append('original_intent_and_current_authority_preserved')
+
+                        observation = {'store_authority_cid': payload_facts['store_authority_cid'],
+                                       'material_generation_cid': payload_facts['material_generation_cid'],
+                                       'physical_revision': 0, 'record_json': record_wire.decode()}
+                        ack = copy(observation)
+                        assert_status('payload_record', 'confirm', -33, record_child, ack, configuration)
+                        fixture.cleanup_ready = True
+                        assert fixture.call('close', ack) == 0
+                        assert_status('payload_record', 'begin', 0, record_child, configuration)
+                        assert_status('payload_record', 'begin', -33, record_child, configuration)
+                        for bad in (
+                                {**observation, 'store_authority_cid': 'sha256:' + 'a' * 64},
+                                {**observation, 'material_generation_cid': 'sha256:' + 'a' * 64},
+                                {**observation, 'physical_revision': 1},
+                                {**observation, 'record_json': record_wire.decode().replace('"state":"intent"', '"state":"reserved"')}):
+                            bad_ack = copy(bad)
+                            assert_status('payload_record', 'confirm', -32, record_child, bad_ack, configuration)
+                            assert fixture.call('close', bad_ack) == 0
+                        payload_record_cases.append('foreign_store_key_revision_and_bytes_do_not_confirm')
+
+                        class LostRecordCommit(sqlite3.Connection):
+                            writes = 0
+                            lose = False
+
+                            def execute(self, sql, *args, **kwargs):
+                                if sql.startswith(('INSERT', 'UPDATE')):
+                                    self.writes += 1
+                                result = super().execute(sql, *args, **kwargs)
+                                if sql == 'COMMIT' and self.lose:
+                                    self.lose = False
+                                    raise OSError('Original initial record acknowledgement lost')
+                                return result
+
+                        physical_connect = sqlite3.connect
+                        with TemporaryDirectory(prefix='actql-abi28-initial-record-') as directory:
+                            with patch('actql_sdk._local_storage.sqlite3.connect',
+                                       side_effect=lambda *a, **k: physical_connect(*a, **k, factory=LostRecordCommit)):
+                                with LocalByteStore(Path(directory) / 'core.sqlite', max_records=4,
+                                                    max_record_bytes=65536, max_payload_bytes=262144) as store:
+                                    write = ByteWrite(payload_facts['material_generation_cid'], None, record_wire)
+                                    assert store.read_exchange(write) is None
+                                    store._connection.lose = True
+                                    try:
+                                        store.compare_exchange(write.key, None, write.payload)
+                                    except OSError as error:
+                                        assert str(error) == 'Original initial record acknowledgement lost'
+                                    else:
+                                        raise AssertionError('Missing original lost-ack counterexample')
+                                    assert store._connection.writes == 1
+                                    assert_status('payload_record', 'close', -9, record_child)
+                                    assert_status('payload_request', 'close', -9, record_request)
+                                    assert fixture.call('close', record_input) == -9
+                                    actual = store.read_exchange(write)
+                                    assert actual == StoredBytes(record_expected['physical_revision'], record_wire)
+                                    assert store._connection.writes == 1
+                                    payload_record_cases.append('lost_cas_acknowledgement_never_repeats_write')
+                                    actual_ack = copy({**observation, 'physical_revision': actual.generation,
+                                                      'record_json': actual.payload.decode()})
+                                    assert_status('payload_record', 'confirm', -32, record_child, actual_ack, denied_configuration)
+                                    assert_status('payload_record', 'confirm', 0, record_child, actual_ack, configuration)
+                                    assert_status('payload_record', 'confirm', 0, record_child, actual_ack, configuration)
+                                    assert fixture.call('close', actual_ack) == 0
+                                    assert store.read(write.key) == StoredBytes(0, record_wire)
+                                    payload_record_cases.append('same_initial_record_confirmed_without_capacity_or_publication')
+                        allocated = fixture.call('allocated')
+                        fixture.cleanup_ready = False
+                        assert_status('payload_record', 'close', -9, record_child)
+                        assert fixture.call('allocated') == allocated
+                        fixture.cleanup_ready = True
+                        assert_status('payload_record', 'close', 0, record_child)
+                        assert fixture.call('allocated') == allocated - (2 * 65536 + record_expected['physical_copy_bytes'])
+                        assert_status('payload_record', 'close', -2, record_child)
+                        assert_status('payload_request', 'close', 0, record_request)
+                        assert fixture.call('close', record_input) == 0
+                        assert fixture.queries == expected['source_queries']
+                        payload_record_cases.append('pending_close_and_cleanup_retain_original_request_and_input')
+                        assert payload_record_cases == record_expected['cases']
                     if payload_replay:
                         replay_expected = json.loads((root / 'scripts/fixtures/python-local-payload-replay.json').read_text())
                         assert_status('payload_request', 'start_replay', -32, child, denied_configuration)
@@ -1272,6 +1383,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'commit_candidate_cases': commit_cases,
                   'payload_request_cases': payload_request_cases,
                   'payload_replay_cases': payload_replay_cases,
+                  'payload_record_cases': payload_record_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

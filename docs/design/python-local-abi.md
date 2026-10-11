@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 27; this private ABI
+before opening the instance. `actql_host_abi_version` returns 28; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1109,3 +1109,17 @@ bytes at a later physical generation do not confirm the old CAS. Missing or
 mismatching observations remain unresolved, and neither API grants publisher
 authority or changes the Run. The portable Wasm persistence connection and
 filesystem payload installation are separate integration obligations.
+
+Private ABI28 projects the existing payload Owner's original initial Intent
+record under its nominal request. Production and cached reads recheck current
+Run/Source authorization. The physical Host marks a single CAS attempt before
+writing; repeated begin is refused. An uncertain write pins the same record,
+parent request and original input, including after a close request. Confirmation
+requires an actual observation from the original Store authority, material key,
+physical revision zero and exact canonical initial bytes. It leaves the Core
+record at Intent: no payload capacity reservation, Writing/Sealed transition,
+Store installation, publisher authority or Run completion is inferred. Pending
+close can be retried on that same record after confirmation; transport cleanup
+failure retains the original allocation. This private boundary still requires
+the portable durable-capacity, filesystem and recovery integrations before it
+can form the product Local persistence path.

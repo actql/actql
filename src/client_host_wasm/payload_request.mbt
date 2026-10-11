@@ -176,7 +176,8 @@ pub fn close_payload_request(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
-  if value.payload_chunks.values().any(chunk => chunk.request == handle) {
+  if value.payload_chunks.values().any(chunk => chunk.request == handle) ||
+    value.payload_records.values().any(record => record.request == handle) {
     return -9
   }
   if record.replay is Some(replay) {

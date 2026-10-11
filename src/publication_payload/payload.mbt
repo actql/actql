@@ -704,6 +704,35 @@ pub fn commit_observed_publication_payload_transition(
 }
 
 ///|
+/// Match the original initial record against one real Store observation.
+/// This does not reserve payload capacity, advance a transition or publish.
+pub fn confirm_initial_publication_payload_record(
+  record : PublicationPayloadRecord,
+  store_authority : String,
+  material_identity : String,
+  physical_revision : Int64,
+  durable : DurablePublicationPayloadRecord,
+) -> Result[PublicationPayloadRecord, PublicationPayloadIssue] {
+  if record.state != Intent ||
+    record.revision != 0 ||
+    store_authority != record.request.store_authority_cid ||
+    material_identity != record.request.material_generation_cid ||
+    physical_revision != 0L ||
+    durable.revision != 0 ||
+    durable.request.request_cid != record.request.request_cid {
+    return Err(StateCollision)
+  }
+  let expected = match publication_payload_record_durable_json(record) {
+    Ok(body) => body
+    Err(issue) => return Err(issue)
+  }
+  if durable.body != expected {
+    return Err(StateCollision)
+  }
+  Ok(record)
+}
+
+///|
 pub fn publication_payload_record_state(
   record : PublicationPayloadRecord,
 ) -> PublicationPayloadState {
