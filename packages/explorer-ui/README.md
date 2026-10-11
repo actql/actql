@@ -30,3 +30,36 @@ The future common UI uses the adopted React/Vite/TanStack/Tailwind/shadcn stack,
 with React/Query peers, original-port Flow and exported built CSS. Its installation,
 Hono loopback/session security, real build and public read acceptance are still
 outstanding. This component fixture acceptance alone cannot establish those.
+# Shared read-only Plan component
+
+`@actql/explorer-ui/plan-explorer` exports `PlanExplorer({model, scopeKey})`.
+Import `@actql/explorer-ui/styles.css` once in the embedding app. `model` is
+the original admitted SDK/read-model projection; `scopeKey` invalidates only
+presentation selection and viewport, and is not authority. The adapter must
+discard delayed/unauthorized responses before passing a model into the view.
+
+The default keyboard-accessible list and optional React Flow view preserve
+original logical IDs, ports, both Join roles and unresolved Stage locators.
+Positions are presentation only. Static Plan does not have a fabricated Run,
+physical timing, source origin or approval/control capability. The component
+accepts no Client, endpoint or mutation hooks. Scope/Plan/map changes remount
+selection. HTML is rendered as text, without raw HTML or remote image loading.
+
+React/React DOM are peers (`>=19.3.0 <20`), with the embedding app selecting one
+runtime. The finite tested dependency cohort follows observed Cloud Console
+pins: React 19.3.0, Base UI 1.8.0, Lucide 1.51.0, Vite 8.3.2 and Tailwind 4.3.3.
+React Flow 12.12.0 has compatible React peers. UI production dependencies stay
+external in the library build; no React copy is bundled. No private Cloud
+package is imported. The scoped neutral design tokens follow the existing
+Console's Base UI/shadcn direction; global Tailwind preflight is not exported.
+The package exports built CSS, so consumers do not scan its Tailwind source.
+
+`npm run build --prefix packages/explorer-ui` produces the ESM component and
+CSS. The package's normal `prepack` performs this same build. This is a library,
+not a Vite server, a launcher or a second `actql` binary. TanStack adapter/query
+integration and Cloud Console route installation are later finite units.
+
+The component tests exercise original-port refusals, bounded maps and actual
+React static rendering. They do not establish browser focus/Flow interaction,
+current-main Host end-to-end, Cloud installation or Full Explorer acceptance.
+
