@@ -2031,6 +2031,40 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
+    readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
+      if (typeof moon.clientProgramCurrentRunView !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'),
+          {code: 'ClientOperationUnavailable'});
+      }
+      return compiledRunResult(moon.clientProgramCurrentRunView(
+        token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
+        JSON.stringify(ref), JSON.stringify(state), snapshotCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostInspectRejected');
+    },
+    readCheckedClientStaticPlan(checkedProgram, kind, limits) {
+      if (!['values', 'tasks'].includes(kind) ||
+          !Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||
+          !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
+          !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
+        throw new TypeError('InvalidClientStaticPlanRequest');
+      }
+      const compile = kind === 'values' ? moon.clientProgramCompileLocalValues
+        : moon.clientProgramCompileLocalTasks;
+      const project = kind === 'values' ? moon.clientProgramValuesStaticPlanView
+        : moon.clientProgramTaskStaticPlanView;
+      if (typeof compile !== 'function' || typeof project !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'),
+          {code: 'ClientOperationUnavailable'});
+      }
+      // Compile the original checked owner only. In particular, do not issue
+      // an allowed Run, allocate a request identity or open an execution.
+      const compiled = compiledRunResult(compile(checkedProgram),
+        'RunHostCompilationRejected');
+      return compiledRunResult(project(checkedProgram, compiled,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostStaticPlanRejected');
+    },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
       if (!['values', 'tasks', 'infer'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');

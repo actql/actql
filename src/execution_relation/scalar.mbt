@@ -142,6 +142,50 @@ pub fn unary(
         Number(n) => finite(if n < 0.0 { -n } else { n })
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Sin
+    | Cos
+    | Tan
+    | Asin
+    | Acos
+    | Atan
+    | Sinh
+    | Cosh
+    | Tanh
+    | Asinh
+    | Acosh
+    | Atanh =>
+      match value {
+        Null => Ok(Null)
+        Number(n) => {
+          if n.is_nan() || n.is_inf() {
+            return Err(InvalidOperand)
+          }
+          if ((op == @lower.Asin || op == @lower.Acos) && (n < -1.0 || n > 1.0)) ||
+            (op == @lower.Acosh && n < 1.0) ||
+            (op == @lower.Atanh && (n <= -1.0 || n >= 1.0)) {
+            return Err(ArithmeticFailure)
+          }
+          // The pinned core owns argument reduction and numerical algorithms.
+          // Existing finite-result validation also canonicalizes output zero.
+          let result = match op {
+            Sin => @math.sin(n)
+            Cos => @math.cos(n)
+            Tan => @math.tan(n)
+            Asin => @math.asin(n)
+            Acos => @math.acos(n)
+            Atan => @math.atan(n)
+            Sinh => @math.sinh(n)
+            Cosh => @math.cosh(n)
+            Tanh => @math.tanh(n)
+            Asinh => @math.asinh(n)
+            Acosh => @math.acosh(n)
+            Atanh => @math.atanh(n)
+            _ => return Err(InvalidOperand)
+          }
+          finite(result)
+        }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Cbrt | Exp | Ln | Log10 =>
       match value {
         Null => Ok(Null)
@@ -377,6 +421,7 @@ pub fn binary(
     | Divide
     | Modulo
     | Pow
+    | Atan2
     | Log
     | SafeAdd
     | SafeSubtract
@@ -410,6 +455,11 @@ pub fn binary(
             // every bounded integer range. Reuse canonical finite/zero handling.
             finite(@math.pow(a, b))
           }
+        Atan2 =>
+          // GoogleSQL ATAN2(X, Y) preserves authored order. Calling the core
+          // primitive avoids quotient overflow/underflow and preserves the
+          // quadrant, including raw signed zeros at this internal boundary.
+          finite(@math.atan2(a, b))
         Log =>
           if a <= 0.0 || b <= 0.0 || b == 1.0 {
             Err(ArithmeticFailure)
@@ -505,6 +555,7 @@ fn binary_comparison_result(
     | SafeMultiply
     | Modulo
     | Pow
+    | Atan2
     | Log
     | In
     | NotIn
