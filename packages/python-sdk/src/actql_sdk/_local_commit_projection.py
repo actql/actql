@@ -1,6 +1,7 @@
 """Borrow original Core fields for a synchronous physical Store consumer."""
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from typing import Literal
 
 from ._local_core import LocalCore, LocalCoreError, _Output
 from ._local_storage import ByteWrite, LocalByteStore
@@ -144,6 +145,23 @@ class OriginalCommitProjection:
         The synchronous consumer must not retain this projection loan or key.
         Any failure retains the same original output for explicit cleanup.
         """
+        self._lookup_key(consume, None)
+
+    def project_stored_contract_lookup_key(
+            self, field: Literal['request', 'attempt'], consume: Callable[[str], object]) -> None:
+        """Borrow a Core-selected actual stored request/attempt lookup key.
+
+        The same original index input/current publisher is retained by Core.
+        Python supplies no scope or candidate identity and does not parse the
+        stored index. Consume this key synchronously under the original File
+        fences and Store snapshot; raw row adoption still belongs to Core.
+        """
+        if type(field) is not str or field not in ('request', 'attempt'):
+            raise ValueError('Invalid original stored publication reference field')
+        self._lookup_key(consume, field)
+
+    def _lookup_key(self, consume: Callable[[str], object],
+                    field: Literal['request', 'attempt'] | None) -> None:
         if not callable(consume):
             raise ValueError('Invalid original Local index lookup consumer')
         with self._core._lock:
@@ -151,9 +169,15 @@ class OriginalCommitProjection:
             self._projecting = True
             try:
                 output = self._output()
-                self._core.produce_publication_commit_index_key(output, self._configuration)
+                if field is None:
+                    self._core.produce_publication_commit_index_key(output, self._configuration)
+                else:
+                    self._core.produce_publication_lookup_reference(
+                        output, self._configuration, field=field)
                 raw = self._core.read_publication_commit_material(output)
-                key = LocalByteStore.namespaced_key('public_index', self._address(raw, index_key=True))
+                key = LocalByteStore.namespaced_key(
+                    'public_index' if field is None else 'publication_contract',
+                    self._address(raw, index_key=field is None))
                 if consume(key) is not None:
                     raise ValueError('Invalid synchronous Local index lookup consumer result')
                 del key, raw
