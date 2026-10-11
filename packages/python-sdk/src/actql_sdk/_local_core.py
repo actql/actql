@@ -265,6 +265,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
     'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
+    'validate_payload_binding': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -565,7 +566,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 38:
+            if self._exports['actql_host_abi_version'](self._store) != 39:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1303,6 +1304,25 @@ class LocalCore:
             self._check('produce_publication_commit_schema', self._call(
                 'publication_commit_export', 'produce_schema', value.handle,
                 current_configuration, result, 0 if field == 'identity' else 1))
+
+    def validate_publication_commit_payload_binding(
+            self, publication: _Output, record: _Output,
+            current_configuration: int, result: int, binding_index: int) -> None:
+        """Match original Core custody; no physical Store lookup or commit ACK.
+
+        Result and binding indexes belong to distinct original inventories.
+        The same physical generation/reservation still needs a Host fence;
+        success here is neither publisher authority nor permission to retry.
+        """
+        with self._lock:
+            self._publication_configuration(publication, current_configuration)
+            self._owned_output(record, 'payload_record')
+            if (type(result) is not int or not 0 <= result < 2**31
+                    or type(binding_index) is not int or not 0 <= binding_index < 2**31):
+                raise ValueError('Invalid original Result or commit binding index')
+            self._check('validate_publication_commit_payload_binding', self._call(
+                'publication_commit_export', 'validate_payload_binding', publication.handle,
+                record.handle, current_configuration, result, binding_index))
 
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""

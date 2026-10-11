@@ -148,6 +148,8 @@ pub fn start_local_result_publication_snapshot(LocalResultPublication, @executio
 
 pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
 
+pub fn validate_local_preflight_commit_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, LocalResultCommitBindingIssue]
+
 pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
 
 pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]
@@ -226,6 +228,11 @@ pub(all) enum LocalPublicationPayloadIssue {
 }
 
 type LocalPublicationPreflight
+
+pub(all) enum LocalResultCommitBindingIssue {
+  Payload(LocalPublicationPayloadIssue)
+  BindingMismatch
+}
 
 pub struct LocalResultPublication {
   host : LocalComputeHost

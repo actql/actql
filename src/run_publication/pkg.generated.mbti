@@ -1359,6 +1359,7 @@ pub fn PublicationCommitPreparation::cancel(Self) -> Unit
 pub fn PublicationCommitPreparation::finish(Self) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::finish_view(Self) -> Result[PublicationCommitReadView, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::release_view(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::view_binding(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::view_contract(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::view_count(Self, PublicationCommitReadView) -> Result[Int, PublicationCommitIssue]
 

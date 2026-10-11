@@ -68,6 +68,18 @@ class OriginalCommitProjection:
                 publisher, self._configuration, stage='commit',
                 publication=self._publication)
 
+    def validate_payload_binding(self, record: _Output, result: int,
+                                 binding_index: int) -> None:
+        """Read original Core binding facts, without Store I/O or an ACK.
+
+        This must not replace the Host's current physical-generation fence or
+        current publisher stage. Failure keeps the same original handles.
+        """
+        with self._core._lock:
+            self._ready()
+            self._core.validate_publication_commit_payload_binding(
+                self._publication, record, self._configuration, result, binding_index)
+
     def project_contract(self, ordinal: int, consume: Callable[[ByteWrite], object], *,
                          expected_generation: int | None = None) -> None:
         """Consume original identity/body without recreating or parsing a contract."""

@@ -124,6 +124,25 @@ pub fn PublicationCommitPreparation::view_contract(
 }
 
 ///|
+/// Borrow one original binding by its supplied inventory index. This index is
+/// independent of checked Result occurrence order. No scan, re-sealing or
+/// inference of physical Store completion is performed.
+pub fn PublicationCommitPreparation::view_binding(
+  preparation : PublicationCommitPreparation,
+  view : PublicationCommitReadView,
+  binding_index : Int,
+) -> Result[PublicationContract, PublicationCommitIssue] {
+  let inputs = match preparation.read_view_inputs(view) {
+    Ok(inputs) => inputs
+    Err(issue) => return Err(issue)
+  }
+  if binding_index < 0 || binding_index >= inputs.bindings.length() {
+    return Err(CommitEncoding)
+  }
+  Ok(inputs.bindings[binding_index])
+}
+
+///|
 /// Release only after the original output/borrow owner confirms physical
 /// cleanup. Cancellation blocks reads immediately but does not release inputs.
 /// Retrying this release on the same owner/view is idempotent.
