@@ -1,0 +1,266 @@
+{
+  "version": "check-only-prefix-evidence/0.1",
+  "main_base": "d63c620d6f633d715d4e2a9cedbb0591bfb6dcb4",
+  "tested_source": "a9cd3335a4160f6064fb52fc6e9110875f1f3156",
+  "tested_tree": "2e17b154e50053ff55c618714d31fcf3ae790d2b",
+  "guard": {
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false
+  },
+  "result": {
+    "run": "run-DG7KiC",
+    "target": "js",
+    "executed": 18,
+    "passed": 18,
+    "failed": 0,
+    "new_prefix_cases": 9,
+    "existing_controls": 9,
+    "clean": true,
+    "exit": 0
+  },
+  "release": {
+    "owner_pid": 13900,
+    "actual_pid_absent": true,
+    "actual_pgid_members_absent": true,
+    "actual_own_lock_absent": true,
+    "guard_lock_release": true,
+    "verified_before_evidence_write": true
+  },
+  "historical_failures": [
+    {
+      "run": "run-Up0Iaz",
+      "failure": "Node wrapper argument delimiter missing; tests not started."
+    },
+    {
+      "run": "run-EHExui",
+      "tests": 18,
+      "passed": 13,
+      "failure": "Five new helpers had different Document/parser source paths; builder InvalidSpan before prefix check."
+    },
+    {
+      "run": "run-d8qP0j",
+      "tests": 5,
+      "passed": 3,
+      "failure": "Cursor wrapper identity and budget refusal classifier assertions were wrong."
+    },
+    {
+      "run": "run-YES2EC",
+      "failure": "Diagnostic test did not compile; no test summary."
+    },
+    {
+      "run": "run-ITo4Xh",
+      "tests": 5,
+      "passed": 4,
+      "failure": "One-less budget refusal belonged to captured ProducerOrder, not root PipelineOrder."
+    },
+    {
+      "run": "run-3zrwnF",
+      "tests": 5,
+      "passed": 4,
+      "failure": "Diagnostic confirmed stage 1 producer order refusal."
+    },
+    {
+      "run": "run-Gt3NvA",
+      "tests": 18,
+      "passed": 17,
+      "failure": "Separate checks issue different typed pipeline allocations; original arena Cursor is retained."
+    }
+  ],
+  "authoring_failure": "An initial scripted Catalog test import edit failed after some files were written. Commit 8c089 contains retained usage and generated interfaces; following 8e504 adds the actual Catalog control. No runtime success is inferred from that authoring command.",
+  "unverified": [
+    "Frontend WITH demand adoption",
+    "Four-Carrier/P2 cutover",
+    "Host/public Local/HTTPS",
+    "Wasm/Native execution and consuming compile for this API",
+    "Hosted CI",
+    "All-Core/proof"
+  ],
+  "files": [
+    {
+      "path": "evidence/run-ajbPV9/summary.json",
+      "sha256": "d268ec440ab97931d643329d95d5dd3cdc93571b0413cbf9c5447e1d929b220f",
+      "bytes": 1721
+    },
+    {
+      "path": "evidence/run-ajbPV9/output.log",
+      "sha256": "4aa9b84f484c19fa7c57e8647c511a9b81083daaf1bd33a966b741e64b03454f",
+      "bytes": 45
+    },
+    {
+      "path": "evidence/run-ReCQ6j/summary.json",
+      "sha256": "24ad777547740b9a1e79068fcb3647d0383d252b1d0f4d7caac64c95d7ba9279",
+      "bytes": 1435
+    },
+    {
+      "path": "evidence/run-ReCQ6j/output.log",
+      "sha256": "2d8d44cd28df7fc23e3a7ab3d5f7d739ed5f4ba428bf2106242b03b8432e7451",
+      "bytes": 436
+    },
+    {
+      "path": "evidence/run-htRm1W/summary.json",
+      "sha256": "4ff449da70ed1fe929aa1cc7c5d6967c6f20339f57a2f67d839919bf2b7598e1",
+      "bytes": 1824
+    },
+    {
+      "path": "evidence/run-htRm1W/output.log",
+      "sha256": "e078495424355beed532555bd2d48bd62a3c395c6fd16b1b2403450f97f541f5",
+      "bytes": 46
+    },
+    {
+      "path": "evidence/run-Up0Iaz/summary.json",
+      "sha256": "ae54f5fb15eec1d0a0ede701168e743b7036278d8a7554f492bdb5db75355aa0",
+      "bytes": 1832
+    },
+    {
+      "path": "evidence/run-Up0Iaz/output.log",
+      "sha256": "a3aa7194adef7966b51ab757809f2c3e6cc413361edbc87676a07e3e0e025e62",
+      "bytes": 27
+    },
+    {
+      "path": "evidence/run-EHExui/summary.json",
+      "sha256": "a2cd67291df4e28c77f7fad0cd6fa2e753b9fd643cfd9824d8542792ec26011f",
+      "bytes": 1846
+    },
+    {
+      "path": "evidence/run-EHExui/output.log",
+      "sha256": "64eab18893f1ca8f1d5687d459b42d64c8d3dbb90a3145316ab0eba3e0f8632d",
+      "bytes": 10579
+    },
+    {
+      "path": "evidence/run-d8qP0j/summary.json",
+      "sha256": "7ff308278e1e1c96e4c7aeb891d439636a28839fb8b289a1299b79a4c2dc758a",
+      "bytes": 1696
+    },
+    {
+      "path": "evidence/run-d8qP0j/output.log",
+      "sha256": "1063a697c5ae288614d3c1a2a81e6fa794bdc71e59cfc9a49a7ff755aeebd210",
+      "bytes": 899
+    },
+    {
+      "path": "evidence/run-YES2EC/summary.json",
+      "sha256": "f05d0e935860ef3a82de6e0a53e75078e7b096ba6760dda42ae2f474d95f32dc",
+      "bytes": 1696
+    },
+    {
+      "path": "evidence/run-YES2EC/output.log",
+      "sha256": "d721cde4519268c7b0893c4a1de55bce43cb0ab79642de96bb587254bf5042bd",
+      "bytes": 1793
+    },
+    {
+      "path": "evidence/run-ITo4Xh/summary.json",
+      "sha256": "5e4c8892e133024d07aa91b9d6629990b8efa3bbcff3c54c34f0c7179c10ec30",
+      "bytes": 1696
+    },
+    {
+      "path": "evidence/run-ITo4Xh/output.log",
+      "sha256": "85dd87c75e2d20c246804e2cb22fa418c3da3d2186cfe5e4fced24e662109549",
+      "bytes": 691
+    },
+    {
+      "path": "evidence/run-3zrwnF/summary.json",
+      "sha256": "0d771abda4c30f544dd60039e707e1194633c38000594472d8ce75c7222df29c",
+      "bytes": 1696
+    },
+    {
+      "path": "evidence/run-3zrwnF/output.log",
+      "sha256": "7bb7ba38c91a23674204f4577517c9608a009b8df1dc3ab583cbfb5efb09f564",
+      "bytes": 663
+    },
+    {
+      "path": "evidence/run-Gt3NvA/summary.json",
+      "sha256": "c996162aea6d4f35be1d5e77e1b3bf6cf6bd0d0c4afc63c4014cdf7b07d93393",
+      "bytes": 1847
+    },
+    {
+      "path": "evidence/run-Gt3NvA/output.log",
+      "sha256": "497c0f357bc0f0e5471447bc767a5eaf3734cfaaca9e2e50279e32ced51772c8",
+      "bytes": 784
+    },
+    {
+      "path": "evidence/run-IIyFdS/summary.json",
+      "sha256": "ac3bfe7f15368e428ab0427bc19c0fa4e1eff36ce9fbc86bb0af606fd7227e6e",
+      "bytes": 1695
+    },
+    {
+      "path": "evidence/run-IIyFdS/output.log",
+      "sha256": "7feaf97a7a1b5898e68068f0a5808db2956ee0f578263c7e77a269ae6b6ee18b",
+      "bytes": 407
+    },
+    {
+      "path": "evidence/run-fPzKLQ/summary.json",
+      "sha256": "9831719fa3e62bbbbd5db99f9cd73468566310ec1766fc13df46ac1b897447bc",
+      "bytes": 1825
+    },
+    {
+      "path": "evidence/run-fPzKLQ/output.log",
+      "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e",
+      "bytes": 44
+    },
+    {
+      "path": "evidence/run-frHVBe/summary.json",
+      "sha256": "590670c3357fb327bb09a43a21763872cb26fbe40e7ba830d96826cd54a4d43b",
+      "bytes": 1436
+    },
+    {
+      "path": "evidence/run-frHVBe/output.log",
+      "sha256": "b05caf99fa1a137ef24f969da747e31f858151f3056e1f17fec3062f2f875977",
+      "bytes": 44
+    },
+    {
+      "path": "evidence/run-DG7KiC/summary.json",
+      "sha256": "5cdd4073cee3ace183ee00f842a3d5a4594ca19e9f712741c223b1786bd5bf3a",
+      "bytes": 1846
+    },
+    {
+      "path": "evidence/run-DG7KiC/output.log",
+      "sha256": "86350f68b9f5680efceb4614b9fd0cea76ee52ce2228b9f81caaf75adcbd9eca",
+      "bytes": 535
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/0001.summary.json",
+      "sha256": "6f1d88c8668c9b23446d6f6b865b062b4012caad5f4972ada065048fb436ec23",
+      "bytes": 626
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/0002.summary.json",
+      "sha256": "7743ea5a025648519990d18334579e19c5cc2b607e3d7fa86794dc542b880e1d",
+      "bytes": 1755
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/0003.summary.json",
+      "sha256": "676794e582545ed7330ebfb3774ae0d4d3eff8940c031dcb442e4ca78ad8b0b6",
+      "bytes": 1976
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/0004.summary.json",
+      "sha256": "3b68b1b0d3265e44597c15ba4d80da70aff8974328432b0ffe18b7590adffee6",
+      "bytes": 1996
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/001.result.json",
+      "sha256": "a7fecc82d189250e1245f2fd624a3801e4614514fd7018d7326b19c534e178f6",
+      "bytes": 1175
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/001.started.json",
+      "sha256": "381a354a2f429025922b087324c670dd18e9d00852073982c856b5d01f8f18ee",
+      "bytes": 990
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/001.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/001.stdout.log",
+      "sha256": "8c71a392f6b0e5e5e495f4cb5785083e4c503ff3319676cc1f1844ba6f5a1835",
+      "bytes": 40
+    },
+    {
+      "path": "evidence/focused-test-mW32qw/summary.json",
+      "sha256": "3b68b1b0d3265e44597c15ba4d80da70aff8974328432b0ffe18b7590adffee6",
+      "bytes": 1996
+    }
+  ]
+}
