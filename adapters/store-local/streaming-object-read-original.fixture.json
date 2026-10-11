@@ -1,0 +1,7 @@
+{
+  "source": "de279fad62a328a7becf17921c9cc89e54dc851d",
+  "path": "adapters/store-local/publication-store.mjs",
+  "function": "verifyObject",
+  "sha256": "cac69c3ae5513bfd019501602b9a2e37cc550b1168614a95dfd74d4064d5ac61",
+  "body": "  const verifyObject = async cid => {\n    const path = objectPath(cid);\n    let state;\n    try { state = await lstat(path); }\n    catch (error) {\n      if (error?.code === 'ENOENT') fail('PublicationObjectMissing');\n      throw error;\n    }\n    if (!state.isFile() || state.size > configuration.maxObjectBytes) {\n      fail('InvalidPublicationStoreObject');\n    }\n    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);\n    const hash = createHash('sha256');\n    let bytes = 0;\n    try {\n      const before = await handle.stat();\n      const stream = handle.createReadStream({autoClose: false});\n      for await (const chunk of stream) {\n        hash.update(chunk);\n        bytes += chunk.byteLength;\n      }\n      const after = await handle.stat();\n      if (!before.isFile() || !after.isFile() || before.dev !== after.dev ||\n          before.ino !== after.ino || before.size !== after.size ||\n          before.mtimeMs !== after.mtimeMs || bytes !== after.size ||\n          hash.digest('hex') !== cidHex(cid)) {\n        fail('PublicationObjectCorrupt');\n      }\n      return Object.freeze({cid, bytes});\n    } finally {\n      await handle.close();\n    }\n  };\n"
+}
