@@ -1,0 +1,48 @@
+{
+  "startedAt": "2026-10-11T20:28:49.515Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Independent WITH grammar/profile and complete historical Run preimages",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"node\",process.argv.slice(1),{cwd:process.cwd()});",
+        "--",
+        "scripts/frontend-profile.test.mjs",
+        "scripts/sga-query-call-contract.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs"
+      ],
+      "startedAt": "2026-10-11T20:28:49.582Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:28:55.495Z",
+      "endedAt": "2026-10-11T20:28:55.498Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "a931ba78-fad2-4de1-bf94-fd4982337367",
+    "pid": 32397,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T20:28:49.575Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iSmyah"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T20:28:55.560Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

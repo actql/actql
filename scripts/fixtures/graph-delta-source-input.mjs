@@ -22,14 +22,14 @@ export async function graphDeltaSourceControls(fixtureRoot = new URL('./', impor
   });
   return [...graphDeltaJsonSuccesses, ...controls];
 }
-const prefix = 'DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH '
-  + '(NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); '
-  + 'DATA changes = FROM g |> node_rows() |> SELECT id AS delta; ';
+const prefix = 'WITH n AS (SELECT 1 AS node_key, 7 AS p) , g AS (GRAPH '
+  + '(NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) '
+  + ', changes AS (FROM g |> node_rows() |> SELECT id AS delta) ';
 export const graphDeltaSourceExecutionFailures = [
   ['inline-malformed-json', 'FROM g |> apply_graph_delta(with: changes, field: "delta") '
     + '|> node_rows() |> SELECT node_key, p |> RESULT answer'],
-  ['quoted-data-before-match-malformed-json', 'DATA `saved changes` = FROM changes; '
-    + 'DATA applied = FROM g |> normalize_graph() |> apply_graph_delta(field: "delta", with: `saved changes`); '
+  ['quoted-data-before-match-malformed-json', ', `saved changes` AS (FROM changes) '
+    + ', applied AS (FROM g |> normalize_graph() |> apply_graph_delta(field: "delta", with: `saved changes`)) '
     + 'FROM GRAPH applied |> MATCH WALK (a:Person) |> SELECT a.p AS p |> RESULT answer'],
 ].map(([name, tail]) => ({name: 'graph-delta-' + name, format: 'aql-text',
   text: prefix + tail, resultNames: ['answer'], sourceReadSessionCount: 0}));

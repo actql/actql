@@ -1,0 +1,20 @@
+{
+  "source": "82cfcb5dd70a9b38357f3063c21855d9e3395fd2",
+  "run": "run-B7MTwD",
+  "focused": "focused-test-zlSGXy",
+  "exit_code": 1,
+  "counts": null,
+  "failure": "The new test format array lacked the required explicit Format type; product compilation succeeded previously but selected test compilation did not. No runtime test success is claimed.",
+  "owner_and_group_absent": 18801,
+  "locks_released": true,
+  "original": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-B7MTwD/summary.json",
+      "sha256": "0d2f19fc1ae3a3659d612dbc5d13a951d3df54dd75bb7bc6f76ab6bca0e9d144"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-B7MTwD/output.log",
+      "sha256": "c145d72fef558d35ceb16a594523d6e79de193374ff2384706805e191fa794ad"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "startedAt": "2026-10-11T18:10:34.209Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "with-p1-changed-format-read-only",
+      "command": [
+        "moon",
+        "fmt",
+        "--check",
+        "src/query_program/graph_union_source_test.mbt",
+        "src/query_program/graph_subtraction_source_test.mbt",
+        "src/query_program/graph_shortest_source_test.mbt",
+        "src/query_program/graph_mean_source_test.mbt",
+        "src/query_program/graph_graft_source_test.mbt",
+        "src/query_program/graph_reach_source_test.mbt",
+        "src/query_program/graph_match_binding_vocabulary_test.mbt",
+        "src/query_program/graph_merge_vocabulary_test.mbt",
+        "src/query_program/with_source_usage_wbtest.mbt",
+        "src/query_program/query_script_inputs.mbt"
+      ],
+      "startedAt": "2026-10-11T18:10:34.297Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 255,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:10:37.097Z",
+      "endedAt": "2026-10-11T18:10:37.103Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "02bbb206-3964-4b01-a013-9d8a2a899dde",
+    "pid": 85378,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:10:34.285Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-9MtXrL"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:10:37.187Z",
+  "outputComplete": true,
+  "exitCode": 255,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

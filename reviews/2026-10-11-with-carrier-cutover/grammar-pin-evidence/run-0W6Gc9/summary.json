@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-10-11T18:35:30.148Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH canonical fixture regeneration",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-11T18:35:30.219Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:35:32.067Z",
+      "endedAt": "2026-10-11T18:35:32.072Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "35fc87c2-c651-4989-bcb5-6c57d83ff066",
+    "pid": 5753,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:35:30.213Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-0W6Gc9"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:35:32.162Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

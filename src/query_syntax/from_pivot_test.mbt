@@ -4,8 +4,8 @@ test "FROM PIVOT isolates input and output aliases in a projected producer" {
     "SELECT result.opened FROM orders input PIVOT(COUNT(input.amount) FOR input.status IN ('open' AS opened)) result WHERE result.opened > 0",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(query), 1)
-  let child = cte_at(query, 0).unwrap().query
+  assert_eq(query_binding_count(query), 1)
+  let child = query_binding_at(query, 0).unwrap().query
   assert_eq(relation(child).map(name => name.value), ["orders"])
   assert_eq(relation_alias(child), Some({ value: "input", quoted: false, }))
   assert_true(operation_at(child, 0) is Some(Pivot(_)))
@@ -20,7 +20,7 @@ test "FROM PIVOT quoted aliases stay names rather than clause starters" {
     query_limits(),
   ).unwrap()
   assert_eq(
-    relation_alias(cte_at(query, 0).unwrap().query),
+    relation_alias(query_binding_at(query, 0).unwrap().query),
     Some({ value: "PIVOT", quoted: true, }),
   )
   assert_eq(relation_alias(query), Some({ value: "ORDER", quoted: true, }))

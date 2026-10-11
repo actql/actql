@@ -1,0 +1,37 @@
+{
+  "source": "708717acd83c3244b10b450de67d4584cac51942",
+  "tree": "d321b072875049d4c4e683366aa3fe548f0db2f6",
+  "run": "run-9JXnL5",
+  "focused": "focused-test-QYmeIa",
+  "result": {
+    "tests": 8,
+    "passed": 7,
+    "failed": 1,
+    "exit_code": 2
+  },
+  "failure": "The schema-preserving no-Catalog control expected MissingSourceViewRegistrations, but prepare_local_program reads an unpartitioned Connector as a Local declaration first. The source-inspected LocalInput/Declaration decode boundary precedes registration-count validation. Do not weaken the refusal or fabricate Carrier evidence. Connect the existing Source declaration owner and retain an explicit missing-Catalog witness.",
+  "termination": {
+    "owner": 31505,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-9JXnL5/summary.json",
+      "sha256": "ebd6f339bd4b7316ef920587d6e47dbd4905a5545b5ea2360505f4e2fe4ab37e"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-9JXnL5/output.log",
+      "sha256": "51280aa2210ad5c19baab3dac36b1ddd53f38cbf307b202e716bb2b16b217ac3"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-QYmeIa/summary.json",
+      "sha256": "fbb568891ed02497063d3ee01cf3034be38c02add8cbb46a1874dfee31452844"
+    }
+  ],
+  "unverified": [
+    "Demand elimination",
+    "Full static/profile closure",
+    "Packed Local/HTTPS execution"
+  ]
+}

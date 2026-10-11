@@ -1,5 +1,5 @@
 ///|
-// A DATA set is a logical producer composed with the existing relational
+// A WITH set is a logical producer composed with the existing relational
 // operations. Reuse output alignment and ORDER/LIMIT lowering from root/CTE
 // queries; do not introduce Stage Results, acquisition or retained artifacts.
 fn lower_script_set_relation(

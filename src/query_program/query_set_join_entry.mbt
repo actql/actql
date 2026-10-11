@@ -5,11 +5,13 @@
 // resolved here; CTE/JOIN scopes and all limits stay with their current owners.
 fn query_has_join_set_operand(query : @query.Query) -> Bool {
   // Derived tables are parser-owned CTE producers. A JOIN consuming a set
-  // producer needs the same shared binding as a set consuming a JOIN; the
-  // stage-per-term CTE route otherwise adds unnecessary Result boundaries.
+  // producer needs the same shared binding as a set consuming a JOIN.
   if @query.join_part_count(query) > 0 &&
-    Array::makei(@query.cte_count(query), index => {
-      @query.set_part_count(@query.cte_at(query, index).unwrap().query) > 0
+    Array::makei(@query.query_binding_count(query), index => {
+      @query.set_part_count(
+        @query.query_binding_at(query, index).unwrap().query,
+      ) >
+      0
     }).any(value => value) {
     return true
   }
@@ -24,8 +26,10 @@ fn query_has_join_set_operand(query : @query.Query) -> Bool {
       return true
     }
   }
-  for index in 0..<@query.cte_count(query) {
-    if query_has_join_set_operand(@query.cte_at(query, index).unwrap().query) {
+  for index in 0..<@query.query_binding_count(query) {
+    if query_has_join_set_operand(
+        @query.query_binding_at(query, index).unwrap().query,
+      ) {
       return true
     }
   }
@@ -33,13 +37,14 @@ fn query_has_join_set_operand(query : @query.Query) -> Bool {
 }
 
 ///|
-// The stage-per-CTE path requires both JOIN ports to be CTE Results. A
-// mixed CTE/ordinary-input JOIN needs the existing producer binding path,
+// A mixed binding/ordinary-input JOIN needs the existing producer binding path,
 // independent of operand order. Detect references, not generated-name text.
 fn query_has_mixed_cte_join_input(query : @query.Query) -> Bool {
   let is_cte = fn(relation : Array[@query.NamePart]) -> Bool {
-    Array::makei(@query.cte_count(query), index => {
-      same_relation_path(relation, [@query.cte_at(query, index).unwrap().name])
+    Array::makei(@query.query_binding_count(query), index => {
+      same_relation_path(relation, [
+        @query.query_binding_at(query, index).unwrap().name,
+      ])
     }).any(value => value)
   }
   if @query.join_part_count(query) > 0 {
@@ -51,9 +56,9 @@ fn query_has_mixed_cte_join_input(query : @query.Query) -> Bool {
       }
     }
   }
-  for index in 0..<@query.cte_count(query) {
+  for index in 0..<@query.query_binding_count(query) {
     if query_has_mixed_cte_join_input(
-        @query.cte_at(query, index).unwrap().query,
+        @query.query_binding_at(query, index).unwrap().query,
       ) {
       return true
     }

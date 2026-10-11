@@ -1,0 +1,9 @@
+Error: [4074]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_union_source_test.mbt:146:4 ]
+     │
+ 146 │ fn expect_with_graph_static_refusal(text : String) raise {
+     │    ────────────────┬───────────────  
+     │                    ╰───────────────── Missing type annotation for the return value.
+─────╯
+["moon","test","--target","js","src/query_program/graph_union_source_test.mbt","src/query_program/graph_subtraction_source_test.mbt","src/query_program/graph_shortest_source_test.mbt","src/query_program/graph_mean_source_test.mbt","src/query_program/graph_graft_source_test.mbt","src/query_program/graph_reach_source_test.mbt","src/query_program/graph_match_binding_vocabulary_test.mbt","src/query_program/graph_merge_vocabulary_test.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-gvcvQQ

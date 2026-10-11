@@ -130,7 +130,7 @@ test "UNNEST FULL JOIN retains the common identity premises" {
   }
   let keyed = compile_query_script(
     @query.parse_query_script(
-      "DATA keys = FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input |> ASSERT UNIQUE BY (key); FROM UNNEST(@items) element WITH OFFSET position |> ASSERT UNIQUE BY (position) |> FULL JOIN keys k ON element = k.key MAX_OUTPUT_ROWS 10 |> SELECT element, position, k.key |> ORDER BY position NULLS LAST, k.key",
+      "WITH keys AS (FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input |> ASSERT UNIQUE BY (key)) FROM UNNEST(@items) element WITH OFFSET position |> ASSERT UNIQUE BY (position) |> FULL JOIN keys k ON element = k.key MAX_OUTPUT_ROWS 10 |> SELECT element, position, k.key |> ORDER BY position NULLS LAST, k.key",
       syntax_limits(),
     ).unwrap(),
     context,

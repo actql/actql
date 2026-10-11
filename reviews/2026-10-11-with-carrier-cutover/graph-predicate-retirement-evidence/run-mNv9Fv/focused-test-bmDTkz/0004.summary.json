@@ -1,0 +1,59 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-bmDTkz",
+  "revision": "b9ceddd7fc171ef52a2a1aa6ce9df7c1d47057be",
+  "source": {
+    "revision": "b9ceddd7fc171ef52a2a1aa6ce9df7c1d47057be",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T22:00:36.790Z",
+  "endedAt": "2026-10-11T22:00:38.104Z",
+  "status": "failed",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/query_program/graph_property_predicate_test.mbt",
+        "src/query_program/graph_hop_node_predicate_test.mbt",
+        "src/query_program/graph_edge_predicate_test.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "b9ceddd7fc171ef52a2a1aa6ce9df7c1d47057be",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T22:00:36.956Z",
+      "endedAt": "2026-10-11T22:00:38.101Z",
+      "elapsedMs": 1140.640417,
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 1,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": null
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

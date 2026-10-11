@@ -1,0 +1,64 @@
+{
+  "startedAt": "2026-10-11T17:52:11.550Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "with-check-only-pinned-interface",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/query_program",
+        "src/source_frontend"
+      ],
+      "startedAt": "2026-10-11T17:52:11.645Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:52:13.877Z",
+      "endedAt": "2026-10-11T17:52:13.878Z"
+    },
+    {
+      "name": "with-check-only-pinned-format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/query_binding_check.mbt",
+        "src/query_program/query_binding_demand.mbt",
+        "src/query_program/query_script_program.mbt",
+        "src/query_program/with_binding_static_order_gap_test.mbt"
+      ],
+      "startedAt": "2026-10-11T17:52:13.952Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:52:15.685Z",
+      "endedAt": "2026-10-11T17:52:15.686Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "7455a233-53d8-4ed8-a272-9646d9a990b2",
+    "pid": 65200,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T17:52:11.633Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-j5cjhb"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T17:52:15.763Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

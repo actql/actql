@@ -7,8 +7,8 @@ test "FROM UNPIVOT binds its authored table before the outer query" {
       "(value FOR label IN(x,`Y`)) AS shaped",
       query_limits(),
     ).unwrap()
-    assert_eq(cte_count(query), 1)
-    let body = cte_at(query, 0).unwrap().query
+    assert_eq(query_binding_count(query), 1)
+    let body = query_binding_at(query, 0).unwrap().query
     assert_eq(relation_alias(body).unwrap().value, "original")
     guard operation_at(body, 0) is Some(Unpivot(clause)) else {
       fail("table postfix must use the existing UNPIVOT operation")

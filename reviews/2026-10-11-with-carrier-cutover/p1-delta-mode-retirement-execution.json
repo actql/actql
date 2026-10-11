@@ -1,0 +1,281 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "WITH Delta JSON and bounded MATCH caller retirement; original JSON bytes, CIDs, selectors, path modes and malformed arguments preserved. No product execution changes.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-delta-mode-original-callers.json",
+  "independent_derivation": "with-delta-mode-independent-allocation.json",
+  "unexecuted": [
+    "Host Local/HTTPS Delta or MATCH execution",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-gzb9JJ",
+      "source": "cf985371c477cd9cd8737d54c9fd049044f2f039",
+      "tree": "a1414528441a23a50c50b5e45b34cb27fc4fa067",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 94165,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_delta_source_test.mbt",
+          "src/query_program/graph_delta_json_source_test.mbt",
+          "src/query_program/bounded_graph_modes_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/local-checks/output.log",
+          "sha256": "c6b4bfa5ef31a564a9b9df8d5a6526618d041e7596bf8971084e0bf1973b6e64"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/local-checks/summary.json",
+          "sha256": "34764ead56626b8c1d3bc82ad5bacb9d727fb38317fbe6d9f28f0a4136a8fcb7"
+        },
+        "focused-test-hVbIC0/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/0001.summary.json",
+          "sha256": "f13ed10b898a35b8d92bd541664d8d584f8e321d4daf0e3a701e394b940c5e13"
+        },
+        "focused-test-hVbIC0/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/0002.summary.json",
+          "sha256": "755ce9fc34fe63aa1fa286d7c6c64ae747a2b1a16a12b818ba4c62e7a9e62c73"
+        },
+        "focused-test-hVbIC0/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/0003.summary.json",
+          "sha256": "2b24020b32f00697a5ae977793cfeebe05bd4d61a7e3cde628e3a1994ab5bda2"
+        },
+        "focused-test-hVbIC0/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/0004.summary.json",
+          "sha256": "07f148b62b8ecf8f8593a23b1b9a796bbdc126f76597e8fca716f7b14122fc31"
+        },
+        "focused-test-hVbIC0/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/001.result.json",
+          "sha256": "16807c6653e80b59d2ab797ebd81928898ce40af44c3b82c2da2eea1a5caadd0"
+        },
+        "focused-test-hVbIC0/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/001.started.json",
+          "sha256": "bb22697b3c927f3b5e8309318976197faad3ff431d3d6b0062a85176f8df4ee3"
+        },
+        "focused-test-hVbIC0/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-hVbIC0/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/001.stdout.log",
+          "sha256": "1b71bfed74f3d9a69a5c54b805dc2a24472c2d93d9cf3ec7a2a9fb6feb7d9e8c"
+        },
+        "focused-test-hVbIC0/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-gzb9JJ/focused-test-hVbIC0/summary.json",
+          "sha256": "07f148b62b8ecf8f8593a23b1b9a796bbdc126f76597e8fca716f7b14122fc31"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 7,
+        "passed": 5,
+        "failed": 2,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "focused_complete": false
+    },
+    {
+      "run": "run-WE4C66",
+      "source": "8f34a388c79e9ad4aeb489dd3a216646113c0308",
+      "tree": "b326e1422cd355e309efcbe68234a15c73f314dd",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 95271,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_delta_source_test.mbt",
+          "src/query_program/graph_delta_json_source_test.mbt",
+          "src/query_program/bounded_graph_modes_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-WE4C66/local-checks/output.log",
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-WE4C66/local-checks/summary.json",
+          "sha256": "9eeeb3db4c385349918eaaaf64f932693a22ea1b5654a88ce900761d63fc4628"
+        }
+      },
+      "formatter": "completed; graph_delta_source whitespace only"
+    },
+    {
+      "run": "run-lPzmFW",
+      "source": "86c373c6f9d0ebe09822c2317fae76d3ac4d26ca",
+      "tree": "5fbbb412fc06a91cb85e8474a3781d70b61961a3",
+      "complete": false,
+      "exit_code": 1,
+      "owner_pid": 95783,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_delta_source_test.mbt",
+          "src/query_program/graph_delta_json_source_test.mbt",
+          "src/query_program/bounded_graph_modes_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/local-checks/output.log",
+          "sha256": "29223a5156523520c540dcc415de246227cd340d4bb1d8a0034c1b014100983c"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/local-checks/summary.json",
+          "sha256": "b3cb975d1a68ef512939d659d528ab591d2841c5ba99be2712ed954e0802a264"
+        },
+        "focused-test-E5zQ75/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/0001.summary.json",
+          "sha256": "b57e149d1cbad231d1ed7119c0e4989998c69124a8fcd0f9305789aa9babeb21"
+        },
+        "focused-test-E5zQ75/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/0002.summary.json",
+          "sha256": "97f0d01ee7554a403f280cd7c2dc5c1f33a20636277ba0520f0746535d4e4d6f"
+        },
+        "focused-test-E5zQ75/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/0003.summary.json",
+          "sha256": "18113da655cab5ebed9b9471fc012c941f061decbc60e0e437bffc1aeacfc5d2"
+        },
+        "focused-test-E5zQ75/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/0004.summary.json",
+          "sha256": "ad20aa1d6e072caa39c4cab30d92febf55166033ee0f42c51cc990d41e1a81d7"
+        },
+        "focused-test-E5zQ75/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/001.result.json",
+          "sha256": "3661d5336c19a05cd691e29ebf962de1a2b64a6210296a7c57135c5d4b350267"
+        },
+        "focused-test-E5zQ75/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/001.started.json",
+          "sha256": "d6c4d4a528118d76a1938a247dcf9e237ccc960e66136ef91640d2eddba81591"
+        },
+        "focused-test-E5zQ75/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/001.stderr.log",
+          "sha256": "e18b9af9586f78b3b99bfb466ac2bc2ba04711f76f9b67ad671c4f569e9f6d90"
+        },
+        "focused-test-E5zQ75/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/001.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-E5zQ75/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-lPzmFW/focused-test-E5zQ75/summary.json",
+          "sha256": "ad20aa1d6e072caa39c4cab30d92febf55166033ee0f42c51cc990d41e1a81d7"
+        }
+      },
+      "actual_js_counts": null,
+      "focused_complete": false
+    },
+    {
+      "run": "run-bWaC6C",
+      "source": "79f2f224dd944950ecb9ef8f791ac83adcb1804f",
+      "tree": "b91597732c95bed455b23f3a4a4cfbea7ea5bfcd",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 96537,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_delta_source_test.mbt",
+          "src/query_program/graph_delta_json_source_test.mbt",
+          "src/query_program/bounded_graph_modes_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/local-checks/output.log",
+          "sha256": "572796a8e4c6817eabc1e4dfe07177bb92ae67ecefddcb03166c4aeb5dfcec3f"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/local-checks/summary.json",
+          "sha256": "e3dc007e7b2f8a7214c2be621a1933bbbaab4fae00b6bebb7beb9da92906eb7e"
+        },
+        "focused-test-HJ5Ptv/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/0001.summary.json",
+          "sha256": "307c7c369a88d9cf50ad9f30799ba004ecd0048cb63fc92abfc88893abb61103"
+        },
+        "focused-test-HJ5Ptv/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/0002.summary.json",
+          "sha256": "0f387f80e9633d3b1c42783c3f072e0ace0a6566629f990cc2bc7f73146dd5ca"
+        },
+        "focused-test-HJ5Ptv/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/0003.summary.json",
+          "sha256": "5d27ce4f22b420ce375dba719ade618b4fe85f4482ff6720a30524ceaddeef19"
+        },
+        "focused-test-HJ5Ptv/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/0004.summary.json",
+          "sha256": "76dce4d213036609823904192a2b3bcf3fd3e0d32cd0e77a13d0c32648bd12bb"
+        },
+        "focused-test-HJ5Ptv/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/001.result.json",
+          "sha256": "8ef31d70619f0c9472bd37245c4c309f397d7b2447b4d79d5f7291a4b70e49d4"
+        },
+        "focused-test-HJ5Ptv/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/001.started.json",
+          "sha256": "70a46347fea3e302c335a3a105b1aca2989bcb13887db1cd7652d23f12f1235b"
+        },
+        "focused-test-HJ5Ptv/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-HJ5Ptv/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/001.stdout.log",
+          "sha256": "29250d71d26eddc15e31c1bdd9bba84e69f30e65ab60f24e083ca22ffdaddc4a"
+        },
+        "focused-test-HJ5Ptv/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/delta-mode-retirement-evidence/run-bWaC6C/focused-test-HJ5Ptv/summary.json",
+          "sha256": "76dce4d213036609823904192a2b3bcf3fd3e0d32cd0e77a13d0c32648bd12bb"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 7,
+        "passed": 7,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "focused_complete": true
+    }
+  ]
+}

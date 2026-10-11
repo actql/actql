@@ -1,0 +1,29 @@
+{
+  "product_source": "7f69a80feec4f3e841e930d88680871f01eea251",
+  "product_tree": "87c31aeec66ff2b8c1f9fef9344a07960bb08ee3",
+  "status": "Executed intermediate connection; commands are reproducible in an independent worktree, not a request for duplicate verification",
+  "bounds": {
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false
+  },
+  "runtime_command": [
+    "node", "scripts/local-checks.mjs", "test", "moon",
+    "--timeout-seconds", "60", "--kill-grace-seconds", "5", "--",
+    "--target", "js",
+    "src/query_program/with_binding_preparation_test.mbt",
+    "src/query_program/with_graph_binding_test.mbt",
+    "src/source_frontend/with_graph_binding_test.mbt"
+  ],
+  "environment": {
+    "node": "Pinned Node 22.22.0 from repository toolchain policy",
+    "moon": "Pinned MoonBit 0.10.12+1634b282e",
+    "dependencies": "Only the repository-pinned yaml 2.9.0 dependency is required by the existing test wrapper"
+  },
+  "unverified": [
+    "Full static/profile closure",
+    "Demanded-only binding emission",
+    "Packed Local/HTTPS execution",
+    "Complete P1/P2 cutover"
+  ]
+}

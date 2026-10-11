@@ -1,0 +1,117 @@
+{
+  "unit": "P1 producer-role lexical seams; shared WITH AST/cutover still in progress",
+  "adopted_main": "ab5460e2422f59da69dcf873c5498dc8a5d7997e",
+  "changes": [
+    "Graph constructor Relation operands resolve nearest existing lexical binding after selecting authored default element name. Constructor-local REFERENCES and labels are unchanged.",
+    "SGA declared Producer roles including lists resolve through the same scope lookup. ID/field/literal values remain values.",
+    "FROM GRAPH uses nearest lexical binding before common Carrier checking; no search for a type-compatible outer producer."
+  ],
+  "independent_controls": "producer_scope_wbtest.mbt supplies outer_rows/inner_rows/outer_peer identities as independent input coordinates; no product-generated expected name.",
+  "execution": "Not executed for this new slice. Existing legacy constructor spelling in this leaf control is transitional and must be replaced at complete P1 cutover; not a compatibility entry or completion claim.",
+  "checks": {
+    "previous_slice": {
+      "sha": "91f3679aa",
+      "run": "run-unBfQJ",
+      "js": "28/28",
+      "exit": 0,
+      "heavy": false,
+      "cap_seconds": 60,
+      "grace_seconds": 5
+    },
+    "new_slice": "not executed",
+    "lowering_common_checker": "not executed",
+    "public": "not executed",
+    "authoring_compile_failure": {
+      "sha": "39dd054ff",
+      "run": "run-gWKTqO",
+      "exit": 1,
+      "test_count": null,
+      "reason": "Black-box filename hides private QueryParser. Move unchanged test source to _wbtest; no product semantics correction or success claim.",
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-gWKTqO/summary.json",
+          "sha256": "76bcd17ea08b3fe7824e54698e245d770ad901302bf740d46ee608f109a1f13c",
+          "bytes": 1817
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-6TIEnb/001.stderr.log",
+          "sha256": "d2edf7671fa3b9f1edddc432671d4d8a686990cc68dcdba362c9733dbf54736d",
+          "bytes": 18449
+        }
+      ],
+      "owner_pid": 90296,
+      "owner_group_lock_absent": true
+    },
+    "white_box_helper_compile_failure": {
+      "sha": "b4ee2a655",
+      "run": "run-A6nOEO",
+      "exit": 1,
+      "test_count": null,
+      "reason": "query_limits is a black-box test-local helper; specify the same independent limits in the white-box source. No product behavior change.",
+      "owner_pid": 90721,
+      "owner_group_lock_absent": true,
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-A6nOEO/summary.json",
+          "sha256": "a3f9bfadd8f0fa163d8c2fed83c4d2e295704f7435a59732fe0a006dd21449a7",
+          "bytes": 1819
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-mlnlgF/001.stderr.log",
+          "sha256": "86c07d80f1feaf3f97ad83eaa650e84564ea7c915820e92fa5f4ff97799300fa",
+          "bytes": 714
+        }
+      ]
+    },
+    "marked_graph_rows_placement": {
+      "sha": "80a17eeca",
+      "run": "run-sNj6te",
+      "js": "20/21",
+      "exit": 2,
+      "reason": "Existing marked FROM GRAPH still requires MATCH, unlike the unmarked node_rows path. Keep this cutover gap explicit; isolate lexical resolution with a supported MATCH control. Do not claim marked node_rows support.",
+      "owner_pid": 91207,
+      "owner_group_lock_absent": true,
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-sNj6te/summary.json",
+          "sha256": "20f771fd1b514ce46da14c6aeff947809d292c553949a40dcb1e5d60bf2aed24",
+          "bytes": 1819
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-teZVsT/001.stdout.log",
+          "sha256": "7983bfbdaa2861da8c829a1263330255848dd442f4563462b0c437f6531b2070",
+          "bytes": 226
+        }
+      ]
+    }
+  },
+  "source_files": [
+    {
+      "path": "src/query_syntax/graph_constructor.mbt",
+      "bytes": 6815,
+      "sha256": "f58f1f2b34f2f43d28a39141b36a03b66ceed1c39a1091bbef7408f1bee1de2c"
+    },
+    {
+      "path": "src/query_syntax/sga_call.mbt",
+      "bytes": 9335,
+      "sha256": "e882f4fd832ca1f401ff77d898c84ac26cbb61b17e6e1e8eb94d49cde3a543dc"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "bytes": 99156,
+      "sha256": "ad1fb7ce773cab5096758ff97ea5b74b9dd9d6024872cc1b0223ac5fb664bce4"
+    },
+    {
+      "path": "src/query_syntax/producer_scope_wbtest.mbt",
+      "bytes": 4005,
+      "sha256": "75648cce2135334e31a631511c2ebdd345ce0da1e1db14a31fc734ebf18f5464"
+    }
+  ],
+  "remaining": [
+    "Separate authored WithBinding and relational internal continuation AST",
+    "Four Carrier binding static admission and demanded lowering",
+    "Complete GRAPH spelling and old DATA entry/API/current explanation removal",
+    "Grammar/pins/source maps/README and coherent public Local/HTTPS acceptance",
+    "Remove old marked Graph MATCH/CTE placement restrictions in the coherent typed producer cutover; originally refused node_rows source preserved above."
+  ]
+}

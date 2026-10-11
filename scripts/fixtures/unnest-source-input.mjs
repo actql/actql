@@ -95,7 +95,7 @@ export const unnestSuccesses = [
     'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position',
     [], columns, {parameters: {items: null}}),
   success('scalar-star-data-binding',
-    'DATA expanded = FROM UNNEST(@items) element WITH OFFSET position |> SELECT *; FROM expanded |> ORDER BY position |> RESULT answer',
+    'WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer',
     rows, columns, {format: 'aql-text'}),
   success('pipe-duplicates-and-null',
     'FROM UNNEST(@items) AS element WITH OFFSET AS position |> SELECT element, position |> ORDER BY position',
@@ -198,7 +198,7 @@ unnestSuccesses.push(
   structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS current, input.id AS original, position |> ORDER BY position',
     [{current: 12, original: 2, position: 0}, {current: null, original: null, position: 1}, {current: 12, original: 2, position: 2}],
     [column('current', true), column('original', true), column('position')], {format: 'aql-text'}),
-  structSuccess('data-binding', 'DATA expanded = FROM UNNEST(@items) element WITH OFFSET position |> SELECT *; FROM expanded |> ORDER BY position |> RESULT answer',
+  structSuccess('data-binding', 'WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer',
     structRows, structColumns, {format: 'aql-text'}),
 );
 for (const [name, text] of [

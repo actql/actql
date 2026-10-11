@@ -1,0 +1,71 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-I3pq3z",
+  "revision": "ff342e5fa52cac15333c55a04c3e538dccded9b8",
+  "source": {
+    "revision": "ff342e5fa52cac15333c55a04c3e538dccded9b8",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T23:18:02.132Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/with-relational-public-fixtures.test.mjs",
+        "scripts/aggregate-order-parameter-source-input.test.mjs",
+        "scripts/aggregate-property-order-source-input.test.mjs",
+        "scripts/aggregate-signed-order-source-input.test.mjs",
+        "scripts/aggregate-conditional-order-source-input.test.mjs",
+        "scripts/aggregate-member-call-reuse-source-input.test.mjs",
+        "scripts/analytic-partition-expression-source-input.test.mjs",
+        "scripts/analytic-partition-property-source-input.test.mjs",
+        "scripts/concat-expression-reuse-source-input.test.mjs",
+        "scripts/group-order-range-alias-source-input.test.mjs",
+        "scripts/group-property-receiver-source-input.test.mjs",
+        "scripts/membership-expression-reuse-source-input.test.mjs",
+        "scripts/negated-predicate-reuse-source-input.test.mjs",
+        "scripts/scalar-alias-group-source.test.mjs",
+        "scripts/qualify-source-input.test.mjs",
+        "scripts/pipe-pivot-source-input.test.mjs",
+        "scripts/pipe-distinct-source-input.test.mjs",
+        "scripts/order-window-source-input.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "ff342e5fa52cac15333c55a04c3e538dccded9b8",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T23:18:02.301Z",
+      "endedAt": null,
+      "elapsedMs": null,
+      "status": null,
+      "signal": null,
+      "error": null,
+      "complete": false,
+      "verificationStatus": null,
+      "outputComplete": false
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

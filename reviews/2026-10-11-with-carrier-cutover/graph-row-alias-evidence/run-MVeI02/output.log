@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: only independently proven Graph support gaps gain exact implementation-limit expectations
+ok 1 - only independently proven Graph support gaps gain exact implementation-limit expectations
+  ---
+  duration_ms: 1.800833
+  type: 'test'
+  ...
+# Subtest: WITH Graph row refusals preserve their existing rejection policy
+ok 2 - WITH Graph row refusals preserve their existing rejection policy
+  ---
+  duration_ms: 1.474791
+  type: 'test'
+  ...
+# Subtest: Graph row positional sets preserve authored NULL duplicates keys selectors and types
+ok 3 - Graph row positional sets preserve authored NULL duplicates keys selectors and types
+  ---
+  duration_ms: 4.019542
+  type: 'test'
+  ...
+# Subtest: Graph row set cases remain registered in ordinary and focused packed consumers
+ok 4 - Graph row set cases remain registered in ordinary and focused packed consumers
+  ---
+  duration_ms: 2.351791
+  type: 'test'
+  ...
+# Subtest: WITH Graph row callers retain complete independent acceptance obligations
+ok 5 - WITH Graph row callers retain complete independent acceptance obligations
+  ---
+  duration_ms: 2.517375
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 197.746416
+ACTQL_TEST_CASE {"name":"only independently proven Graph support gaps gain exact implementation-limit expectations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph row refusals preserve their existing rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph row positional sets preserve authored NULL duplicates keys selectors and types","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-row-positional-set.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph row set cases remain registered in ordinary and focused packed consumers","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-row-positional-set.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph row callers retain complete independent acceptance obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-row-positional-set.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":12.427,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":29.56,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-row-positional-set.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":197.746416}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/graph-row-positional-set.test.mjs","scripts/graph-refusal-classification-source-input.test.mjs"]: executed; counts={"tests":5,"passed":5,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-56rW4l
+Total tests: 7, passed: 7, failed: 0.
+["moon","test","--target","js","src/query_program/graph_rows_test.mbt","src/query_program/graph_rows_positional_set_test.mbt"]: executed; counts={"tests":7,"passed":7,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-Rzo2gs

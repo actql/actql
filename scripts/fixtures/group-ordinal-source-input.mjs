@@ -96,7 +96,7 @@ export const repeatedGroupKeySuccesses = [
     expected: [{first: null, second: null, n: 1}, {first: 21, second: 21, n: 1}, {first: 31, second: 31, n: 2}],
     columns: [number('first', true), number('second', true), number('n')],
   }),
-  success('repeated-key-distinct-property-receivers', 'aql-text', 'DATA objects = SELECT id, @p AS payload, CASE WHEN id = 1 THEN @a ELSE @b END AS other FROM records WHERE id > 0; '
+  success('repeated-key-distinct-property-receivers', 'aql-text', 'WITH objects AS (SELECT id, @p AS payload, CASE WHEN id = 1 THEN @a ELSE @b END AS other FROM records WHERE id > 0) '
     + 'SELECT payload.score AS score, other.score AS other, COUNT(*) AS n FROM objects GROUP BY payload.score, other.score, (objects.payload).score ORDER BY other', {
     expected: [{score: 1, other: 10, n: 1}, {score: 1, other: 20, n: 3}],
     columns: [number('score'), number('other'), number('n')],

@@ -46,10 +46,10 @@ function oracle(construction, producers, edgeKeys, emptyTarget = false) {
     nodes: {add: [], remove: emptyTarget ? nodes : [], update: []},
     edges: {add: [], remove: emptyTarget ? edges : [], update: []}};
 }
-const graphText = parallel => 'PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)' +
+const graphText = parallel => 'GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)' +
   (parallel ? ' EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES, f AS F KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)' : '') + ')';
-const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = ' + graphText(false) + '; ';
-const parallelPrefix = 'DATA n = SELECT 1 AS node_key; DATA e = SELECT 10 AS edge_key, 1 AS src_key, 1 AS dst_key; DATA f = SELECT 11 AS edge_key, 1 AS src_key, 1 AS dst_key; DATA g = ' + graphText(true) + '; ';
+const prefix = 'WITH n AS (SELECT 1 AS node_key) , g AS (' + graphText(false) + ') ';
+const parallelPrefix = 'WITH n AS (SELECT 1 AS node_key) , e AS (SELECT 10 AS edge_key, 1 AS src_key, 1 AS dst_key) , f AS (SELECT 11 AS edge_key, 1 AS src_key, 1 AS dst_key) , g AS (' + graphText(true) + ') ';
 const singleDelta = oracle(mapping([]), [sourceFree({node_key: 1})], []);
 const textParallelDelta = empty => oracle(mapping([edge('E', 'e'), edge('F', 'f')]),
   [sourceFree({node_key: 1}), sourceFree({edge_key: 10, src_key: 1, dst_key: 1}),
@@ -73,15 +73,15 @@ export const graphDifferenceSourceSuccesses = [
   item('json-parallel-unchanged', 'json', machine(false), machineDelta(false)),
   item('json-parallel-removed', 'json', machine(true), machineDelta(true)),
   item('terminal-self', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> SELECT delta |> RESULT changes', singleDelta),
-  item('quoted-alias-normalized', 'aql-text', prefix + 'DATA `peer graph` = FROM g; DATA changes = FROM g |> normalize_graph() |> graph_diff(with: `peer graph`); FROM changes |> SELECT delta |> RESULT changes', singleDelta),
-  item('parallel-removed', 'aql-text', parallelPrefix + 'DATA selected = FROM g |> node_rows() |> WHERE FALSE |> SELECT id; DATA empty = FROM g |> subgraph(nodes: {from: selected, id: "id"}); FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
+  item('quoted-alias-normalized', 'aql-text', prefix + ', `peer graph` AS (FROM g) , changes AS (FROM g |> normalize_graph() |> graph_diff(with: `peer graph`)) FROM changes |> SELECT delta |> RESULT changes', singleDelta),
+  item('parallel-removed', 'aql-text', parallelPrefix + ', selected AS (FROM g |> node_rows() |> WHERE FALSE |> SELECT id) , empty AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
   item('empty-typed-relation', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> WHERE FALSE |> SELECT delta |> RESULT changes'),
 ];
 export const graphDifferenceSourceRefusals = [
   ['string-producer', "FROM g |> graph_diff(with: 'g') |> SELECT delta"],
   ['unknown-producer', 'FROM g |> graph_diff(with: missing) |> SELECT delta'],
   ['relation-producer', 'FROM g |> graph_diff(with: n) |> SELECT delta'],
-  ['forward-producer', 'DATA changes = FROM g |> graph_diff(with: later); DATA later = FROM g; FROM changes |> SELECT delta'],
+  ['forward-producer', ', changes AS (FROM g |> graph_diff(with: later)) , later AS (FROM g) FROM changes |> SELECT delta'],
   ['missing-argument', 'FROM g |> graph_diff() |> SELECT delta'],
   ['extra-argument', 'FROM g |> graph_diff(with: g, extra: true) |> SELECT delta'],
   ['graph-column', 'FROM g |> graph_diff(with: g) |> SELECT node_key'],

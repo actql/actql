@@ -6,8 +6,8 @@ const string = {type: 'string', nullable: true};
 const sourceRows = [{id: 4, amount: 20}, {id: 2, amount: 10},
   {id: 1, amount: 20}, {id: 3, amount: null}, {id: 0, amount: 99}];
 const columns = [{name: 'names', contract: string}];
-const data = 'DATA labels = SELECT id, CAST(amount AS STRING) AS name '
-  + 'FROM records WHERE id > 0; ';
+const data = 'WITH labels AS (SELECT id, CAST(amount AS STRING) AS name '
+  + 'FROM records WHERE id > 0) ';
 export const distinctAggregateOrderProgram = {version: 'actql/0.1',
   id: 'fixture.distinct_aggregate_order', stages: [
     {id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
@@ -45,7 +45,7 @@ export const distinctAggregateOrderSuccesses = [
     columns: [{name: 'ids', contract: {type: 'array', nullable: false, items: number}}],
   }),
   success('static-property', '', {
-    text: 'DATA objects = SELECT id, @payload AS payload FROM records WHERE id > 0; '
+    text: 'WITH objects AS (SELECT id, @payload AS payload FROM records WHERE id > 0) '
       + "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY objects.payload.`NAME`) AS names FROM objects",
     parameterDeclarations: {payload: {type: 'object', nullable: true,
       fields: {name: {type: 'string', nullable: true}}}},
@@ -63,7 +63,7 @@ export const distinctAggregateOrderRefusals = [
   format: 'aql-text', text: data + tail, expectedCode: 'ClientProgramImplementationLimit'}));
 distinctAggregateOrderRefusals.push({
   name: 'distinct-aggregate-order-refuse-object-range-collision', format: 'aql-text',
-  text: "DATA objects = SELECT id, 'outer' AS name, @payload AS payload FROM records WHERE id > 0; "
+  text: "WITH objects AS (SELECT id, 'outer' AS name, @payload AS payload FROM records WHERE id > 0) "
     + "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload",
   parameterDeclarations: {payload: {type: 'object', nullable: true,
     fields: {name: {type: 'string', nullable: true}}}},

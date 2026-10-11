@@ -1,0 +1,26 @@
+{
+  "changes": [
+    {
+      "owner": "actql.language",
+      "before": "sha256:742c980b55b23d01cbf8fe921b0d457d294ce5e70adac259800871c6abd059b6",
+      "after": "sha256:37883cacc5e3cea26bc0c1d7c24ec9810269d1449d5318b3b5ef2bd93ce25dcb"
+    },
+    {
+      "owner": "actql.language",
+      "before": "sha256:742c980b55b23d01cbf8fe921b0d457d294ce5e70adac259800871c6abd059b6",
+      "after": "sha256:37883cacc5e3cea26bc0c1d7c24ec9810269d1449d5318b3b5ef2bd93ce25dcb"
+    },
+    {
+      "owner": "actql.language",
+      "before": "sha256:742c980b55b23d01cbf8fe921b0d457d294ce5e70adac259800871c6abd059b6",
+      "after": "sha256:37883cacc5e3cea26bc0c1d7c24ec9810269d1449d5318b3b5ef2bd93ce25dcb"
+    },
+    {
+      "owner": "actql.language",
+      "before": "sha256:742c980b55b23d01cbf8fe921b0d457d294ce5e70adac259800871c6abd059b6",
+      "after": "sha256:37883cacc5e3cea26bc0c1d7c24ec9810269d1449d5318b3b5ef2bd93ce25dcb"
+    }
+  ],
+  "writes": true
+}
+{"documents":10,"requirements":1521,"document_imports":23,"machine_imports":318,"informative_references":52,"conformance":false}

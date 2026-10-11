@@ -22,7 +22,7 @@ fn graph_relation_join_cases() -> Array[(String, String, String, String)] {
 
 ///|
 test "Ordered Graph Relation JOIN retains established singleton equality order" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 10 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), r AS (SELECT 10 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p)))) "
   for
     (operation, arguments, source_arguments, field) in graph_relation_join_cases() {
     let source = prefix +
@@ -36,7 +36,7 @@ test "Ordered Graph Relation JOIN retains established singleton equality order" 
     for
       program in [
         graph_relation_join_control(operation, arguments, field, ordered=true),
-        compile_data_set(source),
+        compile_with_set(source),
       ] {
       let checked = @check.check_parsed_with_evidence(
         program,
@@ -103,7 +103,7 @@ test "Graph Relation JOIN controls pass the existing common checker" {
 
 ///|
 test "Existing Graph Relation calls remain Relation JOIN inputs" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 10 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), r AS (SELECT 10 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p)))) "
   for (operation, _, source_arguments, field) in graph_relation_join_cases() {
     let source = prefix +
       "FROM g |> " +
@@ -113,7 +113,7 @@ test "Existing Graph Relation calls remain Relation JOIN inputs" {
       ") |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l." +
       field +
       " AS value, rr.tag AS tag"
-    let actual = compile_data_set(source)
+    let actual = compile_with_set(source)
     match
       @check.check_parsed_with_evidence(
         actual,

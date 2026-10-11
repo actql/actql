@@ -15,7 +15,7 @@ the existing checked assertion and physical row owner. It is not unconditional
 proof or duplicate elimination.
 
 The common Program may use different generated identifiers and step aliases.
-Text lowering captures each single-use source once, places DATA producers and
+Text lowering captures each single-use source once, places WITH producers and
 INFER/KEEP in one computation Stage, and imports its retained classified Result
 through an ordinary Stage Result edge for the terminal Effect continuation.
 Both text and JSON therefore use four Stages; generated identifiers, projection

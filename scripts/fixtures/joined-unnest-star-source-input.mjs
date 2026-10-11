@@ -47,15 +47,16 @@ export const joinedUnnestAcquiredStarProgram = {version: 'actql/0.1', id: 'fixtu
     {...main([...parentSteps, join('records'), ...expansion]),
       inputs: {records: {result: {stage: 'capture', result: 'source'}}}},
   ], results: exports};
-const head = 'DATA parents = FROM UNNEST(@parents) p |> SELECT id, items; ';
+const binding = 'WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items)';
+const head = binding + ' ';
 const keys = '(SELECT 1 AS key UNION ALL SELECT 2 AS key)';
 const sql = head + `SELECT p.id, e.*, position FROM parents p JOIN ${keys} k `
   + 'ON p.id = k.key MAX_OUTPUT_ROWS 4 CROSS JOIN UNNEST(p.items) e WITH OFFSET position ORDER BY p.id, position';
 const pipe = head + `FROM parents p |> JOIN ${keys} k ON p.id = k.key MAX_OUTPUT_ROWS 4 `
   + '|> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position';
-const acquired = head + 'DATA expanded = FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 '
+const acquired = binding + ', expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 '
   + '|> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position '
-  + '|> ORDER BY p.id, position; FROM expanded |> RESULT answer';
+  + '|> ORDER BY p.id, position) FROM expanded |> RESULT answer';
 const success = (name, text, extra = {}) => ({name: 'joined-unnest-star-' + name, format: 'aql-text',
   text, parameterDeclarations, parameters, columns, expected,
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});

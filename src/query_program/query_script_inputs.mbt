@@ -6,10 +6,22 @@ priv struct ScriptSources {
   unshared : Array[String]
   ranges : Map[String, JoinChainScope]
   value_tables : Map[String, JoinChainScope]
+  binding_ranges : Array[ScriptBindingRange]
+  carriers : Map[String, @carrier.Carrier]
+  mut carrier_work : Int
 }
 
 ///|
-// DATA reuses an admitted input, never reads a provider or creates another
+// Emission ownership only. Input/producer dependence comes from the common
+// checked pipeline, never from a second semantic reference scanner.
+priv struct ScriptBindingRange {
+  steps : Array[@builder.Node]
+  start : Int
+  end : Int
+}
+
+///|
+// WITH reuses an admitted input, never reads a provider or creates another
 // ledger. Keep the Host-requested capture boundary and retain its Result once
 // across every query/constructor reference to this input.
 fn bind_script_input(
@@ -75,16 +87,38 @@ fn bind_script_input(
 // Conservatively count raw installed-input references before placing an
 // ordinary leading WHERE at the existing capture boundary. Any shared use
 // retains the complete source and applies each consumer's filter downstream.
+// Producer leaves already carry the parser's lexical resolution and declared
+// argument role. This visitor does not interpret strings or check dependencies.
+fn script_call_sources(call : @query.SgaCall) -> Array[Array[@query.NamePart]] {
+  let paths = []
+  let pending = call.arguments.map(argument => argument.1)
+  while pending.pop() is Some(argument) {
+    match argument {
+      Producer(name) => paths.push([name])
+      ObjectValue(fields) =>
+        for (_, value) in fields {
+          pending.push(value)
+        }
+      ListValue(values) =>
+        for value in values {
+          pending.push(value)
+        }
+      _ => ()
+    }
+  }
+  paths
+}
+
+///|
 fn unshared_script_sources(
   script : @query.QueryScript,
   inputs : Array[Input],
 ) -> Array[String] {
   let counts : Map[String, Int] = Map([])
   let pending = [@query.script_query(script)]
-  for index in 0..<@query.data_declaration_count(script) {
-    match @query.data_declaration_at(script, index).unwrap().value {
-      RelationQuery(query) => pending.push(query)
-      Graph(mapping) =>
+  while pending.pop() is Some(query) {
+    match @query.producer_primary(query) {
+      Some(GraphValue(mapping)) =>
         for
           path in mapping.nodes.map(node => node.producer) +
           mapping.edges.map(edge => edge.producer) {
@@ -94,15 +128,14 @@ fn unshared_script_sources(
             }
           }
         }
-      NamedGraphCall(_) =>
+      Some(GraphGenerator(_)) =>
         for input in inputs {
           counts[input.name] = 2
         }
+      None => ()
     }
-  }
-  while pending.pop() is Some(query) {
-    for index in 0..<@query.cte_count(query) {
-      pending.push(@query.cte_at(query, index).unwrap().query)
+    for index in 0..<@query.query_binding_count(query) {
+      pending.push(@query.query_binding_at(query, index).unwrap().query)
     }
     for index in 0..<@query.set_part_count(query) {
       pending.push(@query.set_part_at(query, index).unwrap().right)
@@ -112,8 +145,13 @@ fn unshared_script_sources(
       paths.push(@query.join_part_at(query, index).unwrap().relation)
     }
     for index in 0..<@query.operation_count(query) {
-      if @query.operation_at(query, index) is Some(Nearest(clause)) {
-        paths.push(clause.relation)
+      match @query.operation_at(query, index) {
+        Some(Nearest(clause)) => paths.push(clause.relation)
+        Some(GraphCall(call)) =>
+          for path in script_call_sources(call) {
+            paths.push(path)
+          }
+        _ => ()
       }
     }
     for path in paths {

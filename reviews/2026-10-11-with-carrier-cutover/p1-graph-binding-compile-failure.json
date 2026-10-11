@@ -1,0 +1,27 @@
+{
+  "source": "486eb2c5edb17d435277c7b90dec8bcec7e6cd1e",
+  "run": "run-eTtH8n",
+  "phase": "Pinned formatting succeeded on working source; generated interface/caller compilation failed. Runtime tests were not executed.",
+  "issues": [
+    "Option.or_else unwraps instead of combining optional Graph input",
+    "Existing keyed lowerer still requires relation for its selected Input"
+  ],
+  "original": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-eTtH8n/summary.json",
+      "sha256": "e0e2c6502ed123b3fe638d39c585a2ead1037aab5a9051753354336b1a186b01"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-eTtH8n/output.log",
+      "sha256": "02183787dd0bcecd87770b9f1363f88bbee39531ee8b8afd27a15ccadbed7597"
+    }
+  ],
+  "termination": {
+    "owner": 14425,
+    "direct_owner_absent": true,
+    "locks_released": true
+  },
+  "heavy": false,
+  "timeout_seconds": 60,
+  "grace_seconds": 5
+}

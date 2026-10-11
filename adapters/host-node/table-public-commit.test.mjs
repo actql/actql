@@ -908,12 +908,12 @@ test(`Table sparse private input commits through ${transport} (${format}) after 
     privateStage.table_inputs.rows.from = 'ordered';
     privateStage.results.answer.from = 'ordered';
     const input = format === 'json' ? JSON.stringify(privateInput)
-      : 'DATA persons = SELECT 2 AS person_key, \'a\' AS tenant_key, CAST(NULL AS FLOAT64) AS p '
-        + 'UNION ALL SELECT 1 AS person_key, \'a\' AS tenant_key, 7 AS p; '
-        + 'DATA companies = SELECT 3 AS person_key, \'a\' AS tenant_key; '
-        + 'DATA g = PROPERTY GRAPH (NODE TABLES '
+      : 'WITH persons AS (SELECT 2 AS person_key, \'a\' AS tenant_key, CAST(NULL AS FLOAT64) AS p '
+        + 'UNION ALL SELECT 1 AS person_key, \'a\' AS tenant_key, 7 AS p), '
+        + 'companies AS (SELECT 3 AS person_key, \'a\' AS tenant_key), '
+        + 'g AS (GRAPH (NODE TABLES '
         + '(persons AS N KEY (person_key, tenant_key) LABEL Person PROPERTIES (p), '
-        + 'companies AS M KEY (person_key, tenant_key) LABEL Company NO PROPERTIES)); '
+        + 'companies AS M KEY (person_key, tenant_key) LABEL Company NO PROPERTIES))) '
         + 'FROM g |> node_rows() |> DROP id, labels, tenant_key |> ORDER BY person_key '
         + '|> EFFECT save CREATE TABLE analytics.report';
     const privatePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
