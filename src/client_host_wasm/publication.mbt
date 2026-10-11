@@ -25,6 +25,12 @@ priv struct StoredPublication {
   mut closing : Bool
   mut produced : Bool
   mut output_closed : Bool
+  mut commit_input : Int?
+  mut commit_borrow : @buffers.BufferBorrow?
+  mut commit : @publication.PublicationCommitPreparation?
+  mut commit_progress : (Bool, Int)?
+  mut commit_failed : Bool
+  mut commit_finished : Bool
 }
 
 ///|
@@ -92,6 +98,12 @@ pub fn reserve_publication(
     closing: false,
     produced: false,
     output_closed: false,
+    commit_input: None,
+    commit_borrow: None,
+    commit: None,
+    commit_progress: None,
+    commit_failed: false,
+    commit_finished: false,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -511,6 +523,16 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
   }
   if record.capture is Some(capture) {
     capture.cancel()
+  }
+  if record.commit is Some(commit) {
+    commit.cancel()
+  }
+  if record.commit_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.commit_borrow = None
   }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))
