@@ -51,8 +51,9 @@ export async function runProofCommand(command, args, {
     child.stdout.on('data', collect(stdout));
     child.stderr.on('data', collect(stderr));
     child.stdin.on('error', cause => {
-      // A nonzero/terminated child may close stdin before accepting all input.
-      if (cause.code !== 'EPIPE') { error ??= cause; stop('SIGTERM'); }
+      // Even status zero cannot certify proof input that was not delivered.
+      error ??= cause;
+      stop('SIGTERM');
     });
     if (timeout) timer = setTimeout(() => {
       fail('Proof command timed out', 'ETIMEDOUT');

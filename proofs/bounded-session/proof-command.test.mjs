@@ -32,6 +32,7 @@ else if(mode==='nonzero'){console.log('Checked 54 theorems');process.exitCode=7;
 else if(mode==='output-close'){
   process.stdout.end();process.stderr.end();setInterval(()=>{if(existsSync(${JSON.stringify(join(directory,'release'))}))process.exit(0);},10);
 }else if(mode==='overflow'){process.stdout.write('x'.repeat(8192));setInterval(()=>{},1000);}
+else if(mode==='stdin-close'){process.stdin.destroy();setTimeout(()=>process.exit(0),200);}
 else {
   const interval=setInterval(()=>{},1000);
   process.on('SIGTERM',()=>{
@@ -69,7 +70,7 @@ process.exitCode=result.error||result.signal||result.status!==0?1:0;
   parent.stderr.on('data', b => { output += b; });
   const closed = new Promise(resolve => parent.on('close', (status, signal) => resolve({status, signal})));
   t.after(() => { if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGTERM'); });
-  if (mode === 'timeout' || mode === 'overflow') await waitFor(() => existsSync(resultPath));
+  if (['timeout', 'overflow', 'stdin-close'].includes(mode)) await waitFor(() => existsSync(resultPath));
   else await waitFor(() => existsSync(ready));
   const ids = existsSync(ready) ? JSON.parse(readFileSync(ready))
     : {pid: JSON.parse(readFileSync(resultPath)).childPid, grandchild: null};
@@ -131,4 +132,9 @@ test('bounded output overflow stops the original child without accepting it', as
   const {result, terminal} = await fixture(t, 'overflow', {maxBuffer: 1024});
   assert.equal(terminal.status, 1);
   assert.equal(result.error, 'ENOBUFS');
+});
+test('undelivered proof input cannot be accepted from a zero-status child', async t => {
+  const {result, terminal} = await fixture(t, 'stdin-close', {input: 'x'.repeat(2 * 1024 * 1024)});
+  assert.equal(terminal.status, 1);
+  assert.equal(result.error, 'EPIPE');
 });
