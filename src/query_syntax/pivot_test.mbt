@@ -106,7 +106,10 @@ test "PIVOT grouping does not admit parameters other scalar types or computed va
       query_limits(),
     )
     assert_true(
-      result is Err({ issue: Syntax("PIVOT currently requires constant String values"), .. }),
+      result
+      is Err(
+        { issue: Syntax("PIVOT currently requires constant String values"), .. }
+      ),
       msg=value,
     )
   }
