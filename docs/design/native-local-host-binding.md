@@ -136,6 +136,55 @@ unknown and retains reconciliation custody; neither reopening credentials nor
 restarting the CLI permits a blind resend. Retain responsibility for observation
 and cleanup of started work after cancellation.
 
+### Typed credential originals
+
+The common credential Owner exposes separate `LocalCredentialScope`,
+`LocalCredentialGrant` and `LocalCredentialUse` types. Remote grant/use types,
+their wire and CID preimages remain unchanged. Neither decoder accepts the
+other domain. Constructing or decoding a Local original proves its bounded
+shape and identity, not current authorization, approved execution or secret
+access. The Native Host must supply the actual original bindings and current
+checks before the existing physical credential Owner can consume a use.
+
+The Local scope binds account ID and configuration CID, Host adoption CID,
+current authority scope CID, original Submission scope and Run invocation,
+checked unit and operation-occurrence CIDs, original attempt ID, Connector
+registration/revision, Provider operation/origin/path/method, checked semantic
+request CID and the raw transport-body CID. The body CID hashes exact bytes,
+independently of semantic request canonicalization. It preserves Unicode,
+line endings, absent fields and explicit NULL rather than applying
+configuration normalization.
+
+For the initial approved Effect connection, the fence consists of the existing
+resume intent CID, original claimant and positive Int64 generation. There is
+no invented Site/Dispatch identity or placeholder fence CID. These scalar
+bindings do not replace the opaque original claim handle: the physical caller
+must still check the current common resume fence, cancellation and Effect row
+claim in the original journal transaction. Observation-only settlement cannot
+authorize a new send.
+
+The grant wire `actql-local-credential-grant/0.1` is a closed flat object with
+the scope fields plus `issuer_authority`, `expires_unix_ms`, `max_uses` and
+`version`. Keys are emitted in lexical order using the existing value-preserving
+writer. Expiry and fence generation are canonical decimal Int64 strings;
+`max_uses` is an integer from 1 through 1,024. The grant is bounded to 32 KiB,
+64 value nodes and depth 2. The whole UTF-8 body is the SHA-256 preimage.
+
+The use wire `actql-local-credential-use/0.1` contains `grant_cid`, `use_id`,
+`use_ordinal` and `version`, with the same key ordering and shared credential
+record writer. Its whole-body SHA-256 identity is bounded to 4 KiB, 12 nodes
+and depth 2. Restore admits the exact saved bytes and ordinal; it neither
+claims another ordinal nor refreshes lifetime. The existing physical Owner
+retains responsibility for durable use consumption, revocation, uncertain
+sends and observation. No Local credential journal is introduced.
+
+Native request bodies remain within the existing 65,536-byte ceiling. The
+initial request methods match the installed Native adapter: GET, POST, PUT and
+PATCH. GET binds the actual empty-body digest. Declaring an origin, operation
+or body digest cannot expand the installed operation allowlist. Grant issuance
+must have explicit trusted inputs; adoption, Program submission and approval
+alone do not create credential permission or a new grant.
+
 ## Public execution and restoration
 
 Trusted Host assembly connects to the existing original Submission, pre-start
