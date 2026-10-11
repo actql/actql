@@ -23,6 +23,7 @@
 typedef struct {
   int fd;
   char *error;
+  char *custody_path;
   uint64_t result_device;
   uint64_t result_inode;
   int64_t result_size;
@@ -241,6 +242,8 @@ static void actql_native_filesystem_root_finalize(void *value) {
   }
   free(root->error);
   root->error = NULL;
+  free(root->custody_path);
+  root->custody_path = NULL;
 }
 
 static void actql_native_filesystem_lock_finalize(void *value) {
@@ -336,6 +339,10 @@ void *actql_native_filesystem_open_root(
   }
   root->fd = open(path_text, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
   int open_error = errno;
+  if (length > 1 && length <= 4096 && path_text[0] == '/' &&
+      (int32_t)strlen(path_text) == length) {
+    root->custody_path = strdup(path_text);
+  }
   free(path_text);
   if (root->fd < 0) {
     actql_replace_errno_error(&root->error, "open Store root", open_error);
@@ -378,6 +385,53 @@ static bool actql_private_root_acl(int fd) {
 #endif
 }
 
+// A bounded descriptor walk rechecks the selected name, not just a still-open
+// descriptor of a directory removed or replaced since the original opening.
+static int actql_open_contained_directory(char *text) {
+  size_t length = strlen(text);
+  if (length <= 1 || length > 4096 || text[0] != '/' ||
+      text[length - 1] == '/') { errno = EINVAL; return -1; }
+  int current = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  char *component = text + 1;
+  while (current >= 0 && *component != '\0') {
+    char *end = strchr(component, '/');
+    if (end != NULL) *end = '\0';
+    if (*component == '\0' || strcmp(component, ".") == 0 ||
+        strcmp(component, "..") == 0) {
+      close(current);
+      errno = EINVAL;
+      return -1;
+    }
+    int next = openat(current, component,
+      O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+    int open_error = errno;
+    close(current);
+    current = next;
+    errno = open_error;
+    if (end == NULL) break;
+    component = end + 1;
+  }
+  return current;
+}
+
+static bool actql_private_root_namespace(
+  actql_native_filesystem_root *root,
+  const struct stat *original
+) {
+  if (root->custody_path == NULL) return false;
+  char *copy = strdup(root->custody_path);
+  if (copy == NULL) return false;
+  int descriptor = actql_open_contained_directory(copy);
+  free(copy);
+  if (descriptor < 0) return false;
+  struct stat current;
+  bool matches = fstat(descriptor, &current) == 0 &&
+    current.st_dev == original->st_dev && current.st_ino == original->st_ino &&
+    current.st_nlink > 0 && current.st_uid == geteuid() &&
+    (current.st_mode & 0777) == 0700;
+  return close(descriptor) == 0 && matches;
+}
+
 int32_t actql_native_filesystem_private_root_identity(
   actql_native_filesystem_root *root
 ) {
@@ -390,7 +444,8 @@ int32_t actql_native_filesystem_private_root_identity(
     return 0;
   }
   if (!S_ISDIR(status.st_mode) || status.st_nlink == 0 || status.st_uid != geteuid() ||
-      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd)) {
+      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd) ||
+      !actql_private_root_namespace(root, &status)) {
     actql_replace_error(&root->error, "Host root is not user-owned and private");
     return 0;
   }
@@ -424,29 +479,16 @@ void *actql_native_filesystem_open_private_root(
     actql_replace_error(&root->error, "invalid private Host root path");
     return root;
   }
+  root->custody_path = strdup(text);
+  if (root->custody_path == NULL) {
+    free(text);
+    actql_replace_error(&root->error, "root custody allocation failed");
+    return root;
+  }
   // Walk pinned descriptors: no component may follow a symlink or interpret
   // dot/dot-dot as a containment escape. The supplied path remains unchanged.
-  root->fd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  root->fd = actql_open_contained_directory(text);
   int open_error = errno;
-  char *component = text + 1;
-  while (root->fd >= 0 && *component != '\0') {
-    char *end = strchr(component, '/');
-    if (end != NULL) *end = '\0';
-    if (*component == '\0' || strcmp(component, ".") == 0 ||
-        strcmp(component, "..") == 0) {
-      close(root->fd);
-      root->fd = -1;
-      open_error = EINVAL;
-      break;
-    }
-    int next = openat(root->fd, component,
-      O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
-    open_error = errno;
-    close(root->fd);
-    root->fd = next;
-    if (end == NULL) break;
-    component = end + 1;
-  }
   free(text);
   if (root->fd < 0) {
     actql_replace_errno_error(&root->error, "open private Host root", open_error);
@@ -1504,6 +1546,14 @@ void *actql_native_filesystem_open_child_root(
     O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
   );
   int open_error = errno;
+  if (root->custody_path != NULL &&
+      strlen(root->custody_path) + (size_t)length + 1 <= 4096) {
+    size_t size = strlen(root->custody_path) + (size_t)length + 2;
+    child->custody_path = malloc(size);
+    if (child->custody_path != NULL) {
+      snprintf(child->custody_path, size, "%s/%s", root->custody_path, name_text);
+    }
+  }
   free(name_text);
   if (child->fd < 0) {
     actql_replace_errno_error(&child->error, "open allocation directory", open_error);

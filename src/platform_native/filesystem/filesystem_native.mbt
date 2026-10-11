@@ -249,8 +249,8 @@ pub fn open_private_root(path : String) -> Result[Root, NativeFilesystemIssue] {
 }
 
 ///|
-/// Recheck the pinned descriptor's current ownership and access restrictions.
-/// The identity is not inferred from a supplied path or a missing file.
+/// Recheck the pinned descriptor's privacy and its original namespace binding.
+/// A missing/replaced original name is not a new root or freshness evidence.
 pub fn Root::private_ownership(
   self : Root,
 ) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
