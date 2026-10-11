@@ -7777,6 +7777,22 @@ completeness assertion independently of optional finish reason. Raw response
 bytes and canonical structured-response artifacts are distinct identities.
 Exact replay reuses the captured response and its original evidence; a fresh
 model call creates new evidence and a new Invocation identity.
+New capture bundles MAY embed exact historical and current invocation evidence
+records together.
+
+<!-- requirement-block: infer.capture-record-version-and-original-request-binding -->
+Each record's explicit version selects its own closed schema
+and its original self CID; the restoring Owner MUST bind each record to the
+original request, input and typed output. A bundle version does not relabel its
+embedded observations.
+
+<!-- requirement-block: infer.historical-capture-bundle-exact-schema -->
+Historical bundles retain their exact historical schema and CID, and MUST NOT
+embed current evidence.
+
+<!-- requirement-block: infer.capture-version-discriminator-identity-and-binding-refusal -->
+Unknown versions, discriminator mismatches, changed original CIDs and crossbound
+records MUST be rejected.
 
 <!-- requirement-block: infer.opaque-provider-metadata-preserves-observed-content -->
 Additional provider metadata MUST be bounded opaque JSON object data, or NULL when
