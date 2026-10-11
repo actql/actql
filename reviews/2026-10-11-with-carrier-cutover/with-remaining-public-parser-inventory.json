@@ -497,7 +497,7 @@
       "module": "full-join-scope",
       "key": "fullJoinScopeSuccesses",
       "name": "full-join-scope-explicit-cte",
-      "text": "WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) (WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) SELECT l.amount, l.id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST"
+      "text": "WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) (WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) SELECT l.amount, l.id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST)"
     },
     {
       "module": "full-join-scope",
