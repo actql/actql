@@ -6,7 +6,11 @@ import {
 }
 
 // Values
+pub const PUBLICATION_PAYLOAD_ALLOCATION_FILE : String = "payload"
+
 pub fn admit_durable_publication_payload_record(Bytes) -> Result[DurablePublicationPayloadRecord, PublicationPayloadIssue]
+
+pub fn admit_publication_payload_allocation(PublicationPayloadRequest, Bytes) -> Result[PublicationPayloadAllocation, PublicationPayloadIssue]
 
 pub fn admit_publication_payload_request_json(String, String) -> Result[PublicationPayloadRequest, PublicationPayloadIssue]
 
@@ -28,7 +32,13 @@ pub fn durable_publication_payload_record_revision(DurablePublicationPayloadReco
 
 pub fn durable_publication_payload_record_state(DurablePublicationPayloadRecord) -> PublicationPayloadState
 
+pub fn encode_publication_payload_allocation(String, PublicationPayloadOwnership?) -> Bytes
+
+pub fn next_publication_payload_allocation_ordinal(PublicationPayloadRequest, String) -> Result[Int64, PublicationPayloadIssue]
+
 pub fn prepare_observed_publication_payload_reserved(PublicationPayloadRecord, String, String, String, Int64, Int64) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_allocation_name(PublicationPayloadRequest, Int64) -> String
 
 pub fn prepare_publication_payload_opaque_owned(PublicationPayloadRecord, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
 
@@ -51,6 +61,12 @@ pub fn prepare_publication_payload_reserved(PublicationPayloadRecord) -> Result[
 pub fn prepare_publication_payload_sealed(PublicationPayloadRecord, PublicationPayloadGeneration, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
 
 pub fn prepare_publication_payload_writing(PublicationPayloadRecord) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn publication_payload_allocation_name(PublicationPayloadAllocation) -> String
+
+pub fn publication_payload_allocation_namespace() -> String
+
+pub fn publication_payload_allocation_ownership(PublicationPayloadAllocation) -> PublicationPayloadOwnership?
 
 pub fn publication_payload_material_identity(PublicationPayloadRequest) -> String
 
@@ -112,6 +128,8 @@ pub fn restore_durable_publication_payload_record(DurablePublicationPayloadRecor
 
 // Types and methods
 type DurablePublicationPayloadRecord
+
+type PublicationPayloadAllocation
 
 pub(all) struct PublicationPayloadGeneration {
   device : UInt64
