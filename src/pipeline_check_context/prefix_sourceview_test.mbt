@@ -17,14 +17,22 @@ fn catalog_prefix_source(unknown? : Bool = false) -> @stages.Source {
     },
     max_stages: 100,
   }
-  let document = @origin.document(text, 100000, source_path="prefix-catalog.aql").unwrap()
+  let document = @origin.document(
+    text,
+    100000,
+    source_path="prefix-catalog.aql",
+  ).unwrap()
   let builder = @builder.create(document, {
     source: caps.source,
     tree: caps.tree,
     max_origin_entries: 100000,
     max_output_bytes: 1000000,
   }).unwrap()
-  let input = @source.parse_json_measured(text, caps.source, source_path="prefix-catalog.aql").unwrap()
+  let input = @source.parse_json_measured(
+    text,
+    caps.source,
+    source_path="prefix-catalog.aql",
+  ).unwrap()
   let generated = @builder.finish(
     builder,
     @builder.import_parsed(builder, input).unwrap(),

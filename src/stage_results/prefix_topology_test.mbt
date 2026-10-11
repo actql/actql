@@ -35,14 +35,22 @@ fn prefix_control_parse(text : String) -> @parameters.Source {
     },
     max_stages: 100,
   }
-  let document = @origin.document(text, caps.source.max_input_bytes, source_path="prefix-control.aql").unwrap()
+  let document = @origin.document(
+    text,
+    caps.source.max_input_bytes,
+    source_path="prefix-control.aql",
+  ).unwrap()
   let builder = @builder.create(document, {
     source: caps.source,
     tree: caps.tree,
     max_origin_entries: 100000,
     max_output_bytes: 1000000,
   }).unwrap()
-  let parsed = @source.parse_json_measured(text, caps.source, source_path="prefix-control.aql").unwrap()
+  let parsed = @source.parse_json_measured(
+    text,
+    caps.source,
+    source_path="prefix-control.aql",
+  ).unwrap()
   let generated = @builder.finish(
     builder,
     @builder.import_parsed(builder, parsed).unwrap(),
@@ -111,8 +119,10 @@ test "check-only prefix preserves capture projection imports and unresolved debt
   ).unwrap()
   // Cursors are views, so compare owned-tree coordinates rather than wrapper
   // allocation. A foreign tree cannot discharge this ownership check.
-  assert_eq(@decode.tree_index(steps, @pipeline.source(pipeline)),
-    @decode.tree_index(steps, steps))
+  assert_eq(
+    @decode.tree_index(steps, @pipeline.source(pipeline)),
+    @decode.tree_index(steps, steps),
+  )
   assert_true(
     prepare_local_program(source, local_program_limits())
     is Err(CheckOnlyPrefix),
@@ -184,6 +194,8 @@ test "prefix check preserves bounded accounting and actual local ownership" {
   // A separate check issues a new typed pipeline owner. Its retained source
   // must still be the original capture steps in the same source arena.
   let capture_steps = @pipeline.source(producer)
-  assert_eq(@decode.tree_index(capture_steps, @pipeline.source(issue.pipeline)),
-    @decode.tree_index(capture_steps, capture_steps))
+  assert_eq(
+    @decode.tree_index(capture_steps, @pipeline.source(issue.pipeline)),
+    @decode.tree_index(capture_steps, capture_steps),
+  )
 }
