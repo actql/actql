@@ -820,6 +820,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("cancel", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
         @argparse.OptionArg("cancel-id", required=true),
         @argparse.OptionArg("expected-revision", required=true),
         @argparse.OptionArg("operation-attempt-id", required=true),
@@ -858,7 +859,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       }
     _ => stop("unsupported Client mode")
   }
-  if matches.subcommand is Some(("lookup-cancellation", child)) &&
+  if matches.subcommand is Some((operation, child)) &&
+    (operation == "lookup-cancellation" || operation == "cancel") &&
     optional(child, "submission-ref-file") is Some(_) {
     stop("Original Local submission binding is unavailable in Remote mode")
   }

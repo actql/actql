@@ -69,11 +69,14 @@ test('Native Local never switches to a Remote endpoint', () => {
 });
 
 test('Native Remote refuses a Local cancellation Submission binding before transport setup', () => {
-  const result = runNative(['--mode', 'remote', 'lookup-cancellation', '--ref-file', 'absent-run.json',
-    '--submission-ref-file', 'absent-submission.json', '--cancel-id', 'original', '--expected-revision', '0']);
-  assert.equal(result.status, 1);
-  assert.equal(result.stdout, '');
-  assert.match(result.stderr, /Original Local submission binding is unavailable in Remote mode/u);
+  for (const operation of ['lookup-cancellation', 'cancel']) {
+    const options = operation === 'cancel' ? ['--operation-attempt-id', 'original-invocation'] : [];
+    const result = runNative(['--mode', 'remote', operation, '--ref-file', 'absent-run.json',
+      '--submission-ref-file', 'absent-submission.json', '--cancel-id', 'original', '--expected-revision', '0', ...options]);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /Original Local submission binding is unavailable in Remote mode/u);
+  }
 });
 
 test('Native Local retains parameter values and distinguishes wrong type', async () => {

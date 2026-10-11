@@ -392,9 +392,104 @@ test('Native CLI original cancellation lookup remains unresolved across exited p
 test('Native CLI cancellation lookup requires independent current cancel authority', async () => {
   const {f, admitted, lookup} = await cancellationLookupFixture('cancel-lookup-denied', [submitPermission]);
   refusal(invoke(f, lookup), /LocalCancellationAuthorizationDenied/u);
+  refusal(invoke(f, cancellationCommand(lookup)), /LocalCancellationAuthorizationDenied/u);
   const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
   assert.deepEqual(original.ref, admitted.ref);
   assert.equal(original.controlRevision, admitted.controlRevision);
+});
+
+function cancellationCommand(lookup, attempt = 'cancel-invocation') {
+  return ['cancel', ...lookup.slice(1), '--operation-attempt-id', attempt];
+}
+
+test('Native CLI records original cancellation and replays it across exited processes without new execution', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-original-operation');
+  const expected = {kind: 'local_cancellation_operation', history: 'retained', ref: admitted.ref,
+    cancelRef: {...admitted.ref, cancelId: 'cancel-original', expectedRevision: Number(admitted.controlRevision)},
+    action: 'accepted', recordedControlRevision: (BigInt(admitted.controlRevision) + 1n).toString()};
+  const first = success(invoke(f, cancellationCommand(lookup, 'first-invocation')));
+  assert.deepEqual(first, {...expected, invocationRef: {operation: 'cancel', attemptId: 'first-invocation'}});
+  const replay = success(invoke(f, cancellationCommand(lookup, 'later-invocation')));
+  assert.deepEqual(replay, {...expected, invocationRef: {operation: 'cancel', attemptId: 'later-invocation'}});
+  assert.deepEqual(success(invoke(f, lookup)), {...expected, kind: 'local_cancellation_lookup'});
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(original.ref, admitted.ref);
+  assert.equal(original.controlRevision, expected.recordedControlRevision, 'Replay cannot issue another cancellation');
+  for (const name of ['status', 'physicallyStopped', 'cleanupComplete', 'released']) {
+    assert.equal(Object.hasOwn(first, name), false, 'Acceptance cannot manufacture terminal or cleanup evidence');
+  }
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI discarded cancellation reply is recovered from original journal without reopening Store', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-discarded-reply');
+  // The command really executes and exits; its stdout is deliberately discarded.
+  // This is a lost consumer reply, not injection of a pre/post-commit failure.
+  const lost = spawnSync(binary, ['--mode', 'local', '--config-root', f.root,
+    '--config-file', 'actql.config.json', ...cancellationCommand(lookup)],
+  {cwd: f.root, env: {...process.env, PATH: ''}, encoding: 'utf8', timeout: 15000,
+    stdio: ['ignore', 'ignore', 'pipe']});
+  assert.ifError(lost.error);
+  assert.equal(lost.signal, null);
+  assert.ok(lost.pid > 0);
+  assert.equal(lost.status, 0, lost.stderr);
+  const originalStore = join(f.root, 'managed', 'results', '.actql-publication.sqlite3');
+  await rename(originalStore, `${originalStore}.held-original`);
+  const observed = success(invoke(f, lookup));
+  assert.equal(observed.history, 'retained');
+  assert.equal(observed.action, 'accepted');
+  assert.deepEqual(observed.ref, admitted.ref);
+  assert.deepEqual(observed.cancelRef, {...admitted.ref, cancelId: 'cancel-original',
+    expectedRevision: Number(admitted.controlRevision)});
+  assert.equal(observed.recordedControlRevision, (BigInt(admitted.controlRevision) + 1n).toString());
+  assert.deepEqual(success(invoke(f, lookup)), observed);
+  await assert.rejects(stat(originalStore), {code: 'ENOENT'});
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI stale cancellation does not commit and preserves exact original lookup guidance', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-stale-revision');
+  const stale = [...lookup];
+  stale[stale.indexOf('--expected-revision') + 1] = (BigInt(admitted.controlRevision) + 1n).toString();
+  const denied = invoke(f, cancellationCommand(stale));
+  refusal(denied, /LocalCancellationUnknown .*lookup=lookup-cancellation reason=LocalCancellationControlRevisionConflict/u);
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(original.controlRevision, admitted.controlRevision);
+  assert.deepEqual(original.ref, admitted.ref);
+  assert.equal(success(invoke(f, stale)).history, 'unresolved', 'A conflict cannot become an accepted original operation');
+  assert.equal(success(invoke(f, lookup)).history, 'unresolved');
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI another cancellation identity records already-requested without changing original result', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-already-requested');
+  const first = success(invoke(f, cancellationCommand(lookup)));
+  assert.equal(first.action, 'accepted');
+  const next = [...lookup];
+  next[next.indexOf('--cancel-id') + 1] = 'distinct-operation';
+  next[next.indexOf('--expected-revision') + 1] = first.recordedControlRevision;
+  const recorded = success(invoke(f, cancellationCommand(next, 'distinct-invocation')));
+  assert.equal(recorded.action, 'already_requested');
+  assert.equal(recorded.recordedControlRevision, first.recordedControlRevision);
+  assert.deepEqual(recorded.ref, admitted.ref);
+  assert.equal(recorded.cancelRef.cancelId, 'distinct-operation');
+  assert.deepEqual(success(invoke(f, lookup)), {kind: 'local_cancellation_lookup', history: 'retained',
+    ref: first.ref, cancelRef: first.cancelRef, action: first.action, recordedControlRevision: first.recordedControlRevision});
+  const changed = [...lookup];
+  changed[changed.indexOf('--expected-revision') + 1] = first.recordedControlRevision;
+  refusal(invoke(f, changed), /LocalCancellationIntentConflict/u);
+});
+
+test('Native CLI cancellation refuses missing original Store without initializing a replacement', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-missing-store');
+  const originalStore = join(f.root, 'managed', 'results', '.actql-publication.sqlite3');
+  await rename(originalStore, `${originalStore}.held-original`);
+  refusal(invoke(f, cancellationCommand(lookup)), /LocalOriginalStoreUnavailable/u);
+  await assert.rejects(stat(originalStore), {code: 'ENOENT'});
+  assert.equal(success(invoke(f, lookup)).history, 'unresolved');
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(original.controlRevision, admitted.controlRevision);
+  assert.deepEqual(original.ref, admitted.ref);
 });
 
 test('Native CLI cancellation lookup rejects substituted namespace authority and Run before original operation lookup', async () => {
@@ -403,6 +498,7 @@ test('Native CLI cancellation lookup rejects substituted namespace authority and
     ['authorityScopeCid', `sha256:${'0'.repeat(64)}`], ['runDefinitionCid', `sha256:${'0'.repeat(64)}`]]) {
     await writeFile(join(f.root, 'original-run.json'), JSON.stringify({...admitted.ref, [field]: value}));
     refusal(invoke(f, lookup), /LocalOriginalRunReferenceMismatch/u);
+    refusal(invoke(f, cancellationCommand(lookup)), /LocalOriginalRunReferenceMismatch/u);
   }
   await writeFile(join(f.root, 'original-run.json'), JSON.stringify(admitted.ref));
   assert.equal(success(invoke(f, lookup)).history, 'unresolved');
@@ -416,6 +512,7 @@ test('Native CLI cancellation lookup refuses absent Run admission and altered Su
   const lookup = ['lookup-cancellation', '--submission-ref-file', 'original-submission.json',
     '--ref-file', 'original-run.json', '--cancel-id', 'cancel-original', '--expected-revision', '0'];
   refusal(invoke(f, lookup), /LocalOriginalRunUnavailable/u);
+  refusal(invoke(f, cancellationCommand(lookup)), /LocalOriginalRunUnavailable/u);
   const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
   assert.equal(original.history, 'unresolved');
   assert.equal(Object.hasOwn(original, 'ref'), false);

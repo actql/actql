@@ -32,16 +32,26 @@ fn local_resolve_admitted_run(
 }
 
 ///|
-// Read the original cancellation record through the existing journal. An
-// unresolved history is not a refusal certificate, stop observation, cleanup
-// result or permission to issue another operation. No Store or Provider opens.
-fn local_cancellation_lookup(
+priv struct LocalCancellationSelection {
+  request : @run_host.ClientRequestIdentity
+  reference : Json
+  cancel_ref : Json
+  scope : String
+  namespace_id : String
+  cancel_id : String
+  revision : Int
+}
+
+///|
+// This is Host glue around the original admission and cancellation Owner.
+// A selection is neither a new execution nor an authorization capability.
+fn local_cancellation_selection(
   host : @local_host.NativeLocalHostConnection,
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   input_root : String,
   child : @argparse.Matches,
-) -> String raise ClientStop {
+) -> LocalCancellationSelection raise ClientStop {
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),
   )
@@ -99,31 +109,31 @@ fn local_cancellation_lookup(
   if !wire_cancellation_ref_shape(cancel_ref) {
     stop("InvalidCancellationRef")
   }
-  let observed = match
-    journal.lookup_cancellation(
-      request,
-      json_text(original, "namespaceId").unwrap(),
-      cancel_id,
-      revision,
-      current,
-    ) {
-    Ok(value) => value
-    Err(CancellationOperation(_)) => stop("LocalCancellationIntentConflict")
-    Err(AuthorizationDenied) => stop("LocalCancellationAuthorizationDenied")
-    _ => stop("LocalCancellationLookupUnavailable")
+  {
+    request,
+    reference,
+    cancel_ref,
+    scope,
+    namespace_id: json_text(original, "namespaceId").unwrap(),
+    cancel_id,
+    revision,
   }
-  if !current() {
-    stop("LocalCancellationAuthorizationDenied")
-  }
+}
+
+///|
+fn local_cancellation_record_fields(
+  selection : LocalCancellationSelection,
+  kind : String,
+  observed : @local_host.NativeClientCancellationRecord?,
+) -> Map[String, Json] {
   let fields : Map[String, Json] = Map([
-    ("kind", Json::string("local_cancellation_lookup")),
-    ("ref", reference),
-    ("cancelRef", cancel_ref),
+    ("kind", Json::string(kind)),
+    ("ref", selection.reference),
+    ("cancelRef", selection.cancel_ref),
   ])
   match observed {
-    UnresolvedCancellationHistory =>
-      fields["history"] = Json::string("unresolved")
-    OriginalCancellation(record) => {
+    None => fields["history"] = Json::string("unresolved")
+    Some(record) => {
       fields["history"] = Json::string("retained")
       fields["action"] = Json::string(
         match @local_host.native_client_cancellation_action(record) {
@@ -133,11 +143,189 @@ fn local_cancellation_lookup(
         },
       )
       // The immutable original observation is not a newly sampled Run control
-      // revision and is never combined into an atomic multi-Owner snapshot.
+      // revision or an atomic multi-Owner snapshot.
       fields["recordedControlRevision"] = Json::string(
         @local_host.native_client_cancellation_revision(record).to_string(),
       )
     }
   }
-  encode_request_json(Json::object(fields), 4096)
+  fields
+}
+
+///|
+// Lookup observes only original operation custody. It never opens the Store,
+// sends cancellation, refreshes the control revision or replays any Provider.
+fn local_cancellation_lookup(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  input_root : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let selected = local_cancellation_selection(
+    host, settings, crypto, input_root, child,
+  )
+  let current = () => {
+    local_run_operation_allowed(
+      host,
+      settings,
+      crypto,
+      selected.scope,
+      "cancel",
+    )
+  }
+  let journal = local_host_result(host.run_journal())
+  let observed = match
+    journal.lookup_cancellation(
+      selected.request,
+      selected.namespace_id,
+      selected.cancel_id,
+      selected.revision,
+      current,
+    ) {
+    Ok(UnresolvedCancellationHistory) => None
+    Ok(OriginalCancellation(value)) => Some(value)
+    Err(CancellationOperation(_)) => stop("LocalCancellationIntentConflict")
+    Err(AuthorizationDenied) => stop("LocalCancellationAuthorizationDenied")
+    _ => stop("LocalCancellationLookupUnavailable")
+  }
+  if !current() {
+    stop("LocalCancellationAuthorizationDenied")
+  }
+  encode_request_json(
+    Json::object(
+      local_cancellation_record_fields(
+        selected, "local_cancellation_lookup", observed,
+      ),
+    ),
+    4096,
+  )
+}
+
+///|
+fn local_cancellation_unknown(reference : String) -> String {
+  "LocalCancellationUnknown cancel-ref=" +
+  reference +
+  " lookup=lookup-cancellation"
+}
+
+///|
+// Open only the original retained Store. Missing formats, database originals,
+// changed generations or differing installed bindings cannot initialize state.
+fn local_cancellation_operation(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  sqlite : @local_sqlite.Library,
+  input_root : String,
+  child : @argparse.Matches,
+  recovery_reference : Ref[String?],
+) -> String raise ClientStop {
+  let selected = local_cancellation_selection(
+    host, settings, crypto, input_root, child,
+  )
+  let invocation = Json::object(
+    Map([
+      ("operation", Json::string("cancel")),
+      ("attemptId", Json::string(required(child, "operation-attempt-id"))),
+    ]),
+  )
+  if !wire_operation_attempt_ref_shape(invocation) {
+    stop("InvalidOperationAttemptReference")
+  }
+  let current = () => {
+    local_run_operation_allowed(
+      host,
+      settings,
+      crypto,
+      selected.scope,
+      "cancel",
+    )
+  }
+  let file = settings.run_file.unwrap_or_else(() => {
+    stop("LocalRunOriginalNotSelected")
+  })
+  let original = local_host_result(host.selected_configuration(file))
+  let run = local_run_installation(
+    @utf8.decode(original) catch {
+      _ => stop("InvalidLocalRunInstallation")
+    },
+  )
+  if run.namespace_id != selected.namespace_id {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  let managed = local_host_result(host.managed_root_path()).unwrap_or_else(() => {
+    stop("LocalManagedRootRequired")
+  })
+  let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
+    stop("LocalManagedRootUntrusted")
+  })
+  root
+  .open_child(run.store_name)
+  .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+  .private_ownership()
+  .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
+  |> ignore
+  if !current() {
+    stop("LocalCancellationAuthorizationDenied")
+  }
+  let store = @local_store.open_existing_store(
+    sqlite,
+    managed + "/" + run.store_name,
+    run.store_authority_cid,
+    run.store_capacity_bytes,
+    run.store_objects,
+    run.store_record_bytes,
+  ).unwrap_or_else(() => stop("LocalOriginalStoreUnavailable"))
+  let reply = {
+    errdefer (if !(store.close() is Ok(true)) {
+      stop("LocalCancellationStoreCleanupPending")
+    })
+    let publication = @local_host.install_native_client_cancellation_publication(
+      store,
+      selected.namespace_id,
+      65536,
+      8192,
+      64,
+    ).unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
+    let journal = local_host_result(host.run_journal())
+    // Keep the exact submitted operation key before the transaction. If its
+    // outcome or a later close is lost, recovery observes this same key only.
+    recovery_reference.val = Some(
+      encode_request_json(selected.cancel_ref, 4096),
+    )
+    let recorded = match
+      journal.cancel_operation(
+        selected.request,
+        selected.namespace_id,
+        selected.cancel_id,
+        selected.revision,
+        current,
+        publication,
+      ) {
+      Ok(value) => value
+      Err(CancellationOperation(RevisionConflict)) =>
+        stop("LocalCancellationControlRevisionConflict")
+      Err(CancellationOperation(ChangedIntent)) | Err(ChangedIntent) =>
+        stop("LocalCancellationIntentConflict")
+      Err(AuthorizationDenied) => stop("LocalCancellationAuthorizationDenied")
+      _ => stop("LocalCancellationRecordUnconfirmed")
+    }
+    if !current() {
+      stop("LocalCancellationAuthorizationDenied")
+    }
+    let fields = local_cancellation_record_fields(
+      selected,
+      "local_cancellation_operation",
+      Some(recorded),
+    )
+    // Correlation only: the original-operation record is durable. This field
+    // does not claim an independent durable invocation refusal certificate.
+    fields["invocationRef"] = invocation
+    encode_request_json(Json::object(fields), 4096)
+  }
+  if !(store.close() is Ok(true)) {
+    stop("LocalCancellationStoreCleanupPending")
+  }
+  reply
 }

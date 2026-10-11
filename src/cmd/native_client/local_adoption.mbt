@@ -285,6 +285,7 @@ fn execute_native_local_adoption(
     }
   }
   // Produce the reply before closing, but never publish it before confirmed close.
+  let cancellation_recovery : Ref[String?] = Ref(None)
   let reply = try {
     if operation == "start" || operation == "aql" {
       local_submission_start(
@@ -294,6 +295,10 @@ fn execute_native_local_adoption(
       local_submission_lookup(host, settings, crypto, root, child)
     } else if operation == "lookup-cancellation" {
       local_cancellation_lookup(host, settings, crypto, root, child)
+    } else if operation == "cancel" {
+      local_cancellation_operation(
+        host, settings, crypto, sqlite, root, child, cancellation_recovery,
+      )
     } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
@@ -357,12 +362,30 @@ fn execute_native_local_adoption(
   } catch {
     issue => {
       if host.close() is Err(_) {
+        if cancellation_recovery.val is Some(reference) {
+          stop(
+            local_cancellation_unknown(reference) +
+            " reason=LocalHostCleanupPending",
+          )
+        }
         stop("LocalHostCleanupPending")
+      }
+      if cancellation_recovery.val is Some(reference) {
+        match issue {
+          ClientStop(reason) =>
+            stop(local_cancellation_unknown(reference) + " reason=" + reason)
+        }
       }
       raise issue
     }
   }
   if host.close() is Err(_) {
+    if cancellation_recovery.val is Some(reference) {
+      stop(
+        local_cancellation_unknown(reference) +
+        " reason=LocalHostCleanupPending",
+      )
+    }
     stop("LocalHostCleanupPending")
   }
   reply

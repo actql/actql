@@ -104,10 +104,33 @@ only its original `action` and exact decimal `recordedControlRevision`; this is
 not a new Run-control snapshot. An unresolved history certifies neither refusal
 nor absence of side effects, physical stop or resource release. Lookup does not
 issue a cancellation, reopen payloads, load a Provider, recompile or resubmit.
-The Host must close successfully before stdout publishes the reply. Local
-cancel execution, physical-stop/cleanup restoration and retained cancellation
-CLI acceptance remain unfinished. These new process fixtures are defined and
-typechecked separately from actual fresh-artifact runtime acceptance.
+The Host must close successfully before stdout publishes the reply.
+
+Local `cancel` accepts the same original bindings and additionally requires
+`--operation-attempt-id`. It opens the original existing Store without format
+or database initialization and passes its real publication observer to the
+existing cancellation journal. That Owner atomically records the request and
+its original witness. The reply has `kind: local_cancellation_operation` and
+the same original-record fields as lookup. `invocationRef` correlates this CLI
+invocation; it is not an independent durable invocation refusal certificate.
+Reusing the original cancellation identity returns its immutable original
+record. A distinct operation against an already-requested Run records
+`already_requested`; it does not rewrite the earlier operation.
+
+After entering the cancellation transaction, an unconfirmed result or later
+close failure reports `LocalCancellationUnknown` with the exact original
+`cancel-ref` and `lookup=lookup-cancellation`. The reason can describe a local
+conflict or cleanup failure, but is not a durable refusal certificate or
+permission to resubmit. Lookup uses the original Submission, Run, cancel ID
+and revision; it does not need to reopen the Store or replay Source/Compute.
+Store and Host close must both succeed before a successful stdout reply.
+
+Cancellation acceptance is not confirmation of physical stop, terminal Run
+state or resource release. Physical-stop/cleanup restoration and actual
+fresh-artifact cancellation CLI acceptance remain unfinished. The process
+fixtures include discarded stdout after a real exited command; that case is
+not a pre/post-commit fault injection. These fixtures are defined and checked
+for syntax separately from runtime acceptance.
 
 In addition to the preparation settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
