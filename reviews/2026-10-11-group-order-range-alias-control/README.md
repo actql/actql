@@ -126,3 +126,10 @@ original baseline and pre-integration inventory remain separate.
 three Node syntax checks, five read-only freshness checks and whitespace,
 all exit zero. None compiles or executes the authored regression tests.
 The selected producer/public commands remain prepared and unstarted.
+
+Raw conflict-marker evidence made the initial staged whitespace check exit 2.
+The original bytes are retained in escaped JSON with their SHA-256, rather than
+leaving literal conflict-marker lines in tracked text. The failure record is
+[staged-conflict-evidence-failure.json](staged-conflict-evidence-failure.json);
+it is not reported as a pass. This evidence-only follow-up does not change the
+product fix or independent oracle.
