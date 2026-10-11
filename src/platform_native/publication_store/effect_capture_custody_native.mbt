@@ -7,6 +7,7 @@ priv struct PrivateEffectEvidenceCustody {
   crypto : @signature.Library
   key : Bytes
   envelope : Bytes
+  reservation_bytes : Int64
   terminal : Bytes
   capacity_key : String
   table : String
@@ -53,6 +54,7 @@ fn prepare_private_effect_custody(
     crypto,
     key: owned_key,
     envelope,
+    reservation_bytes: envelope.length().to_int64(),
     terminal: @utf8.encode(terminal),
     capacity_key: step_prefix + ":" + holding,
     table,
@@ -333,7 +335,8 @@ fn PrivateEffectEvidenceCustody::read(
     }
     return Ok((row, true))
   }
-  if row.revision != 0L || row.body.length() != self.envelope.length() {
+  if row.revision != 0L ||
+    row.body.length().to_int64() != self.reservation_bytes {
     return Err(StateCollision)
   }
   let plain = match
@@ -381,7 +384,7 @@ fn PrivateEffectEvidenceCustody::persist(
       db.reserve_capacity_in_transaction(
         "publication_payload",
         self.capacity_key,
-        self.envelope.length().to_int64(),
+        self.reservation_bytes,
         1L,
         self.store.capacity_bytes,
         self.store.max_objects,
@@ -491,7 +494,7 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
         .release_capacity(
           "publication_payload",
           self.capacity_key,
-          self.envelope.length().to_int64(),
+          self.reservation_bytes,
           1L,
         )
         .map_err(issue => Database(issue))
@@ -506,7 +509,7 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
 fn PrivateEffectEvidenceCustody::reserved_bytes(
   self : PrivateEffectEvidenceCustody,
 ) -> Int64 {
-  self.envelope.length().to_int64()
+  self.reservation_bytes
 }
 
 ///|
