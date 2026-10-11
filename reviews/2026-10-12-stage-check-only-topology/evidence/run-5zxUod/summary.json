@@ -1,0 +1,68 @@
+{
+  "startedAt": "2026-10-11T17:41:55.474Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "checked-topology-pinned-interface",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/relation_results",
+        "src/stage_results",
+        "src/pipeline_check_context"
+      ],
+      "startedAt": "2026-10-11T17:41:55.559Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:41:56.622Z",
+      "endedAt": "2026-10-11T17:41:56.624Z"
+    },
+    {
+      "name": "checked-topology-pinned-format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/relation_results/checked_inputs.mbt",
+        "src/relation_results/ports.mbt",
+        "src/stage_results/checked_topology.mbt",
+        "src/stage_results/checked_topology_test.mbt",
+        "src/stage_results/local_program.mbt",
+        "src/stage_results/imports.mbt",
+        "src/pipeline_check_context/prepare_sourceview_program.mbt"
+      ],
+      "startedAt": "2026-10-11T17:41:56.686Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:41:58.550Z",
+      "endedAt": "2026-10-11T17:41:58.553Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "611d5f0e-0543-4faf-bf77-dfd8ec77638f",
+    "pid": 58983,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+    "startedAt": "2026-10-11T17:41:55.548Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/local-checks/attempts/run-5zxUod"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-1b19ab159a259a7241ded8424dc718f1fdf88fee1ad239f513cb5fe4317f5b51.lock"
+  ],
+  "endedAt": "2026-10-11T17:41:58.622Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

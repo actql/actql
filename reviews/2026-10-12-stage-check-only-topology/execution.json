@@ -1,0 +1,89 @@
+{
+  "tested_source": "904b58f6c4ba4585d11e416c23ec7b767c55e1d1",
+  "tested_tree": "2ab7f5dce2090092dca16ba64cdda7ed9551739d",
+  "base_main": "90d7e06909cc34065fca425f30bfe36a50619a55",
+  "final_js": {
+    "run": "run-HYeuFs",
+    "tests": 20,
+    "passed": 20,
+    "failed": 0,
+    "focused_evidence": "_build/focused-evidence/focused-test-7hwS3O"
+  },
+  "receipts": [
+    {
+      "run": "run-no68QV",
+      "status": "failed",
+      "exit_code": 1,
+      "complete": false,
+      "owner": 57930,
+      "locks_released": true,
+      "summary_sha256": "4928be065de4c8a831b76f30abd9def9e5ec146134eb07dad9cdbd292bbe40a7"
+    },
+    {
+      "run": "run-XBpvoo",
+      "status": "failed",
+      "exit_code": 1,
+      "complete": false,
+      "owner": 58599,
+      "locks_released": true,
+      "summary_sha256": "db240c021a781f7e2eb928bd34a90ad9dde59d9cb8313346c98145bd2753dedb"
+    },
+    {
+      "run": "run-5zxUod",
+      "status": "passed",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 58983,
+      "locks_released": true,
+      "summary_sha256": "bebc1bc1dce7060a962ca9ec797c21519cb0a267fe28b1d7402c17a233781fed"
+    },
+    {
+      "run": "run-MypnWD",
+      "status": "failed",
+      "exit_code": 2,
+      "complete": false,
+      "owner": 60231,
+      "locks_released": true,
+      "summary_sha256": "0156efa7f157c5d7e45205e3a2c9e8bf279783198fd69088ccf0c05c493edbea"
+    },
+    {
+      "run": "run-gv16xF",
+      "status": "passed",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 61326,
+      "locks_released": true,
+      "summary_sha256": "4e58a78de9e573ecff7cf4adca7a74163c1f6612d8e4f84f4b9c59fd9acd55de"
+    },
+    {
+      "run": "run-rLK2fg",
+      "status": "passed",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 62454,
+      "locks_released": true,
+      "summary_sha256": "5aa149dbbb73fe0e1759a431c33888fa4d171c9ba4f954be2856f5973dd2d4fa"
+    },
+    {
+      "run": "run-HYeuFs",
+      "status": "passed",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 62837,
+      "locks_released": true,
+      "summary_sha256": "3fd7bd2d5d6e4b10d3e69fce7e34004e39b7266d03afda6e3127795b3fb1766e"
+    }
+  ],
+  "unexecuted": [
+    "Frontend demand caller after common API adoption",
+    "packed Local/HTTPS",
+    "Wasm/Native execution",
+    "Hosted CI",
+    "full Program/profile closure"
+  ],
+  "authoring_failures": [
+    "First independent preimage copy used an incorrect reviews path; the authoritative docs/reviews/fixtures original was subsequently copied byte-for-byte.",
+    "The import refactor edit asserted against pre-format indentation after earlier writes; the missing profile call arguments were fixed before compilation."
+  ],
+  "owner_release": "Every recorded owner/group and own lock was directly observed absent after termination; latest Owner 62837."
+}
