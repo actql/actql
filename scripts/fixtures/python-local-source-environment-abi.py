@@ -30,7 +30,7 @@ def install(value):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 24
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 25
     for invalid in [
         {'publication': encode(publication).decode()},
         {'environment': None, 'publication': encode(publication).decode()},
