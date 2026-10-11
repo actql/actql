@@ -2578,6 +2578,7 @@ pub fn PublicationOutputExport::definition(Self) -> Result[@run_publication.Publ
 pub fn PublicationOutputExport::derivation(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::finish(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::issue_artifact(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::issue_durable_binding(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::issue_result_evidence(Self, String, Array[String], String, String, String, Int, Int, Int) -> Result[Unit, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::matches_captured_run(Self, @physical_strategy.CapturedDAG) -> Bool
@@ -2599,6 +2600,7 @@ pub(all) enum PublicationOutputExportIssue {
   Output(@execution_relation.CompletedExportIssue)
   Evidence(@run_publication.ResultEvidenceIssuanceIssue)
   Artifact(@run_publication.ResultArtifactIssuanceIssue)
+  DurableBinding(@run_publication.DurableResultBindingIssue)
   Capture(@run_publication.CapturedRunIssuanceIssue)
   Source(@execution_query.CapturedSourceIssue)
 }
