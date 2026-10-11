@@ -118,11 +118,12 @@ pub fn ResidentSourceCompute::prepare_effect_review_retention(
 pub fn ResidentEffectReviewRetention::persist(
   self : ResidentEffectReviewRetention,
   store : @publication_store.Store,
+  computation_capacity? : ResidentEffectComputationCapacity? = None,
 ) -> Result[
   @remote.RemoteEffectCheckpointReport,
   ResidentEffectReviewRetentionIssue,
 ] {
-  match self.persist_custody(store) {
+  match self.persist_custody(store, computation_capacity~) {
     Ok(_) => self.report()
     Err(issue) => Err(issue)
   }
@@ -135,8 +136,9 @@ pub fn ResidentEffectReviewRetention::persist(
 pub fn ResidentEffectReviewRetention::persist_original_checkpoint(
   self : ResidentEffectReviewRetention,
   store : @publication_store.Store,
+  computation_capacity? : ResidentEffectComputationCapacity? = None,
 ) -> Result[@checkpoint.PersistedCheckpoint, ResidentEffectReviewRetentionIssue] {
-  match self.persist_custody(store) {
+  match self.persist_custody(store, computation_capacity~) {
     Ok(_) =>
       self.confirm_original_checkpoint(
         self.consumer,
@@ -151,6 +153,7 @@ pub fn ResidentEffectReviewRetention::persist_original_checkpoint(
 fn ResidentEffectReviewRetention::persist_custody(
   self : ResidentEffectReviewRetention,
   store : @publication_store.Store,
+  computation_capacity? : ResidentEffectComputationCapacity? = None,
 ) -> Result[Unit, ResidentEffectReviewRetentionIssue] {
   if self.retiring || !self.consumer.resident_effect_inputs_current(self.inputs) {
     return Err(Unavailable)
@@ -171,6 +174,7 @@ fn ResidentEffectReviewRetention::persist_custody(
         self.limits.max_wire_bytes,
         self.limits.max_nodes,
         self.limits.max_depth,
+        computation_capacity~,
       ) {
       Ok(owner) => {
         self.capture_owner = Some(owner)
