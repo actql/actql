@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
@@ -44,6 +45,8 @@ const originals = [
   ['graph-equality-extra-argument', '1aec74bc5fd9a9ccee77380876878bfa64926d6600f1a9af43818461a73d85a7', false],
   ['graph-equality-graph-call-after-transition', '2460ffb2a2bab8d2a1a3345ec1efd8c162329f85999137cfa524eb93dff44f83', false],
 ];
+// Retired authored sources remain immutable evidence, not accepted callers.
+const historicalRows = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-row-source-input.json', import.meta.url), 'utf8'));
 const cases = new Map([
   ...graphSourceRefusals,
   ...subgraphSourceRefusals,
@@ -52,7 +55,7 @@ const cases = new Map([
   ...graphQuantifierFormsRefusals,
   ...graphEdgePredicateRefusals,
   ...graphHopNodePredicateRefusals,
-  ...graphRowSourceRefusals,
+  ...historicalRows.refusals,
   ...graphDiagnosticSourceRefusals,
   ...graphDifferenceSourceRefusals,
   ...graphEqualitySourceRefusals,
@@ -69,5 +72,18 @@ test('only independently proven Graph support gaps gain exact implementation-lim
     if (gap) assert.equal(expectedCode, 'ClientProgramImplementationLimit', name);
     else assert.equal(Object.hasOwn(item, 'expectedCode'), false,
       name + ': malformed input retains its original rejection policy');
+  }
+});
+
+test('WITH Graph row refusals preserve their existing rejection policy', () => {
+  assert.equal(graphRowSourceRefusals.length, historicalRows.refusals.length);
+  for (const current of graphRowSourceRefusals) {
+    const previous = historicalRows.refusals.find(input => input.name === current.name);
+    const {text: oldText, ...oldPolicy} = previous;
+    const {text, ...policy} = current;
+    assert.deepEqual(policy, oldPolicy);
+    assert.notEqual(text, oldText);
+    assert.ok(text.startsWith('WITH '));
+    assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text));
   }
 });

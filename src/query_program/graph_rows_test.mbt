@@ -1,6 +1,6 @@
 ///|
 fn graph_rows_prefix() -> String {
-  "DATA n = SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name; DATA e = SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); "
+  "WITH n AS (SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name), e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) "
 }
 
 ///|
@@ -75,11 +75,11 @@ fn graph_rows_check_limits() -> @check.CheckLimits {
 ///|
 test "Graph row source has an independently authored complete Program" {
   let actual = compile_data_set(
-    "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> node_rows() |> SELECT p, node_key",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> node_rows() |> SELECT p, node_key",
   )
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","node_rows":true,"as":"aql_sga_3"},{"from":"aql_sga_3","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","node_rows":true,"as":"aql_sga_3"},{"from":"aql_sga_3","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -111,10 +111,10 @@ test "Graph row source lowers the existing node bridge and relational suffix" {
 }
 
 ///|
-test "Graph row DATA alias lowers the existing edge bridge once" {
+test "Graph row WITH alias lowers the existing edge bridge once" {
   let program = compile_data_set(
     graph_rows_prefix() +
-    "DATA `rows` = FROM `g` |> edge_rows() |> SELECT edge_key, labels; FROM `rows` |> ORDER BY edge_key",
+    ", `rows` AS (FROM `g` |> edge_rows() |> SELECT edge_key, labels) FROM `rows` |> ORDER BY edge_key",
   )
   let body = semantic(program)
   assert_eq(body.split("\"edge_rows\":true").length(), 2)
@@ -129,7 +129,7 @@ test "Graph row DATA alias lowers the existing edge bridge once" {
     ) {
     Checked(_) => ()
     Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-    NeedsInputs(_) => fail("Graph row DATA adds no acquisition")
+    NeedsInputs(_) => fail("Graph row WITH adds no acquisition")
   }
 }
 
