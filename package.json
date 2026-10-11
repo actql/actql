@@ -130,8 +130,12 @@
   },
   "devDependencies": {
     "@actql/client-wire": "file:packages/client-wire",
+    "@actql/explorer-ui": "file:packages/explorer-ui",
+    "@actql/sdk": "file:packages/sdk",
+    "@hono/node-server": "2.1.4",
     "esbuild": "0.28.1",
     "github-slugger": "2.0.0",
+    "hono": "4.13.13",
     "remark-parse": "11.0.0",
     "typescript": "5.9.3",
     "unified": "11.0.5",
