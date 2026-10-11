@@ -65,6 +65,26 @@ revisions. A ready admission is not an execution outcome or published Result.
 This source connection does not yet complete Local submit/attach execution or
 establish fixed-artifact process acceptance.
 
+The next source candidate connects `start` and `aql` to the same original
+Submission journal, ordinary frontend/compiler, Native Source/Compute Work,
+original Local normalization audit and Native Result publication Store. It is
+not yet verified using a fresh CLI artifact. This profile requires one
+explicitly installed Source, a supported linear Effect-free Program, explicit
+view/no semantic completions, and selected Run/retention originals. Effect
+execution, Result read and full process recovery remain unfinished.
+
+Input is durably recorded before preparation. A rejected preparation can be
+looked up as the same retained submission; it is never treated as absent or as
+permission to replace its input. An already-admitted submission returns the
+original lookup facts without recompilation, a new Run or another acquisition.
+`ready` still means admission only. `local_run_published` is emitted only after
+the original Store confirms publication and temporary Source/Compute cleanup
+and Store close succeed; it is not a Result delivery receipt or read grant.
+The selected Result retention original supplies the Run validity ceiling.
+Current submit and Source read authority are independent. A publication error
+retains original Store materials for reconciliation rather than deleting them
+or opening another Source. Pending cleanup is reported as incomplete.
+
 In addition to the preparation settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
 and `native.local`:

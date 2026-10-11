@@ -264,8 +264,8 @@ test('Native CLI rejects ambiguous or excessive installation selections before H
   }
 });
 
-async function sourceFixture(name, update = () => {}) {
-  const f = await fixture(name);
+async function sourceFixture(name, update = () => {}, entries = []) {
+  const f = await fixture(name, entries);
   const source = JSON.parse(await readFile(fileURLToPath(new URL(
     './fixtures/native-local-cli/source-installation.json', import.meta.url)), 'utf8'));
   // Configuration admission must not load the Source library or open its DB.
@@ -277,6 +277,85 @@ async function sourceFixture(name, update = () => {}) {
   await f.save();
   return f;
 }
+
+async function submissionFixture(name) {
+  const f = await sourceFixture(name, () => {}, [submitPermission]);
+  await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/source-environment.json', import.meta.url)),
+    join(f.root, 'environment.json'));
+  f.configuration.native.check_environment.evidence_bundle_cid =
+    'sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554';
+  await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/run-installation.json', import.meta.url)),
+    join(f.root, 'run-installation.json'));
+  f.configuration.native.local.installation_files.push('run-installation.json');
+  f.configuration.native.local.run_file = 'run-installation.json';
+  await f.save();
+  success(invoke(f, ['adopt', '--json']));
+  const reference = success(invoke(f, ['new-submission', '--request-id', 'original']));
+  await writeFile(join(f.root, 'original-submission.json'), JSON.stringify(reference));
+  return {f, reference};
+}
+
+const originalStart = ['start', '--program-file', 'input.json',
+  '--submission-ref-file', 'original-submission.json', '--operation-attempt-id', 'first'];
+
+test('Native CLI saves original submission before preparation refusal and refuses changed input after process exit', async () => {
+  const {f, reference} = await submissionFixture('start-refused-preparation');
+  await writeFile(join(f.root, 'input.json'), '{}');
+  refusal(invoke(f, originalStart), /LocalPreparationNotReady/u);
+  const first = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(first.submissionRef, reference);
+  assert.equal(first.history, 'retained');
+  assert.equal(first.phase, 'preparing');
+  assert.equal(Object.hasOwn(first, 'runDefinitionCid'), false);
+  await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
+  const before = await journal(f);
+  await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/source-program.json', import.meta.url)),
+    join(f.root, 'input.json'));
+  refusal(invoke(f, originalStart), /LocalSubmissionAcceptanceUnavailable/u);
+  const later = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(later.intentCid, first.intentCid);
+  assert.equal(later.revision, first.revision);
+  assert.deepEqual(await journal(f), before);
+});
+
+test('Native CLI original AQL refusal is retained and lookup does not lower or execute it again', async () => {
+  const {f, reference} = await submissionFixture('aql-refused-preparation');
+  await writeFile(join(f.root, 'bad.sql'), 'SELECT missing AS n');
+  refusal(invoke(f, ['aql', '--program-file', 'bad.sql', '--format', 'sql',
+    '--submission-ref-file', 'original-submission.json', '--operation-attempt-id', 'first']),
+  /LocalPreparationNotReady/u);
+  await unlink(join(f.root, 'bad.sql'));
+  const looked = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(looked.submissionRef, reference);
+  assert.equal(looked.history, 'retained');
+  assert.equal(looked.phase, 'preparing');
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI admitted Source Run still requires read authority before loading Source library', async () => {
+  const {f} = await submissionFixture('start-denied-source');
+  await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/source-program.json', import.meta.url)),
+    join(f.root, 'input.json'));
+  refusal(invoke(f, originalStart), /LocalSourceAuthorizationDenied/u);
+  const admitted = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(admitted.history, 'retained');
+  assert.equal(admitted.phase, 'ready', 'Ready is admission, not execution or publication');
+  assert.match(admitted.runDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+  await unlink(join(f.root, 'input.json'));
+  const looked = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(looked.runDefinitionCid, admitted.runDefinitionCid);
+});
+
+test('Native CLI refuses conflicting request assertion before durable acceptance', async () => {
+  const {f} = await submissionFixture('start-foreign-request');
+  await writeFile(join(f.root, 'input.json'), '{}');
+  const before = await journal(f);
+  refusal(invoke(f, [...originalStart, '--request-id', 'other']), /LocalSubmissionIdentityMismatch/u);
+  const looked = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(looked.history, 'unresolved');
+  assert.deepEqual(await journal(f), before);
+});
 
 test('Native CLI binds selected Source settings without opening Source or granting access', async () => {
   const f = await sourceFixture('typed-source-original');

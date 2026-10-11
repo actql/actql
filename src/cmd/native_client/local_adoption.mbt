@@ -171,7 +171,7 @@ fn execute_native_local_adoption(
       { text_time: false, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     )
-    is Some(_) else {
+    is Some(check_environment) else {
     stop("InvalidLocalCheckEnvironment")
   }
   guard selected_root.private_ownership() is Ok(current) &&
@@ -286,7 +286,11 @@ fn execute_native_local_adoption(
   }
   // Produce the reply before closing, but never publish it before confirmed close.
   let reply = try {
-    if operation == "lookup-submission" {
+    if operation == "start" || operation == "aql" {
+      local_submission_start(
+        host, settings, crypto, sqlite, check_environment, root, operation, child,
+      )
+    } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, root, child)
     } else if operation == "new-submission" {
       guard host.authorize({
