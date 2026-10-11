@@ -295,25 +295,21 @@ fn HolderEffectCatalogInstallation::close(
 }
 
 ///|
-/// The policy caller retains the returned raw-response/pending-Store failure.
-/// This performs one existing credential use and exact save/readback; it never
-/// retries a Provider read. Subsequent retries must use the returned Store
-/// custody through retry_native_salesforce_catalog_custody instead.
-fn HolderEffectCatalogInstallation::observe(
+/// Read through the existing exact credential use. The caller retains the
+/// admitted observation and original response before attempting Store setup,
+/// so a setup failure needs no repeated Provider read.
+fn HolderEffectCatalogInstallation::read(
   self : HolderEffectCatalogInstallation,
-  resources : HolderOutputResources,
   limits : @effect_catalog.DescribeLimits,
   max_observation_bytes : Int,
-  crypto : @signature.Library,
-  key : Bytes,
 ) -> Result[
   (
-    @publication_store.EffectCatalogCustody,
-    @publication_store.NativeEffectCatalogResponse,
+    @effect_catalog.CatalogObservation,
+    @effect_resource.NativeCredentialResponse,
   ),
-  @effect_review.NativeSalesforceCatalogCustodyFailure,
+  @effect_review.NativeSalesforceNamedCatalogIssue,
 ] {
-  @effect_review.observe_and_retain_native_salesforce_named_catalog(
+  @effect_review.observe_native_salesforce_named_catalog(
     self.service,
     self.grant,
     self.use_id,
@@ -324,9 +320,6 @@ fn HolderEffectCatalogInstallation::observe(
     self.resource,
     limits,
     max_observation_bytes,
-    resources.store,
-    crypto,
-    key,
     () => !self.client_closed && !self.database_closed && (self.current)(),
   )
 }
