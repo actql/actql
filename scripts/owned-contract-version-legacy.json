@@ -1603,6 +1603,38 @@
       "line": 25,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "21aaa89399d30dceb441705a8fc359fb904df5f7aabf529c03cc364632cb7555",
+      "line": 5391,
+      "count": 1,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "7a32a019d4db119a9c7afd5a44aa4fedaeb82516b0e46c39d994502b25c0abda",
+      "line": 5454,
+      "count": 4,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "020ac0fa2a32ef8d4999ce13d0dd6bbdc8e214a96047debc52d0212a9ade5374",
+      "line": 5466,
+      "count": 1,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "c5e911afb917a4c74a436ef2a040cfd1a0b8106c856d67862959827c49a67f89",
+      "line": 5497,
+      "count": 1,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
     }
   ]
 }
