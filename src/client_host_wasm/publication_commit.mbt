@@ -19,6 +19,8 @@ fn prepare_publication_commit_owner(
     record.manifest is Some(manifest) &&
     record.receipt is Some(receipt) &&
     record.captured is Some(captured) &&
+    value.publication_preflights.get(record.preflight)
+    is Some({ closing: false, preflight: Some(preflight), .. }) &&
     value.source_publications.get(record.source) is Some({ compute, .. }) &&
     value.computes.get(compute) is Some({ attempt, .. }) &&
     value.native_attempts.get(attempt) is Some(original) &&
@@ -51,6 +53,15 @@ fn prepare_publication_commit_owner(
     ) {
     Ok(contract) => contract
     Err(_) => return Err(())
+  }
+  let (original_request, original_attempt) = @local_run.local_publication_preflight_contracts(
+    preflight,
+  )
+  if @publication.publication_contract_identity(request) !=
+    @publication.publication_contract_identity(original_request) ||
+    @publication.publication_contract_identity(attempt) !=
+    @publication.publication_contract_identity(original_attempt) {
+    return Err(())
   }
   let index_entry = match
     @publication.admit_publication_contract(

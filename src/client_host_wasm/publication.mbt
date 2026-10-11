@@ -3,6 +3,7 @@
 /// One reserved output retains the exact Source and all declared Result pins.
 priv struct StoredPublication {
   source : Int
+  preflight : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
   mut results : Array[Int]
@@ -44,7 +45,14 @@ pub fn reserve_publication(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.source_publications.get(source)
-    is Some({ closing: false, produced: true, invocation: Some(_), .. }) &&
+    is Some(
+      { closing: false, produced: true, invocation: Some(_), compute, .. }
+    ) &&
+    compute_publication_preflight(value, compute) is Some((preflight, prepared)) &&
+    prepared.source == source &&
+    !prepared.closing &&
+    prepared.produced &&
+    prepared.preflight is Some(_) &&
     value.copies.get(input) is Some((input_slot, physical)) else {
     return -2
   }
@@ -76,6 +84,7 @@ pub fn reserve_publication(
   })
   value.publications[handle] = {
     source,
+    preflight,
     borrow,
     slot,
     results: [],
@@ -118,7 +127,10 @@ fn publication_current(
 ) -> Bool {
   guard value.source_publications.get(record.source)
     is Some({ closing: false, compute, .. }) &&
-    value.computes.get(compute) is Some({ closing: false, .. }) else {
+    value.computes.get(compute) is Some({ closing: false, .. }) &&
+    value.publication_preflights.get(record.preflight) is Some(preflight) &&
+    preflight.source == record.source &&
+    stored_preflight_current(value, preflight, account) else {
     return false
   }
   for result in record.results {
@@ -148,9 +160,10 @@ pub fn prepare_publication(
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) &&
     value.source_publications.get(record.source)
-    is Some({ closing: false, invocation: Some(invocation), compute, .. }) &&
-    value.computes.get(compute)
-    is Some({ closing: false, host: Some(host), .. }) &&
+    is Some({ closing: false, invocation: Some(_), compute, .. }) &&
+    value.computes.get(compute) is Some({ closing: false, host: Some(_), .. }) &&
+    value.publication_preflights.get(record.preflight)
+    is Some({ closing: false, preflight: Some(preflight), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -173,15 +186,12 @@ pub fn prepare_publication(
     Err(issue) => return issue_code(issue)
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "results", "retention", "max_work", "max_workspace_slots",
-    ])
+    @decode.closed_object(cursor, ["results", "max_work", "max_workspace_slots"])
     is Ok(object) &&
     @decode.required(object, "results") is Ok(results_cursor) &&
     @decode.elements(results_cursor) is Ok(results) &&
     results.length() > 0 &&
     results.length() <= value.workspace_slots &&
-    required_text(object, "retention") is Some(retention_wire) &&
     required_int32(object, "max_work") is Some(max_work) &&
     max_work > 0 &&
     max_work <= 1000000 &&
@@ -190,12 +200,15 @@ pub fn prepare_publication(
     max_workspace <= 100000 else {
     return -31
   }
-  let retention = match
-    @publication.admit_publication_contract(
-      "result_retention_policy", retention_wire, 65536, 4096, 64,
-    ) {
-    Ok(retention) => retention
-    Err(_) => return -31
+  if results.length() != @local_run.local_publication_preflight_count(preflight) {
+    return -2
+  }
+  if @local_run.validate_local_publication_preflight_current(
+      preflight,
+      current.account,
+    )
+    is Err(_) {
+    return -32
   }
   let handles : Array[Int] = []
   for result in results {
@@ -224,25 +237,23 @@ pub fn prepare_publication(
   record.max_work = max_work.to_int64()
   record.max_workspace = max_workspace
   record.pending = true
-  for result in handles {
+  for index, result in handles {
     let parent = value.result_exports.get(result).unwrap()
     let stream = parent.stream.unwrap()
     let issued = match parent.publication {
       Some(publication) =>
-        @local_run.reuse_local_result_publication(
+        @local_run.reuse_local_preflight_result_publication(
+          preflight,
+          index,
           publication,
-          host,
-          invocation,
           stream,
-          retention,
           current.account,
         )
       None =>
-        @local_run.issue_local_result_publication(
-          host,
-          invocation,
+        @local_run.issue_local_preflight_result_publication(
+          preflight,
+          index,
           stream,
-          retention,
           current.account,
           1048576,
           100000,
