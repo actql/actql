@@ -19,7 +19,10 @@ test "nested WITH preserves lexical qualifiers within the original budgets" {
     "WITH aql_cte_scope_0 AS (SELECT a FROM rows), chosen AS (WITH hidden AS (SELECT a FROM aql_cte_scope_0) SELECT a FROM hidden) SELECT a FROM chosen",
     query_limits(),
   ).unwrap()
-  assert_eq(query_binding_at(collision, 1).unwrap().name.value, "aql_cte_scope_1")
+  assert_eq(
+    query_binding_at(collision, 1).unwrap().name.value,
+    "aql_cte_scope_1",
+  )
 }
 
 ///|

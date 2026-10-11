@@ -88,7 +88,9 @@ pub fn parse_query_script(
       }
       let name_at = parser.peek().start
       let name = parser.name()
-      if declarations.any(declaration => same_binding_name(declaration.name, name)) {
+      if declarations.any(declaration => {
+          same_binding_name(declaration.name, name)
+        }) {
         raise QueryAbort("Duplicate DATA name", name_at)
       }
       parser.symbol(61)

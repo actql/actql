@@ -101,7 +101,10 @@ fn validate_cte_scope(
   let mut index = @query.query_binding_count(query) - 1
   while index >= 0 {
     if used[index] {
-      for term in query_terms(@query.query_binding_at(query, index).unwrap().query) {
+      for
+        term in query_terms(
+          @query.query_binding_at(query, index).unwrap().query,
+        ) {
         let relation = @query.relation(term)
         for earlier in 0..<index {
           let name = [@query.query_binding_at(query, earlier).unwrap().name]

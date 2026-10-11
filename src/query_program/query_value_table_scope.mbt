@@ -67,7 +67,9 @@ fn has_cte_unnest_input(query : @query.Query) -> Bool {
       }
     }
     for index in 0..<@query.query_binding_count(current) {
-      pending.push((@query.query_binding_at(current, index).unwrap().query, true))
+      pending.push(
+        (@query.query_binding_at(current, index).unwrap().query, true),
+      )
     }
     for index in 0..<@query.set_part_count(current) {
       pending.push(

@@ -223,8 +223,14 @@ test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
     query_limits(),
   ).unwrap()
   assert_eq(query_binding_count(reserved), 2)
-  assert_eq(query_binding_at(reserved, 0).unwrap().name.value, "aql_query_source_0")
-  assert_eq(query_binding_at(reserved, 1).unwrap().name.value, "aql_query_source_1")
+  assert_eq(
+    query_binding_at(reserved, 0).unwrap().name.value,
+    "aql_query_source_0",
+  )
+  assert_eq(
+    query_binding_at(reserved, 1).unwrap().name.value,
+    "aql_query_source_1",
+  )
 }
 
 ///|
@@ -482,7 +488,10 @@ test "nonrecursive CTE names retain declaration order and bounds" {
   ).unwrap()
   assert_eq(query_binding_count(query), 2)
   assert_eq(query_binding_at(query, 0).unwrap().name.value, "first")
-  assert_eq(relation(query_binding_at(query, 1).unwrap().query)[0].value, "first")
+  assert_eq(
+    relation(query_binding_at(query, 1).unwrap().query)[0].value,
+    "first",
+  )
   assert_eq(relation(query)[0].value, "second")
   assert_true(
     parse_query("WITH first AS (SELECT a FROM left_rows) SELECT a FROM first", {

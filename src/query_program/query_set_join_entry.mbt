@@ -9,7 +9,10 @@ fn query_has_join_set_operand(query : @query.Query) -> Bool {
   // stage-per-term CTE route otherwise adds unnecessary Result boundaries.
   if @query.join_part_count(query) > 0 &&
     Array::makei(@query.query_binding_count(query), index => {
-      @query.set_part_count(@query.query_binding_at(query, index).unwrap().query) > 0
+      @query.set_part_count(
+        @query.query_binding_at(query, index).unwrap().query,
+      ) >
+      0
     }).any(value => value) {
     return true
   }
@@ -25,7 +28,9 @@ fn query_has_join_set_operand(query : @query.Query) -> Bool {
     }
   }
   for index in 0..<@query.query_binding_count(query) {
-    if query_has_join_set_operand(@query.query_binding_at(query, index).unwrap().query) {
+    if query_has_join_set_operand(
+        @query.query_binding_at(query, index).unwrap().query,
+      ) {
       return true
     }
   }
@@ -39,7 +44,9 @@ fn query_has_join_set_operand(query : @query.Query) -> Bool {
 fn query_has_mixed_cte_join_input(query : @query.Query) -> Bool {
   let is_cte = fn(relation : Array[@query.NamePart]) -> Bool {
     Array::makei(@query.query_binding_count(query), index => {
-      same_relation_path(relation, [@query.query_binding_at(query, index).unwrap().name])
+      same_relation_path(relation, [
+        @query.query_binding_at(query, index).unwrap().name,
+      ])
     }).any(value => value)
   }
   if @query.join_part_count(query) > 0 {

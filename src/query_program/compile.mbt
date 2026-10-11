@@ -6806,7 +6806,9 @@ pub fn compile(
   }
   if @query.query_binding_count(query) > 0 {
     let positional_operand = Array::makei(@query.query_binding_count(query), index => {
-      @query.positional_output(@query.query_binding_at(query, index).unwrap().query)
+      @query.positional_output(
+        @query.query_binding_at(query, index).unwrap().query,
+      )
     }).any(value => value)
     if positional_operand {
       // These parser-owned bindings can export values without authored names.

@@ -1,7 +1,7 @@
 {
   "unit": "P1 authored WITH vs internal Relation binding AST",
   "base": "50b22809e72a56a918bbda3fc27947c381f017e9",
-  "source_status": "working source frozen during existing guard; not clean final success",
+  "source_status": "Preparation completed; runtime tests still pending on next clean commit.",
   "cap_seconds": 60,
   "grace_seconds": 5,
   "heavy": false,
@@ -105,5 +105,27 @@
     "src/query_program/pipe_join_ranges_test.mbt"
   ],
   "public_status": "not executed",
-  "meaning": "Explicit AuthoredWith(original name, UTF-8 byte range) vs RelationalContinuation; one ordered QueryBinding AST and existing lowerer. Public old CtePart/cte_count/cte_at API replaced rather than aliased. Existing complete Program oracles remain unchanged."
+  "meaning": "Explicit AuthoredWith(original name, UTF-8 byte range) vs RelationalContinuation; one ordered QueryBinding AST and existing lowerer. Public old CtePart/cte_count/cte_at API replaced rather than aliased. Existing complete Program oracles remain unchanged.",
+  "preparation_result": {
+    "source": "bec32840967feb8806b5c39dba9e37ba28eaffa2",
+    "run": "run-vhY1Vn",
+    "exit": 0,
+    "tests_executed": 0,
+    "owner_pid": 98346,
+    "owner_group_lock_absent": true,
+    "generated_interface": "src/query_syntax/pkg.generated.mbti",
+    "note": "Actual pinned moon info compiled the selected packages and generated QueryBinding/QueryBindingOrigin API. Formatting rewrote source in this guard; no clean final SHA runtime is inferred. Formatter also touched two previously unformatted query_program UNPIVOT test files in the same package; only whitespace layout changed.",
+    "evidence": [
+      {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-vhY1Vn/summary.json",
+        "bytes": 3473,
+        "sha256": "bce32893ae474bddc0f5588c42e41829a396025479ed28bf39b79e00a65965d3"
+      },
+      {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-vhY1Vn/output.log",
+        "bytes": 91,
+        "sha256": "30ea22662282e72660f3afced57dbf574347cbdc90a118c3b1c41847b3575a29"
+      }
+    ]
+  }
 }

@@ -1,17 +1,16 @@
 ///|
 test "authored WITH names and original UTF-8 ranges survive scope binding" {
   let source = "WITH `é` AS (SELECT 1 AS id), second AS (FROM `é` |> SELECT id) SELECT id FROM second"
-  let query = parse_query(
-    source,
-    query_limits(),
-    source_path="bindings.sql",
-  ).unwrap()
+  let query = parse_query(source, query_limits(), source_path="bindings.sql").unwrap()
   assert_eq(query_binding_count(query), 2)
   let first = query_binding_at(query, 0).unwrap()
   let second = query_binding_at(query, 1).unwrap()
   // Independent counts of the authored UTF-8 source, not parser span output.
   assert_eq(first.origin, AuthoredWith({ value: "é", quoted: true, }, 5, 29))
-  assert_eq(second.origin, AuthoredWith({ value: "second", quoted: false, }, 31, 65))
+  assert_eq(
+    second.origin,
+    AuthoredWith({ value: "second", quoted: false, }, 31, 65),
+  )
   assert_false(first.carry_ranges)
   assert_false(second.carry_ranges)
   assert_eq(relation(second.query), [first.name])
