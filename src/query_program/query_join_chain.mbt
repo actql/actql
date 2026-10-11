@@ -201,6 +201,25 @@ fn validate_join_using_names(part : @query.JoinPart) -> Unit raise Abort {
 }
 
 ///|
+// Grouping changes neither the reference receiver nor its key contract.
+// Only peel Parenthesized nodes in the admitted, depth-bounded expression;
+// arithmetic, signs, casts and property evaluation remain unsupported keys.
+fn join_key_reference(
+  expression : @query.Expression,
+  index : Int,
+) -> Array[@query.NamePart]? {
+  let mut current = index
+  while @query.expression_node(expression, current).unwrap().kind
+        is Parenthesized(child) {
+    current = child
+  }
+  match @query.expression_node(expression, current).unwrap().kind {
+    Reference(path) => Some(path)
+    _ => None
+  }
+}
+
+///|
 fn join_chain_keys(
   part : @query.JoinPart,
   scope : JoinChainScope,
@@ -218,10 +237,8 @@ fn join_chain_keys(
           pending.push(left)
         }
         Binary("=", left, right_index) => {
-          guard @query.expression_node(expression, left).unwrap().kind
-            is Reference(left_path) &&
-            @query.expression_node(expression, right_index).unwrap().kind
-            is Reference(right_path) else {
+          guard join_key_reference(expression, left) is Some(left_path) &&
+            join_key_reference(expression, right_index) is Some(right_path) else {
             raise Abort(UnsupportedJoin)
           }
           let a = join_chain_reference(left_path, scope, right_scope)
