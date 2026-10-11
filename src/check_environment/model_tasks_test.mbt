@@ -88,9 +88,12 @@ test "ModelTask resolves typed contracts and retains exact environment identity"
   assert_eq(model_task_connector(task), "models/fixture")
   assert_eq(model_task_model_selector(task), "fixture-risk-model")
   assert_eq(model_task_max_items(task), Some(2L))
-  assert_eq(model_task_generation_config(task).seed_requested, Some(-7L))
-  assert_eq(model_task_generation_config(task).max_output_tokens, 32L)
-  assert_eq(model_task_generation_config(task).top_p, 1.0)
+  assert_eq(
+    model_task_generation_config(task).unwrap().seed_requested,
+    Some(-7L),
+  )
+  assert_eq(model_task_generation_config(task).unwrap().max_output_tokens, 32L)
+  assert_eq(model_task_generation_config(task).unwrap().top_p, 1.0)
   assert_true(model_task_input(task).shape is @value_contract.Object(_))
   assert_false(model_task_output(task).nullable)
   guard model_task_output(task).shape is @value_contract.Object(output_fields) else {
@@ -224,8 +227,8 @@ test "ModelTask has no omitted required-member defaults and keeps optional bound
   ).unwrap()
   let task = model_task_at(checked, 0).unwrap()
   assert_eq(model_task_max_items(task), None)
-  assert_eq(model_task_generation_config(task).seed_requested, None)
-  assert_eq(model_task_generation_config(task).temperature, 0.0)
+  assert_eq(model_task_generation_config(task).unwrap().seed_requested, None)
+  assert_eq(model_task_generation_config(task).unwrap().temperature, 0.0)
 }
 
 ///|

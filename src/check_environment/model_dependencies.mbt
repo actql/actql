@@ -33,6 +33,7 @@ pub struct SingleAttemptModelDependencies {
   prompt : ModelDependency
   retry : ModelDependency
   backoff : ModelDependency
+  decision : DecisionContract?
 }
 
 ///|
@@ -233,12 +234,45 @@ pub fn read_single_attempt_model_dependencies(
       return Err(UnsupportedPolicy(value.kind))
     }
   }
+  let decision = if task.kind == Decision {
+    match
+      read_decision_contract(task, admitted[0], {
+        max_questions: limits.max_nodes,
+        max_options: limits.max_nodes,
+        max_levels: limits.max_nodes,
+        max_name_bytes: limits.max_bytes,
+        max_work: remaining_work,
+      }) {
+      Ok(value) => Some(value)
+      Err(issue) =>
+        return Err(
+          Body(ModelPrompt, {
+            kind: if issue.kind == DecisionIssueKind::WorkLimit {
+              WorkLimit
+            } else {
+              InvalidDecision(issue.kind)
+            },
+            source: issue.source,
+          }),
+        )
+    }
+  } else {
+    None
+  }
   Ok({
     execution,
     prompt: admitted[0],
     retry: admitted[1],
     backoff: admitted[2],
+    decision,
   })
+}
+
+///|
+pub fn single_attempt_model_decision(
+  value : SingleAttemptModelDependencies,
+) -> DecisionContract? {
+  value.decision
 }
 
 ///|
