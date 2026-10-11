@@ -196,8 +196,8 @@ fn scalar_call(
     "SQRT" => ("SQRT", "sqrt", 1, 1)
     "ABS" => ("ABS", "abs", 1, 1)
     "SIGN" => ("SIGN", "sign", 1, 1)
-    "ROUND" => ("ROUND", "round", 1, 1)
-    "TRUNC" => ("TRUNC", "trunc", 1, 1)
+    "ROUND" => ("ROUND", "round", 1, 2)
+    "TRUNC" => ("TRUNC", "trunc", 1, 2)
     "SAFE_NEGATE" => ("SAFE_NEGATE", "safe_negate", 1, 1)
     "SAFE_DIVIDE" => ("SAFE_DIVIDE", "safe_divide", 2, 2)
     "SAFE_ADD" => ("SAFE_ADD", "safe_add", 2, 2)
@@ -593,7 +593,7 @@ fn append_resolved(
                 lowering.form(name, lowering.object(fields))
               } else if maximum == 1 ||
                 (
-                  ["trim", "ltrim", "rtrim"].contains(name) &&
+                  ["trim", "ltrim", "rtrim", "round", "trunc"].contains(name) &&
                   args.length() == 1
                 ) {
                 lowering.form(name, nodes[args[0]])

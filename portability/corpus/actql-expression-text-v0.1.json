@@ -80,7 +80,27 @@
     {"source":"rtrim(NULL,NULL)","tree":{"rtrim":[{"literal":null},{"literal":null}]}},
     {"source":"rtrim('😀é','😀́')","tree":{"rtrim":[{"literal":"😀é"},{"literal":"😀́"}]}},
     {"source":"rtrim('x','')","tree":{"rtrim":[{"literal":"x"},{"literal":""}]}},
-    {"source":"rtrim(s,concat('a','b'))","tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}}
+    {"source":"rtrim(s,concat('a','b'))","tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}},
+    {"source":"round(x,y)","tree":{"round":[{"field":"x"},{"field":"y"}]}},
+    {"source":"round(x,2)","tree":{"round":[{"field":"x"},{"literal":2}]}},
+    {"source":"round($value,$digits)","tree":{"round":[{"$param":"value"},{"$param":"digits"}]}},
+    {"source":"round(x,$digits + 1)","tree":{"round":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]}},
+    {"source":"round(-1.25,-1)","tree":{"round":[{"literal":-1.25},{"literal":-1}]}},
+    {"source":"round(1.25,0)","tree":{"round":[{"literal":1.25},{"literal":0}]}},
+    {"source":"round(1.25,1.5)","tree":{"round":[{"literal":1.25},{"literal":1.5}]}},
+    {"source":"round(NULL,2)","tree":{"round":[{"literal":null},{"literal":2}]}},
+    {"source":"round(1,NULL)","tree":{"round":[{"literal":1},{"literal":null}]}},
+    {"source":"round(NULL,NULL)","tree":{"round":[{"literal":null},{"literal":null}]}},
+    {"source":"trunc(x,y)","tree":{"trunc":[{"field":"x"},{"field":"y"}]}},
+    {"source":"trunc(x,2)","tree":{"trunc":[{"field":"x"},{"literal":2}]}},
+    {"source":"trunc($value,$digits)","tree":{"trunc":[{"$param":"value"},{"$param":"digits"}]}},
+    {"source":"trunc(x,$digits + 1)","tree":{"trunc":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]}},
+    {"source":"trunc(-1.25,-1)","tree":{"trunc":[{"literal":-1.25},{"literal":-1}]}},
+    {"source":"trunc(1.25,0)","tree":{"trunc":[{"literal":1.25},{"literal":0}]}},
+    {"source":"trunc(1.25,1.5)","tree":{"trunc":[{"literal":1.25},{"literal":1.5}]}},
+    {"source":"trunc(NULL,2)","tree":{"trunc":[{"literal":null},{"literal":2}]}},
+    {"source":"trunc(1,NULL)","tree":{"trunc":[{"literal":1},{"literal":null}]}},
+    {"source":"trunc(NULL,NULL)","tree":{"trunc":[{"literal":null},{"literal":null}]}}
   ],
   "negative": [
     "x IS NULL.c",
@@ -130,8 +150,6 @@
     "STRPOS(x,y)",
     "round()",
     "trunc()",
-    "round(x,y)",
-    "trunc(x,y)",
     "ltrim()",
     "ltrim(s,' ',s)",
     "LTRIM(s)",
@@ -139,6 +157,12 @@
     "rtrim(s,' ',s)",
     "RTRIM(s)",
     "trim()",
-    "trim(s,' ',s)"
+    "trim(s,' ',s)",
+    "round(x,2,'ROUND_HALF_EVEN')",
+    "round(x,2,3)",
+    "round(x,)",
+    "trunc(x,2,'ROUND_HALF_EVEN')",
+    "trunc(x,2,3)",
+    "trunc(x,)"
   ]
 }

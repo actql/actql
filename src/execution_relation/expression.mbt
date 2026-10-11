@@ -100,6 +100,12 @@ priv enum Evaluation {
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
   MeasureResult(Value, LogicalMeasureCursor)
   CompareBetween(BetweenArgumentsState, BinaryComparisonState, Value?)
+  DecimalRounding(
+    @lower.Expression,
+    DecimalRounding,
+    ExpressionRootLease?,
+    ExpressionRootLease?
+  )
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
@@ -1113,6 +1119,35 @@ fn advance_expression_frame_impl(
               }
               continue
             }
+            if op == @lower.RoundAt || op == @lower.TruncAt {
+              if charge_value(left, left_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              if charge_value(value, frame.current_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              // Replace the popped Right frame with the fixed-size decimal
+              // scratch cursor before allocating any integer temporaries.
+              if !reserve_slots(workspace, DECIMAL_ROUNDING_SLOTS - 1) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              let state = match start_decimal_rounding(op, left, value) {
+                Ok(state) => state
+                Err(issue) =>
+                  return Err({ kind: Scalar(issue), expression: expr, })
+              }
+              frame.state = DecimalRounding(
+                expr,
+                state,
+                left_root,
+                frame.current_root,
+              )
+              frame.current_root = None
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
             if op == @lower.Strpos ||
               op == @lower.TrimSet ||
               op == @lower.LTrimSet ||
@@ -1873,6 +1908,29 @@ fn advance_expression_frame_impl(
               }
             }
         }
+      }
+      DecimalRounding(expr, state, left_root, right_root) => {
+        frame.active = expr
+        let result = match advance_decimal_rounding(state) {
+          Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })
+          Ok(None) => {
+            if !drain {
+              return Ok(None)
+            }
+            continue
+          }
+          Ok(Some(value)) => value
+        }
+        match expression_event_release(left_root, expr) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        match expression_event_release(right_root, expr) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        release_slots(workspace, DECIMAL_ROUNDING_SLOTS)
+        frame.state = Return(result)
       }
       CompareBinary(state) => {
         frame.active = state.expression

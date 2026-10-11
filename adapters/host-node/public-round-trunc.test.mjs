@@ -14,7 +14,8 @@ import {canonicalJson} from './local-account-config.mjs';
 // ROUND uses nearest integer with ties away from zero; TRUNC moves toward zero.
 // SQL/Pipe operands, common JSON expressions, results, and schema contracts are
 // authored directly. No host Math function or product output supplies an oracle.
-// Decimal, nonfinite inputs, optional N, and rounding_mode are not supported.
+// This file retains unary regressions. Precision is covered separately;
+// decimal/nonfinite overloads and rounding_mode remain unsupported.
 const literal = value => ({literal: value});
 const number = (name, text, expression, expected, nullable = false) =>
   ({name, text, expression, expected, contract: {type: 'number', nullable}});
@@ -221,7 +222,7 @@ async function assertRefused(f, source, options) {
   });
 }
 
-test('public unary ROUND and TRUNC reject malformed, optional, and wrong-type calls before dispatch',
+test('public unary ROUND and TRUNC reject malformed, unsupported-mode, and wrong-type calls before dispatch',
   {timeout: 90_000}, async t => {
     const f = await fixture(t);
     const decimal = {cast: {target: {type: 'decimal', precision: 8, scale: 3}, value: literal('1.25')}};
@@ -229,7 +230,6 @@ test('public unary ROUND and TRUNC reject malformed, optional, and wrong-type ca
       const name = op.toUpperCase();
       const invalid = [
         {text: `${name}()`, expression: {[op]: []}},
-        {text: `${name}(2.5, 0)`, expression: {[op]: [literal(2.5), literal(0)]}},
         {text: `${name}(2.5, 0, 'ROUND_HALF_EVEN')`,
           expression: {[op]: [literal(2.5), literal(0), literal('ROUND_HALF_EVEN')]}},
         {text: `${name}('😀é')`, expression: {[op]: literal('😀é')}},

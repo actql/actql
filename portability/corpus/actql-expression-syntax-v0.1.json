@@ -52,7 +52,21 @@
     {"source":{"rtrim":["$p","$q"]},"tree":{"rtrim":[{"$param":"p"},{"$param":"q"}]},"parameters":["p","q"]},
     {"source":{"rtrim":[{"literal":"x"},{"literal":" "}]},"tree":{"rtrim":[{"literal":"x"},{"literal":" "}]},"parameters":[]},
     {"source":{"rtrim":[{"literal":null},{"literal":null}]},"tree":{"rtrim":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"rtrim":["s","concat('a','b')"]},"tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]},"parameters":[]}
+    {"source":{"rtrim":["s","concat('a','b')"]},"tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]},"parameters":[]},
+    {"source":{"round":["$value","$digits"]},"tree":{"round":[{"$param":"value"},{"$param":"digits"}]},"parameters":["value","digits"]},
+    {"source":{"round":[{"field":"x"},{"literal":2}]},"tree":{"round":[{"field":"x"},{"literal":2}]},"parameters":[]},
+    {"source":{"round":["x","$digits + 1"]},"tree":{"round":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]},"parameters":["digits"]},
+    {"source":{"round":[{"literal":null},{"literal":2}]},"tree":{"round":[{"literal":null},{"literal":2}]},"parameters":[]},
+    {"source":{"round":[{"literal":1},{"literal":null}]},"tree":{"round":[{"literal":1},{"literal":null}]},"parameters":[]},
+    {"source":{"round":[{"literal":null},{"literal":null}]},"tree":{"round":[{"literal":null},{"literal":null}]},"parameters":[]},
+    {"source":{"round":[{"literal":1.25},{"literal":0}]},"tree":{"round":[{"literal":1.25},{"literal":0}]},"parameters":[]},
+    {"source":{"trunc":["$value","$digits"]},"tree":{"trunc":[{"$param":"value"},{"$param":"digits"}]},"parameters":["value","digits"]},
+    {"source":{"trunc":[{"field":"x"},{"literal":2}]},"tree":{"trunc":[{"field":"x"},{"literal":2}]},"parameters":[]},
+    {"source":{"trunc":["x","$digits + 1"]},"tree":{"trunc":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]},"parameters":["digits"]},
+    {"source":{"trunc":[{"literal":null},{"literal":2}]},"tree":{"trunc":[{"literal":null},{"literal":2}]},"parameters":[]},
+    {"source":{"trunc":[{"literal":1},{"literal":null}]},"tree":{"trunc":[{"literal":1},{"literal":null}]},"parameters":[]},
+    {"source":{"trunc":[{"literal":null},{"literal":null}]},"tree":{"trunc":[{"literal":null},{"literal":null}]},"parameters":[]},
+    {"source":{"trunc":[{"literal":1.25},{"literal":0}]},"tree":{"trunc":[{"literal":1.25},{"literal":0}]},"parameters":[]}
   ],
   "negative": [
     "\"right.\"",
@@ -118,6 +132,12 @@
     {"ltrim":[{"literal":"x"},{"literal":" "},{"literal":"y"}]},
     {"ltrim":[{"literal":"x"},{"literal":" "}],"extra":true},
     {"rtrim":[{"literal":"x"},{"literal":" "},{"literal":"y"}]},
-    {"rtrim":[{"literal":"x"},{"literal":" "}],"extra":true}
+    {"rtrim":[{"literal":"x"},{"literal":" "}],"extra":true},
+    {"round":[{"literal":1},{"literal":2},{"literal":"ROUND_HALF_EVEN"}]},
+    {"round":[{"literal":1},{"literal":2}],"extra":true},
+    {"round":{"value":{"literal":1},"digits":{"literal":2}}},
+    {"trunc":[{"literal":1},{"literal":2},{"literal":"ROUND_HALF_EVEN"}]},
+    {"trunc":[{"literal":1},{"literal":2}],"extra":true},
+    {"trunc":{"value":{"literal":1},"digits":{"literal":2}}}
   ]
 }

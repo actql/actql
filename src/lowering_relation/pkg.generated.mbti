@@ -1077,6 +1077,8 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  RoundAt
+  TruncAt
   Strpos
   TrimSet
   LTrimSet

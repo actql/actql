@@ -58,15 +58,13 @@ fn expression_role(
     | "sqrt"
     | "abs"
     | "sign"
-    | "round"
-    | "trunc"
     | "safe_negate"
     | "floor"
     | "lower"
     | "upper"
     | "nfkc"
     | "case_fold" => Expr
-    "trim" | "ltrim" | "rtrim" => {
+    "trim" | "ltrim" | "rtrim" | "round" | "trunc" => {
       let body = decoded(
         @decode.required(decoded(@decode.open_object(cursor), origin), tag),
         origin,

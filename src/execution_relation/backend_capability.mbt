@@ -149,6 +149,8 @@ fn check_backend_capabilities(
             | SafeSubtract
             | SafeMultiply
             | Modulo
+            | RoundAt
+            | TruncAt
             | TrimSet
             | LTrimSet
             | RTrimSet
