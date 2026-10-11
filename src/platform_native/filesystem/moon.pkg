@@ -12,6 +12,8 @@ options(
   "native-stub": [ "filesystem_stub.c" ],
   targets: {
     "filesystem_native.mbt": [ "native" ],
+    "private_file_projection_native.mbt": [ "native" ],
+    "private_file_projection_unsupported.mbt": [ "not", "native" ],
     "filesystem_unsupported.mbt": [ "not", "native" ],
     "filesystem_wbtest.mbt": [ "native" ],
     "private_root_wbtest.mbt": [ "native" ],

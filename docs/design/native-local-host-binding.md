@@ -517,6 +517,32 @@ use claim or entry permit. It neither mutates Run revision nor renews expiry,
 allowance or reservation. Missing issued custody remains a typed refusal;
 an unresolved row is not proof that issuance or physical entry never occurred.
 
+### Original preparation credential installation
+
+The existing private-root filesystem Owner issues `PrivateFileProjection` at
+explicit credential installation. It retains the original root and file facts,
+including physical identity, ownership, mode, size and nanosecond modification
+and change times. These facts are opaque; caller generation strings or a new
+inspection at send cannot replace them. The projection is not an authorization
+token or durable recovery acknowledgement.
+
+The Preparation-only credential installation retains this projection alongside
+the exact read operation. Its physical HTTP hook opens relative to the retained
+root with `O_NOFOLLOW`, compares the actual descriptor and current named file
+against the original installation, and checks again after reading and just
+before transport entry. File replacement, rename, symlink, extra aliases,
+privacy revocation and lost root namespace custody are refused. The secret is
+bounded inside C and never projected into MoonBit or diagnostics. Normal Remote
+and Resume bearer-file rotation and credential wire identities are unchanged.
+
+Current issuer, grant revocation, Work/cancellation and use-claim checks remain
+with the existing credential and Host Owners. A missing original projection
+does not take the ordinary file-path fallback. Once a use is claimed, transport
+failure retains the original unknown use; this hook neither issues another
+grant nor resends it. Restoring a lost installation from current file contents
+is not implemented by this projection. Host restoration must retain or verify
+the original installation's existing custody before physical re-entry.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract

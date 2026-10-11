@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "moonbit.h"
+#include "private_file_projection.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -72,6 +73,13 @@ typedef struct {
   bool eof;
   bool finished;
 } actql_native_filesystem_reader;
+
+struct actql_native_private_file_projection {
+  actql_native_filesystem_root *root;
+  char *name;
+  struct stat original;
+  bool ready;
+};
 
 static void actql_replace_error(char **target, const char *message) {
   free(*target);
@@ -497,6 +505,99 @@ void *actql_native_filesystem_open_private_root(
     root->fd = -1;
   }
   return root;
+}
+
+static bool actql_private_file_same_generation(
+  const struct stat *original,
+  const struct stat *opened
+) {
+  if (!S_ISREG(opened->st_mode) || opened->st_uid != geteuid() ||
+      (opened->st_mode & 077) != 0 || opened->st_nlink != 1 ||
+      original->st_dev != opened->st_dev ||
+      original->st_ino != opened->st_ino ||
+      original->st_mode != opened->st_mode ||
+      original->st_uid != opened->st_uid ||
+      original->st_gid != opened->st_gid ||
+      original->st_size != opened->st_size) return false;
+#ifdef __APPLE__
+  return original->st_mtimespec.tv_sec == opened->st_mtimespec.tv_sec &&
+    original->st_mtimespec.tv_nsec == opened->st_mtimespec.tv_nsec &&
+    original->st_ctimespec.tv_sec == opened->st_ctimespec.tv_sec &&
+    original->st_ctimespec.tv_nsec == opened->st_ctimespec.tv_nsec;
+#else
+  return original->st_mtim.tv_sec == opened->st_mtim.tv_sec &&
+    original->st_mtim.tv_nsec == opened->st_mtim.tv_nsec &&
+    original->st_ctim.tv_sec == opened->st_ctim.tv_sec &&
+    original->st_ctim.tv_nsec == opened->st_ctim.tv_nsec;
+#endif
+}
+
+static void actql_private_file_projection_finalize(void *value) {
+  actql_native_private_file_projection *projection = value;
+  free(projection->name);
+  projection->name = NULL;
+  if (projection->root != NULL) {
+    moonbit_decref(projection->root);
+    projection->root = NULL;
+  }
+}
+
+void *actql_native_filesystem_adopt_private_file_projection(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  actql_native_private_file_projection *projection = moonbit_make_external_object(
+    actql_private_file_projection_finalize, sizeof(*projection)
+  );
+  memset(projection, 0, sizeof(*projection));
+  projection->root = root;
+  if (root != NULL) moonbit_incref(root);
+  projection->name = actql_copy_text(name, length);
+  if (projection->name == NULL || length <= 0 ||
+      !actql_valid_name(projection->name, (size_t)length) ||
+      !actql_native_filesystem_private_root_identity(root) ||
+      !actql_stat_regular_at(root, projection->name, &projection->original) ||
+      projection->original.st_size <= 0 || projection->original.st_size > 8192 ||
+      !actql_private_file_same_generation(
+        &projection->original, &projection->original
+      )) return projection;
+  projection->ready = true;
+  return projection;
+}
+
+int32_t actql_native_filesystem_private_file_projection_ready(
+  actql_native_private_file_projection *projection
+) {
+  return projection != NULL && projection->ready;
+}
+
+bool actql_native_private_file_projection_matches(
+  actql_native_private_file_projection *projection,
+  int descriptor
+) {
+  struct stat opened, named;
+  return projection != NULL && projection->ready && descriptor >= 0 &&
+    actql_native_filesystem_private_root_identity(projection->root) &&
+    fstat(descriptor, &opened) == 0 &&
+    actql_private_file_same_generation(&projection->original, &opened) &&
+    actql_stat_regular_at(projection->root, projection->name, &named) &&
+    actql_private_file_same_generation(&projection->original, &named);
+}
+
+int actql_native_private_file_projection_open(
+  actql_native_private_file_projection *projection
+) {
+  if (projection == NULL || !projection->ready ||
+      !actql_native_filesystem_private_root_identity(projection->root)) return -1;
+  int descriptor = openat(
+    projection->root->fd, projection->name, O_RDONLY | O_CLOEXEC | O_NOFOLLOW
+  );
+  if (!actql_native_private_file_projection_matches(projection, descriptor)) {
+    if (descriptor >= 0) close(descriptor);
+    return -1;
+  }
+  return descriptor;
 }
 
 // Whitebox tests alter only their already-open, user-owned scratch directory.

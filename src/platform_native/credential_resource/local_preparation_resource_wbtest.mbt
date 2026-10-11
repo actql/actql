@@ -200,10 +200,20 @@ test "Native Preparation installation never borrows Remote or Resume authorizati
     [operation],
     _ => true,
   ).unwrap()
+  let private_root = @filesystem.open_private_root(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SALESFORCE_TARGET_ROOT").unwrap(),
+  ).unwrap()
+  let secret_name = "preparation-bearer-" + @env.now().to_string()
+  let writer = private_root.create_writer(secret_name, 32L).unwrap()
+  writer.append(b"fixture-token\n").unwrap()
+  writer.seal(secret_name + ".installed").unwrap() |> ignore
+  let original_installation = private_root
+    .adopt_private_file_projection(secret_name + ".installed")
+    .unwrap()
   let prep_only = install_native_local_preparation_credential_resource_service(
     database,
     client,
-    [operation],
+    [{ operation, file: original_installation, }],
     _ => true,
   ).unwrap()
   let facts : NativeOwnedCredentialAuthorizationFacts = {
@@ -246,7 +256,7 @@ test "Native Preparation installation never borrows Remote or Resume authorizati
       install_native_local_preparation_credential_resource_service(
         database,
         client,
-        [changed],
+        [{ operation: changed, file: original_installation, }],
         _ => true,
       )
       is Err(InvalidConfiguration),
@@ -282,5 +292,6 @@ test "Native Preparation installation never borrows Remote or Resume authorizati
     is Err(@sqlite.NotFound),
   )
   assert_true(client.close())
+  writer.cancel().unwrap()
   database.close_checked().unwrap()
 }

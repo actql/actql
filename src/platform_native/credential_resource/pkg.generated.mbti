@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/credential_resource"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
@@ -27,7 +28,7 @@ pub fn install_native_credential_resource_service(@sqlite.Database, @http_client
 
 pub fn install_native_local_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeLocalCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
-pub fn install_native_local_preparation_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeLocalPreparationCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
+pub fn install_native_local_preparation_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeLocalPreparationCredentialInstallation], (NativeLocalPreparationCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
@@ -131,6 +132,11 @@ pub(all) struct NativeLocalPreparationCredentialAuthorization {
   use_cid : String?
   scope : @remote_credential.LocalPreparationCredentialScope
   request : NativeCredentialRequest?
+}
+
+pub(all) struct NativeLocalPreparationCredentialInstallation {
+  operation : NativeCredentialOperation
+  file : @filesystem.PrivateFileProjection
 }
 
 // Type aliases

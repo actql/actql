@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/http_client"
 
 import {
+  "actql/actql/platform_native/filesystem",
   "moonbitlang/core/debug",
 }
 
@@ -15,6 +16,7 @@ type Client
 pub fn Client::cancel(Self) -> Bool
 pub fn Client::close(Self) -> Bool
 pub fn Client::get_bearer_file(Self, String, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
+pub fn Client::get_local_preparation(Self, String, @filesystem.PrivateFileProjection, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]

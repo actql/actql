@@ -88,6 +88,9 @@ struct NativeCredentialResourceService {
   authorize : (NativeCredentialAuthorization) -> Bool
   authorize_local : ((NativeLocalCredentialAuthorization) -> Bool)?
   authorize_preparation : ((NativeLocalPreparationCredentialAuthorization) -> Bool)?
+  preparation_installations : Array[
+    NativeLocalPreparationCredentialInstallation,
+  ]
   clock : () -> Int64
 }
 
@@ -353,6 +356,9 @@ fn install_native_credential_resource_service_with_clock(
   clock : () -> Int64,
   authorize_local? : ((NativeLocalCredentialAuthorization) -> Bool)? = None,
   authorize_preparation? : ((NativeLocalPreparationCredentialAuthorization) -> Bool)? = None,
+  preparation_installations? : Array[
+    NativeLocalPreparationCredentialInstallation,
+  ] = [],
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
@@ -373,6 +379,7 @@ fn install_native_credential_resource_service_with_clock(
     authorize,
     authorize_local,
     authorize_preparation,
+    preparation_installations: preparation_installations.map(value => value),
     clock,
   })
 }
@@ -549,6 +556,10 @@ fn call_native_credential_resource_owned_scope(
     body.length() <= operation.max_request_bytes else {
     return Err(AccessDenied)
   }
+  let preparation_file = preparation_installation_for(service, scope)
+  if scope is PreparationScope(_) && preparation_file is None {
+    return Err(AccessDenied)
+  }
   // Isolate the bytes from caller mutation during authorization callbacks.
   let saved_body = Bytes::from_array(body.to_array())
   if !owned_request_matches_scope(scope, verb, operation.path, saved_body) {
@@ -706,22 +717,31 @@ fn call_native_credential_resource_owned_scope(
       Err(issue) => return Err(issue)
     }
   }
-  let response = match
-    service.client.request_bearer_file(
-      verb,
-      operation.resource_origin + operation.path,
-      if verb == @http.Get {
-        [{ name: "accept", value: "application/json", }]
-      } else {
-        [
-          { name: "accept", value: "application/json", },
-          { name: "content-type", value: "application/json", },
-        ]
-      },
-      saved_body,
-      operation.secret_path,
-      expires_at,
-    ) {
+  let transport = match preparation_file {
+    Some(original) =>
+      service.client.get_local_preparation(
+        operation.resource_origin + operation.path,
+        original,
+        expires_at,
+      )
+    None =>
+      service.client.request_bearer_file(
+        verb,
+        operation.resource_origin + operation.path,
+        if verb == @http.Get {
+          [{ name: "accept", value: "application/json", }]
+        } else {
+          [
+            { name: "accept", value: "application/json", },
+            { name: "content-type", value: "application/json", },
+          ]
+        },
+        saved_body,
+        operation.secret_path,
+        expires_at,
+      )
+  }
+  let response = match transport {
     Ok(value) => value
     Err(issue) =>
       match persist_outcome(service, grant_cid, use_id, "unknown", None) {
