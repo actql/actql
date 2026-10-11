@@ -263,9 +263,9 @@ pub(all) enum ResidentEffectOriginalReviewIssue {
   Journal(@remote_journal.NativeRemoteJournalIssue)
   RunBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
   Store(@publication_store.NativePublicationStoreIssue)
-  Capture(@run_publication.PublicationContractIssue)
-  Preview(@run_publication.EffectPreviewIdentityIssue)
-  Chain(@run_publication.RunEvidenceChainIssue)
+  Capture(@actql/actql/run_publication.PublicationContractIssue)
+  Preview(@actql/actql/run_publication.EffectPreviewIdentityIssue)
+  Chain(@actql/actql/run_publication.RunEvidenceChainIssue)
 }
 
 type ResidentEffectPreviewCustody
@@ -412,7 +412,7 @@ pub fn ResidentEffectReviewInputContext::close(Self) -> Bool
 pub fn ResidentEffectReviewInputContext::facts(Self, @remote_journal.Journal) -> ResidentEffectReviewInputFacts?
 pub fn ResidentEffectReviewInputContext::matches_holder(Self, ResidentRetainedConsumer, @remote_journal.Journal) -> Bool
 pub fn ResidentEffectReviewInputContext::read_original_review_projection(Self, @remote_journal.Journal, @publication_store.Store, String, @signature.Library, Bytes, @checkpoint_runtime.WireLimits, () -> Bool) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), ResidentEffectOriginalReviewIssue]
-pub fn ResidentEffectReviewInputContext::retention_matches(Self, @run_publication.PublicationContract) -> Bool
+pub fn ResidentEffectReviewInputContext::retention_matches(Self, @actql/actql/run_publication.PublicationContract) -> Bool
 pub fn ResidentEffectReviewInputContext::source_binding_cid(Self, @remote_journal.Journal) -> String?
 
 pub(all) struct ResidentEffectReviewInputFacts {
