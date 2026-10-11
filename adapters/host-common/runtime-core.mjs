@@ -2333,6 +2333,93 @@ function publicationControl(moon) {
         admitted, enterCall));
       return admitted;
     },
+    // Installation-only async port. It uses the same original scoped
+    // admission issuer; a persistence observation is never a fresh permit.
+    bindCheckedClientInferModelEntryPersistence(compiled, execution, definition,
+      preparedCallSet, scope, {account, principalId, at, delegated,
+        observeAccount, observeAt, beginEntry}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function' ||
+          typeof beginEntry !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer dispatch');
+      }
+      const admitted = checked(moon.clientProgramIssueScopedInferDispatchAdmission(
+        value, token(definition), scope, account, principalId, at, delegated,
+        observeAccount, observeAt));
+      checked(moon.clientProgramBindInferModelEntryPersistence(execution,
+        preparedCallSet, admitted, beginEntry));
+      return admitted;
+    },
+    // Reuse the original compiled/definition token domains. A public wrapper
+    // object cannot be passed as a nominal MoonBit compiled Run or contract.
+    claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramClaimInferNodePreparationLayout(read,
+        value, token(definition), graph, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability));
+    },
+    startCheckedClientInferOriginalPreparation(compiled, definition, prepared,
+      step, graph, registry, values, provider, consumer, readRetainedBytes,
+      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalInferExecution(prepared,
+        step, graph, registry, values, provider, value, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+        modelExecutionBytes, fragment, ordered));
+    },
+    // Private installed Node inputs only. Canonical/body admission does not
+    // issue capture authority, funded capacity or public async support.
+    readInstalledModelResponseProfile(wire, expectedCid, limits) {
+      issuanceLimits(limits, 'Model response profile');
+      if (['maxWireBytes', 'maxNodes', 'maxDepth', 'maxMembers', 'maxWork']
+          .some(key => !Number.isSafeInteger(limits[key]) || limits[key] < 0 ||
+            limits[key] > 2147483647) ||
+          typeof wire !== 'string' || wire.length > limits.maxWireBytes) {
+        throw new TypeError('Invalid Model response profile limits');
+      }
+      return checked(moon.clientProgramReadModelResponseProfile(wire, expectedCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        limits.maxMembers, limits.maxWork));
+    },
+    bindInstalledModelRawCapturePolicy(policy, retention, metadata, clock, data) {
+      return checked(moon.clientProgramBindModelRawCapturePolicy(
+        evidenceToken(policy), retention, metadata, clock, data));
+    },
+    issueCheckedClientInferRawCapturePolicy(compiled, definition, dispatch, scope,
+      {profile, installation, probability, storeAuthorityCid, retention, metadata,
+        clock, data, selectedAt, availableUntil, deleteBy, extensionCeilingAt,
+        metadataDeleteBy}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer raw policy');
+      }
+      return checked(moon.clientProgramIssueInferRawCapturePolicy(value,
+        token(definition), dispatch, scope, profile, installation, probability,
+        storeAuthorityCid, retention, metadata, clock, data, selectedAt,
+        availableUntil, deleteBy, extensionCeilingAt, metadataDeleteBy));
+    },
+    registerCheckedClientInferRawCapture(compiled, definition, dispatch, scope,
+      {policy, profile, installation, probability, account, at, storeAuthorityCid,
+        selectionAvailable, observeAccount, observeAt, delegated}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof selectionAvailable !== 'function' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer raw capture');
+      }
+      return checked(moon.clientProgramRegisterInferRawCapture(value,
+        token(definition), dispatch, scope, policy, profile, installation,
+        probability, account, at, storeAuthorityCid, selectionAvailable,
+        observeAccount, observeAt, delegated));
+    },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {
       const value = compiledRunTokens.get(compiled);

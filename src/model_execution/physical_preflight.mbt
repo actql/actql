@@ -16,8 +16,15 @@ pub struct ModelPhysicalRequestPlan {
   request : ModelRequest
   wire_bytes : Int64
   quantities : @resources.QuantityAmounts
-  invoke : () -> Result[ModelResponse, ModelProviderFailure]
+  invocation : ModelPhysicalInvocation
+  response_profile : @environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
+}
+
+///|
+enum ModelPhysicalInvocation {
+  Synchronous(() -> Result[ModelResponse, ModelProviderFailure])
+  Asynchronous((ModelCallEntry) -> ModelPhysicalCall?)
 }
 
 ///|
@@ -36,6 +43,64 @@ pub fn model_physical_request_plan(
   quantities : @resources.QuantityAmounts,
   invoke : () -> Result[ModelResponse, ModelProviderFailure],
   evidence? : ModelPhysicalRequestEvidence,
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  prepare_model_physical_plan(
+    request,
+    wire_bytes,
+    quantities,
+    Synchronous(invoke),
+    None,
+    evidence,
+  )
+}
+
+///|
+/// The installed non-streaming generation adapter binds its actual codec and
+/// profile. This is not resource funding, permission or a public capability.
+/// Start must enter the retained fixed transport synchronously and retain its
+/// original call before returning; it must not queue a new permission check.
+pub fn model_async_physical_request_plan(
+  request : ModelRequest,
+  wire_bytes : Int64,
+  quantities : @resources.QuantityAmounts,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  start : (ModelCallEntry) -> ModelPhysicalCall?,
+  evidence? : ModelPhysicalRequestEvidence,
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  if @environment.model_task_kind(request.task) !=
+    @environment.StructuredGenerate ||
+    @environment.check_model_response_profile_binding(
+      profile,
+      request.task,
+      installation,
+      None,
+    )
+    is Err(_) {
+    return Err(InvalidProvider)
+  }
+  let bounds = @environment.model_response_profile_limits(profile)
+  if wire_bytes > bounds.request_bytes.to_int64() {
+    return Err(RequestLimit)
+  }
+  prepare_model_physical_plan(
+    request,
+    wire_bytes,
+    quantities,
+    Asynchronous(start),
+    Some(profile),
+    evidence,
+  )
+}
+
+///|
+fn prepare_model_physical_plan(
+  request : ModelRequest,
+  wire_bytes : Int64,
+  quantities : @resources.QuantityAmounts,
+  invocation : ModelPhysicalInvocation,
+  response_profile : @environment.ModelResponseProfile?,
+  evidence : ModelPhysicalRequestEvidence?,
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if wire_bytes < 0L ||
     wire_bytes > 9007199254740991L ||
@@ -96,7 +161,14 @@ pub fn model_physical_request_plan(
     }
   }
   // Optional capture exhaustion cannot reject or resend a normal Model call.
-  Ok({ request, wire_bytes, quantities, invoke, evidence: retained_evidence, })
+  Ok({
+    request,
+    wire_bytes,
+    quantities,
+    invocation,
+    response_profile,
+    evidence: retained_evidence,
+  })
 }
 
 ///|
@@ -131,6 +203,15 @@ let physical_preflight_metadata_bytes : Int64 = 256L
 
 ///|
 fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
+  if !cleanup_model_physical_call(state) {
+    return false
+  }
+  if state.entering is Some(entry) {
+    if entry.persistence is Some(operation) && operation.terminal is None {
+      return false
+    }
+    retire_model_entering(state)
+  }
   // The bounded session must keep its cleanup pending until all physical
   // cursors release successfully. Its cleanup result reports a transition,
   // not an idempotent success flag.
@@ -182,6 +263,14 @@ fn advance_model_physical_preflight(
       }
       if plan.wire_bytes > state.limits.max_request_bytes {
         return @bounded.Failed(RequestLimit, 1, 1)
+      }
+      if plan.response_profile is Some(profile) {
+        let bounds = @environment.model_response_profile_limits(profile)
+        if !state.durable_calls ||
+          bounds.request_bytes.to_int64() > state.limits.max_request_bytes ||
+          bounds.response_bytes.to_int64() > state.limits.max_response_bytes {
+          return @bounded.Failed(InvalidLimits, 1, 1)
+        }
       }
       guard state.quantity_capacity is Some(capacity) else {
         return @bounded.Failed(InvalidLimits, 1, 1)

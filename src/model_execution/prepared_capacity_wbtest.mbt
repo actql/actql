@@ -37,12 +37,20 @@ fn prepared_capacity_test_cursor(wire : String) -> @decode.Cursor {
 }
 
 ///|
-fn prepared_capacity_test_rows() -> @relation.PreparedInferRows raise {
+fn prepared_capacity_test_rows(
+  empty? : Bool = false,
+) -> @relation.PreparedInferRows raise {
   let pipeline = @pipeline.check(
     prepared_capacity_test_cursor(
-      (
-        #|[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"b","text":null},{"id":"a","text":"urgent"}]},"as":"input"}]
-      ),
+      if empty {
+        (
+          #|[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[]},"as":"input"}]
+        )
+      } else {
+        (
+          #|[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"b","text":null},{"id":"a","text":"urgent"}]},"as":"input"}]
+        )
+      },
     ),
     [],
     None,

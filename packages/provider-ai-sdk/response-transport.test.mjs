@@ -4,7 +4,8 @@ import {setImmediate as turn} from 'node:timers/promises';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
 import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportResponse, pollSdkDecode,
-  takeSdkDecodedResult, cancelSdkPreparation, cleanupSdkPreparation}
+  takeSdkDecodedResult, cancelSdkPreparation, cleanupSdkPreparation,
+  sdkTransportRawObservation}
   from './_internal/intercepted-request.mjs';
 import {deliverSdkResponse} from './_internal/intercepted-request.mjs';
 
@@ -98,6 +99,34 @@ test('fixed real SDK transport starts once and delivers bounded original bytes t
   assert.ok(wakes > 0);
   assert.equal(JSON.stringify(pollSdkTransport(handle)).includes('private-key-sentinel'), false);
   assert.equal(Object.hasOwn(pollSdkTransport(handle), 'complete'), false);
+});
+
+test('Host response time is observed before delayed body read and retained without provider timestamp substitution', async () => {
+  const handle = realPreparation();
+  await until(() => pollSdkPreparation(handle), 'ready');
+  let now = '2026-10-12T00:00:00.000Z';
+  let observations = 0;
+  let deliver;
+  const received = new Promise(resolve => { deliver = resolve; });
+  prepareSdkTransport(handle, {responseLimits: bounds,
+    observeAt() { observations++; return now; },
+    fetch: () => received});
+  startSdkTransport(handle);
+  assert.equal(observations, 0);
+  const body = new ReadableStream({async start(controller) {
+    await turn();
+    now = '2026-10-12T00:00:01.000Z';
+    controller.enqueue(bytes);
+    controller.close();
+  }});
+  deliver(new Response(body, {headers: {'content-type': 'application/json'}}));
+  await until(() => pollSdkTransport(handle), 'response');
+  const raw = sdkTransportRawObservation(handle);
+  assert.equal(observations, 1);
+  assert.equal(raw.observedAt, '2026-10-12T00:00:00.000Z');
+  assert.equal(sdkTransportRawObservation(handle), raw);
+  assert.equal(Object.hasOwn(raw, 'providerTimestamp'), false);
+  await release(handle);
 });
 
 test('physical preparation and cancellation never authorize a start or build a second request', async () => {

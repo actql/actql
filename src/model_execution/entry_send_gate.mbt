@@ -124,3 +124,41 @@ fn consume_model_call_send_gate(
   entry.send_started = true
   Ok(())
 }
+
+///|
+// Legacy non-durable callers still use their existing current authorities.
+// A diagnostic callback cannot turn its earlier checks into send permission.
+fn check_model_physical_start_current(
+  state : ModelState,
+  reader : @bounded.Reader,
+) -> Result[Unit, ModelExecutionIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return Err(
+      match reason {
+        @bounded.Cancelled => Cancelled
+        @bounded.Deadline => Deadline
+      },
+    )
+  }
+  if state.stop_requested {
+    return Err(Cancelled)
+  }
+  if state.dispatch_admission is Some(admission) {
+    match @publication_host.check_client_infer_dispatch_current(admission) {
+      Err(issue) => return Err(Authorization(issue))
+      Ok(_) => ()
+    }
+  }
+  if state.egress_admission is Some(admission) {
+    match @publication_host.check_client_infer_egress_current(admission) {
+      Err(issue) => return Err(Egress(issue))
+      Ok(_) => ()
+    }
+  }
+  guard model_slot_send_eligible(state, state.next_slot) &&
+    state.reservations.get(state.next_slot) is Some(reservation) &&
+    @resources.reservation_open(reservation) else {
+    return Err(CallEntryRefused)
+  }
+  Ok(())
+}
