@@ -26,22 +26,11 @@ test "Mean source leaves weight support and property admission to the common che
       "with: [g, g], weights: [1, 1], support: {nodes: 2, edges: 1}, properties: {nodes: {p: 'exact_equal'}, edges: {}}",
       "with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {missing: 'exact_equal'}, edges: {}}",
     ] {
-    let program = compile_data_set(
+    expect_with_graph_static_refusal(
       graph_union_prefix() +
       ", combined AS (mean_graphs(" +
       options +
       ")) FROM combined |> node_rows() |> SELECT p",
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=options,
     )
   }
 }

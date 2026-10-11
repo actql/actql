@@ -43,17 +43,6 @@ test "Reach refuses malformed finite bounds and nonexistent selector fields befo
       "FROM g |> reach(start: {where: 'true'}, direction: 'wrong', max_depth: 2) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 2, extra: true) |> SELECT depth",
     ] {
-    let program = compile_data_set(graph_union_prefix() + suffix)
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=suffix,
-    )
+    expect_with_graph_static_refusal(graph_union_prefix() + suffix)
   }
 }

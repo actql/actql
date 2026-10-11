@@ -52,7 +52,7 @@ test "Graph union WITH and chained row entry retain producer names" {
   let body = semantic(program)
   assert_eq(body.split("\"graph\":").length(), 2)
   assert_eq(body.split("\"union_graphs\":").length(), 3)
-  assert_true(body.contains("\"with\":[\"aql_sga_5\",\"aql_with_graph_2\"]"))
+  assert_true(body.contains("\"with\":[\"aql_sga_3\",\"aql_with_graph_2\"]"))
   assert_true(body.contains("\"node_properties\":{\"p\":\"number_mean\"}"))
 }
 
@@ -112,22 +112,11 @@ test "Graph union passes policy validation to the common checker" {
       "{node_properties: {p: 'unknown'}}", "{node_properties: {missing: 'number_sum'}}",
       "{extra: true}",
     ] {
-    let program = compile_data_set(
+    expect_with_graph_static_refusal(
       graph_union_prefix() +
       "FROM g |> union_graphs(with: g, merge: " +
       policy +
       ") |> node_rows() |> SELECT p",
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=policy,
     )
   }
 }
@@ -151,4 +140,16 @@ test "complete public edge union source has one query and passes ordinary checke
   )
   check_graph_union_source(program)
   assert_true(semantic(program).contains("\"union_graphs\""))
+}
+
+///|
+fn expect_with_graph_static_refusal(text : String) raise {
+  match classified_graph_source(text) {
+    Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
+      match issue.kind {
+        Graph(_) | GraphMatch(_) => ()
+        other => fail("expected common Graph refusal: " + @debug.to_string(other))
+      }
+    _ => fail("expected common static Graph admission refusal: " + text)
+  }
 }

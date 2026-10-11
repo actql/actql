@@ -35,22 +35,11 @@ test "Shortest public checking refuses invalid hops selectors direction and weig
       "source: {where: 'true'}, target: {where: 'true'}, selection: 'each_pair', direction: 'wrong', max_hops: 1",
       "source: {where: 'true'}, target: {where: 'true'}, selection: 'each_pair', direction: 'out', max_hops: 1, weight: 'missing'",
     ] {
-    let program = compile_data_set(
+    expect_with_graph_static_refusal(
       graph_union_prefix() +
       "FROM g |> shortest_path(" +
       body +
       ") |> SELECT hop_count",
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=body,
     )
   }
 }
