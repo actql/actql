@@ -287,23 +287,32 @@ test "Graph components invalid arguments retain exact common-checker reasons and
   ]
   for (arguments, expected, field) in cases {
     let actual = classified_graph_source(
-      graph_diagnostic_prefix() + "FROM g |> components(" + arguments +
+      graph_diagnostic_prefix() +
+      "FROM g |> components(" +
+      arguments +
       ") |> SELECT component_size",
     )
-    guard actual is Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) else {
+    guard actual
+      is Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) else {
       fail("components must retain its common static body refusal")
     }
     assert_eq(stage, 0)
     assert_eq(issue.kind, expected)
     assert_eq(issue.path, [
-      Key("stages"), Index(0), Key("steps"), Index(4),
-      Key("components"), Key(field),
+      Key("stages"),
+      Index(0),
+      Key("steps"),
+      Index(4),
+      Key("components"),
+      Key(field),
     ])
     // The common issue retains the authored call span before E's diagnostic
     // projection decides whether any public position can be disclosed.
     let prefix = graph_diagnostic_prefix() + "FROM g |> "
     assert_eq(issue.span.start_byte, @utf8.encode(prefix).length())
-    assert_eq(issue.span.end_byte,
-      @utf8.encode(prefix + "components(" + arguments + ")").length())
+    assert_eq(
+      issue.span.end_byte,
+      @utf8.encode(prefix + "components(" + arguments + ")").length(),
+    )
   }
 }
