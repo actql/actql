@@ -1699,6 +1699,14 @@
       "line": 19,
       "count": 1,
       "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/with-current-document-original-preimages.json",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "18233964fb2d38daace2960259ca50b74e6d104531e44bcd87084744fd43b318",
+      "line": 7,
+      "count": 1,
+      "reason": "Reviewed WITH terminology-cutover snapshot of the already adopted October 11 ModelTask 0.2 specification. Preserve its original document bytes and digest; this exact historical source context does not authorize another writer or contract."
     }
   ]
 }
