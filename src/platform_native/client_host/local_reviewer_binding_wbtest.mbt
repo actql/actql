@@ -34,10 +34,7 @@ fn local_reviewer_installation_fixture(
     writer.seal(extra).unwrap() |> ignore
     files.push(extra)
   }
-  (
-    policy_host_fixture(name, files~, account_body=@utf8.encode(account)),
-    file,
-  )
+  (policy_host_fixture(name, files~, account_body=@utf8.encode(account)), file)
 }
 
 ///|
@@ -48,7 +45,9 @@ test "Native Local Reviewer preserves existing seven and eight selected Host fil
       extra_files=count - 1,
     )
     assert_eq(host.session.settings.files.length(), count)
-    assert_true(host.install_effect_reviewer(configuration_file=Some(file)) is Ok(_))
+    assert_true(
+      host.install_effect_reviewer(configuration_file=Some(file)) is Ok(_),
+    )
     host.close().unwrap()
   }
 }
