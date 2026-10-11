@@ -1,12 +1,12 @@
 {
   "owner": "B",
   "integration_owner": "Root",
-  "phase": "P1 context and producer lexical seams implemented with focused JS evidence; common WITH cutover in progress",
+  "phase": "P1 WITH/Graph operation caller migration and E public diagnostic connection verified locally; four Carrier/P2 and public acceptance incomplete",
   "branch": "feat/frontend-with-carrier-cutover",
-  "base": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "base": "main",
   "pending_integration": [],
   "start_condition": "Normally adopt the submitted Frontend integration on main; INFER and Debug completion are not prerequisites.",
-  "finite_next_unit": "P1 common WITH producer scope and GRAPH cutover using existing checker/capture/Graph owner, with active-source retirement and independent sql/aql-text/README public profiles.",
+  "finite_next_unit": "Implement the delegated retained-Cursor check-only prefix without synthetic Results; continue finite current caller and four Carrier/P2 cutover.",
   "no_new_scope": [
     "new GoogleSQL compatibility search",
     "compat parser or migrator",
@@ -14,15 +14,16 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "See p1-execution-index.json: exact earlier clean SHA JS28/28 and JS21/21, bounded formatter results, failures retained. No common checker/Host/public completion.",
+  "proof_boundary": "p1-operation-caller-execution.json: clean 0ebb JS25/25, Node7/7, actual Core public diagnostic reports6; no Host/Local/HTTPS acceptance.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,
     "all": 130,
     "status": "Root reported static document validation exit zero; no product execution"
   },
-  "adopted_main": "ab5460e2422f59da69dcf873c5498dc8a5d7997e",
-  "adoption_merge": "d4f0cb470f247af195e4793272eb057430d0ba1d",
+  "adopted_main": "23697f7430c227327b4b0b3735ad14806eed321a",
+  "adoption_merge": "787ecc42d9f45ca2ad9e883a9105849419299433",
   "adoption_tree": "54f6f118ced6db8e2628221768ffac0390618078",
-  "integration_observation": "#1474 and #1476 normally integrated by Root; author branches preserved."
+  "integration_observation": "#1474 and #1476 normally integrated by Root; author branches preserved.",
+  "adopted_E": "54d7852347e087b01de17f698eff154cd050c74b"
 }

@@ -1,0 +1,84 @@
+TAP version 13
+# Subtest: only independently proven Graph support gaps gain exact implementation-limit expectations
+ok 1 - only independently proven Graph support gaps gain exact implementation-limit expectations
+  ---
+  duration_ms: 1.36525
+  type: 'test'
+  ...
+# Subtest: WITH Graph row refusals preserve their existing rejection policy
+ok 2 - WITH Graph row refusals preserve their existing rejection policy
+  ---
+  duration_ms: 1.552125
+  type: 'test'
+  ...
+# Subtest: WITH Graph core refusals preserve independent rejection policy
+ok 3 - WITH Graph core refusals preserve independent rejection policy
+  ---
+  duration_ms: 0.407583
+  type: 'test'
+  ...
+# Subtest: WITH diagnostic refusals retain complete input policy
+ok 4 - WITH diagnostic refusals retain complete input policy
+  ---
+  duration_ms: 0.145958
+  type: 'test'
+  ...
+# Subtest: Shortest oracles preserve zero-hop, independent identities and all selection modes
+ok 5 - Shortest oracles preserve zero-hop, independent identities and all selection modes
+  ---
+  duration_ms: 2.220333
+  type: 'test'
+  ...
+# Subtest: Shortest packed profile includes external public transports and fresh-process rereads
+ok 6 - Shortest packed profile includes external public transports and fresh-process rereads
+  ---
+  duration_ms: 8.012167
+  type: 'test'
+  ...
+# Subtest: WITH Graph operation callers preserve all independent public obligations
+ok 7 - WITH Graph operation callers preserve all independent public obligations
+  ---
+  duration_ms: 2.380958
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 139.750958
+ACTQL_TEST_CASE {"name":"only independently proven Graph support gaps gain exact implementation-limit expectations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph row refusals preserve their existing rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph core refusals preserve independent rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH diagnostic refusals retain complete input policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Shortest oracles preserve zero-hop, independent identities and all selection modes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-shortest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Shortest packed profile includes external public transports and fresh-process rereads","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-shortest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph operation callers preserve all independent public obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-operation-caller.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":11.777834,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":14.107708,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-shortest-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":1,"failed":0,"passed":1,"cancelled":0,"skipped":0,"todo":0,"topLevel":1,"suites":0},"duration_ms":8.934416,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-operation-caller.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":7,"failed":0,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":7,"suites":0},"duration_ms":139.750958}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-graph-operation-caller.test.mjs","scripts/graph-shortest-source-input.test.mjs","scripts/graph-refusal-classification-source-input.test.mjs"]: executed; counts={"tests":7,"passed":7,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-NheJ9Q
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"program_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"program_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"expression_type_mismatch","facts":{"expected_type":"number"}}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"expression_type_mismatch","facts":{"expected_type":"number"}}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":153,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"query_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":153,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"query_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+[actql/actql] test query_program/graph_diagnostics_test.mbt:241 ("Graph components DATA admits both kinds and retains its current Relation schema") failed: src/query_program/data_set_test.mbt:5:15-5:38@actql/actql FAILED: syntax: WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) DATA selected = FROM g |> components(kind: 'weak'); FROM selected |> SELECT node_id, component_id, component_size
+[actql/actql] test query_program/graph_diagnostics_test.mbt:283 ("Graph components invalid arguments retain exact common-checker reasons and locations") failed: src/query_program/data_set_test.mbt:14:15-14:40@actql/actql FAILED: lowering: WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'invented') |> SELECT component_size
+[actql/actql] test query_program/traversal_nodes_test.mbt:61 ("Graph traversal retains malformed authored bodies for common refusal") failed: src/query_program/graph_union_source_test.mbt:158:15-158:80@actql/actql FAILED: expected common Graph refusal: InvalidBody
+Total tests: 25, passed: 22, failed: 3.
+Warning: [0009]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/model_execution/prepared_capacity.mbt:6:13 ]
+   │
+ 6 │ priv struct PreparedModelCapacity {
+   │             ──────────┬──────────  
+   │                       ╰──────────── Warning (struct_never_constructed): The struct PreparedModelCapacity is never constructed
+───╯
+["moon","test","--target","js","src/query_program/graph_diagnostics_test.mbt","src/query_program/traversal_nodes_test.mbt","src/query_program/traverse_hop_vocabulary_test.mbt","src/query_program/traversal_join_input_test.mbt","src/query_program/graph_shortest_source_test.mbt","src/connectors_builtin_node/client_source_preparation_wbtest.mbt","src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt"]: process failed (2); counts={"tests":25,"passed":22,"failed":3,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-ExgPyk

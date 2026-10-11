@@ -11,12 +11,15 @@ supplied IDs and all 130 IDs remain in [acceptance-id-inventory.json](acceptance
 No SQL compatibility sidequest, alternate checker/evaluator, compatibility
 parser or new acquisition/storage owner is added.
 
-Current product source is `5f80f15531ddb53ff2670da412de6201b3692ea0`, tree
-`6b24f545a708ff7ef9e43a174f304c7894be54f5`. It is a formatting-only follower
-of `bbcbec11e8ede3b97422f3760310342dc45027a0`, whose Graph core controls ran
-JS3/3 and authored fixture obligations Node5/5 plus shared-request Node1/1.
-This checks lowering/static admission, not public execution of the 38 normal,
-three runtime-failure and 25 refusal declarations.
+Current tested source is `0ebb257ad38f5c8206dd632eacfdb65ce5188223`, tree
+`14ce5c3216b4a786472745913fd188b24c685fd7`. It normally adopts E diagnostic source
+`54d7852347e087b01de17f698eff154cd050c74b` through merge `787ecc42d9f45ca2ad9e883a9105849419299433`.
+`run-88GD0X` completed focused JS25/25 and Node7/7, including six actual Core
+public diagnostic reports and the direct client preparation caller. This is
+static/lowering and Core API evidence, not Host or Local/HTTPS execution.
+All prior failed attempts and exact commands are preserved in
+[p1-operation-caller-execution.json](p1-operation-caller-execution.json).
+The pinned single-file formatter made no changes on this source.
 
 [p1-scalar-graph-core-execution.json](p1-scalar-graph-core-execution.json) retains
 the normal main integration and every command/receipt. On `cd38e9506`, the
@@ -33,15 +36,13 @@ observed released for all current limited attempts. One initial sandbox guard
 preflight exited before steps because process inspection was unavailable; the
 normal escalated guard was accepted without modifying or bypassing checks.
 
-The direct connector caller is **not closed**: `run-T6stAJ` failed compilation
-before any JS test due to missing `QueryLowering(RangeAliasRequiresRelation |
-BindingPreparation(_))` cases in E/Root-owned `client_check.mbt:314`.
-[p1-diagnostic-caller-handoff.json](p1-diagnostic-caller-handoff.json) retains
-its exact source, command and required common diagnostic/disclosure boundary.
-The independent JS selection does not bypass that required product caller or
-make public preparation/Host execution complete. B has not edited that owner.
-[prepared-checks.json](prepared-checks.json) contains the reproducible independent
-commands and source/tree; the failed command remains in the separate handoff.
+The earlier direct connector compile failure `run-T6stAJ` remains unchanged in
+[p1-diagnostic-caller-handoff.json](p1-diagnostic-caller-handoff.json). E's typed
+projection is now normally adopted and the real consuming Core API tests pass
+on the stated source. Missing Catalog information remains undisclosed; existing
+cause classifications, generated-location suppression and wire/reason pins are
+preserved. This closes that caller connection, not the four-Carrier or public
+Host completion conditions.
 
 Previous `6d0f1a378` JS29/29, SGA Node11/11 and five freshness checks remain in
 [p1-grammar-pin-execution.json](p1-grammar-pin-execution.json). Earlier `4d63461aa`
@@ -120,8 +121,8 @@ This Draft is not the completed revision. Remaining work is finite P1/P2:
 1. Replace remaining current DATA fixture/caller/tutorial sources directly,
    preserving source semantics, independent rows/types/order and negative cases.
    Immutable receipts and private structural machine fixtures stay intact.
-2. Complete the diagnostic caller handoff, the remaining four Carrier alias/type
-   connections and all four Carrier bindings and adopted SGA/VecA/TEA argument-role connections. No second parser,
+2. Complete remaining four Carrier alias/type connections, bindings and adopted
+   SGA/VecA/TEA argument-role connections. The E diagnostic caller is connected. No second parser,
    scalar-name guessing or generic OP/raw JSON evaluator is permitted.
 3. Execute the agreed SQL/AQL-text/README and four-Carrier packed Local/HTTPS
    cohorts with independent Program/value/schema/refusal expectations, same
@@ -169,6 +170,26 @@ The current Run CID is independently hashed as
 `sha256:64f2fe7915e5a42f8e14904f8b24cb085d12107a5161241f7c0b61c8f0689183`.
 The recorded authoring recipe is [p1-scalar-independent-preimages.mjs](p1-scalar-independent-preimages.mjs); it imports normative-input oracles only, never runtime outputs.
 
-E owns the diagnostic caller projection. Four-Carrier/P2 and current caller/docs
-cutover remain incomplete. No package producer/public Host/provider/Heavy,
+E owns the diagnostic projection, now adopted and locally verified. Four-Carrier/P2
+and current caller/docs cutover remain incomplete. No package producer/public Host/provider/Heavy,
 Native/Wasm execution or Hosted CI was run for this integration.
+
+## Current Graph operation callers and prefix boundary
+
+Traversal, shortest-path and Graph-diagnostic fixture sources now use authored
+WITH/GRAPH directly. Their independent rows, full ordered schemas, source counts,
+refusal policies and byte-identical JSON controls remain unchanged; original
+text is retained in [pre-with-graph-operation-source-input.json](pre-with-graph-operation-source-input.json).
+The changed MoonBit refusal tests assert the real common typed static causes;
+WITH checks these bindings before demand. They do not weaken common validation.
+
+The attempted Vectors/Events prefix experiment is retained at local branch
+`experiment/with-typed-carrier-prefix-24993` and reverted from current product
+source by normal commit `70ed56c1b7dcae6697f105a9a281ac0cb26e8729`.
+Its first actual failure is `Admission.Structure(EmptyDeclarations,
+stages[0].results)`; the common prefix checker was not reached. See
+[p1-carrier-prefix-boundary.json](p1-carrier-prefix-boundary.json).
+No synthetic Result, weakened complete-Program admission or alternate checker
+is substituted. B's delegated common retained-Cursor prefix seam remains to be
+implemented before restoring that frontend connection. This is one finite
+unfinished boundary, not a reason to stop independent caller cutover.
