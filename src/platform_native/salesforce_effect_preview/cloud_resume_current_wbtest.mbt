@@ -140,12 +140,12 @@ test "Cloud Resume private reply rejects incomplete duplicate and excess fields 
       is None,
     )
   }
-  for
-    limits in [
-      { max_wire_bytes: 16, max_nodes: 64, max_depth: 4, },
-      { max_wire_bytes: 65536, max_nodes: 2, max_depth: 4, },
-      { max_wire_bytes: 65536, max_nodes: 64, max_depth: 1, },
-    ] {
+  let invalid_limits : Array[@checkpoint.WireLimits] = [
+    { max_wire_bytes: 16, max_nodes: 64, max_depth: 4, },
+    { max_wire_bytes: 65536, max_nodes: 2, max_depth: 4, },
+    { max_wire_bytes: 65536, max_nodes: 64, max_depth: 1, },
+  ]
+  for limits in invalid_limits {
     assert_true(
       cloud_resume_reply(
         @utf8.encode(body),
@@ -173,11 +173,31 @@ test "Cloud Resume query preserves opaque labels and numeric original generation
     "e\u{301}",
     cloud_resume_test_limits(),
   ).unwrap()
-  let parsed = Json::parse(@utf8.decode(body)) catch { _ => fail("query JSON") }
-  assert_eq(parsed["queryId"], Some(Json::string("e\u{301}")))
-  assert_eq(parsed["generation"], Some(Json::number(7.0)))
-  assert_eq(parsed["authority"], None)
-  assert_eq(parsed["resolutionWire"], None)
+  let node = @source.parse_json_bytes_preserving(body, {
+    max_input_bytes: 65536,
+    max_nodes: 64,
+    max_depth: 4,
+  }).unwrap()
+  let root = @decode.admit(node, {
+    max_nodes: 64,
+    max_depth: 4,
+    max_string_bytes: 65536,
+    max_total_string_bytes: 65536,
+  }).unwrap()
+  let fields = @decode.closed_object(root, [
+    "version", "queryId", "dispatchCid", "reportCid", "checkpointCid", "resolutionCid",
+    "intentId", "claimant", "generation",
+  ]).unwrap()
+  assert_eq(
+    @decode.text(@decode.required(fields, "queryId").unwrap()).unwrap(),
+    "e\u{301}",
+  )
+  assert_eq(
+    @decode.safe_integer(@decode.required(fields, "generation").unwrap()).unwrap(),
+    7L,
+  )
+  assert_true(@decode.lookup(fields, "authority") is None)
+  assert_true(@decode.lookup(fields, "resolutionWire") is None)
   for label in ["", "x".repeat(257), "x\u{7f}"] {
     assert_eq(
       cloud_resume_query_body(expected, label, cloud_resume_test_limits()),
