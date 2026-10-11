@@ -6,6 +6,15 @@ pub(all) enum BindingPreparationIssue {
   SourceRegistration(@check_context.SourceRegistrationIssue)
   SourceProgram(@check_context.SourceViewProgramIssue)
   LocalProgram(@stage_results.LocalProgramIssue)
+  Demand(BindingDemandIssue)
+}
+
+///|
+pub(all) enum BindingDemandIssue {
+  WorkLimit
+  ForeignStage
+  InvalidRange
+  MissingImport
 }
 
 ///|

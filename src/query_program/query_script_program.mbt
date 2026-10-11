@@ -346,6 +346,7 @@ pub fn compile_query_script(
       unshared: unshared_script_sources(script, context.inputs),
       ranges: Map([]),
       value_tables: Map([]),
+      binding_ranges: [],
     }
     let root = @query.script_query(script)
     let has_bindings = @query.query_binding_count(root) > 0
@@ -376,6 +377,7 @@ pub fn compile_query_script(
     let mut stage_sources = sources
     let mut stage_known = known
     let stages : Array[@builder.Node] = []
+    let stage_arrays : Array[Array[@builder.Node]] = []
     let exports : Array[(String, (String, String))] = []
     while true {
       let input_name = pipe_physical_name(
@@ -529,6 +531,7 @@ pub fn compile_query_script(
         )
       }
       stages.push(construction.object(stage_entries))
+      stage_arrays.push(stage_steps)
       for
         (name, port) in retained_result_exports(stage_context, retained).unwrap_or([
             (stage_context.result_name, stage_context.stage_result),
@@ -562,6 +565,7 @@ pub fn compile_query_script(
         unshared: [],
         ranges: Map([]),
         value_tables: Map([]),
+        binding_ranges: sources.binding_ranges,
       }
       stage_known = [
         {
@@ -602,17 +606,40 @@ pub fn compile_query_script(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match admit_query_source(source, document, context, limits) {
-      Ok(program) => {
-        if has_bindings {
-          match prepare_query_bindings(program, context, limits) {
-            Ok(_) => ()
-            Err(issue) => return Err(BindingPreparation(issue))
-          }
-        }
-        Ok(program)
-      }
-      Err(issue) => Err(issue)
+    if !has_bindings {
+      return admit_query_source(source, document, context, limits)
+    }
+    // Resolve and check every authored binding before demand selection. This
+    // temporary syntax owner does not publish another Program/Plan/Run.
+    let source = resolve_query_members(source, document, context, limits)
+    let complete = match @program.admit_generated_source(source, limits.program) {
+      Ok(program) => program
+      Err(issue) => return Err(Admission(issue))
+    }
+    let wiring = match prepare_query_bindings(complete, context, limits) {
+      Ok(wiring) => wiring
+      Err(issue) => return Err(BindingPreparation(issue))
+    }
+    let demand = match trace_query_binding_demand(
+      wiring, stage_arrays, sources.stages.length(), sources.binding_ranges,
+      limits.max_expression_work,
+    ) {
+      Ok(demand) => demand
+      Err(issue) => return Err(BindingPreparation(Demand(issue)))
+    }
+    let source = match prune_query_binding_source(source, demand, document, limits) {
+      Ok(source) => source
+      Err(issue) => return Err(issue)
+    }
+    let program = match @program.admit_generated_source(source, limits.program) {
+      Ok(program) => program
+      Err(issue) => return Err(Admission(issue))
+    }
+    // New syntax gets its own common owners. Never transfer conditional
+    // evidence issued for the complete temporary pipeline onto the pruned one.
+    match prepare_query_bindings(program, context, limits) {
+      Ok(_) => Ok(program)
+      Err(issue) => Err(BindingPreparation(issue))
     }
   } catch {
     Abort(issue) => {

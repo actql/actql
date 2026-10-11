@@ -6,6 +6,16 @@ priv struct ScriptSources {
   unshared : Array[String]
   ranges : Map[String, JoinChainScope]
   value_tables : Map[String, JoinChainScope]
+  binding_ranges : Array[ScriptBindingRange]
+}
+
+///|
+// Emission ownership only. Input/producer dependence comes from the common
+// checked pipeline, never from a second semantic reference scanner.
+priv struct ScriptBindingRange {
+  steps : Array[@builder.Node]
+  start : Int
+  end : Int
 }
 
 ///|

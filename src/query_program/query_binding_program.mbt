@@ -112,6 +112,7 @@ fn lower_script_bindings(
       reserved,
     )
     let body = @query.after_query_bindings(binding.query)
+    let binding_start = steps.length()
     let primary = lower_script_primary(
       construction, body, body_inputs, body_graphs, context, sources, limits, steps,
       reserved,
@@ -151,6 +152,9 @@ fn lower_script_bindings(
       scoped = scoped.filter(input => {
         !input_relation_matches([binding.name], input)
       })
+      if binding.origin is AuthoredWith(..) {
+        sources.binding_ranges.push({ steps, start: binding_start, end: steps.length(), })
+      }
       continue
     }
     let output = pipe_physical_name(reserved, "aql_script_cte_")
@@ -215,6 +219,9 @@ fn lower_script_bindings(
     scoped_graphs = scoped_graphs.filter(graph => {
       !same_name(graph.name, binding.name)
     })
+    if binding.origin is AuthoredWith(..) {
+      sources.binding_ranges.push({ steps, start: binding_start, end: steps.length(), })
+    }
   }
   (scoped, scoped_graphs)
 }
