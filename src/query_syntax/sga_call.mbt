@@ -179,9 +179,11 @@ fn QueryParser::sga_argument(
     return ListValue(items)
   }
   if path.length() == 1 &&
-    ((operation == "to_vectors" && ["id", "vector"].contains(path[0])) ||
-     (operation == "to_events" && ["id", "time"].contains(path[0])) ||
-     (operation == "session" && ["id", "time", "by"].contains(path[0]))) {
+    (
+      (operation == "to_vectors" && ["id", "vector"].contains(path[0])) ||
+      (operation == "to_events" && ["id", "time"].contains(path[0])) ||
+      (operation == "session" && ["id", "time", "by"].contains(path[0]))
+    ) {
     return FieldReference(self.path())
   }
   if sga_producer_argument(operation, path) {

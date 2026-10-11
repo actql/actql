@@ -91,11 +91,7 @@ fn MemberResolution::source_prefix_carrier(
     value: add(@builder.Array(prefix_steps)),
     origin: generated,
   })
-  stage_fields.push({
-    key: "results",
-    value: object([]),
-    origin: generated,
-  })
+  stage_fields.push({ key: "results", value: object([]), origin: generated, })
   let prefix_stages = []
   for prior in stages[:stage_index] {
     prefix_stages.push(imported(prior))
@@ -119,11 +115,7 @@ fn MemberResolution::source_prefix_carrier(
     value: add(@builder.Array(prefix_stages)),
     origin: generated,
   })
-  root_fields.push({
-    key: "results",
-    value: object([]),
-    origin: generated,
-  })
+  root_fields.push({ key: "results", value: object([]), origin: generated, })
   let copy = member_construct(
     @builder.finish(build, add(@builder.Object(root_fields))),
   )

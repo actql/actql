@@ -98,13 +98,25 @@ fn lower_script_relation(
   }
   if @query.set_part_count(query) == 0 && script_has_carrier_calls(query) {
     return lower_script_carrier_calls(
-      construction, query, known, context, sources, limits, steps, reserved,
-      output, retained~, allow_nonrelation~,
+      construction,
+      query,
+      known,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
+      retained~,
+      allow_nonrelation~,
     )
   }
   if @query.set_part_count(query) == 0 {
-    let input = known.filter(input => input_relation_matches(@query.relation(query), input)).get(0)
-    if input is Some(input) && sources.carriers.get(input.name) is Some(carrier) &&
+    let input = known
+      .filter(input => input_relation_matches(@query.relation(query), input))
+      .get(0)
+    if input is Some(input) &&
+      sources.carriers.get(input.name) is Some(carrier) &&
       !(carrier is @carrier.Relation(_)) {
       let query = @query.graph_source_query(query)
       if @query.relation_alias(query) is Some(_) ||
@@ -113,7 +125,8 @@ fn lower_script_relation(
         }).any(operation => operation is Some(Alias(_))) {
         raise Abort(RangeAliasRequiresRelation)
       }
-      guard allow_nonrelation && @query.operation_count(query) == 0 &&
+      guard allow_nonrelation &&
+        @query.operation_count(query) == 0 &&
         !has_retained_result(query) else {
         raise Abort(UnsupportedProjection)
       }

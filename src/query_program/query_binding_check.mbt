@@ -93,12 +93,13 @@ fn check_query_prefix(
   limits : Limits,
 ) -> Result[BindingTopology, BindingPreparationIssue] {
   let tree = limits.program.tree
-  let source = match @stage_parameters.prepare_prefix(prefix, {
-    max_parameters: tree.max_nodes,
-    max_nodes: tree.max_nodes,
-    max_depth: tree.max_depth,
-    max_text_bytes: tree.max_total_string_bytes,
-  }) {
+  let source = match
+    @stage_parameters.prepare_prefix(prefix, {
+      max_parameters: tree.max_nodes,
+      max_nodes: tree.max_nodes,
+      max_depth: tree.max_depth,
+      max_text_bytes: tree.max_total_string_bytes,
+    }) {
     Ok(source) => source
     Err(issue) => return Err(Declarations(issue))
   }
