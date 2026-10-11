@@ -1029,7 +1029,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:eeede13d9e2786c2ffdce27382a25c0b0df62d385ca2cb21da3fc776e14ae4bf');
+    'sha256:6d206c334a24421dbe9ad8543a6ff1bf8e1c89299112f21a4e14a80f0d384266');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -2976,4 +2976,27 @@ test('grouped ROWS retains both complete predecessor Values preimages', () => {
     assert.deepEqual(prior.values_dependencies, valuesDependencyOracle());
     assert.equal(prior.program_identity.programCid, valuesProgramOracle().programCid);
   }
+});
+
+
+test('WITH cutover preserves the old complete Values closure and independently pins the new Run', () => {
+  const before = JSON.parse(readFileSync('scripts/fixtures/pre-with-carrier-cutover-values-identities.json', 'utf8'));
+  const after = JSON.parse(readFileSync('scripts/fixtures/submitted-with-carrier-cutover-values-identities.json', 'utf8'));
+  assert.equal(before.source_revision, 'f01d05b7ee93364b804aeb0e934c2981da089ac8');
+  for (const fixture of [before, after]) {
+    const {grammar_manifest_cid: grammarCid, ...body} = fixture.grammar;
+    assert.equal(cid(body), grammarCid);
+    assert.deepEqual(vector(grammarCid, fixture.aoa_contract_cid,
+      fixture.values_dependencies, fixture.barrier_contract_manifest_cid,
+      fixture.program_identity, {canonicalCandidates: true}), fixture.run_preimages);
+  }
+  assert.equal(before.run_preimages.run.run_definition_cid,
+    'sha256:eeede13d9e2786c2ffdce27382a25c0b0df62d385ca2cb21da3fc776e14ae4bf');
+  assert.deepEqual(after.values_dependencies, before.values_dependencies);
+  assert.deepEqual(after.program_identity, before.program_identity);
+  assert.deepEqual(after.values_dependencies, valuesDependencyOracle());
+  assert.equal(after.aoa_contract_cid, before.aoa_contract_cid);
+  assert.equal(after.barrier_contract_manifest_cid, before.barrier_contract_manifest_cid);
+  assert.notEqual(after.run_preimages.run.run_definition_cid,
+    before.run_preimages.run.run_definition_cid);
 });

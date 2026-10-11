@@ -7,7 +7,7 @@
     "actql-pattern/0.1"
   ],
   "current_milestone": [
-    "public_structural_retirement"
+    "with_carrier_cutover_in_progress"
   ],
   "principles": [
     "one_canonical_program",
@@ -849,24 +849,27 @@
     {
       "feature_id": "query.cte",
       "surface_forms": [
-        "WITH nonrecursive"
+        "WITH name AS (Pure producer body), ... query"
       ],
-      "canonical_lowering": "static named dataflow",
+      "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
-        "earlier CTEs only",
-        "no recursive/volatile body"
+        "nonrecursive nearest lexical scope across Carrier kinds",
+        "all bindings statically checked; execution follows explicit demand",
+        "table/set operands and authored row aliases require Relation"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-4",
       "acceptance_case_ids": [
         "SQL-27",
         "SQL-28",
         "SYS-08"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "four Carrier and public Local/HTTPS cutover acceptance remains pending"
+      ]
     },
     {
       "feature_id": "query.order_limit",
@@ -1042,18 +1045,19 @@
     {
       "feature_id": "graph.labels",
       "surface_forms": [
-        "FROM GRAPH g LABELS {\"node\":{\"field\":\"type\"}}"
+        "GRAPH constructor LABEL/PROPERTIES",
+        "MATCH (node:label) and labelled edge patterns"
       ],
-      "canonical_lowering": "explicit label-to-property equality expansion",
+      "canonical_lowering": "common Graph-owned label membership",
       "preconditions": [
-        "known string field",
-        "single label only",
-        "no MDM authority"
+        "admitted Graph label evidence",
+        "ordinary properties do not redefine membership",
+        "definition-selected common checking"
       ],
       "spec_section": "9.2",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-5",
       "acceptance_case_ids": [
         "GRF-09",
@@ -1061,7 +1065,10 @@
         "GRF-11",
         "GRF-12"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "retired LABELS annotation is refused before preparation",
+        "new WITH/GRAPH public Local/HTTPS evidence is separate from syntax/lowering"
+      ]
     },
     {
       "feature_id": "graph.binary",

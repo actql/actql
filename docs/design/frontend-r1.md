@@ -14,7 +14,7 @@ align with adopted rules; historical implementation choices are not fixed
 merely because an existing operation already represents them.
 
 The accepted follow-on [SGA surface design](frontend-sga-surface.md) reuses
-logical DATA bindings and existing Graph operations. It remains separate from
+logical WITH bindings and existing Graph operations. It remains separate from
 implemented syntax and public Host execution evidence.
 
 ## One Program and one operation vocabulary
@@ -144,7 +144,7 @@ the Frontend does not introduce an alternative String representation.
 | Raw String | Preserve each backslash and following scalar in an ordinary String | Prefix applies only to its immediate chunk; odd trailing backslash and plain-form physical newlines reject |
 | Adjacent String chunks | Concatenate decoded values into one String expression, retaining the original source range | Whitespace/comment separation is required; identifiers and String/bytes mixtures do not concatenate |
 | Bytes literal | Requires the reference's distinct bytes meaning | Not yet implemented; never stringify bytes silently |
-| Graph LABELS annotation | Historical annotation syntax, separate from query literal syntax | Query-only escapes and raw controls do not widen annotation admission |
+| Graph label membership | The admitted Graph owns labels independently of ordinary properties | The retired query-local LABELS annotation is rejected |
 
 Independent fixtures compare decoded values and ordinary Programs, including
 CR/LF/CRLF, composed/decomposed Unicode and backslash followed by `n`. The

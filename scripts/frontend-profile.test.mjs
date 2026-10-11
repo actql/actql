@@ -145,7 +145,7 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
     for (const id of feature.acceptance_case_ids) assert.ok(ids.has(id), id);
     const retired = ['text.envelope', 'text.total'].includes(feature.feature_id);
     assert.equal(feature.implementation_status, retired ? 'retired' :
-      (['acquisition.infer', 'vector.nearest', 'effect.hidden', 'effect.declaration', 'query.set', 'query.pipe'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
+      (['acquisition.infer', 'vector.nearest', 'effect.hidden', 'effect.declaration', 'query.set', 'query.pipe', 'query.cte', 'graph.labels'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
     assert.deepEqual(feature.execution_evidence_ids,
       []);
     for (const evidence of feature.execution_evidence_ids) {
@@ -282,4 +282,27 @@ test('membership machine controls never emit empty parameter declarations', () =
   }
   assert.ok(controls.some(item => !Object.hasOwn(JSON.parse(item.text), 'params')));
   assert.ok(controls.some(item => Object.hasOwn(JSON.parse(item.text), 'params')));
+});
+
+
+test('WITH cutover grammar and current guidance have one producer surface', () => {
+  const grammar = read('spec/grammar/actql-query-0.1.ebnf').toString();
+  assert.match(grammar, /with_binding\s*=\s*identifier, "AS", "\(", producer_body/u);
+  assert.match(grammar, /graph_constructor\s*=\s*"GRAPH", "\("/u);
+  assert.doesNotMatch(grammar, /data_declaration|data_graph_match|graph_labels|json_text/u);
+  assert.doesNotMatch(grammar, /"DATA"|"PROPERTY", "GRAPH"|"LABELS"/u);
+  const api = read('src/query_syntax/pkg.generated.mbti').toString();
+  assert.doesNotMatch(api, /annotation_compatible|label_field|data_count|data_declaration/u);
+  const labels = profile.features.find(f => f.feature_id === 'graph.labels');
+  assert.equal(labels.canonical_lowering, 'common Graph-owned label membership');
+  assert.ok(!labels.surface_forms.some(form => form.includes('LABELS')));
+  const bindings = profile.features.find(f => f.feature_id === 'query.cte');
+  assert.equal(bindings.implementation_status, 'partial');
+  assert.deepEqual(bindings.execution_evidence_ids, []);
+  for (const path of ['docs/spec/query-text.md',
+    'docs/design/frontend-standard-profiles.md', 'docs/design/frontend-sga-surface.md']) {
+    const source = read(path).toString();
+    assert.doesNotMatch(source, /^DATA\s+[^\n]*=/mu, path);
+    assert.doesNotMatch(source, /`DATA g = PROPERTY GRAPH/u, path);
+  }
 });

@@ -20,11 +20,11 @@ obligations; [semantic decision criteria](semantic-decisions.md) govern changes.
 | SQL and relational Pipe | [GoogleSQL language reference](https://github.com/google/googlesql/tree/d82db99a923a46571f543a13899dc791a7b6f743/docs), revision `d82db99a923a46571f543a13899dc791a7b6f743` | Select clauses and their meaning individually. Repository features are not necessarily deployed in every Google product. |
 | Graph pattern matching | [GoogleSQL graph patterns](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/graph-patterns.md); [GQL grammar provenance](https://github.com/opengql/grammar/blob/16ea71bd320ad07fd2c46a3066afbaef7d226922/README.md) | The grammar is syntax evidence, not the complete normative semantics of ISO GQL. Record selected pattern modes and contexts separately. |
 | Relation-to-Graph mapping | Google's [schema overview](https://docs.cloud.google.com/spanner/docs/graph/schema-overview) and [schema statements](https://docs.cloud.google.com/spanner/docs/reference/standard-sql/graph-schema-statements), consulted 2026-10-01 | Selected Google table-mapping profile with SQL/PGQ lineage. Distinguish this from GQL graph creation and from product storage features. |
-| Pure Graph-value construction | ActQL extension using the selected mapping profile | `DATA g = PROPERTY GRAPH (...)` binds a computed value; it does not create a catalog object. |
+| Pure Graph-value construction | ActQL extension using the selected mapping profile | `WITH g AS (GRAPH (...)) ...` binds a computed value; it does not create a catalog object. |
 | Named SGA operations | [Current Graph laws](../../spec/dependencies/actql-graph-laws.json) and [surface mapping](frontend-sga-surface.md) | ActQL operations over the admitted definition/key Graph contract; unsupported consumers reject without interpreting historical SGA identity or structural bodies. Familiar names such as reach or components do not make them standard GQL functions. |
 | VecA / NEAREST score | [AoA numeric laws](../../spec/dependencies/aoa-veca-numeric-laws.json) and the common vector contract | Explicit scoring profile; not an alias for GoogleSQL distance functions. |
 | Event-time windows, sessions, recognition, ASOF and interval joins | Operation-specific common contracts; external profile must be selected for each new surface | Analytic SQL frames are not event-time membership. A finite-label recognizer is not full SQL pattern recognition. ASOF spelling alone does not settle its contract. |
-| INFER, DATA, RESULT/RECEIPT, EFFECT, COMMAND, BRANCH and AFTER ACCEPTED | ActQL extensions | Preserve typed results, explicit authority and durable ownership. They do not imply SQL transactions or cross-Effect atomicity. |
+| INFER, non-Relation WITH, RESULT/RECEIPT, EFFECT, COMMAND, BRANCH and AFTER ACCEPTED | ActQL extensions | Preserve typed results, explicit authority and durable ownership. They do not imply SQL transactions or cross-Effect atomicity. |
 
 Google [distinguishes SQL/PGQ table-based graph definitions from GQL graph
 creation](https://docs.cloud.google.com/bigquery/docs/graph-iso-standards).
@@ -74,7 +74,7 @@ the installed common constructor and supported consumers; declaration of this
 profile alone is not an execution certificate:
 
 ```text
-DATA g = PROPERTY GRAPH (
+WITH g AS (GRAPH (
   NODE TABLES (
     nodes AS N KEY (id) LABEL Node PROPERTIES (id, name)
   )
@@ -84,12 +84,13 @@ DATA g = PROPERTY GRAPH (
       DESTINATION KEY (dst) REFERENCES N (id)
       LABEL R NO PROPERTIES
   )
-);
+))
+FROM g |> node_rows() |> SELECT id, name |> RESULT nodes
 ```
 
 Producer names, graph-local element definitions, labels and property names are
-different namespaces. REFERENCES resolves an element definition, not a DATA
-name or label. A producer reused in two definitions needs distinct definition
+different namespaces. REFERENCES resolves an element definition, not a WITH
+producer name or label. A producer reused in two definitions needs distinct definition
 aliases. Static labels are graph-owned membership, separate from properties.
 Changing `entity_type` must not alter a static `LABEL Person`.
 
@@ -102,7 +103,7 @@ Changing `entity_type` must not alter a static `LABEL Person`.
 | Consistent property exposure for a shared label | After the selected case-insensitive label/property-name resolution, every occurrence of a label name exposes the same property set across node and edge definitions. This condition is independent of Graph-wide property value-type consistency. |
 | Node and edge static label sets | Preserve multiple labels and declared property types/nullability. Label/property lookup follows the selected case-insensitive Google profile; retain authored spelling and reject collisions. Never case-fold key values. Dynamic labels/properties are outside the first profile. |
 | Default label is the element definition name; omitted properties select all columns | Support column projections/aliases, ALL COLUMNS, EXCEPT and NO PROPERTIES. Key columns can be properties; NO PROPERTIES does not remove identity. Computed properties need a separate evaluation contract. |
-| Identity is distinct from content and provenance | Preserve definition-scoped typed keys in a stable mapping domain across executions and snapshots/replay of the same admitted constructor definition. Do not include actual input Artifact identities, parameter values, Run/Invocation CIDs, outer DATA spelling, row enumeration, physical location or current content CID in the domain. Sharing is not guaranteed with a different definition produced by changing inline VALUES or the mapping. Cross-domain algebra requires an explicit compatible identity mapping. |
+| Identity is distinct from content and provenance | Preserve definition-scoped typed keys in a stable mapping domain across executions and snapshots/replay of the same admitted constructor definition. Do not include actual input Artifact identities, parameter values, Run/Invocation CIDs, outer WITH binder spelling, row enumeration, physical location or current content CID in the domain. Sharing is not guaranteed with a different definition produced by changing inline VALUES or the mapping. Cross-domain algebra requires an explicit compatible identity mapping. |
 
 The first three columns of an edge are not its identity. Endpoints, labels and
 properties are content of an independently keyed element. MATCH/TRAIL,
@@ -146,7 +147,7 @@ Acceptance runs source -> ordinary admission/checking/planning -> real Host ->
 Named Result -> snapshot/reload on Local and HTTP. Expected Programs, schemas,
 values, multiplicities and errors come from the selected contract, not the
 new lowerer. Capacity failure, cancellation and rejected inputs publish no
-partial successful result. Construction is pure; DATA adds no implicit
+partial successful result. Construction is pure; WITH adds no implicit
 acquisition, materialization, Result, sort, storage or placement boundary.
 
 ## Vector and temporal follow-through

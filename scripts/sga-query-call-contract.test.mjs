@@ -594,3 +594,15 @@ test('integrated derived scopes preserve common contracts and both historical pa
   assert.equal(cid({...commonAfter, query_text_grammar_sha256: ag, query_text_rules_sha256: ar}), ac);
   assert.notEqual(ag, bg); assert.notEqual(ar, br); assert.notEqual(ac, bc);
 });
+
+
+test('WITH cutover changes query grammar/rules without changing machine contracts', () => {
+  const before = read('scripts/fixtures/pre-with-carrier-cutover-values-identities.json').grammar;
+  const after = read('scripts/fixtures/submitted-with-carrier-cutover-values-identities.json').grammar;
+  const {grammar_manifest_cid: bc, query_text_grammar_sha256: bg, query_text_rules_sha256: br, ...beforeCommon} = before;
+  const {grammar_manifest_cid: ac, query_text_grammar_sha256: ag, query_text_rules_sha256: ar, ...afterCommon} = after;
+  assert.deepEqual(afterCommon, beforeCommon);
+  assert.equal(cid({...beforeCommon, query_text_grammar_sha256: bg, query_text_rules_sha256: br}), bc);
+  assert.equal(cid({...afterCommon, query_text_grammar_sha256: ag, query_text_rules_sha256: ar}), ac);
+  assert.notEqual(ag, bg); assert.notEqual(ar, br); assert.notEqual(ac, bc);
+});
