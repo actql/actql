@@ -1,0 +1,31 @@
+{
+  "changes": [
+    {
+      "path": "spec/manifests/actql-grammar-0.1.json",
+      "pointer": "",
+      "before": "sha256:d043a78813bf02f6e0492314b48a0b097676a222469e7646e9781da6ea6bce6b",
+      "after": "sha256:95168839fb5dd382a33a3c7ae6fbf8e134aed65530f9f90b689c130b89b0b238"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55",
+      "after": "sha256:91d1b9fd3c1d1b014f00a95c22ddd143b55ca37d65d44c8d5f85ac458351df41"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55",
+      "after": "sha256:91d1b9fd3c1d1b014f00a95c22ddd143b55ca37d65d44c8d5f85ac458351df41"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55",
+      "after": "sha256:91d1b9fd3c1d1b014f00a95c22ddd143b55ca37d65d44c8d5f85ac458351df41"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55",
+      "after": "sha256:91d1b9fd3c1d1b014f00a95c22ddd143b55ca37d65d44c8d5f85ac458351df41"
+    }
+  ],
+  "writes": true
+}

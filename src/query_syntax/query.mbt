@@ -1585,22 +1585,21 @@ fn QueryParser::frame_boundary(
     self.keyword("ROW")
     return CurrentRow
   }
-  if self.peek().value is Parameter(name) {
-    ignore(self.advance())
-    if self.has("PRECEDING") {
-      self.keyword("PRECEDING")
-      return PrecedingParameter(self.source.identifier(name))
-    }
-    self.keyword("FOLLOWING")
-    return FollowingParameter(self.source.identifier(name))
-  }
-  let distance = self.safe_integer(true)
-  if self.has("PRECEDING") {
+  // Keep the integer/whole-Parameter role after bounded transparent wrappers.
+  // Boundary direction remains authored syntax, including zero distances.
+  let distance = self.limit_integer(true)
+  let preceding = if self.has("PRECEDING") {
     self.keyword("PRECEDING")
-    Preceding(distance)
+    true
   } else {
     self.keyword("FOLLOWING")
-    Following(distance)
+    false
+  }
+  match (distance, preceding) {
+    (Integer(value), true) => Preceding(value)
+    (Integer(value), false) => Following(value)
+    (BoundParameter(name), true) => PrecedingParameter(name)
+    (BoundParameter(name), false) => FollowingParameter(name)
   }
 }
 
@@ -1922,16 +1921,11 @@ fn QueryParser::safe_integer_text(
   start : Int,
   zero_allowed : Bool,
 ) -> Int64 raise QueryAbort {
-  let mut result = 0L
-  for unit in text {
+  for _ in 0..<text.length() {
     self.spend(1)
-    let digit = unit.to_int() - 48
-    if digit < 0 ||
-      digit > 9 ||
-      result > (9007199254740991L - digit.to_int64()) / 10L {
-      raise QueryAbort("Integer literal exceeds safe range", start)
-    }
-    result = result * 10L + digit.to_int64()
+  }
+  guard exact_integer_literal(text) is Some(result) else {
+    raise QueryAbort("Integer literal exceeds safe range", start)
   }
   if !zero_allowed && result == 0L {
     raise QueryAbort("Expected positive integer literal", start)
@@ -1957,15 +1951,17 @@ fn QueryParser::limit_integer(
   self : QueryParser,
   zero_allowed : Bool,
 ) -> QueryInteger raise QueryAbort {
-  if self.peek().value == Symbol(40) {
-    // Use the bounded expression parser for transparent grouping, then retain
-    // an ordinary integer or Parameter slot. Do not evaluate constant calls,
+  if self.peek().value == Symbol(40) || self.peek().value == Symbol(43) {
+    // Grouping and numeric unary plus preserve an integer or Parameter slot.
+    // Use the bounded expression parser, never evaluate constant calls,
     // arithmetic or row references in the Frontend.
     let expression = self.expression()
     let mut root = expression_root(expression)
-    while expression_node(expression, root).unwrap().kind
-          is Parenthesized(child) {
-      root = child
+    while true {
+      match expression_node(expression, root).unwrap().kind {
+        Parenthesized(child) | Unary("+", child) => root = child
+        _ => break
+      }
     }
     let node = expression_node(expression, root).unwrap()
     match node.kind {

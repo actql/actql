@@ -18,17 +18,11 @@ fn order_ordinal_column(
   }
   match root.kind {
     Number(text) => {
-      let mut ordinal = 0
-      for unit in text {
-        let digit = unit.to_int() - 48
-        if digit < 0 || digit > 9 || ordinal > (visible.length() - digit) / 10 {
-          raise Abort(InvalidQuery)
-        }
-        ordinal = ordinal * 10 + digit
-        if ordinal > visible.length() {
-          raise Abort(InvalidQuery)
-        }
+      guard @query.exact_integer_literal(text) is Some(value) &&
+        value <= visible.length().to_int64() else {
+        raise Abort(InvalidQuery)
       }
+      let ordinal = value.to_int()
       if ordinal < 1 {
         raise Abort(InvalidQuery)
       }

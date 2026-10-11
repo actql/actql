@@ -88,6 +88,10 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+Integer tokens follow the selected [GoogleSQL lexical forms](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#integer_literals): decimal digits or `0x`/`0X` followed by one or more hexadecimal digits. Hexadecimal digits are case-insensitive; the token and AST retain the exact authored spelling and original source span. Unary `+` and `-` remain expression operators. The existing common `number` profile admits integer magnitudes through `9007199254740991` (`0x1fffffffffffff`) exactly, before conversion to finite binary64. Larger integer tokens are refused without rounding; this profile does not claim GoogleSQL's full INT64 value domain. Negative zero remains invalid under the existing common value contract. Hexadecimal fractions, binary exponents, digit separators and incomplete prefixes are not integer tokens in the selected profile.
+
+The same unsigned exact-integer decoder supplies literal LIMIT/OFFSET, bounded type arguments, ORDER/GROUP column positions and navigation offsets. Each context retains its own positivity, column-range, parameter and role checks; hex spelling does not bypass them. Named numeric operation arguments use the ordinary expression numeric admission. Integer UNPIVOT row aliases still reach the existing explicitly unsupported lowering boundary; accepting an integer token is not evidence of integer-label execution. No separate numeric runtime, cast or execution owner is introduced.
+
 `ABS(expr)` in SQL and Pipe has exactly one finite binary64 `number` operand
 and lowers to the common `abs` node. It returns the exact magnitude, including
 subnormal and maximum finite values, and canonical positive zero. NULL
@@ -351,8 +355,11 @@ constructs type, identity, uniqueness or order evidence. The
 is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
-parameter, including transparent grouping such as `LIMIT ((@count)) OFFSET (1)`.
-Grouping uses the existing expression budgets and does not evaluate arithmetic,
+parameter, including transparent grouping and numeric unary plus such as
+`LIMIT +((@count)) OFFSET (+1)`. The selected GoogleSQL positive integer sign
+retains the literal/parameter role; it does not introduce an expression into
+the common `take` operands. Grouping and each unary-plus wrapper use the existing
+expression budgets and do not evaluate arithmetic,
 casts, calls or row references. Names lower to the ordinary `take.count` and
 `take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
@@ -425,6 +432,18 @@ within that immutable scope share the evaluated slot with OVER ordering and
 other windows; the authored partition-key list retains its order and repeats.
 Private keys are removed before Named Result publication.
 
+Navigation `LAG`/`LEAD` offsets retain a nonnegative safe-integer literal or
+whole numeric parameter through parentheses and unary `+`. The selected
+[GoogleSQL integer lexical rule](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#integer_literals)
+admits a positive sign, and the pinned numeric unary-plus resolver retains its
+operand rather than introducing an evaluated call. Thus `+2`, `+(+2)` and
+`+(@offset)` reach the same common offset contracts as `2` and `@offset`.
+Each wrapper still consumes bounded expression work and retains source origin.
+This does not fold arithmetic, a row field, NULL or another scalar type into an
+offset atom. Common checking still rejects invalid parameter values before
+execution; the numeric domain, navigation nullability and window limits do
+not change.
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),
@@ -451,8 +470,12 @@ See the pinned [analytic resolver](https://github.com/google/googlesql/blob/d82d
 and its independent ORDER/frame refusal cases.
 
 In the implemented inline `OVER` profile, numeric `ROWS` boundaries
-accept an integer literal or a whole named parameter, for example
-`ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
+accept an integer literal or a whole named parameter, including bounded
+transparent grouping and numeric unary plus, for example
+`ROWS BETWEEN (+@before) PRECEDING AND ((@after)) FOLLOWING`. The shared
+integer-operand parser retains the ordinary literal/Parameter role without
+evaluating arithmetic, casts, calls or row references. Each wrapper uses the
+existing expression depth/node budgets. Direction remains
 syntax; the parameter is lowered to the common `preceding`/`following`
 Parameter slot. Declarations and bound values use ordinary Program checking,
 including safe-integer and interval-order validation; no default replaces a
