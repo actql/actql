@@ -189,6 +189,16 @@ pub fn captured_result_borrow_available(borrow : CapturedResultBorrow) -> Bool {
 }
 
 ///|
+/// Compare original physical custody without reading or relabeling payloads.
+pub fn captured_result_borrow_matches_run(
+  borrow : CapturedResultBorrow,
+  run : CapturedDAG,
+) -> Bool {
+  physical_equal(borrow.pin.run, run) &&
+  captured_result_borrow_available(borrow)
+}
+
+///|
 pub fn release_captured_result_borrow(borrow : CapturedResultBorrow) -> Bool {
   release_captured_output_pin(borrow.pin)
 }
@@ -474,6 +484,20 @@ pub fn captured_any_result_borrow_available(
       value.live &&
       @query.captured_source_matches_result(value.source, value.occurrence)
   }
+}
+
+///|
+/// A live Result pin belongs to one exact captured Run, independently of CIDs.
+pub fn captured_any_result_borrow_matches_run(
+  borrow : CapturedAnyResultBorrow,
+  run : CapturedDAG,
+) -> Bool {
+  let matches = match borrow.kind {
+    Cells(value) => physical_equal(value.pin.run, run)
+    Resident(value) => physical_equal(value.pin.run, run)
+    Source(value) => physical_equal(value.run, run)
+  }
+  matches && captured_any_result_borrow_available(borrow)
 }
 
 ///|

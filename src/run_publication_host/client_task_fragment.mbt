@@ -243,17 +243,12 @@ pub fn issue_prepared_client_task_fragment(
     Err(issue) => return Err(Pipeline(issue))
   }
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
-    client_task_output_step(
-      value.graph,
-      task,
-      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))),
-    )
-    is Some(last) else {
+    client_task_output_target(value.graph, task) is Some(target) else {
     return Err(MissingTask)
   }
   issue_client_task_fragment_body(
     owner,
-    last,
+    target,
     @strategy.graph_task_selected_step(value.graph, task),
     "task_" + task.to_string(),
     pipeline_wire,
@@ -308,7 +303,7 @@ fn issue_client_infer_prefix_fragment_for_owner(
     emit_client_task_pipeline_prefix(
       owner,
       infer_step - 1,
-      output,
+      @lower.node_id(output),
       None,
       Some(infer_step - 1),
       true,
@@ -322,7 +317,7 @@ fn issue_client_infer_prefix_fragment_for_owner(
   }
   issue_client_task_fragment_body(
     owner,
-    infer_step - 1,
+    @pipeline.Step(infer_step - 1),
     None,
     "task_" + task.to_string() + "_before_infer_" + infer_step.to_string(),
     pipeline_wire,
@@ -351,7 +346,7 @@ fn issue_client_infer_compute_fragment(
     emit_client_task_pipeline_prefix(
       owner,
       step,
-      output,
+      @lower.node_id(output),
       Some(step),
       None,
       false,
@@ -366,7 +361,7 @@ fn issue_client_infer_compute_fragment(
   }
   issue_client_task_fragment_body(
     owner,
-    step,
+    @pipeline.Step(step),
     Some(step),
     "task_" + task.to_string() + "_after_infer_" + step.to_string(),
     pipeline_wire,
@@ -379,7 +374,7 @@ fn issue_client_infer_compute_fragment(
 ///|
 fn issue_client_task_fragment_body(
   owner : @lower.BoundPrepared,
-  last : Int,
+  target : @pipeline.Target,
   selected : Int?,
   node_id : String,
   pipeline_wire : String,
@@ -400,22 +395,17 @@ fn issue_client_task_fragment_body(
   }
   let prepared = @lower.bound_preparation(owner)
   let checked = @lower.pipeline(prepared)
-  guard @lower.node_at(prepared, last) is Some(output) else {
+  guard client_task_target_port(prepared, target) is Some(output_port) &&
+    @lower.preparation_carrier_at(prepared, target) is Some(output) else {
     return Err(MissingOutput)
   }
-  let output_port = @lower.node_id(output)
   guard @canonical.object_field(pipeline, "output")
     is Some(@canonical.String(actual_output)) &&
     actual_output == output_port else {
     return Err(Encoding)
   }
   let (output_carrier, output_contract_cid) = match
-    client_task_carrier_contract(
-      @lower.node_output_carrier(output),
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
+    client_task_carrier_contract(output, max_wire_bytes, max_nodes, max_depth) {
     Some(contract) => contract
     None => return Err(UnrepresentableContract)
   }

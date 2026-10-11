@@ -30,6 +30,29 @@ const replaceOnce = (source, from, to = '') => {
   return source.replace(from, to);
 };
 
+// Exact callback-execution delta only. This is not an old runtime path.
+// No provider record, callback field, capture input or candidate array changes.
+export function selectedBeforeInputOnly(source) {
+  let prior = replaceOnce(source, `      if count < 1 {
+        return @lower.node_count(prepared) == 0 &&
+          @lower.preparation_input_count(prepared) == 1 &&
+          @lower.preparation_carrier_at(prepared, @pipeline.Input(0))
+          .map(carrier => @carrier.kind(carrier) == @carrier.RelationKind)
+          .unwrap_or(false)
+      }`, `      if count < 1 {
+        return false
+      }`);
+  return replaceOnce(prior, `      if @execution.generated_sequence_step_count(sequence) == 0 {
+        guard inputs is [input] else {
+          return Err(@connector.Execution(@execution.InputSet))
+        }
+        return selected_binding_rows_execution(
+          sequence, input, execution, max_value_bytes, -1,
+        )
+      }
+`);
+}
+
 export function managedBeforePausePolls(source) {
   let prior = replaceOnce(source,
     '  Waiting(progress~ : Int64, work~ : Int64)\n  Settling(Int, progress~ : Int64, work~ : Int64)\n');
@@ -51,6 +74,7 @@ export function managedBeforePausePolls(source) {
 // Values/Append/analytic/UNPIVOT/UNNEST extend private-scratch eligibility without changing the factory,
 // parent state or capture roles. Their accepted output lifetime remains separate.
 export function selectedBeforeReviewedLifecycle(source) {
+  source = selectedBeforeInputOnly(source);
   const execution = reviewedFunction(source, 'selected_binding_rows_execution');
   const currentCleanup = `          Ok(_) => {
             reclaimed.val = !@execution.bounded_binding_rows_cleanup_pending(
@@ -173,7 +197,7 @@ export function checkConstructionSourceReview(profile, read) {
   for (const [name, digest] of Object.entries(review.wrapperDigests)) {
     assert.equal(hash(reviewedFunction(managed, name)), digest, `Changed construction wrapper ${name}`);
   }
-  assert.equal(hash(selectedFactoryOutsideAccepts(selected)), review.selectedFactoryOutsideAcceptsDigest,
+  assert.equal(hash(selectedFactoryOutsideAccepts(selectedBeforeInputOnly(selected))), review.selectedFactoryOutsideAcceptsDigest,
     'Changed selected construction outside accepts');
   assert.equal(profile.sourcePremises[managedPath], review.managedDigest, 'Recipe does not bind current managed source');
   assert.equal(profile.sourcePremises[generatedPath], review.generatedVariants[0].digest,
