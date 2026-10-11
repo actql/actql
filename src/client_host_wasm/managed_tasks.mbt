@@ -244,6 +244,9 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     value.tasks.get(handle) is Some(record) else {
     return -2
   }
+  // Seal new task/export admission immediately, but preserve the original
+  // output's liveness and reservation until its existing pins are returned.
+  record.closing = true
   if value.result_exports.values().any(result => result.task == handle) {
     return -9
   }
@@ -254,7 +257,6 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     }) {
     return -9
   }
-  record.closing = true
   record.live.val = false
   if record.pending {
     return -33
