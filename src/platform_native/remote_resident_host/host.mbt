@@ -274,7 +274,13 @@ fn retain_and_acknowledge_resident_dispatch(
         Err(issue) => return Err(Journal(issue))
       }
     Some((ledger, envelope, retained)) =>
-      match journal.accept_with_initial_catalog_use(request, ledger, envelope) {
+      match
+        journal.accept_with_initial_catalog_use(
+          request,
+          ledger,
+          envelope,
+          original_custody=retained.val,
+        ) {
         Ok((_, record, custody)) => {
           if custody is Some(_) {
             retained.val = custody

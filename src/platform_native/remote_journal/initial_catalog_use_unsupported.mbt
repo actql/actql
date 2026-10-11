@@ -37,6 +37,7 @@ pub fn Journal::accept_with_initial_catalog_use(
   _request : @remote.DispatchRequest,
   _original_run_ledger : @resources.Ledger,
   _envelope : NativeInitialCatalogUseEnvelope,
+  original_custody? : NativeInitialCatalogUseCustody? = None,
 ) -> Result[
   (
     @remote.DispatchAcceptance,
@@ -45,7 +46,7 @@ pub fn Journal::accept_with_initial_catalog_use(
   ),
   NativeInitialCatalogUseFailure,
 ] {
-  Err({ issue: Journal(UnsupportedTarget), custody: None, })
+  Err({ issue: Journal(UnsupportedTarget), custody: original_custody, })
 }
 
 ///|

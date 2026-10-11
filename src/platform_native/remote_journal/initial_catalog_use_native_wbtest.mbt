@@ -308,6 +308,170 @@ fn initial_catalog_test_release(
 }
 
 ///|
+test "initial acceptance retry reuses the original funded custody after rollback" {
+  let (_, _, journal) = initial_catalog_fixture("accept-retry")
+  let request = test_request("accept-retry")
+  let ledger = initial_catalog_test_ledger()
+  test_fail_cancel_commit(journal.database, 1)
+  guard journal.accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+    )
+    is Err(failure) else {
+    fail("save failure was not observed")
+  }
+  let original = failure.custody.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(journal.require(request) is Err(MissingDispatch))
+  let (_, _, retried) = journal
+    .accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+      original_custody=Some(original),
+    )
+    .unwrap()
+  assert_true(physical_equal(retried.unwrap(), original))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(journal.require_initial_catalog_use(request, 0L) is Ok(_))
+  initial_catalog_test_release(journal, request)
+  journal.cleanup_initial_catalog_use(original).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  journal.cleanup_initial_catalog_use(original).unwrap()
+  assert_true(journal.close())
+}
+
+///|
+test "lost initial acceptance reply reuses the saved original without another reservation" {
+  let (_, _, journal) = initial_catalog_fixture("accept-reply")
+  let request = test_request("accept-reply")
+  let ledger = initial_catalog_test_ledger()
+  test_fail_cancel_commit_reply(journal.database, 1)
+  guard journal.accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+    )
+    is Err(failure) else {
+    fail("lost save reply was not observed")
+  }
+  let original = failure.custody.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  // A consumed original claim is preserved after the acceptance reply is lost.
+  journal.claim_initial_catalog_use(request).unwrap() |> ignore
+  let (kind, _, retried) = journal
+    .accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+      original_custody=Some(original),
+    )
+    .unwrap()
+  assert_eq(kind, @remote.ExistingDispatch)
+  assert_true(physical_equal(retried.unwrap(), original))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(journal.require_initial_catalog_use(request, 1L) is Ok(_))
+  assert_true(journal.claim_initial_catalog_use(request) is Err(StateCollision))
+  initial_catalog_test_release(journal, request)
+  journal.cleanup_initial_catalog_use(original).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_true(journal.close())
+}
+
+///|
+test "initial acceptance retry rejects foreign nominal Ledger Journal and request" {
+  let (_, _, journal) = initial_catalog_fixture("accept-foreign")
+  let (_, _, foreign_journal) = initial_catalog_fixture("accept-other")
+  let request = test_request("accept-foreign")
+  let ledger = initial_catalog_test_ledger()
+  test_fail_cancel_commit(journal.database, 1)
+  guard journal.accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+    )
+    is Err(failure) else {
+    fail("save failure was not observed")
+  }
+  let original = failure.custody.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let other_ledger = initial_catalog_test_ledger()
+  let other_before = @resources.ledger_usage(other_ledger)
+  for
+    (candidate_journal, candidate_request, candidate_ledger) in [
+      (journal, request, other_ledger),
+      (foreign_journal, request, ledger),
+      (journal, test_request("different-accept"), ledger),
+    ] {
+    guard candidate_journal.accept_with_initial_catalog_use(
+        candidate_request,
+        candidate_ledger,
+        initial_catalog_test_envelope(),
+        original_custody=Some(original),
+      )
+      is Err(refusal) else {
+      fail("foreign original custody was accepted")
+    }
+    assert_true(refusal.issue is Journal(StateCollision))
+    assert_true(physical_equal(refusal.custody.unwrap(), original))
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_eq(@resources.ledger_usage(other_ledger), other_before)
+  }
+  assert_true(journal.require(request) is Err(MissingDispatch))
+  assert_true(foreign_journal.require(request) is Err(MissingDispatch))
+  guard journal.accept_with_initial_catalog_use(
+      request,
+      ledger,
+      { record_bytes: 8193L, control_bytes: 8192L, workspace_bytes: 8192L, },
+      original_custody=Some(original),
+    )
+    is Err(changed_envelope) else {
+    fail("changed footprint reused the original charge")
+  }
+  assert_true(changed_envelope.issue is Journal(StateCollision))
+  assert_true(physical_equal(changed_envelope.custody.unwrap(), original))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(journal.close())
+  assert_true(foreign_journal.close())
+}
+
+///|
+test "a legacy accept cannot replace a failed original initial stamp" {
+  let (_, _, journal) = initial_catalog_fixture("accept-legacy")
+  let request = test_request("accept-legacy")
+  let ledger = initial_catalog_test_ledger()
+  test_fail_cancel_commit(journal.database, 1)
+  guard journal.accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+    )
+    is Err(failure) else {
+    fail("save failure was not observed")
+  }
+  let original = failure.custody.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  journal.accept(request).unwrap() |> ignore
+  guard journal.accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+      original_custody=Some(original),
+    )
+    is Err(refusal) else {
+    fail("legacy missing stamp gained original initial custody")
+  }
+  assert_true(refusal.issue is Journal(Physical(@sqlite.NotFound)))
+  assert_true(physical_equal(refusal.custody.unwrap(), original))
+  assert_false(original.accepted)
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(journal.claim_initial_catalog_use(request) is Err(_))
+  assert_true(journal.close())
+}
+
+///|
 test "initial stamp cleanup waits for exact consumer release and returns its original charge once" {
   let (_, _, journal) = initial_catalog_fixture("cleanup")
   let request = test_request("stamp-cleanup")

@@ -1150,8 +1150,8 @@ int32_t actql_native_sqlite_database_remove_exact(
   return result;
 }
 
-// Test-only physical custody-loss injection. There is no production MoonBit
-// delete API; callers cannot silently repair the independent issuance record.
+// Test-only physical custody-loss injection. Production exact retirement
+// requires its original transaction/revision/body and cannot repair issuance.
 int32_t actql_native_sqlite_test_remove_journal_record(
     actql_native_sqlite_database *database,
     moonbit_bytes_t namespace_bytes, int32_t namespace_length,

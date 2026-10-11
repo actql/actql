@@ -3,7 +3,6 @@
 /// uncertain persistence. It is not another capacity Owner or permission.
 /// The caller must keep this original responsibility through confirmed cleanup;
 /// no public settlement shortcut is supplied by this preparation unit.
-#warnings("-struct_never_constructed")
 struct NativeInitialCatalogUseCustody {
   ledger : @resources.Ledger
   reservation : @resources.CapacityReservation
@@ -69,6 +68,7 @@ pub fn Journal::accept_with_initial_catalog_use(
   request : @remote.DispatchRequest,
   original_run_ledger : @resources.Ledger,
   envelope : NativeInitialCatalogUseEnvelope,
+  original_custody? : NativeInitialCatalogUseCustody? = None,
 ) -> Result[
   (
     @remote.DispatchAcceptance,
@@ -81,32 +81,81 @@ pub fn Journal::accept_with_initial_catalog_use(
     envelope.record_bytes > self.max_record_bytes {
     return Err({ issue: Capacity(@resources.InvalidCharge), custody: None, })
   }
-  let mut retained : NativeInitialCatalogUseCustody? = None
+  // A failed original save may already hold the charge even when its
+  // transaction rolled back. Retry keeps that same nominal responsibility;
+  // it must not reserve again or replace the caller's only cleanup handle.
+  if original_custody is Some(original) {
+    if !physical_equal(original.journal, self) ||
+      !physical_equal(original.ledger, original_run_ledger) ||
+      original.dispatch_cid != @remote.dispatch_request_identity(request) ||
+      !@resources.capacity_reservation_matches(
+        original_run_ledger,
+        original.reservation,
+        envelope.record_bytes + envelope.control_bytes,
+        envelope.workspace_bytes,
+      ) ||
+      original.cleanup_started ||
+      original.removal_confirmed {
+      return Err({ issue: Journal(StateCollision), custody: original_custody, })
+    }
+    let original_wire = match @remote.dispatch_request_json(original.request) {
+      Ok(value) => value
+      Err(issue) =>
+        return Err({
+          issue: Journal(Protocol(issue)),
+          custody: original_custody,
+        })
+    }
+    let retry_wire = match @remote.dispatch_request_json(request) {
+      Ok(value) => value
+      Err(issue) =>
+        return Err({
+          issue: Journal(Protocol(issue)),
+          custody: original_custody,
+        })
+    }
+    if original_wire != retry_wire {
+      return Err({ issue: Journal(StateCollision), custody: original_custody, })
+    }
+  }
+  let mut retained = original_custody
   let mut capacity_issue : @resources.LedgerIssue? = None
   let result = self.accept_with_initial_custody(
     request,
     Some(_ => {
-      let reservation = match
-        @resources.reserve_capacity(
-          original_run_ledger,
-          envelope.record_bytes + envelope.control_bytes,
-          envelope.workspace_bytes,
-        ) {
-        Ok(value) => value
-        Err(issue) => {
-          capacity_issue = Some(issue)
-          return Err(Physical(@sqlite.CapacityExceeded))
+      let custody = match original_custody {
+        Some(original) => {
+          // An accepted original cannot recreate a missing durable record.
+          if original.accepted {
+            return Err(StateCollision)
+          }
+          original
         }
-      }
-      let custody : NativeInitialCatalogUseCustody = {
-        ledger: original_run_ledger,
-        reservation,
-        dispatch_cid: @remote.dispatch_request_identity(request),
-        journal: self,
-        request,
-        accepted: false,
-        cleanup_started: false,
-        removal_confirmed: false,
+        None => {
+          let reservation = match
+            @resources.reserve_capacity(
+              original_run_ledger,
+              envelope.record_bytes + envelope.control_bytes,
+              envelope.workspace_bytes,
+            ) {
+            Ok(value) => value
+            Err(issue) => {
+              capacity_issue = Some(issue)
+              return Err(Physical(@sqlite.CapacityExceeded))
+            }
+          }
+          let custody : NativeInitialCatalogUseCustody = {
+            ledger: original_run_ledger,
+            reservation,
+            dispatch_cid: @remote.dispatch_request_identity(request),
+            journal: self,
+            request,
+            accepted: false,
+            cleanup_started: false,
+            removal_confirmed: false,
+          }
+          custody
+        }
       }
       retained = Some(custody)
       // Allocate the private original-body projection only after the envelope is
@@ -134,6 +183,29 @@ pub fn Journal::accept_with_initial_catalog_use(
   match result {
     Ok((acceptance, record)) => {
       if retained is Some(custody) {
+        // A lost save reply can become an existing dispatch on retry. The
+        // actual original marker must still exist; a legacy dispatch or equal
+        // replacement bytes cannot manufacture this funded initial custody.
+        if original_custody is Some(_) && acceptance == @remote.ExistingDispatch {
+          let expected = match @remote.dispatch_request_json(custody.request) {
+            Ok(value) => @utf8.encode(value)
+            Err(issue) =>
+              return Err({ issue: Journal(Protocol(issue)), custody: retained, })
+          }
+          let saved = match
+            self.database.read("site_initial_catalog_use", custody.dispatch_cid) {
+            Ok(value) => value
+            Err(issue) =>
+              return Err({ issue: Journal(Physical(issue)), custody: retained, })
+          }
+          if !initial_catalog_use_cleanup_row_matches(
+              expected,
+              saved.body,
+              saved.revision,
+            ) {
+            return Err({ issue: Journal(StateCollision), custody: retained, })
+          }
+        }
         custody.accepted = true
       }
       Ok((acceptance, record, retained))

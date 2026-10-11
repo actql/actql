@@ -97,7 +97,7 @@ pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) 
 
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
-pub fn Journal::accept_with_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest, @physical_resources.Ledger, NativeInitialCatalogUseEnvelope) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord, NativeInitialCatalogUseCustody?), NativeInitialCatalogUseFailure]
+pub fn Journal::accept_with_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest, @physical_resources.Ledger, NativeInitialCatalogUseEnvelope, original_custody? : NativeInitialCatalogUseCustody?) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord, NativeInitialCatalogUseCustody?), NativeInitialCatalogUseFailure]
 pub fn Journal::cancellation_requested(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteJournalIssue]
 pub fn Journal::claim_effect_ledger_dispatch(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[(Bool, @effect_application.EffectLedgerEntry), NativeRemoteJournalIssue]
 pub fn Journal::claim_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeInitialCatalogUseClaim, NativeRemoteJournalIssue]
