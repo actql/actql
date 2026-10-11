@@ -123,10 +123,17 @@ pub(all) enum QueryOperation {
 ///|
 pub(all) struct UnpivotClause {
   columns : Array[NamePart]
+  row_labels : Array[UnpivotRowLabel?]
   value_column : NamePart
   name_column : NamePart
   include_nulls : Bool
 }
+
+///|
+pub(all) enum UnpivotRowLabel {
+  TextLabel(String)
+  IntegerLabel(String)
+} derive(Eq, Debug)
 
 ///|
 pub(all) struct KeepItem {
@@ -441,7 +448,13 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     UnnestSource(expression, element, offset) =>
       Some(UnnestSource(expression, element, offset))
     Unpivot(clause) =>
-      Some(Unpivot({ ..clause, columns: clause.columns.copy(), }))
+      Some(
+        Unpivot({
+          ..clause,
+          columns: clause.columns.copy(),
+          row_labels: clause.row_labels.copy(),
+        }),
+      )
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>

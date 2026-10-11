@@ -526,10 +526,16 @@ type Tokens
 
 pub(all) struct UnpivotClause {
   columns : Array[NamePart]
+  row_labels : Array[UnpivotRowLabel?]
   value_column : NamePart
   name_column : NamePart
   include_nulls : Bool
 }
+
+pub(all) enum UnpivotRowLabel {
+  TextLabel(String)
+  IntegerLabel(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct UpdateEffectClause {
   name : NamePart
