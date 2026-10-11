@@ -551,11 +551,19 @@ fn open_checked_dag(
     read_inputs[task][port] = Some(read)
   }
   for index in first_task..<count {
-    let pipeline = @lower.pipeline(
-      @lower.bound_preparation(graph.owners[index]),
-    )
+    let prepared = @lower.bound_preparation(graph.owners[index])
+    let pipeline = @lower.pipeline(prepared)
     if @pipeline.step_count(pipeline) == 0 {
-      return Err(UnsupportedGraph)
+      // An input-only Relation task uses the existing bounded copy provider.
+      // Keep its exact checked port; other empty-task Carrier shapes are not
+      // admitted by this execution profile.
+      let target = @pipeline.Input(0)
+      guard @pipeline.input_count(pipeline) == 1 &&
+        graph.targets[index] == Some(target) &&
+        @lower.preparation_output_target(prepared) == Some(target) &&
+        @lower.preparation_schema_at(prepared, target) is Some(_) else {
+        return Err(UnsupportedGraph)
+      }
     }
     // Accept owned tasks, not operation-name templates. Implementations reject
     // unsupported execution obligations before offering work.
@@ -2047,4 +2055,16 @@ pub fn captured_effect_run_matches_checked(
   checked : CheckedEffectRunDAG,
 ) -> Bool {
   !run.captured.stopped && physical_equal(run.checked, checked)
+}
+
+///|
+/// Observe tracked task/result obligations after stop and port retirement.
+/// Caller-owned Source captures, resident environments and unrelated shared
+/// Ledger reservations remain separate physical Host responsibilities.
+pub fn captured_task_retirement_pending(run : CapturedDAG) -> Bool {
+  !run.stopped ||
+  run.running is Some(_) ||
+  run.executions.any(execution => execution is Some(_)) ||
+  run.resources.any(resource => resource is Some(_)) ||
+  run.lifetimes.any(lifetime => lifetime.pins != 0)
 }

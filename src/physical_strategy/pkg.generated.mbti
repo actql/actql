@@ -90,6 +90,8 @@ pub fn captured_any_result_borrow_matches_carrier(CapturedAnyResultBorrow, @exec
 
 pub fn[T] captured_any_result_borrow_matches_managed(CapturedAnyResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
 
+pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedDAG) -> Bool
+
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
@@ -268,6 +270,8 @@ pub fn captured_resident_result_borrow_occurrence(CapturedResidentResultBorrow) 
 
 pub fn captured_result_borrow_available(CapturedResultBorrow) -> Bool
 
+pub fn captured_result_borrow_matches_run(CapturedResultBorrow, CapturedDAG) -> Bool
+
 pub fn captured_result_borrow_occurrence(CapturedResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_result_borrow_output(CapturedResultBorrow) -> @execution_relation.CompletedOutput
@@ -325,6 +329,8 @@ pub fn captured_task_join_output_count(CapturedDAG, Int) -> Int?
 pub fn captured_task_join_output_limit(CapturedDAG, Int, Int) -> Int64?
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
+
+pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
 
 pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
 

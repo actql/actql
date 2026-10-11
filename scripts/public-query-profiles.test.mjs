@@ -183,8 +183,8 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
   assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
   assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
-  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
-    'observer credentials are limited to the explicit Graph cohort on both Hosts');
+  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \|\| inputStageResultOnly \|\| typedSubscriptOnly\s*\? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
+    'observer credentials are limited to explicit Graph, input-only or typed-subscript cohorts on both Hosts');
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 
@@ -272,11 +272,11 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
-  assert.equal(pin.sourceBaseline, 'ce027a937cf780f617d5ed98bb4d56ecbb010877');
-  assert.equal(pin.totalCases, 3677);
-  assert.deepEqual(pin.counts, {successes: 2314, refusals: 1313, executionFailures: 50});
+  assert.equal(pin.sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
+  assert.equal(pin.totalCases, 3869);
+  assert.deepEqual(pin.counts, {"successes":2446,"executionFailures":50,"refusals":1373});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2261, executionFailures: 48, refusals: 1278}],
+    ['standard', {"successes":2393,"executionFailures":48,"refusals":1338}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],

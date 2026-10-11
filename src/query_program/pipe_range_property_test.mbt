@@ -38,7 +38,7 @@ test "parenthesized range binding cannot capture an authored private-looking nam
 }
 
 ///|
-test "an explicit value receiver stays property access despite a same-named range" {
+test "a parenthesized ordinary range keeps priority over an object column" {
   let actual = compile(
     @query.parse_query(
       "FROM objects |> AS payload |> SELECT (payload).score AS value",
@@ -48,9 +48,10 @@ test "an explicit value receiver stays property access despite a same-named rang
     construction_limits(),
   ).unwrap()
   assert_true(
-    semantic(actual).contains(
-      "\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}",
-    ),
+    // The admitted input range binds the score column (90), not the
+    // same-named payload column's score (10). Expectations follow the pin.
+    semantic(actual).contains("\"field\":\"score\"") &&
+    !semantic(actual).contains("\"field\":\"payload\""),
   )
   assert_true(
     @check.check_parsed(actual, check_environment(), None, check_limits())
@@ -59,18 +60,47 @@ test "an explicit value receiver stays property access despite a same-named rang
 }
 
 ///|
-test "parenthesized removed and unknown ranges cannot manufacture a column" {
-  for
-    text in [
-      "FROM objects p |> SELECT id |> WHERE (p).id > 0", "SELECT (p).missing AS value FROM objects p",
-    ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        pipe_range_property_context(),
-        construction_limits(),
-      )
-      is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
+test "parenthesized removed ranges cannot manufacture a column" {
+  assert_true(
+    compile(
+      @query.parse_query(
+        "FROM objects p |> SELECT id |> WHERE (p).id > 0",
+        syntax_limits(),
+      ).unwrap(),
+      pipe_range_property_context(),
+      construction_limits(),
     )
+    is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
+  )
+}
+
+///|
+test "missing member of an ordinary row is refused by the existing property checker" {
+  let p = compile(
+    @query.parse_query(
+      "SELECT (p).missing AS value FROM objects p",
+      syntax_limits(),
+    ).unwrap(),
+    pipe_range_property_context(),
+    construction_limits(),
+  ).unwrap()
+  guard @check.check_parsed(p, check_environment(), None, check_limits())
+    is Rejected(issue) else {
+    fail("unknown row property accepted")
   }
+  assert_true(
+    @check.diagnostic_cause(issue)
+    is Source(
+      SourceView(
+        Program(
+          Program(
+            Pipeline(
+              _,
+              { kind: Operation(Expression(UnknownField("missing"))), .. }
+            )
+          )
+        )
+      )
+    ),
+  )
 }

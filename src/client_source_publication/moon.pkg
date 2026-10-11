@@ -1,0 +1,14 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/program_check",
+  "actql/actql/check_environment",
+  "actql/actql/source_frontend",
+  "actql/actql/query_program",
+  "actql/actql/query_syntax",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
+  "moonbitlang/core/encoding/utf8",
+}

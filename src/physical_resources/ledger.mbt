@@ -32,6 +32,9 @@ struct Ledger {
   mut delegated_holdings : Int
   mut quantity_limits : QuantityAmounts?
   mut quantity_usage : QuantityUsage
+  // Capacity-only reads use disjoint identities without consuming send attempts.
+  // None is exhausted; a settled identity is never made available again.
+  mut next_capacity_serial : Int?
 }
 
 ///|
@@ -93,6 +96,7 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     delegated_attempts: 0,
     delegated_holdings: 0,
     quantity_limits: None,
+    next_capacity_serial: Some(-1),
     quantity_usage: {
       reserved: zero_quantities(),
       uncertain: zero_quantities(),

@@ -28,6 +28,8 @@ fn binary_name(op : BinaryOperator) -> String {
     SafeSubtract => "safe_subtract"
     SafeMultiply => "safe_multiply"
     Modulo => "modulo"
+    RoundAt => "round"
+    TruncAt => "trunc"
     Strpos => "strpos"
     TrimSet => "trim"
     LTrimSet => "ltrim"
@@ -156,6 +158,14 @@ fn emit_frames(
             @encode.string_value(output, name)
             pending.push(EndObject)
             pending.push(PropertyValue(value))
+          }
+          Subscript(value, index) => {
+            pending.push(Op("subscript"))
+            @encode.begin_object(output)
+            @encode.key(output, "index")
+            pending.push(EndObject)
+            pending.push(PropertyValue(value))
+            pending.push(Expr(index))
           }
           Cast(child) => {
             pending.push(Op("cast"))

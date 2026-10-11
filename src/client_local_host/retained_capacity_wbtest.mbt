@@ -288,3 +288,31 @@ test "family reservation inventory rejects invalid quantities and overflow" {
     Some((maximum - 1L, maximum)),
   )
 }
+
+///|
+test "single capture inventory retains Native beside the Compute allowance" {
+  let compute : @resources.LedgerLimits = {
+    planning_work: 100,
+    attempts: 3,
+    holdings: 3,
+    transfer_bytes: 3000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 536870912L,
+  }
+  let planned = single_captured_capacity_limits(
+    compute,
+    (139000000L, 100000000L),
+  ).unwrap()
+  assert_eq(planned.retained_bytes, 339000000L)
+  assert_eq(planned.execution_bytes, 536870912L)
+  assert_eq(planned.transfer_bytes, 3000L)
+  assert_eq(planned.attempts, 3)
+  // An exactly full inventory is allowed; one byte over is not.
+  assert_eq(
+    single_captured_capacity_limits(compute, (336870912L, 0L)).unwrap().retained_bytes,
+    536870912L,
+  )
+  for native in [(336870913L, 0L), (-1L, 0L), (0L, -1L), (0L, 536870913L)] {
+    assert_true(single_captured_capacity_limits(compute, native) is None)
+  }
+}

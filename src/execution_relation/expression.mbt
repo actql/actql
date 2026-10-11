@@ -46,6 +46,8 @@ priv enum Continuation {
   Forward(@lower.Expression)
   Unary(@lower.Expression, @lower.UnaryOperator)
   Property(@lower.Expression, String, Int)
+  SubscriptValue(@lower.Expression, @lower.Expression)
+  SubscriptIndex(@lower.Expression, Value, ExpressionRootLease?)
   Array(ArrayExpressionState)
   Object(ObjectExpressionState)
   Cast(@lower.Expression, @lower.Expression)
@@ -100,6 +102,12 @@ priv enum Evaluation {
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
   MeasureResult(Value, LogicalMeasureCursor)
   CompareBetween(BetweenArgumentsState, BinaryComparisonState, Value?)
+  DecimalRounding(
+    @lower.Expression,
+    DecimalRounding,
+    ExpressionRootLease?,
+    ExpressionRootLease?
+  )
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
@@ -284,6 +292,8 @@ priv struct ExpressionFrame {
   mut state : Evaluation
   mut active : @lower.Expression
   mut current_root : ExpressionRootLease?
+  mut selection_root : ExpressionRootLease?
+  mut selection_pending : Bool
   mut result_prepaid : Bool
   mut measurement_slots : Int
   workspace_baseline : Int
@@ -340,6 +350,8 @@ fn expression_frame_with_input(
     state: Enter(root),
     active: root,
     current_root: None,
+    selection_root: None,
+    selection_pending: false,
     result_prepaid: false,
     measurement_slots: 0,
     workspace_baseline: workspace.live,
@@ -366,6 +378,8 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.membership_context = 0
   frame.stack.clear()
   frame.current_root = None
+  frame.selection_root = None
+  frame.selection_pending = false
   match frame.state {
     TextFunction(state) => state.builder = None
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
@@ -511,6 +525,7 @@ fn advance_expression_frame_impl(
           | EmptyArray
           | Object(_)
           | Property(_, _, _)
+          | Subscript(_, _)
           | Cast(_)
           | Binary(_, _, _)
           | VectorScore(_, _, _)
@@ -567,6 +582,11 @@ fn advance_expression_frame_impl(
             frame.object_context += 1
             frame.stack.push(Property(expr, name, index))
             frame.state = Enter(child)
+          }
+          Subscript(value, index) => {
+            frame.object_context += 1
+            frame.stack.push(SubscriptValue(expr, index))
+            frame.state = Enter(value)
           }
           Array(_) | EmptyArray => {
             let children = match body {
@@ -809,6 +829,16 @@ fn advance_expression_frame_impl(
           Err(issue) => return Err(issue)
         }
         frame.result_prepaid = false
+        if frame.selection_pending {
+          // The receiver remains accounted through bounded child measurement
+          // and registration. Only then can its last-use root be returned.
+          if release(frame.selection_root) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: frame.active, })
+          }
+          frame.selection_root = None
+          frame.selection_pending = false
+          release_slots(workspace, 1)
+        }
         guard frame.stack.pop() is Some(continuation) else {
           let retained = match frame.current_root {
             None => None
@@ -825,6 +855,45 @@ fn advance_expression_frame_impl(
           return Ok(Some({ value, root: retained, }))
         }
         match continuation {
+          SubscriptValue(expr, index) => {
+            frame.stack.push(SubscriptIndex(expr, value, frame.current_root))
+            frame.current_root = None
+            frame.state = Enter(index)
+          }
+          SubscriptIndex(expr, receiver, receiver_root) => {
+            frame.object_context -= 1
+            frame.active = expr
+            if charge_value(receiver, receiver_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            // Validate even for NULL/empty receivers, before narrowing to Int.
+            guard value is Number(number) &&
+              @scalar.read_safe_integer(number) is Some(index) &&
+              index >= 0L else {
+              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            let selected = match receiver {
+              Null => Null
+              Captured(@admitted.Array(items)) =>
+                if index >= @admitted.element_count(items).to_int64() {
+                  Null
+                } else {
+                  capture(@admitted.element_at(items, index.to_int()).unwrap())
+                }
+              _ =>
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            if release(frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            frame.current_root = None
+            frame.selection_root = receiver_root
+            frame.selection_pending = true
+            frame.state = Return(selected)
+          }
           BetweenArguments(args) => {
             frame.active = args.expression
             if charge_value(value, frame.current_root) is Some(issue) {
@@ -1108,6 +1177,35 @@ fn advance_expression_frame_impl(
               }
               frame.current_root = None
               frame.state = Membership(state)
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
+            if op == @lower.RoundAt || op == @lower.TruncAt {
+              if charge_value(left, left_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              if charge_value(value, frame.current_root) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              // Replace the popped Right frame with the fixed-size decimal
+              // scratch cursor before allocating any integer temporaries.
+              if !reserve_slots(workspace, DECIMAL_ROUNDING_SLOTS - 1) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              let state = match start_decimal_rounding(op, left, value) {
+                Ok(state) => state
+                Err(issue) =>
+                  return Err({ kind: Scalar(issue), expression: expr, })
+              }
+              frame.state = DecimalRounding(
+                expr,
+                state,
+                left_root,
+                frame.current_root,
+              )
+              frame.current_root = None
               if !drain {
                 return Ok(None)
               }
@@ -1873,6 +1971,29 @@ fn advance_expression_frame_impl(
               }
             }
         }
+      }
+      DecimalRounding(expr, state, left_root, right_root) => {
+        frame.active = expr
+        let result = match advance_decimal_rounding(state) {
+          Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })
+          Ok(None) => {
+            if !drain {
+              return Ok(None)
+            }
+            continue
+          }
+          Ok(Some(value)) => value
+        }
+        match expression_event_release(left_root, expr) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        match expression_event_release(right_root, expr) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        release_slots(workspace, DECIMAL_ROUNDING_SLOTS)
+        frame.state = Return(result)
       }
       CompareBinary(state) => {
         frame.active = state.expression

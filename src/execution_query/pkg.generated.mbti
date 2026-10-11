@@ -100,6 +100,8 @@ pub fn start_captured_file_locator(CapturedInputSource, @execution_relation.Supp
 
 pub fn start_captured_keyed_request(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @execution_relation.CapturedRows, Int, @sourceview_resolution.RequestLimits) -> Result[(@sourceview_resolution.KeyedRowRequestCursor, Int), KeyedInputRequestIssue]
 
+pub fn start_captured_source_identity(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[CapturedSourceIdentityPreparation, CapturedSourceIssue]
+
 pub fn start_captured_source_result_export(CapturedInputSource, @execution_relation.ManagedResultOccurrence, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn start_produced_keyed_request(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @execution_relation.ProducerRead, Int, @sourceview_resolution.RequestLimits) -> Result[(@sourceview_resolution.KeyedRowRequestCursor, Int), KeyedInputRequestIssue]
@@ -116,6 +118,12 @@ pub enum CapturedFileLocatorPoll {
 }
 
 type CapturedInputSource
+
+type CapturedSourceIdentityPreparation
+pub fn CapturedSourceIdentityPreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedSourceIssue]
+pub fn CapturedSourceIdentityPreparation::cancel(Self) -> Bool
+pub fn CapturedSourceIdentityPreparation::finish(Self) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
+pub fn CapturedSourceIdentityPreparation::work(Self) -> Int64
 
 type CapturedSourceIdentityScan
 

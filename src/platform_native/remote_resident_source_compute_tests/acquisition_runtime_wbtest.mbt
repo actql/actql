@@ -6,6 +6,7 @@
 fn acquisition_runtime_case(
   through_consumer : Bool,
   effect? : Bool = false,
+  completion_free? : Bool = false,
   provider? : Bool = false,
   parent_ack_failure? : Bool = false,
   revoke_effect_at_start? : Bool = false,
@@ -78,7 +79,15 @@ fn acquisition_runtime_case(
     536870912L,
     536870912L,
   ).unwrap()
-  let effect_pair = if effect {
+  let finite = if completion_free {
+    assert_true(effect && !provider)
+    Some(native_completion_free_effect_fixture())
+  } else {
+    None
+  }
+  let effect_pair = if finite is Some(value) {
+    Some((value.0, value.1))
+  } else if effect {
     Some(retained_compute_effect_materials(provider~))
   } else {
     None
@@ -108,7 +117,10 @@ fn acquisition_runtime_case(
   }
   let binding = match effect_pair {
     Some(pair) =>
-      @host.prepare_client_effect_source_input_binding(pair.0.compilation).unwrap()
+      @host.prepare_client_effect_source_input_binding(
+        pair.0.compilation,
+        request=if completion_free { Some(pair.1) } else { None },
+      ).unwrap()
     None => @host.prepare_client_task_input_binding(prepared, 0).unwrap()
   }
   let (bundles, active, journal) = retained_runtime_owners(
@@ -173,6 +185,7 @@ fn acquisition_runtime_case(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   let wire = match effect_pair {
+    Some(_) if finite is Some(value) => value.2
     Some(pair) =>
       @host.issue_client_effect_run_materials(
         pair.0.allowed,
@@ -429,6 +442,24 @@ fn acquisition_runtime_case(
     }
     let owned = outcome.unwrap()
     let capture_materials = owned.materials_for_capture(journal).unwrap()
+    if completion_free {
+      assert_eq(capture_materials.request, effect_pair.unwrap().0.request)
+      let original_normalization = @host.restore_client_effect_run_normalization(
+        capture_materials,
+      ).unwrap()
+      assert_eq(
+        @publication.run_evidence_value_identity(original_normalization),
+        "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087",
+      )
+      assert_eq(
+        journal
+        .dispatch_envelope(
+          @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+        )
+        .unwrap(),
+        Some(envelope),
+      )
+    }
     let captured = @strategy.pin_captured_effect_acquired_unit_results(
       owned.source.effect_run().unwrap(),
       0,
@@ -944,4 +975,9 @@ test "Effect original holders retain physical Provider review and Checkpoint wit
     provider=true,
     through_consumer_holder=true,
   )
+}
+
+///|
+test "completion-free original materials execute the physical Source producer once" {
+  acquisition_runtime_case(false, effect=true, completion_free=true)
 }

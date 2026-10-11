@@ -8,6 +8,11 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {independentCid, valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
+import {inputStageResultProgram} from '../../scripts/fixtures/input-stage-result.mjs';
+import {installLocalRetainedStore} from '../local-node/retained-store.mjs';
+import {createLocalRetainedStore} from '../store-local/files.mjs';
+import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {createRetainedGraphAuthorization} from '../../scripts/fixtures/retained-graph-observer.mjs';
 import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -1740,6 +1745,7 @@ test('public submit rejects checker failures before Run admission', async t => {
     assert.equal(accepted.status, 200);
     const acceptedAttempt = await accepted.json();
     assert.equal(acceptedAttempt.kind, 'recorded');
+    assert.deepEqual(acceptedAttempt.attemptRef, {operation: 'submit', attemptId: `checker-attempt-${nonce}`});
     assert.equal(acceptedAttempt.outcome.kind, 'ready');
     assert.equal(admissions, 1);
     assert.equal(moon.clientRequestParametersCid(admittedIdentity),
@@ -1973,6 +1979,76 @@ test('checked source-free Program executes through the standard Local Host',
     }
   });
 
+for (const retained of [false, true]) test(
+  `input-only Stage completes through the checked standard Host (${retained ? 'Store' : 'memory'})`, async t => {
+  const {environment} = await checkedFixture();
+  const prepared = moon.clientProgramPrepareEffectFree(
+    JSON.stringify(inputStageResultProgram), 'json', environment);
+  assert.ok(prepared);
+  const [registry, contract] = await Promise.all([
+    readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
+    readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
+  ]);
+  const bodies = JSON.parse(contract).execution_contracts;
+  const openHost = retained ? moon.clientProgramOpenSourceFreeLocalRetainedHost
+    : moon.clientProgramOpenSourceFreeLocalHost;
+  const setup = openHost(prepared, registry,
+    JSON.stringify(bodies['REL.values']), 1n, 0n, 0n, 0n,
+    JSON.stringify(bodies['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(bodies['REL.derive.ordered']));
+  assert.ok(setup);
+  let local;
+  const stores = [];
+  if (retained) {
+    const parent = new URL('../../_build/input-stage-result/', import.meta.url);
+    await mkdir(parent, {recursive: true});
+    const directory = await mkdtemp(new URL('store-', parent));
+    t.after(async () => {
+      for (const store of stores) {
+        store.close();
+        await store.cleanup();
+        assert.equal(store.status().reservedBytes, 0);
+      }
+      await rm(directory, {recursive: true});
+    });
+    local = installLocalRetainedStore(async (_key, bytes, frame) => {
+      const store = await createLocalRetainedStore({parentDirectory: directory,
+        capacityBytes: bytes, maxFrameBytes: frame, maxEntries: 1});
+      stores.push(store);
+      return store;
+    });
+  }
+  const execution = await runCapturedStrategy(setup, {local});
+  try {
+    assert.equal(execution.status, 'host-tasks-completed', inspect(execution.failure, {depth: 12}));
+    assert.deepEqual(execution.completed.map(value => value.task), [0, 1]);
+    assert.deepEqual(execution.resultInventory.map(value => value.name), ['answer']);
+  } finally {
+    await execution.close();
+    assert.equal(execution.cleanupPending(), false);
+  }
+});
+
+test('input-only Stage publishes through the public SDK Host', async t => {
+  const parent = new URL('../../_build/input-stage-result/', import.meta.url);
+  await mkdir(parent, {recursive: true});
+  const directory = await mkdtemp(new URL('public-', parent));
+  t.diagnostic(`Input-only public diagnostic: ${directory}`);
+  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+    installation: {directory, authorization: createRetainedGraphAuthorization()}});
+  let succeeded = false;
+  t.after(async () => {
+    await client.close();
+    if (succeeded) await rm(directory, {recursive: true});
+  });
+  const run = await client.startSource(JSON.stringify(inputStageResultProgram),
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'input-only'})});
+  const state = await run.wait({signal: AbortSignal.timeout(30_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual(await run.result('answer').all(), [{A: 0}]);
+  succeeded = true;
+});
+
 test('normal Node Run issuance rejects a valid foreign Definition before journaling',
   async t => {
     const {document, environment} = await checkedFixture();
@@ -2184,16 +2260,18 @@ test('public Values submit computes and reads its real Local Result',
           assert.deepEqual(repeated.ref, submitted.ref);
           const changed = document.replace('"id": 2', '"id": 3');
           assert.notEqual(changed, document);
+          const changedAttempt = {operation: 'submit', attemptId: 'published-values-changed-intent'};
+          const changedIntentCid = independentCid({version: 'actql-submitted-intent/0.1',
+            intent: {kind: 'aql', input: {text: changed, format: 'json'}, parameters: null}});
           await assert.rejects(client.startSource(changed, {format: 'json',
-            submissionRef}),
-          error => {
+            submissionRef, attemptId: changedAttempt.attemptId}), error => {
             assert.equal(error.code, 'SubmissionConflict');
-            const attempt = getSubmissionAttempt(error);
-            assert.equal(attempt.kind, 'conflict');
-            assert.equal(attempt.reason, 'intent');
-            assert.deepEqual(attempt.submissionRef, submissionRef);
-            assert.deepEqual(attempt.attemptRef, error.attemptRef);
+            assert.equal(error.cause, undefined);
+            assert.deepEqual(getSubmissionAttempt(error), {kind: 'conflict', reason: 'intent',
+              attemptRef: changedAttempt, submissionRef, intentCid: changedIntentCid});
+            assert.deepEqual(error.attemptRef, changedAttempt);
             assert.equal(getSubmissionOutcome(error), undefined);
+            assert.deepEqual(error.submissionRef, submissionRef);
             return true;
           });
           assert.deepEqual(await client.lookupSubmission(submissionRef), recovered);

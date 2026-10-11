@@ -89,14 +89,109 @@ pub fn issue_client_effect_task_fragment(
 /// credential, approval or acquisition is created here.
 pub fn prepare_client_effect_source_input_binding(
   compilation : ClientEffectCompilation,
+  request? : ClientRequestIdentity? = None,
 ) -> Result[@remote.RemoteInputBinding, ClientEffectSourceDispatchIssue] {
   match client_effect_source_fragment(compilation) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  prepare_client_task_input_binding(compilation.compiled.owner, 0).map_err(issue => {
-    Input(issue)
+  let source = match
+    prepare_client_task_input_binding(compilation.compiled.owner, 0).map_err(issue => {
+      ClientEffectSourceDispatchIssue::Input(issue)
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !compilation.normalization_profile {
+    return Ok(source)
+  }
+  guard request is Some(original) else { return Err(ForeignRequest) }
+  if client_request_input_cid(original) != source_free_caller_input_intent_cid() {
+    return Err(ForeignRequest)
+  }
+  match prepared_client_effect_request_scope(compilation.owner, original) {
+    Ok(_) => ()
+    Err(_) => return Err(ForeignRequest)
+  }
+  let wire = match client_request_identity_record_wire(original) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignRequest)
+  }
+  let body = try {
+    let writer = @encode.writer(8192, 4, 1)
+    @encode.begin_object(writer)
+    @encode.key(writer, "original_request_json")
+    @encode.string_value(writer, wire)
+    @encode.key(writer, "source_binding_json")
+    @encode.string_value(writer, @remote.remote_input_binding_body(source))
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-effect-source-input-binding/0.1")
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(ForeignInput)
+  }
+  @remote.prepare_remote_input_binding(body, 8192).map_err(issue => {
+    Protocol(issue)
   })
+}
+
+///|
+/// Read request custody from the separately issued Source binding, not from
+/// candidate materials. Its exact CID must belong to the trusted dispatch.
+/// This projection is not a signature or current delegation/approval check.
+pub fn client_effect_source_binding_request(
+  binding : @remote.RemoteInputBinding,
+  dispatch : @remote.DispatchRequest,
+) -> Result[ClientRequestIdentity?, ClientEffectSourceDispatchIssue] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, dispatch) {
+    return Err(ForeignInput)
+  }
+  let source = match
+    @source.parse_json_bytes_preserving(
+      @utf8.encode(@remote.remote_input_binding_body(binding)),
+      { max_input_bytes: 8192, max_nodes: 16, max_depth: 2, },
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignInput)
+  }
+  let root = match
+    @decode.admit(source, {
+      max_nodes: 16,
+      max_depth: 2,
+      max_string_bytes: 8192,
+      max_total_string_bytes: 8192,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignInput)
+  }
+  if @decode.closed_object(root, ["source_contract_cid", "source_ref"]) is Ok(_) {
+    return Ok(None)
+  }
+  let fields = match
+    @decode.closed_object(root, [
+      "original_request_json", "source_binding_json", "version",
+    ]) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignInput)
+  }
+  let text = name => {
+    @decode.lookup(fields, name).bind(cursor => @decode.text(cursor).to_option())
+  }
+  guard text("version") == Some("actql-effect-source-input-binding/0.1") &&
+    text("original_request_json") is Some(wire) &&
+    text("source_binding_json") is Some(_) else {
+    return Err(ForeignInput)
+  }
+  let original = match admit_client_request_identity_record_wire(wire) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignRequest)
+  }
+  if client_request_authority_scope_cid(original) !=
+    @remote.dispatch_request_journal_key(dispatch)[0] {
+    return Err(ForeignRequest)
+  }
+  Ok(Some(original))
 }
 
 ///|
@@ -112,7 +207,10 @@ pub fn prepare_client_effect_source_dispatch(
   selected : ClientValuesSiteSelection,
 ) -> Result[@remote.DispatchRequest, ClientEffectSourceDispatchIssue] {
   let input = match
-    prepare_client_effect_source_input_binding(allowed.compilation) {
+    prepare_client_effect_source_input_binding(
+      allowed.compilation,
+      request=Some(request),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -224,7 +322,10 @@ pub fn bind_client_effect_source_dispatch(
     return Err(ForeignDispatch)
   }
   let expected = match
-    prepare_client_effect_source_input_binding(materials.compilation) {
+    prepare_client_effect_source_input_binding(
+      materials.compilation,
+      request=materials.request,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

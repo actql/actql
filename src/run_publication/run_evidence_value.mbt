@@ -53,7 +53,7 @@ fn run_evidence_identity_field(name : String) -> String? {
     "model_input_artifact" => Some("input_artifact_cid")
     "model_input_key" => Some("input_key_cid")
     "model_call_slot" => Some("model_call_slot_cid")
-    _ => None
+    _ => generated_interactive_identity_field(name)
   }
 }
 
@@ -102,7 +102,13 @@ pub fn seal_run_evidence_value(
     return Err(RunEvidenceInvalidLimits)
   }
   let body = match
-    parse_contract_wire(body_wire, max_wire_bytes, max_nodes - 1, max_depth) {
+    parse_contract_wire(
+      body_wire,
+      max_wire_bytes,
+      max_nodes - 1,
+      max_depth,
+      data_keys=generated_interactive_protocol_schema(name),
+    ) {
     Ok(value) => value
     Err(_) => return Err(RunEvidenceInvalidWire)
   }
@@ -153,7 +159,13 @@ pub fn admit_run_evidence_value(
     return Err(RunEvidenceInvalidLimits)
   }
   let complete = match
-    parse_contract_wire(complete_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      complete_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=generated_interactive_protocol_schema(name),
+    ) {
     Ok(value) => value
     Err(_) => return Err(RunEvidenceInvalidWire)
   }
@@ -161,6 +173,16 @@ pub fn admit_run_evidence_value(
       name, complete, true, max_wire_bytes, max_nodes, max_depth,
     ) {
     return Err(RunEvidenceInvalidShape)
+  }
+  if generated_interactive_protocol_schema(name) {
+    let canonical = @json.stringify_value(
+      complete, max_wire_bytes, max_nodes, max_depth,
+    ) catch {
+      _ => return Err(RunEvidenceEncoding)
+    }
+    if canonical != complete_wire {
+      return Err(RunEvidenceInvalidWire)
+    }
   }
   run_evidence_value(
     name, identity_field, complete, max_wire_bytes, max_nodes, max_depth,

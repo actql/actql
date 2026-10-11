@@ -24,6 +24,7 @@ pub(all) enum PublicationOutputExportIssue {
   Output(@execution.CompletedExportIssue)
   Evidence(@publication.ResultEvidenceIssuanceIssue)
   Artifact(@publication.ResultArtifactIssuanceIssue)
+  DurableBinding(@publication.DurableResultBindingIssue)
   Capture(@publication.CapturedRunIssuanceIssue)
   Source(@query.CapturedSourceIssue)
 }
@@ -50,6 +51,22 @@ struct PublicationOutputExport {
   mut receipt : @execution.CompletedRelationExportReceipt?
   mut evidence : @publication.ResultOrderingEvidence?
   mut artifact : @publication.PublicationContract?
+}
+
+///|
+/// This export must still own the exact Run's retained Result occurrence.
+/// Standalone exports and released pins cannot acquire captured Run custody.
+pub fn PublicationOutputExport::matches_captured_run(
+  self : PublicationOutputExport,
+  run : @strategy.CapturedDAG,
+) -> Bool {
+  match self.retained {
+    Some(Cells(borrow)) =>
+      @strategy.captured_result_borrow_matches_run(borrow, run)
+    Some(Any(borrow)) =>
+      @strategy.captured_any_result_borrow_matches_run(borrow, run)
+    None => false
+  }
 }
 
 ///|

@@ -17,7 +17,7 @@ fn assert_carrier_dependencies(
   assert_eq(grammar.role, GoverningGrammar)
   assert_eq(
     grammar.cid,
-    "sha256:955731071e31bc92d17644be84dae7d7506b1eedaf2b3de365e0f1c7662e8d22",
+    "sha256:1230fdbc7960d6738f59518b3fa0dc5af77711bdc5d63ef8e0827201dfd9313a",
   )
   let value = catalog_body_dependency_at(dependencies, 1).unwrap()
   assert_eq(value.role, ValueGrammar)
@@ -109,7 +109,7 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
               assert_eq(catalog_body_dependency_count(dependencies), 1)
               assert_eq(
                 catalog_body_dependency_at(dependencies, 0).unwrap().cid,
-                "sha256:955731071e31bc92d17644be84dae7d7506b1eedaf2b3de365e0f1c7662e8d22",
+                "sha256:1230fdbc7960d6738f59518b3fa0dc5af77711bdc5d63ef8e0827201dfd9313a",
               )
             }
           }

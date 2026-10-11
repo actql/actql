@@ -890,7 +890,11 @@ fn selected_relation_provider(
       let owner = @execution.generated_sequence_owner(sequence)
       let prepared = @lower.bound_preparation(owner)
       if count < 1 {
-        return false
+        return @lower.node_count(prepared) == 0 &&
+          @lower.preparation_input_count(prepared) == 1 &&
+          @lower.preparation_carrier_at(prepared, @pipeline.Input(0))
+          .map(carrier => @carrier.kind(carrier) == @carrier.RelationKind)
+          .unwrap_or(false)
       }
       let used_by_later = Array::make(count, false)
       for index in 0..<count {
@@ -1001,6 +1005,14 @@ fn selected_relation_provider(
       bounded_relation_chain_capacity(sequence, limits, measurement, family)
     },
     (sequence, inputs, _max_rows, max_value_bytes, execution, numeric) => {
+      if @execution.generated_sequence_step_count(sequence) == 0 {
+        guard inputs is [input] else {
+          return Err(@connector.Execution(@execution.InputSet))
+        }
+        return selected_binding_rows_execution(
+          sequence, input, execution, max_value_bytes, -1,
+        )
+      }
       if @execution.generated_sequence_step_count(sequence) > 1 {
         return bounded_relation_chain_execution(
           sequence, inputs, execution, measurement, max_value_bytes, numeric, family,

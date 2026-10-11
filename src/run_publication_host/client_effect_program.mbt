@@ -25,7 +25,10 @@ pub(all) enum ClientEffectComputationIssue {
 /// The ordinary checked computation and its exact static Effect inventory
 /// share one Program owner. This is not an executable Effect Run or permit.
 struct PreparedClientEffectComputation {
+  mut normalization : ClientEffectNormalization?
+  mut normalization_custody : ClientEffectNormalizationMaterialCustody?
   source : @syntax.Program
+  supplied : @decode.Cursor?
   candidate : @checked.EffectProgramStaticCandidate
   graph : @strategy.CheckedEffectComputationDAG
   check_environment_cid : String
@@ -43,6 +46,7 @@ fn client_effect_program_view(
     source: value.source,
     local_values_max_rows: client_standard_values_sequence_limits().max_rows,
     check_environment_cid: value.check_environment_cid,
+    local_normalization: None,
   }
 }
 
@@ -128,7 +132,10 @@ pub fn prepare_parsed_client_effect_computation(
     Err(issue) => return Err(Graph(issue))
   }
   Ok({
+    normalization: None,
+    normalization_custody: None,
     source: parsed,
+    supplied,
     candidate,
     graph,
     check_environment_cid: @checked.checking_environment_cid(environment),

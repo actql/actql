@@ -73,6 +73,16 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
               protocol_string_pattern(text, pattern)
             _ => false
           }
+        StringCeilingRule(maximum) =>
+          self.result = match value {
+            @json.String(text) => protocol_scalar_length(text) <= maximum
+            _ => false
+          }
+        ObjectCeilingRule(maximum) =>
+          self.result = match value {
+            @json.Object(fields) => @json.array_count(fields) <= maximum
+            _ => true
+          }
         NumberRule => self.result = value is @json.Number(_)
         IntegerRule(minimum, maximum) =>
           self.result = match value {

@@ -1,0 +1,72 @@
+{
+  "format": "actql-round-precision-cancellation-diagnostic/0.1",
+  "failed_clean_candidate": "e32151a125c5dbadf422bc1c26f297764c80abad",
+  "failed_tree": "6596a95d32aa3e2fe2167ac85b8d311ea2c35f10",
+  "initial_public_selection": {
+    "tests": 63,
+    "passed": 61,
+    "failed": 2,
+    "failed_cases": [
+      "public round precision cancellation stops after charged progress",
+      "public trunc precision cancellation stops after charged progress"
+    ]
+  },
+  "initial_fixture_rows": 512,
+  "public_error": [
+    "SubmissionUnknown",
+    "ClientHostFailure (500)"
+  ],
+  "temporary_unredacted_diagnostic": [
+    "RunHostCompilationRejected",
+    "ClientProgramValuesCompilationBridgeIssue.Compilation",
+    "ClientValuesCompilationIssue.Plan",
+    "ClientValuesExecutablePlanIssue.Graph",
+    "ClientValuesPlanGraphIssue.Fragment",
+    "ClientValuesFragmentIssue.AoA",
+    "ClientValuesAoAIdentityIssue.Pipeline",
+    "ClientValuesPipelineIssue.Sequence",
+    "SequenceIssue.ValuesFailure(0, ValuesIssue.ValuesLimit)"
+  ],
+  "existing_limit": {
+    "owner": "src/run_publication_host/client_standard_limits.mbt:client_standard_values_sequence_limits",
+    "max_rows": 100,
+    "enforcement": "src/lowering_relation/values_encode.mbt:prepare_values_node",
+    "changed": false
+  },
+  "correction": {
+    "rows": 100,
+    "separate_numeric_consumer_stage": true,
+    "paused_task": 1,
+    "requires_positive_work_and_progress": true,
+    "claim": "Public task-scoped cancellation; exact inside-cursor cancellation remains covered by core tests."
+  },
+  "corrected_focused_check": {
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "source_dirty": true,
+    "local_attempt": "run-7eA3Y2",
+    "focused_receipt": "focused-test-XCJZ6m",
+    "fresh_runtime_build_revision": "e32151a125c5dbadf422bc1c26f297764c80abad",
+    "production_sources_changed": false
+  },
+  "temporary_diagnostic_logging_restored": true,
+  "receipts": [
+    {
+      "path": "_build/focused-evidence/focused-test-rA0fxr/summary.json",
+      "sha256": "3e0db543193c7e219ff56974f75f6a93aadb2506089f1fe54a264fb00ae8b044"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-rA0fxr/001.stdout.log",
+      "sha256": "e0b616d7e0ba2da8c8d010b8bc3edeff016f83365eac273214f77ab7f75cc617"
+    },
+    {
+      "path": "../cancellation-deep-diagnostic.log",
+      "sha256": "0b2c5078940a0063b2eb79acc2d76371c0f3d12c924fdf2fed0e47f9f666de38"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-XCJZ6m/summary.json",
+      "sha256": "2cf63c6ff56713e73066ec224f7cb61bcad04929e5cf3a5ddb401a3a5a80ec81"
+    }
+  ]
+}

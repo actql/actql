@@ -93,8 +93,14 @@ export function typeOf(schema) {
   throw new Error('UnsupportedPublicationType');
 }
 
-export function structuralValidatorSource() {
+export function structuralValidatorSource({extended = false} = {}) {
   return `function valid(value, schema) {\n` +
+    (extended ?
+`  if (schema.anyOf && !schema.anyOf.some(rule => valid(value, rule))) return false;\n` +
+`  if (schema.if && !valid(value, schema.if) && schema.else && !valid(value, schema.else)) return false;\n` +
+`  if (schema.type === 'null') return value === null;\n` +
+`  if (schema.format === 'date-time' && (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/u.test(value) || Number.isNaN(Date.parse(value)))) return false;\n`
+      : '') +
 `  if (schema.$ref) return valid(value, schemas[schema.$ref]);\n` +
 `  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;\n` +
 `  if (schema.not && valid(value, schema.not)) return false;\n` +
@@ -107,7 +113,7 @@ export function structuralValidatorSource() {
 `       schema.maximum !== undefined && value > schema.maximum)) return false;\n` +
 `  if (typeof value === 'string' &&\n` +
 `      ((schema.minLength !== undefined && [...value].length < schema.minLength) ||\n` +
-`        (schema.maxLength !== undefined && value.length > schema.maxLength) ||\n` +
+`        (schema.maxLength !== undefined && ${extended ? '[...value].length' : 'value.length'} > schema.maxLength) ||\n` +
 `        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))\n` +
 `    return false;\n` +
 `  if (schema.type === 'string') return typeof value === 'string';\n` +

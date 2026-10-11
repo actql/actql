@@ -103,19 +103,15 @@ pub fn[T] prepare_managed_producer_bridge(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let port = match
-    prepare_trusted_output_port(
-      source.preparation,
-      source.target,
-      max_entries,
-      max_name_bytes,
-      fn(_) {
-        if live.val && managed_producer_read_available(input) {
-          rows.val
-        } else {
-          None
-        }
-      },
+    prepare_managed_bridge_output_port(source, max_entries, max_name_bytes, fn(
+      _,
     ) {
+      if live.val && managed_producer_read_available(input) {
+        rows.val
+      } else {
+        None
+      }
+    }) {
     Ok(value) => value
     Err(issue) => {
       cancel_admitted_output(admitted) |> ignore

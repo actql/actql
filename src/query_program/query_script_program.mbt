@@ -43,6 +43,7 @@ fn lower_script_relation(
   output : String,
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
+  retain_value_table? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
 ) -> Input raise Abort {
@@ -67,8 +68,16 @@ fn lower_script_relation(
         reserved,
         name,
         carry_ranges=cte.carry_ranges,
+        retain_value_table=true,
         graphs=scoped_graphs,
       )
+      if !cte.carry_ranges &&
+        sources.value_tables.get(bound.name) is Some(scope) {
+        sources.value_tables[bound.name] = bind_value_table_scope(
+          scope,
+          cte.name,
+        )
+      }
       scoped = scoped.filter(input => !input_relation_matches([cte.name], input))
       scoped.push({ ..bound, relation: [cte.name], })
       scoped_graphs = scoped_graphs.filter(graph => {
@@ -103,6 +112,7 @@ fn lower_script_relation(
     output,
     retained~,
     carry_ranges~,
+    retain_value_table~,
     graphs~,
     positional_set_output~,
   )
@@ -121,6 +131,7 @@ fn lower_script_relation_term(
   output : String,
   retained? : Array[RetainedResult]? = None,
   carry_ranges? : Bool = false,
+  retain_value_table? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
   set_head? : Bool = false,
@@ -152,6 +163,7 @@ fn lower_script_relation_term(
   } else {
     None
   }
+  let value_scope : Array[JoinChainScope] = []
   if @query.join_part_count(query) > 0 {
     let bound = lower_script_join_relation(
       construction,
@@ -223,8 +235,13 @@ fn lower_script_relation_term(
     nearest_inputs~,
     retained~,
     parameter_declarations=context.parameter_declarations,
-    initial_scope=sources.ranges.get(input.name),
+    initial_scope=script_input_scope(
+      sources,
+      input.name,
+      query_range_name(query),
+    ),
     preserved_scope=preserved,
+    value_table_scope=if retain_value_table { Some(value_scope) } else { None },
     prefix_steps=steps.copy(),
     prefix_context=Some(context),
     positional_set_output~,
@@ -252,6 +269,8 @@ fn lower_script_relation_term(
   }
   if preserved is Some(scopes) {
     sources.ranges[name] = scopes[0]
+  } else if value_scope.get(0) is Some(scope) {
+    sources.value_tables[name] = scope
   }
   {
     relation: [],
@@ -317,6 +336,7 @@ pub fn compile_query_script(
       bound: Map([]),
       unshared: unshared_script_sources(script, context.inputs),
       ranges: Map([]),
+      value_tables: Map([]),
     }
     let mut known = context.inputs.copy()
     let mut graphs : Array[ScriptGraph] = []
@@ -687,6 +707,7 @@ pub fn compile_query_script(
         bound: Map([]),
         unshared: [],
         ranges: Map([]),
+        value_tables: Map([]),
       }
       stage_known = [
         {

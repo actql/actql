@@ -190,6 +190,34 @@ pub fn open_captured_local_retained_host(
 }
 
 ///|
+/// Compose the single verified capture and retained Compute with the existing
+/// Host root Ledger. This opens no replacement capture or resource Owner.
+pub fn open_captured_local_retained_host_on_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    Some(source),
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    retained_output=true,
+    acquisition_ledger=Some(ledger),
+  )
+}
+
+///|
 fn open_checked_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource?,
@@ -303,9 +331,16 @@ fn open_checked_local_host(
       None =>
         @publication_host.open_prepared_source_free_client_run(prepared, limits)
       Some(captured) =>
-        @publication_host.open_prepared_captured_client_run(
-          prepared, captured, limits,
-        )
+        match acquisition_ledger {
+          Some(ledger) =>
+            @strategy.open_captured_dag(graph, captured, ledger).map_err(issue => {
+              @publication_host.ClientRunOpenIssue::Run(issue)
+            })
+          None =>
+            @publication_host.open_prepared_captured_client_run(
+              prepared, captured, limits,
+            )
+        }
     }
   }
   let run = match opened {

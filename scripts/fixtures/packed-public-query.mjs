@@ -1,3 +1,7 @@
+import {cteValueTableSuccesses, cteValueTableRefusals} from './cte-value-table-source-input.mjs';
+import {createCteValueTableReceipts, createVerifiedCaseReceipts} from './cte-value-table-receipts.mjs';
+import {unpivotRowLabelSuccesses, unpivotRowLabelRefusals} from './unpivot-row-label-source-input.mjs';
+import {fromUnpivotSuccesses, fromUnpivotRefusals} from './from-unpivot-source-input.mjs';
 import {pipePivotSuccesses, pipePivotRefusals} from './pipe-pivot-source-input.mjs';
 import {graphRelationJoinSuccesses, graphRelationJoinRefusals, graphRelationJoinExecutionFailures} from './graph-relation-join-source-input.mjs';
 import {traversalJoinSuccesses, traversalJoinRefusals, traversalJoinExecutionFailures} from './traversal-join-source-input.mjs';
@@ -52,6 +56,9 @@ import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
 import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
+import {inputStageResultSuccesses} from './input-stage-result.mjs';
+import {typedSubscriptSuccesses, typedSubscriptRefusals, typedSubscriptExecutionFailures}
+  from './typed-subscript-input.mjs';
 import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
   from './graph-remaining-operation-inputs.mjs';
 import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
@@ -118,6 +125,8 @@ import * as publicCheckSdk from '@actql/sdk';
 import {exerciseUnaliasedColumnOrigins} from './unaliased-column-origin.mjs';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
+const {createLocalRetainedStore} = await import(new URL(
+  './adapters/store-local/files.mjs', import.meta.resolve('@actql/local-node')));
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
   from './public-query-input.mjs';
 
@@ -253,9 +262,13 @@ const arrayLiteralOnly = process.env.ACTQL_TEST_ARRAY_LITERAL_ONLY === '1';
 const correlatedUnnestOnly = process.env.ACTQL_TEST_CORRELATED_UNNEST_ONLY === '1';
 const unnestCheckedArrayOnly = process.env.ACTQL_TEST_UNNEST_CHECKED_ARRAY_ONLY === '1';
 const unnestParameterPathOnly = process.env.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY === '1';
+const unpivotRowLabelOnly = process.env.ACTQL_TEST_UNPIVOT_ROW_LABEL_ONLY === '1';
+const fromUnpivotOnly = process.env.ACTQL_TEST_FROM_UNPIVOT_ONLY === '1';
 const pipeUnpivotOnly = process.env.ACTQL_TEST_PIPE_UNPIVOT_ONLY === '1';
 const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
-const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
+const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
+const typedSubscriptOnly = process.env.ACTQL_TEST_TYPED_SUBSCRIPT_ONLY === '1';
+const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1' || inputStageResultOnly || typedSubscriptOnly;
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
@@ -276,6 +289,7 @@ const groupStarOnly = process.env.ACTQL_TEST_GROUP_STAR_ONLY === '1';
 const aggregatePropertyOrderOnly = process.env.ACTQL_TEST_AGGREGATE_PROPERTY_ORDER_ONLY === '1';
 const aggregatePropertyOnly = process.env.ACTQL_TEST_AGGREGATE_PROPERTY_ONLY === '1';
 const groupOrdinalOnly = process.env.ACTQL_TEST_GROUP_ORDINAL_ONLY === '1';
+const cteValueTableOnly = process.env.ACTQL_TEST_CTE_VALUE_TABLE_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
@@ -316,7 +330,7 @@ const namedWindowOnly = process.env.ACTQL_TEST_NAMED_WINDOW_ONLY === '1';
 const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1';
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
-const scopeOnly = pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
+const scopeOnly = unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -337,7 +351,10 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
+const scopeInputs = inputStageResultOnly ? {successes: inputStageResultSuccesses, refusals: []}
+  : typedSubscriptOnly ? {successes: typedSubscriptSuccesses, refusals: typedSubscriptRefusals,
+    executionFailures: typedSubscriptExecutionFailures}
+  : graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
   : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
   : countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}
@@ -361,6 +378,8 @@ const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : correlatedUnnestOnly ? {successes: correlatedUnnestSuccesses, refusals: correlatedUnnestRefusals}
   : unnestCheckedArrayOnly ? {successes: unnestCheckedArraySuccesses, refusals: unnestCheckedArrayRefusals}
   : unnestParameterPathOnly ? {successes: unnestParameterPathSuccesses, refusals: unnestParameterPathRefusals}
+  : unpivotRowLabelOnly ? {successes: unpivotRowLabelSuccesses, refusals: unpivotRowLabelRefusals}
+  : fromUnpivotOnly ? {successes: fromUnpivotSuccesses, refusals: fromUnpivotRefusals}
   : pipeUnpivotOnly ? {successes: pipeUnpivotSuccesses, refusals: pipeUnpivotRefusals}
   : unnestOnly ? {successes: unnestSuccesses, refusals: unnestRefusals}
   : fullJoinScopeOnly ? {successes: fullJoinScopeSuccesses, refusals: fullJoinScopeRefusals}
@@ -459,6 +478,7 @@ const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
     executionFailures: pipeResultExecutionFailures}
+  : cteValueTableOnly ? {successes: cteValueTableSuccesses, refusals: cteValueTableRefusals}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : groupOnly ? groupScope : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
@@ -466,6 +486,8 @@ const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...cteValueTableSuccesses);
+  scopeInputs.refusals.push(...cteValueTableRefusals);
   scopeInputs.successes.push(...pipePivotSuccesses);
   scopeInputs.refusals.push(...pipePivotRefusals);
   scopeInputs.successes.push(...graphRelationJoinSuccesses);
@@ -507,6 +529,10 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...inUnnestLiteralArrayRefusals);
   scopeInputs.successes.push(...arrayLiteralSuccesses);
   scopeInputs.refusals.push(...arrayLiteralRefusals);
+  scopeInputs.successes.push(...unpivotRowLabelSuccesses);
+  scopeInputs.refusals.push(...unpivotRowLabelRefusals);
+  scopeInputs.successes.push(...fromUnpivotSuccesses);
+  scopeInputs.refusals.push(...fromUnpivotRefusals);
   scopeInputs.successes.push(...pipeUnpivotSuccesses);
   scopeInputs.refusals.push(...pipeUnpivotRefusals);
   scopeInputs.successes.push(...unnestSuccesses);
@@ -779,6 +805,13 @@ function publicQueryCohorts(inputs) {
   return cohorts;
 }
 const retainedCohorts = [];
+const cteValueTableReceipts = createCteValueTableReceipts(transport ?? 'both', writeFile);
+const unpivotRowLabelReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'unpivot-row-label', version: 'actql-unpivot-row-label-acceptance/0.1',
+});
+const fromUnpivotReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'from-unpivot', version: 'actql-from-unpivot-acceptance/0.1',
+});
 let expectedRetainedCohorts = 0;
 const expectedInventory = [], completedInventory = [];
 const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
@@ -1061,19 +1094,46 @@ const recordString = mode => item => {
 };
 const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
 const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
+function observeInputStageStore(authorization, leases) {
+  if (!inputStageResultOnly) return authorization;
+  Object.assign(authorization.faultInjection, {async localSnapshotStoreFactory({key,bytes,frame,parentDirectory}) {
+    const store = await createLocalRetainedStore({parentDirectory,
+      capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
+    leases.push({key,store});
+    return store;
+  }});
+  return authorization;
+}
+function verifyInputStageStore(leases) {
+  if (!inputStageResultOnly) return;
+  assert.ok(leases.some(lease => lease.key === 'task-1'),
+    'Input-only task must transfer its output through the real retained Store');
+  for (const {store} of leases) {
+    assert.equal(store.status().reservedBytes,0);
+    assert.equal(store.status().cleanupPending,false);
+  }
+}
 const recordCohort = (mode, directory, cohort, authorization) => {
   // Save independently authored boundary oracles for the existing fresh-process
   // public Client regression; it never imports or reruns the partition helper.
   const boundaryNames = new Set([cohort.successes[0]?.name,
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
-  if (graphRemainingOperationsOnly) {
+  if (inputStageResultOnly) saved.retainedRelationOutput = true;
+  if (graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly) {
     saved.expectedSampleNames = [...boundaryNames];
     saved.authorization = authorization;
   }
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
-  return item => {
+  return async item => {
     recordString(mode)(item);
+    if (item.name.startsWith('unpivot-row-label-')) await unpivotRowLabelReceipts.record(item, mode);
+    if (item.name.startsWith('from-unpivot-')) await fromUnpivotReceipts.record(item, mode);
+    if (item.name.startsWith('cte-value-table-')) {
+      // Persist after each verified case so a later failure keeps actual Run
+      // and read values. No resubmission, extra read or test oracle is added.
+      await cteValueTableReceipts.record(item, mode);
+    }
     if (boundaryNames.has(item.name)) {
       saved.samples.push({source: cohort.successes.find(source => source.name === item.name),
         ref: item.ref, submissionRef: item.submissionRef});
@@ -1085,17 +1145,22 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
-  const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+  const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
+    ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
+  const retainedLeases = [];
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
       sourceProfilePath, hostCapacityPolicy,
+      ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
       ...(authorization === undefined ? {} : {
-        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)})}}, {requestPrefix: 'packed-local',
+        authorization: observeInputStageStore(
+          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)})}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
-    'Initial Graph execution proves the actual dispatch hook is live');
+    'Initial retained execution proves the actual dispatch hook is live');
+  verifyInputStageStore(retainedLeases);
   const acceptedRuns = observe(directory)().acceptedRuns;
   assert.equal(acceptedRuns, cohortRunCount(cohort));
   localAcceptedRuns += acceptedRuns;
@@ -1110,12 +1175,16 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
-    const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+    const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
+      ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
+    const retainedLeases = [];
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
+      ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
       ...(authorization === undefined ? {} : {
-        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)}),
+        authorization: observeInputStageStore(
+          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)}),
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1141,6 +1210,7 @@ let remoteAcceptedRuns = 0;
       await new Promise(resolve => server.close(resolve));
       await host.close();
     }
+    verifyInputStageStore(retainedLeases);
   }
   assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
@@ -1168,6 +1238,9 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 }
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
+  await cteValueTableReceipts.complete();
+  await fromUnpivotReceipts.complete();
+  await unpivotRowLabelReceipts.complete();
   assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
   if (graphRemainingOperationsOnly) for (const cohort of retainedCohorts) {
     assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,

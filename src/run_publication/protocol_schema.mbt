@@ -7,6 +7,8 @@ priv enum ProtocolSchemaRule {
   NullRule
   BoolRule(Bool?)
   StringRule(String?, Array[String], Int, Int)
+  StringCeilingRule(Int)
+  ObjectCeilingRule(Int)
   NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool, Int)
@@ -29,6 +31,23 @@ priv struct ProtocolValidationBudget {
 ///|
 fn protocol_any_rule() -> ProtocolSchemaRule {
   AnyRule
+}
+
+///|
+/// JSON Schema lengths count Unicode scalar values. Admitted canonical text
+/// already excludes unpaired surrogates; do not count a pair as two cells.
+fn protocol_scalar_length(text : String) -> Int {
+  let mut count = 0
+  let mut i = 0
+  while i < text.length() {
+    count += 1
+    let unit = text[i].to_int()
+    if unit >= 55296 && unit <= 56319 {
+      i += 1
+    }
+    i += 1
+  }
+  count
 }
 
 ///|
@@ -173,6 +192,58 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
           valid
         }
       }
+    8 =>
+      if value == "0" {
+        true
+      } else if value.length() == 0 ||
+        value[0].to_int() < 49 ||
+        value[0].to_int() > 57 {
+        false
+      } else {
+        let mut valid = true
+        for index = 1; index < value.length(); index = index + 1 {
+          let char = value[index].to_int()
+          if char < 48 || char > 57 {
+            valid = false
+          }
+        }
+        valid
+      }
+    9 => {
+      let mut valid = value.length() > 0
+      for char in value.to_array() {
+        if char.to_int() < 32 || char.to_int() == 127 {
+          valid = false
+        }
+      }
+      valid
+    }
+    10 =>
+      if !value.has_prefix("ACTQL_E_") || value.length() <= 8 {
+        false
+      } else {
+        let mut valid = true
+        for index = 8; index < value.length(); index = index + 1 {
+          let char = value[index].to_int()
+          if !((char >= 65 && char <= 90) ||
+            (char >= 48 && char <= 57) ||
+            char == 95) {
+            valid = false
+          }
+        }
+        valid
+      }
+    11 => value.length() > 0
+    12 => parse_control_amount_micro(value) is Ok(_)
+    13 => {
+      let mut valid = value.length() == 3
+      for char in value.to_array() {
+        if char.to_int() < 65 || char.to_int() > 90 {
+          valid = false
+        }
+      }
+      valid
+    }
     _ => false
   }
 }

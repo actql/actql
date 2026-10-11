@@ -11,7 +11,7 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {installedSourceIdentity, publishInstalledSourceProfile,
-  loadInstalledSource, loadInstalledSources} from './installed-source.mjs';
+  loadInstalledSource, loadInstalledSources, installedSourcePublicationFacts} from './installed-source.mjs';
 import {installedEffectIdentity, publishInstalledEffectProfile,
   loadInstalledEffect, loadInstalledEffects} from './installed-effect.mjs';
 
@@ -194,6 +194,12 @@ for (const role of ['source', 'effect']) {
       assert.equal(selected.entries.length, 2);
       assert.equal(selected.entries[0], selected.entries[1]);
       assert.equal(selected.owners.get(`${role}:shared`).completed, 1);
+      if (role === 'source') {
+        // Loading binds metadata before installation and verifies the same
+        // generation afterward; neither read may acquire provider authority.
+        assert.deepEqual(installedSourcePublicationFacts(adapter), {
+          path, revision: observed, aliases: []});
+      }
       assert.deepEqual(selected.events, [[role, 'select'],
         ...(role === 'effect' ? [[role, 'check', 'shared']] : []),
         [role, 'identity', 'shared'], [role, 'select'], [role, 'check', 'shared'],

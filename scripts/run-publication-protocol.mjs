@@ -2,6 +2,8 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
+import {resolveControlSchema} from './interactive-run-control-schema.mjs';
+import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -13,6 +15,8 @@ const stage = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const profiles = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-production-profile-schemas.json'), 'utf8'));
+const control = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-interactive-run-control.json'), 'utf8'));
 const selected = Object.freeze({
   result_plan: Object.freeze({
     schema: 'result_plan',
@@ -149,6 +153,7 @@ const stringArray = values =>
 
 function patternTag(schema) {
   if (schema.format === 'date-time') return 2;
+  if (schema.pattern === amountMicroPattern) return 12;
   switch (schema.pattern) {
     case undefined: return 0;
     case '^sha256:[0-9a-f]{64}$':
@@ -160,6 +165,11 @@ function patternTag(schema) {
     case '^\\$': return 5;
     case '^command:': return 6;
     case '^[A-Za-z_][A-Za-z0-9_]*$': return 7;
+    case '^(0|[1-9][0-9]*)$':
+    case '^(0|[1-9][0-9]*)$(?![\\s\\S])': return 8;
+    case '^[^\\u0000-\\u001f\\u007f]+$': return 9;
+    case '^ACTQL_E_[A-Z0-9_]+$': return 10;
+    case '^[A-Z]{3}$(?![\\s\\S])': return 13;
     default:
       throw new Error(`Unsupported publication schema pattern: ${schema.pattern}`);
   }
@@ -172,7 +182,8 @@ const supportedKeywords = new Set([
   'enum', 'oneOf', 'allOf', 'pattern', 'format', 'minLength', 'minimum',
   'anyOf', 'not', 'if', 'then', 'else',
   'maximum', 'properties', 'required', 'additionalProperties',
-  'minProperties', 'propertyNames', 'items', 'minItems', 'maxItems', 'uniqueItems',
+  'minProperties', 'maxProperties', 'maxLength', 'propertyNames', 'items',
+  'minItems', 'maxItems', 'uniqueItems',
 ]);
 const annotationKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
@@ -206,6 +217,28 @@ function emitSchema(schema, assumedType) {
     if (!supportedKeywords.has(key)) {
       throw new Error(`Unsupported publication schema keyword: ${key}`);
     }
+  }
+  if (schema.maxLength !== undefined || schema.maxProperties !== undefined) {
+    const rest = {...schema};
+    const bounds = [];
+    if (schema.maxLength !== undefined) {
+      if (schema.type !== 'string' || !Number.isSafeInteger(schema.maxLength) ||
+          schema.maxLength < 0) throw new Error('Invalid string ceiling');
+      nodes.push(`StringCeilingRule(${schema.maxLength})`);
+      bounds.push(nodes.length - 1);
+      delete rest.maxLength;
+    }
+    if (schema.maxProperties !== undefined) {
+      if (schema.type !== undefined && schema.type !== 'object' ||
+          !Number.isSafeInteger(schema.maxProperties) || schema.maxProperties < 0)
+        throw new Error('Invalid object ceiling');
+      nodes.push(`ObjectCeilingRule(${schema.maxProperties})`);
+      bounds.push(nodes.length - 1);
+      delete rest.maxProperties;
+    }
+    bounds.push(emitSchema(rest, assumedType));
+    nodes.push(`AllOfRule([${bounds.join(', ')}])`);
+    return nodes.length - 1;
   }
   if (schema.oneOf !== undefined) {
     const alternatives = schema.oneOf.map(branch =>
@@ -305,6 +338,9 @@ function emitSchema(schema, assumedType) {
     return nodes.length - 1;
   }
   if (schema.type === undefined) {
+    if (schema.propertyNames !== undefined) {
+      return emitSchema({...schema, type: 'object'});
+    }
     if (assumedType === 'object' &&
         (schema.properties !== undefined || schema.required !== undefined ||
          schema.additionalProperties !== undefined)) {
@@ -418,7 +454,7 @@ function emitSchema(schema, assumedType) {
       ? 'Some("actql_")'
       : 'None';
     const namePattern = names?.pattern === '^[A-Za-z_][A-Za-z0-9_]*$'
-      ? 7 : 0;
+      ? 7 : names?.minLength === 1 && Object.keys(names).length === 1 ? 11 : 0;
     if (schema.propertyNames !== undefined && forbidden === 'None' &&
         namePattern === 0) {
       throw new Error('Unsupported publication propertyNames rule');
@@ -478,6 +514,16 @@ for (const [name, selection] of Object.entries(selected)) {
 // its pinned protocol schema without inventing an identity-excluded body.
 roots.set('effect_outcome:true', emitSchema(document.schemas.effect_outcome));
 
+for (const [name, schema] of Object.entries(control.schemas)) {
+  const complete = resolveControlSchema(schema, control);
+  roots.set(`${name}:true`, emitSchema(complete));
+  if (schema.properties?.self_cid) {
+    const body = structuredClone(complete);
+    omitRequiredProperty(body, 'self_cid');
+    roots.set(`${name}:false`, emitSchema(body));
+  }
+}
+
 let generated = `// Generated by scripts/run-publication-protocol.mjs.\n` +
   `// Product validation is implemented by protocol_schema.mbt.\n\n` +
   `///|\nfn generated_protocol_schema_nodes() -> ` +
@@ -495,6 +541,15 @@ let generated = `// Generated by scripts/run-publication-protocol.mjs.\n` +
   }).join('') +
   `    _ => None\n  }\n}\n`;
 
+generated += `\n///|\nfn generated_interactive_protocol_schema(name : String) -> Bool {\n` +
+  `  match name {\n` + Object.keys(control.schemas)
+    .map(name => `    ${moonString(name)} => true\n`).join('') +
+  `    _ => false\n  }\n}\n` +
+  `\n///|\nfn generated_interactive_identity_field(name : String) -> String? {\n` +
+  `  match name {\n` + Object.keys(control.identity_domains)
+    .map(name => `    ${moonString(name)} => Some("self_cid")\n`).join('') +
+  `    _ => None\n  }\n}\n`;
+
 const formatter = process.env.MOON_HOME
   ? join(process.env.MOON_HOME, 'bin/moonfmt')
   : 'moonfmt';
@@ -507,4 +562,5 @@ if (process.argv.includes('--write')) writeFileSync(output, generated);
 else if (readFileSync(output, 'utf8') !== generated) {
   throw new Error(`Run publication protocol descriptors are stale: ${output}`);
 }
-console.log(`${Object.keys(selected).length + 1} Run and Effect protocol schemas verified.`);
+console.log(`${Object.keys(selected).length + 1} Run and Effect schemas and ` +
+  `${Object.keys(control.schemas).length} interactive schemas verified.`);

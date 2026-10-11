@@ -3516,19 +3516,46 @@ fn start_bounded_binding_rows_with_input(
   }
   let sequence = generated.sequence
   let owner = @lower.sequence_owner(sequence)
-  guard generated_sequence_step_index_at(generated, 0) is Some(step) &&
-    generated_sequence_step_index_at(generated, 1) is None &&
-    @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
-    bounded_binding_input_matches(input, owner, step) &&
-    bounded_binding_input_available(input) &&
-    bounded_binding_input_row_count(input) <= max_rows else {
+  let prepared = @lower.bound_preparation(owner)
+  let (target, step, kernel) = match
+    generated_sequence_step_index_at(generated, 0) {
+    None if @lower.sequence_count(sequence) == 0 &&
+      @lower.preparation_input_count(prepared) == 1 => {
+      let exact = match input {
+        CompletedBindingInput(read) =>
+          physical_equal(producer_read_receiver(read), owner) &&
+          producer_read_input_index(read) == 0
+        SuppliedBindingInput(read) =>
+          supplied_relation_read_matches_input(read, owner, 0)
+      }
+      if !exact {
+        return Err(InvalidExecution)
+      }
+      (@pipeline.Input(0), -1, None)
+    }
+    Some(step) => {
+      guard generated_sequence_step_index_at(generated, 1) is None &&
+        @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
+        bounded_binding_input_matches(input, owner, step) else {
+        return Err(InvalidExecution)
+      }
+      (@pipeline.Step(step), step, Some(kernel))
+    }
+    _ => return Err(InvalidExecution)
+  }
+  guard bounded_binding_input_available(input) &&
+    bounded_binding_input_row_count(input) <= max_rows &&
+    completion_preparation_schema(
+      generated_completion_preparation(generated),
+      target,
+    )
+    is Some(output_schema) else {
     return Err(InvalidExecution)
   }
-  let output_schema = @lower.kernel_output_schema(kernel)
   let input_schema = bounded_binding_input_schema(input)
   let input_width = @schema.field_count(input_schema)
   let output_width = @schema.field_count(output_schema)
-  let binding_count = @lower.kernel_view_entries(kernel)
+  let binding_count = kernel.map(@lower.kernel_view_entries).unwrap_or(0)
   let mut metadata_entries = 0
   fn admit_metadata(count : Int) -> Bool {
     if count < 0 || count > max_entries - metadata_entries {
@@ -3545,26 +3572,27 @@ fn start_bounded_binding_rows_with_input(
   }
   // Borrow immutable metadata before any defensive array export. The scalar
   // variants retain their existing view and each borrowed kind stays explicit.
-  let json_pick = @lower.kernel_json_pick(kernel)
-  let bindings = @lower.kernel_bindings(kernel)
-  let unique_keys = @lower.kernel_unique_keys(kernel)
-  let projection = @lower.kernel_projection(kernel)
+  let json_pick = kernel.bind(@lower.kernel_json_pick)
+  let bindings = kernel.bind(@lower.kernel_bindings)
+  let unique_keys = kernel.bind(@lower.kernel_unique_keys)
+  let projection = kernel.bind(@lower.kernel_projection)
   let body = if json_pick is Some(_) ||
     bindings is Some(_) ||
     unique_keys is Some(_) ||
     projection is Some(_) {
     None
   } else {
-    Some(@lower.kernel_body(kernel))
+    kernel.map(@lower.kernel_body)
   }
   // Keyed DISTINCT already owns projection followed by full-row comparison.
   // Only its Required projected columns are read by the comparator/output;
   // ChargeInput still admits every original cell, including omitted columns.
   let keyed_distinct = body is Some(@lower.DistinctRows) &&
-    @lower.kernel_distinct_projection(kernel) is Some(_) &&
+    kernel.bind(@lower.kernel_distinct_projection) is Some(_) &&
     @schema.all_fields_required(output_schema)
   let preserve_presence = !@schema.all_fields_required(input_schema) &&
     (
+      kernel is None ||
       body is Some(@lower.Filter(_)) ||
       bindings is Some(_) ||
       (projection is Some(_) && !@schema.all_fields_required(output_schema)) ||
@@ -3572,7 +3600,7 @@ fn start_bounded_binding_rows_with_input(
       body is Some(@lower.Limit(_, _, _)) ||
       (
         body is Some(@lower.DistinctRows) &&
-        @lower.kernel_distinct_projection(kernel) is None
+        kernel.bind(@lower.kernel_distinct_projection) is None
       )
     )
   if !@schema.all_fields_required(input_schema) &&
@@ -3588,6 +3616,10 @@ fn start_bounded_binding_rows_with_input(
     return Err(InvalidExecution)
   }
   let (predicate, select_mode, take_range, sort_kernel) = match body {
+    // Reuse the charged copy cursor, not a synthetic LIMIT or projection.
+    // There is no expression fragment to execute for an input-only owner.
+    None if kernel is None =>
+      (None, false, Some((0, bounded_binding_input_row_count(input))), None)
     None if bindings is Some(_) || unique_keys is Some(_) =>
       (None, false, None, None)
     None if projection is Some(_) => (None, true, None, None)
@@ -3595,16 +3627,11 @@ fn start_bounded_binding_rows_with_input(
     Some(@lower.AssertAll(expression)) => (Some(expression), false, None, None)
     None if json_pick is Some(_) => (None, false, None, None)
     Some(@lower.Watermark(_, _, _, _)) => (None, false, None, None)
-    Some(@lower.Lag(_, _)) => (None, false, None, Some(kernel))
+    Some(@lower.Lag(_, _)) => (None, false, None, kernel)
     Some(@lower.DistinctRows) => (None, false, None, None)
     Some(@lower.DedupeRows) => (None, false, None, None)
     Some(@lower.StableSort(_)) =>
-      (
-        None,
-        false,
-        Some((0, bounded_binding_input_row_count(input))),
-        Some(kernel),
-      )
+      (None, false, Some((0, bounded_binding_input_row_count(input))), kernel)
     Some(@lower.TopK(top_count, _)) => {
       if top_count < 1L {
         return Err(InvalidExecution)
@@ -3615,18 +3642,13 @@ fn start_bounded_binding_rows_with_input(
       } else {
         top_count.to_int()
       }
-      (None, false, Some((0, selected)), Some(kernel))
+      (None, false, Some((0, selected)), kernel)
     }
     Some(@lower.PartitionedTopK(top_count, _)) => {
       if top_count < 1L {
         return Err(InvalidExecution)
       }
-      (
-        None,
-        false,
-        Some((0, bounded_binding_input_row_count(input))),
-        Some(kernel),
-      )
+      (None, false, Some((0, bounded_binding_input_row_count(input))), kernel)
     }
     Some(@lower.Limit(take_count, offset, _)) => {
       let prepared = @lower.bound_preparation(owner)
@@ -3644,7 +3666,7 @@ fn start_bounded_binding_rows_with_input(
         take_count.to_int()
       }
       let sort_kernel = if @lower.order_node_id(node) is Some(_) {
-        Some(kernel)
+        kernel
       } else {
         None
       }
@@ -3672,21 +3694,21 @@ fn start_bounded_binding_rows_with_input(
     _ => None
   }
   let partition_terms = if body is Some(@lower.Lag(_, _)) {
-    @lower.kernel_lag_partition_count(kernel)
+    kernel.map(@lower.kernel_lag_partition_count).unwrap_or(0)
   } else if partition_limit is Some(_) {
-    @lower.kernel_top_k_partition_count(kernel)
+    kernel.map(@lower.kernel_top_k_partition_count).unwrap_or(0)
   } else {
     0
   }
   let dedupe = body is Some(@lower.DedupeRows)
   let distinct = body is Some(@lower.DistinctRows) || dedupe
   let dedupe_key_terms = if dedupe {
-    @lower.kernel_dedupe_key_count(kernel)
+    kernel.map(@lower.kernel_dedupe_key_count).unwrap_or(0)
   } else {
     0
   }
   let dedupe_order_terms = if dedupe {
-    @lower.kernel_dedupe_order_count(kernel)
+    kernel.map(@lower.kernel_dedupe_order_count).unwrap_or(0)
   } else {
     0
   }
@@ -3739,7 +3761,7 @@ fn start_bounded_binding_rows_with_input(
   }
   let mut logical : LogicalBudget? = None
   for context in generated.contexts {
-    if physical_equal(context.kernel, kernel) {
+    if kernel is Some(kernel) && physical_equal(context.kernel, kernel) {
       if logical is Some(_) {
         return Err(InvalidExecution)
       }
@@ -3820,7 +3842,7 @@ fn start_bounded_binding_rows_with_input(
     _ => None
   }
   let lag = if lag_kind {
-    guard @lower.kernel_lag(kernel) is Some((field, output, offset)) else {
+    guard kernel.bind(@lower.kernel_lag) is Some((field, output, offset)) else {
       return Err(InvalidExecution)
     }
     let column = if stepped_metadata {
@@ -3841,7 +3863,8 @@ fn start_bounded_binding_rows_with_input(
     match body {
       None => json_pick.map(@lower.json_pick_column)
       Some(@lower.Watermark(time, _, _, _)) => Some(time)
-      Some(@lower.Lag(_, _)) => @lower.kernel_lag(kernel).map(view => view.0)
+      Some(@lower.Lag(_, _)) =>
+        kernel.bind(@lower.kernel_lag).map(view => view.0)
       _ => None
     }
   } else {
@@ -3863,7 +3886,7 @@ fn start_bounded_binding_rows_with_input(
     }
     Some(view)
   } else if stepped_metadata && distinct && !dedupe {
-    @lower.kernel_distinct_projection(kernel)
+    kernel.bind(@lower.kernel_distinct_projection)
   } else {
     None
   }
@@ -3910,7 +3933,7 @@ fn start_bounded_binding_rows_with_input(
     match body {
       Some(@lower.DistinctRows) => {
         let projection : Map[String, Int] = Map([])
-        match @lower.kernel_distinct_projection(kernel) {
+        match kernel.bind(@lower.kernel_distinct_projection) {
           Some(view) =>
             for field in @lower.projection_fields(view) {
               let output_name = @schema.reference_name(field.output)
@@ -3931,6 +3954,16 @@ fn start_bounded_binding_rows_with_input(
         }
         if projection.length() != output_width {
           return Err(InvalidExecution)
+        }
+        Some(projection)
+      }
+      None if kernel is None => {
+        let projection : Map[String, Int] = Map([])
+        for name in output_names {
+          guard input_ordinals.get(name) is Some(index) else {
+            return Err(InvalidExecution)
+          }
+          projection[name] = index
         }
         Some(projection)
       }
@@ -4005,10 +4038,7 @@ fn start_bounded_binding_rows_with_input(
   }
   let output = match
     prepare_bounded_sequence_admitted_output(
-      generated,
-      @pipeline.Step(step),
-      max_rows,
-      values,
+      generated, target, max_rows, values,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
@@ -4033,7 +4063,7 @@ fn start_bounded_binding_rows_with_input(
   let port_preparation = match
     start_trusted_output_preparation(
       generated_completion_preparation(generated),
-      @pipeline.Step(step),
+      target,
       max_entries,
       max_name_bytes,
       Some([bounded_binding_trusted_input(input)]),
@@ -4064,7 +4094,7 @@ fn start_bounded_binding_rows_with_input(
     distinct,
     dedupe,
     dedupe_kernel: if dedupe {
-      Some(kernel)
+      kernel
     } else {
       None
     },

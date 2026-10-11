@@ -267,7 +267,7 @@ pub fn issue_prepared_client_serialization_prefix_fragment(
       emit_client_task_pipeline_prefix(
         @lower.serialization_owner(barrier),
         step,
-        output,
+        @lower.node_id(output),
         selected,
         Some(step),
         true,
@@ -282,7 +282,7 @@ pub fn issue_prepared_client_serialization_prefix_fragment(
     }
     return issue_client_task_fragment_body(
       @lower.serialization_owner(barrier),
-      step,
+      @pipeline.Step(step),
       selected,
       "task_" + task.to_string() + "_before_serialize_" + step.to_string(),
       wire,

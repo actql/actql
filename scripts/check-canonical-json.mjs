@@ -279,7 +279,7 @@ function fixtures() {
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
     // Independent canonical JSON oracle for the current closed Program schema,
     // including the selected common GoogleSQL scalar function alternatives.
-    cid: 'sha256:d0e009e3e3267605dab2e2ccd0119756adb810c33efb48aa16dee63ee66207d4',
+    cid: 'sha256:21ef0e0f22ca2aefbfb690547dc16dc353acff39bf370e1cbe8b8149f07a77b0',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {

@@ -127,18 +127,17 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
         {from: 'orders', filter: {literal: true}},
         {select: fields, as: 'aql_capture_0'}],
       results: {source: {from: 'aql_capture_0', fields}}},
-      {id: 'aql_cte_0', inputs: {orders: {result: {stage: 'capture', result: 'source'}}},
-        steps: [{from: 'orders', select: ['id', 'amount'], as: 'aql_cte_final'}],
-        results: {rows: {from: 'aql_cte_final', fields: ['id', 'amount']}}},
-      {id: 'main', inputs: {
-        l: {result: {stage: 'aql_cte_0', result: 'rows'}},
-        r: {result: {stage: 'aql_cte_0', result: 'rows'}}},
-      steps: [{from: 'l', join: {with: 'r', kind: 'inner',
+      // Captured JOINs use common Script lowering: one retained Source Result
+      // feeds a single CTE producer used by both sides of the JOIN. Author this
+      // complete machine expectation directly; never copy compiler output.
+      {id: 'main', inputs: {orders: {result: {stage: 'capture', result: 'source'}}},
+      steps: [{from: 'orders', select: ['id', 'amount'], as: 'aql_script_cte_1'},
+      {from: 'aql_script_cte_1', join: {with: 'aql_script_cte_1', kind: 'inner',
         on: [{left: 'id', right: 'id'}], max_output_rows: 1000,
-        select: {id: 'left.id'}}, as: 'aql_join_output'},
-      {from: 'aql_join_output', sort: [{field: 'id', dir: 'asc', nulls: 'first'}],
-        as: 'aql_join_sorted'}],
-      results: {rows: {from: 'aql_join_sorted', fields: ['id']}}}],
+        select: {id: 'left.id'}}, as: 'aql_join_output_3'},
+      {from: 'aql_join_output_3', sort: [{field: 'id', dir: 'asc', nulls: 'first'}],
+        as: 'aql_join_sorted_9'}],
+      results: {rows: {from: 'aql_join_sorted_9', fields: ['id']}}}],
     results: {answer: {from: {stage: 'main', result: 'rows'}}}};
   for (const predicate of ['', ' WHERE amount > 0']) {
     const authored = structuredClone(expected);
@@ -150,6 +149,16 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
       'orders', 'orders', JSON.stringify(input), JSON.stringify(fields),
       'fixture.cte_capture');
     assert.notEqual(wire, '');
-    assert.deepEqual(JSON.parse(wire), authored);
+    const actual = JSON.parse(wire);
+    assert.deepEqual(actual, authored);
+    assert.deepEqual(Object.keys(actual.stages[0].inputs), ['orders']);
+    assert.deepEqual(actual.stages[0].inputs.orders, input);
+    const computation = actual.stages[1];
+    assert.deepEqual(computation.inputs,
+      {orders: {result: {stage: 'capture', result: 'source'}}});
+    const [producer, join] = computation.steps;
+    assert.equal(computation.steps.filter(step => step.from === 'orders').length, 1);
+    assert.equal(join.from, producer.as);
+    assert.equal(join.join.with, producer.as);
   }
 });

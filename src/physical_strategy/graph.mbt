@@ -777,11 +777,10 @@ fn prepare_checked_dag_owned(
     owners: owners.copy(),
     stage_tasks: Array::makei(count, stage => [stage]),
     targets: Array::makei(count, task => {
-      let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
-      if task < captured_prefix || @pipeline.step_count(pipeline) == 0 {
+      if task < captured_prefix {
         None
       } else {
-        Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
+        @lower.preparation_output_target(@lower.bound_preparation(owners[task]))
       }
     }),
     input_counts: Array::makei(count, task => {

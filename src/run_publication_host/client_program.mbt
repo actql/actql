@@ -31,6 +31,7 @@ struct PreparedClientProgram {
   check_environment_cid : String
   source : @syntax.Program
   local_values_max_rows : Int
+  mut local_normalization : ClientLocalNormalization?
 }
 
 ///|
@@ -462,6 +463,43 @@ fn client_task_output_step(
 }
 
 ///|
+/// Resolve a physical output against its checked owner. An empty preparation
+/// has a receiving input port, not a fabricated operation or output node.
+fn client_task_output_target(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+) -> @pipeline.Target? {
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return None
+  }
+  let prepared = @lower.bound_preparation(owner)
+  if @lower.node_count(prepared) == 0 {
+    return @strategy.graph_task_target(graph, task).bind(target => {
+      match target {
+        @pipeline.Input(_) =>
+          @lower.preparation_carrier_at(prepared, target).map(_ => target)
+        _ => None
+      }
+    })
+  }
+  client_task_output_step(graph, task, @lower.node_count(prepared)).map(step => {
+    @pipeline.Step(step)
+  })
+}
+
+///|
+fn client_task_target_port(
+  prepared : @lower.Prepared,
+  target : @pipeline.Target,
+) -> String? {
+  match target {
+    @pipeline.Input(index) =>
+      @pipeline.input_at(@lower.pipeline(prepared), index).map(input => input.0)
+    @pipeline.Step(index) => @lower.node_at(prepared, index).map(@lower.node_id)
+  }
+}
+
+///|
 /// Emit the checked AoA pipeline of one task, including its declared input
 /// ports. A source input remains an input port; this does not claim that its
 /// physical acquisition, barrier, or Run observation has been admitted.
@@ -480,6 +518,25 @@ pub fn emit_prepared_client_task_pipeline(
   let count = @pipeline.step_count(pipeline)
   let selected = @strategy.graph_task_selected_step(value.graph, task)
   let prefix_end = @strategy.graph_task_prefix_end(value.graph, task)
+  if count == 0 {
+    guard client_task_output_target(value.graph, task) is Some(target) &&
+      client_task_target_port(@lower.bound_preparation(owner), target)
+      is Some(port) else {
+      return Err(MissingOutput)
+    }
+    return emit_client_task_pipeline_prefix(
+      owner,
+      -1,
+      port,
+      None,
+      None,
+      false,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    )
+  }
   guard client_task_output_step(value.graph, task, count) is Some(end_step) &&
     @lower.node_at(@lower.bound_preparation(owner), end_step) is Some(output) else {
     return Err(MissingOutput)
@@ -499,7 +556,7 @@ pub fn emit_prepared_client_task_pipeline(
   emit_client_task_pipeline_prefix(
     owner,
     end_step,
-    output,
+    @lower.node_id(output),
     selected,
     prefix_end,
     selected is Some(_) && completed_serialization is None,
@@ -517,7 +574,7 @@ pub fn emit_prepared_client_task_pipeline(
 fn emit_client_task_pipeline_prefix(
   owner : @lower.BoundPrepared,
   end_step : Int,
-  output : @lower.PreparedNode,
+  output : String,
   selected : Int?,
   prefix_end : Int?,
   acquisition_prefix : Bool,
@@ -576,7 +633,7 @@ fn emit_client_task_pipeline_prefix(
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "output")
-    @encode.string_value(writer, @lower.node_id(output))
+    @encode.string_value(writer, output)
     @encode.key(writer, "sources")
     @encode.begin_object(writer)
     for index in 0..<@pipeline.input_count(pipeline) {
@@ -672,7 +729,7 @@ fn emit_client_task_pipeline_prefix(
     let task_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(task_writer)
     @encode.key(task_writer, "output")
-    @encode.string_value(task_writer, @lower.node_id(output))
+    @encode.string_value(task_writer, output)
     @encode.key(task_writer, "sources")
     @encode.begin_object(task_writer)
     if selected is Some(step) {
@@ -1033,19 +1090,13 @@ pub fn issue_prepared_client_task_output_schema(
     return Err(MissingCheckedOutput)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard client_task_output_step(
-      value.graph,
-      task,
-      @pipeline.step_count(@lower.pipeline(prepared)),
-    )
-    is Some(output_step) &&
-    @lower.node_at(prepared, output_step) is Some(node) else {
+  guard client_task_output_target(value.graph, task) is Some(target) &&
+    @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(MissingCheckedOutput)
   }
-  @execution.identify_relation_schema(
-    @lower.node_output_schema(node),
-    schema_limits,
-  ).map_err(issue => Identity(issue))
+  @execution.identify_relation_schema(schema, schema_limits).map_err(issue => {
+    Identity(issue)
+  })
 }
 
 ///|
@@ -1216,20 +1267,23 @@ fn prepare_client_task_sequence_graph(
         Err(issue) => return Err(Sequence(issue))
       }
   }
-  let count = @lower.sequence_count(sequence)
-  if count == 0 {
+  guard client_task_output_target(graph, task) is Some(target) else {
     return Err(EmptyTask)
   }
-  guard client_task_output_step(graph, task, count) is Some(last_step) &&
-    @lower.node_at(@lower.bound_preparation(owner), last_step) is Some(last) else {
-    return Err(EmptyTask)
+  // Physical retained IDs and authored AoA source names are distinct domains.
+  let id = match target {
+    @pipeline.Input(index) =>
+      @lower.input_id(@lower.bound_preparation(owner), index)
+    @pipeline.Step(index) =>
+      @lower.node_at(@lower.bound_preparation(owner), index).map(@lower.node_id)
   }
+  guard id is Some(id) else { return Err(EmptyTask) }
   match
     @execution.prepare_generated_sequence(
       contracts,
       sequence,
       contexts,
-      [@lower.node_id(last)],
+      [id],
       max_work,
       max_entries,
     ) {
@@ -1351,6 +1405,7 @@ pub fn prepare_parsed_effect_free_client_program(
         graph,
         check_environment_cid: @checked.checking_environment_cid(environment),
         source: parsed,
+        local_normalization: None,
         local_values_max_rows: client_standard_values_sequence_limits().max_rows,
       })
     Err(issue) => Err(Graph(issue))

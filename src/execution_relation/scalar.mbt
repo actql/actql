@@ -319,6 +319,7 @@ pub fn binary(
       } else {
         Err(InvalidOperand)
       }
+    RoundAt | TruncAt => decimal_round_binary(op, left, right)
     In | NotIn => {
       let items = match right {
         Null => return Ok(Boolean(op == @lower.NotIn))
@@ -382,6 +383,8 @@ pub fn binary(
         | NullIf
         | In
         | NotIn
+        | RoundAt
+        | TruncAt
         | TrimSet
         | LTrimSet
         | RTrimSet
@@ -460,6 +463,8 @@ fn binary_comparison_result(
     | Modulo
     | In
     | NotIn
+    | RoundAt
+    | TruncAt
     | TrimSet
     | LTrimSet
     | RTrimSet

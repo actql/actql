@@ -599,6 +599,97 @@ pub fn installed_capture_capacity_values(
 }
 
 ///|
+/// Plan the single installed buffered Source and its retained Compute suffix
+/// before acquisition. The same checked graph, generated sequences and store
+/// inventory used by the Compute Host determine this allowance. It confers
+/// neither Source permission nor a reservation on an existing ledger.
+pub fn single_captured_local_ledger_limits(
+  prepared : @publication_host.PreparedClientProgram,
+  selected : @duckdb_host.NativeHostConfiguration,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.LedgerLimits? {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  if @strategy.graph_captured_prefix(graph) != 1 || count < 2 || count > 32 {
+    return None
+  }
+  guard prepare_local_query_requirement(
+      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Ok(requirement) &&
+    @planning.query_requirement_cid(requirement) ==
+    @planning.query_requirement_cid(
+      @duckdb_host.configured_capture_requirement(
+        @duckdb_host.native_capture_configuration(selected),
+      ),
+    ) &&
+    @duckdb_host.configured_native_capacity(selected) is Some(native) &&
+    prepare_client_local_sequences(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(sequences) else {
+    return None
+  }
+  let compute = []
+  for task in 1..<sequences.length() {
+    compute.push(sequences[task])
+  }
+  let inputs = Array::make(compute.length(), 0)
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    let consumer = @strategy.data_edge_consumer(edge) - 1
+    if consumer >= 0 && consumer < inputs.length() {
+      inputs[consumer] += 1
+    }
+  }
+  guard client_local_sequence_capacity(
+      compute,
+      count,
+      retained_inputs=Some(inputs),
+      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+    )
+    is Some((limits, _, _)) else {
+    return None
+  }
+  single_captured_capacity_limits(
+    limits,
+    (native.retained_bytes, native.execution_bytes),
+  )
+}
+
+///|
+fn single_captured_capacity_limits(
+  compute : @resources.LedgerLimits,
+  native : (Int64, Int64),
+) -> @resources.LedgerLimits? {
+  // Keep the existing finite Local inventory ceiling. The Native receiver
+  // remains live beside all completed outputs; it is not a substitute for
+  // the suffix's import/output allowance.
+  let ceiling = 536870912L
+  if native.0 < 0L ||
+    native.1 < 0L ||
+    native.1 > ceiling ||
+    compute.retained_bytes < 0L ||
+    compute.retained_bytes > ceiling ||
+    native.0 > ceiling - compute.retained_bytes ||
+    compute.execution_bytes < 0L ||
+    compute.execution_bytes > ceiling {
+    return None
+  }
+  Some({
+    ..compute,
+    retained_bytes: compute.retained_bytes + native.0,
+    // Keep the installed execution ceiling. The Root still admits each
+    // overlapping Native/Compute reservation and the live physical workspace;
+    // this inventory does not certify that every execution envelope fits.
+    execution_bytes: compute.execution_bytes,
+  })
+}
+
+///|
 pub fn installed_duckdb_capture_capacity(
   selected : @duckdb_host.CaptureConfiguration,
 ) -> ClientInstalledCaptureCapacity? {

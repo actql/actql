@@ -52,7 +52,12 @@ pub fn start_completed_output_export(
     return Err(Unavailable)
   }
   guard source.table is Some(table) else { return Err(NotCellRepresentation) }
-  guard source.target is Step(_) else { return Err(InvalidTarget) }
+  guard admitted_relation_output_target(
+    @lower.sequence_owner(source.completion.sequence),
+    source.target,
+  ) else {
+    return Err(InvalidTarget)
+  }
   let rows : CompletedExportRows = {
     table,
     schema: completed_output_relation_schema(source),

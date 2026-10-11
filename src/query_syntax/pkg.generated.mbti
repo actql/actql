@@ -422,7 +422,9 @@ pub(all) struct NearestClause {
 
 pub(all) struct PivotClause {
   function_name : String
+  count_star : Bool
   argument : Array[NamePart]
+  argument_expression : Expression?
   column : Array[NamePart]
   prefix : NamePart?
   values : Array[(String, NamePart?)]
@@ -560,10 +562,16 @@ type Tokens
 
 pub(all) struct UnpivotClause {
   columns : Array[NamePart]
+  row_labels : Array[UnpivotRowLabel?]
   value_column : NamePart
   name_column : NamePart
   include_nulls : Bool
 }
+
+pub(all) enum UnpivotRowLabel {
+  TextLabel(String)
+  IntegerLabel(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct UpdateEffectClause {
   name : NamePart
