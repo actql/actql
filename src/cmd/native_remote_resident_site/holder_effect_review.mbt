@@ -189,8 +189,9 @@ fn holder_effect_current_task(
 fn execute_holder_effect_resume(
   task : HolderTaskCustody,
   body : String,
-  configuration : @effect_review.NativeResidentEffectResumeConfiguration,
+  installation : @effect_review.NativeResidentEffectCloudResumeInstallation,
   control : @effect_review.NativeEffectCloudCurrentRead,
+  reviewer_control : @effect_review.NativeEffectCloudCurrentRead,
   current_site : () -> Bool,
 ) -> Bool {
   let current = () => {
@@ -203,8 +204,8 @@ fn execute_holder_effect_resume(
     return false
   }
   match
-    review.execute_remote_approved_row_with_cloud_current(
-      body, configuration, control, current,
+    review.execute_remote_approved_row_with_cloud_reviewer(
+      body, installation, control, reviewer_control, current,
     ) {
     Ok(_) => {
       report("effect-row-settled", [
@@ -227,6 +228,21 @@ fn execute_holder_effect_resume(
 /// observations channel. A candidate delivery supplies no endpoint or origin.
 /// A nonstandard URL has no inferred fallback and keeps the original pending.
 fn holder_effect_resume_current_url(observation_url : String) -> String? {
+  holder_effect_control_read_url(observation_url, "effect-resume-current")
+}
+
+///|
+fn holder_effect_reviewer_current_url(observation_url : String) -> String? {
+  holder_effect_control_read_url(
+    observation_url, "effect-resume-reviewer-current",
+  )
+}
+
+///|
+fn holder_effect_control_read_url(
+  observation_url : String,
+  operation : String,
+) -> String? {
   let suffix = "/outbound/observations"
   if !observation_url.has_prefix("https://") ||
     !observation_url.has_suffix(suffix) {
@@ -237,7 +253,8 @@ fn holder_effect_resume_current_url(observation_url : String) -> String? {
       start=0,
       end=observation_url.length() - suffix.length(),
     ) +
-    "/outbound/effect-resume-current",
+    "/outbound/" +
+    operation,
   )
 }
 
@@ -261,7 +278,7 @@ fn holder_effect_resume_query_id(
 /// computation with no installed Review never acquires a Result identity here.
 fn holder_result_output(
   task : HolderTaskCustody,
-  configuration : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectResumeConfiguration?,
+  configuration : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation?,
   authorize_evidence_read : () -> Bool,
 ) -> @resident_host.ResidentExecuted? {
   if task.released || task.release_requested {

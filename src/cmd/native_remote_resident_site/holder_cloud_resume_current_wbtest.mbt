@@ -29,3 +29,29 @@ test "holder Cloud Resume challenges distinguish same-clock reads without changi
     assert_eq(holder_effect_resume_query_id(dispatch, clock, sequence), None)
   }
 }
+
+///|
+test "holder Reviewer context uses the same installed TLS Site path as the old claim read" {
+  let scope = "https://cloud.example/v1/sites/site-a/generations/4"
+  assert_eq(
+    holder_effect_reviewer_current_url(scope + "/outbound/observations"),
+    Some(scope + "/outbound/effect-resume-reviewer-current"),
+  )
+  assert_eq(
+    holder_effect_resume_current_url(scope + "/outbound/observations"),
+    Some(scope + "/outbound/effect-resume-current"),
+  )
+  for
+    suffix in [
+      "/outbound/poll", "/outbound/observations?alternate=1", "/outbound/observations#alternate",
+      "/outbound/observations/",
+    ] {
+    assert_eq(holder_effect_reviewer_current_url(scope + suffix), None)
+  }
+  assert_eq(
+    holder_effect_reviewer_current_url(
+      "http://cloud.example/outbound/observations",
+    ),
+    None,
+  )
+}
