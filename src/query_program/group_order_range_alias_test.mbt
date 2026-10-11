@@ -113,7 +113,7 @@ test "GROUP ORDER alias receiver shadows a same-named range in a complete indepe
 ///|
 test "GROUP ORDER preserves a nonshadowed range and rejects missing alias properties" {
   let source = group_order_range_alias_source("original.score NULLS LAST").replace(
-    "objects AS payload",
+    old="objects AS payload",
     new="objects AS original",
   )
   let actual = compile(
