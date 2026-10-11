@@ -214,9 +214,10 @@ pub fn bind_effect_results(
       field: None,
     })
   }
-  let program = match @parameters.complete_program(
-    @parameters.operations_source(operations(checked)),
-  ) {
+  let program = match
+    @parameters.complete_program(
+      @parameters.operations_source(operations(checked)),
+    ) {
     Some(program) => program
     None =>
       return Err({
