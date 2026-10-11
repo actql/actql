@@ -2648,8 +2648,7 @@ fn serve_holder_output(
   effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
     None
   },
-  effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
-  effect_review_publication? : (@remote.DispatchRequest) -> HolderEffectReviewPublication? = _ => {
+  effect_host_admission? : (HolderEffectOriginalPolicyContext) -> HolderEffectHostAdmission? = _ => {
     None
   },
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
@@ -2681,6 +2680,22 @@ fn serve_holder_output(
     effect_producer~,
   )
   tasks.set(identity, original)
+  let evidence_allowed = (
+    task : HolderTaskCustody,
+    purpose : HolderEffectEvidencePurpose,
+  ) => {
+    guard holder_effect_original_policy_context(
+        task,
+        tasks,
+        environment.journal,
+      )
+      is Some(context) else {
+      return false
+    }
+    holder_effect_evidence_allowed(
+      context, resources, purpose, effect_host_admission,
+    )
+  }
   if holder_effect_computation(original, environment.journal) is Some(_) {
     report("effect-computation-custody-retained", [("request_cid", identity)])
   }
@@ -2732,7 +2747,7 @@ fn serve_holder_output(
             }
             let current_authority = () => {
               exclusive_current() &&
-              effect_evidence_read(task.request) &&
+              evidence_allowed(task, Read) &&
               @resident.check_resident_dispatch_delegation(
                 delegation,
                 task.request,
@@ -2759,8 +2774,8 @@ fn serve_holder_output(
                 environment.journal,
                 resources,
                 effect_catalog_review,
-                effect_review_publication,
                 current_authority,
+                () => current_authority() && evidence_allowed(task, Publication),
               ),
             )
           }
@@ -2835,9 +2850,15 @@ fn serve_holder_output(
           match poll {
             Ok(query) => {
               let selected = @remote.remote_poll_effect_current_request(query)
+              guard holder_effect_current_task(tasks, selected) is Some(task) else {
+                report("effect-current-pending", [
+                  ("reason", "review-owner-unavailable"),
+                ])
+                continue
+              }
               let current_authority = () => {
                 exclusive_current() &&
-                effect_evidence_read(selected) &&
+                evidence_allowed(task, Read) &&
                 @resident.check_resident_dispatch_delegation(
                   delegation,
                   selected,
@@ -2845,8 +2866,7 @@ fn serve_holder_output(
                 )
                 is Ok(_)
               }
-              guard current_authority() &&
-                holder_effect_current_task(tasks, selected) is Some(task) else {
+              guard current_authority() else {
                 report("effect-current-pending", [
                   ("reason", "review-owner-unavailable"),
                 ])
@@ -3058,16 +3078,19 @@ fn serve_holder_output(
                             environment.journal,
                             resources,
                             effect_catalog_review,
-                            effect_review_publication,
                             () => {
                               exclusive_current() &&
-                              effect_evidence_read(task.request) &&
+                              evidence_allowed(task, Read) &&
                               @resident.check_resident_dispatch_delegation(
                                 delegation,
                                 task.request,
                                 @site.site_generation(environment.site),
                               )
                               is Ok(_)
+                            },
+                            () => {
+                              exclusive_current() &&
+                              evidence_allowed(task, Publication)
                             },
                           ),
                         )
@@ -3461,7 +3484,7 @@ fn serve_holder_output(
                 !output_task.release_requested &&
                 holder_result_output(output_task, effect_resume_installation, () => {
                   exclusive_current() &&
-                  effect_evidence_read(output_task.request) &&
+                  evidence_allowed(output_task, Read) &&
                   @resident.check_resident_dispatch_delegation(
                     delegation,
                     output_task.request,
@@ -3529,7 +3552,7 @@ fn serve_holder_output(
                 !output_task.release_requested &&
                 holder_result_output(output_task, effect_resume_installation, () => {
                   exclusive_current() &&
-                  effect_evidence_read(output_task.request) &&
+                  evidence_allowed(output_task, Read) &&
                   @resident.check_resident_dispatch_delegation(
                     delegation,
                     output_task.request,
@@ -4077,12 +4100,6 @@ fn run_holder(
   // observation times. It is installed on the first exact Resume, not made a
   // prerequisite of the independently authorized Source start claim.
   let effect_resume : Ref[HolderEffectResumeInstallation?] = Ref(None)
-  let effect_review = holder_effect_review_callbacks(
-    matches,
-    environment.sqlite_library,
-    resources,
-    execution.limits.output.output_export,
-  )
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
   let saved_completion = match environment.journal.dispatch_envelope(attempt) {
@@ -4179,8 +4196,26 @@ fn run_holder(
         observer,
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
-        effect_catalog_review=effect_review.catalog,
-        effect_review_publication=effect_review.publication,
+        effect_catalog_review=original => {
+          open_holder_effect_review_installation(
+            matches,
+            environment.sqlite_library,
+            resources,
+            execution.limits.output.output_export,
+            original,
+          ) catch {
+            CommandStop(_) => {
+              report("effect-review-pending", [
+                (
+                  "request_cid",
+                  @remote.dispatch_request_identity(original.task.request),
+                ),
+                ("reason", "review-installation"),
+              ])
+              None
+            }
+          }
+        },
         effect_resume_installation=request => {
           if effect_resume.val is None {
             let installed = open_holder_effect_resume_installation(

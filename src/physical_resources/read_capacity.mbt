@@ -72,6 +72,26 @@ pub fn capacity_reservation_open(reservation : CapacityReservation) -> Bool {
 }
 
 ///|
+// Check an exact previously admitted byte-only token without exposing its
+// mutable inner reservation or creating transfer/quantity/send authority.
+pub fn capacity_reservation_matches(
+  ledger : Ledger,
+  reservation : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  let token = reservation.reservation
+  physical_equal(ledger, token.owner) &&
+  token.open &&
+  !token.cleanup_pending &&
+  token.retention == retained_bytes &&
+  token.execution == execution_bytes &&
+  token.transfer == 0L &&
+  token.quantities is None &&
+  token.uncertain_quantities is None
+}
+
+///|
 /// Call only on the existing owner's confirmed physical cleanup path. A
 /// cancellation request or logical read completion is not that acknowledgement.
 pub fn settle_capacity(

@@ -19,6 +19,8 @@ priv enum TextFunctionKind {
   TextReverse
   TextRepeat
   TextStrpos
+  TextTranslate
+  TextInstr
   TextReplace
   TextSplit
   TextSubstring
@@ -79,6 +81,13 @@ priv struct TextFunctionState {
   mut preceding_cased : Bool
   mut probing_sigma : Bool
   mut probe_position : Int
+  instr_position : Double
+  instr_occurrence : Double
+  mut instr_phase : Int
+  mut instr_remaining : Int
+  mut translate_validated : Bool
+  mut translate_outer : Int
+  mut translate_inner : Int
   trim_explicit : Bool
   mut substring_phase : Int
   mut substring_start : Int64
@@ -106,11 +115,17 @@ fn start_text_function(
       Null => null_result = true
       Text(_) if kind != TextChr &&
         (
-          (!is_slice_text_function(kind) && kind != TextRepeat) ||
+          (
+            !is_slice_text_function(kind) &&
+            kind != TextRepeat &&
+            kind != TextInstr
+          ) ||
+          (kind == TextInstr && i < 2) ||
           i == 0 ||
           (is_pad_text_function(kind) && i == 2)
         ) => ()
       Number(_) if kind == TextChr ||
+        (kind == TextInstr && i >= 2) ||
         (kind == TextSubstring && i > 0) ||
         ((is_slice_text_function(kind) || kind == TextRepeat) && i == 1) => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
@@ -152,6 +167,26 @@ fn start_text_function(
     }
   } else {
     None
+  }
+  let mut instr_position = 1.0
+  let mut instr_occurrence = 1.0
+  if kind == TextInstr && !null_result {
+    if values.get(2) is Some(value) {
+      guard value is Number(number) &&
+        @scalar.read_integer_number(number) is Some(position) &&
+        position != 0.0 else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      instr_position = position
+    }
+    if values.get(3) is Some(value) {
+      guard value is Number(number) &&
+        @scalar.read_integer_number(number) is Some(occurrence) &&
+        occurrence > 0.0 else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      instr_occurrence = occurrence
+    }
   }
   let mut substring_start = 0L
   let mut substring_end = 9007199254740991L
@@ -206,6 +241,7 @@ fn start_text_function(
     kind != TextByteLength &&
     kind != TextUnicode &&
     kind != TextStrpos &&
+    kind != TextInstr &&
     !null_result &&
     scope is Some(scope) {
     let budget = scope.budget
@@ -255,18 +291,22 @@ fn start_text_function(
       }
     } else if kind == TextReplace ||
       kind == TextStrpos ||
+      kind == TextTranslate ||
+      kind == TextInstr ||
       (is_trim_text_function(kind) && values.length() == 2) {
       text(values[1])
     } else {
       ""
     },
-    replacement: if kind == TextReplace {
+    replacement: if kind == TextReplace || kind == TextTranslate {
       text(values[2])
     } else {
       ""
     },
     output_root,
     reserved: if kind == TextReplace ||
+      kind == TextTranslate ||
+      kind == TextInstr ||
       kind == TextRepeat ||
       is_slice_text_function(kind) {
       values.length() * 3 + 3
@@ -291,6 +331,13 @@ fn start_text_function(
     preceding_cased: false,
     probing_sigma: false,
     probe_position: 0,
+    instr_position,
+    instr_occurrence,
+    instr_phase: 0,
+    instr_remaining: 0,
+    translate_validated: false,
+    translate_outer: 0,
+    translate_inner: 0,
     trim_explicit: is_trim_text_function(kind) && values.length() == 2,
     substring_phase: if is_slice_text_function(kind) {
       1
@@ -454,6 +501,12 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.kind == TextInstr {
+    return advance_instr_function(state)
+  }
+  if state.kind == TextTranslate && !state.translate_validated {
+    return advance_translate_validation(state)
   }
   if state.substring_phase == 1 {
     if state.position == state.input.length() {
@@ -732,6 +785,9 @@ fn advance_text_function(
     state.probing_sigma = false
     state.probe_position = 0
     return Ok(None)
+  }
+  if state.kind == TextTranslate {
+    return advance_translate_scalar(state)
   }
   if state.kind == TextReverse {
     guard text_function_previous_scalar(state.input, state.position)
