@@ -93,9 +93,20 @@ test "portable Result binding requires original EOF evidence and physical identi
   assert_true(bind(19, "0".repeat(64), 100000) is Err(Output(ForeignMaterial)))
   assert_true(
     parent.issue_durable_binding(
-      run, run, retention, "sha256:" + "b".repeat(64),
-      "sha256:" + "c".repeat(64), 19, digest, 100000, 10000, 100,
-    ) is Err(DurableBinding(@publication.DurableBindingWrongContract("run_invocation"))),
+      run,
+      run,
+      retention,
+      "sha256:" + "b".repeat(64),
+      "sha256:" + "c".repeat(64),
+      19,
+      digest,
+      100000,
+      10000,
+      100,
+    )
+    is Err(
+      DurableBinding(@publication.DurableBindingWrongContract("run_invocation"))
+    ),
   )
   assert_true(bind(19, digest, 1) is Err(DurableBinding(_)))
   let binding = bind(19, digest, 100000).unwrap()
