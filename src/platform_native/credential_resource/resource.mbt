@@ -291,7 +291,17 @@ fn native_credential_grant_revoked(
   service : NativeCredentialResourceService,
   grant_cid : String,
 ) -> Result[Bool, NativeCredentialResourceIssue] {
-  match service.database.read(revocation_scope(), grant_cid) {
+  read_credential_grant_revocation(service.database, grant_cid)
+}
+
+///|
+// Shared original-journal observation. A read-only recovery does not install
+// a transport client or acquire another credential use to inspect revocation.
+fn read_credential_grant_revocation(
+  database : @sqlite.Database,
+  grant_cid : String,
+) -> Result[Bool, NativeCredentialResourceIssue] {
+  match database.read(revocation_scope(), grant_cid) {
     Err(@sqlite.NotFound) => Ok(false)
     Err(issue) => Err(Journal(issue))
     Ok(value) =>
@@ -418,12 +428,17 @@ fn observe_trusted_clock(
   service : NativeCredentialResourceService,
 ) -> Result[Int64, NativeCredentialResourceIssue] {
   let observed = (service.clock)()
+  observe_credential_journal_clock(service.database, observed)
+}
+
+///|
+fn observe_credential_journal_clock(
+  database : @sqlite.Database,
+  observed : Int64,
+) -> Result[Int64, NativeCredentialResourceIssue] {
   match
     @trusted_clock.advance_lower_bound(
-      service.database,
-      "credential-clock-v1",
-      "host-lower-bound",
-      observed,
+      database, "credential-clock-v1", "host-lower-bound", observed,
     ) {
     Ok(value) => Ok(value)
     Err(@trusted_clock.Rollback) | Err(@trusted_clock.InvalidConfiguration) =>
@@ -911,7 +926,19 @@ fn query_native_owned_credential_use(
     }) {
     return Err(AccessDenied)
   }
-  let outcome = match service.database.read(outcome_scope(grant_cid), use_id) {
+  read_credential_use_outcome(service.database, grant_cid, use_id, use_cid)
+}
+
+///|
+// The existing outcome reader is shared by transport-backed query and
+// original raw recovery. Absence preserves claimed; it never proves unsent.
+fn read_credential_use_outcome(
+  database : @sqlite.Database,
+  grant_cid : String,
+  use_id : String,
+  use_cid : String,
+) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue] {
+  let outcome = match database.read(outcome_scope(grant_cid), use_id) {
     Err(@sqlite.NotFound) =>
       return Ok({ use_cid, outcome: "claimed", status: None, })
     Err(issue) => return Err(Journal(issue))
@@ -946,8 +973,17 @@ fn read_owned_credential_use(
   grant : NativeOwnedCredentialGrant,
   use_id : String,
 ) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
+  read_owned_credential_use_record(service.database, grant, use_id)
+}
+
+///|
+fn read_owned_credential_use_record(
+  database : @sqlite.Database,
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
   let grant_cid = owned_credential_grant_cid(grant)
-  let use_record = match service.database.read(use_scope(grant_cid), use_id) {
+  let use_record = match database.read(use_scope(grant_cid), use_id) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }

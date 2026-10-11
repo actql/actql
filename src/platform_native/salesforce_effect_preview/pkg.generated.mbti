@@ -55,6 +55,8 @@ pub fn retain_native_salesforce_named_catalog_response(@publication_store.Store,
 
 pub fn retry_native_salesforce_catalog_custody(@publication_store.EffectCatalogCustody, () -> Bool) -> Result[(@publication_store.EffectCatalogCustody, @publication_store.NativeEffectCatalogResponse), NativeSalesforceCatalogCustodyFailure]
 
+pub fn upload_native_resident_original_review_projection(@remote_resident_host.ResidentEffectReviewInputContext, @remote_journal.Journal, @publication_store.Store, String, @signature.Library, Bytes, @checkpoint_runtime.WireLimits, @http_client.Client, String, String, () -> Bool) -> Result[Unit, NativeResidentEffectReviewUploadIssue]
+
 pub fn visit_native_effect_target_requests(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, () -> Bool, (Int, @catalog.SingleWriteRequest) -> Result[Unit, NativeResidentEffectTargetIssue]) -> Result[Int, NativeResidentEffectTargetIssue]
 
 // Errors
@@ -408,6 +410,7 @@ pub(all) enum NativeResidentEffectReviewPublicationIssue {
 
 pub(all) enum NativeResidentEffectReviewUploadIssue {
   Review(NativeResidentEffectReviewIssue)
+  OriginalReview(@remote_resident_host.ResidentEffectOriginalReviewIssue)
   Report(@remote_client.NativeRemoteClientIssue)
   Http(@http_client.NativeHttpIssue)
   HttpStatus(Int)

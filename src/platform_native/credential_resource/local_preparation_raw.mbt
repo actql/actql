@@ -157,6 +157,36 @@ pub fn query_native_local_preparation_raw_observation(
     is (Some(raw), PreparationUse(admitted_use)) else {
     return Err(InvalidConfiguration)
   }
+  let observation = match
+    read_retained_preparation_raw_observation(raw, grant, admitted_use, status) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    authorize_original_raw_return(
+      service,
+      original_grant,
+      original_use,
+      original_scope,
+      Some(current),
+    ) {
+    Ok(_) => Ok({ original_use: status, observation, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+// One retained Store reader for both live and restarted credential queries.
+// This only restores existing reservations and encrypted original bytes.
+fn read_retained_preparation_raw_observation(
+  raw : NativeLocalPreparationRawStore,
+  grant : @credential.LocalPreparationCredentialGrant,
+  admitted_use : @credential.LocalPreparationCredentialUse,
+  status : NativeCredentialUseStatus,
+) -> Result[
+  @publication.NativeLocalPreparationRawObservation,
+  NativeCredentialResourceIssue,
+] {
   let custody = match
     raw.store.restore_local_preparation_raw_observation(
       grant,
@@ -175,15 +205,5 @@ pub fn query_native_local_preparation_raw_observation(
     (status.status is Some(saved) && saved != observation.status) {
     return Err(Journal(@sqlite.Collision))
   }
-  match
-    authorize_original_raw_return(
-      service,
-      original_grant,
-      original_use,
-      original_scope,
-      Some(current),
-    ) {
-    Ok(_) => Ok({ original_use: status, observation, })
-    Err(issue) => Err(issue)
-  }
+  Ok(observation)
 }

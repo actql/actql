@@ -159,6 +159,17 @@ pub fn Store::restore_effect_checkpoint_custody(
 }
 
 ///|
+pub fn Store::restore_confirmed_effect_checkpoint_custody(
+  _self : Store,
+  _checkpoint : @checkpoint.SealedCheckpoint,
+  _store_authority : String,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn EffectCheckpointCustody::persist(
   _self : EffectCheckpointCustody,
 ) -> Result[Unit, NativePublicationStoreIssue] {

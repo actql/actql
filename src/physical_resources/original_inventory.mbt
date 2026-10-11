@@ -1,0 +1,230 @@
+///|
+// Finite private custody on the existing Ledger, not another registry owner.
+// The bootstrap pays for all backing/control/snapshots for the original Run.
+// Bounds alone do not establish those byte coefficients or public adoption.
+priv struct LedgerOriginalInventory {
+  identity : OriginalLedgerIdentity
+  bootstrap : CapacityReservation
+  max_reservations : Int
+  max_holdings : Int
+  max_delegations : Int
+  reservations : Array[Reservation]
+  holdings : Array[Holding]
+  delegations : Array[ExecutionDelegation]
+  mut descriptor_issued : Bool
+  mut read_claimed : Bool
+  mut closing : Bool
+}
+
+///|
+// A private-constructor identity for the census installed before any child.
+// The checked Run owner binds this token to its original Run and Host.
+struct OriginalLedgerIdentity {
+  ledger : Ledger
+  bootstrap : CapacityReservation
+}
+
+///|
+// Register before the first ordinary resource token, including zero bytes.
+// A spent/settled token cannot be erased by installing a census afterwards.
+pub fn begin_original_ledger_inventory(
+  ledger : Ledger,
+  bootstrap : CapacityReservation,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
+  if ledger.original_inventory is Some(_) ||
+    !original_read_bootstrap_available(ledger, bootstrap) ||
+    bootstrap.reservation.serial != -1 ||
+    ledger.next_capacity_serial != Some(-2) {
+    return Err(InvalidBootstrap)
+  }
+  let usage = ledger.usage
+  if usage.planning_work != 0 ||
+    usage.attempts != 0 ||
+    usage.holdings != 0 ||
+    usage.transferred_bytes != 0L ||
+    usage.uncertain_transfer_bytes != 0L ||
+    usage.reserved_transfer_bytes != 0L ||
+    usage.held_bytes != 0L ||
+    usage.reserved_retention_bytes != bootstrap.reservation.retention ||
+    usage.reserved_execution_bytes != bootstrap.reservation.execution ||
+    usage.peak_retention_bytes != bootstrap.reservation.retention ||
+    ledger.delegated_planning != 0 ||
+    ledger.delegated_attempts != 0 ||
+    ledger.delegated_holdings != 0 ||
+    ledger.quantity_usage !=
+    {
+      reserved: zero_quantities(),
+      uncertain: zero_quantities(),
+      consumed: zero_quantities(),
+    } {
+    return Err(ChangedOriginalState)
+  }
+  if max_reservations < 0 ||
+    max_holdings < 0 ||
+    max_delegations < 0 ||
+    max_holdings > 2147483647 - max_reservations ||
+    max_delegations > 2147483647 - max_reservations - max_holdings {
+    return Err(IncompleteInventory)
+  }
+  let identity : OriginalLedgerIdentity = { ledger, bootstrap, }
+  ledger.original_inventory = Some({
+    identity,
+    bootstrap,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    reservations: [],
+    holdings: [],
+    delegations: [],
+    descriptor_issued: false,
+    read_claimed: false,
+    closing: false,
+  })
+  Ok(identity)
+}
+
+///|
+fn check_original_inventory_open(
+  value : LedgerOriginalInventory,
+) -> Result[Unit, LedgerIssue] {
+  if value.closing || !capacity_reservation_open(value.bootstrap) {
+    Err(ClosedReservation)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn check_original_reservation_slot(
+  ledger : Ledger,
+) -> Result[Unit, LedgerIssue] {
+  guard ledger.original_inventory is Some(value) else { return Ok(()) }
+  match check_original_inventory_open(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.reservations.length() >= value.max_reservations {
+    Err(RetentionLimit)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn check_original_holding_slot(ledger : Ledger) -> Result[Unit, LedgerIssue] {
+  guard ledger.original_inventory is Some(value) else { return Ok(()) }
+  match check_original_inventory_open(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.holdings.length() >= value.max_holdings {
+    Err(RetentionLimit)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn check_original_delegation_slot(ledger : Ledger) -> Result[Unit, LedgerIssue] {
+  guard ledger.original_inventory is Some(value) else { return Ok(()) }
+  match check_original_inventory_open(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.delegations.length() >= value.max_delegations {
+    Err(RetentionLimit)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn record_original_reservation(ledger : Ledger, value : Reservation) -> Unit {
+  if ledger.original_inventory is Some(inventory) {
+    inventory.reservations.push(value)
+  }
+}
+
+///|
+fn record_original_holding(ledger : Ledger, value : Holding) -> Unit {
+  if ledger.original_inventory is Some(inventory) {
+    inventory.holdings.push(value)
+  }
+}
+
+///|
+fn record_original_delegation(
+  ledger : Ledger,
+  value : ExecutionDelegation,
+) -> Unit {
+  if ledger.original_inventory is Some(inventory) {
+    inventory.delegations.push(value)
+  }
+}
+
+///|
+pub fn[T] issue_recorded_original_ledger_descriptor(
+  identity : OriginalLedgerIdentity,
+  origin : T,
+) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue] {
+  let ledger = identity.ledger
+  let bootstrap = identity.bootstrap
+  guard ledger.original_inventory is Some(value) &&
+    physical_equal(identity, value.identity) &&
+    !value.closing else {
+    return Err(IncompleteInventory)
+  }
+  if value.descriptor_issued {
+    return Err(SpentClaim)
+  }
+  let descriptor = match
+    issue_original_ledger_descriptor(
+      ledger,
+      origin,
+      bootstrap,
+      value.reservations,
+      value.holdings,
+      value.delegations,
+      value.max_reservations + value.max_holdings + value.max_delegations,
+    ) {
+    Ok(descriptor) => descriptor
+    Err(issue) => return Err(issue)
+  }
+  value.descriptor_issued = true
+  Ok(descriptor)
+}
+
+///|
+// The same Run's final owning cleanup performs this after child cleanup. A
+// read child cannot return census/bootstrap capacity while another child or
+// original allocation is still alive. Unknown quantities are never zeroed.
+pub fn finish_original_ledger_inventory(
+  ledger : Ledger,
+  physical_cleanup_complete : Bool,
+) -> Result[Bool, OriginalReadIssue] {
+  guard ledger.original_inventory is Some(value) else { return Err(SpentClaim) }
+  value.closing = true
+  if !physical_cleanup_complete ||
+    value.reservations.any(token => token.open) ||
+    value.holdings.any(token => token.live) ||
+    value.delegations.any(token => token.reservation.open) {
+    return Ok(false)
+  }
+  match reservation_check(ledger, value.bootstrap.reservation) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  value.reservations.clear()
+  value.reservations.shrink_to_fit()
+  value.holdings.clear()
+  value.holdings.shrink_to_fit()
+  value.delegations.clear()
+  value.delegations.shrink_to_fit()
+  ledger.original_inventory = None
+  settle_capacity(ledger, value.bootstrap)
+  .map(_ => true)
+  .map_err(issue => Resource(issue))
+}

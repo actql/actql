@@ -459,41 +459,53 @@ fn NativeLocalCredentialIssuerBinding::lookup_grant_original(
     if @host.client_request_authority_scope_cid(request) != self.scope {
       return Err(ForeignRun)
     }
-    match self.host.journal.retained(request) {
-      Ok(Some(_)) => ()
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    match self.host.local_grant_custody(self.crypto) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    let key = match
-      local_grant_original_key(self.crypto, request, reference.operation_id) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let row = match
-      self.host.database.read("client_local_grant_originals", key) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => return Ok(None)
-      Err(issue) => return Err(Physical(issue))
-    }
-    let original = match
-      read_local_grant_original(self.crypto, {
-        key,
-        body: row.body,
-        revision: row.revision,
-      }) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if original.operation_cid != self.operation_cid ||
-      original.issuer_selection_cid != self.file.content_cid {
-      return Err(ChangedIntent)
-    }
-    Ok(Some(original))
+    self.host.lookup_local_grant_original_locked(self.crypto, reference)
   })
+}
+
+///|
+// Shared custody read under the existing Run journal transaction. Authorization
+// remains with the calling issuer or raw-read operation, not this record reader.
+fn NativeLocalHostConnection::lookup_local_grant_original_locked(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  reference : NativeLocalGrantOriginal,
+) -> Result[NativeLocalGrantOriginal?, NativeClientRunJournalIssue] {
+  let request = reference.request
+  match self.journal.retained(request) {
+    Ok(Some(_)) => ()
+    Ok(None) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  match self.local_grant_custody(crypto) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let key = match
+    local_grant_original_key(crypto, request, reference.operation_id) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let row = match self.database.read("client_local_grant_originals", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let original = match
+    read_local_grant_original(crypto, {
+      key,
+      body: row.body,
+      revision: row.revision,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if original.operation_cid != reference.operation_cid ||
+    original.issuer_selection_cid != reference.issuer_selection_cid ||
+    original.intent != reference.intent {
+    return Err(ChangedIntent)
+  }
+  Ok(Some(original))
 }
 
 ///|

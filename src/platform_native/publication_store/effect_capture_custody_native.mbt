@@ -678,6 +678,78 @@ pub fn Store::restore_effect_checkpoint_custody(
 }
 
 ///|
+/// Read the original persisted continuation without candidate body bytes.
+/// The caller selects the sealed Checkpoint from trusted original custody;
+/// Store authority, AEAD role/CID, digest and final paired readback remain
+/// mandatory. Unlike an unfinished-persist continuation, missing/retired
+/// records cannot produce a confirmed handle. This grants no disclosure or
+/// resume permission and makes no Store write or capacity reservation.
+pub fn Store::restore_confirmed_effect_checkpoint_custody(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if store_authority != self.authority_cid {
+    return Err(StateCollision)
+  }
+  guard checkpoint.checkpoint.subject is @checkpoint.RunUnit(..) &&
+    checkpoint.checkpoint.kind == @checkpoint.EffectSet else {
+    return Err(InvalidConfiguration)
+  }
+  let holding = checkpoint.checkpoint_cid
+  let row = match self.database.read("effect_continuation_custody", holding) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  let terminal = "{\"checkpoint_cid\":\"" +
+    holding +
+    "\",\"cleanup_complete\":true}"
+  if row.body == @utf8.encode(terminal) {
+    if row.revision != 0L && row.revision != 1L {
+      return Err(StateCollision)
+    }
+    return Err(RecoveryRequired)
+  }
+  if row.revision != 0L {
+    return Err(StateCollision)
+  }
+  let plain = match
+    crypto.open_private_evidence(
+      key,
+      "continuation_record",
+      checkpoint.checkpoint.continuation_state_cid,
+      row.body,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PrivateEvidence(issue))
+  }
+  let original_wire = match
+    original_effect_checkpoint_continuation(
+      checkpoint,
+      plain,
+      self.max_record_bytes.to_int64(),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let custody = match
+    self.restore_effect_checkpoint_custody(
+      checkpoint, original_wire, store_authority, crypto, key,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Recheck both original records after decryption/preparation. Partial writes
+  // and concurrent retirement stay unconfirmed; no replacement persist runs.
+  custody.confirm().map(_ => custody)
+}
+
+///|
 pub fn EffectCheckpointCustody::retry_cleanup(
   self : EffectCheckpointCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {

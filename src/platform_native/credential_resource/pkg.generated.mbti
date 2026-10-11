@@ -13,6 +13,8 @@ import {
 // Values
 pub fn admit_signed_native_credential_grant(@signature.Library, @remote_credential.RemoteCredentialSignatureEnvelope, Array[NativeCredentialAuthority]) -> Result[@remote_credential.RemoteCredentialGrant, NativeCredentialResourceIssue]
 
+pub fn bind_native_local_preparation_raw_lookup(@sqlite.Database, NativeLocalPreparationRawStore, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialScope, (NativeLocalPreparationCredentialAuthorization) -> Bool, () -> Bool) -> Result[NativeLocalPreparationRawLookup, NativeCredentialResourceIssue]
+
 pub fn bind_native_local_preparation_raw_store(@publication_store.Store, @signature.Library, Bytes) -> Result[NativeLocalPreparationRawStore, NativeCredentialResourceIssue]
 
 pub fn call_native_credential_resource(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
@@ -146,6 +148,9 @@ pub(all) struct NativeLocalPreparationCredentialInstallation {
   operation : NativeCredentialOperation
   file : @filesystem.PrivateFileProjection
 }
+
+type NativeLocalPreparationRawLookup
+pub fn NativeLocalPreparationRawLookup::lookup(Self, String) -> Result[NativeLocalPreparationRawRecovery, NativeCredentialResourceIssue]
 
 pub struct NativeLocalPreparationRawRecovery {
   original_use : NativeCredentialUseStatus
