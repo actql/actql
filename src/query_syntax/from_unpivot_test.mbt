@@ -25,7 +25,7 @@ test "FROM UNPIVOT rejects expressions qualified inputs and uncovered forms" {
   for
     source in [
       "SELECT * FROM rows UNPIVOT(value FOR label IN(rows.x))", "SELECT * FROM rows UNPIVOT(value FOR label IN(x+1))",
-      "SELECT * FROM rows UNPIVOT((v,w) FOR label IN((x,y)))", "SELECT * FROM rows UNPIVOT(value FOR label IN(x AS 'first'))",
+      "SELECT * FROM rows UNPIVOT((v,w) FOR label IN((x,y)))", "SELECT * FROM rows UNPIVOT(value FOR label IN(x AS id))",
     ] {
     assert_true(
       parse_query(source, query_limits()) is Err({ issue: Syntax(_), .. }),
