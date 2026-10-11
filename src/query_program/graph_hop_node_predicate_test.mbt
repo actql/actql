@@ -183,7 +183,10 @@ test "Graph hop member failures remain common checker obligations" {
     if predicate == "payload.missing > 0" {
       assert_true(kind is @pipeline.GraphMatch(Typing(UnknownField("missing"))))
     } else {
-      assert_true(kind is @pipeline.GraphMatch(Typing(TypeMismatch("closed object receiver"))))
+      assert_true(
+        kind
+        is @pipeline.GraphMatch(Typing(TypeMismatch("closed object receiver"))),
+      )
     }
   }
 }

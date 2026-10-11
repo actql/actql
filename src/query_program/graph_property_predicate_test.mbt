@@ -6,7 +6,8 @@ fn with_graph_predicate_refusal(
 ) -> @pipeline.IssueKind raise {
   match result {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => issue.kind
-    Err(other) => fail("expected common pipeline refusal: " + @debug.to_string(other))
+    Err(other) =>
+      fail("expected common pipeline refusal: " + @debug.to_string(other))
     Ok(_) => fail("invalid predicate must not pass WITH static checking")
   }
 }
@@ -194,7 +195,10 @@ test "Graph property predicate delegates missing members and scalar receivers to
       @query.parse_query_script(
         graph_property_predicate_source("(a:Person WHERE " + predicate + ")"),
         syntax_limits(),
-      )
+      ).unwrap(),
+      graph_property_predicate_context(),
+      construction_limits(),
+    )
     let kind = with_graph_predicate_refusal(program)
     if missing {
       assert_true(
