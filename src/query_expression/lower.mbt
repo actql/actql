@@ -209,6 +209,7 @@ fn scalar_call(
     "SAFE_SUBTRACT" => ("SAFE_SUBTRACT", "safe_subtract", 2, 2)
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
+    "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
     "RIGHT" => ("RIGHT", "right", 2, 2)

@@ -280,6 +280,39 @@ fn infer(
     )
   }
   match tag {
+    "split" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let mut nullable = input.nullable
+      if node.children.get(1) is Some(delimiter) {
+        nullable = require_type(t, nodes, delimiter, "string").nullable ||
+          nullable
+      }
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // Parts are contiguous scalar sequences of the input and may be empty.
+      // Even an empty input has one part. A nonempty delimiter can add a final
+      // empty part; never carry an input minimum into an element contract.
+      let maximum = match (limits.max_codepoints, limits.max_utf8_bytes) {
+        (Some(a), Some(b)) => Some(a.min(b))
+        (Some(a), None) | (None, Some(a)) => Some(a)
+        (None, None) => None
+      }
+      let max_items = match maximum {
+        Some(n) if n < 9007199254740991L => Some(n + 1L)
+        _ => None
+      }
+      let item = @contract.string_contract(
+        nullable=false,
+        max_codepoints=limits.max_codepoints,
+        max_utf8_bytes=limits.max_utf8_bytes,
+      ).unwrap()
+      typed(
+        t,
+        @contract.array_contract(item, nullable~, max_items~).unwrap(),
+        source,
+      )
+    }
     "substring" | "left" | "right" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let mut nullable = input.nullable
