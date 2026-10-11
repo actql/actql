@@ -217,6 +217,32 @@ fn retained_effect_preview_store(
   let prepared_checkpoint = prepare_checkpoint(
     materials, original_request, review_limits,
   ).unwrap()
+  // The first sealed snapshot carries the exact original computation chain,
+  // not regenerated metadata. Existing physical Store/cleanup cases below
+  // retain their original scope; these new assertions are matching Native only.
+  let original_snapshot = @json.parse(prepared_checkpoint.continuation_wire)
+  let original_wire = original_snapshot
+    .value("provider")
+    .unwrap()
+    .value("original_computation_wire")
+    .unwrap()
+    .as_string()
+    .unwrap()
+  let original = @json.parse(original_wire)
+  for
+    (name, contract) in [
+      ("run_definition_wire", materials.run_definition),
+      ("invocation_wire", invocation),
+      ("result_definition_wire", result.definition),
+      ("result_artifact_wire", result.artifact),
+      ("result_manifest_wire", result.manifest),
+      ("computation_receipt_wire", result.receipt),
+    ] {
+    assert_eq(
+      original.value(name).unwrap().as_string().unwrap(),
+      @publication.publication_contract_json(contract),
+    )
+  }
   let checkpoint = prepared_checkpoint.checkpoint
   assert_eq(checkpoint.checkpoint.required_artifact_cid, cid)
   assert_eq(

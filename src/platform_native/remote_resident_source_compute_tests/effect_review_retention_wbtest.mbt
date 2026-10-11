@@ -41,6 +41,14 @@ fn retained_effect_review_retention_store(
     max_nodes: 10000,
     max_depth: 64,
   }
+  // Test charges are explicit; they are not a production layout declaration.
+  let computation_capacity : @resident.ResidentEffectComputationCapacity = {
+    contract_bytes: 1048576L,
+    control_bytes: 4096L,
+    workspace_bytes: 65536L,
+    max_utf16_units: 1048576,
+    layout: original_computation_fixture_layout(),
+  }
   let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(
       material, inputs, result, invocation, preview, captured, wire, authoring_cid,
@@ -173,9 +181,16 @@ fn retained_effect_review_retention_store(
     })
     println("native-original-review: persisting " + step)
     let failed = if original_work is Some(_) {
-      retention.persist_original_checkpoint(store).map(_ => ())
+      retention
+      .persist_original_checkpoint(
+        store,
+        computation_capacity=Some(computation_capacity),
+      )
+      .map(_ => ())
     } else {
-      retention.persist(store).map(_ => ())
+      retention
+      .persist(store, computation_capacity=Some(computation_capacity))
+      .map(_ => ())
     }
     assert_true(
       lost.val,
@@ -261,13 +276,23 @@ fn retained_effect_review_retention_store(
   }
   println("native-original-review: persistence fault retries confirmed")
   let report = if original_work is Some(_) {
-    retention.persist_original_checkpoint(store).unwrap() |> ignore
+    retention
+    .persist_original_checkpoint(
+      store,
+      computation_capacity=Some(computation_capacity),
+    )
+    .unwrap()
+    |> ignore
     assert_true(
       retention.report() is Err(@resident.Checkpoint(@resident.Unavailable)),
     )
     None
   } else {
-    Some(retention.persist(store).unwrap())
+    Some(
+      retention
+      .persist(store, computation_capacity=Some(computation_capacity))
+      .unwrap(),
+    )
   }
   let persisted = confirm().unwrap()
   if report is Some(remote_report) {
@@ -606,8 +631,14 @@ fn retained_effect_review_retention_store(
     println("native-original-review: retaining journal report")
     let queued = work
       .persist_and_retain_report(
-        store, crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-        "2026-10-11T00:00:00.000Z", limits,
+        store,
+        crypto,
+        key,
+        "native-original-review-retention",
+        "2026-10-10T00:00:00.000Z",
+        "2026-10-11T00:00:00.000Z",
+        limits,
+        computation_capacity=Some(computation_capacity),
       )
       .unwrap()
     assert_eq(
@@ -777,13 +808,20 @@ fn retained_effect_review_retention_store(
     if report_wire is Some(expected) {
       assert_eq(
         @remote.remote_effect_checkpoint_report_json(
-          retention.persist(store).unwrap(),
+          retention
+          .persist(store, computation_capacity=Some(computation_capacity))
+          .unwrap(),
         ),
         expected,
       )
     } else {
       assert_eq(
-        retention.persist_original_checkpoint(store).unwrap().artifact.checkpoint_cid,
+        retention
+        .persist_original_checkpoint(
+          store,
+          computation_capacity=Some(computation_capacity),
+        )
+        .unwrap().artifact.checkpoint_cid,
         checkpoint.checkpoint_cid,
       )
     }
@@ -867,9 +905,16 @@ fn retained_effect_review_retention_store(
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
-    assert_true(retention.persist(store) is Err(Unavailable))
     assert_true(
-      retention.persist_original_checkpoint(store) is Err(Unavailable),
+      retention.persist(store, computation_capacity=Some(computation_capacity))
+      is Err(Unavailable),
+    )
+    assert_true(
+      retention.persist_original_checkpoint(
+        store,
+        computation_capacity=Some(computation_capacity),
+      )
+      is Err(Unavailable),
     )
   }
   assert_true(retention.retry_cleanup().unwrap())
