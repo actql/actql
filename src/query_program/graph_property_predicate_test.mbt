@@ -6,8 +6,7 @@ fn with_graph_predicate_refusal(
 ) -> @pipeline.IssueKind raise {
   match result {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => issue.kind
-    Err(other) =>
-      fail("expected common pipeline refusal: " + @debug.to_string(other))
+    Err(_) => fail("expected a common pipeline refusal at WITH static admission")
     Ok(_) => fail("invalid predicate must not pass WITH static checking")
   }
 }
