@@ -87,6 +87,50 @@ fn close_holder_effect_review(task : HolderTaskCustody) -> Bool {
 }
 
 ///|
+/// Publish only the exact live task's prepared Review. A pending Store write,
+/// typed ACK or artifact upload retains this Owner for explicit retry; it is
+/// neither ordinary Output success nor approval or dispatch cleanup.
+fn publish_holder_effect_review(
+  task : HolderTaskCustody,
+  configuration : @effect_review.NativeResidentEffectReviewPublication,
+  resources : HolderOutputResources,
+  authorize_evidence_read : () -> Bool,
+) -> Bool {
+  guard !task.released &&
+    !task.release_requested &&
+    task.effect_review is Some(review) &&
+    review.dispatch_identity() ==
+    @remote.dispatch_request_identity(task.request) else {
+    return false
+  }
+  match
+    review.publish_review(
+      resources.store,
+      resources.control,
+      configuration,
+      authorize_evidence_read,
+    ) {
+    Ok(original) => {
+      report("effect-review-reported", [
+        ("request_cid", review.dispatch_identity()),
+        (
+          "report_cid",
+          @remote.remote_effect_checkpoint_report_identity(original),
+        ),
+      ])
+      true
+    }
+    Err(_) => {
+      report("effect-review-pending", [
+        ("request_cid", review.dispatch_identity()),
+        ("reason", "original-custody"),
+      ])
+      false
+    }
+  }
+}
+
+///|
 /// Selection is exact dispatch custody, not only the common Run or request ID.
 /// A missing original Review cannot be replaced by the query's report bytes.
 fn holder_effect_current_task(

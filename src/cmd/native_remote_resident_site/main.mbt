@@ -2625,6 +2625,9 @@ fn serve_holder_output(
     None
   },
   effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
+  effect_review_publication? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication? = _ => {
+    None
+  },
 ) -> Unit {
   let request = executed.request
   let control = resources.control
@@ -2726,6 +2729,14 @@ fn serve_holder_output(
                   ("reason", "review-owner-unavailable"),
                 ])
                 continue
+              }
+              if !task.release_requested &&
+                effect_review_publication(task.request) is Some(publication) {
+                if !publish_holder_effect_review(
+                    task, publication, resources, current_authority,
+                  ) {
+                  continue
+                }
               }
               match
                 review.report_effect_current(
@@ -2931,6 +2942,25 @@ fn serve_holder_output(
                             ),
                             ("reason", "original-custody"),
                           ])
+                        } else if effect_review_publication(task.request)
+                          is Some(publication) {
+                          ignore(
+                            publish_holder_effect_review(
+                              task,
+                              publication,
+                              resources,
+                              () => {
+                                exclusive_current() &&
+                                effect_evidence_read(task.request) &&
+                                @resident.check_resident_dispatch_delegation(
+                                  delegation,
+                                  task.request,
+                                  @site.site_generation(environment.site),
+                                )
+                                is Ok(_)
+                              },
+                            ),
+                          )
                         }
                       }
                       if holder_effect_computation(task, environment.journal)

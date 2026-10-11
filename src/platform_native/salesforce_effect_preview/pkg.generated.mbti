@@ -168,6 +168,7 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_
 pub fn NativeResidentEffectReview::prepare_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits, delivery_claim? : @checkpoint_runtime.ResumeClaim?) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_remote_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_retention(Self, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_resident_host.ResidentEffectReviewRetention, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::publish_review(Self, @publication_store.Store, @http_client.Client, NativeResidentEffectReviewPublication, () -> Bool) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, NativeResidentEffectReviewPublicationIssue]
 pub fn NativeResidentEffectReview::report_effect_current(Self, String, @http_client.Client, String, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, NativeResidentEffectCurrentReportIssue]
 pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal) -> Result[Unit, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::restore_row_custody(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue]
@@ -245,6 +246,25 @@ pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Normalization(@run_publication_host.ClientEffectNormalizationIssue)
   Result(@remote_resident_host.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
+}
+
+pub(all) struct NativeResidentEffectReviewPublication {
+  crypto : @signature.Library
+  key : Bytes
+  checkpoint_id : String
+  created_at : String
+  expires_at : String
+  limits : @checkpoint_runtime.WireLimits
+  report_url : String
+  artifact_url : String
+  access : (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]
+}
+
+pub(all) enum NativeResidentEffectReviewPublicationIssue {
+  ReadAuthorityDenied
+  TargetPreparation(NativeResidentEffectTargetIssue)
+  EvidencePersistence(NativeResidentEffectReviewIssue)
+  EvidenceUpload(NativeResidentEffectReviewUploadIssue)
 }
 
 pub(all) enum NativeResidentEffectReviewUploadIssue {
