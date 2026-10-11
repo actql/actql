@@ -15,6 +15,24 @@ export const pureExternal = Object.freeze({
   'moonbitlang/core/string': 'Pinned in-memory string operations.',
 });
 
+// These pinned primitive modules already belong to the audited stdlib inventory.
+// The portable scalar kernel uses their constants and numeric representations,
+// not the target-selected stdlib math implementation. Keep this explicit review
+// local to that Owner; it grants no environment or generated-runtime authority.
+const numericKernelExternal = Object.freeze({
+  'moonbitlang/core/builtin': 'Pinned scalar primitive representations; implicit-runtime and explicit-seed audits remain required.',
+  'moonbitlang/core/double': 'Pinned Double constants and representations for the portable scalar kernel.',
+  'moonbitlang/core/float': 'Pinned Float constants and representations for the portable scalar kernel.',
+  'moonbitlang/core/int': 'Pinned integer representation operations for the portable scalar kernel.',
+});
+function reviewedExternal(owner, path) {
+  if (Object.hasOwn(pureExternal, path)) return pureExternal[path];
+  if (owner === 'scalar_numeric_kernel' && Object.hasOwn(numericKernelExternal, path)) {
+    return numericKernelExternal[path];
+  }
+  return undefined;
+}
+
 export function tokens(source, sourceCode = false) {
   const result = [];
   let i = 0;
@@ -149,8 +167,9 @@ export function inspectCore(root, roots = coreRoots) {
     for (const entry of imports.filter(x => x.scope === 'production')) {
       if (entry.path.startsWith('actql/actql/')) pending.push(entry.path.slice(12));
       else {
-        if (!Object.hasOwn(pureExternal, entry.path)) throw new Error(`UnreviewedExternal: ${name}: ${entry.path}`);
-        external.set(entry.path, pureExternal[entry.path]);
+        const review = reviewedExternal(name, entry.path);
+        if (review === undefined) throw new Error(`UnreviewedExternal: ${name}: ${entry.path}`);
+        external.set(entry.path, review);
       }
     }
     for (const file of readdirSync(directory)) {
@@ -182,7 +201,7 @@ export function inspectCore(root, roots = coreRoots) {
     // Generated Show/Debug declarations reference this implicit runtime trait;
     // its implementation is separately covered by the pinned stdlib inventory.
     const permitted = path === 'moonbitlang/core/debug' ||
-      Object.hasOwn(pureExternal, path) ||
+      reviewedExternal(owner, path) !== undefined ||
       path.startsWith('actql/actql/') && packages.has(path.slice(12));
     if (!permitted) throw new Error(`UnreviewedPublicType: ${owner}: ${path}`);
   }
