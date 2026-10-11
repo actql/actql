@@ -39,6 +39,7 @@ publication_cases = []
 binding_cases = []
 preflight_cases = []
 preflight_retirement_cases = []
+publication_retirement_cases = []
 preflight_inputs = {}
 preflight_output_tickets = {}
 commit_cases = []
@@ -190,7 +191,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 25
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 26
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -720,6 +721,9 @@ try:
                     assert_status('result_binding', 'reserve', -2, value, 0, before_completion, ticket, 131300)
                     fixture.inputs.pop(ticket)
                     assert fixture.call('close', before_completion) == 0
+                if commit_candidate and quantum == 7:
+                    assert_status('publication', 'retire_output', -33, value)
+                    publication_retirement_cases.append('unfinished_output_cannot_retire_semantic_custody')
                 assert_status('publication', 'prepare', 0, value, configuration)
                 if commit_candidate:
                     assert_status('publication_commit_export', 'reserve', -2, value, ticket + 1, 2097200)
@@ -771,6 +775,28 @@ try:
                     expected_body = body
                 assert body == expected_body, 'Quantum cannot change the original final evidence'
                 assert fixture.queries == expected['source_queries']
+                if commit_candidate and quantum == 7:
+                    retirement = json.loads((root / 'scripts/fixtures/python-local-publication-output-retirement.json').read_text())
+                    original_input = projection_inputs[('publication', value)]
+                    allocated = fixture.call('allocated')
+                    fixture.cleanup_ready = False
+                    assert_status('publication', 'retire_output', retirement['pending_status'], value)
+                    assert fixture.call('allocated') == allocated
+                    fixture.cleanup_ready = True
+                    assert_status('publication', 'retire_output', 0, value)
+                    assert fixture.call('allocated') == allocated - retirement['allocation_bytes']
+                    assert_status('publication', 'retire_output', 0, value)
+                    publication_retirement_cases.append('same_output_cleanup_retry_releases_only_exact_allocation')
+                    assert_status('publication', 'length', retirement['retired_length_status'], value)
+                    assert fixture.call('byte', value, 0) == retirement['retired_byte_status']
+                    assert fixture.call('close', original_input) == retirement['input_close_while_borrowed_status']
+                    assert_status('publication', 'finish', -32, value, denied_configuration)
+                    assert_status('publication', 'finish', 0, value, configuration)
+                    assert body == expected_body
+                    assert fixture.queries == expected['source_queries']
+                    publication_retirement_cases.extend([
+                        'retired_output_refuses_reads_and_keeps_original_input_borrow',
+                        'original_roots_and_current_authority_survive_output_retirement'])
                 payload_child = payload_input = None
                 if payload_request and quantum == 7:
                     payload_expected = json.loads((root / 'scripts/fixtures/python-local-payload-request.json').read_text())
@@ -1025,7 +1051,8 @@ try:
                             ('run_receipt_cid', body['receipt']),
                             ('captured_run_cid', body['captured_run']),
                         ):
-                            assert index[field] == json.loads(original)[field]
+                            original_field = 'receipt_identity_cid' if field == 'run_receipt_cid' else field
+                            assert index[field] == json.loads(original)[original_field]
                         assert index['run_definition_cid'] == original_request['run_definition_cid']
                         assert index['invocation_cid'] == json.loads(body['manifest'])['invocation_cid']
                         assert index['durable_result_binding_cids'] == [binding['durable_result_binding_cid']]
@@ -1040,7 +1067,7 @@ try:
                             'publication_request_cid': original_request['publication_request_cid'],
                             'publication_attempt_cid': original_attempt['publication_attempt_cid'],
                             'result_manifest_cid': manifest['result_manifest_cid'],
-                            'run_receipt_cid': receipt['run_receipt_cid'],
+                            'run_receipt_cid': receipt['receipt_identity_cid'],
                             'captured_run_cid': captured['captured_run_cid'],
                             'durable_result_binding_cids': [binding['durable_result_binding_cid']],
                         }
@@ -1049,6 +1076,7 @@ try:
                         assert fixture.queries == expected['source_queries']
                         commit_cases.append('original_index_intent_and_current_authority')
                         preflight_retirement_cases.append('original_commit_candidate_uses_same_retired_output_preflight')
+                        publication_retirement_cases.append('original_commit_candidate_and_children_use_retired_parent_output')
                     loan, input_handle = binding_loan(facts)
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     assert_status('publication', 'close', -9, value)
@@ -1082,14 +1110,20 @@ try:
                     assert call('source_publication', 'close', source_pin) == -9
                     preflight_retirement_cases.append('source_close_retains_original_pin_after_transport_retirement')
                     assert_status('publication', 'finish', -32, value, configuration)
+                if commit_candidate and quantum == 7:
+                    fixture.stop_ready = False
                 fixture.cleanup_ready = False
                 reserved = fixture.call('reserved')
                 assert_status('publication', 'close', -9, value)
                 assert fixture.call('reserved') == reserved
                 fixture.cleanup_ready = True
+                if commit_candidate and quantum == 7:
+                    fixture.stop_ready = True
                 assert_status('publication', 'close', 0, value)
                 if commit_candidate and quantum == 7:
                     assert fixture.call('close', commit_input) == 0
+                    publication_retirement_cases.append('full_close_returns_same_original_input_borrow_after_output_retirement')
+                    assert publication_retirement_cases == retirement['cases']
                 assert call('compute', 'configured', compute) == 0
                 publication_cases.append('quantum_' + str(quantum) + '_exact_snapshot_manifest_receipt_capture_and_cleanup')
             assert call('run', 'close_configuration', denied_configuration) == 0
@@ -1104,6 +1138,9 @@ try:
             assert call('task', 'close', task) == 0
         assert call('compute', 'close', compute) == -9
         fixture.cleanup_ready = False
+        # Output is already retired. The original input reader's physical
+        # stop, rather than former output cleanup, keeps this borrow pending.
+        fixture.stop_ready = False
         reserved = fixture.call('reserved')
         assert_status('publication_preflight', 'close', -9, preflight)
         assert fixture.call('reserved') == reserved
@@ -1175,6 +1212,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'result_binding_cases': binding_cases,
                   'publication_preflight_cases': preflight_cases,
                   'preflight_retirement_cases': preflight_retirement_cases,
+                  'publication_retirement_cases': publication_retirement_cases,
                   'commit_candidate_cases': commit_cases,
                   'payload_request_cases': payload_request_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',

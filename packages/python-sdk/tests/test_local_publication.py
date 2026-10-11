@@ -63,6 +63,82 @@ class PublicationCustodyTests(unittest.TestCase):
         self.assertEqual(len(calls), baseline)
         self.assertTrue(all(family in ('publication', 'buffer') for family, _, _ in calls))
 
+    def test_transport_retirement_keeps_original_semantic_loan_and_parent(self):
+        core, source, request, calls, state, wire = self.bridge()
+        value = core.reserve_publication(source, request, cleanup=lambda: True)
+        self.assertEqual(core.read_publication(value), wire)
+        original_call = core._call
+
+        def call(family, name, *args):
+            code = original_call(family, name, *args)
+            if name == 'retire_output' and code == 0:
+                self.assertEqual(core._cleanup(value.ticket), 0)
+            return code
+
+        core._call = call
+        self.assertTrue(core.retire_publication_output(value))
+        self.assertNotIn(value.ticket, core._inputs)
+        self.assertIs(core._loans[value.ticket], value)
+        self.assertIs(core._loans[7], source)
+        self.assertIs(core._loans[1], request)
+        with self.assertRaises(RuntimeError):
+            core.read_publication(value)
+        core.finish_publication(value, 31)
+        self.assertTrue(core.retire_publication_output(value))
+        state['close'] = 0
+        self.assertTrue(core.close_publication(value))
+        self.assertNotIn(value.ticket, core._loans)
+        self.assertFalse(any(f in ('source', 'task', 'run') for f, _, _ in calls))
+
+    def test_transport_retirement_failure_retains_exact_output_for_retry(self):
+        core, source, request, calls, state, wire = self.bridge()
+        ready = [False]
+        cleanup_calls = []
+
+        def cleanup():
+            cleanup_calls.append(True)
+            return ready[0]
+
+        value = core.reserve_publication(source, request, cleanup=cleanup)
+        core.read_publication(value)
+        original_call = core._call
+        core._call = lambda family, name, *args: (
+            core._cleanup(value.ticket) * -9 if name == 'retire_output'
+            else original_call(family, name, *args))
+        core._closing = True
+        self.assertFalse(core.retire_publication_output(value))
+        self.assertIs(core._loans[value.ticket], value)
+        self.assertEqual(core._inputs[value.ticket].payload, wire)
+        ready[0] = True
+        self.assertTrue(core.retire_publication_output(value))
+        self.assertTrue(core.retire_publication_output(value))
+        self.assertEqual(len(cleanup_calls), 2)
+        self.assertIs(core._loans[7], source)
+        self.assertIs(core._loans[1], request)
+
+    def test_incomplete_transport_retirement_is_not_success(self):
+        core, source, request, calls, state, wire = self.bridge()
+        value = core.reserve_publication(source, request, cleanup=lambda: True)
+        core._call = lambda family, name, *args: -33
+        with self.assertRaises(LocalCoreError) as caught:
+            core.retire_publication_output(value)
+        self.assertEqual(caught.exception.code, -33)
+        self.assertIs(core._loans[value.ticket], value)
+        self.assertIn(value.ticket, core._inputs)
+
+    def test_transport_retirement_refuses_copied_foreign_and_wrong_family_before_io(self):
+        core, source, request, calls, state, wire = self.bridge()
+        value = core.reserve_publication(source, request, cleanup=lambda: True)
+        foreign, *_ = self.bridge()
+        before = len(calls)
+        for action in (
+                lambda: core.retire_publication_output(copy.copy(value)),
+                lambda: foreign.retire_publication_output(value),
+                lambda: core.retire_publication_output(source)):
+            with self.assertRaises(ValueError):
+                action()
+        self.assertEqual(len(calls), before)
+
     def test_copied_foreign_wrong_kind_and_invalid_controls_fail_before_io(self):
         core, source, request, calls, _, _ = self.bridge()
         value = core.reserve_publication(source, request, cleanup=lambda: True)
