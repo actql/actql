@@ -14,5 +14,9 @@ test('independent input-only Program preserves the issue and empty steps', () =>
   assert.deepEqual(shared.stages.slice(1).map(stage => stage.steps), [[], []]);
   assert.deepEqual(Object.keys(inputStageResultSuccesses[2].results), ['answer', 'second']);
   assert.deepEqual(inputStageResultSuccesses[2].results.answer.rows,
-    [{A: 0}, {A: 2}, {A: 2}]);
+    [{A: 2}, {A: 0}, {A: 2}]);
+  assert.deepEqual(inputStageResultSuccesses[2].results.second.rows,
+    [{A: 2}, {A: 0}, {A: 2}]);
+  assert.notDeepEqual(inputStageResultSuccesses[2].results.answer.rows,
+    [{A: 0}, {A: 2}, {A: 2}], 'canonical field sort is not inherited order');
 });

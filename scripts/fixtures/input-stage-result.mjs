@@ -27,6 +27,8 @@ export const inputStageResultSuccesses = [
     sourceReadCount: 0, results: {answer: {rows: [], columns}}},
   {name: 'input-stage-result-shared-two-consumers', format: 'json',
     text: JSON.stringify(shared), sourceReadCount: 0,
+    // REL.values preserves occurrence order. Result resolution inherits that
+    // total witness before considering canonical ordering of projected fields.
     results: Object.fromEntries(['answer', 'second'].map(name =>
-      [name, {rows: [{A: 0}, {A: 2}, {A: 2}], columns}]))},
+      [name, {rows: [{A: 2}, {A: 0}, {A: 2}], columns}]))},
 ];

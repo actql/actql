@@ -108,3 +108,24 @@ test "input-only Stage Result opens the checked source-free Run" {
     Err(_) => fail("input-only Stage Result Run opening rejected")
   }
 }
+
+///|
+test "input-only Stage Result inherits producer occurrence order" {
+  let prepared = input_result_prepared(
+    input_result_document.replace(
+      old="[{\"A\":0}]",
+      new="[{\"A\":2},{\"A\":0},{\"A\":2}]",
+    ),
+  )
+  let occurrence = @strategy.graph_result_occurrence(
+    prepared_client_graph(prepared),
+    0,
+  ).unwrap()
+  let port = @execution.managed_result_occurrence_port(occurrence)
+  assert_eq(@results.port_target(port), @pipeline.Input(0))
+  assert_eq(
+    @results.publication_strategy(@results.port_order(port)),
+    @results.Inherited,
+  )
+  assert_eq(@results.port_order_term_count(port), 0)
+}
