@@ -207,3 +207,26 @@ context close/retry Owner retains any pending pins; Source, Transfer and holding
 custody remain separate. The existing trusted-context API remains available for
 other explicitly installed normalization profiles. No profile fallback or
 Native CLI installation is implied by this adapter.
+
+## Consumer reconstruction from the original producer
+
+An Effect consumer selects its original producer only as a bounded journal
+lookup address from the retained-input binding. This projection is not checked
+edge admission or completion evidence and does not grant a borrow, reservation,
+start claim or current authority. The existing full retained-task route admission
+still verifies the checked edge, producer evidence and Transfer receipt.
+
+Before consumer material admission, the Native Host reads the exact producer
+envelope from its existing journal. Its dispatch identity must match the lookup,
+and its Source binding must match the original checked Source issuer. The
+request admitted from that separate original binding supplies the expected
+request for both the saved producer materials and candidate consumer materials.
+Candidate materials cannot select or replace this original request. Run,
+authority and the installed same-Site execution scope must agree.
+
+The retained consumer uses the same journal context at preparation, acceptance
+and execution. Receiver custody, current authorization and lifetime, exclusive
+start claims, cancellation and cleanup remain with their existing Owners. A
+journal lookup or normalization restoration alone does not establish any of
+those facts. Missing original journal custody is refused; it does not create a
+replacement request or repeat Source acquisition.
