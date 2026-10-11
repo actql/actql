@@ -607,30 +607,49 @@ fn retained_consumer_holder_case(
   }
   let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
   let missing_intent = "sha256:" + "e".repeat(64)
-  if effect_materials is Some(_) {
+  if effect_materials is Some(effect) {
     // Computation output remains private. An ordinary public Output entry
     // cannot admit the original Effect Run or manufacture its publication.
-    assert_true(
-      @resident.prepare_resident_saved_output(
-        journal,
-        site,
-        admission,
-        delegated,
-        attempt,
-        missing_intent,
-        () => at,
-        () => true,
-      )
-      is Err(
-        @resident.Refused(
-          @resident_protocol.MaterialsRejected(
-            @host.ClientValuesRunMaterialsIssue::MaterialsProgram(
-              @host.ClientProgramPreparationIssue::EffectNotSupported(_)
+    let denied = @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => at,
+      () => true,
+    )
+    if effect.normalization is Some(_) {
+      // The ordinary Effect-free materials codec refuses an issued journal
+      // before preparing the Program. Keep that earlier admission boundary;
+      // never strip original normalization to reach a later Effect guard.
+      assert_true(
+        denied
+        is Err(
+          @resident.Refused(
+            @resident_protocol.MaterialsRejected(
+              @host.ClientValuesRunMaterialsIssue::MaterialsEvidence(
+                "normalization_journal"
+              )
             )
           )
-        )
-      ),
-    )
+        ),
+      )
+    } else {
+      assert_true(
+        denied
+        is Err(
+          @resident.Refused(
+            @resident_protocol.MaterialsRejected(
+              @host.ClientValuesRunMaterialsIssue::MaterialsProgram(
+                @host.ClientProgramPreparationIssue::EffectNotSupported(_)
+              )
+            )
+          )
+        ),
+      )
+    }
   } else if chain_task != Some(1) {
     let saved_revision = @remote.dispatch_record_revision(
       journal.require(dispatch).unwrap(),

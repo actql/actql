@@ -151,8 +151,15 @@ pub fn prepare_native_resident_effect_review(
     None => return Err(Unavailable)
   }
   let dispatch = @resident.resident_retained_consumer_request(holder)
-  if @remote.dispatch_request_execution_scope(dispatch)[2] !=
-    policy.runtime_bundle_cid {
+  let execution = @remote.dispatch_request_execution_scope(dispatch)
+  if execution[2] != policy.runtime_bundle_cid ||
+    !native_review_catalog_matches_original(
+      policy.catalog,
+      execution[0],
+      execution[1],
+      @publication.publication_contract_identity(invocation),
+      @remote.dispatch_request_identity(dispatch),
+    ) {
     return Err(Unavailable)
   }
   let request = match consumer.request_for_effect_review(inputs) {
