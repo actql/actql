@@ -112,6 +112,14 @@ the new connection must retain full admission and dynamic debts without I/O.
 and inspected source-symbol consistency for these additions, not parser or
 common-checker execution. Earlier static receipts retain their earlier inputs.
 
+[group-range-readonly-handoff.json](group-range-readonly-handoff.json) answers
+Root's requested #1474 integration diagnosis without editing that branch.
+It preserves the existing range-priority contract, two independently authored
+Program/result controls, current source blobs and the distinction between an
+incorrect old fixture and rejection of valid text. The relevant existing GROUP
+helper/fixture blobs match the observed published main. Execution is unverified;
+Root retains this integration's implementation responsibility.
+
 ## Retirement and evidence boundaries
 
 Remove the accepted DATA declaration and old pure constructor, count-based
