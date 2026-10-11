@@ -10,7 +10,7 @@
     "README.md": "e75e50ef36ccaaecca6f119cd8caefe4171f4f326423625b6edbf247328783a5",
     "ast-connection.prepared.patch.json": "4df1c2c0fc49bb778b3e304981203cac67dd2e2c0b6116a6c0550a370331c3f3",
     "common-control.prepared_test.mbt": "34d435f14610d0b1dcf2c5636f604952e21d10e4459459389df517686555215c",
-    "connection-boundaries.md": "77c99bca690c56da1398e1264388c338e4713215983f802b5194177b2cf27b9d",
+    "connection-boundaries.md": "08ff2e14001834261f477618db27799954ae7ffc2927fd84d7f07e2ca0228a8b",
     "control.program.json": "0d62bc07f8b82179f9962c61263380e9f7db546953db566502a0ceda727b5e28",
     "independent-expectations.json": "be944d79c4d721ffef369990d10d64d8f73205cb738de33a34d3de7f8022387d",
     "literal-bound-derivation.json": "ced8e12d32d43863af5a022fe61ac64a44f59eb49b102a8ffc6c64d06b51ef00",
@@ -18,7 +18,8 @@
     "parser.prepared_test.mbt": "71d19f707ee83c8c01b2218a8bf521001f8abfadd57ad0aa006f31f46a153a97",
     "prepared-patch-status.json": "2b712ea414783e25a0581c079161cbc69448fdd59565b0c3c6980cee92a1ad17",
     "source-input.json": "65a8fe7b65b16e2041c65c84bbfba02f0c5ed4b0830825ee841ee2d45ad22c97",
-    "source.sql": "505752d1bdf7bbdbb7674125dfa41abcaa94dce977162935360eb885013cb7ee"
+    "source.sql": "505752d1bdf7bbdbb7674125dfa41abcaa94dce977162935360eb885013cb7ee",
+    "lowering.prepared_wbtest.mbt": "1b8f0bdbaf88e9eb620922ffa7639cfa34fdea966f6ba22f592cc42af16cc74e"
   },
   "testsExecuted": false,
   "heavyAcquired": false,

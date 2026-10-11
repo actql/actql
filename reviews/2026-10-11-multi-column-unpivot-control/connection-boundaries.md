@@ -30,6 +30,10 @@ ordered column contracts. Those expectations were authored independently and
 must remain separate from actual rows and schema receipts.
 
 Prepared tests are outside `src`; they are not registered CI coverage.
+`lowering.prepared_wbtest.mbt` compares every emitted connection step with an
+independently authored wire expectation, plus the complete visible/private slot
+lists. It checks evaluated input correspondence and OR over emitted component
+NULL tests; it is not compiled or executed and does not prove public results.
 `common-control.prepared_test.mbt` is intended for `query_program` using its
 existing test helpers. `parser.prepared_test.mbt` is intended for `query_syntax`
 after the grouped AST is implemented. The AST patch and `lowering.prepared.mbt` are an uncompiled proposal; neither
