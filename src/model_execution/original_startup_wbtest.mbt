@@ -78,6 +78,13 @@ test "original Model startup uses same Ledger once and keeps pending output cust
   assert_true(active.state.original_startup is Some(_))
   assert_true(@resources.capacity_reservation_open(grant.capacity))
   cleanup_done.val = true
+  let foreign = original_startup_test_grant(rows, limits, None)
+  active.state.original_startup = Some(foreign)
+  assert_true(cleanup_model_execution(active) is Err(RequestIdentity))
+  assert_true(@resources.capacity_reservation_open(grant.capacity))
+  assert_true(@resources.capacity_reservation_open(foreign.capacity))
+  active.state.original_startup = Some(grant)
+  @resources.settle_capacity(foreign.ledger, foreign.capacity).unwrap()
   assert_true(cleanup_model_execution(active).unwrap())
   assert_true(active.state.original_startup is None)
   assert_false(@resources.capacity_reservation_open(grant.capacity))
@@ -195,21 +202,46 @@ test "original Model startup preserves configured quantities and unknown usage" 
 }
 
 ///|
-test "original Model startup parent fuel keeps spent work without refund" {
+test "original Model startup keeps Model work separate from spent original planning" {
   let rows = prepared_capacity_test_rows()
   let old = prepared_capacity_test_limits(100L)
-  let limits = { ..old, ledger: { ..old.ledger, planning_work: 2, }, }
+  let limits = {
+    ..old,
+    max_work: 2,
+    ledger: { ..old.ledger, planning_work: 2, },
+  }
   let grant = original_startup_test_grant(rows, limits, None)
+  let delegation = @resources.reserve_execution_delegation(
+    grant.ledger,
+    {
+      planning_work: 1,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+    },
+    0L,
+    0L,
+  ).unwrap()
   @resources.charge_planning(grant.ledger, 1).unwrap()
+  assert_true(
+    @resources.charge_planning(grant.ledger, 1) is Err(@resources.PlanningLimit),
+  )
   let active = original_startup_test_start(rows, grant, limits, None).unwrap()
   assert_true(advance_model_execution(active, 1).unwrap() is Continue(_, _))
-  assert_eq(@resources.ledger_usage(grant.ledger).planning_work, 2)
+  assert_eq(@resources.ledger_usage(grant.ledger).planning_work, 1)
+  assert_true(advance_model_execution(active, 1).unwrap() is Continue(_, _))
   assert_true(
-    advance_model_execution(active, 1).unwrap()
-    is Failed(Ledger(@resources.PlanningLimit), _, _),
+    advance_model_execution(active, 1).unwrap() is Failed(WorkLimit, _, _),
   )
-  assert_eq(active.state.work, 1)
+  assert_eq(active.state.work, 2)
   assert_true(cleanup_model_execution(active).unwrap())
+  assert_eq(@resources.ledger_usage(grant.ledger).planning_work, 1)
+  assert_true(
+    @resources.charge_planning(grant.ledger, 1) is Err(@resources.PlanningLimit),
+  )
+  @resources.settle_execution_delegation(grant.ledger, delegation, None).unwrap()
   assert_eq(@resources.ledger_usage(grant.ledger).planning_work, 2)
   assert_true(@relation.cleanup_prepared_infer_rows(rows))
 }

@@ -36,6 +36,14 @@ fn finish_prepared_model_capacity(
   state : ModelState,
 ) -> Result[Bool, ModelExecutionIssue] {
   if state.prepared_capacity is Some(reservation) {
+    if state.original_startup is Some(original) &&
+      (
+        !original.used ||
+        !physical_equal(original.ledger, state.ledger) ||
+        !physical_equal(original.capacity, reservation)
+      ) {
+      return Err(RequestIdentity)
+    }
     // The caller reaches here only after all original output uses and the
     // bounded physical cleanup have permitted retirement. Failure preserves
     // this exact token. Historical/unknown proof custody is not declared free.

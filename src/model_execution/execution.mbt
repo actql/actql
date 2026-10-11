@@ -313,10 +313,6 @@ fn advance_model(
   if state.work >= state.limits.max_work {
     return @bounded.Failed(WorkLimit, 0, 0)
   }
-  match charge_original_model_parent_work(state) {
-    Err(issue) => return @bounded.Failed(issue, 0, 0)
-    Ok(_) => ()
-  }
   state.work += 1
   if state.phase is ReserveSlots {
     // Replay owns a read of an already checked observation. It must neither
