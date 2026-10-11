@@ -14,7 +14,6 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
       typeof observeAt !== 'function' || typeof cleanupRaw !== 'function') {
     throw new TypeError('InvalidSdkModelPort');
   }
-  let prepared;
   let plan;
   let call;
   let response;
@@ -77,7 +76,6 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     reconciled = undefined;
     reconciling = undefined;
     call = undefined;
-    prepared = undefined;
     plan = undefined;
     // Escaped preflight/call closures must not keep the factory's original
     // input or installed callbacks after both original owners acknowledge
@@ -100,8 +98,8 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     return true;
   };
   const start = entry => {
-    if (retired || prepared === undefined || call !== undefined) return undefined;
-    call = moon.clientProgramModelPhysicalCall(entry, prepared, poll, cancel, cleanup);
+    if (retired || call !== undefined) return undefined;
+    call = moon.clientProgramModelPhysicalCallForRequest(entry, request, poll, cancel, cleanup);
     if (call === undefined) return undefined;
     // Exact fixed transport only, immediately after Common's final gate. No
     // await, notification, user callback or request rebuilding occurs here.
@@ -133,10 +131,6 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     return {_0: terminal, _1: physicalPlan};
   }, cleanup);
   return Object.freeze({preflight,
-    bindPrepared(original) {
-      if (retired || prepared !== undefined) throw new TypeError('SdkPreparedAlreadyBound');
-      prepared = original;
-    },
     reconcileRaw(original) {
       // An explicit parent request only. Reuse the same observed transport
       // backing and persistence port, never re-enter the physical operation.

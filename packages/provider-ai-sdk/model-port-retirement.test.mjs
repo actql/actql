@@ -10,7 +10,7 @@ const limits = {maxBytes: 128, maxChunkBytes: 128, maxChunks: 4,
 const moon = {
   clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
   clientProgramModelAsyncPhysicalRequestPlan: (...args) => ({start: args.at(-1)}),
-  clientProgramModelPhysicalCall: (entry, prepared, poll, cancel, cleanup) =>
+  clientProgramModelPhysicalCallForRequest: (entry, request, poll, cancel, cleanup) =>
     ({poll, cancel, cleanup}),
   clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
   clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
@@ -61,7 +61,6 @@ function fixture({saveFailure} = {}) {
       return state.cleanupAllowed;
     }),
   });
-  port.bindPrepared(Object.freeze({input}));
   return {port, state, ref};
 }
 
