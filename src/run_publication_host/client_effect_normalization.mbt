@@ -18,7 +18,6 @@ struct ClientEffectNormalization {
   owner : PreparedClientEffectComputation
   inventory : @checked.CompletionFreeInventory
   journal : @publication.RunEvidenceValue
-  issued_materials : Array[ClientEffectIssuedNormalizationMaterials]
 }
 
 ///|
@@ -50,7 +49,7 @@ pub fn issue_prepared_client_effect_normalization(
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  let issued = { owner, inventory, journal, issued_materials: [], }
+  let issued = { owner, inventory, journal, }
   owner.normalization = Some(issued)
   Ok(issued)
 }
