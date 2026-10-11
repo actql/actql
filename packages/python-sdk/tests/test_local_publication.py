@@ -33,9 +33,9 @@ class PublicationCustodyTests(unittest.TestCase):
                 self.assertGreaterEqual(args[3], 2 * 1048576)
                 self.assertEqual(core._inputs[8].payload, b'')
                 return 29
-            if name in ('close', 'advance'):
-                return state[name]
-            if name == 'progress':
+            if name in ('close', 'advance', 'advance_commit'):
+                return state['advance' if name == 'advance_commit' else name]
+            if name in ('progress', 'commit_progress'):
                 return state['progress'][args[1]]
             if name == 'length':
                 return len(wire)
@@ -132,6 +132,62 @@ class PublicationCustodyTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 action()
         self.assertEqual(len(calls), baseline)
+
+    def test_commit_validation_retains_original_handle_and_forwards_current_authority(self):
+        core, source, request, calls, state, _ = self.bridge()
+        value = core.reserve_publication(source, request, cleanup=lambda: True)
+        core.prepare_publication_commit(value, request, 31)
+        self.assertIn(('publication', 'prepare_commit', (29, 11, 31)), calls)
+        progress = core.advance_publication_commit(value, 37, 1)
+        self.assertEqual((progress.ready, progress.work), (False, 1))
+        self.assertNotIn(('publication', 'finish_commit', (29, 37)), calls)
+        state['progress'] = (1, 1, 4)
+        self.assertTrue(core.advance_publication_commit(value, 41, 1).ready)
+        core.finish_publication_commit(value, 43)
+        self.assertIn(('publication', 'finish_commit', (29, 43)), calls)
+        self.assertIs(core._loans[8], value)
+        self.assertIs(core._loans[1], request)
+        self.assertTrue(all(family == 'publication' for family, _, _ in calls))
+
+    def test_commit_copied_inputs_and_invalid_controls_refuse_before_io(self):
+        core, source, request, calls, _, _ = self.bridge()
+        value = core.reserve_publication(source, request, cleanup=lambda: True)
+        baseline = len(calls)
+        for action in (
+                lambda: core.prepare_publication_commit(value, copy.copy(request), 31),
+                lambda: core.prepare_publication_commit(copy.copy(value), request, 31),
+                lambda: core.prepare_publication_commit(value, request, True),
+                lambda: core.advance_publication_commit(value, 31, 0),
+                lambda: core.advance_publication_commit(value, 31, True),
+                lambda: core.finish_publication_commit(source, 31)):
+            with self.assertRaises(ValueError):
+                action()
+        self.assertEqual(len(calls), baseline)
+        core._closing = True
+        for action in (
+                lambda: core.prepare_publication_commit(value, request, 31),
+                lambda: core.advance_publication_commit(value, 31, 1),
+                lambda: core.finish_publication_commit(value, 31)):
+            with self.assertRaises(RuntimeError):
+                action()
+        self.assertEqual(len(calls), baseline)
+
+    def test_commit_refusal_and_malformed_progress_never_become_durable_success(self):
+        core, source, request, _, state, _ = self.bridge()
+        value = core.reserve_publication(source, request, cleanup=lambda: True)
+        state['advance'] = -32
+        with self.assertRaises(LocalCoreError):
+            core.advance_publication_commit(value, 31, 1)
+        state['advance'] = 0
+        for progress in ((2, 1, 3), (1, 2, 3), (1, -1, 3)):
+            state['progress'] = progress
+            with self.assertRaises(LocalCoreError):
+                core.advance_publication_commit(value, 31, 1)
+        self.assertIs(core._loans[8], value)
+        self.assertIs(core._loans[1], request)
+        state['close'] = -9
+        self.assertFalse(core.close_publication(value))
+        self.assertIs(core._loans[8], value)
 
 
 if __name__ == '__main__':

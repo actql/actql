@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 19; this private ABI
+before opening the instance. `actql_host_abi_version` returns 20; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 19 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 20 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -837,3 +837,30 @@ physical output cleanup. Parent close seals further production but cannot
 release those pins until the same child finishes cleanup. Closing the child
 cancels its snapshot/capture preparations without cancelling the original Run,
 then retires its output and input loan through their existing cleanup Owners.
+
+
+### Original publication commit validation
+
+Private ABI 20 adds `actql_publication_prepare_commit`,
+`actql_publication_advance_commit`, `actql_publication_commit_progress` and
+`actql_publication_finish_commit` on the original publication handle. Preparation
+borrows a closed input containing only `bindings`, `request`, `attempt` and
+`index_entry`; each is an admitted publication contract, with bindings as an
+array. The Receipt, Captured Run, Manifest, original normalization and Result
+inventory come from the retained Core handle rather than supplied replacements.
+The physical Host supplies binding facts; consistency validation does not prove
+that physical payload bytes were written.
+
+The existing bounded publication commit Owner checks the complete chain. Capture
+and commit validation share the original `max_work` budget and workspace limit.
+Every advancing or finishing call checks current Run and Source authority. Once
+preparation starts, a different input cannot restart that handle's validation;
+traps and cleanup failures retain the same input and original parent custody.
+Closing cancels the existing Owner and returns its borrowed input only after the
+physical stop callback succeeds. Earlier ABI modules are rejected, with no
+compatibility fallback.
+
+Successful finish proves chain validation only. The physical Store must separately
+verify actual payload facts, current publication authority and the durable commit
+boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
+retry an unknown operation or supply saved-Run recovery.
