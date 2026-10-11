@@ -320,10 +320,20 @@ pub fn ResidentEffectReviewRetention::review_projection(
   }
   // The installed authorization callback can also observe a closing Store.
   // Confirm the same original custody after that boundary before disclosure.
-  match self.report() {
-    Ok(report) => Ok((report, review.review_wire))
-    Err(issue) => Err(issue)
+  let report = match self.report() {
+    Ok(report) => report
+    Err(issue) => return Err(issue)
   }
+  // The paired Store read may outlive the preceding authorization check.
+  // Revalidate before returning its plaintext; a refused disclosure retains
+  // the original report, input borrow and cleanup reservations for retry.
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if self.retiring || !self.consumer.resident_effect_inputs_current(self.inputs) {
+    return Err(Unavailable)
+  }
+  Ok((report, review.review_wire))
 }
 
 ///|

@@ -15,6 +15,10 @@ fn retained_effect_review_retention_store(
   authoring_cid : String,
   review_work? : @effect_provider.NativeResidentEffectReview? = None,
   original_journal_path? : String? = None,
+  original_context? : (
+    @resident.ResidentEffectReviewInputContext,
+    @dispatch_journal.Journal,
+  )? = None,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-review-retention-" + @env.now().to_string()
@@ -144,6 +148,25 @@ fn retained_effect_review_retention_store(
     is Err(EvidenceDenied),
   )
   assert_eq(evidence_reads.val, 2)
+  // Both earlier checks allow this read. Current authority is unavailable
+  // only after the final paired Store confirmation, before plaintext returns.
+  let final_reads = Ref(0)
+  assert_true(
+    retention.review_projection(
+      () => {
+        final_reads.val += 1
+        final_reads.val < 3
+      },
+      65536,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(final_reads.val, 3)
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(retention.report().unwrap()),
+    @remote.remote_effect_checkpoint_report_json(report),
+  )
   let closing_reads = Ref(0)
   assert_true(
     retention.review_projection(
@@ -195,6 +218,74 @@ fn retained_effect_review_retention_store(
       @remote.remote_effect_checkpoint_report_json(queued),
       @remote.remote_effect_checkpoint_report_json(report),
     )
+    if original_context is Some((context, journal)) {
+      let before_original = store.capacity_usage().unwrap().reserved_bytes
+      let read_original = authorize => {
+        context.read_original_review_projection(
+          journal, store, authority, crypto, key, limits, authorize,
+        )
+      }
+      assert_true(read_original(() => false) is Err(EvidenceDenied))
+      let original_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          original_reads.val += 1
+          original_reads.val < 2
+        })
+        is Err(EvidenceDenied),
+      )
+      assert_eq(original_reads.val, 2)
+      let final_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          final_reads.val += 1
+          final_reads.val < 3
+        })
+        is Err(EvidenceDenied),
+      )
+      assert_eq(final_reads.val, 3)
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+      assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+      let restored = read_original(() => true).unwrap()
+      assert_eq(restored.1, projection_wire)
+      assert_eq(
+        @remote.remote_effect_checkpoint_report_json(restored.0),
+        @remote.remote_effect_checkpoint_report_json(queued),
+      )
+      assert_true(
+        context.read_original_review_projection(
+          journal,
+          store,
+          retained_compute_cid("f"),
+          crypto,
+          key,
+          limits,
+          () => true,
+        )
+        is Err(Store(StateCollision)),
+      )
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+      assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+      // A current authorization read can retire/close custody. Recheck after
+      // that boundary instead of returning previously read private bytes.
+      let close_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          close_reads.val += 1
+          if close_reads.val == 2 {
+            store.close().unwrap() |> ignore
+          }
+          true
+        })
+        is Err(Store(Closed)),
+      )
+      assert_eq(close_reads.val, 2)
+      store = open()
+      retention.restore_store(store).unwrap()
+      assert_eq(read_original(() => true).unwrap().1, projection_wire)
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+    }
+    let (upload_context, upload_journal) = original_context.unwrap()
     retained_holder_upload_original_review(
       work,
       original_journal_path.unwrap(),
@@ -216,6 +307,9 @@ fn retained_effect_review_retention_store(
           abort("confirmed review repeated a Provider observation")
         },
       },
+      upload_context,
+      upload_journal,
+      authority,
     )
     Some(retained_holder_admit_resolution(work, report))
   } else {

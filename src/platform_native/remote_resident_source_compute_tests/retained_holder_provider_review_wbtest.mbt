@@ -477,6 +477,7 @@ fn retained_holder_provider_review(
     original_journal_path=Some(
       root_path + "/" + name + ".runtime/execution.sqlite3",
     ),
+    original_context=Some((owned_context, journal)),
   )
   let saved = journal
     .effect_checkpoint_report(dispatch, {
