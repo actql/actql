@@ -45,8 +45,11 @@ fn QueryParser::pivot_clause(
   while true {
     self.node()
     let expression = self.expression()
-    guard expression_node(expression, expression_root(expression)).unwrap().kind
-      is StringLiteral(value) else {
+    let mut value_root = expression_root(expression)
+    while expression_node(expression, value_root).unwrap().kind is Parenthesized(child) {
+      value_root = child
+    }
+    guard expression_node(expression, value_root).unwrap().kind is StringLiteral(value) else {
       raise QueryAbort(
         "PIVOT currently requires constant String values",
         self.peek().start,

@@ -183,7 +183,8 @@ pivot_operator = "PIVOT", "(", pivot_call,
                  [ [ "AS" ], identifier ] ;
 pivot_call = pivot_aggregate, "(", expression, ")" | "COUNT", "(", "*", ")" ;
 pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
-pivot_value = query_string, [ [ "AS" ], identifier ] ;
+pivot_value = pivot_string, [ [ "AS" ], identifier ] ;
+pivot_string = query_string | "(", pivot_string, ")" ;
 unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
                    "(", unpivot_column_set, "FOR", identifier, "IN", "(",
                    unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;

@@ -333,3 +333,25 @@ pipePivotSuccesses.push(
  success('from-projected-identity', "SELECT twin,A FROM (SELECT amount AS value,amount AS twin,axis FROM (SELECT 1 AS amount,'A' AS axis UNION ALL SELECT 1,'A' UNION ALL SELECT 2,'A') original) PIVOT(SUM(value) FOR axis IN('A')) ORDER BY twin",
   [{twin:1,A:2},{twin:2,A:2}],[number('twin',false),number('A',true)]),
 );
+
+// Grouping a decoded String literal preserves the same ordinary bucket value.
+// Duplicate rows count twice; the NULL sales row does not contribute to COUNT.
+const groupedHead = "(SELECT 'kale' AS product, 51 AS sales, 'Q1' AS quarter UNION ALL SELECT 'kale', 51, 'Q1' UNION ALL SELECT 'kale', CAST(NULL AS FLOAT64), 'Q2')";
+pipePivotSuccesses.push(
+  success('grouped-string-pipe', groupedHead
+    + " |> PIVOT(COUNT(sales) FOR quarter IN ((('Q2')) AS second, (\"Q1\") AS first))",
+    [{product: 'kale', second: 0, first: 2}],
+    [string('product', 4), number('second', false), number('first', false)]),
+  success('grouped-string-from', 'SELECT shaped.product,shaped.second,shaped.first FROM '
+    + groupedHead + " PIVOT(COUNT(sales) FOR quarter IN ((('Q2')) AS second, ('Q1') AS first)) AS shaped ORDER BY shaped.product",
+    [{product: 'kale', second: 0, first: 2}],
+    [string('product', 4), number('second', false), number('first', false)]),
+);
+for (const [name, value] of [
+  ['parameter', '((@p))'], ['number', '((1))'],
+  ['null', '((NULL))'], ['computed', "(('Q' || '1'))"],
+]) {
+  pipePivotRefusals.push({name: 'pipe-pivot-refusal-grouped-string-' + name,
+    format: 'aql-text', text: head + " |> PIVOT(COUNT(sales) FOR quarter IN (" + value + '))',
+    expectedCode: 'ClientProgramInvalidInput'});
+}

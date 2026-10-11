@@ -174,3 +174,21 @@ test "anonymous positional set fields do not supply public or BY NAME aliases" {
     )
   }
 }
+
+///|
+test "grouped PIVOT String buckets lower to the independent complete Program" {
+  let actual = compile(
+    @query.parse_query(
+      "FROM orders |> PIVOT(COUNT(amount) FOR status IN ((('open')) AS opened, ('closed')))",
+      syntax_limits(),
+    ).unwrap(),
+    values_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(semantic(actual), semantic(pipe_pivot_expected()))
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("grouped buckets must reach ordinary PIVOT admission")
+  }
+}
