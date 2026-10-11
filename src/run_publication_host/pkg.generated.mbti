@@ -1386,7 +1386,7 @@ pub(all) enum ClientEffectCheckpointMembersIssue {
 pub struct ClientEffectCompilation {
   owner : PreparedClientEffectComputation
   compiled : ClientTaskCompilation
-  normalization_profile : Bool
+  normalization_profile : ClientEffectNormalizationInventory?
 }
 
 pub(all) enum ClientEffectCompilationAdmissionIssue {
@@ -1526,6 +1526,8 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
 } derive(@debug.Debug)
 
 type ClientEffectNormalization
+
+type ClientEffectNormalizationInventory
 
 pub(all) enum ClientEffectNormalizationIssue {
   Inventory(@program_check.CompletionFreeInventoryIssue)

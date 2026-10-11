@@ -54,7 +54,7 @@ distinct from the CID preimage; it does not add Run or request fields there.
 
 `issue_prepared_client_effect_local_update_normalization` extends the existing
 preparation-owned issuer with a typed Local-update inventory. The same cached
-`ClientEffectNormalization` has a closed private create/update inventory sum.
+`ClientEffectNormalization` has a closed opaque create/update inventory sum.
 Each issuer refuses the other profile. Catalog selection derives from this
 nominal original projection, never a caller boolean or transported JSON field.
 
@@ -63,10 +63,26 @@ cached projection, catalog and saved wire. Readback neither checks another
 Program nor issues replacement evidence. Foreign/copy projections and a journal
 substituted across profiles refuse without altering the original proof.
 
-The compiler and durable materials must separately bind this profile to the
-original physical compilation, invocation, Run and request. The existing
-mapped-create compiler/material inverse refuses update evidence; this
-applicability proof cannot select that create Template. No alternate compiler,
-grant, journal, execution Owner or recovery mechanism is introduced. Native
-observation, approval, physical execution and cross-process custody remain
-separate obligations of the Local delivery connection.
+The compiler retains the original inventory and records its profile/catalog in
+the Template. Update evidence cannot select an unprofiled or mapped-create
+Template. The existing mapped-create Template bytes and nominal legacy material
+restoration remain unchanged. Neither a caller boolean nor a transported catalog
+field selects the update profile.
+
+Live material binding requires the same physical preparation and compilation,
+original invocation/authorization, Run, request and issued exact bytes. Repeated
+binding reuses the original custody. A replacement compilation with equal public
+identity cannot displace it. Corrupt or foreign custody is refused without repair.
+
+Durable material admission audits the restored checked owners to select a
+candidate profile, then binds the reconstructed Template to the saved invocation,
+authorization and independently selected original Run CID. Wire-only admission
+also verifies the request against the independently selected original request.
+It validates the frozen journal bytes and CID without issuing another journal.
+Subsequent journal readback reuses those restored owners and custody; it does not
+prepare or compile again. The nominal legacy mapped-create exception cannot be
+acquired from generic wire or used for update.
+
+No alternate compiler, grant, journal, execution Owner or recovery mechanism is
+introduced. Native observation, approval, physical execution and cross-process
+custody remain separate obligations of the Local delivery connection.

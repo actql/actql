@@ -31,7 +31,10 @@ pub fn bind_prepared_client_effect_original_materials(
     Err(issue) => return Err(issue)
   }
   if exact != issued.wire ||
-    issued.normalization_profile != allowed.compilation.normalization_profile {
+    !same_client_effect_normalization_profile(
+      issued.normalization_profile,
+      allowed.compilation.normalization_profile,
+    ) {
     return Err(Normalization(ForeignMaterials))
   }
   // A preparation can have only its existing exact live material binding.

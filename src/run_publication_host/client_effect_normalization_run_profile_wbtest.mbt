@@ -11,7 +11,9 @@ test "original normalization profile is bound through Template and original Run"
   ).unwrap()
   let run = @publication.publication_contract_identity(definition)
   let restored = normalization_materials_admit(wire, run)
-  assert_true(restored.compilation.normalization_profile)
+  assert_true(
+    restored.compilation.normalization_profile is Some(MappedCreate(_)),
+  )
   assert_true(restored.prepared.normalization is None)
   assert_true(restored.normalization.unwrap().issued is None)
   let template = @publication.run_evidence_value_json(
