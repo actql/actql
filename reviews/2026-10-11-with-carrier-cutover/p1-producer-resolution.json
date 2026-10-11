@@ -6,7 +6,7 @@
     "SGA declared Producer roles including lists resolve through the same scope lookup. ID/field/literal values remain values.",
     "FROM GRAPH uses nearest lexical binding before common Carrier checking; no search for a type-compatible outer producer."
   ],
-  "independent_controls": "producer_scope_test.mbt supplies outer_rows/inner_rows/outer_peer identities as independent input coordinates; no product-generated expected name.",
+  "independent_controls": "producer_scope_wbtest.mbt supplies outer_rows/inner_rows/outer_peer identities as independent input coordinates; no product-generated expected name.",
   "execution": "Not executed for this new slice. Existing legacy constructor spelling in this leaf control is transitional and must be replaced at complete P1 cutover; not a compatibility entry or completion claim.",
   "checks": {
     "previous_slice": {
@@ -20,7 +20,28 @@
     },
     "new_slice": "not executed",
     "lowering_common_checker": "not executed",
-    "public": "not executed"
+    "public": "not executed",
+    "authoring_compile_failure": {
+      "sha": "39dd054ff",
+      "run": "run-gWKTqO",
+      "exit": 1,
+      "test_count": null,
+      "reason": "Black-box filename hides private QueryParser. Move unchanged test source to _wbtest; no product semantics correction or success claim.",
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-gWKTqO/summary.json",
+          "sha256": "76bcd17ea08b3fe7824e54698e245d770ad901302bf740d46ee608f109a1f13c",
+          "bytes": 1817
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-6TIEnb/001.stderr.log",
+          "sha256": "d2edf7671fa3b9f1edddc432671d4d8a686990cc68dcdba362c9733dbf54736d",
+          "bytes": 18449
+        }
+      ],
+      "owner_pid": 90296,
+      "owner_group_lock_absent": true
+    }
   },
   "source_files": [
     {
@@ -39,7 +60,7 @@
       "sha256": "ad1fb7ce773cab5096758ff97ea5b74b9dd9d6024872cc1b0223ac5fb664bce4"
     },
     {
-      "path": "src/query_syntax/producer_scope_test.mbt",
+      "path": "src/query_syntax/producer_scope_wbtest.mbt",
       "bytes": 3692,
       "sha256": "6aa5a8b2d167a437116231d16b0b91f3629b2a485b042fb8149467f75e94522a"
     }
