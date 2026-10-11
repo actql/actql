@@ -38,7 +38,12 @@ test "zero ROWS SQL Pipe and named windows match complete checked Programs" {
     ] {
     let expected = zero_rows_frame_expected(frame)
     match
-      @check.check_parsed(expected, check_environment(), None, check_limits()) {
+      @check.check_parsed(
+        expected,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
       Checked(_) => ()
       Rejected(error) => raise @check.diagnostic_cause(error)
       _ => fail("the independent physical frame Program must be closed")
