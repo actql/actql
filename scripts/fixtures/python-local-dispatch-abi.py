@@ -49,8 +49,11 @@ def worker(module_path, path, kind, phase):
                         max_payload_bytes=8 * 1_048_576) as store:
         environment = call('program', 'install_environment', copy(ENVIRONMENT))
         config = call('run', 'install_configuration', copy(CONFIGURATION))
-        original = (encode(PROGRAM) if kind == 1 else AQL) if phase == 0 else store.read('input').payload
-        preparation = call('program', 'reserve_preparation', environment, copy(original), kind)
+        original = (encode(PROGRAM) if kind == 1 else AQL.encode('utf-8')) if phase == 0 else store.read('input').payload
+        # The transfer envelope is JSON; the retained authored text is UTF-8
+        # bytes. Neither is a substitute for the other's revision/custody.
+        input_wire = original if kind == 1 else encode(original.decode('utf-8'))
+        preparation = call('program', 'reserve_preparation', environment, copy(input_wire), kind)
         assert preparation > 0 and call('program', 'prepare', preparation) == 0
         request = encode(REQUEST) if phase == 0 else store.read('request').payload
         run = call('run', 'reserve', config, preparation, copy(request))
@@ -121,7 +124,7 @@ else:
                                         str(Path(directory) / f'original-{kind}.sqlite'),
                                         str(kind), str(phase)], capture_output=True,
                                        text=True, timeout=40)
-                assert child.returncode == 0, child.stderr
+                assert child.returncode == 0, f'kind={kind}, phase={phase}: {child.stderr}'
                 result = json.loads(child.stdout)
                 assert result == {'phase': phase, 'kind': kind, 'original_request': True,
                                   'claim_blocks_restart': phase == 2}
