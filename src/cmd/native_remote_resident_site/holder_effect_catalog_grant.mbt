@@ -100,6 +100,7 @@ priv struct HolderEffectCatalogInstallation {
   resource : String
   api_version : String
   current : () -> Bool
+  initial_use : HolderEffectCatalogInitialUse
   mut client_closed : Bool
   mut database_closed : Bool
 }
@@ -257,8 +258,17 @@ fn open_holder_effect_catalog_installation(
       stop("Effect Catalog credential database unavailable")
     }
   }
+  let initial_use : HolderEffectCatalogInitialUse = {
+    original,
+    grant,
+    scope,
+    use_id: read(11),
+    attempted: false,
+    claim: None,
+    issue: None,
+  }
   let service = match
-    @effect_resource.install_native_credential_resource_service(
+    @effect_resource.install_native_credential_resource_service_with_initial_use_claim(
       database,
       client,
       [holder_effect_catalog_operation(scope, read(9), read(10), read(18))],
@@ -268,6 +278,8 @@ fn open_holder_effect_catalog_installation(
         @effect_credential.credential_grant_cid(grant) &&
         authorization.scope.dispatch_request_cid == scope.dispatch_request_cid
       },
+      (grant, use_id, scope) => initial_use.claim_use(grant, use_id, scope),
+      credential_use => initial_use.retain_use(credential_use),
     ) {
     Ok(value) => value
     Err(_) => {
@@ -286,6 +298,7 @@ fn open_holder_effect_catalog_installation(
     resource: read(9),
     api_version: read(10),
     current,
+    initial_use,
     client_closed: false,
     database_closed: false,
   })
@@ -314,6 +327,7 @@ fn HolderEffectCatalogInstallation::read(
   self : HolderEffectCatalogInstallation,
   limits : @effect_catalog.DescribeLimits,
   max_observation_bytes : Int,
+  authorize_current : () -> Bool,
 ) -> Result[
   (
     @effect_catalog.CatalogObservation,
@@ -332,6 +346,11 @@ fn HolderEffectCatalogInstallation::read(
     self.resource,
     limits,
     max_observation_bytes,
-    () => !self.client_closed && !self.database_closed && (self.current)(),
+    () => {
+      authorize_current() &&
+      !self.client_closed &&
+      !self.database_closed &&
+      (self.current)()
+    },
   )
 }

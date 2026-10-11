@@ -219,12 +219,27 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
   }
   match self.query_original_catalog_use() {
     Ok(Some(_)) => return self.confirm_restored_catalog(current)
-    Ok(None) => ()
-    Err(_) => return false
+    Ok(None) => return false
+    Err(_) => {
+      guard self.query_issue is Some(issue) &&
+        holder_catalog_initial_read_ready(issue, () => {
+          self.installation.initial_use.ready()
+        }) &&
+        current() else {
+        return false
+      }
+      // The original funded Owner supplied eligibility independently of this
+      // missing-use observation. Resource still owns the actual first claim.
+      self.query_issue = None
+    }
   }
   self.read_started = true
   match
-    self.installation.read(self.describe_limits, self.max_observation_bytes) {
+    self.installation.read(
+      self.describe_limits,
+      self.max_observation_bytes,
+      current,
+    ) {
     Ok(observed) => {
       self.observed = Some(observed)
       // Even if authority changed during read, save its exact original response
@@ -324,6 +339,9 @@ fn HolderEffectCatalogReviewCustody::query_original_catalog_use(
 fn HolderEffectCatalogReviewCustody::pending_reason(
   self : HolderEffectCatalogReviewCustody,
 ) -> String {
+  if self.installation.initial_use.issue is Some(_) {
+    return "catalog-initial-claim"
+  }
   if self.restore_issue is Some(_) {
     "catalog-restoration"
   } else {
