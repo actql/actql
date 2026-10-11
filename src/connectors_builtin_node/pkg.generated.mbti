@@ -913,6 +913,8 @@ pub fn client_program_issue_imported_local_effect_invocation(@run_publication_ho
 
 pub fn client_program_issue_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
 
+pub fn client_program_issue_infer_raw_capture_policy(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication_host.ClientModelRawCaptureIssue]
+
 pub fn client_program_issue_infer_slot_capture(@client_infer_host.Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]

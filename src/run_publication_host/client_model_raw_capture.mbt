@@ -29,6 +29,94 @@ pub(all) enum ClientModelRawCaptureIssue {
 } derive(Eq, Debug)
 
 ///|
+/// Project installed selection facts into the registered policy body. The
+/// original Run/scope/task/data identities come from existing owners, never
+/// Host-built evidence JSON. This issues no permission or persistence fact.
+pub fn issue_client_model_raw_capture_policy(
+  dispatch : ClientInferDispatchAdmission,
+  scope : @publication.BoundModelInvocationScope,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  probability : @environment.DecisionProbabilityProfile?,
+  store_authority_cid : String,
+  retention : @publication.CapturedEffectDependencyBody,
+  metadata : @publication.CapturedEffectDependencyBody,
+  clock : @publication.CapturedEffectDependencyBody,
+  data : @publication.CapturedEffectDependencyBody,
+  selected_at : String,
+  available_until : String,
+  delete_by : String,
+  extension_ceiling_at : String,
+  metadata_delete_by : String,
+) -> Result[@publication.BoundModelRawCapturePolicy, ClientModelRawCaptureIssue] {
+  let boundary = @publication.model_invocation_scope_boundary(scope)
+  let scope_cid = @publication.model_invocation_scope_cid(scope)
+  let (_, run_cid, _) = @publication.model_invocation_scope_run(scope)
+  let task = @environment.model_execution_task(dispatch.plan.execution)
+  let task_cid = @environment.model_task_identity(task).2
+  if run_cid != @publication.publication_contract_identity(dispatch.definition) ||
+    dispatch.subject_cid != scope_cid ||
+    dispatch.activation_context_cid != boundary.context_cid ||
+    @publication.model_invocation_scope_prepared_cid(scope) !=
+    @publication.run_evidence_value_identity(dispatch.compiled.prepared) ||
+    !client_compiled_run_has_infer(dispatch.compiled, dispatch.plan) ||
+    dispatch.plan.task.to_int64() != boundary.task_index ||
+    dispatch.plan.barrier_cid != boundary.inference_barrier_cid ||
+    boundary.resource != task_cid ||
+    boundary.connection != @environment.model_task_connector(task) {
+    return Err(ForeignRun)
+  }
+  if @environment.check_model_response_profile_binding(
+      profile, task, installation, probability,
+    ) is Err(_) {
+    return Err(ForeignProfile)
+  }
+  guard client_compiled_run_infer_observation_policy(dispatch.compiled)
+    is Some(data_cid) &&
+    @publication.captured_effect_dependency_body_cid(data) == data_cid else {
+    return Err(ForeignPolicy)
+  }
+  let body = try {
+    let writer = @encode.writer(8192, 128, 8)
+    @encode.begin_object(writer)
+    for (field, text) in [
+      ("version", "actql-model-raw-capture-policy/0.1"),
+      ("purpose", "model_raw_capture"),
+      ("run_definition_cid", run_cid),
+      ("scope_cid", scope_cid),
+      ("model_task_cid", task_cid),
+      ("response_profile_cid", @environment.model_response_profile_identity(profile)),
+      ("store_authority_cid", store_authority_cid),
+      ("effective_data_policy_cid", data_cid),
+      ("retention_contract_cid", @publication.captured_effect_dependency_body_cid(retention)),
+      ("metadata_retention_policy_cid", @publication.captured_effect_dependency_body_cid(metadata)),
+      ("clock_contract_cid", @publication.captured_effect_dependency_body_cid(clock)),
+      ("selected_at", selected_at),
+      ("available_until", available_until),
+      ("delete_by", delete_by),
+      ("extension_ceiling_at", extension_ceiling_at),
+      ("metadata_delete_by", metadata_delete_by),
+    ] {
+      @encode.key(writer, field)
+      @encode.string_value(writer, text)
+    }
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Evidence(@publication.RunEvidenceEncoding))
+  }
+  let policy = match @publication.seal_run_evidence_value(
+      "model_raw_capture_policy", body, 8192, 128, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  @publication.bind_model_raw_capture_policy(
+    policy, retention, metadata, clock, data,
+  ).map_err(issue => Evidence(issue))
+}
+
+///|
 /// Bind a distinct capture tuple to the original scope and activation. The
 /// four actual policy originals have already been integrity-admitted by the
 /// Publication owner; selection_available attests their installed applicability,

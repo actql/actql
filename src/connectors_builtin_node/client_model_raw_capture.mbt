@@ -40,6 +40,42 @@ pub fn client_program_bind_model_raw_capture_policy(
 }
 
 ///|
+/// Issue the existing policy body from original typed owners and fixed Host
+/// selection values. It is not capture permission or a Store observation.
+#export_name("clientProgramIssueInferRawCapturePolicy")
+pub fn client_program_issue_infer_raw_capture_policy(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  dispatch : @publication_host.ClientInferDispatchAdmission,
+  scope : @publication.BoundModelInvocationScope,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  probability : @check_environment.DecisionProbabilityProfile?,
+  store_authority_cid : String,
+  retention : @publication.CapturedEffectDependencyBody,
+  metadata : @publication.CapturedEffectDependencyBody,
+  clock : @publication.CapturedEffectDependencyBody,
+  data : @publication.CapturedEffectDependencyBody,
+  selected_at : String,
+  available_until : String,
+  delete_by : String,
+  extension_ceiling_at : String,
+  metadata_delete_by : String,
+) -> Result[
+  @publication.BoundModelRawCapturePolicy,
+  @publication_host.ClientModelRawCaptureIssue,
+] {
+  if !@publication_host.client_infer_dispatch_matches_run(dispatch, compiled, definition) {
+    return Err(@publication_host.ForeignRun)
+  }
+  @publication_host.issue_client_model_raw_capture_policy(
+    dispatch, scope, profile, installation, probability, store_authority_cid,
+    retention, metadata, clock, data, selected_at, available_until, delete_by,
+    extension_ceiling_at, metadata_delete_by,
+  )
+}
+
+///|
 /// Match the original compiled owner before delegating installed selection and
 /// current authorization to the existing registration Owner. No CID-only grant.
 #export_name("clientProgramRegisterInferRawCapture")

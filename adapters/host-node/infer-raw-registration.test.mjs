@@ -80,4 +80,7 @@ test('raw registration rejects a caller-created compiled Run before current call
       observeAccount: observe, observeAt: observe}),
   {message: 'Foreign Client compiled Infer raw capture'});
   assert.equal(callbacks, 0);
+  assert.throws(() => control.issueCheckedClientInferRawCapturePolicy(
+    {kind: 'infer'}, {}, {}, {}, {}),
+  {message: 'Foreign Client compiled Infer raw policy'});
 });

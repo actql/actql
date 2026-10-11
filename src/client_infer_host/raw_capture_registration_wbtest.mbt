@@ -233,3 +233,143 @@ test "raw capture registration retains fixed selection and rechecks current fact
   assert_true(fixture_finish(active, initial_work=work) is Stopped(..))
   assert_true(cleanup(active).unwrap())
 }
+
+///|
+test "raw capture registration policy issuer preserves the registered body without granting capture" {
+  let calls = Ref(0)
+  let current = Ref(
+    evidence_account(@authorization.Allow, operations=["infer"]),
+  )
+  let at = Ref("2026-10-02T00:00:00.000Z")
+  let (active, prepared, dispatch, work) = entry_gate_fixture(
+    calls,
+    current,
+    at,
+    Ref(Some(egress_fixture_observation())),
+  )
+  let scope = @model.prepared_model_scope(prepared).unwrap()
+  // Existing independently assembled fixture fields/preimage remain unchanged.
+  // Its originals only double installed applicability and physical Store custody.
+  let expected = raw_registration_policy(active, prepared)
+  let originals = @publication.model_raw_capture_policy_originals(expected)
+  let issued = @publication_host.issue_client_model_raw_capture_policy(
+    dispatch,
+    scope,
+    async_response_profile(),
+    async_response_installation(),
+    None,
+    "sha256:" + "e".repeat(64),
+    originals[0],
+    originals[1],
+    originals[2],
+    originals[3],
+    at.val,
+    "2026-10-02T01:00:00.000Z",
+    "2026-10-02T02:00:00.000Z",
+    "2026-10-02T02:00:00.000Z",
+    "2026-10-02T03:00:00.000Z",
+  ).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(
+      @publication.model_raw_capture_policy_value(issued),
+    ),
+    @publication.run_evidence_value_json(
+      @publication.model_raw_capture_policy_value(expected),
+    ),
+  )
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      @publication.model_raw_capture_policy_value(issued),
+    ),
+    @publication.run_evidence_value_identity(
+      @publication.model_raw_capture_policy_value(expected),
+    ),
+  )
+  assert_true(
+    @publication_host.register_client_model_raw_capture(
+      dispatch,
+      scope,
+      issued,
+      async_response_profile(),
+      async_response_installation(),
+      None,
+      current.val,
+      at.val,
+      "sha256:" + "e".repeat(64),
+      () => true,
+      () => Ok((current.val, at.val)),
+    )
+    is Err(@publication_host.Authorization(@authorization.Denied)),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=work) is Stopped(..))
+  assert_true(cleanup(active).unwrap())
+}
+
+///|
+test "raw capture registration policy issuer refuses mismatched originals and fixed intervals" {
+  let calls = Ref(0)
+  let current = Ref(evidence_account(@authorization.Allow))
+  let at = Ref("2026-10-02T00:00:00.000Z")
+  let (active, prepared, dispatch, work) = entry_gate_fixture(
+    calls,
+    current,
+    at,
+    Ref(Some(egress_fixture_observation())),
+  )
+  let scope = @model.prepared_model_scope(prepared).unwrap()
+  let originals = @publication.model_raw_capture_policy_originals(
+    raw_registration_policy(active, prepared),
+  )
+  let issue = (installation, retention, data, available) => {
+    @publication_host.issue_client_model_raw_capture_policy(
+      dispatch,
+      scope,
+      async_response_profile(),
+      installation,
+      None,
+      "sha256:" + "e".repeat(64),
+      retention,
+      originals[1],
+      originals[2],
+      data,
+      at.val,
+      available,
+      "2026-10-02T02:00:00.000Z",
+      "2026-10-02T02:00:00.000Z",
+      "2026-10-02T03:00:00.000Z",
+    )
+  }
+  let installed = async_response_installation()
+  assert_true(
+    issue(
+      { ..installed, endpoint: "https://foreign.invalid/", },
+      originals[0],
+      originals[3],
+      "2026-10-02T01:00:00.000Z",
+    )
+    is Err(@publication_host.ForeignProfile),
+  )
+  assert_true(
+    issue(installed, originals[0], originals[2], "2026-10-02T01:00:00.000Z")
+    is Err(@publication_host.ForeignPolicy),
+  )
+  assert_true(
+    issue(installed, originals[1], originals[3], "2026-10-02T01:00:00.000Z")
+    is Err(@publication_host.Evidence(_)),
+  )
+  for
+    invalid in [
+      "not-a-clock", "2026-10-01T23:59:59.000Z", "2026-10-02T03:00:00.000Z",
+    ] {
+    assert_true(
+      issue(installed, originals[0], originals[3], invalid)
+      is Err(@publication_host.Evidence(_)),
+    )
+  }
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=work) is Stopped(..))
+  assert_true(cleanup(active).unwrap())
+}

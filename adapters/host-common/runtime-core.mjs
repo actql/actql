@@ -2369,6 +2369,19 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindModelRawCapturePolicy(
         evidenceToken(policy), retention, metadata, clock, data));
     },
+    issueCheckedClientInferRawCapturePolicy(compiled, definition, dispatch, scope,
+      {profile, installation, probability, storeAuthorityCid, retention, metadata,
+        clock, data, selectedAt, availableUntil, deleteBy, extensionCeilingAt,
+        metadataDeleteBy}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer raw policy');
+      }
+      return checked(moon.clientProgramIssueInferRawCapturePolicy(value,
+        token(definition), dispatch, scope, profile, installation, probability,
+        storeAuthorityCid, retention, metadata, clock, data, selectedAt,
+        availableUntil, deleteBy, extensionCeilingAt, metadataDeleteBy));
+    },
     registerCheckedClientInferRawCapture(compiled, definition, dispatch, scope,
       {policy, profile, installation, probability, account, at, storeAuthorityCid,
         selectionAvailable, observeAccount, observeAt, delegated}) {
