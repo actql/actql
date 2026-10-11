@@ -1,0 +1,59 @@
+{
+  "totalCases": 3971,
+  "inventorySha256": "9a14391bd66d87985db90c7c0a77ce8088dd93acc4c445768c91d9ead08e1006",
+  "counts": {
+    "successes": 2495,
+    "executionFailures": 50,
+    "refusals": 1426
+  },
+  "profiles": [
+    {
+      "name": "standard",
+      "counts": {
+        "successes": 2441,
+        "executionFailures": 48,
+        "refusals": 1387
+      }
+    },
+    {
+      "name": "analytic-offset",
+      "counts": {
+        "successes": 6,
+        "executionFailures": 0,
+        "refusals": 13
+      }
+    },
+    {
+      "name": "analytic-property",
+      "counts": {
+        "successes": 13,
+        "executionFailures": 0,
+        "refusals": 7
+      }
+    },
+    {
+      "name": "analytic-order",
+      "counts": {
+        "successes": 35,
+        "executionFailures": 2,
+        "refusals": 19
+      }
+    }
+  ],
+  "repeatedFailures": [
+    {
+      "name": "graph-subtraction-null-is-not-zero",
+      "positions": [
+        28,
+        46
+      ]
+    },
+    {
+      "name": "graph-subtraction-conflict-needs-policy",
+      "positions": [
+        29,
+        47
+      ]
+    }
+  ]
+}

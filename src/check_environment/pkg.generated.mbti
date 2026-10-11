@@ -122,6 +122,8 @@ pub fn check_mapping_conversions(MappingContractShape, Int) -> Result[MappingCon
 
 pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowFields, MappingRowFieldsIssue]
 
+pub fn check_model_response_profile_binding(ModelResponseProfile, ModelTaskContract, ModelResponseProfileInstallation, DecisionProbabilityProfile?) -> Result[Unit, ModelTaskIssueKind]
+
 pub fn check_model_tasks(WireEnvironment, ModelTaskLimits) -> Result[ModelTasks, ModelTaskIssue]
 
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
@@ -390,6 +392,18 @@ pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
 
 pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
 
+pub fn model_response_profile_completion_basis(ModelResponseProfile) -> String
+
+pub fn model_response_profile_identity(ModelResponseProfile) -> String
+
+pub fn model_response_profile_limits(ModelResponseProfile) -> ModelResponseProfileLimits
+
+pub fn model_response_profile_observation_at(ModelResponseProfile, Int) -> String?
+
+pub fn model_response_profile_observation_count(ModelResponseProfile) -> Int
+
+pub fn model_response_profile_usage(ModelResponseProfile) -> (Int, Int, Int)
+
 pub fn model_task_accepts_classification(ModelTaskContract, DataClassification) -> Bool
 
 pub fn model_task_at(ModelTasks, Int) -> ModelTaskContract?
@@ -489,6 +503,8 @@ pub fn read_mode_view_at(SourceReadModes, Int) -> SourceViewModes?
 pub fn read_model_dependency(ModelDependencyKind, Bytes, String, Limits, Int) -> Result[ModelDependency, ModelTaskIssue]
 
 pub fn read_model_execution_contract(ModelTaskContract, Bytes, String, Limits, Int) -> Result[ModelExecutionContract, ModelTaskIssue]
+
+pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelResponseProfile, ModelTaskIssue]
 
 pub fn read_relation_schema_fields(@decode_core.Cursor, Int, Int, Int, Int) -> Result[(@relation_schema.Schema, Int), CarrierSchemaIssue]
 
@@ -1104,6 +1120,49 @@ pub struct ModelGeneration {
   max_output_tokens : Int64
   seed_requested : Int64?
 }
+
+type ModelResponseProfile
+
+pub(all) struct ModelResponseProfileInstallation {
+  builder_id : String
+  builder_revision : String
+  codec_id : String
+  codec_revision : String
+  build_artifact_cid : String
+  sdk : ModelResponseProfileSDK?
+  endpoint : String
+  http_method : String
+  streaming : Bool
+  validator_id : String
+  validator_revision : String
+  validator_artifact_cid : String
+  completion_basis : String
+}
+
+pub(all) struct ModelResponseProfileLimits {
+  request_bytes : Int
+  response_bytes : Int
+  chunk_bytes : Int
+  chunks : Int
+  header_bytes : Int
+  metadata_bytes : Int
+  metadata_nodes : Int
+  metadata_depth : Int
+  parse_nodes : Int
+  parse_depth : Int
+  parse_work : Int
+  adapter_holding_bytes : Int
+  adapter_workspace_bytes : Int
+  active_slots : Int
+  unsettled_slots : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelResponseProfileSDK {
+  package_name : String
+  version : String
+  interface : String
+  lock_artifact_cid : String
+} derive(Eq, @debug.Debug)
 
 type ModelTaskContract
 
