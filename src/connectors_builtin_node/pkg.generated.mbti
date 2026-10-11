@@ -193,6 +193,8 @@ pub fn client_program_bind_infer_model_observation(@client_infer_host.Execution,
 
 pub fn client_program_bind_infer_model_scope(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_infer_original_preparation(@client_infer_host.Execution, @run_publication_host.ClientModelReadPreparation, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_bind_infer_physical_preflight(@client_infer_host.Execution, (@model_execution.ModelRequest) -> @model_execution.ModelRequestPreflight?) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_bind_infer_quantity_capacity(@client_infer_host.Execution, Int64, Int64, Int64, Int64, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]

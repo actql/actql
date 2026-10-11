@@ -674,6 +674,21 @@ pub fn client_program_bind_infer_run(
 }
 
 ///|
+/// Private installed original-read connection, before any prefix advance.
+/// Grants do not establish an adopted physical profile or send permission.
+#export_name("clientProgramBindInferOriginalPreparation")
+pub fn client_program_bind_infer_original_preparation(
+  active : @infer_host.Execution,
+  read : @publication_host.ClientModelReadPreparation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_original_model_preparation(
+    active, read, retained_bytes, execution_bytes,
+  )
+}
+
+///|
 /// Expose the admitted account token, never adapter-authored authority JSON.
 #export_name("clientProgramIssueInferDispatchAdmission")
 pub fn client_program_issue_infer_dispatch_admission(

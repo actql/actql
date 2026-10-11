@@ -47,6 +47,8 @@ pub fn bind_model_observation(Execution, @model_execution.ModelPreparedCallSet, 
 
 pub fn bind_model_scope(Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, InvocationBindingIssue]
 
+pub fn bind_original_model_preparation(Execution, @run_publication_host.ClientModelReadPreparation, Int64, Int64) -> Result[Unit, Issue]
+
 pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
 
 pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity) -> Result[Unit, Issue]
@@ -198,6 +200,7 @@ pub struct Execution {
   mut child_work : Int64
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
+  mut original_preparation : OriginalModelPreparation?
   mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
   mut durable_calls : Bool
   mut model_send_mask : Array[Bool]?
@@ -241,6 +244,7 @@ pub(all) enum Issue {
   Capacity(@run_publication_host.ClientInferHostCapacityIssue)
   IdentityExport(@execution_relation.CompletedExportIssue)
   CallScope(@run_publication_host.ClientInferCallScopeIssue)
+  OriginalCapacity(@run_publication_host.ClientModelInputCapacityIssue)
 }
 
 pub(all) struct Limits {
@@ -272,6 +276,8 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 type ObservationIssuanceState
+
+type OriginalModelPreparation
 
 pub struct OutputUse {
   owner : Execution

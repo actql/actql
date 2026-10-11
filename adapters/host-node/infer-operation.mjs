@@ -288,6 +288,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // It passes the original owner to MoonBit, never recompiling this Program.
     bindRun: (control, {compiled, runDefinition}) =>
       control.bindCheckedClientInferRun(compiled, active, runDefinition),
+    // The original installing Owner retains read custody. Core verifies the
+    // original Run and claims its seal after the actual bounded Identity scan.
+    // This private seam does not install a normal physical funding profile.
+    bindOriginalPreparation: (read, retainedBytes, executionBytes) =>
+      checked(moon.clientProgramBindInferOriginalPreparation(active, read,
+        retainedBytes, executionBytes)),
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
