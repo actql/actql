@@ -100,6 +100,7 @@ priv struct HolderEffectCatalogInstallation {
   resource : String
   api_version : String
   current : () -> Bool
+  initial_use : HolderEffectCatalogInitialUse
   mut client_closed : Bool
   mut database_closed : Bool
 }
@@ -119,7 +120,25 @@ fn open_holder_effect_catalog_installation(
   max_nodes : Int,
   max_depth : Int,
   configuration_current : () -> Bool,
+  preparation_envelope? : @journal.NativeInitialCatalogUseEnvelope? = None,
 ) -> HolderEffectCatalogInstallation? raise CommandStop {
+  // This explicit trusted Host envelope includes original Journal bytes and
+  // the whole overlapping snapshot/record/closure/control/workspace lifetime.
+  // No wire limit or positive placeholder selects an installed numeric profile.
+  // Missing layout funding remains unavailable, including restore-only setup.
+  guard preparation_envelope is Some(preparation) &&
+    original.current() &&
+    configuration_current() &&
+    original.consumer.read_catalog_preparation_capacity(
+      original.journal,
+      original.producer,
+      preparation,
+    )
+    is Ok(_) &&
+    original.current() &&
+    configuration_current() else {
+    return None
+  }
   guard original.invocation(max_bytes, max_nodes, max_depth)
     is Some((_, invocation)) else {
     return None
@@ -218,12 +237,26 @@ fn open_holder_effect_catalog_installation(
   let current = () => {
     original.current() &&
     configuration_current() &&
+    original.consumer.read_catalog_preparation_capacity(
+      original.journal,
+      original.producer,
+      preparation,
+    )
+    is Ok(_) &&
     snapshot.all(entry => {
       match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
         Ok(value) => value == entry.1
         Err(_) => false
       }
-    })
+    }) &&
+    original.current() &&
+    configuration_current() &&
+    original.consumer.read_catalog_preparation_capacity(
+      original.journal,
+      original.producer,
+      preparation,
+    )
+    is Ok(_)
   }
   // Do not open a physical service after the last original/configuration read
   // has invalidated custody. Expiry and revocation remain credential-owned.
@@ -257,8 +290,17 @@ fn open_holder_effect_catalog_installation(
       stop("Effect Catalog credential database unavailable")
     }
   }
+  let initial_use : HolderEffectCatalogInitialUse = {
+    original,
+    grant,
+    scope,
+    use_id: read(11),
+    attempted: false,
+    claim: None,
+    issue: None,
+  }
   let service = match
-    @effect_resource.install_native_credential_resource_service(
+    @effect_resource.install_native_credential_resource_service_with_initial_use_claim(
       database,
       client,
       [holder_effect_catalog_operation(scope, read(9), read(10), read(18))],
@@ -268,6 +310,8 @@ fn open_holder_effect_catalog_installation(
         @effect_credential.credential_grant_cid(grant) &&
         authorization.scope.dispatch_request_cid == scope.dispatch_request_cid
       },
+      (grant, use_id, scope) => initial_use.claim_use(grant, use_id, scope),
+      credential_use => initial_use.retain_use(credential_use),
     ) {
     Ok(value) => value
     Err(_) => {
@@ -286,6 +330,7 @@ fn open_holder_effect_catalog_installation(
     resource: read(9),
     api_version: read(10),
     current,
+    initial_use,
     client_closed: false,
     database_closed: false,
   })
@@ -314,6 +359,7 @@ fn HolderEffectCatalogInstallation::read(
   self : HolderEffectCatalogInstallation,
   limits : @effect_catalog.DescribeLimits,
   max_observation_bytes : Int,
+  authorize_current : () -> Bool,
 ) -> Result[
   (
     @effect_catalog.CatalogObservation,
@@ -332,6 +378,11 @@ fn HolderEffectCatalogInstallation::read(
     self.resource,
     limits,
     max_observation_bytes,
-    () => !self.client_closed && !self.database_closed && (self.current)(),
+    () => {
+      authorize_current() &&
+      !self.client_closed &&
+      !self.database_closed &&
+      (self.current)()
+    },
   )
 }

@@ -67,6 +67,7 @@ fn source_compute_issue_code(
     Source(value) => source_code(value)
     EffectRun(_) => "run-binding"
     EffectInput(_) => "input-binding"
+    ForeignEffectMaterials => "foreign-effect-materials"
     Acquisition(_) => "acquisition-open"
     Execution(_) => "acquisition-execution"
     Capture => "capture"

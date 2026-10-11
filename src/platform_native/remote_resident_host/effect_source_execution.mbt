@@ -410,3 +410,16 @@ pub fn execute_resident_effect_source_attempt(
     materials,
   })
 }
+
+///|
+/// Historical cleanup checks the actual original producer funding Owner. This
+/// read-only projection grants no capture/current authority or cleanup success.
+pub fn ResidentEffectProducerExecuted::owns_initial_catalog_use_custody(
+  self : ResidentEffectProducerExecuted,
+  custody : @journal.NativeInitialCatalogUseCustody,
+) -> Bool {
+  @journal.initial_catalog_use_custody_matches_ledger(
+    custody,
+    @strategy.captured_dag_ledger(self.source.run),
+  )
+}

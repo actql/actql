@@ -1,8 +1,7 @@
 {
-  "compilerOptions": {
-    "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
-    "strict": true, "noEmit": true, "skipLibCheck": false,
-    "baseUrl": "../..", "paths": {"@actql/sdk": ["packages/sdk/index.d.ts"]}
-  },
-  "files": ["read-model.typecheck.mts", "read-model.d.ts"]
+  "compilerOptions": {"target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noEmit": true, "skipLibCheck": false, "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": "../..", "paths": {"@actql/sdk": ["packages/sdk/index.d.ts"]}},
+  "files": ["plan-explorer.tsx", "flow-model.d.mts", "read-model.d.ts", "read-model.typecheck.mts", "plan-explorer.d.ts"]
 }
