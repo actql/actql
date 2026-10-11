@@ -127,5 +127,26 @@
         "sha256": "30ea22662282e72660f3afced57dbf574347cbdc90a118c3b1c41847b3575a29"
       }
     ]
+  },
+  "initial_runtime_attempt": {
+    "source": "2e7df440b5b81cb56b75033f8a69369e5be8722d",
+    "run": "run-L9PvuI",
+    "exit": 1,
+    "test_count": null,
+    "reason": "New authored span test omitted the Select distinct argument; actual compiler rejection before tests. Corrected only the pattern to Select(projections,false). Existing Program oracles unchanged.",
+    "owner_pid": 99764,
+    "owner_group_lock_absent": true,
+    "evidence": [
+      {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-L9PvuI/summary.json",
+        "bytes": 2000,
+        "sha256": "f587a5af20cbff9bcc1168abb09b5af1c88e726c2108632c6614d5834a889881"
+      },
+      {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-GPfcev/001.stderr.log",
+        "bytes": 1971,
+        "sha256": "06a47ef292cb20d15769e76f9d9505341b84ff9dc6ec54bf8707795fff0e424c"
+      }
+    ]
   }
 }

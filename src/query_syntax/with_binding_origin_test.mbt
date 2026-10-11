@@ -14,7 +14,7 @@ test "authored WITH names and original UTF-8 ranges survive scope binding" {
   assert_false(first.carry_ranges)
   assert_false(second.carry_ranges)
   assert_eq(relation(second.query), [first.name])
-  guard operation_at(first.query, 0) is Some(Select(projections)) else {
+  guard operation_at(first.query, 0) is Some(Select(projections, false)) else {
     fail("the authored producer retains its SELECT")
   }
   let expression = projections[0].expression.unwrap()
