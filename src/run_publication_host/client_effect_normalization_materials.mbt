@@ -11,6 +11,7 @@ struct ClientEffectIssuedNormalizationMaterials {
   original : ClientEffectNormalization
   run_cid : String
   wire : String
+  normalization_profile : Bool
 }
 
 ///|
@@ -38,7 +39,13 @@ pub fn issue_prepared_client_effect_normalization_materials(
   let run_cid = @publication.publication_contract_identity(definition)
   // No reverse index on the preparation: each Run's bytes are retained only
   // by its caller/admitted custody. The opaque type has no public constructor.
-  Ok({ issuer: original_effect_materials_issuer, original, run_cid, wire, })
+  Ok({
+    issuer: original_effect_materials_issuer,
+    original,
+    run_cid,
+    wire,
+    normalization_profile: allowed.compilation.normalization_profile,
+  })
 }
 
 ///|
@@ -68,7 +75,7 @@ fn original_effect_materials_match(
 /// Exact journal custody retained by the existing original Run material
 /// admission. It grants neither execution, approval nor current authority.
 struct ClientEffectNormalizationMaterialCustody {
-  issued : ClientEffectIssuedNormalizationMaterials
+  issued : ClientEffectIssuedNormalizationMaterials?
   compilation : ClientEffectCompilation
   run_cid : String
   request : ClientRequestIdentity?
@@ -105,16 +112,20 @@ pub fn restore_client_effect_run_normalization(
     custody.request == materials.request else {
     return Err(ForeignMaterials)
   }
-  if !original_effect_materials_match(
-      custody.issued,
-      custody.issued.wire,
-      custody.run_cid,
-    ) ||
-    custody.materials_cid !=
-    "sha256:" + @sha.hex(@utf8.encode(custody.issued.wire)) ||
-    custody.journal_wire !=
-    @publication.run_evidence_value_json(custody.issued.original.journal) {
-    return Err(UnverifiedOriginalMaterials)
+  match custody.issued {
+    Some(issued) =>
+      if !original_effect_materials_match(issued, issued.wire, custody.run_cid) ||
+        custody.materials_cid != "sha256:" + @sha.hex(@utf8.encode(issued.wire)) ||
+        custody.journal_wire !=
+        @publication.run_evidence_value_json(issued.original.journal) {
+        return Err(UnverifiedOriginalMaterials)
+      }
+    None =>
+      // Generic wire cannot select the legacy path. The private compilation
+      // profile was admitted through the saved invocation and exact Run CID.
+      if !materials.compilation.normalization_profile {
+        return Err(UnverifiedOriginalMaterials)
+      }
   }
   // The retained original checker inventory, not wire shape or execution
   // success, supplies the applicability proof. Missing/unsupported proof
@@ -160,4 +171,26 @@ pub fn client_effect_normalization_materials_cid(
     return None
   }
   Some(custody.materials_cid)
+}
+
+///|
+/// Decode the published finite journal without invoking its original issuer.
+/// Applicability and provenance are separate: inventory plus the original
+/// Run's bound compiler profile are required before returning review custody.
+fn admit_completion_free_material_journal(
+  wire : String,
+) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
+  let journal = match
+    @publication.admit_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  if @publication.run_evidence_value_identity(journal) !=
+    "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087" ||
+    wire != @publication.run_evidence_value_json(journal) {
+    return Err(SubstitutedJournal)
+  }
+  Ok(journal)
 }
