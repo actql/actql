@@ -81,6 +81,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/aggregate-member-call-reuse-source-input.mjs', 'aggregate-member-call-reuse-source-input.mjs'],
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
+  ['scripts/fixtures/cte-value-table-source-input.mjs', 'cte-value-table-source-input.mjs'],
+  ['scripts/fixtures/cte-value-table-receipts.mjs', 'cte-value-table-receipts.mjs'],
   ['scripts/fixtures/analytic-frame-parameter-source-input.mjs', 'analytic-frame-parameter-source-input.mjs'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-following.program.json', 'analytic-frame-parameter.reversed-following.program.json'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],
@@ -111,6 +113,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
   ['scripts/fixtures/graph-mean-source-input.mjs', 'graph-mean-source-input.mjs'],
   ['scripts/fixtures/input-stage-result.mjs', 'input-stage-result.mjs'],
+  ['scripts/fixtures/typed-subscript-input.mjs', 'typed-subscript-input.mjs'],
   ['scripts/graph-public-failure.test.mjs', 'graph-public-failure.test.mjs'],
   ['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs'],
   ['scripts/fixtures/retained-graph-observer.mjs', 'retained-graph-observer.mjs'],
@@ -397,6 +400,9 @@ if (process.argv.includes('--graph-mean-only')) {
 if (process.argv.includes('--input-stage-result-only')) {
   runtimeEnvironment.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY = '1';
 }
+if (process.argv.includes('--typed-subscript-only')) {
+  runtimeEnvironment.ACTQL_TEST_TYPED_SUBSCRIPT_ONLY = '1';
+}
 if (process.argv.includes('--graph-remaining-operations-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY = '1';
 }
@@ -474,6 +480,9 @@ if (process.argv.includes('--source-free-only')) {
 }
 if (process.argv.includes('--data-set-strategy-only')) {
   runtimeEnvironment.ACTQL_TEST_DATA_SET_STRATEGY_ONLY = '1';
+}
+if (process.argv.includes('--cte-value-table-only')) {
+  runtimeEnvironment.ACTQL_TEST_CTE_VALUE_TABLE_ONLY = '1';
 }
 if (process.argv.includes('--query-composition-only')) {
   runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
@@ -706,6 +715,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--graph-shortest-only',
   '--graph-mean-only',
   '--input-stage-result-only',
+  '--typed-subscript-only',
   '--graph-remaining-operations-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
@@ -714,7 +724,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--cte-value-table-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
@@ -769,7 +779,10 @@ try {
   if (acceptanceStarted) {
     const reports = ['transport-processes.json',
       ...(process.argv.includes('--two-source-only') ? [] :
-        ['transport-completion.local.json', 'transport-completion.remote.json'])];
+        ['transport-completion.local.json', 'transport-completion.remote.json']),
+      ...((process.argv.includes('--cte-value-table-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['cte-value-table-receipts.local.json', 'cte-value-table-receipts.remote.json'] : [])];
     await retainTransportReports(reports, acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
   }
   try {
@@ -803,6 +816,7 @@ async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
 }
 if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only') ||
     process.argv.includes('--input-stage-result-only') ||
+    process.argv.includes('--typed-subscript-only') ||
     process.argv.includes('--graph-mean-only') ||
     process.argv.includes('--graph-remaining-operations-only') ||
     process.argv.includes('--graph-shortest-only')) {
@@ -874,7 +888,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--cte-value-table-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   await exerciseRetainedQueryRestart();
@@ -913,6 +927,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--computed-object-property-only') ||
   process.argv.includes('--source-free-only') ||
   process.argv.includes('--data-set-strategy-only') ||
+  process.argv.includes('--cte-value-table-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--relation-data-only') ||

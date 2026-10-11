@@ -1,6 +1,6 @@
 ///|
-// Synthetic Pipe continuations retain ranges; authored CTEs remain ordinary
-// projected producers. Use the existing Script binding for this one boundary.
+// Synthetic Pipe continuations retain their complete range scope. Authored CTE
+// value-table kinds use separate metadata in the existing Script binding.
 fn has_pipe_range_input(query : @query.Query) -> Bool {
   let pending = [query]
   while pending.pop() is Some(current) {
