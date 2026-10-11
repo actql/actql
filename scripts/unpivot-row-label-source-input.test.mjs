@@ -22,6 +22,15 @@ test('UNPIVOT row-label oracle distinguishes repeated occurrences NULL and renam
   assert.deepEqual(cases.get('unpivot-row-label-empty').expected, []);
   assert.deepEqual(cases.get('unpivot-row-label-empty').columns, control.columns);
   assert.deepEqual(control.columns.map(column => column.name), ['id', 'amount', 'month']);
+  assert.deepEqual(control.columns, [
+    {name: 'id', contract: {type: 'number', nullable: false}},
+    {name: 'amount', contract: {type: 'number', nullable: true}},
+    {name: 'month', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}},
+  ]);
+  assert.deepEqual(cases.get('unpivot-row-label-renamed-default').columns.at(-1),
+    {name: 'month', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}});
+  assert.deepEqual(cases.get('unpivot-row-label-same-label').columns.at(-1),
+    {name: 'month', contract: {type: 'string', nullable: false, max_utf8_bytes: 4}});
   assert.equal(cases.get('unpivot-row-label-same-label').expected.length, 6);
   assert.equal(cases.get('unpivot-row-label-same-label').expected.filter(row => row.amount === null).length, 2);
   assert.equal(cases.get('unpivot-row-label-renamed-default').expected[0].month, 'current');

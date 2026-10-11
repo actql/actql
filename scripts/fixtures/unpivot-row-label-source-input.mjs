@@ -8,7 +8,11 @@ const declarations = {rows: {type: 'array', nullable: false, max_items: 3,
   items: {type: 'object', nullable: false, fields: schema}}};
 const columns = [{name: 'id', contract: number(false)},
   {name: 'amount', contract: number(true)},
-  {name: 'month', contract: {type: 'string', nullable: false}}];
+  {name: 'month', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}}];
+// Literal String contracts keep their authored maximum UTF-8 length, including
+// typed empty Results. The three label sets have bounds 6, 7 and 4 respectively.
+const labelColumns = max => [...columns.slice(0, 2),
+  {name: 'month', contract: {type: 'string', nullable: false, max_utf8_bytes: max}}];
 const repeated = [{id: 1, amount: null, month: 'first'},
   {id: 1, amount: null, month: 'second'},
   {id: 2, amount: 7, month: 'first'}, {id: 2, amount: 7, month: 'first'},
@@ -44,9 +48,9 @@ export const unpivotRowLabelSuccesses = [
     {format: 'json', parameterDeclarations: undefined, parameters: undefined}),
   success('from-repeated', `SELECT id,amount,month FROM ${wide} ${clause} ORDER BY id,month`, repeated),
   success('pipe-excluded', `FROM ${wide} |> UNPIVOT(amount FOR month IN(jan AS 'first',jan AS 'second')) |> SELECT id,amount,month |> ORDER BY id,month`, repeated.slice(2)),
-  success('renamed-default', `FROM ${wide} |> RENAME feb AS current |> UNPIVOT INCLUDE NULLS(amount FOR month IN(jan AS 'first',current)) |> SELECT id,amount,month |> ORDER BY id,month`, renamed),
+  success('renamed-default', `FROM ${wide} |> RENAME feb AS current |> UNPIVOT INCLUDE NULLS(amount FOR month IN(jan AS 'first',current)) |> SELECT id,amount,month |> ORDER BY id,month`, renamed, {columns: labelColumns(7)}),
   success('empty', `SELECT id,amount,month FROM ${wide} ${clause} ORDER BY id,month`, [], {parameters: {rows: []}}),
-  success('same-label', `SELECT id,amount,month FROM ${wide} UNPIVOT INCLUDE NULLS(amount FOR month IN(jan AS 'same',jan AS 'same')) ORDER BY id,month`, same),
+  success('same-label', `SELECT id,amount,month FROM ${wide} UNPIVOT INCLUDE NULLS(amount FOR month IN(jan AS 'same',jan AS 'same')) ORDER BY id,month`, same, {columns: labelColumns(4)}),
 ];
 export const unpivotRowLabelRefusals = [
   {name: 'old-range', text: `SELECT original.id FROM ${wide} original ${clause} shaped`},
