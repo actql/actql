@@ -17,6 +17,7 @@ fn script_traversal_argument(
       guard input.source is StepReference else { raise Abort(UnsupportedGraph) }
       construction.text(input.name)
     }
+    FieldReference(_) => raise Abort(InvalidQuery)
     TextValue(value) => construction.text(value)
     NumberValue(text) =>
       match @expression.numeric_literal(text) {

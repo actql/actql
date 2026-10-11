@@ -46,6 +46,7 @@ fn lower_script_relation(
   retain_value_table? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
+  allow_nonrelation? : Bool = false,
 ) -> Input raise Abort {
   let (known, graphs) = lower_script_bindings(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
@@ -94,6 +95,30 @@ fn lower_script_relation(
       )
     }
     raise Abort(UnsupportedGraph)
+  }
+  if @query.set_part_count(query) == 0 && script_has_carrier_calls(query) {
+    return lower_script_carrier_calls(
+      construction, query, known, context, sources, limits, steps, reserved,
+      output, retained~, allow_nonrelation~,
+    )
+  }
+  if @query.set_part_count(query) == 0 {
+    let input = known.filter(input => input_relation_matches(@query.relation(query), input)).get(0)
+    if input is Some(input) && sources.carriers.get(input.name) is Some(carrier) &&
+      !(carrier is @carrier.Relation(_)) {
+      let query = @query.graph_source_query(query)
+      if @query.relation_alias(query) is Some(_) ||
+        Array::makei(@query.operation_count(query), i => {
+          @query.operation_at(query, i)
+        }).any(operation => operation is Some(Alias(_))) {
+        raise Abort(RangeAliasRequiresRelation)
+      }
+      guard allow_nonrelation && @query.operation_count(query) == 0 &&
+        !has_retained_result(query) else {
+        raise Abort(UnsupportedProjection)
+      }
+      return input
+    }
   }
   if @query.set_part_count(query) > 0 {
     return lower_script_set_relation(
@@ -347,6 +372,8 @@ pub fn compile_query_script(
       ranges: Map([]),
       value_tables: Map([]),
       binding_ranges: [],
+      carriers: Map([]),
+      carrier_work: limits.max_expression_work,
     }
     let root = @query.script_query(script)
     let has_bindings = @query.query_binding_count(root) > 0
@@ -566,6 +593,8 @@ pub fn compile_query_script(
         ranges: Map([]),
         value_tables: Map([]),
         binding_ranges: sources.binding_ranges,
+        carriers: Map([]),
+        carrier_work: stage_sources.carrier_work,
       }
       stage_known = [
         {

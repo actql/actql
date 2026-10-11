@@ -81,6 +81,42 @@ fn prepare_query_bindings_internal(
     Ok(source) => source
     Err(issue) => return Err(Declarations(issue))
   }
+  prepare_query_binding_source(source, context, limits, check_only~)
+}
+
+///|
+// Prefix admission retains the real source owner but grants no complete-Program
+// or publication authority. All pipeline checks use the same preparation loop.
+fn check_query_prefix(
+  prefix : @program.Prefix,
+  context : Context,
+  limits : Limits,
+) -> Result[BindingTopology, BindingPreparationIssue] {
+  let tree = limits.program.tree
+  let source = match @stage_parameters.prepare_prefix(prefix, {
+    max_parameters: tree.max_nodes,
+    max_nodes: tree.max_nodes,
+    max_depth: tree.max_depth,
+    max_text_bytes: tree.max_total_string_bytes,
+  }) {
+    Ok(source) => source
+    Err(issue) => return Err(Declarations(issue))
+  }
+  match prepare_query_binding_source(source, context, limits, check_only=true) {
+    Ok(Topology(topology)) => Ok(topology)
+    Ok(_) => abort("mixed binding preparation modes")
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn prepare_query_binding_source(
+  source : @stage_parameters.Source,
+  context : Context,
+  limits : Limits,
+  check_only~ : Bool,
+) -> Result[BindingPreparation, BindingPreparationIssue] {
+  let tree = limits.program.tree
   let pipeline_limits : @stage_results.LocalProgramLimits = {
     max_stages: limits.program.max_stages,
     max_steps: tree.max_nodes,
