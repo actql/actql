@@ -5,6 +5,49 @@ pub(all) enum NativeClientSourcePublicationIssue {
   ModelEvidenceRequired
   Publication(@resident.ResidentSourceResultPublicationIssue)
   Service(@native_publication.NativeRunPublicationIssue)
+  OriginalNormalizationMissing
+  Normalization(@host.ClientLocalNormalizationIssue)
+}
+
+///|
+/// Publish the installed Local profile using its retained original audit.
+/// Neither arbitrary journal bytes nor a journal from another preparation can
+/// enter this boundary. Opening the profile already checked the audit before
+/// Source I/O; publication rechecks its exact owner and current Run authority.
+pub fn NativeClientSourceWork::prepare_local_publication(
+  self : NativeClientSourceWork,
+  service : @native_publication.NativeRunPublicationService,
+  result : @native_publication.NativeCapturedResultPublicationContext,
+  authoring : @publication.RunEvidenceValue,
+  intent : @native_publication.NativeRunPublicationIntent,
+  occurrence : @native_publication.NativeRunPublicationOccurrence,
+  limits : @host.PublicationOutputExportLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @native_publication.NativePreparedCapturedRunPublication,
+  NativeClientSourcePublicationIssue,
+] {
+  match self.require_current() {
+    Err(issue) => return Err(Work(issue))
+    Ok(_) => ()
+  }
+  guard self.local_normalization is Some((prepared, original)) else {
+    return Err(OriginalNormalizationMissing)
+  }
+  if !@host.client_compiled_run_matches(self.compiled, prepared) {
+    return Err(Normalization(@host.ForeignPreparation))
+  }
+  let evidence = match
+    @host.prepared_client_local_normalization_evidence(prepared, original) {
+    Err(issue) => return Err(Normalization(issue))
+    Ok(value) => value
+  }
+  self.prepare_publication(
+    service, result, evidence, authoring, intent, occurrence, limits, max_wire_bytes,
+    max_nodes, max_depth,
+  )
 }
 
 ///|

@@ -11,11 +11,16 @@ struct NativeClientSourceWork {
   capture_started_at : String
   capture_completed_at : String
   current_authorization : () -> Bool
+  local_normalization : (
+    @host.PreparedClientProgram,
+    @host.ClientLocalNormalization,
+  )?
 }
 
 ///|
 pub(all) enum NativeClientSourceWorkIssue {
   AuthorizationDenied
+  Normalization(@host.ClientLocalNormalizationIssue)
   NeedsOriginalReconciliation
   OriginalRunNotCurrent
   Journal(NativeClientRunJournalIssue)
@@ -26,6 +31,55 @@ pub(all) enum NativeClientSourceWorkIssue {
     @resident.ResidentSourceComputeIssue,
     @remote_output.NativeRemoteStandardInputFailure
   )
+}
+
+///|
+/// The standard Local CLI profile obtains its journal from the original
+/// checked preparation before any start claim or Source I/O. Reuse the same
+/// physical Source/Compute owner below; a completion outside this installed
+/// profile is never permission to fabricate an empty audit.
+pub fn open_native_client_local_source_work(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  configuration : @resident.ResidentSourceComputeConfiguration,
+  occurrence : String,
+  current_time : () -> String,
+  current_authorization : () -> Bool,
+  observe? : (@resident.ResidentSourceComputeEvent) -> Bool,
+) -> Result[NativeClientSourceWork, NativeClientSourceWorkIssue] {
+  if !current_authorization() {
+    return Err(AuthorizationDenied)
+  }
+  match
+    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    Err(issue) => return Err(Journal(issue))
+    Ok(_) => ()
+  }
+  let normalization = match
+    @host.issue_prepared_client_local_normalization(prepared) {
+    Ok(value) => value
+    Err(issue) => return Err(Normalization(issue))
+  }
+  open_native_client_source_work(
+    journal,
+    request,
+    prepared,
+    compiled,
+    definition,
+    configuration,
+    occurrence,
+    current_time,
+    current_authorization,
+    observe?,
+  ).map(work => {
+    // This projection retains the same physical owner and original Run. No
+    // acquisition, task, reservation or cleanup handle is duplicated.
+    ..work,
+    local_normalization: Some((prepared, normalization)),
+  })
 }
 
 ///|
@@ -149,6 +203,7 @@ pub fn open_native_client_source_work(
         capture_started_at,
         capture_completed_at: current_time(),
         current_authorization,
+        local_normalization: None,
       })
     Err((issue, cleanup)) => Err(Open(issue, cleanup))
   }

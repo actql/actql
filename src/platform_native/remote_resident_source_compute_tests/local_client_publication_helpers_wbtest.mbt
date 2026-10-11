@@ -15,6 +15,7 @@ fn local_client_publication_context(
   change_source_authorization : (Bool) -> Unit,
   journal : @client.NativeClientRunJournal,
   race : Bool,
+  original_normalization? : Bool = false,
 ) -> @store.Store raise {
   let authority = local_client_publication_cid("native-client-original-store")
   let store = @store.open_store(
@@ -55,15 +56,23 @@ fn local_client_publication_context(
     ),
     max_payload_bytes: 128L,
   }
-  let normalization = @publication.seal_run_evidence_value(
-    "normalization_journal",
-    "{\"version\":\"actql-normalization-journal/0.1\",\"rule_catalog_cid\":\"" +
-    local_client_publication_cid("normalization-rules") +
-    "\",\"entries\":[]}",
-    1000000,
-    100000,
-    100,
-  ).unwrap()
+  // The strict Local path obtains its original journal inside the Work owner.
+  // Legacy test-owned journal bytes belong only to the generic fixture path.
+  let normalization = if original_normalization {
+    None
+  } else {
+    Some(
+      @publication.seal_run_evidence_value(
+        "normalization_journal",
+        "{\"version\":\"actql-normalization-journal/0.1\",\"rule_catalog_cid\":\"" +
+        local_client_publication_cid("normalization-rules") +
+        "\",\"entries\":[]}",
+        1000000,
+        100000,
+        100,
+      ).unwrap(),
+    )
+  }
   let authoring = @publication.seal_run_evidence_value(
     "authoring_context",
     "{\"version\":\"actql-authoring-context/0.1\",\"program_definition_cid\":\"" +
@@ -107,6 +116,53 @@ fn local_client_publication_context(
       100,
     )
     .unwrap()
+  let prepare = (
+    context : @native_publication.NativeCapturedResultPublicationContext,
+  ) => {
+    if original_normalization {
+      work.prepare_local_publication(
+        service,
+        context,
+        authoring,
+        intent,
+        occurrence,
+        resident_compute_limits(),
+        1000000,
+        100000,
+        100,
+      )
+    } else {
+      work.prepare_publication(
+        service,
+        context,
+        normalization.unwrap(),
+        authoring,
+        intent,
+        occurrence,
+        resident_compute_limits(),
+        1000000,
+        100000,
+        100,
+      )
+    }
+  }
+  if !original_normalization {
+    assert_true(
+      work.prepare_local_publication(
+        service,
+        result,
+        authoring,
+        intent,
+        occurrence,
+        resident_compute_limits(),
+        1000000,
+        100000,
+        100,
+      )
+      is Err(@client.OriginalNormalizationMissing),
+    )
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  }
   // Independent binding mutations must be refused before payload allocation.
   for
     changed in [
@@ -128,38 +184,13 @@ fn local_client_publication_context(
       },
       { ..result, scope_cid: local_client_publication_cid("replacement-run"), },
     ] {
-    assert_true(
-      work.prepare_publication(
-        service,
-        changed,
-        normalization,
-        authoring,
-        intent,
-        occurrence,
-        resident_compute_limits(),
-        1000000,
-        100000,
-        100,
-      )
-      is Err(@client.SourceBindingMismatch),
-    )
+    assert_true(prepare(changed) is Err(@client.SourceBindingMismatch))
   }
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(store.capacity_usage().unwrap().reserved_objects, 0L)
   revoke_during_authorization.val = true
   assert_true(
-    work.prepare_publication(
-      service,
-      result,
-      normalization,
-      authoring,
-      intent,
-      occurrence,
-      resident_compute_limits(),
-      1000000,
-      100000,
-      100,
-    )
+    prepare(result)
     is Err(
       @client.Publication(
         @resident.Publication(
@@ -173,20 +204,7 @@ fn local_client_publication_context(
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   revoke_during_authorization.val = false
   change_source_authorization(true)
-  let pending = work
-    .prepare_publication(
-      service,
-      result,
-      normalization,
-      authoring,
-      intent,
-      occurrence,
-      resident_compute_limits(),
-      1000000,
-      100000,
-      100,
-    )
-    .unwrap()
+  let pending = prepare(result).unwrap()
   assert_true(
     store
     .inspect_committed_publication(
@@ -257,6 +275,36 @@ fn local_client_publication_context(
   }
   let committed = pending.commit().unwrap()
   assert_true(committed.committed)
+  if original_normalization {
+    let index = store
+      .read_publication_contract(
+        "public_index_entry",
+        committed.public_index_entry_cid,
+      )
+      .unwrap()
+    guard @json.parse(@publication.publication_contract_json(index))
+      is Object(index_fields) &&
+      index_fields.get("run_receipt_cid") is Some(String(receipt_cid)) else {
+      fail("committed original publication has no receipt identity")
+    }
+    let receipt = store
+      .read_publication_contract("run_receipt", receipt_cid)
+      .unwrap()
+    guard @json.parse(@publication.publication_contract_json(receipt))
+      is Object(receipt_fields) else {
+      fail("original publication receipt is not an object")
+    }
+    // Fixed independently authored Local catalog/journal vector, not a value
+    // copied from the owner under test or from the legacy fixture journal.
+    guard receipt_fields.get("normalization_journal_cid")
+      is Some(String(journal_cid)) else {
+      fail("original receipt has no normalization identity")
+    }
+    assert_eq(
+      journal_cid, "sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880",
+    )
+  }
+
   guard journal.lookup(request, true) is Ok(@client.Retained(original_run)) else {
     fail("original published Run missing")
   }

@@ -7,6 +7,8 @@ fn local_client_source_publication_case(
   race : Bool,
   cancel_before_start? : Bool = false,
   delivery_handoff? : Bool = false,
+  original_normalization? : Bool = false,
+  reject_original_completion? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Source acceptance requires its actual DuckDB fixture")
@@ -56,10 +58,16 @@ fn local_client_source_publication_case(
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
+  let document = if original_normalization {
+    resident_compute_document.replace(
+      old="\"resource\":\"r\"",
+      new="\"resource\":\"r\",\"view\":\"v\"",
+    )
+  } else {
+    resident_compute_document
+  }
   let intent = @host.prepare_client_submitted_intent(
-    "{\"kind\":\"program\",\"input\":" +
-    resident_compute_document +
-    ",\"parameters\":null}",
+    "{\"kind\":\"program\",\"input\":" + document + ",\"parameters\":null}",
     65536,
     8192,
     64,
@@ -204,34 +212,91 @@ fn local_client_source_publication_case(
     resident_compute_reclaim(root, name)
     return
   }
+  if reject_original_completion {
+    let key = @host.client_request_scope_cid(request)
+    let before = database.read("client_runs", key).unwrap().body
+    assert_true(
+      @client.open_native_client_local_source_work(
+        journal,
+        request,
+        prepared,
+        compiled,
+        definition,
+        configuration,
+        name,
+        () => "2026-10-10T00:00:01.000Z",
+        () => true,
+        observe=event => {
+          match event {
+            @resident.AcquisitionEntered => acquisitions += 1
+            @resident.ConsumerEntered(_) => consumers += 1
+            @resident.CleanupCompleted => cleanups += 1
+            _ => ()
+          }
+          true
+        },
+      )
+      is Err(
+        @client.Normalization(@host.Inventory(@checked.CompletionObserved))
+      ),
+    )
+    // No dispatch/start claim may be persisted by a rejected original audit.
+    assert_eq(database.read("client_runs", key).unwrap().body, before)
+    assert_eq(acquisitions, 0)
+    assert_eq(consumers, 0)
+    assert_eq(cleanups, 0)
+    assert_eq(initial_store.capacity_usage().unwrap().reserved_bytes, 0L)
+    assert_true(initial_store.close().unwrap())
+    database.close_checked().unwrap()
+    resident_compute_reclaim(root, name)
+    return
+  }
   assert_true(initial_store.close().unwrap())
-  let work = @client.open_native_client_source_work(
-    journal,
-    request,
-    prepared,
-    compiled,
-    definition,
-    configuration,
-    name,
-    () => {
-      clock_calls = clock_calls + 1
-      if clock_calls == 1 {
-        "2026-10-10T00:00:01.000Z"
-      } else {
-        "2026-10-10T00:00:02.000Z"
-      }
-    },
-    () => permitted,
-    observe=event => {
-      match event {
-        @resident.AcquisitionEntered => acquisitions = acquisitions + 1
-        @resident.ConsumerEntered(_) => consumers = consumers + 1
-        @resident.CleanupCompleted => cleanups = cleanups + 1
-        _ => ()
-      }
-      true
-    },
-  ).unwrap()
+  let current_time = () => {
+    clock_calls += 1
+    if clock_calls == 1 {
+      "2026-10-10T00:00:01.000Z"
+    } else {
+      "2026-10-10T00:00:02.000Z"
+    }
+  }
+  let current_authorization = () => permitted
+  let observe = event => {
+    match event {
+      @resident.AcquisitionEntered => acquisitions += 1
+      @resident.ConsumerEntered(_) => consumers += 1
+      @resident.CleanupCompleted => cleanups += 1
+      _ => ()
+    }
+    true
+  }
+  let work = if original_normalization {
+    @client.open_native_client_local_source_work(
+      journal,
+      request,
+      prepared,
+      compiled,
+      definition,
+      configuration,
+      name,
+      current_time,
+      current_authorization,
+      observe~,
+    ).unwrap()
+  } else {
+    @client.open_native_client_source_work(
+      journal,
+      request,
+      prepared,
+      compiled,
+      definition,
+      configuration,
+      name,
+      current_time,
+      current_authorization,
+      observe~,
+    ).unwrap()
+  }
   let original = work
     .publication_invocation(resident_compute_limits(), 1000000, 100000, 100)
     .unwrap()
@@ -293,6 +358,7 @@ fn local_client_source_publication_case(
     value => permitted = value,
     journal,
     race,
+    original_normalization~,
   )
   if !race {
     local_client_read_committed_result(
@@ -574,4 +640,14 @@ test "Native original publication and cancellation cannot both win the same admi
 ///|
 test "Native installed original Store permits public cancellation before Source start" {
   local_client_source_publication_case(false, cancel_before_start=true)
+}
+
+///|
+test "Native Local original explicit-view audit reaches the same Source Result and cleanup owners" {
+  local_client_source_publication_case(false, original_normalization=true)
+}
+
+///|
+test "Native Local original sole-view completion is refused before acquisition or durable start claim" {
+  local_client_source_publication_case(false, reject_original_completion=true)
 }
