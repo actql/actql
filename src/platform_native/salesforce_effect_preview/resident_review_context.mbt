@@ -1,6 +1,7 @@
 ///|
 pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Unavailable
+  Normalization(@host.ClientEffectNormalizationIssue)
   Result(@resident.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
 }
@@ -107,5 +108,37 @@ pub fn NativeResidentEffectReview::dispatch_identity(
 ) -> String {
   @remote.dispatch_request_identity(
     @resident.resident_retained_consumer_request(self.holder),
+  )
+}
+
+///|
+/// Production material-custody entry: no arbitrary normalization argument.
+/// Restore saved evidence from the same original admitted Run before Result
+/// capture. Failure retains the same pending context through its existing
+/// close/retry Owner; Provider policy and current authority remain separate.
+pub fn prepare_native_resident_effect_review_from_original_materials(
+  holder : @resident.ResidentRetainedConsumer,
+  journal : @journal.Journal,
+  context : @resident.ResidentEffectReviewInputContext,
+  policy : NativeResidentEffectReviewPolicy,
+) -> Result[
+  NativeResidentEffectReview,
+  NativeResidentEffectReviewPreparationFailure,
+] {
+  guard context.matches_holder(holder, journal) &&
+    context.facts(journal) is Some(facts) else {
+    return reject_resident_effect_review_context(context, Unavailable)
+  }
+  let normalization = match
+    @host.restore_client_effect_run_normalization(facts.materials) {
+    Ok(value) => value
+    Err(issue) =>
+      return reject_resident_effect_review_context(
+        context,
+        Normalization(issue),
+      )
+  }
+  prepare_native_resident_effect_review_from_context(
+    holder, journal, context, normalization, policy,
   )
 }

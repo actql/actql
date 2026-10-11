@@ -2,6 +2,7 @@
 /// Original Effect Run reconstructed from bounded materials. No acquisition,
 /// Preview, approval or physical write occurs during this admission.
 pub(all) struct ClientEffectRunMaterials {
+  normalization : ClientEffectNormalizationMaterialCustody?
   prepared : PreparedClientEffectComputation
   compilation : ClientEffectCompilation
   allowed : ClientEffectAllowedRun
@@ -17,6 +18,7 @@ pub(all) enum ClientEffectRunMaterialsIssue {
   Binding(ClientEffectCompiledRunIssue)
   RunMismatch
   Request(ClientRequestIdentityIssue)
+  Normalization(ClientEffectNormalizationIssue)
 }
 
 ///|
@@ -236,5 +238,19 @@ pub fn admit_client_effect_run_materials(
       Some(value)
     }
   }
-  Ok({ prepared, compilation, allowed, run_definition, request, })
+  let normalization = match body.normalization_wire {
+    None => None
+    Some(wire) => {
+      let custody : ClientEffectNormalizationMaterialCustody = {
+        compilation,
+        run_cid: expected_run_definition_cid,
+        request,
+        journal_wire: wire,
+        materials_cid: "sha256:" + @sha.hex(@utf8.encode(materials)),
+      }
+      prepared.normalization_custody = Some(custody)
+      Some(custody)
+    }
+  }
+  Ok({ normalization, prepared, compilation, allowed, run_definition, request, })
 }

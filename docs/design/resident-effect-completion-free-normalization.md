@@ -90,11 +90,36 @@ checked before encoding, and the existing remote materials encoder retains the
 original invocation, authorization, identity and lifetime. No preparation or
 compilation is repeated by this projection.
 
-The projection uses the existing materials wire. It does not yet carry or
-certify cross-process normalization custody. In particular, the poll materials
-envelope's dispatch/input-binding CIDs do not by themselves prove the provenance
-of arbitrary appended materials or journal bytes. The durable normalization
-connection must bind the original issuer evidence through the existing original
-Run/materials/Receipt chain; ordinary materials reconstruction must not become
-an excuse to issue a new empty journal. Native review installation remains a
-separate consuming boundary after that restoration is verified.
+The optional `normalization_journal_json` string carries the original issued
+journal in the existing bounded materials wire, before dispatch. The issuing
+API accepts only the nominal projection owned by the same original preparation.
+An absent journal stays absent; Effect-free admission refuses this Effect-only
+custody rather than silently dropping it.
+
+## Admitted material custody and Native review
+
+Effect material admission retains the exact saved journal, full material digest,
+original Run/request binding and its admitted compilation Owner in a private
+custody projection. `restore_client_effect_run_normalization` requires that
+same projection and Owner, rechecks the retained checker inventory, and admits
+only the published fixed journal identity. Missing custody, copied projection,
+foreign compilation/Run/request, unsupported inventory and another catalog
+refuse. Repeated restoration admits the saved bytes; it never calls the journal
+issuer, prepares/compiles a replacement or refreshes identity or authority.
+
+This is the normalization inverse on an existing admitted execution Owner.
+The existing initial execution-material admission still prepares/compiles its
+saved execution input once. This change does not remove that separate execution
+reconstruction, establish a serializable opaque compiler snapshot, or claim
+that the poll envelope signs arbitrary material bytes. Material digests identify
+content, not transport provenance or current authorization.
+
+`prepare_native_resident_effect_review_from_original_materials` obtains this
+journal from the actual holder context's material Owner before calling the
+existing Result capture/Receipt/Captured Run and review preparation path. It
+accepts no caller-supplied normalization argument. Independently trusted Provider
+policy is unchanged. If restoration or review preparation fails, the existing
+context close/retry Owner retains any pending pins; Source, Transfer and holding
+custody remain separate. The existing trusted-context API remains available for
+other explicitly installed normalization profiles. No profile fallback or
+Native CLI installation is implied by this adapter.
