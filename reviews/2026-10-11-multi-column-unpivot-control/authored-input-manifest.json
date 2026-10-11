@@ -19,10 +19,13 @@
     "prepared-patch-status.json": "2b712ea414783e25a0581c079161cbc69448fdd59565b0c3c6980cee92a1ad17",
     "source-input.json": "65a8fe7b65b16e2041c65c84bbfba02f0c5ed4b0830825ee841ee2d45ad22c97",
     "source.sql": "505752d1bdf7bbdbb7674125dfa41abcaa94dce977162935360eb885013cb7ee",
-    "lowering.prepared_wbtest.mbt": "1b8f0bdbaf88e9eb620922ffa7639cfa34fdea966f6ba22f592cc42af16cc74e"
+    "lowering.prepared_wbtest.mbt": "1b8f0bdbaf88e9eb620922ffa7639cfa34fdea966f6ba22f592cc42af16cc74e",
+    "nullable-gap.md": "a78fa47097ef4456d35cdb8eefdf0c6f1b9f6e2bc1d6b0842af97d0f0e82afb2",
+    "nullable-gap.control.program.json": "e83644863858619758f5ac65b65a2d3e7758616b92601322f4ec394296aad039"
   },
   "testsExecuted": false,
   "heavyAcquired": false,
   "sourcePatchApplied": false,
-  "preparedTestsRegistered": false
+  "preparedTestsRegistered": false,
+  "integratedMainSha": "0f8b2b7ecb4d357f8e11254b60889241db5129e3"
 }
