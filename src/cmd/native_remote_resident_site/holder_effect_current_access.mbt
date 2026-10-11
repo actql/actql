@@ -180,6 +180,15 @@ fn holder_effect_evidence_allowed(
 }
 
 ///|
+/// Private Host funding selection, not a layout certificate or permission.
+/// The installing Host must establish the complete simultaneous profile before
+/// supplying it. These existing capacity types retain their original Owners.
+priv struct HolderEffectPreparationCapacity {
+  catalog : @journal.NativeInitialCatalogUseEnvelope
+  computation : @resident_host.ResidentEffectComputationCapacity
+}
+
+///|
 /// Explicit operator-installed Account file and authenticated Cloud identity
 /// reader. Absence preserves the production deny path. The caller installs
 /// neither a principal inferred from Site credentials nor a delegated answer.
@@ -187,6 +196,7 @@ priv struct HolderEffectHostOperatorInstallation {
   account : @effect_review.NativeEffectHostAccountInstallation
   original_identity : @effect_review.NativeEffectCloudHostIdentityRead
   installation_current : () -> Bool
+  preparation : HolderEffectPreparationCapacity?
 }
 
 ///|

@@ -93,6 +93,15 @@ struct NativeCredentialResourceService {
     NativeLocalPreparationCredentialInstallation,
   ]
   preparation_raw_store : NativeLocalPreparationRawStore?
+  retain_remote_use : ((@credential.RemoteCredentialUse) -> Result[
+    Unit,
+    NativeCredentialResourceIssue,
+  ])?
+  claim_initial_remote_use : ((
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue])?
   clock : () -> Int64
 }
 
@@ -372,7 +381,19 @@ fn install_native_credential_resource_service_with_clock(
     NativeLocalPreparationCredentialInstallation,
   ] = [],
   preparation_raw_store? : NativeLocalPreparationRawStore? = None,
+  retain_remote_use? : ((@credential.RemoteCredentialUse) -> Result[
+    Unit,
+    NativeCredentialResourceIssue,
+  ])? = None,
+  claim_initial_remote_use? : ((
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue])? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
+  if claim_initial_remote_use is Some(_) && retain_remote_use is None {
+    return Err(InvalidConfiguration)
+  }
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
     return Err(InvalidConfiguration)
@@ -394,6 +415,8 @@ fn install_native_credential_resource_service_with_clock(
     authorize_preparation,
     preparation_installations: preparation_installations.map(value => value),
     preparation_raw_store,
+    retain_remote_use,
+    claim_initial_remote_use,
     clock,
   })
 }
@@ -634,6 +657,54 @@ fn call_native_credential_resource_owned_scope(
   if scope is PreparationScope(_) && service.preparation_raw_store is None {
     return Err(InvalidConfiguration)
   }
+  // A missing credential record is only an observation. The installed original
+  // Journal claim must independently prove initial eligibility before a new
+  // ordinal/use can be selected. Neither a replacement DB nor a lost claim
+  // reply can manufacture that proof. Existing uses take the original retained
+  // ordinal path below without claiming the initial responsibility again.
+  if service.claim_initial_remote_use is Some(claim) &&
+    grant is RemoteGrant(original_grant) &&
+    scope is RemoteScope(original_scope) {
+    match read_owned_credential_use(service, grant, use_id) {
+      Ok(_) => ()
+      Err(Journal(@sqlite.NotFound)) => {
+        match claim(original_grant, use_id, original_scope) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        // The callback can persist a claim, lose current permission or outlive
+        // the grant. Keep its original responsibility but consume no Resource
+        // ordinal after a refused current authorization/lifetime/revocation.
+        if !authorize_owned_credential(service, scope, {
+            stage: "claim",
+            grant_cid,
+            use_cid: None,
+            request: Some({
+              ..request,
+              body: Bytes::from_array(saved_body.to_array()),
+            }),
+          }) {
+          return Err(AccessDenied)
+        }
+        let final_claim_time = match observe_trusted_clock(service) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if current is Some(check) && !check() {
+          return Err(AccessDenied)
+        }
+        let claim_revoked = match
+          native_credential_grant_revoked(service, grant_cid) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if claim_revoked || final_claim_time >= expires_at {
+          return Err(Credential(@credential.CredentialGrantInactive))
+        }
+      }
+      Err(issue) => return Err(issue)
+    }
+  }
   let ordinal = match
     service.database.claim_ordinal_action(
       use_scope(grant_cid),
@@ -698,6 +769,14 @@ fn call_native_credential_resource_owned_scope(
       Ok(_) => ()
       Err(issue) => return Err(RawObservation(issue))
     }
+  }
+  // The actual use is already durable. Retain it in the installed original
+  // custody before the final authorization/clock/revocation fences and I/O.
+  // Unconfirmed retention leaves the claimed use unresolved, not failed/sent.
+  match
+    retain_remote_use_before_send(credential_use, service.retain_remote_use) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let send_time = match observe_trusted_clock(service) {
     Ok(value) => value

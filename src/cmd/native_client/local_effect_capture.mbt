@@ -34,23 +34,50 @@ fn local_result_output_limits(
 }
 
 ///|
+// Preserve the original typed refusal without discarding the Work's custody.
+priv enum LocalEffectOriginalCaptureIssue {
+  Submission(@local_host.NativeClientSubmittedEffectMaterialsIssue)
+  Capture(@local_host.NativeClientEffectCaptureIssue)
+}
+
+///|
 // The forthcoming trusted Local review assembly borrows this original Work.
 // On success it retains the returned capture and Work separately; on failure
 // the Work remains responsible for physical cleanup and any retry handle.
 // The public Effect ingress still refuses until its authority supplier exists.
 fn local_capture_effect_original(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  reference : @local_host.NativeClientSubmissionReference,
+  request : @run_host.ClientRequestIdentity,
   work : @local_host.NativeClientEffectSourceWork,
   run : LocalRunInstallation,
   configuration : @source_owner.ResidentSourceComputeConfiguration,
 ) -> Result[
   @source_owner.ResidentLocalEffectCaptureContext,
-  @local_host.NativeClientEffectCaptureIssue,
+  LocalEffectOriginalCaptureIssue,
 ] {
-  work.prepare_original_capture_context(
+  match
+    host.check_submitted_effect_capture_work(
+      crypto,
+      settings.principal,
+      settings.connection,
+      reference,
+      request,
+      work,
+      @env.now().to_double(),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Submission(issue))
+  }
+  work
+  .prepare_original_capture_context(
     run.retention,
     local_result_output_limits(run, configuration),
     65536,
     8192,
     64,
   )
+  .map_err(issue => Capture(issue))
 }

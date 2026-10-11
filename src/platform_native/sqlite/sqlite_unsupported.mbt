@@ -225,3 +225,14 @@ pub fn Database::close(_self : Database) -> Unit {
 fn retain_native_import() -> Unit {
   ignore(@utf8.encode(""))
 }
+
+///|
+pub fn Database::remove_exact(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _expected_revision : Int64,
+  _expected_body : Bytes,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

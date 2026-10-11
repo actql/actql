@@ -10,18 +10,6 @@ pub(all) struct NativeInitialCatalogUseEnvelope {
 }
 
 ///|
-/// This projection retains an existing Ledger reservation through failed or
-/// uncertain persistence. It is not another capacity Owner or permission.
-/// The caller must keep this original responsibility through confirmed cleanup;
-/// no public settlement shortcut is supplied by this preparation unit.
-#warnings("-struct_never_constructed")
-struct NativeInitialCatalogUseCustody {
-  ledger : @resources.Ledger
-  reservation : @resources.CapacityReservation
-  dispatch_cid : String
-}
-
-///|
 pub(all) enum NativeInitialCatalogUseIssue {
   Journal(NativeRemoteJournalIssue)
   Capacity(@resources.LedgerIssue)
@@ -44,29 +32,6 @@ struct NativeInitialCatalogUseClaim {
 }
 
 ///|
-pub fn initial_catalog_use_custody_pending(
-  value : NativeInitialCatalogUseCustody,
-) -> Bool {
-  @resources.capacity_reservation_open(value.reservation)
-}
-
-///|
-/// Informational projections of the same charged original responsibility.
-/// Neither exposes a settlement handle or a send permission.
-pub fn initial_catalog_use_custody_usage(
-  value : NativeInitialCatalogUseCustody,
-) -> @resources.LedgerUsage {
-  @resources.ledger_usage(value.ledger)
-}
-
-///|
-pub fn initial_catalog_use_custody_dispatch(
-  value : NativeInitialCatalogUseCustody,
-) -> String {
-  value.dispatch_cid
-}
-
-///|
 pub fn initial_catalog_use_claim_dispatch(
   value : NativeInitialCatalogUseClaim,
 ) -> String {
@@ -79,4 +44,14 @@ pub fn initial_catalog_use_claim_matches_journal(
   journal : Journal,
 ) -> Bool {
   physical_equal(value.journal, journal)
+}
+
+///|
+/// Exact row matching is not a physical-cleanup proof or permission to resend.
+pub fn initial_catalog_use_cleanup_row_matches(
+  expected : Bytes,
+  body : Bytes,
+  revision : Int64,
+) -> Bool {
+  (revision == 0L || revision == 1L) && body == expected
 }

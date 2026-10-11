@@ -34,6 +34,7 @@ import {
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication_host",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -332,6 +333,7 @@ pub(all) struct ResidentEffectProducerExecuted {
 pub fn ResidentEffectProducerExecuted::acquired_evidence_for_capture(Self, @remote_journal.Journal, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectAcquiredEvidence, (String, String)), ResidentEffectSourceEvidenceIssue]
 pub fn ResidentEffectProducerExecuted::invocation_for_capture(Self, @remote_journal.Journal, Int, Int, Int) -> Result[(@actql/actql/run_publication.RunEvidenceValue, @actql/actql/run_publication.PublicationContract), ResidentEffectCapturedInvocationIssue]
 pub fn ResidentEffectProducerExecuted::materials_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientEffectRunMaterials?
+pub fn ResidentEffectProducerExecuted::owns_initial_catalog_use_custody(Self, @remote_journal.NativeInitialCatalogUseCustody) -> Bool
 pub fn ResidentEffectProducerExecuted::prepare_dependency_capture(Self, @remote_journal.Journal, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectProducerCapture, ResidentEffectProducerCaptureFailure]
 pub fn ResidentEffectProducerExecuted::request_for_capture(Self, @remote_journal.Journal) -> @run_publication_host.ClientRequestIdentity?
 pub fn ResidentEffectProducerExecuted::source_for_capture(Self, @remote_journal.Journal) -> ResidentSourceCompute?
@@ -652,6 +654,7 @@ pub struct ResidentRetainedConsumer {
   codec : @remote_standard_host.NativeRemoteStandardRowCodec
   effect_limits : @run_publication_host.ClientEffectComputationLimits?
   effect_configuration : ResidentSourceComputeConfiguration?
+  initial_catalog_use : @ref.Ref[@remote_journal.NativeInitialCatalogUseCustody?]
   mut material : @remote_transfer_client.NativeRemoteDestinationMaterialUse?
   mut executed : ResidentExecuted?
   mut pending_runtime : @remote_runtime.NativeRemoteRuntime?
@@ -660,14 +663,19 @@ pub struct ResidentRetainedConsumer {
   mut closing : Bool
   mut closed : Bool
 }
-pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
+pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String, initial_catalog_use? : (ResidentEffectProducerExecuted, @remote_journal.NativeInitialCatalogUseEnvelope)?) -> Result[ResidentAcceptance, ResidentHostIssue]
+pub fn ResidentRetainedConsumer::claim_initial_catalog_use(Self, @remote_journal.Journal, ResidentEffectProducerExecuted) -> Result[@remote_journal.NativeInitialCatalogUseClaim, @remote_journal.NativeRemoteJournalIssue]
+pub fn ResidentRetainedConsumer::cleanup_initial_catalog_use(Self, @remote_journal.Journal, ResidentEffectProducerExecuted) -> Bool
 pub fn ResidentRetainedConsumer::close(Self) -> Bool
 pub fn ResidentRetainedConsumer::completed_effect_execution(Self, @remote_journal.Journal) -> ResidentExecuted?
 pub fn ResidentRetainedConsumer::effect_computation(Self, @remote_journal.Journal) -> ResidentSourceCompute?
 pub fn ResidentRetainedConsumer::effect_original_dispatch(Self, @remote_journal.Journal) -> @remote_site_protocol.DispatchRequest?
 pub fn ResidentRetainedConsumer::effect_source_binding_cid(Self, @remote_journal.Journal, @physical_strategy.CapturedEffectInputs) -> String?
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
+pub fn ResidentRetainedConsumer::has_initial_catalog_use_custody(Self) -> Bool
 pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.Journal, Int, Int, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectReviewInputContext, ResidentEffectReviewInputFailure]
+pub fn ResidentRetainedConsumer::read_catalog_preparation_capacity(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.NativeInitialCatalogUseEnvelope) -> Result[Unit, @remote_journal.NativeInitialCatalogUseIssue]
+pub fn ResidentRetainedConsumer::read_initial_catalog_use(Self, @remote_journal.Journal, ResidentEffectProducerExecuted) -> Result[Unit, @remote_journal.NativeRemoteJournalIssue]
 
 pub(all) struct ResidentRetainedExecutionFailure {
   issue : ResidentRetainedExecutionIssue
