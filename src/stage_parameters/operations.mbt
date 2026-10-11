@@ -130,20 +130,15 @@ fn assemble_operations(
   }
   remaining = { ..remaining, max_work: remaining.max_work - reference_count, }
   let index = match
-    @references.build(
-      source_body(source),
-      source.declarations,
-      slots,
-      {
-        max_slots: slots.length(),
-        max_references: reference_count,
-        max_pointer_units: if remaining.max_work < remaining.max_pointer_units {
-          remaining.max_work
-        } else {
-          remaining.max_pointer_units
-        },
+    @references.build(source_body(source), source.declarations, slots, {
+      max_slots: slots.length(),
+      max_references: reference_count,
+      max_pointer_units: if remaining.max_work < remaining.max_pointer_units {
+        remaining.max_work
+      } else {
+        remaining.max_pointer_units
       },
-    ) {
+    }) {
     Err(e) => return Err(References(e))
     Ok(v) => v
   }

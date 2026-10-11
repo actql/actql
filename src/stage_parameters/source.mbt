@@ -36,7 +36,12 @@ pub fn prepare(
   match @parameter.read_declarations(@decode.lookup(root, "params"), limits) {
     Err(e) => Err(Declarations(e))
     Ok(declarations) =>
-      Ok({ program: Some(program), prefix: None, stages: @stage.stages(program), declarations, })
+      Ok({
+        program: Some(program),
+        prefix: None,
+        stages: @stage.stages(program),
+        declarations,
+      })
   }
 }
 
@@ -66,10 +71,13 @@ pub fn prepare_prefix(
   let root = @decode.open_object(@stage.prefix_body(prefix)).unwrap()
   match @parameter.read_declarations(@decode.lookup(root, "params"), limits) {
     Err(e) => Err(Declarations(e))
-    Ok(declarations) => Ok({
-      program: None, prefix: Some(prefix),
-      stages: @stage.prefix_stages(prefix), declarations,
-    })
+    Ok(declarations) =>
+      Ok({
+        program: None,
+        prefix: Some(prefix),
+        stages: @stage.prefix_stages(prefix),
+        declarations,
+      })
   }
 }
 

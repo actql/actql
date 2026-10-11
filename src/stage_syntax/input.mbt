@@ -230,11 +230,12 @@ pub fn admit_generated_prefix(
 ) -> Result[Prefix, SyntaxError] {
   let root = @builder.cursor(source)
   let usage = @builder.usage(source)
-  match check_usage(
-    { source: usage, tree: @wire.admission_usage(root), stages: 0, },
-    limits,
-    @wire.cursor_span(root).source_path,
-  ) {
+  match
+    check_usage(
+      { source: usage, tree: @wire.admission_usage(root), stages: 0, },
+      limits,
+      @wire.cursor_span(root).source_path,
+    ) {
     Err(error) => return Err(error)
     Ok(_) => ()
   }

@@ -183,8 +183,13 @@ fn decode(
   source_usage : @source.ParseUsage,
 ) -> Program raise Abort {
   let value = decode_envelope(root, max_stages, source_usage, prefix=false)
-  { id: value.id, stages: value.stages, exports: value.exports,
-    body: value.body, source_usage: value.source_usage, }
+  {
+    id: value.id,
+    stages: value.stages,
+    exports: value.exports,
+    body: value.body,
+    source_usage: value.source_usage,
+  }
 }
 
 ///|
@@ -194,8 +199,12 @@ fn decode_prefix(
   source_usage : @source.ParseUsage,
 ) -> Prefix raise Abort {
   let value = decode_envelope(root, max_stages, source_usage, prefix=true)
-  { id: value.id, stages: value.stages,
-    body: value.body, source_usage: value.source_usage, }
+  {
+    id: value.id,
+    stages: value.stages,
+    body: value.body,
+    source_usage: value.source_usage,
+  }
 }
 
 ///|
@@ -349,7 +358,8 @@ fn decode_envelope(
     if !export_names.is_empty() {
       invalid(exports_node, PrefixPublication)
     }
-  } else if export_names.is_empty() && !stages.any(stage => !stage.effects.is_empty()) {
+  } else if export_names.is_empty() &&
+    !stages.any(stage => !stage.effects.is_empty()) {
     invalid(exports_node, EmptyDeclarations)
   }
   let exports_view = open(exports_node)
