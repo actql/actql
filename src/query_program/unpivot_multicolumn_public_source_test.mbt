@@ -73,7 +73,7 @@ test "submitted multi-column UNPIVOT unpivot-multicolumn-json-include-control" {
 ///|
 test "submitted multi-column UNPIVOT unpivot-multicolumn-data-from-exclude" {
   check_multicolumn_unpivot_source(
-    "DATA wide = SELECT item.id AS id,item.jan_amount AS jan_amount,item.jan_note AS jan_note,item.feb_amount AS feb_amount,item.feb_note AS feb_note FROM UNNEST(@rows) item; SELECT id,amount,note,month FROM wide UNPIVOT ((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb')) ORDER BY id,month",
+    "WITH wide AS (SELECT item.id AS id,item.jan_amount AS jan_amount,item.jan_note AS jan_note,item.feb_amount AS feb_amount,item.feb_note AS feb_note FROM UNNEST(@rows) item) SELECT id,amount,note,month FROM wide UNPIVOT ((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb')) ORDER BY id,month",
     Text,
     Some(
       "{\"rows\":{\"type\":\"array\",\"nullable\":false,\"max_items\":3,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan_amount\":{\"type\":\"number\",\"nullable\":true},\"jan_note\":{\"type\":\"string\",\"nullable\":true},\"feb_amount\":{\"type\":\"number\",\"nullable\":true},\"feb_note\":{\"type\":\"string\",\"nullable\":true}}}}}",
@@ -129,7 +129,7 @@ test "submitted multi-column UNPIVOT unpivot-multicolumn-renamed-default-labels"
 ///|
 test "submitted multi-column UNPIVOT unpivot-multicolumn-typed-empty" {
   check_multicolumn_unpivot_source(
-    "DATA wide = SELECT item.id AS id,item.jan_amount AS jan_amount,item.jan_note AS jan_note,item.feb_amount AS feb_amount,item.feb_note AS feb_note FROM UNNEST(@rows) item; SELECT id,amount,note,month FROM wide UNPIVOT ((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb')) ORDER BY id,month",
+    "WITH wide AS (SELECT item.id AS id,item.jan_amount AS jan_amount,item.jan_note AS jan_note,item.feb_amount AS feb_amount,item.feb_note AS feb_note FROM UNNEST(@rows) item) SELECT id,amount,note,month FROM wide UNPIVOT ((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb')) ORDER BY id,month",
     Text,
     Some(
       "{\"rows\":{\"type\":\"array\",\"nullable\":false,\"max_items\":3,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan_amount\":{\"type\":\"number\",\"nullable\":true},\"jan_note\":{\"type\":\"string\",\"nullable\":true},\"feb_amount\":{\"type\":\"number\",\"nullable\":true},\"feb_note\":{\"type\":\"string\",\"nullable\":true}}}}}",
