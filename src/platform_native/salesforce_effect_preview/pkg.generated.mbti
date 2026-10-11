@@ -116,6 +116,16 @@ pub fn NativeResidentEffectApprovedRow::retry_response_custody(Self) -> Result[B
 pub fn NativeResidentEffectApprovedRow::send(Self, NativeSalesforceTargetAccess) -> Result[Unit, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectApprovedRow::settle(Self) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 
+pub(all) struct NativeResidentEffectCloudResumeInstallation {
+  crypto : @signature.Library
+  scope : NativeEffectCloudReviewerScope
+  keys : Array[NativeEffectHostAuthority]
+  current_authority : () -> Bool
+  now : () -> String
+  limits : NativeResidentEffectWriteLimits
+  access : (@catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeResidentEffectWriteIssue]
+}
+
 pub(all) struct NativeResidentEffectCompletion {
   preview : @run_publication.EffectPreviewIdentity
   row_receipt : @run_publication.PublicationContract
@@ -228,6 +238,7 @@ pub fn NativeResidentEffectReview::completed_result_output(Self, () -> Bool, Nat
 pub fn NativeResidentEffectReview::dispatch_identity(Self) -> String
 pub fn NativeResidentEffectReview::execute_remote_approved_row(Self, String, NativeResidentEffectResumeConfiguration, () -> Bool) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::execute_remote_approved_row_with_cloud_current(Self, String, NativeResidentEffectResumeConfiguration, NativeEffectCloudCurrentRead, () -> Bool) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
+pub fn NativeResidentEffectReview::execute_remote_approved_row_with_cloud_reviewer(Self, String, NativeResidentEffectCloudResumeInstallation, NativeEffectCloudCurrentRead, NativeEffectCloudCurrentRead, () -> Bool) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::observe(Self, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 pub fn NativeResidentEffectReview::observe_effect_custody(Self, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[NativeResidentEffectObservation, NativeResidentEffectObservationIssue]
 pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_store.Store, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, NativeResidentEffectReviewIssue]
