@@ -1,6 +1,6 @@
 # Single-value FROM UNPIVOT
 
-This unit connects the already adopted single-value UNPIVOT profile at a SQL FROM postfix. It does not change common operation types, execution ownership, NULL behavior, serialization or capacity ceilings. Public execution acceptance is pending; parser/lowering/checker success is not a Named Result receipt.
+This unit connects the already adopted single-value UNPIVOT profile at a SQL FROM postfix. It does not change common operation types, execution ownership, NULL behavior, serialization or capacity ceilings. Complete public cohort acceptance is pending; parser/lowering/checker success is not a Named Result receipt. The first fixed-SHA public attempt retained all nine normal Named Results on both transports but stopped at a refusal-code fixture mismatch.
 
 ## Reference and counterexample
 
@@ -21,7 +21,7 @@ The independent ordinary Program control uses Values `[{x:1,y:20},{x:2,y:10}]`, 
 - `query_syntax/from_unpivot.mbt` binds the postfix as an existing UNPIVOT operation over one producer before surrounding JOIN, WHERE or SELECT. PIVOT keeps its existing parser path. The output range replaces the input range.
 - `query_program/compile.mbt` and `query_set_join_entry.mbt` route mixed ordinary/CTE JOIN inputs into the existing Script producer-binding path. CTE lookup uses the existing identifier/path comparison. The former stage-per-CTE path assumed that both JOIN ports were CTE Results and rejected an ordinary left input paired with an UNPIVOT producer. No CTE predicate, acquisition, assert or Effect owner is reimplemented.
 - The existing `lower_pipe_unpivot` and common checker remain responsible for operation arguments, NULL exclusion, identity and type checks. The Frontend adds no execution owner, cast to bypass incompatible contracts, schema inference or extra Source acquisition.
-- CTE value-table kind retention comes from #1389. A value-table operand continues to reject as `UnsupportedProjection`, projected by the existing public preparation boundary to `ClientProgramRejected`. Other authored semantic/syntax refusals retain `ClientProgramInvalidInput`.
+- CTE value-table kind retention comes from #1389. A value-table operand continues to reject as `UnsupportedProjection`, disclosed by the existing public bound-input check as `ClientProgramImplementationLimit`. Other authored semantic/syntax refusals retain `ClientProgramInvalidInput`.
 
 ## Independent public obligations
 
@@ -51,3 +51,16 @@ Working-source evidence before final integration:
 Earlier test-harness failures from missing toolchain PATH, an invalid test filename and test-only type/accessor mistakes are retained as failed preparation attempts, not product failures or passes. Final clean-SHA checks and actual package/public receipts are recorded in the PR when obtained.
 
 No full Core, all-target, proof, Hosted CI, unrelated packed campaign or performance run is required by this limited preparation. The next execution obligation is one normally produced clean-SHA five-package manifest and this same nine-normal/six-refusal corpus through Local and HTTPS, preserving actual termination/worker/lock release evidence. No Heavy slot is claimed by this document. The independent unresolved NULL set-context item remains outside this PR.
+
+
+## First clean-SHA public attempt and refusal correction
+
+Clean source `d9abc81b0a09b1bc04798e7fe857cb12e4292b03` passed focused JS 29/29 and Node 86/86 plus six actual freshness checks. Normal five-package generation completed in `run-Fo9l3O`, with manifest and all five tarball digests retained. Public `run-IW0ruJ` used those exact packages under the original 300-second guard and exited 1 before cohort inventory completion.
+
+Both Local and HTTPS retained nine actual Run references, independently compared rows and complete ordered schema, including the empty result and both bounded JOIN ports. The local worker also printed five invalid-input refusals with unchanged admission/I/O counters. The final value-table refusal expected `ClientProgramRejected`, but public preparation correctly disclosed `ClientProgramImplementationLimit`; the sibling worker then terminated through existing cancellation. These observations are partial evidence, not complete 9+6 acceptance.
+
+The correction follows the existing public contract rather than copying a product result: `client-program-preparation.mjs` sends Source preparation refusals through the public bound-input checker and selects `ClientProgramImplementationLimit` when its admitted report contains `implementation_limit`. Existing `client-preparation-disclosure.test.mjs` separately fixes this rule for `source_unsupported` with completed and partial reports. The old fixture considered only the intermediate generic preparation mapping and omitted this disclosure step. Only this refusal's expected code and its independent registration digest change; source, rows, types, order, operation limits and all admission/I/O obligations remain unchanged.
+
+The first attempt's immutable evidence is retained at `worktrees/.codex-scratch/public-query-evidence-0G12ew` in the workspace. Its termination receipt records both workers terminal, zero live children, stopped owner process group and released own/shared locks. No successful final inventory is claimed. A corrected clean-SHA five-package and Local/HTTPS 9+6 run remains required; old packages are not re-labelled as the corrected source.
+
+The refusal-only correction passed focused Node 64/64 in `focused-test-IwBKnc`, covering the independent UNPIVOT fixture, existing public preparation disclosure and normal-corpus registration. An earlier 63/64 preparation attempt caught accidentally omitted inventory metadata; its original version and baseline fields were restored before the passing check. These checks do not execute the corrected public cohort or replace the original failed receipt.

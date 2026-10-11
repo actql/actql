@@ -36,7 +36,7 @@ test('FROM UNPIVOT independently fixes NULL duplicate ordering and bounded JOIN 
   assert.equal(fromUnpivotSuccesses.length, 9);
   assert.equal(fromUnpivotRefusals.length, 6);
   assert.equal(fromUnpivotRefusals.find(item => item.name.endsWith('value-table')).expectedCode,
-    'ClientProgramRejected');
+    'ClientProgramImplementationLimit');
   assert.ok(fromUnpivotRefusals.filter(item => !item.name.endsWith('value-table'))
     .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });

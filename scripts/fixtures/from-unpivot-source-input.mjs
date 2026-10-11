@@ -62,4 +62,4 @@ export const fromUnpivotRefusals = [
 ].map(item => ({...item, name: 'from-unpivot-refusal-' + item.name,
   format: 'aql-text', parameterDeclarations: item.name === 'value-table' ? undefined : declarations,
   parameters: item.name === 'value-table' ? undefined : {rows},
-  expectedCode: item.name === 'value-table' ? 'ClientProgramRejected' : 'ClientProgramInvalidInput'}));
+  expectedCode: item.name === 'value-table' ? 'ClientProgramImplementationLimit' : 'ClientProgramInvalidInput'}));
