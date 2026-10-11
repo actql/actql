@@ -53,6 +53,19 @@ pub(all) struct NativeEffectCloudCurrentRead {
   now_ms : () -> Int64
 }
 
+pub(all) struct NativeEffectCloudReviewerRead {
+  control : NativeEffectCloudCurrentRead
+  scope : NativeEffectCloudReviewerScope
+}
+
+pub(all) struct NativeEffectCloudReviewerScope {
+  site_key : String
+  site_generation : Int64
+  workspace_id : String
+  authority_scope_cid : String
+  installation : String
+}
+
 pub(all) struct NativeEffectDispatchKeyLimits {
   max_bytes : Int
   max_nodes : Int
@@ -206,7 +219,9 @@ type NativeResidentEffectReview
 pub fn NativeResidentEffectReview::admit_resolution(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
 pub fn NativeResidentEffectReview::answer_effect_current(Self, @remote_site_protocol.RemoteEffectCurrentQuery, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, NativeResidentEffectObservationIssue]
 pub fn NativeResidentEffectReview::authenticate_remote_reviewer(Self, String, String, NativeEffectReviewerInstallation, Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
+pub fn NativeResidentEffectReview::authenticate_remote_reviewer_with_cloud(Self, String, NativeEffectCloudReviewerRead, @signature.Library, Array[NativeEffectHostAuthority], () -> Bool, () -> String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
 pub fn NativeResidentEffectReview::cloud_resume_observer(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], NativeEffectCloudCurrentRead, @checkpoint_runtime.WireLimits) -> Result[() -> NativeEffectResumeObservation?, NativeResidentEffectWriteIssue]
+pub fn NativeResidentEffectReview::cloud_reviewer_installation(Self, String, NativeEffectCloudReviewerRead, @signature.Library, @checkpoint_runtime.WireLimits) -> Result[(String, NativeEffectReviewerInstallation), NativeResidentEffectResolutionIssue]
 pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit, capture_progress? : (@remote_resident_host.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::complete_saved_effect(Self, () -> Bool, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectCompletion, NativeResidentEffectCompletionIssue]
 pub fn NativeResidentEffectReview::completed_result_output(Self, () -> Bool, NativeResidentEffectWriteLimits) -> Result[(@remote_resident_host.ResidentExecuted, NativeResidentEffectCompletion), NativeResidentEffectCompletionIssue]
