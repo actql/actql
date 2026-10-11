@@ -18,10 +18,13 @@ import {
   "actql/actql/remote_site_protocol",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit_native_effect_resolution(@signature.Library, @checkpoint_runtime.SealedCheckpoint, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
+
+pub fn authenticate_native_effect_reviewer(NativeEffectReviewerInstallation, NativeEffectReviewerSelection, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
 
 pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, @catalog.CatalogObservation, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, Int, Int, Int, Int, (Int, @catalog.SingleWriteRequest) -> Result[NativeSalesforceTargetAccess, NativeSalesforcePreviewIssue]) -> Result[Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], NativeResidentEffectTargetIssue]
 
@@ -70,6 +73,27 @@ pub(all) struct NativeEffectResumeObservation {
   now_ms : Int64
   settlement_only : Bool
 }
+
+pub(all) struct NativeEffectReviewerInstallation {
+  crypto : @signature.Library
+  current_site : () -> Bool
+  read_current : (NativeEffectReviewerSelection, String) -> NativeEffectReviewerRegistration?
+}
+
+pub(all) struct NativeEffectReviewerRegistration {
+  selection : NativeEffectReviewerSelection
+  key_id : String
+  reviewer_id : String
+  public_key_pem : String
+  approval_authority_scope_cid : String
+  authority_context_cid : String
+  policy_cid : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NativeEffectReviewerSelection {
+  principal_id : String
+  checkpoint_cid : String
+} derive(Eq, @debug.Debug)
 
 type NativeResidentEffectApprovedRow
 pub fn NativeResidentEffectApprovedRow::dispatch_entry(Self) -> @effect_application.EffectLedgerEntry?
@@ -181,6 +205,7 @@ pub(all) struct NativeResidentEffectResumeConfiguration {
 type NativeResidentEffectReview
 pub fn NativeResidentEffectReview::admit_resolution(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
 pub fn NativeResidentEffectReview::answer_effect_current(Self, @remote_site_protocol.RemoteEffectCurrentQuery, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, NativeResidentEffectObservationIssue]
+pub fn NativeResidentEffectReview::authenticate_remote_reviewer(Self, String, String, NativeEffectReviewerInstallation, Array[NativeEffectHostAuthority], () -> Bool, () -> String) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
 pub fn NativeResidentEffectReview::cloud_resume_observer(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], NativeEffectCloudCurrentRead, @checkpoint_runtime.WireLimits) -> Result[() -> NativeEffectResumeObservation?, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::complete(Self, phase_observe? : (String) -> Unit, capture_progress? : (@remote_resident_host.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::complete_saved_effect(Self, () -> Bool, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectCompletion, NativeResidentEffectCompletionIssue]
