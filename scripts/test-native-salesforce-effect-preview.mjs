@@ -9,7 +9,8 @@ import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixtu
 import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
+const residentMappedCreate = process.argv.includes('--resident-original-mapped-create-write');
+const residentApprovedRow = residentMappedCreate || process.argv.includes('--resident-approved-row-write');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
@@ -231,7 +232,8 @@ try {
     const runtimeKeys = generateKeyPairSync('ed25519');
     bearer = await startNativeBearerServers({host: '127.0.0.1',
       key: await readFile(join(root, 'server.key')),
-      cert: await readFile(join(root, 'server.crt')), root, allowEffectWrite: residentApprovedRow});
+      cert: await readFile(join(root, 'server.crt')), root, allowEffectWrite: residentApprovedRow && !residentMappedCreate,
+      allowEffectCreate: residentMappedCreate});
     await mkdir(join(root, 'retained'), {recursive: true});
     Object.assign(testEnv, {
       ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW: residentApprovedRow ? '1' : '0',
@@ -270,7 +272,8 @@ try {
     ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
       'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt',
       'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'] : []),
-    ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
+    ...(residentMappedCreate ? ['--filter', 'original completion-free mapped-create approval retains one physical write through response custody loss']
+      : residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
       : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
       : residentPreview ? ['--filter', 'Native retained consumer*']
       : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
@@ -288,8 +291,11 @@ try {
     checkpointReportRequests, checkpointReportSha256:checkpointReportWire===undefined?undefined:
       createHash('sha256').update(checkpointReportWire).digest('hex'),
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
+    providerCreated: residentMappedCreate ? bearer.effectCreatedValues() : undefined,
     captureProgress: residentOriginalHolder ? await readNativeEffectCaptureProgress(join(root, 'retained')) : undefined,
-    scope: residentApprovedRow
+    scope: residentMappedCreate
+      ? 'Actual original completion-free Source/consumer -> mapped-create Preview without target read -> locally signed original Resolution -> one physical POST -> raw response custody loss/retry -> common row terminal; local trusted claim only; no Cloud approval, Host restart or formal Run release'
+      : residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
       : residentOriginalHolder
       ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
@@ -309,8 +315,10 @@ try {
   if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
   if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
-    assert.equal(bearer.effectTargetValue(), residentApprovedRow ? 3 : 7);
+    assert.deepEqual(bearer.effectTargets(), {reads: residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.equal(bearer.effectTargetValue(), residentApprovedRow && !residentMappedCreate ? 3 : 7);
+    if (residentMappedCreate) assert.deepEqual(bearer.effectCreatedValues(),
+      [{Id: '001000000000001AAA', Count__c: 3}]);
   } else {
     assert.deepEqual(paths.filter(value => value.method === 'GET'), [
       {method: 'GET', path: expected + '001000000000001'},

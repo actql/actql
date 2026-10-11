@@ -27,6 +27,7 @@ fn retained_consumer_holder_case(
   effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
   provider? : Bool = false,
   completion_free_review? : Bool = false,
+  mapped_create_write? : Bool = false,
 ) -> Unit raise {
   // Every completed resident consumer has durable file custody. Chain cases
   // additionally make the original Source path unavailable to later tasks.
@@ -567,6 +568,8 @@ fn retained_consumer_holder_case(
         journal,
         effect_producer.unwrap(),
         producer_journal,
+        approved_row=mapped_create_write,
+        journal_path=Some(root_path + "/" + name + ".runtime/execution.sqlite3"),
       )
     } else if !provider {
       retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
