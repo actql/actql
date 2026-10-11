@@ -1,4 +1,27 @@
 ///|
+fn catalog_use_matches_dispatch(
+  request : @remote.DispatchRequest,
+  grant : @credential.RemoteCredentialGrant,
+  credential_use : @credential.RemoteCredentialUse,
+) -> Bool {
+  let fields = @credential.credential_grant_projection(grant)
+  let execution = @remote.dispatch_request_execution_scope(request)
+  let route = @remote.dispatch_request_journal_key(request)
+  let use_fields = @credential.credential_use_projection(credential_use)
+  fields.length() == 17 &&
+  execution.length() >= 3 &&
+  route.length() == 7 &&
+  use_fields.length() == 4 &&
+  use_fields[1] == fields[0] &&
+  fields[5] == execution[0] &&
+  fields[6] == execution[1] &&
+  fields[7] == execution[2] &&
+  fields[11] == "salesforce:catalog:describe" &&
+  fields[13] == route[6] &&
+  fields[14] == @remote.dispatch_request_identity(request)
+}
+
+///|
 /// Inspect the original use retained before Provider I/O, independently of the
 /// credential database. Missing custody remains NotFound, never a fresh-read
 /// permit. Current Host/grant authorization and original invocation admission
@@ -30,8 +53,8 @@ pub fn Journal::effect_catalog_use(
   }
   let body = @utf8.decode(saved.body) catch { _ => return Err(StateCollision) }
   guard body.find("\n") is Some(separator) else { return Err(StateCollision) }
-  let cid = body[:separator].to_string()
-  let wire = body[separator + 1:].to_string()
+  let cid = body[:separator].to_owned()
+  let wire = body[separator + 1:].to_owned()
   let original = match
     @credential.admit_credential_use_json(original_grant, wire, cid) {
     Ok(value) => value

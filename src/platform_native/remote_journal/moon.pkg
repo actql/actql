@@ -29,6 +29,7 @@ options(
   "native-stub": [ "inspection_stub.c" ],
   targets: {
     "effect_catalog_use_native.mbt": [ "native" ],
+    "effect_catalog_use_wbtest.mbt": [ "native" ],
     "effect_catalog_use_native_wbtest.mbt": [ "native" ],
     "effect_catalog_use_unsupported.mbt": [ "not", "native" ],
     "effect_ledger_native.mbt": [ "native" ],

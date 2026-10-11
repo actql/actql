@@ -23,6 +23,8 @@ The caller still needs an original initial-use eligibility proof and must remove
 
 ## Validation scope
 
-Two portable binding cases execute the affected projection checks using common-issued nominal requests/grants/uses. They cover exact matching, foreign dispatch, attempt, generation, and another grant with the same use ID. These are not Provider or public Run tests.
+Two matching Native binding cases execute the affected projection checks using common-issued nominal requests/grants/uses. They cover exact matching, foreign dispatch, attempt, generation, and another grant with the same use ID. These are not Provider or public Run tests.
 
 Two Native SQLite fixtures cover immutable use retention, reopen, foreign/replacement rejection, missing custody, wrong dispatch state, and writer-lock failure/retry. They require real SQLite and fail if their environment is absent. They have been compiled only; no Native execution or SQLite persistence result is claimed. The affected Native journal/caller is compiled, and the interface is generated with the existing `moon info` generator for JS/Native/Wasm. Hosted CI and Heavy remain disabled.
+
+Integration keeps the dispatch/use helper and its two binding fixtures on the Native target alongside their real caller. JS/Wasm implementations remain typed unsupported targets; no unused portable helper, warning suppression, duplicate checker or additional public API is introduced. StringView slices use the existing owned-string operation without changing saved bytes or identity. Original portable-source receipts retain their original SHA and are not retargeted.
