@@ -42,6 +42,8 @@ pub fn confirm_local_run_physical_start(LocalRunPlan, @run_publication_host.Clie
 
 pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
 
+pub fn install_local_preflight_publisher_port(LocalPublicationPreflight, String, () -> @execution_authorization.AdmittedAccountConfiguration, () -> Bool, (@run_publication.PublicationPublisherAuthorization) -> Bool) -> Result[@run_publication.PublicationPublisherPort, @run_publication.PublicationPublisherIssue]
+
 pub fn issue_local_preflight_result_publication(LocalPublicationPreflight, Int, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
 
 pub fn issue_local_result_durable_binding(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
