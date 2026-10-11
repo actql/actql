@@ -393,6 +393,9 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     @resources.ledger_usage(@strategy.captured_dag_ledger(receiving_run)).reserved_execution_bytes,
     0L,
   )
+  // The exact captured Source is already a Core-bound ordinary read. Its
+  // absence from managed transfers must not be treated as a missing input.
+  assert_eq(operations.inputs.length(), 0)
   for transfer in operations.inputs {
     for row in @client_local_host.client_source_capture_export_rows(projection) {
       (transfer.append)(row).unwrap()

@@ -80,6 +80,12 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     if range is Some(name) {
       ranges.push(name)
     }
+    // ON has the same operand range scope as SELECT. A bare ordinary range
+    // must not enter the scalar-column specialization through a name collision.
+    if part.on is Some(predicate) &&
+      join_has_range_expression(predicate, ranges) {
+      return true
+    }
   }
   // The projection specialization consumes at most one WHERE before SELECT.
   // Other current-row prefixes must retain their authored order in the shared
@@ -148,6 +154,13 @@ fn join_chain_reference(
         return matches[0]
       }
       raise Abort(AmbiguousColumn)
+    }
+    // Ordinary ranges denote closed row objects. The existing equijoin profile
+    // accepts comparable scalar key slots, not whole-row keys. Keep that
+    // unsupported boundary explicit instead of substituting a same-named field.
+    if scope.ranges.any(range => same_name(path[0], range.0)) ||
+      right_scope.ranges.any(range => same_name(path[0], range.0)) {
+      raise Abort(UnsupportedJoin)
     }
   }
   for (side, candidate) in [("left", scope), ("right", right_scope)] {

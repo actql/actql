@@ -244,6 +244,9 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     value.tasks.get(handle) is Some(record) else {
     return -2
   }
+  // Seal new task/export admission immediately, but preserve the original
+  // output's liveness and reservation until its existing pins are returned.
+  record.closing = true
   if value.result_exports.values().any(result => result.task == handle) {
     return -9
   }
@@ -254,7 +257,6 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     }) {
     return -9
   }
-  record.closing = true
   record.live.val = false
   if record.pending {
     return -33
@@ -283,12 +285,7 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
     record.operations is Some(operations) &&
-    value.computes.get(record.compute) is Some(compute) &&
-    value.native_attempts.get(compute.attempt) is Some(original) &&
-    original.outcome is Some(Ok(native)) &&
-    original.observation is Some(observation) &&
-    value.native_sources.get(original.configuration)
-    is Some({ outcome: Some(Ok(configuration)), .. }) else {
+    value.computes.get(record.compute) is Some({ closing: false, .. }) else {
     return -2
   }
   if value.closing || record.closing {
@@ -300,12 +297,12 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if record.pending || record.issue is Some(_) {
     return -33
   }
-  if record.producers.length() != operations.inputs.length() {
+  // Captured and supplied reads are already bound by the existing driver.
+  // Only managed completed-output ports require a row transfer here.
+  if record.positions.length() != operations.inputs.length() {
+    record.issue = Some(@local_run.Configuration)
     return -32
   }
-  let limits = @native_host.configured_native_host_limits(
-    @local_run.local_native_source_configuration(configuration),
-  )
   for _ in 0..<quantum {
     let mut port = 0
     while port < record.finished_inputs.length() && record.finished_inputs[port] {
@@ -315,61 +312,39 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
       return 0
     }
     let transfer = operations.inputs[port]
-    let producer = record.producers[port]
+    let input = @execution.managed_producer_read_input_index(transfer.input)
+    guard record.producers.get(input) is Some(producer) && producer > 0 else {
+      record.issue = Some(@local_run.UnsupportedCapability)
+      return -32
+    }
     record.pending = true
-    let outcome : Result[Unit, @local_run.LocalComputeIssue] = if producer == 0 {
-      match
-        @native_host.native_host_retained_output(
-          native,
-          observation,
-          limits.output_entries,
-          limits.output_name_bytes,
-        ) {
-        Err(_) => Err(@local_run.Configuration)
-        Ok(output) => {
-          let row = record.positions[port]
-          if row == @execution.completed_row_count(output) {
-            (transfer.finish)()
-            .map(_ => record.finished_inputs[port] = true)
-            .map_err(issue => @local_run.Managed(issue))
-          } else {
-            match
-              @execution.completed_output_row_wire(
-                output,
-                row,
-                limits.transport.max_bytes,
-                limits.transport.max_nodes,
-                64,
-              ) {
-              Err(_) => Err(@local_run.Configuration)
-              Ok(wire) =>
-                (transfer.append)(wire)
-                .map(_ => record.positions[port] += 1)
-                .map_err(issue => @local_run.Managed(issue))
-            }
+    let outcome : Result[Unit, @local_run.LocalComputeIssue] = match
+      stored_producer(value, record.compute, producer) {
+      Some({ completed: Some(output), operations: Some(parent), .. }) => {
+        if !@execution.managed_producer_read_matches_reference(
+            transfer.input,
+            @execution.managed_completed_reference(output),
+          ) {
+          record.pending = false
+          record.issue = Some(@local_run.UnsupportedCapability)
+          return -32
+        }
+        let row = record.positions[port]
+        if row == @execution.managed_completed_output_row_count(output) {
+          (transfer.finish)()
+          .map(_ => record.finished_inputs[port] = true)
+          .map_err(issue => @local_run.Managed(issue))
+        } else {
+          match (parent.output_row)(row) {
+            Err(issue) => Err(@local_run.Managed(issue))
+            Ok(wire) =>
+              (transfer.append)(wire)
+              .map(_ => record.positions[port] += 1)
+              .map_err(issue => @local_run.Managed(issue))
           }
         }
       }
-    } else {
-      match stored_producer(value, record.compute, producer) {
-        Some({ completed: Some(output), operations: Some(parent), .. }) => {
-          let row = record.positions[port]
-          if row == @execution.managed_completed_output_row_count(output) {
-            (transfer.finish)()
-            .map(_ => record.finished_inputs[port] = true)
-            .map_err(issue => @local_run.Managed(issue))
-          } else {
-            match (parent.output_row)(row) {
-              Err(issue) => Err(@local_run.Managed(issue))
-              Ok(wire) =>
-                (transfer.append)(wire)
-                .map(_ => record.positions[port] += 1)
-                .map_err(issue => @local_run.Managed(issue))
-            }
-          }
-        }
-        _ => Err(@local_run.UnsupportedCapability)
-      }
+      _ => Err(@local_run.UnsupportedCapability)
     }
     if outcome is Err(issue) {
       record.issue = Some(issue)

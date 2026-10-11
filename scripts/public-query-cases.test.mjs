@@ -1,4 +1,4 @@
-import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl} from './fixtures/public-query-input.mjs';
+import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl, joinOnColumnControl} from './fixtures/public-query-input.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
@@ -194,4 +194,19 @@ test('JOIN value receiver fixtures distinguish scalar object and ordinary row ki
  assert.equal(cases.get('join-value-right-object').columns[0].contract.nullable,true);
  assert.equal(cases.get('join-value-offset-row').columns[0].contract.nullable,false);
  assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('join-value-refusal-')).length,3);
+});
+
+test('ON range refusals retain qualified column and USING controls',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ assert.deepEqual(joinOnColumnControl.stages[0].steps[2].join,
+  {with:'right',kind:'inner',on:[{left:'l',right:'id'}],max_output_rows:10,select:{id:'left.id'}});
+ assert.deepEqual(cases.get('join-on-range-json-column-control').expected,[{id:2}]);
+ assert.deepEqual(cases.get('join-on-range-qualified-left').expected,[{id:2}]);
+ assert.deepEqual(cases.get('join-on-range-qualified-right').expected,[{id:1}]);
+ assert.ok(cases.get('join-on-range-using-column').text.includes('USING(l)'));
+ const refusals=queryCompositionRefusals.filter(item=>item.name.startsWith('join-on-range-refusal-'));
+ assert.equal(refusals.length,4);
+ assert.ok(refusals.every(item=>item.expectedCode==='ClientProgramImplementationLimit'));
+ assert.ok(refusals.some(item=>item.text.includes('FROM records JOIN')),
+  'the retained public refusal must also prove no acquired Source I/O');
 });
