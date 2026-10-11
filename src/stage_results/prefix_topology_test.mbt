@@ -175,7 +175,16 @@ test "prefix check preserves bounded accounting and actual local ownership" {
     Err(BudgetExceeded | Wiring(BudgetExceeded)) => ()
     Err(Order(1, PipelineOrder(issue))) =>
       assert_eq(issue.kind, @pipeline.BudgetExceeded)
-    Err(_) => fail("one-less work must fail at the charged order boundary")
+    Err(LocalInput(i, _)) => fail("short work: local input \{i}")
+    Err(Import(i, _)) => fail("short work: import \{i}")
+    Err(Pipeline(i, issue)) => fail("short work: pipeline \{i} " + @debug.to_string(issue.kind))
+    Err(Collection(i, _)) => fail("short work: collection \{i}")
+    Err(Results(i, _)) => fail("short work: results \{i}")
+    Err(Order(i, _)) => fail("short work: other order \{i}")
+    Err(Ports(i, _)) => fail("short work: ports \{i}")
+    Err(TableInputs(i, _)) => fail("short work: table inputs \{i}")
+    Err(Wiring(_)) => fail("short work: other wiring")
+    Err(_) => fail("short work: other preparation issue")
     Ok(_) => fail("one-less work must refuse")
   }
 }
