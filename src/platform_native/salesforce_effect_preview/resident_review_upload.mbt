@@ -22,12 +22,27 @@ pub fn NativeResidentEffectReview::upload_review_projection(
   url : String,
   authorize_evidence_read : () -> Bool,
 ) -> Result[Unit, NativeResidentEffectReviewUploadIssue] {
-  upload_original_review_projection(self.journal, client, report_url, url, () => {
-    match self.review_projection(authorize_evidence_read, 65536) {
-      Ok(value) => Ok(value)
-      Err(issue) => Err(Review(issue))
-    }
-  })
+  upload_original_review_projection(
+    self.journal,
+    client,
+    report_url,
+    url,
+    () => {
+      match self.review_projection(authorize_evidence_read, 65536) {
+        Ok(value) => Ok(value)
+        Err(issue) => Err(Review(issue))
+      }
+    },
+    () => {
+      if !authorize_evidence_read() {
+        Err(Review(Retention(EvidenceDenied)))
+      } else if self.closed || self.retiring || !self.current() {
+        Err(Review(Unavailable))
+      } else {
+        Ok(())
+      }
+    },
+  )
 }
 
 ///|
@@ -49,15 +64,30 @@ pub fn upload_native_resident_original_review_projection(
   url : String,
   authorize_evidence_read : () -> Bool,
 ) -> Result[Unit, NativeResidentEffectReviewUploadIssue] {
-  upload_original_review_projection(journal, client, report_url, url, () => {
-    match
-      context.read_original_review_projection(
-        journal, store, authority, crypto, key, limits, authorize_evidence_read,
-      ) {
-      Ok(value) => Ok(value)
-      Err(issue) => Err(OriginalReview(issue))
-    }
-  })
+  upload_original_review_projection(
+    journal,
+    client,
+    report_url,
+    url,
+    () => {
+      match
+        context.read_original_review_projection(
+          journal, store, authority, crypto, key, limits, authorize_evidence_read,
+        ) {
+        Ok(value) => Ok(value)
+        Err(issue) => Err(OriginalReview(issue))
+      }
+    },
+    () => {
+      if !authorize_evidence_read() {
+        Err(OriginalReview(EvidenceDenied))
+      } else if context.facts(journal) is None {
+        Err(OriginalReview(Unavailable))
+      } else {
+        Ok(())
+      }
+    },
+  )
 }
 
 ///|
@@ -73,6 +103,7 @@ fn upload_original_review_projection(
     (@remote.RemoteEffectCheckpointReport, String),
     NativeResidentEffectReviewUploadIssue,
   ],
+  fence : () -> Result[Unit, NativeResidentEffectReviewUploadIssue],
 ) -> Result[Unit, NativeResidentEffectReviewUploadIssue] {
   let (report, wire) = match read() {
     Ok(value) => value
@@ -93,6 +124,10 @@ fn upload_original_review_projection(
     max_depth: 32,
   }
   match confirm_original_review_report(journal, report, limits, false) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match fence() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -126,7 +161,14 @@ fn upload_original_review_projection(
       value: @remote.dispatch_request_identity(dispatch),
     },
   ]
-  let response = match client.request(Post, url, headers, @utf8.encode(wire)) {
+  let body = @utf8.encode(wire)
+  // Prepare the bounded body before the final current disclosure fence.
+  // Journal confirmation is evidence, never a substitute for current permission.
+  match fence() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let response = match client.request(Post, url, headers, body) {
     Ok(value) => value
     Err(issue) => return Err(Http(issue))
   }
@@ -151,7 +193,7 @@ fn upload_original_review_projection(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  Ok(())
+  fence()
 }
 
 ///|

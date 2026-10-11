@@ -349,7 +349,7 @@ try {
   assert.equal(rejectedWrites, residentProposals ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
-  assert.equal(reviewUploads,residentOriginalHolder?5:0);
+  assert.equal(reviewUploads,residentOriginalHolder?6:0);
   assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
   if(residentOriginalHolder){for(const body of reviewUploadBodies.slice(1))assert.deepEqual(body,reviewUploadBodies[0]);}
   if (residentMappedCreate) {
