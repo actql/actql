@@ -236,7 +236,10 @@ test('public SDK facade admits original Plan and Run wire without submitting any
   for (const name of ['maxWireBytes', 'maxNodes', 'maxDepth']) {
     for (const value of ['4', NaN, Infinity, 1.5, -1, 0]) {
       await assert.rejects(readStaticPlan(client, 'SELECT 1 AS n',
-        {format: 'sql', [name]: value}, ticket()), {code: 'InvalidClientPlanRequest'});
+        {format: 'sql', [name]: value}, ticket()),
+      Number.isNaN(value) || value === Infinity
+        ? {name: 'TypeError', message: 'UnrepresentableClientNumber'}
+        : {code: 'InvalidClientPlanRequest'});
     }
   }
   assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run']);
