@@ -16,20 +16,26 @@ test "grouped LIMIT and OFFSET retain distinct integer and Parameter roles" {
     )
   }
   for
-    (text, expected) in [
-      ("LIMIT ((2)) OFFSET (0)", Limit(Integer(2L), Integer(0L))),
-      (
-        "LIMIT (@`COUNT`) OFFSET ((1))",
-        Limit(BoundParameter("COUNT"), Integer(1L)),
-      ),
-      (
-        "LIMIT (9007199254740991)",
-        Limit(Integer(9007199254740991L), Integer(0L)),
-      ),
+    (text, expected_count, expected_offset) in [
+      ("LIMIT ((2)) OFFSET (0)", 2L, 0L),
+      ("LIMIT (9007199254740991)", 9007199254740991L, 0L),
     ] {
     let query = parse_query("SELECT id FROM orders " + text, query_limits()).unwrap()
-    assert_eq(operation_at(query, operation_count(query) - 1), Some(expected))
+    guard operation_at(query, operation_count(query) - 1)
+      is Some(Limit(Integer(count), Integer(offset))) else {
+      fail("Grouped literals must retain ordinary integer slots")
+    }
+    assert_eq(count, expected_count)
+    assert_eq(offset, expected_offset)
   }
+  let quoted = parse_query(
+    "SELECT id FROM orders LIMIT (@`COUNT`) OFFSET ((1))",
+    query_limits(),
+  ).unwrap()
+  assert_true(
+    operation_at(quoted, operation_count(quoted) - 1)
+    is Some(Limit(BoundParameter("COUNT"), Integer(1L))),
+  )
 }
 
 ///|
