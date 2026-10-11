@@ -1,4 +1,14 @@
 ///|
+fn p2_sga_compile(text : String) -> @program.Program raise {
+  let script = @query.parse_query_script(text, syntax_limits()).unwrap()
+  match compile_query_script(script, {..fixture_context(), inputs: []}, construction_limits()) {
+    Ok(program) => program
+    Err(Expression(diagnostic)) => fail(@debug.to_string(diagnostic.issue))
+    Err(_) => fail("Unexpected non-expression lowering failure")
+  }
+}
+
+///|
 // Full controls are unchanged from the independent pre-cutover Program oracles.
 fn p2_sga_checked(program : @program.Program) -> Unit raise {
   match
@@ -29,7 +39,7 @@ test "P2 selector identifiers resolve to their own operand and unchanged complet
     field in [
       "element", "ELEMENT", "seeds.element", "SEEDS.Element", "`element`",
     ] {
-    let actual = compile_with_set(
+    let actual = p2_sga_compile(
       traversal_nodes_source() +
       "FROM g |> traverse(start: {from: seeds, id: " +
       field +
@@ -71,7 +81,7 @@ test "P2 MATCH references preserve literal values and the unchanged complete Pro
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_with_set(
+  let actual = p2_sga_compile(
     "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: p}, {literal: +5}]}, fields: [p]) |> SELECT p",
   )
   assert_eq(semantic(actual), semantic(expected))
