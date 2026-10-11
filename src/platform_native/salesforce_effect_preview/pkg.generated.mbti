@@ -123,7 +123,6 @@ pub(all) struct NativeEffectReviewerSelection {
   checkpoint_cid : String
 } derive(Eq, @debug.Debug)
 
-
 pub struct NativeLocalSalesforceTargetObservation {
   request : @catalog.LocalTargetReadRequest
   response : @credential_resource.NativeCredentialResponse

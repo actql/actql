@@ -80,10 +80,10 @@ test "Direct Local Catalog cannot supply Resident review or create custody" {
     run_invocation_cid: site.run_invocation_cid,
     sync_occurrence: site.sync_occurrence,
   }
-  let local = @catalog.DirectLocalCatalog(binding)
+  let direct_local = @catalog.DirectLocalCatalog(binding)
   assert_false(
     native_review_catalog_binding_matches_original(
-      local,
+      direct_local,
       site.site_key,
       site.site_generation.to_string(),
       site.run_invocation_cid,
@@ -91,6 +91,6 @@ test "Direct Local Catalog cannot supply Resident review or create custody" {
     ),
   )
   assert_true(
-    native_resident_catalog_create_origin(local) is Err(ForeignRequest),
+    native_resident_catalog_create_origin(direct_local) is Err(ForeignRequest),
   )
 }
