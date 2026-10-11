@@ -24,12 +24,15 @@ inventory_root = '--bounded-inventory-root' in sys.argv[4:]
 source_publication = '--source-publication' in sys.argv[4:]
 explicit_view = '--explicit-view' in sys.argv[4:]
 final_publication = '--final-publication' in sys.argv[4:]
+result_binding = '--result-binding' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'])
 source_cases = []
 publication_cases = []
+binding_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -158,7 +161,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 20
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 21
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -592,6 +595,15 @@ try:
             expected_work = expected_body = None
             for quantum in (7, 100):
                 value = publication_loan()
+                if result_binding and quantum == 7:
+                    observations = json.loads((root / 'scripts/fixtures/python-local-result-storage-binding.json').read_text())
+                    before_completion = copy({key: observations[key] for key in (
+                        'material_generation_cid', 'store_authority_cid', 'byte_count', 'physical_sha256')})
+                    ticket += 1
+                    fixture.inputs[ticket] = b''
+                    assert_status('result_binding', 'reserve', -2, value, 0, before_completion, ticket, 131300)
+                    fixture.inputs.pop(ticket)
+                    assert fixture.call('close', before_completion) == 0
                 assert_status('publication', 'prepare', 0, value, configuration)
                 spent = 0
                 for _ in range(100000):
@@ -641,6 +653,71 @@ try:
                     expected_body = body
                 assert body == expected_body, 'Quantum cannot change the original final evidence'
                 assert fixture.queries == expected['source_queries']
+                if result_binding and quantum == 7:
+                    physical = json.loads((root / 'scripts/fixtures/python-local-result-storage-binding.json').read_text())
+                    # These hashes are independently fixed from authored UTF-8
+                    # bytes, not learned from this module's binding response.
+                    assert physical['payload'].encode() == b'[{"next":5}]'
+                    assert hashlib.sha256(physical['payload'].encode()).hexdigest() == physical['physical_sha256']
+                    facts = {key: physical[key] for key in (
+                        'material_generation_cid', 'store_authority_cid', 'byte_count', 'physical_sha256')}
+
+                    def binding_loan(observations):
+                        global ticket
+                        input_handle = copy(observations)
+                        ticket += 1
+                        fixture.inputs[ticket] = b''
+                        loan = call('result_binding', 'reserve', value, 0, input_handle, ticket, 131300)
+                        assert loan > 0, ('Original Result binding reservation', loan)
+                        return loan, input_handle
+
+                    for bad, expected_status in (
+                            ({**facts, 'byte_count': 11}, -32),
+                            ({**facts, 'physical_sha256': '0' * 64}, -32),
+                            ({**facts, 'byte_count': None}, -31),
+                            ({key: val for key, val in facts.items() if key != 'byte_count'}, -31),
+                            ({**facts, 'row_count': 1}, -31)):
+                        loan, input_handle = binding_loan(bad)
+                        assert_status('result_binding', 'produce', expected_status, loan, configuration)
+                        assert_status('result_binding', 'length', -33, loan)
+                        assert_status('result_binding', 'close', 0, loan)
+                        assert fixture.call('close', input_handle) == 0
+                    binding_cases.append('closed_physical_facts_and_exact_bytes_refused')
+                    loan, input_handle = binding_loan(facts)
+                    assert_status('result_binding', 'produce', -32, loan, denied_configuration)
+                    assert_status('result_binding', 'produce', 0, loan, configuration)
+                    assert_status('result_binding', 'produce', -32, loan, denied_configuration)
+                    assert_status('result_binding', 'produce', 0, loan, configuration)
+                    size = call('result_binding', 'length', loan)
+                    assert 0 < size <= 65536
+                    binding = json.loads(bytes(fixture.call('byte', loan, i) for i in range(size)))
+                    for key in ('byte_count', 'physical_sha256', 'row_count', 'result_fields',
+                                'result_schema_cid', 'codec_contract_cid', 'material_generation_cid', 'store_authority_cid'):
+                        assert binding[key] == physical[key], ('Independent Result binding field', key, binding[key])
+                    assert binding['effective_retention_policy_cid'] == expected['retention_policy_cid']
+                    assert binding['version'] == 'actql-durable-result-binding/0.1'
+                    binding_cases.append('original_result_binding_and_current_authority')
+                    reserved = fixture.call('reserved')
+                    fixture.cleanup_ready = False
+                    assert_status('result_binding', 'close', -9, loan)
+                    assert fixture.call('reserved') == reserved
+                    assert fixture.call('close', input_handle) == -9
+                    fixture.cleanup_ready = True
+                    fixture.stop_ready = False
+                    assert_status('result_binding', 'close', -9, loan)
+                    assert fixture.call('close', input_handle) == -9
+                    fixture.stop_ready = True
+                    assert_status('result_binding', 'close', 0, loan)
+                    assert fixture.call('close', input_handle) == 0
+                    binding_cases.append('same_input_borrow_stop_and_cleanup_retry')
+                    loan, input_handle = binding_loan(facts)
+                    assert_status('result_binding', 'produce', 0, loan, configuration)
+                    assert_status('publication', 'close', -9, value)
+                    assert_status('result_binding', 'produce', -5, loan, configuration)
+                    assert_status('result_binding', 'close', 0, loan)
+                    assert fixture.call('close', input_handle) == 0
+                    assert fixture.queries == expected['source_queries']
+                    binding_cases.append('parent_close_retains_child_without_source_compute_replay')
                 if quantum == 100:
                     # Closing parents seals them but retains custody until the
                     # same child output and reader cleanup both succeed.
@@ -715,6 +792,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'global_memory_accounting': False,
                   'source_publication_cases': source_cases,
                   'result_publication_cases': publication_cases,
+                  'result_binding_cases': binding_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']
