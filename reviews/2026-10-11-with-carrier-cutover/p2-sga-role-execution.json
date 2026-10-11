@@ -19,6 +19,11 @@
       "run": "run-0wFlC5",
       "source": "fef4bab37fa5226d85498c8a88291da5833b9e8d",
       "result": "JS6/6 strengthened syntax roles including OutputName AST"
+    },
+    {
+      "source": "46a4edbac4417fca744fa0f8cd9b3b7b4af6ac33",
+      "run": "run-BTcBWa",
+      "result": "JS4/4 full independent Programs/common checks, including nullable payload.score via existing property expression; runtime values unexecuted"
     }
   ],
   "beforeFix": [
@@ -103,6 +108,20 @@
       {
         "run": "run-0wFlC5",
         "owner": 1404,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-LdhWKf",
+        "owner": 5111,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-BTcBWa",
+        "owner": 5252,
         "exitCode": 0,
         "complete": true,
         "locksReleased": true
@@ -548,6 +567,85 @@
       "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/0003.summary.json",
       "bytes": 1773,
       "sha256": "3a5252aa905be4772b568fa464f6886b24e8e3622555b60eac1d2dc4e0ed328e"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-LdhWKf/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-LdhWKf/summary.json",
+      "bytes": 1662,
+      "sha256": "feb90c66b151e296928bf0e116d746244bcc6e49047636103ba0389062b5845e"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-LdhWKf/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-LdhWKf/output.log",
+      "bytes": 44,
+      "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-BTcBWa/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-BTcBWa/summary.json",
+      "bytes": 1648,
+      "sha256": "90ecd09cc71beb8b7d2ab11757abf8fc96f977c0d125c87a6f1523017fa3ecff"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-BTcBWa/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-BTcBWa/output.log",
+      "bytes": 357,
+      "sha256": "a35046f354204aca7052a673fc41312a1744c38fcacf817e4ebf7f35098e84cb"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0001.summary.json",
+      "bytes": 630,
+      "sha256": "1a7f439a925ca1b0835aca4c27885007158b2944a9239197b20a391c44dc94f2"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/summary.json",
+      "bytes": 1796,
+      "sha256": "607030e128edfba466be4c8c7cd13ff03fcccaaf0d907263b3c75e07b2439bf3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.stdout.log",
+      "bytes": 38,
+      "sha256": "68e3eed91ee5d217ff66600d731275bc52d0148ef97ff479d64faef8d2e15499"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.started.json",
+      "bytes": 804,
+      "sha256": "0713685ce400483290e7b84599c2bbd6e5ebd55af8befb9362aa9d05266fb24e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.result.json",
+      "bytes": 987,
+      "sha256": "045b4dfe665c9d408ca563a32789e8dde760ebddd7fcb1ca4e4da35fa618444d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0002.summary.json",
+      "bytes": 1557,
+      "sha256": "fbc895d2c0df8764e00585cfbe765ea7f53e9019d40707637b39698b52b40e6d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0004.summary.json",
+      "bytes": 1796,
+      "sha256": "607030e128edfba466be4c8c7cd13ff03fcccaaf0d907263b3c75e07b2439bf3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0003.summary.json",
+      "bytes": 1776,
+      "sha256": "f622c8144931710c7c6f209da41a7d9db1381ab663c6ae7a9ec53e7655e587ce"
     }
-  ]
+  ],
+  "propertyControl": "p2-sga-property-reference-control.json"
 }
