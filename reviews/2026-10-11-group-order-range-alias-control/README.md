@@ -106,3 +106,23 @@ No feature is declared complete on parser or preparation evidence alone.
 The queued DATA redesign is not implemented here. Existing DATA spelling in
 these fixtures expresses current accepted inputs; it neither starts the new
 binding design nor supplies a compatibility path for its future cutover.
+
+## Normal main integration
+
+The first normal merge adopts the published hex-integer main
+`e3bbe9c34ae89100917eff26a21737648c1e1a01`, without modifying the stable
+submitted branches for navigation offsets, LIMIT operands or grouped ROWS.
+The original conflict exit is retained in [main-merge-conflicts.json](main-merge-conflicts.json);
+only packed registration, the independent inventory pin and its assertions
+conflicted. Both fixture groups remain registered. Upstream grammar, generated
+pins and historical identity vectors are adopted unchanged.
+
+The combined declaration inventory has 3,939 occurrences: 2,482 normal,
+50 execution-failure and 1,407 refusal declarations. Its SHA-256 is
+`cb50300ea06964af566fa4bdf26583db0ae83ca7108c9e03b70d74e9087e5b37`.
+This is registration data enumeration, not execution or public success. The
+original baseline and pre-integration inventory remain separate.
+[integrated-static-commands.json](integrated-static-commands.json) records
+three Node syntax checks, five read-only freshness checks and whitespace,
+all exit zero. None compiles or executes the authored regression tests.
+The selected producer/public commands remain prepared and unstarted.

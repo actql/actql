@@ -1,0 +1,253 @@
+{
+  "baseline": "599f487bbb0be365320706ad28eab972448ed75d",
+  "checks": [
+    {
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--check",
+        "scripts/client-values-run-materials-vector.test.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.025209750048816204,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--check",
+        "scripts/fixtures/packed-public-query.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.025172207970172167,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--check",
+        "scripts/test-packed-public-query.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.025692166294902563,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--check",
+        "reviews/2026-10-11-hex-integer-literals-control/identity-preimage-preparation.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.024122875183820724,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--check",
+        "scripts/fixtures/hex-integer-source-input.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.023346708621829748,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--check",
+        "scripts/hex-integer-source-input.test.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.02357508335262537,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "runtime_executed": false,
+  "initial_multi_path_formatter": {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_expression/lower.mbt",
+      "src/query_program/query_analytic_offset.mbt",
+      "src/query_program/query_group_ordinal.mbt",
+      "src/query_program/query_order_ordinal.mbt",
+      "src/query_syntax/expression.mbt",
+      "src/query_syntax/lexer.mbt",
+      "src/query_syntax/lexer_test.mbt",
+      "src/query_syntax/query.mbt",
+      "src/query_syntax/unpivot.mbt",
+      "src/run_publication_host/client_values_run_materials_wbtest.mbt",
+      "src/query_expression/hex_integer_test.mbt",
+      "src/query_program/hex_integer_test.mbt",
+      "src/query_syntax/hex_integer_test.mbt",
+      "src/query_syntax/integer_literal.mbt"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.01749754184857011,
+    "stdout": "",
+    "stderr": "",
+    "coverage": "Not counted as per-file formatting evidence: the formatter accepts one input path."
+  },
+  "per_file_formatting": [
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_expression/lower.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.022739124950021505,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_program/query_analytic_offset.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.006130000110715628,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_program/query_group_ordinal.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.005682166200131178,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_program/query_order_ordinal.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.005977083928883076,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/expression.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.012742958031594753,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/lexer.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.008204707875847816,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/lexer_test.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.006571999751031399,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/query.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.022983874659985304,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/unpivot.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.006070499774068594,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.006539708003401756,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_expression/hex_integer_test.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.006738209165632725,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_program/hex_integer_test.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.006127374712377787,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/hex_integer_test.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.005768416915088892,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+        "-w",
+        "src/query_syntax/integer_literal.mbt"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.0056532081216573715,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
