@@ -65,7 +65,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(native.success,true);
     assert.equal(native.module_sha256,digest);
     assert.equal(native.cases.length,14);
-    assert.equal(native.source_publication_cases.length,8);
+    assert.equal(native.source_publication_cases.length,9);
     const record={source_sha:source,module,module_sha256:digest,
       scope:'private_captured_source_publication_facts',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,native,

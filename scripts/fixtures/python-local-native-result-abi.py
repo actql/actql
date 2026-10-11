@@ -243,6 +243,19 @@ try:
                 assert handle > 0
                 return handle
 
+            command_input = copy(read_account)
+            ticket += 1
+            collision_ticket = ticket
+            fixture.inputs[collision_ticket] = b''
+            refused_command = call('source', 'reserve_command', fixture.attempt, 1,
+                                   command_input, collision_ticket, 9000000)
+            assert refused_command > 0, 'Refused reservation still owns its cleanup ticket'
+            collision_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
+                                    'max_work': 1000000, 'max_workspace_slots': 1000000})
+            assert call('source_publication', 'reserve', compute, collision_input,
+                        collision_ticket, 131200) == -3
+            assert call('source', 'close_command', refused_command) == 0
+            source_cases.append('source_projection_rejects_pending_command_ticket')
             malformed = source_loan(observed_at=None)
             assert call('source_publication', 'prepare', malformed, configuration) == -31
             assert call('source_publication', 'close', malformed) == 0
