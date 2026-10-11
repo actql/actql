@@ -1,4 +1,14 @@
 ///|
+fn initial_catalog_use_envelope_valid(
+  value : NativeInitialCatalogUseEnvelope,
+) -> Bool {
+  value.record_bytes > 0L &&
+  value.control_bytes > 0L &&
+  value.record_bytes <= 9223372036854775807L - value.control_bytes &&
+  value.workspace_bytes > 0L
+}
+
+///|
 /// Bind original eligibility to the real initial acceptance transaction. The
 /// actual original Run Ledger and reviewed Host envelope are trusted caller
 /// inputs, not fields adopted from a candidate dispatch body. Duplicates return

@@ -44,6 +44,7 @@ options(
     "journal_native.mbt": [ "native" ],
     "initial_catalog_use_native.mbt": [ "native" ],
     "initial_catalog_use_native_wbtest.mbt": [ "native" ],
+    "initial_catalog_use_wbtest.mbt": [ "native" ],
     "initial_catalog_use_unsupported.mbt": [ "not", "native" ],
     "output_file_custody_native.mbt": [ "native" ],
     "output_file_custody_native_wbtest.mbt": [ "native" ],

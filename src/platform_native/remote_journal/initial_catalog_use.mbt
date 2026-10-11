@@ -10,16 +10,6 @@ pub(all) struct NativeInitialCatalogUseEnvelope {
 }
 
 ///|
-fn initial_catalog_use_envelope_valid(
-  value : NativeInitialCatalogUseEnvelope,
-) -> Bool {
-  value.record_bytes > 0L &&
-  value.control_bytes > 0L &&
-  value.record_bytes <= 9223372036854775807L - value.control_bytes &&
-  value.workspace_bytes > 0L
-}
-
-///|
 /// This projection retains an existing Ledger reservation through failed or
 /// uncertain persistence. It is not another capacity Owner or permission.
 /// The caller must keep this original responsibility through confirmed cleanup;
