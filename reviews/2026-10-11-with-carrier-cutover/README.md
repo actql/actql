@@ -100,6 +100,22 @@ execution was run. Formatter and all actual Owner/group/ownlock releases are
 recorded separately. Full P2/current caller/docs and public acceptance remain
 unfinished.
 
+## Graph comparison caller retirement
+
+[p1-graph-comparison-retirement-execution.json](p1-graph-comparison-retirement-execution.json)
+records clean `5b5a93e8`: JS13/13 (`run-KFEoVW`) and a no-change bounded
+two-file formatter. Existing equality/difference text now uses WITH/GRAPH.
+Independent complete JSON controls change only the deterministic Relation/Graph
+producer names; Graph mapping, operations, peer aliases, ORDER/LIMIT, schemas
+and retained common checker remain unchanged. Original callers are frozen in
+[with-graph-comparison-original-callers.json](with-graph-comparison-original-callers.json).
+The earlier `92e6585f` JS11/13 remains a failure: two precise authored refusals
+had byte offsets from the old shared DATA prefix. The correction counts the
+literal WITH source independently and retains UnknownReference/Authored causes;
+it does not copy product positions into expectations. Actual Owner/group/ownlock
+absence was checked for all three attempts. This unit has no Host/package/public
+execution, and does not establish full P2 or all current caller retirement.
+
 ## Earlier finite evidence
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally
