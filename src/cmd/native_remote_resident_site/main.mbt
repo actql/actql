@@ -2649,9 +2649,6 @@ fn serve_holder_output(
     None
   },
   effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
-  effect_review_publication? : (@remote.DispatchRequest) -> HolderEffectReviewPublication? = _ => {
-    None
-  },
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
@@ -2759,7 +2756,6 @@ fn serve_holder_output(
                 environment.journal,
                 resources,
                 effect_catalog_review,
-                effect_review_publication,
                 current_authority,
               ),
             )
@@ -3058,7 +3054,6 @@ fn serve_holder_output(
                             environment.journal,
                             resources,
                             effect_catalog_review,
-                            effect_review_publication,
                             () => {
                               exclusive_current() &&
                               effect_evidence_read(task.request) &&
@@ -4077,12 +4072,6 @@ fn run_holder(
   // observation times. It is installed on the first exact Resume, not made a
   // prerequisite of the independently authorized Source start claim.
   let effect_resume : Ref[HolderEffectResumeInstallation?] = Ref(None)
-  let effect_review = holder_effect_review_callbacks(
-    matches,
-    environment.sqlite_library,
-    resources,
-    execution.limits.output.output_export,
-  )
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
   let saved_completion = match environment.journal.dispatch_envelope(attempt) {
@@ -4179,8 +4168,26 @@ fn run_holder(
         observer,
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
-        effect_catalog_review=effect_review.catalog,
-        effect_review_publication=effect_review.publication,
+        effect_catalog_review=original => {
+          open_holder_effect_review_installation(
+            matches,
+            environment.sqlite_library,
+            resources,
+            execution.limits.output.output_export,
+            original,
+          ) catch {
+            CommandStop(_) => {
+              report("effect-review-pending", [
+                (
+                  "request_cid",
+                  @remote.dispatch_request_identity(original.task.request),
+                ),
+                ("reason", "review-installation"),
+              ])
+              None
+            }
+          }
+        },
         effect_resume_installation=request => {
           if effect_resume.val is None {
             let installed = open_holder_effect_resume_installation(
