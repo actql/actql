@@ -2,7 +2,7 @@
 fn graph_difference_expected() -> @program.Program {
   @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","graph_diff":{"with":"aql_data_2"},"as":"aql_sga_3"},{"from":"aql_sga_3","select":["delta"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["delta"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","graph_diff":{"with":"aql_with_graph_2"},"as":"aql_sga_3"},{"from":"aql_sga_3","select":["delta"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["delta"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -45,22 +45,22 @@ test "Graph difference independent Program uses the common publication owner" {
 ///|
 test "Graph difference source preserves its independently authored Program" {
   let program = compile_with_set(
-    "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> graph_diff(with: g) |> SELECT delta",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> graph_diff(with: g) |> SELECT delta",
   )
   assert_eq(semantic(program), semantic(graph_difference_expected()))
   graph_difference_normally_checked(program)
 }
 
 ///|
-test "Graph difference DATA aliases retain existing producers and Relation scope" {
+test "Graph difference WITH aliases retain existing producers and Relation scope" {
   let program = compile_with_set(
-    "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA `peer graph` = FROM g; DATA changes = FROM g |> normalize_graph() |> graph_diff(with: `peer graph`); FROM changes |> SELECT delta",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))))  , `peer graph` AS (FROM g), changes AS (FROM g |> normalize_graph() |> graph_diff(with: `peer graph`)) FROM changes |> SELECT delta",
   )
   let body = semantic(program)
   assert_eq(body.split("\"graph\":").length(), 2)
   assert_eq(body.split("\"graph_diff\":").length(), 2)
   assert_true(body.contains("\"normalize_graph\":true"))
-  assert_true(body.contains("\"graph_diff\":{\"with\":\"aql_data_2\"}"))
+  assert_true(body.contains("\"graph_diff\":{\"with\":\"aql_with_graph_2\"}"))
   assert_true(body.contains("\"fields\":[\"delta\"]"))
   graph_difference_normally_checked(program)
 }
@@ -70,7 +70,7 @@ test "Graph difference rejects unknown Relation and forward producer references"
   for
     suffix in [
       "FROM g |> graph_diff(with: missing) |> SELECT delta", "FROM g |> graph_diff(with: n) |> SELECT delta",
-      "DATA changes = FROM g |> graph_diff(with: later); DATA later = FROM g; FROM changes |> SELECT delta",
+      " , changes AS (FROM g |> graph_diff(with: later)), later AS (FROM g) FROM changes |> SELECT delta",
     ] {
     let script = @query.parse_query_script(
       graph_rows_prefix() + suffix,
