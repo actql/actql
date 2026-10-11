@@ -3,7 +3,7 @@
 // Fund this adapter's handles/closures/Promise in the installed profile before
 // connecting it to a public continuation. It installs no capability itself.
 export function createNodeInferEntryPersistence({moon, preparedCallSet, journal,
-  ioNotification}) {
+  ioNotification, settled}) {
   if (typeof moon?.clientProgramCreateInferCallEntryPersistence !== 'function' ||
       typeof moon?.clientProgramAcknowledgeSavedInferCallEntry !== 'function' ||
       typeof moon?.clientProgramInferCallEntryPersistencePending !== 'function' ||
@@ -12,7 +12,8 @@ export function createNodeInferEntryPersistence({moon, preparedCallSet, journal,
       typeof journal?.readModelAttemptOriginals !== 'function' ||
       typeof journal?.enterImmediateModelCall !== 'function' ||
       typeof journal?.enterResumedCall !== 'function' ||
-      typeof ioNotification?.notify !== 'function') {
+      typeof ioNotification?.notify !== 'function' ||
+      settled !== undefined && typeof settled !== 'function') {
     throw new TypeError('InferEntryPersistenceUnavailable');
   }
   const views = new WeakMap();
@@ -37,7 +38,18 @@ export function createNodeInferEntryPersistence({moon, preparedCallSet, journal,
     const unknown = () => {
       observation = moon.clientProgramInferCallEntryPersistenceUnknown();
     };
+    // The installed continuation records physical custody after the journal
+    // operation, never inside its transaction. This observer cannot issue ACK
+    // or grant execution; Common independently checks the retained Entry.
+    const retireSave = receipt => {
+      const original = held?.original;
+      held = undefined;
+      try { settled?.(original?.entry, receipt); }
+      catch { /* Physical notification is not durable proof or authority. */ }
+      try { ioNotification.notify(); } catch { /* Wake is not authority. */ }
+    };
     const finish = receipt => {
+      let accepted;
       try {
         const saved = held.journal.readModelAttemptOriginals(receipt);
         if (receipt?.state !== 'EnteredUnknown' ||
@@ -49,6 +61,7 @@ export function createNodeInferEntryPersistence({moon, preparedCallSet, journal,
               (receipt[key] !== value || saved.entry[key] !== value))) {
           unknown();
         } else {
+          accepted = receipt;
           const ack = moon.clientProgramAcknowledgeSavedInferCallEntry(
             held.original.entry, held.preparedCallSet);
           observation = ack === undefined
@@ -59,8 +72,7 @@ export function createNodeInferEntryPersistence({moon, preparedCallSet, journal,
         // No exception proves that the original durable write was absent.
         unknown();
       } finally {
-        held = undefined;
-        try { ioNotification.notify(); } catch { /* Wake is not authority. */ }
+        retireSave(accepted);
       }
     };
     let saved;
@@ -69,14 +81,12 @@ export function createNodeInferEntryPersistence({moon, preparedCallSet, journal,
     } catch {
       // Keep the same unknown attempt; never re-enter or infer NotRecorded.
       unknown();
-      held = undefined;
-      try { ioNotification.notify(); } catch { /* Wake is not authority. */ }
+      retireSave(undefined);
       return view;
     }
     Promise.resolve(saved).then(finish, () => {
       unknown();
-      held = undefined;
-      try { ioNotification.notify(); } catch { /* Wake is not authority. */ }
+      retireSave(undefined);
     });
     return view;
   }

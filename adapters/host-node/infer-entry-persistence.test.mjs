@@ -12,7 +12,7 @@ import {C, input, open, immediateReference, reference,
 
 // Real SQLite commit/read/reopen, with explicit Model admission/Core port
 // doubles. This is not public execution or a production Core ACK proof.
-function fixture(t, {deferred = false} = {}) {
+function fixture(t, {deferred = false, settled} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'infer-entry-persistence-'));
   let physical;
   t.after(() => { try { physical?.journal.close(); }
@@ -66,7 +66,7 @@ function fixture(t, {deferred = false} = {}) {
     enterResumedCall: (...args) => saveBehavior(() => enter('enterResumedCall', args)),
   };
   const adapter = createNodeInferEntryPersistence({moon, preparedCallSet: tokens.preparedCallSet,
-    journal: store, ioNotification: {notify() { wakes++; }} });
+    journal: store, ioNotification: {notify() { wakes++; }}, settled});
   const begin = (behavior = enter => enter()) => {
     saveBehavior = behavior;
     return deferred ? adapter.beginResumed(original, ref, claim)
@@ -308,4 +308,39 @@ test('Node operation forwards original entry bytes without rebuilding a Model en
   originalsAvailable = false;
   assert.equal(operation.bindModelEntryPersistence(control, plan, prepared, scope, observation), undefined);
   assert.equal(begins, 1);
+});
+
+test('installed continuation receives only verified original receipt after physical save settles', async t => {
+  const observed = [];
+  const f = fixture(t, {settled: (...facts) => observed.push(facts)});
+  let resolve, receipt;
+  const pending = new Promise(done => { resolve = done; });
+  const view = f.begin(enter => { receipt = enter(); return pending; });
+  assert.deepEqual(observed, [], 'pending persistence retains the original Entry');
+  f.revoke();
+  resolve(receipt);
+  await turn();
+  assert.equal(view.poll().kind, 'saved', 'late ACK remains an observation');
+  assert.deepEqual(observed, [[f.original.entry, receipt]]);
+  assert.equal(f.begin(), view);
+  await turn();
+  assert.equal(observed.length, 1, 'the same view does not save or retire twice');
+  assert.deepEqual(f.counts(), {acks: 1, writes: 1, wakes: 1});
+});
+
+test('unknown or foreign save retires its installed pending reference without inventing a receipt', async t => {
+  for (const invalid of [false, true]) {
+    const observed = [];
+    const f = fixture(t, {settled: (...facts) => { observed.push(facts); throw new Error('ObserverFailure'); }});
+    const view = f.begin(enter => {
+      const receipt = enter();
+      return invalid ? {...receipt, attemptCid: C('foreign')} : Promise.reject(new Error('ResponseLost'));
+    });
+    await turn();
+    assert.equal(view.poll().kind, 'unknown');
+    assert.deepEqual(observed, [[f.original.entry, undefined]]);
+    assert.equal(f.inventory().slots[0].state, 'EnteredUnknown');
+    assert.equal(f.begin(), view);
+    assert.deepEqual(f.counts(), {acks: 0, writes: 1, wakes: 1});
+  }
 });

@@ -338,6 +338,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }}),
     entryCurrent: (entry, preparedCallSet) =>
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
+    // Installation-only wake endpoint of this already claimed operation.
+    // It is not an ACK, public capability or permission to begin another call.
+    ioNotification,
     bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
       control.bindCheckedClientInferModelEntryPersistence(plan.compiled, active,
         plan.runDefinition, preparedCallSet, scope, {...observation,
