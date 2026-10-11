@@ -1821,7 +1821,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
 - `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
 - the authoring-only string `template` form;
-- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, and literal `replace`;
+- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `lpad`, `rpad`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
 - explicit `to_number`, `to_string`, `to_boolean`, and `to_timestamp`;
 - `to_decimal`, `try_decimal`, `quantize`, and `decimal_divide`; and
@@ -1869,6 +1869,37 @@ Substring has no text-time envelope/profile requirement; nested profile calls
 retain their own obligations, input preflight and selected resource limits.
 All scalar logical-work, live-value, output-byte, workspace, failure and
 cooperative cancellation requirements remain applicable.
+
+<!-- requirement-block: scalar-expressions.google-side-slices-padding scalar-expressions.google-padding-length scalar-expressions.google-side-padding-eager-children scalar-expressions.google-side-padding-scalar-preservation scalar-expressions.google-side-padding-output-admission -->
+`left(value, length)` and `right(value, length)` MUST return at most the
+specified number of Unicode scalars from the corresponding end. Zero returns
+empty; a length at least the input scalar count returns the entire input.
+`lpad(value, length[, pattern])` and `rpad(value, length[, pattern])` MUST return
+exactly the requested scalar length. They truncate the original value to its
+leftmost requested scalars when the requested length does not exceed its
+length. Otherwise they prepend or append repetitions of the pattern, taking
+only the needed prefix of its final repetition. The omitted pattern is U+0020.
+An explicitly empty pattern is a domain failure even when no padding is needed.
+
+Every supplied child MUST evaluate once, left to right, before strict NULL
+propagation and then domain validation. A demanded, non-null call fails for
+negative, nonintegral or unsafe-integer lengths. Child failure identity and
+lazy branch demand remain unchanged. All lengths use ActQL finite binary64
+safe integers; full GoogleSQL INT64, BYTES and collation remain unsupported.
+Unicode scalars, including astral characters, combining marks, NUL and line
+breaks, MUST remain unchanged without normalization or grapheme segmentation.
+
+The common source bodies are ordered arrays: `{left: [value, length]}`,
+`{right: [value, length]}`, `{lpad: [value, length, pattern?]}` and
+`{rpad: [value, length, pattern?]}`, with corresponding machine operation/body
+arrays. Omission stays omitted; an implicit pattern expression is not inserted.
+Side slices retain input String maxima and drop minimum length. Padding drops
+input maxima because runtime padding can expand beyond them. All supplied
+operands contribute to result nullability. The existing scalar continuation
+owns cooperative counting, boundary location, exact output sizing and
+construction. Before output buffer allocation, all output logical bytes and
+workspace MUST be admitted. Retained operand roots, logical work, live values,
+control work and cancellation stay with the existing owners.
 
 Explicit String transformations follow their declared Unicode and locale-independent laws; ordinary String values are preserved. `replace`
 is literal substring replacement, not regex. `date_add` and `date_diff`
@@ -2002,6 +2033,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at both ends; exact interior preserved and strict-null | RelA |
 | `ltrim`, `rtrim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at the leading or trailing end respectively; exact remaining scalars preserved and strict-null | RelA |
+| `left`, `right` | S, N → S | Unicode scalar prefix/suffix; zero/oversize clamp; strict NULL; demanded length-domain failures | RelA |
+| `lpad`, `rpad` | S, N[, S] → S | Unicode scalar padding/truncation; omitted space; explicit empty pattern fails; strict NULL | RelA |
 | `substring` | S, N[, N] → S | GoogleSQL scalar positions; optional length; strict NULL; demanded index-domain failures; known input upper bounds retained | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
@@ -2384,6 +2417,8 @@ an optional final argument, not expression syntax.
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
 | `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
+| `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
+| `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
 | `substring(value, start[, length])` | common scalar substring named body; omitted length is distinct from explicit NULL |
 | `split_part(value, delimiter, index)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
 | `try_number(value)`, `nfkc(value)`, `case_fold(value)` | [Text, time, and regular expressions](#text-time) unary expressions |
@@ -10291,7 +10326,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:a2fd51495facc05ff022a22c7c92c67ed9412f00d45f58d69cb8da8e4f23e138
+../../spec/contracts/actql-aoa.json# sha256:bf63b4ce1228e0f819ff0256eec332519b0dcf767707df6ab2b06fd4c9b1161d
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10300,13 +10335,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:74946f7980f7f6b6b4ed8bb4bfbac365e0226dffc969db4bd1d2060dd3b11588
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:96bf3fd77689f37b5ed6a8bfc1d8af44c85a544f9b7d3be263569e95fea6c4ce
+../../spec/contracts/actql-expressions.json# sha256:4ab40db1f7b4e84f47a775166b69022fbd4e3bebb90c06096e82ed364f3b85e8
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:a50a0479259c679fd9f75a750089a9bb0a0e0cbff0459aef65c932240fcfe9e3
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:3b0fedaa9e6331d8772942cda35613f9b5494c1c9c9c08a70df4829131dfd32d
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:1b6ef47bc19b10eea3f203bc98d1ee99b0d008ecb74e41a1766b36c708cb191e
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:f37a3ab662a77f627925e858c3f9e22634139f427c9c09ffef1eab254e4828dd
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:4e6c59ef3eb781849b6135177ca52f6801c2df8bb3707d9a072cb96cb2adfbb7
+../../spec/contracts/actql-expressions.json#/laws sha256:20f5757f586fd28cb4c09073c0eb7dc825899b21639c19a9afe6af78c6beb2e0
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:33b10585e0369404701f9e79839570e370e4f0d24aeb9412107ed0fa0b59af69
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:26a46eedefabe9ac5353040c0a7458a4efcda4fbc7f1c8170fb904f3cd4792e3
 ```
 
 <!-- stage-contract-pins:start -->

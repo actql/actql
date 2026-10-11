@@ -244,6 +244,10 @@ fn emit_frames(
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
                   Substring => "substring"
+                  LeftString => "left"
+                  RightString => "right"
+                  LPad => "lpad"
+                  RPad => "rpad"
                   Between => "between"
                 },
               ),

@@ -517,3 +517,31 @@ limits and cancellation cleanup remain with their existing owners.
 Sources: [GoogleSQL mathematical functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#greatest),
 [STRING comparison](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#string_type),
 and [conditional expressions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions).
+
+## GoogleSQL STRING side slices and padding
+
+The common scalar owner adopts GoogleSQL
+[LEFT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#left),
+[RIGHT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#right),
+[LPAD](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#lpad)
+and [RPAD](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#rpad)
+for STRING Unicode scalar counts in the finite safe-integer length domain.
+Negative/nonintegral/unsafe lengths and explicit empty pad patterns fail on a
+demanded non-null call after all children succeed. The pattern may be a dynamic
+String expression, unlike regex patterns; omission alone supplies a space.
+No BYTES or collation overload is introduced.
+
+Each operation has one ordered common source/machine array. Although LEFT can
+be expressed by a fixed-start substring, symmetric explicit side operations
+retain direct source identity and do not expand authored children. In particular,
+SUBSTR(value,-length,length) would duplicate RIGHT's length operand; this is not
+an acceptable lowering. Runtime sides and padding reuse substring's bounded
+count/boundary/sizing/construction continuation instead of adding a text engine.
+Padding repeats one scalar per charged poll during sizing and construction;
+output storage is allocated only after complete byte/workspace admission.
+Side slices preserve sound input maxima; padding drops them rather than assuming
+that a dynamic target length is bounded by the input.
+
+Existing immutable typed arrays can represent SPLIT's Array(String) result, but
+that operation is not added by this decision. It requires separate bounded
+split construction and array-accounting integration with the existing owners.

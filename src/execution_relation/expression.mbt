@@ -707,9 +707,16 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
-            if op == @lower.Replace || op == @lower.Substring {
+            if op == @lower.Replace ||
+              op == @lower.Substring ||
+              op == @lower.LeftString ||
+              op == @lower.RightString ||
+              op == @lower.LPad ||
+              op == @lower.RPad {
               let valid = if op == @lower.Replace {
                 children.length() == 3
+              } else if op == @lower.LeftString || op == @lower.RightString {
+                children.length() == 2
               } else {
                 children.length() == 2 || children.length() == 3
               }
@@ -720,6 +727,14 @@ fn advance_expression_frame_impl(
                 TextArguments({
                   kind: if op == @lower.Replace {
                     TextReplace
+                  } else if op == @lower.LeftString {
+                    TextLeft
+                  } else if op == @lower.RightString {
+                    TextRight
+                  } else if op == @lower.LPad {
+                    TextLPad
+                  } else if op == @lower.RPad {
+                    TextRPad
                   } else {
                     TextSubstring
                   },
@@ -737,7 +752,14 @@ fn advance_expression_frame_impl(
               And => Boolean(true)
               Or => Boolean(false)
               Coalesce | Between | Greatest | Least => Null
-              Concat | ConcatStrict | Replace | Substring => Text("")
+              Concat
+              | ConcatStrict
+              | Replace
+              | Substring
+              | LeftString
+              | RightString
+              | LPad
+              | RPad => Text("")
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
             frame.state = Enter(first)
@@ -1398,7 +1420,13 @@ fn advance_expression_frame_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let combined = match op {
-              Replace | Substring | Between =>
+              Replace
+              | Substring
+              | LeftString
+              | RightString
+              | LPad
+              | RPad
+              | Between =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               Greatest | Least =>

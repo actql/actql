@@ -296,3 +296,14 @@ and [floating-point overflow rules](https://docs.cloud.google.com/bigquery/docs/
 INT64, NUMERIC, BIGNUMERIC, Decimal and non-finite values are not added. ActQL's
 existing canonical-positive-zero boundary remains explicit. Syntax registration
 and documented scope do not certify untested backends or public consumers.
+
+### STRING side slices and padding
+
+GoogleSQL LEFT/RIGHT and LPAD/RPAD select the common ordered `left`, `right`,
+`lpad` and `rpad` source arrays. LEFT and RIGHT remain reserved as bare query
+identifiers but are accepted directly before a call parenthesis; join keyword
+and quoted-name behavior is unchanged. No source expansion duplicates a value,
+length or pattern expression. The common bounded text continuation owns the
+Unicode scalar slicing, padding, exact sizing, retained roots and cancellation.
+The safe-integer ActQL Number length domain excludes other INT64 values, BYTES
+and collation. Omitted padding alone means U+0020; explicit empty pattern fails.

@@ -12,7 +12,7 @@ test "each owned stage resolves its emitted expression root without a caller CID
     )
     let root = stage_identity_expression_contract_cid(stage)
     assert_eq(
-      root, "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+      root, "sha256:4ab40db1f7b4e84f47a775166b69022fbd4e3bebb90c06096e82ed364f3b85e8",
     )
     assert_eq(root, @program_refs.stage_semantics_expression_contract(semantic))
     let inherited = stage_identity_inherited_text_time(stage).unwrap()
