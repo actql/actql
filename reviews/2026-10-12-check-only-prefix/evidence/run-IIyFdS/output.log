@@ -1,0 +1,3 @@
+Total tests: 5, passed: 5, failed: 0.
+["moon","test","--target","js","src/stage_results/prefix_topology_test.mbt","src/pipeline_check_context/prefix_sourceview_test.mbt"]: executed; counts={"tests":5,"passed":5,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/focused-evidence/focused-test-vNkbAG

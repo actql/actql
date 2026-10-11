@@ -110,7 +110,8 @@ fn Parser::call(
     | "parse_timestamp"
     | "try_timestamp"
     | "format_timestamp" => (2, 2)
-    "replace"
+    "translate"
+    | "replace"
     | "if"
     | "date_trunc"
     | "date_add"
@@ -119,6 +120,7 @@ fn Parser::call(
     | "try_decimal"
     | "split_part"
     | "vector_score" => if name == "date_trunc" { (2, 2) } else { (3, 3) }
+    "instr" => (2, 4)
     "split" => (1, 2)
     "substring" | "lpad" | "rpad" => (2, 3)
     "quantize" => (4, 4)

@@ -1,0 +1,23 @@
+{
+  "exit_code": 2,
+  "stderr": "",
+  "stdout": "reviews/2026-10-11-positive-limit-operands-control/baseline-limit-integer.mbt.txt:29: new blank line at EOF.\n",
+  "source_excerpt_sha256": "ad045e72258853a67acd5ac869fa3c51ce3df39ae0ea53c5f84d6daf71651985",
+  "source_excerpt": "fn QueryParser::limit_integer(\n  self : QueryParser,\n  zero_allowed : Bool,\n) -> QueryInteger raise QueryAbort {\n  if self.peek().value == Symbol(40) {\n    // Use the bounded expression parser for transparent grouping, then retain\n    // an ordinary integer or Parameter slot. Do not evaluate constant calls,\n    // arithmetic or row references in the Frontend.\n    let expression = self.expression()\n    let mut root = expression_root(expression)\n    while expression_node(expression, root).unwrap().kind\n          is Parenthesized(child) {\n      root = child\n    }\n    let node = expression_node(expression, root).unwrap()\n    match node.kind {\n      Number(text) =>\n        Integer(self.safe_integer_text(text, node.start, zero_allowed))\n      ParameterReference(name) => BoundParameter(name)\n      _ => raise QueryAbort(\"Expected integer literal or parameter\", node.start)\n    }\n  } else if self.peek().value is Parameter(name) {\n    ignore(self.advance())\n    BoundParameter(self.source.identifier(name))\n  } else {\n    Integer(self.safe_integer(zero_allowed))\n  }\n}\n\n",
+  "note": "The first staged whitespace check detected the excerpt delimiter blank at EOF. The following commit still ran because the shell used sequential separators. Preserve this failure and the complete original excerpt; trim only its display copy.",
+  "initial_command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "initial_exit_code": null,
+  "initial_combined_shell_exit_code": 0,
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "HEAD^",
+    "HEAD"
+  ]
+}

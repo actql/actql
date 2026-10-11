@@ -233,6 +233,7 @@ pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationSto
 pub fn Store::reconcile_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
+pub fn Store::restore_confirmed_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_catalog_custody(Self, @catalog.CatalogObservationBinding, String, String, @catalog.DescribeLimits, @signature.Library, Bytes) -> Result[EffectCatalogCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]

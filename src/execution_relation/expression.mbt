@@ -732,6 +732,8 @@ fn advance_expression_frame_impl(
             if op == @lower.Split ||
               op == @lower.Replace ||
               op == @lower.Repeat ||
+              op == @lower.Translate ||
+              op == @lower.Instr ||
               op == @lower.Substring ||
               op == @lower.LeftString ||
               op == @lower.RightString ||
@@ -739,7 +741,9 @@ fn advance_expression_frame_impl(
               op == @lower.RPad {
               let valid = if op == @lower.Split {
                 children.length() == 1 || children.length() == 2
-              } else if op == @lower.Replace {
+              } else if op == @lower.Instr {
+                children.length() >= 2 && children.length() <= 4
+              } else if op == @lower.Replace || op == @lower.Translate {
                 children.length() == 3
               } else if op == @lower.LeftString ||
                 op == @lower.RightString ||
@@ -757,6 +761,10 @@ fn advance_expression_frame_impl(
                     TextSplit
                   } else if op == @lower.Repeat {
                     TextRepeat
+                  } else if op == @lower.Translate {
+                    TextTranslate
+                  } else if op == @lower.Instr {
+                    TextInstr
                   } else if op == @lower.Replace {
                     TextReplace
                   } else if op == @lower.LeftString {
@@ -788,6 +796,8 @@ fn advance_expression_frame_impl(
               | ConcatStrict
               | Replace
               | Repeat
+              | Translate
+              | Instr
               | Split
               | Substring
               | LeftString
@@ -1523,6 +1533,8 @@ fn advance_expression_frame_impl(
             let combined = match op {
               Replace
               | Repeat
+              | Translate
+              | Instr
               | Split
               | Substring
               | LeftString

@@ -19,6 +19,12 @@ fn append_order_grouped_expression(
     scope_expression_slot(path, input_scope)
   }
   let resolve_order_input = fn(path : Array[@query.NamePart]) -> String? {
+    // A SELECT alias owns its receiver before an original range can resolve
+    // the whole path. Prefix lookup below then proves the alias's source, or
+    // leaves ordinary ORDER lowering to read its evaluated object value.
+    if path.length() > 1 && order_output_slot([path[0]], selected) is Some(_) {
+      return None
+    }
     if path.length() == 1 {
       // Parser-owned calls may share an implicit star input's spelling.
       // Their ORDER binding is an aggregate value, never input provenance.

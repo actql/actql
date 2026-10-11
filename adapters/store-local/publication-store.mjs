@@ -95,11 +95,51 @@ async function writeExclusive(path, bytes) {
 }
 
 async function readBounded(path, maximum) {
-  const state = await lstat(path);
-  if (!state.isFile() || state.size > maximum) {
+  if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
-  return readFile(path);
+  // Pin the original allocation before allocating its bounded output. A
+  // nonblocking open also refuses a raced-in FIFO without waiting for a writer.
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+    constants.O_NONBLOCK);
+  try {
+    const before = await handle.stat({bigint: true});
+    if (!before.isFile() || before.size < 0n ||
+        before.size > BigInt(maximum)) {
+      fail('InvalidPublicationStoreObject');
+    }
+    const sameFile = state => state.isFile() &&
+      state.dev === before.dev && state.ino === before.ino &&
+      state.size === before.size && state.mtimeNs === before.mtimeNs &&
+      state.ctimeNs === before.ctimeNs;
+    if (!sameFile(await lstat(path, {bigint: true}))) {
+      fail('InvalidPublicationStoreObject');
+    }
+    const size = Number(before.size);
+    // Avoid pooled backing and growth/concatenation. The one-byte probe is a
+    // separate bounded allocation; neither buffer is a byte-capacity grant.
+    const bytes = Buffer.allocUnsafeSlow(size);
+    let offset = 0;
+    while (offset < size) {
+      const {bytesRead} = await handle.read(bytes, offset, size - offset, offset);
+      if (!Number.isSafeInteger(bytesRead) || bytesRead <= 0 ||
+          bytesRead > size - offset) {
+        fail('InvalidPublicationStoreObject');
+      }
+      offset += bytesRead;
+    }
+    const probe = Buffer.allocUnsafeSlow(1);
+    const {bytesRead} = await handle.read(probe, 0, 1, size);
+    if (bytesRead !== 0 || !sameFile(await handle.stat({bigint: true})) ||
+        !sameFile(await lstat(path, {bigint: true}))) {
+      fail('InvalidPublicationStoreObject');
+    }
+    return bytes;
+  } finally {
+    // Preserve the existing awaited close boundary. A close rejection is not
+    // successful read completion or proof that cleanup responsibility ended.
+    await handle.close();
+  }
 }
 
 async function processIsAlive(pid) {
@@ -958,16 +998,31 @@ export async function openLocalPublicationStore(
       if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
       throw error;
     }
-    if (!state.isFile() || state.size > configuration.maxObjectBytes) {
+    if (!state.isFile() || !quantity(state.size) ||
+        state.size > configuration.maxObjectBytes) {
       fail('InvalidPublicationStoreObject');
     }
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+      constants.O_NONBLOCK);
     const hash = createHash('sha256');
     let bytes = 0;
     try {
       const before = await handle.stat();
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes ||
+          before.dev !== state.dev || before.ino !== state.ino ||
+          before.size !== state.size || before.mtimeMs !== state.mtimeMs) {
+        fail('InvalidPublicationStoreObject');
+      }
       const stream = handle.createReadStream({autoClose: false});
       for await (const chunk of stream) {
+        // Reject growth before charging this chunk to the hash/accepted byte
+        // inventory. The received chunk and stream backing remain a separate
+        // physical read cost, including the rejected in-flight chunk.
+        if (chunk.byteLength > before.size - bytes ||
+            chunk.byteLength > configuration.maxObjectBytes - bytes) {
+          fail('PublicationObjectCorrupt');
+        }
         hash.update(chunk);
         bytes += chunk.byteLength;
       }
@@ -1005,7 +1060,10 @@ export async function openLocalPublicationStore(
         sameClockFile(lastClockObservation.state, before)) {
       return lastClockObservation.value;
     }
-    const bytes = await readFile(path);
+    // Keep this original metadata size as the receive ceiling, not merely the
+    // Store-wide limit. Growth cannot allocate a larger readFile buffer before
+    // the clock/cache mutation check below observes it.
+    const bytes = await readBounded(path, Number(before.size));
     const after = await lstat(path, {bigint: true});
     if (!sameClockFile(before, after)) fail('PublicationClockUncertain');
     let value;
@@ -3194,13 +3252,21 @@ export async function openLocalPublicationStore(
     return true;
   };
 
-  const consumeObject = async (cid, accept) => {
-    active();
-    if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
-    const path = objectPath(cid);
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  const consumeObject = async (cid, accept, closed) => {
+    let handle;
+    try {
+      active();
+      if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
+      const path = objectPath(cid);
+      handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    } catch (error) {
+      closed?.(); // No original FD was acquired.
+      throw error;
+    }
     const hash = createHash('sha256');
     let bytes = 0;
+    let readFailure;
+    let readFailed = false;
     try {
       const before = await handle.stat();
       if (!before.isFile() || before.size > configuration.maxObjectBytes) {
@@ -3220,8 +3286,46 @@ export async function openLocalPublicationStore(
         fail('PublicationObjectCorrupt');
       }
       return Object.freeze({cid, bytes});
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      try {
+        await handle.close();
+        closed?.();
+      } catch (closeFailure) {
+        // A view of this SAME original read/FD, not a replacement reader,
+        // cleanup owner or proof of successful consumption. Keep its existing
+        // active-reader count until close succeeds; never reopen by path.
+        let original = handle;
+        let retire = closed;
+        let flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({
+          status,
+          retry() {
+            if (flight !== undefined) return flight;
+            if (original === undefined) return Promise.resolve(status());
+            flight = Promise.resolve().then(() => original.close()).then(() => {
+              original = undefined;
+              const acknowledge = retire;
+              retire = undefined;
+              acknowledge?.();
+              return status();
+            }).finally(() => { flight = undefined; });
+            return flight;
+          },
+        });
+        const primary = readFailed ? readFailure : closeFailure;
+        const failure = primary !== null && typeof primary === 'object' &&
+          Object.isExtensible(primary) && primary.cleanupHandle === undefined
+          ? primary : new Error('PublicationObjectReaderCleanupPending', {cause: primary});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+        throw failure;
+      }
     }
   };
 
@@ -4140,14 +4244,16 @@ export async function openLocalPublicationStore(
       holdingCid,
       (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
     );
-    try {
-      return await consumeObject(record.objects[objectIndex].cid, accept);
-    } finally {
+    let released = false;
+    const closed = () => {
+      if (released) return;
+      released = true;
       const remaining =
         (activePhysicalHoldingReaders.get(holdingCid) ?? 1) - 1;
       if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
       else activePhysicalHoldingReaders.set(holdingCid, remaining);
-    }
+    };
+    return await consumeObject(record.objects[objectIndex].cid, accept, closed);
   };
 
   const ensurePhysicalHoldingDeletion = async record => {

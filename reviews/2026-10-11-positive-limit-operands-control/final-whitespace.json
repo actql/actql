@@ -1,0 +1,26 @@
+[
+  {
+    "command": [
+      "git",
+      "diff",
+      "--cached",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "elapsed_seconds": 0.033
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "63ec78414dabaed697a05adeff910aff922982c3"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "elapsed_seconds": 0.055
+  }
+]

@@ -230,6 +230,19 @@ pub(all) enum ResidentEffectDependencyCaptureIssue {
 type ResidentEffectDependencyPins
 pub fn ResidentEffectDependencyPins::close(Self) -> Bool
 
+pub(all) enum ResidentEffectOriginalReviewIssue {
+  Unavailable
+  InvalidLimits
+  EvidenceDenied
+  BindingMismatch
+  MalformedContinuation
+  Journal(@remote_journal.NativeRemoteJournalIssue)
+  RunBinding(@run_publication_host.ClientEffectCheckpointBindingIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+  Capture(@run_publication.PublicationContractIssue)
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+}
+
 type ResidentEffectPreviewCustody
 pub fn ResidentEffectPreviewCustody::confirm(Self) -> Result[(@actql/actql/run_publication.EffectPreviewIdentity, String), ResidentEffectPreviewCustodyIssue]
 pub fn ResidentEffectPreviewCustody::restore_store(Self, @publication_store.Store) -> Result[Unit, ResidentEffectPreviewCustodyIssue]
@@ -373,6 +386,7 @@ pub fn ResidentEffectReviewInputContext::capture_result(Self, @remote_journal.Jo
 pub fn ResidentEffectReviewInputContext::close(Self) -> Bool
 pub fn ResidentEffectReviewInputContext::facts(Self, @remote_journal.Journal) -> ResidentEffectReviewInputFacts?
 pub fn ResidentEffectReviewInputContext::matches_holder(Self, ResidentRetainedConsumer, @remote_journal.Journal) -> Bool
+pub fn ResidentEffectReviewInputContext::read_original_review_projection(Self, @remote_journal.Journal, @publication_store.Store, String, @signature.Library, Bytes, @checkpoint_runtime.WireLimits, () -> Bool) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, String), ResidentEffectOriginalReviewIssue]
 pub fn ResidentEffectReviewInputContext::retention_matches(Self, @run_publication.PublicationContract) -> Bool
 pub fn ResidentEffectReviewInputContext::source_binding_cid(Self, @remote_journal.Journal) -> String?
 
@@ -625,6 +639,7 @@ pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_cli
 pub fn ResidentRetainedConsumer::close(Self) -> Bool
 pub fn ResidentRetainedConsumer::completed_effect_execution(Self, @remote_journal.Journal) -> ResidentExecuted?
 pub fn ResidentRetainedConsumer::effect_computation(Self, @remote_journal.Journal) -> ResidentSourceCompute?
+pub fn ResidentRetainedConsumer::effect_original_dispatch(Self, @remote_journal.Journal) -> @remote_site_protocol.DispatchRequest?
 pub fn ResidentRetainedConsumer::effect_source_binding_cid(Self, @remote_journal.Journal, @physical_strategy.CapturedEffectInputs) -> String?
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.Journal, Int, Int, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectReviewInputContext, ResidentEffectReviewInputFailure]

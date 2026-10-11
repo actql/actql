@@ -118,6 +118,8 @@ pub fn admit_source_free_client_request_identity_record(String, String, String, 
 
 pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, ClientCompiledRunIssue]
 
+pub fn begin_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.CapacityReservation, Int, Int, Int) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
+
 pub fn bind_captured_client_effect_preview(ClientEffectRunMaterials, @physical_strategy.CapturedEffectRunDAG, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, Array[ClientEffectLocalIdentity], ClientCapturedEffectPreviewLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientCapturedEffectPreviewIssue]
 
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
@@ -308,7 +310,11 @@ pub fn client_effect_local_table_definition_cid(ClientEffectLocalTableDefinition
 
 pub fn client_effect_local_table_definition_json(ClientEffectLocalTableDefinition) -> String
 
+pub fn client_effect_local_update_completion_free_catalog_cid() -> String
+
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
+
+pub fn client_effect_normalization_catalog_cid(ClientEffectNormalization) -> String
 
 pub fn client_effect_normalization_materials_cid(ClientEffectRunMaterials) -> String?
 
@@ -427,6 +433,10 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_local_completion_free_catalog_cid() -> String
+
+pub fn client_model_read_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
+
+pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
@@ -700,6 +710,12 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
+pub fn handoff_client_model_read(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelReadPreparationIssue]
+
+pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
+
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
@@ -807,6 +823,8 @@ pub fn issue_prepared_client_direct_task_result_root(PreparedClientProgram, Int,
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
 pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?, normalization? : ClientEffectNormalization?) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
+
+pub fn issue_prepared_client_effect_local_update_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
 pub fn issue_prepared_client_effect_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
@@ -937,6 +955,8 @@ pub fn prepare_client_effect_source_input_binding(ClientEffectCompilation, reque
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
 pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
+
+pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
 
 pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 
@@ -1124,6 +1144,8 @@ pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputat
 
 pub fn restore_prepared_client_local_normalization(PreparedClientProgram, ClientLocalNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
 
+pub fn settle_client_model_read(ClientModelReadPreparation, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
+
 pub fn source_free_caller_input_intent_cid() -> String
 
 pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
@@ -1137,6 +1159,8 @@ pub fn start_captured_result_publication_export(@physical_strategy.CapturedDAG, 
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 pub fn start_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
+
+pub fn stop_client_model_read(ClientModelReadPreparation) -> Unit
 
 pub fn submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String
 
@@ -1798,6 +1822,22 @@ pub(all) enum ClientLocalNormalizationIssue {
   SubstitutedJournal
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
+
+pub(all) enum ClientModelInputCapacityIssue {
+  ForeignCallScope
+  ForeignInput
+  Read(ClientModelReadPreparationIssue)
+} derive(Eq, @debug.Debug)
+
+type ClientModelReadPreparation
+
+pub(all) enum ClientModelReadPreparationIssue {
+  ForeignRun
+  InvalidBootstrap
+  Resource(@physical_resources.OriginalReadIssue)
+} derive(Eq, @debug.Debug)
+
+type ClientModelReadScope
 
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String

@@ -6,8 +6,10 @@ import {
   "actql/actql/checkpoint_runtime",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/effect_application",
+  "actql/actql/execution_authorization",
   "actql/actql/execution_relation",
   "actql/actql/physical_strategy",
+  "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/credential_resource",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/publication_store",
@@ -26,6 +28,8 @@ import {
 pub fn admit_native_effect_resolution(@signature.Library, @checkpoint_runtime.SealedCheckpoint, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.VerifiedResolution, NativeResidentEffectResolutionIssue]
 
 pub fn authenticate_native_effect_reviewer(NativeEffectReviewerInstallation, NativeEffectReviewerSelection, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
+
+pub fn install_native_effect_host_account(NativeEffectHostAccountFile?) -> Result[NativeEffectHostAccountInstallation?, NativeEffectHostAccountInstallationIssue]
 
 pub fn observe_and_retain_native_salesforce_named_catalog(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, @catalog.CatalogObservationBinding, String, String, String, @catalog.DescribeLimits, Int, @publication_store.Store, @signature.Library, Bytes, () -> Bool) -> Result[(@publication_store.EffectCatalogCustody, @publication_store.NativeEffectCatalogResponse), NativeSalesforceCatalogCustodyFailure]
 
@@ -55,6 +59,8 @@ pub fn retain_native_salesforce_named_catalog_response(@publication_store.Store,
 
 pub fn retry_native_salesforce_catalog_custody(@publication_store.EffectCatalogCustody, () -> Bool) -> Result[(@publication_store.EffectCatalogCustody, @publication_store.NativeEffectCatalogResponse), NativeSalesforceCatalogCustodyFailure]
 
+pub fn upload_native_resident_original_review_projection(@remote_resident_host.ResidentEffectReviewInputContext, @remote_journal.Journal, @publication_store.Store, String, @signature.Library, Bytes, @checkpoint_runtime.WireLimits, @http_client.Client, String, String, () -> Bool) -> Result[Unit, NativeResidentEffectReviewUploadIssue]
+
 pub fn visit_native_effect_target_requests(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, () -> Bool, (Int, @catalog.SingleWriteRequest) -> Result[Unit, NativeResidentEffectTargetIssue]) -> Result[Int, NativeResidentEffectTargetIssue]
 
 // Errors
@@ -66,6 +72,25 @@ pub(all) struct NativeEffectCloudCurrentRead {
   current_site : () -> Bool
   next_query_id : () -> String
   now_ms : () -> Int64
+}
+
+type NativeEffectCloudHostIdentity
+pub fn NativeEffectCloudHostIdentity::principal_id(Self) -> String
+
+pub(all) struct NativeEffectCloudHostIdentityRead {
+  control : NativeEffectCloudCurrentRead
+  scope : NativeEffectCloudHostIdentityScope
+  limits : @checkpoint_runtime.WireLimits
+}
+pub fn NativeEffectCloudHostIdentityRead::read_original_consumer(Self, @remote_resident_host.ResidentRetainedConsumer, @remote_resident_host.ResidentEffectProducerExecuted, @remote_journal.Journal) -> NativeEffectCloudHostIdentity?
+
+pub(all) struct NativeEffectCloudHostIdentityScope {
+  site_key : String
+  site_generation : Int64
+  workspace_id : String
+  authority_scope_cid : String
+  installation : String
+  expires_ms : Int64
 }
 
 pub(all) struct NativeEffectCloudReviewerRead {
@@ -85,6 +110,35 @@ pub(all) struct NativeEffectDispatchKeyLimits {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+}
+
+pub(all) struct NativeEffectHostAccountFile {
+  root : String
+  name : String
+  subject : NativeEffectHostAccountSubject
+}
+
+type NativeEffectHostAccountInstallation
+pub fn NativeEffectHostAccountInstallation::current_permission(Self, String, Bool) -> Bool
+pub fn NativeEffectHostAccountInstallation::read_current_configuration(Self) -> @execution_authorization.AdmittedAccountConfiguration?
+pub fn NativeEffectHostAccountInstallation::subject(Self) -> NativeEffectHostAccountSubject
+
+pub(all) enum NativeEffectHostAccountInstallationIssue {
+  InvalidSelection
+  File(@bounded_files.NativeBoundedTextIssue)
+  Configuration(@execution_authorization.ConfigurationIssue)
+  OriginalBindingMismatch
+}
+
+pub(all) struct NativeEffectHostAccountSubject {
+  principal : String
+  account_id : String
+  configuration_cid : String
+  authorization_context_cid : String
+  read_connection : String
+  read_resource : String
+  publication_connection : String
+  publication_resource : String
 }
 
 pub(all) struct NativeEffectHostAuthority {
@@ -408,6 +462,7 @@ pub(all) enum NativeResidentEffectReviewPublicationIssue {
 
 pub(all) enum NativeResidentEffectReviewUploadIssue {
   Review(NativeResidentEffectReviewIssue)
+  OriginalReview(@remote_resident_host.ResidentEffectOriginalReviewIssue)
   Report(@remote_client.NativeRemoteClientIssue)
   Http(@http_client.NativeHttpIssue)
   HttpStatus(Int)

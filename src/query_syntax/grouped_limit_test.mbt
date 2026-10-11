@@ -42,7 +42,7 @@ test "grouped LIMIT and OFFSET retain distinct integer and Parameter roles" {
 test "grouped LIMIT does not fold expressions or weaken the integer domain" {
   for
     operand in [
-      "(id)", "(@p + 1)", "((2 + 1))", "(NULL)", "('2')", "(-2)", "(+2)", "(@p.id)",
+      "(id)", "(@p + 1)", "((2 + 1))", "(NULL)", "('2')", "(-2)", "(@p.id)",
     ] {
     for clause in ["LIMIT " + operand, "LIMIT 1 OFFSET " + operand] {
       assert_true(

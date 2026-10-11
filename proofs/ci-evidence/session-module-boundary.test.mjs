@@ -16,7 +16,9 @@ test('Session collector, final consumer and image executor load without pipeline
     registerHooks({resolve(specifier, context, next) {
       const result = next(specifier, context);
       if (result.url.includes('/proofs/relation-pipeline/') || result.url.endsWith('/isolated-pipeline-results.mjs')) {
-        assert(result.url.endsWith('/relation-pipeline/inventory.mjs'), 'Pipeline scientific module reached Session import graph: ' + result.url);
+        assert(['inventory.mjs', 'proof-runner-extension.mjs'].some(name =>
+          result.url === new URL('./proofs/relation-pipeline/' + name, import.meta.url).href),
+          'Pipeline scientific module reached Session import graph: ' + result.url);
         loaded.add(result.url);
       }
       return result;
@@ -38,9 +40,9 @@ test('Session collector, final consumer and image executor load without pipeline
     const changed = structuredClone(payload); changed.restored = false;
     await assert.rejects(execution.checkIsolatedExecutionResult({payload: changed, manifest: original.prepared.manifest, before: payload.report.source}));
     await assert.rejects(execution.checkIsolatedExecutionResult({profile: 'unregistered'}), /Unregistered scientific profile/u);
-    assert.equal(loaded.size, 1, 'The remaining inventory module must actually be observed');
+    assert.equal(loaded.size, 2, 'Both reviewed inventory modules must actually be observed');
     assert.throws(() => execution.executeIsolatedMutation({}), /CI-only/u);
-    console.log('PASS actual Session consumers; one bound inventory, no pipeline scientific module');
+    console.log('PASS actual Session consumers; bound inventory and helper, no pipeline scientific module');
   `], {cwd: root, env: {...process.env, GITHUB_ACTIONS: ''}, encoding: 'utf8', timeout: 30000, maxBuffer: 1024 * 1024});
   assert(!result.error && result.status === 0, result.stderr);
   assert.match(result.stdout, /^PASS actual Session consumers;/u);
