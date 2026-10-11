@@ -12,6 +12,7 @@ test "Graph argument selector and Carrier violations are distinct from support g
   for
     tail in [
       "FROM n |> node_rows() |> SELECT node_key", ", rows AS (FROM n |> node_rows()) FROM rows |> SELECT node_key",
+      ", rows AS (WITH g AS (SELECT 1 AS id) FROM g |> node_rows()) FROM rows |> SELECT id",
       "FROM g |> node_rows(definition: 'missing') |> SELECT id", "FROM g |> node_rows(definition: 'E') |> SELECT id",
       "FROM g |> node_rows(label: 'missing') |> SELECT id", "FROM g |> node_rows(definition: 'N', label: 'Node') |> SELECT id",
       "FROM g |> node_rows(label: 1) |> SELECT id", "FROM g |> graphs_equal() |> SELECT equal",
@@ -23,6 +24,19 @@ test "Graph argument selector and Carrier violations are distinct from support g
     ] {
     assert_true(
       classified_graph_source(graph_rows_prefix() + tail) is Err(InvalidQuery),
+      msg=tail,
+    )
+  }
+}
+
+///|
+test "Graph projection keeps unresolved producer support refusal distinct" {
+  for tail in [
+    "FROM missing |> node_rows() |> SELECT id",
+    ", rows AS (FROM missing |> node_rows()) FROM rows |> SELECT id",
+  ] {
+    assert_true(
+      classified_graph_source(graph_rows_prefix() + tail) is Err(UnsupportedGraph),
       msg=tail,
     )
   }

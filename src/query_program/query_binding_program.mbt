@@ -1,4 +1,25 @@
 ///|
+// Reuse the established root classification in every projected producer body.
+// Resolved non-Graph inputs are invalid arguments, not missing Graph support.
+fn require_script_graph_input(
+  graph : ScriptGraph?,
+  query : @query.Query,
+  known : Array[Input],
+) -> ScriptGraph raise Abort {
+  match graph {
+    Some(graph) => graph
+    None => {
+      if known.any(input => {
+          input_relation_matches(@query.relation(query), input)
+        }) {
+        raise Abort(InvalidQuery)
+      }
+      raise Abort(UnsupportedGraph)
+    }
+  }
+}
+
+///|
 fn current_script_graph(
   current : ScriptGraph?,
   query : @query.Query,

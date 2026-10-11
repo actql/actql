@@ -184,9 +184,9 @@ fn lower_script_relation_term(
   set_head? : Bool = false,
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
-    guard script_graph_input(query, graphs) is Some(graph) else {
-      raise Abort(UnsupportedGraph)
-    }
+    let graph = require_script_graph_input(
+      script_graph_input(query, graphs), query, known,
+    )
     return lower_script_graph_rows(
       construction,
       query,
@@ -435,15 +435,9 @@ pub fn compile_query_script(
       let result = if script_has_graph_rows(current) &&
         !graph_row_set &&
         !script_has_carrier_calls(current) {
-        guard current_script_graph(primary_graph, current, graphs)
-          is Some(graph) else {
-          if stage_known.any(input => {
-              input_relation_matches(@query.relation(current), input)
-            }) {
-            raise Abort(InvalidQuery)
-          }
-          raise Abort(UnsupportedGraph)
-        }
+        let graph = require_script_graph_input(
+          current_script_graph(primary_graph, current, graphs), current, stage_known,
+        )
         lower_script_graph_rows(
           construction,
           current,

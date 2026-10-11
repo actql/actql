@@ -7,6 +7,6 @@
     "heterogeneous candidates and field refusals independent of definition order",
     "Graph star/implicit export/named edge/quantified terminal endpoint support boundaries"
   ],
-  "changes": "Only DATA source wrappers become WITH bindings and pure GRAPH primaries. No lowerer/common checker/Owner semantics change.",
+  "changes": "Old DATA source wrappers become WITH bindings and pure GRAPH primaries. A reproduced frontend routing inconsistency now reuses the established root resolved-Relation InvalidQuery rule in projected producer bodies. Unknown Graph sources retain the established UnsupportedGraph support refusal. No common checker/Graph/Owner semantics change.",
   "public_execution": "not performed"
 }
