@@ -10,9 +10,9 @@ import {
 // Values
 pub fn after_graph_calls(Query) -> Query
 
-pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?
+pub fn after_producer_primary(Query) -> Query
 
-pub fn data_declaration_count(QueryScript) -> Int
+pub fn after_query_bindings(Query) -> Query
 
 pub fn effect_result_continuation(Query, NamePart) -> (Query, Query)?
 
@@ -40,6 +40,8 @@ pub fn final_operation_count(Query) -> Int
 
 pub fn graph_query(Query) -> GraphQuery?
 
+pub fn graph_source_query(Query) -> Query
+
 pub fn has_sga_relation_lowering(String) -> Bool
 
 pub fn join_part_at(Query, Int) -> JoinPart?
@@ -63,6 +65,8 @@ pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Resu
 pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaCall, Diagnostic]
 
 pub fn positional_output(Query) -> Bool
+
+pub fn producer_primary(Query) -> ProducerPrimary?
 
 pub fn query_binding_at(Query, Int) -> QueryBinding?
 
@@ -159,19 +163,6 @@ pub(all) enum CastType {
   Timestamp
   Decimal(Int, Int)
 } derive(Eq, @debug.Debug)
-
-pub(all) struct DataDeclaration {
-  name : NamePart
-  value : DataExpression
-  start : Int
-  end : Int
-}
-
-pub(all) enum DataExpression {
-  RelationQuery(Query)
-  Graph(GraphConstructor)
-  NamedGraphCall(SgaCall)
-}
 
 pub(all) struct Diagnostic {
   issue : Issue
@@ -402,6 +393,11 @@ pub(all) struct PivotClause {
   column : Array[NamePart]
   prefix : NamePart?
   values : Array[(String, NamePart?)]
+}
+
+pub(all) enum ProducerPrimary {
+  GraphValue(GraphConstructor)
+  GraphGenerator(SgaCall)
 }
 
 pub(all) struct Projection {
