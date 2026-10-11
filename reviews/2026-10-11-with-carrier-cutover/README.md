@@ -146,6 +146,37 @@ and borrows only the pinned `yaml` dependency from the primary repository.
 No shared dependency, original receipt, producer/package inventory or custody
 has been removed by this product work. Heavy and public execution remain pending.
 
+The next check-only connection is now implemented in
+`query_program/query_binding_check.mbt`: a WITH-bearing root is lowered in full,
+then passed through the existing Stage parameter, Catalog registration and
+Stage/pipeline preparation owners. A Connector without its actual Catalog is
+refused with the original common Source declaration; an attached schema is not
+promoted into Source provenance. The returned common wiring is conditional
+producer evidence, not execution permission, successful data validation or full
+static/profile closure. No acquisition, reservation or extra public Program/Run
+is created by this preparation call.
+
+[p1-binding-preparation-execution.json](p1-binding-preparation-execution.json)
+records actual JS **8/8** at clean product source
+`7f69a80feec4f3e841e930d88680871f01eea251`, tree
+`87c31aeec66ff2b8c1f9fef9344a07960bb08ee3`, run `run-ueZ9fq`. Four controls
+cover an unused invalid expression, real Catalog versus schema-only attachment,
+missing-field resolution and the retained dynamic Graph-key obligation. The
+four direct WITH/GRAPH source-route controls also remain successful. Pinned
+interface generation/caller compilation and read-only formatting are recorded
+separately. The original compiler and registration-reason failures remain in
+their own receipts and are not relabeled as successful runs.
+
+Demanded-only emission is still unimplemented: the prepared Program currently
+contains unused binding steps. Before eliminating them, retain the remaining
+common static/profile obligations and use actual producer dependency owners.
+Every explicit Result/Effect remains a demand root, and all operations inside a
+demanded body remain mandatory. Full four-Carrier P1/P2 and current
+grammar/docs/pins/example retirement, pristine packages and packed Local/HTTPS
+are unfinished. The bounded **60-second/grace-5 nonHeavy** commands completed,
+and their actual Owners/groups/own locks were confirmed absent. No shared Heavy
+slot or other worktree was modified.
+
 [preparation-failure.json](preparation-failure.json) retains B's failed read-only
 bundle-head lookup with exit 1. Correcting its parent directory completed only
 metadata preparation; it is not a product test or a repaired runtime failure.
