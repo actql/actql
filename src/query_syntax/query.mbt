@@ -949,11 +949,21 @@ fn QueryParser::query_source(
     let (relation, source_alias) = self.source_name()
     return self.from_pivot_source(relation, source_alias, [])
   }
-  let bound = self.bind_query(self.parenthesized())
+  let inner = self.parenthesized()
   let source_alias = self.optional_source_alias()
-  if source_alias is None && !self.has("PIVOT") {
-    raise QueryAbort("Subquery requires an alias", self.peek().start)
+  if source_alias is Some(result_range) && query_output_carries_ranges(inner) {
+    // Apply the existing AS rules to the actual output kind before retaining
+    // it. A value-table receiver is a value, not an ordinary whole-row object.
+    let bound = self.bind_query(
+      { ..inner, operations: inner.operations + [Alias(result_range)], },
+      carry_ranges=true,
+    )
+    return self.from_pivot_source(bound.relation, None, bound.ctes)
   }
+  // An explicit alias creates one projected range. Without it, preserve the
+  // inner query's current names/ranges through the existing continuation scope.
+  let carry_ranges = source_alias is None && query_output_carries_ranges(inner)
+  let bound = self.bind_query(inner, carry_ranges~)
   self.from_pivot_source(bound.relation, source_alias, bound.ctes)
 }
 
@@ -1064,15 +1074,23 @@ fn QueryParser::mark_positional_output(
 fn QueryParser::sql_operand(
   self : QueryParser,
   positional_output? : Bool = false,
+  set_operand? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.peek().value == Symbol(40) {
     let inner = self.parenthesized()
+    let carry_ranges = !set_operand &&
+      !self.has("UNION") &&
+      !self.has("INTERSECT") &&
+      !self.has("EXCEPT") &&
+      !self.starts_inner_set() &&
+      query_output_carries_ranges(inner)
     self.bind_query(
       if positional_output {
         self.mark_positional_output(inner)
       } else {
         inner
       },
+      carry_ranges~,
     )
   } else {
     self.sql_term()
@@ -2415,7 +2433,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
           (kind, duplicates, by_name, inner_by_name, by_name_columns),
         )
     }
-    let right = self.sql_operand(positional_output=!by_name)
+    let right = self.sql_operand(positional_output=!by_name, set_operand=true)
     for cte in right.ctes {
       ctes.push(cte)
     }

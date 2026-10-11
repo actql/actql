@@ -14,14 +14,20 @@ priv struct JoinChainScope {
 }
 
 ///|
-// Explicit range-property receivers need the shared expression binder. This
+// Whole rows and explicit range-property receivers need the shared binder. This
 // applicability check does not decide whether a same-named value or range wins;
 // the ordinary scope resolver retains that distinction.
-fn join_has_range_property(
+fn join_has_range_expression(
   expression : @query.Expression,
   ranges : Array[@query.NamePart],
 ) -> Bool {
   for index in 0..<@query.expression_node_count(expression) {
+    if @query.expression_node(expression, index).unwrap().kind
+      is Reference(path) &&
+      path.length() == 1 &&
+      ranges.any(name => same_name(name, path[0])) {
+      return true
+    }
     guard @query.expression_node(expression, index).unwrap().kind
       is Property(receiver, _) else {
       continue
@@ -42,7 +48,7 @@ fn join_has_range_property(
 }
 
 ///|
-// RIGHT/FULL JOIN, GROUP, star, DISTINCT, range properties and column edits
+// RIGHT/FULL JOIN, GROUP, star, DISTINCT, row expressions and column edits
 // need the shared row scope. Pipe DISTINCT compares the current JOIN row;
 // SELECT DISTINCT orders through its materialized output aliases.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
@@ -63,17 +69,9 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     // A pre-JOIN predicate is stored on its JOIN part, rather than among
     // continuation operations. CTE JOIN specialization does not bind explicit
     // range receivers; use the existing shared row scope for that shape.
-    if part.pre_join_filter is Some(predicate) {
-      for node in 0..<@query.expression_node_count(predicate) {
-        if @query.expression_node(predicate, node).unwrap().kind
-          is Property(receiver, _) &&
-          group_reference_parts(predicate, receiver) is Some((path, members)) &&
-          path.length() == 1 &&
-          members.is_empty() &&
-          same_name(path[0], query_range_name(query)) {
-          return true
-        }
-      }
+    if part.pre_join_filter is Some(predicate) &&
+      join_has_range_expression(predicate, [query_range_name(query)]) {
+      return true
     }
     let range = match part.source_alias {
       Some(name) => Some(name)
@@ -102,7 +100,9 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
       Some(Order(terms)) => terms.map(term => term.expression)
       _ => []
     }
-    if expressions.any(expression => join_has_range_property(expression, ranges)) {
+    if expressions.any(expression => {
+        join_has_range_expression(expression, ranges)
+      }) {
       return true
     }
     if @query.operation_at(query, index)
@@ -130,39 +130,42 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
 fn join_chain_reference(
   path : Array[@query.NamePart],
   scope : JoinChainScope,
-  right : @query.NamePart,
-  right_fields : Array[String],
+  right_scope : JoinChainScope,
 ) -> (String, String) raise Abort {
   let matches : Array[(String, String)] = []
   if path.length() == 1 {
-    // Range receivers outrank columns on either JOIN operand. USING still
-    // uses its independent column-target resolution below.
-    let receivers = (scope.receivers + scope.scalar_ranges).filter(receiver => {
-      same_name(path[0], receiver.0)
-    })
-    if receivers.length() == 1 {
-      return ("left", receivers[0].1)
-    }
-    for entry in scope.visible {
-      if same_name(path[0], { value: entry.0, quoted: false, }) {
-        matches.push(("left", entry.1))
-      }
-    }
-  } else if path.length() == 2 {
-    for range in scope.ranges {
-      if same_name(path[0], range.0) {
-        for entry in range.1 {
-          if same_name(path[1], { value: entry.0, quoted: false, }) {
-            matches.push(("left", entry.1))
-          }
+    // Resolve value receivers across both operands before ordinary columns.
+    // USING has its independent column-target resolution below.
+    for (side, candidate) in [("left", scope), ("right", right_scope)] {
+      for receiver in candidate.receivers + candidate.scalar_ranges {
+        if same_name(path[0], receiver.0) {
+          matches.push((side, receiver.1))
         }
       }
     }
+    if !matches.is_empty() {
+      if matches.length() == 1 {
+        return matches[0]
+      }
+      raise Abort(AmbiguousColumn)
+    }
   }
-  if path.length() == 1 || (path.length() == 2 && same_name(path[0], right)) {
-    for field in right_fields {
-      if same_name(path.last().unwrap(), { value: field, quoted: false, }) {
-        matches.push(("right", field))
+  for (side, candidate) in [("left", scope), ("right", right_scope)] {
+    if path.length() == 1 {
+      for entry in candidate.visible {
+        if same_name(path[0], { value: entry.0, quoted: false, }) {
+          matches.push((side, entry.1))
+        }
+      }
+    } else if path.length() == 2 {
+      for range in candidate.ranges {
+        if same_name(path[0], range.0) {
+          for entry in range.1 {
+            if same_name(path[1], { value: entry.0, quoted: false, }) {
+              matches.push((side, entry.1))
+            }
+          }
+        }
       }
     }
   }
@@ -188,8 +191,7 @@ fn validate_join_using_names(part : @query.JoinPart) -> Unit raise Abort {
 fn join_chain_keys(
   part : @query.JoinPart,
   scope : JoinChainScope,
-  right : @query.NamePart,
-  right_fields : Array[String],
+  right_scope : JoinChainScope,
 ) -> Array[(String, String)] raise Abort {
   validate_join_using_names(part)
   let pairs : Array[(String, String)] = []
@@ -209,8 +211,8 @@ fn join_chain_keys(
             is Reference(right_path) else {
             raise Abort(UnsupportedJoin)
           }
-          let a = join_chain_reference(left_path, scope, right, right_fields)
-          let b = join_chain_reference(right_path, scope, right, right_fields)
+          let a = join_chain_reference(left_path, scope, right_scope)
+          let b = join_chain_reference(right_path, scope, right_scope)
           if a.0 == "left" && b.0 == "right" {
             pairs.push((a.1, b.1))
           } else if a.0 == "right" && b.0 == "left" {
@@ -225,8 +227,7 @@ fn join_chain_keys(
   } else {
     for name in part.using_columns {
       guard pipe_slot([name], scope.visible, scope.ranges) is Some(left) &&
-        pipe_slot([name], right_fields.map(field => (field, field)), [])
-        is Some(right_field) else {
+        pipe_slot([name], right_scope.visible, []) is Some(right_field) else {
         raise Abort(AmbiguousColumn)
       }
       pairs.push((left, right_field))
@@ -250,6 +251,7 @@ fn compile_join_chain_steps(
   reserved : Array[String],
   retained : Array[RetainedResult]?,
   initial_scope? : JoinChainScope? = None,
+  right_scopes? : Array[JoinChainScope?] = [],
   preserved_scope? : Array[JoinChainScope]? = None,
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
@@ -257,6 +259,10 @@ fn compile_join_chain_steps(
   positional_set_output? : Bool = false,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
+    (
+      !right_scopes.is_empty() &&
+      right_scopes.length() != @query.join_part_count(query)
+    ) ||
     inputs.length() < 2 ||
     limits.max_join_output_rows < 1L ||
     limits.max_join_output_rows > 9007199254740991L {
@@ -300,7 +306,24 @@ fn compile_join_chain_steps(
     let right = inputs[index + 1]
     let right_fields = columns(right.0)
     let qualifier = part.source_alias.unwrap_or(part.relation.last().unwrap())
-    if scope.ranges.any(range => same_name(range.0, qualifier)) {
+    let right_columns = right_fields.map(field => (field, field))
+    let preserved_right = match right_scopes.get(index) {
+      Some(scope) => scope
+      None => None
+    }
+    let right_scope = preserved_right.unwrap_or({
+      visible: right_columns,
+      columns: right_columns.copy(),
+      value_table: false,
+      value_columns: [],
+      star_ranges: [],
+      ranges: [(qualifier, right_columns.copy())],
+      receivers: [],
+      scalar_ranges: [],
+    })
+    if right_scope.ranges.any(right_range => {
+        scope.ranges.any(range => same_name(range.0, right_range.0))
+      }) {
       raise Abort(AmbiguousRelation)
     }
     if part.pre_join_filter is Some(predicate) {
@@ -329,7 +352,7 @@ fn compile_join_chain_steps(
       )
       from = filtered
     }
-    let keys = join_chain_keys(part, scope, qualifier, right_fields)
+    let keys = join_chain_keys(part, scope, right_scope)
     let reversed = part.kind == "right"
     let left_side = if reversed { "right." } else { "left." }
     let right_side = if reversed { "left." } else { "right." }
@@ -347,7 +370,7 @@ fn compile_join_chain_steps(
         }
       }
     }
-    let right_range : Array[(String, String)] = []
+    let right_slots : Map[String, String] = Map([])
     let mut next_visible = if index == 0 {
       visible.copy()
     } else {
@@ -361,13 +384,24 @@ fn compile_join_chain_steps(
     for field in right_fields {
       let slot = pipe_physical_name(physical, "aql_chain_column_")
       physical.push(slot)
-      right_range.push((field, slot))
+      right_slots[field] = slot
       projected.push((slot, construction.text(right_side + field)))
+    }
+    let right_range = right_scope.visible.map(entry => {
+      (entry.0, right_slots[entry.1])
+    })
+    for entry in right_range {
       if !part.using_columns.any(name => {
-          same_name(name, { value: field, quoted: false, })
+          same_name(name, { value: entry.0, quoted: false, })
         }) {
-        next_visible.push((field, slot))
-        next_columns.push((field, slot))
+        next_visible.push(entry)
+      }
+    }
+    for entry in right_scope.columns {
+      if !part.using_columns.any(name => {
+          same_name(name, { value: entry.0, quoted: false, })
+        }) {
+        next_columns.push((entry.0, right_slots[entry.1]))
       }
     }
     let coalesced : Array[(String, @builder.Node)] = []
@@ -501,7 +535,7 @@ fn compile_join_chain_steps(
       visible: next_visible,
       columns: next_columns,
       value_table: false,
-      value_columns: if index == 0 {
+      value_columns: (if index == 0 {
         source_scope.value_columns.map(column => {
           (
             column.0,
@@ -511,28 +545,46 @@ fn compile_join_chain_steps(
         })
       } else {
         scope.value_columns.copy()
-      },
-      star_ranges: if index == 0 {
+      }) +
+      right_scope.value_columns.map(column => {
+        (
+          column.0,
+          right_slots[column.1],
+          column.2.map(field => (field.0, right_slots[field.1])),
+        )
+      }),
+      star_ranges: (if index == 0 {
         source_scope.star_ranges.map(range => {
           (range.0, range.1.map(field => (field.0, slots[field.1])))
         })
       } else {
         scope.star_ranges.copy()
-      },
+      }) +
+      right_scope.star_ranges.map(range => {
+        (range.0, range.1.map(field => (field.0, right_slots[field.1])))
+      }),
       ranges: (if index == 0 { first_ranges } else { scope.ranges }) +
-      [(qualifier, right_range)],
-      scalar_ranges: if index == 0 {
+      right_scope.ranges.map(range => {
+        (range.0, range.1.map(field => (field.0, right_slots[field.1])))
+      }),
+      scalar_ranges: (if index == 0 {
         source_scope.scalar_ranges.map(receiver => {
           (receiver.0, slots[receiver.1])
         })
       } else {
         scope.scalar_ranges.copy()
-      },
-      receivers: if index == 0 {
+      }) +
+      right_scope.scalar_ranges.map(receiver => {
+        (receiver.0, right_slots[receiver.1])
+      }),
+      receivers: (if index == 0 {
         source_scope.receivers.map(receiver => (receiver.0, slots[receiver.1]))
       } else {
         scope.receivers.copy()
-      },
+      }) +
+      right_scope.receivers.map(receiver => {
+        (receiver.0, right_slots[receiver.1])
+      }),
     }
   }
   let final_from = pipe_physical_name(reserved, "aql_chain_result_")
