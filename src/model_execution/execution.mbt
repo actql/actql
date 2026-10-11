@@ -102,11 +102,11 @@ pub(all) struct ModelSlotCapture {
   input_key_cid : String
   fixed_request_cid : String
   provider_id : String
-  provider_model : String
-  provider_request_id : String
+  provider_model : String?
+  provider_request_id : String?
   value : @admitted.CheckedValue
-  input_tokens : Int64
-  output_tokens : Int64
+  input_tokens : Int64?
+  output_tokens : Int64?
   observed_at : String
 }
 
@@ -143,7 +143,7 @@ priv enum ModelPhase {
   PrepareRequests
   PreparePhysicalRequests
   DispatchSlot
-  CheckResponse(ModelRequest, ModelResponse, String, @admitted.RecheckCursor)
+  CheckResponse(ModelRequest, ModelObservedResponse, String, @admitted.RecheckCursor)
   RestoreResponse(
     PreparedModelRequest,
     @publication.ModelCaptureRecordRead,
@@ -731,7 +731,9 @@ fn begin_observed_model_response(
     Some(value) => value
     None => return @bounded.Failed(OutputValue, 1, 1)
   }
-  state.phase = CheckResponse(request, response, input_key_cid, cursor)
+  state.phase = CheckResponse(
+    request, lift_historical_model_response(response), input_key_cid, cursor,
+  )
   @bounded.Continue(1, 1)
 }
 
@@ -1188,17 +1190,17 @@ pub fn model_capture_bundle_json(
       @encode.key(writer, "input_key_cid")
       @encode.string_value(writer, capture.input_key_cid)
       @encode.key(writer, "input_tokens")
-      @encode.decimal_number_value(writer, capture.input_tokens.to_string())
+      emit_model_optional_tokens(writer, capture.input_tokens)
       @encode.key(writer, "observed_at")
       @encode.string_value(writer, capture.observed_at)
       @encode.key(writer, "output_tokens")
-      @encode.decimal_number_value(writer, capture.output_tokens.to_string())
+      emit_model_optional_tokens(writer, capture.output_tokens)
       @encode.key(writer, "provider_id")
       @encode.string_value(writer, capture.provider_id)
       @encode.key(writer, "provider_model")
-      @encode.string_value(writer, capture.provider_model)
+      emit_model_optional_text(writer, capture.provider_model)
       @encode.key(writer, "provider_request_id")
-      @encode.string_value(writer, capture.provider_request_id)
+      emit_model_optional_text(writer, capture.provider_request_id)
       @encode.key(writer, "slot")
       @encode.number_value(writer, capture.slot.to_double())
       @encode.key(writer, "slot_cid")
@@ -1234,11 +1236,11 @@ pub fn replay_model_capture(
       !valid_cid(capture.slot_cid) ||
       !valid_cid(capture.input_key_cid) ||
       capture.provider_id != @environment.model_task_connector(task) ||
-      capture.provider_model.is_empty() ||
-      capture.input_tokens < 0L ||
-      capture.output_tokens < 0L ||
+      !valid_model_optional_text(capture.provider_model) ||
+      !valid_model_optional_tokens(capture.input_tokens) ||
+      !valid_model_optional_tokens(capture.output_tokens) ||
       capture.observed_at.is_empty() ||
-      capture.provider_request_id.is_empty() {
+      !valid_model_optional_text(capture.provider_request_id) {
       return Err(OutputIdentity)
     }
     output.push(capture.value)

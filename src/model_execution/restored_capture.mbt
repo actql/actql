@@ -96,17 +96,9 @@ fn advance_restored_model_response(
     CanonicalConversionContinue => @bounded.Continue(1, 1)
     CanonicalConversionFailed => @bounded.Failed(OutputValue, 1, 1)
     CanonicalConversionComplete(value) => {
-      guard @publication.model_capture_record_text(
-          record, "provider_reported_model_id",
-        )
-        is Some(provider_model) &&
-        @publication.model_capture_record_text(record, "provider_request_id")
-        is Some(provider_request_id) &&
-        @publication.model_capture_record_text(record, "observed_at")
-        is Some(observed_at) &&
-        @publication.model_capture_record_tokens(record)
-        is Some((input_tokens, output_tokens)) else {
-        return @bounded.Failed(OutputIdentity, 1, 1)
+      let observation = match @publication.model_capture_record_observation(record) {
+        Ok(observation) => observation
+        Err(issue) => return @bounded.Failed(InvocationEvidence(issue), 1, 1)
       }
       guard @admitted.start_recheck_runtime_value(
           value,
@@ -116,14 +108,7 @@ fn advance_restored_model_response(
         is Some(checked) else {
         return @bounded.Failed(OutputValue, 1, 1)
       }
-      let response : ModelResponse = {
-        value,
-        provider_model,
-        provider_request_id,
-        observed_at,
-        input_tokens,
-        output_tokens,
-      }
+      let response : ModelObservedResponse = { value, observation, }
       state.phase = CheckResponse(
         prepared.request,
         response,

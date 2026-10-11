@@ -8,6 +8,7 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/physical_resources" @resources,
   "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_json" @canonical,
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/run_publication_host" @publication_host,
