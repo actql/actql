@@ -2,7 +2,7 @@
 fn graph_union_expected() -> @program.Program {
   @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","union_graphs":{"with":["aql_data_2","aql_data_2"],"merge":{"node_properties":{"p":"number_sum"}}},"as":"aql_sga_3"},{"from":"aql_sga_3","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","union_graphs":{"with":["aql_with_graph_2","aql_with_graph_2"],"merge":{"node_properties":{"p":"number_sum"}}},"as":"aql_sga_3"},{"from":"aql_sga_3","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -21,13 +21,13 @@ fn check_graph_union_source(program : @program.Program) -> Unit raise {
     ) {
     Checked(_) => ()
     Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-    NeedsInputs(_) => fail("Graph composition reuses its DATA producers")
+    NeedsInputs(_) => fail("Graph composition reuses its WITH producers")
   }
 }
 
 ///|
 fn graph_union_prefix() -> String {
-  "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); "
+  "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) "
 }
 
 ///|
@@ -43,16 +43,16 @@ test "Graph union source preserves repeated peers and policy in independent Prog
 }
 
 ///|
-test "Graph union DATA and chained row entry retain producer names" {
+test "Graph union WITH and chained row entry retain producer names" {
   let program = compile_data_set(
     graph_union_prefix() +
-    "DATA `peer graph` = FROM g; DATA doubled = FROM g |> union_graphs(with: `peer graph`, merge: {node_properties: {p: 'number_sum'}}); FROM g |> union_graphs(with: [doubled, g], merge: {node_properties: {p: 'number_mean'}}) |> node_rows(definition: 'N') |> SELECT p, node_key",
+    ", `peer graph` AS (FROM g), doubled AS (FROM g |> union_graphs(with: `peer graph`, merge: {node_properties: {p: 'number_sum'}})) FROM g |> union_graphs(with: [doubled, g], merge: {node_properties: {p: 'number_mean'}}) |> node_rows(definition: 'N') |> SELECT p, node_key",
   )
   check_graph_union_source(program)
   let body = semantic(program)
   assert_eq(body.split("\"graph\":").length(), 2)
   assert_eq(body.split("\"union_graphs\":").length(), 3)
-  assert_true(body.contains("\"with\":[\"aql_sga_5\",\"aql_data_2\"]"))
+  assert_true(body.contains("\"with\":[\"aql_sga_5\",\"aql_with_graph_2\"]"))
   assert_true(body.contains("\"node_properties\":{\"p\":\"number_mean\"}"))
 }
 
@@ -87,7 +87,7 @@ test "Graph union rejects value names forward references and lost Graph scopes" 
   for
     suffix in [
       "FROM g |> union_graphs(with: missing) |> node_rows()", "FROM g |> union_graphs(with: n) |> node_rows()",
-      "DATA h = FROM g |> union_graphs(with: later); DATA later = FROM g; FROM h |> node_rows()",
+      ", h AS (FROM g |> union_graphs(with: later)), later AS (FROM g) FROM h |> node_rows()",
     ] {
     let query = @query.parse_query_script(
       graph_union_prefix() + suffix,
@@ -147,7 +147,7 @@ test "public union JSON control has checked composite keys parallel edges and bo
 ///|
 test "complete public edge union source has one query and passes ordinary checker" {
   let program = compile_data_set(
-    "DATA n = SELECT 7 AS part, 1 AS node_key, 7 AS p; DATA e = SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w))); DATA combined = FROM g |> union_graphs(with: [g, g], merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}}); FROM combined |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges",
+    "WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p), e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w), g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))), combined AS (FROM g |> union_graphs(with: [g, g], merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}})) FROM combined |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges",
   )
   check_graph_union_source(program)
   assert_true(semantic(program).contains("\"union_graphs\""))

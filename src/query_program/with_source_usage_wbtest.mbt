@@ -14,15 +14,15 @@ fn with_usage_input(name : String) -> Input {
 // selector identity, Catalog ownership, Carrier types or executable order.
 test "WITH capture counts a second SGA selector consumer" {
   let input = with_usage_input("seeds")
-  for call in [
-    "reach(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 2)",
-    "traverse(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 2)",
-    "shortest_path(source: {from: seeds, id: 'id'}, target: 2)",
-    "subgraph(nodes: {from: seeds, id: 'id'})",
-  ] {
+  for
+    call in [
+      "reach(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 2)", "traverse(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 2)",
+      "shortest_path(source: {from: seeds, id: 'id'}, target: 2)", "subgraph(nodes: {from: seeds, id: 'id'})",
+    ] {
     let script = @query.parse_query_script(
       "WITH filtered AS (FROM seeds |> WHERE id = 1), selected AS (FROM g |> " +
-      call + ") FROM filtered",
+      call +
+      ") FROM filtered",
       mapping_syntax_limits(),
     ).unwrap()
     assert_eq(unshared_script_sources(script, [input]), [])
