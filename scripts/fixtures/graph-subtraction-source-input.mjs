@@ -25,7 +25,7 @@ const prefix = 'WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p) ' +
   ', g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N ' +
   'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) ';
-const nullablePrefix = prefix.replace('7 AS p;', 'CAST(NULL AS FLOAT64) AS p;');
+const nullablePrefix = prefix.replace('7 AS p)', 'CAST(NULL AS FLOAT64) AS p)');
 const output = kind => kind === 'nodes'
   ? ' |> node_rows() |> SELECT p, part, node_key, labels |> ORDER BY node_key |> RESULT nodes'
   : ' |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges';
@@ -36,8 +36,8 @@ const textCase = (name, call, kind, rows, extra = {}) => ({
 
 // Node 1 is removed, node 2 and its self-loop remain; the 1->2 edge must be
 // removed by endpoint closure even though it was absent in the peer subgraph.
-const subsetPrefix = prefix.replace('1 AS node_key, 7 AS p;',
-  '1 AS node_key, 7 AS p UNION ALL SELECT 7 AS part, 2 AS node_key, 9 AS p;')
+const subsetPrefix = prefix.replace('1 AS node_key, 7 AS p)',
+  '1 AS node_key, 7 AS p UNION ALL SELECT 7 AS part, 2 AS node_key, 9 AS p)')
   .replace('1 AS dst_key, 5 AS w', '2 AS dst_key, 5 AS w')
   .replace('1 AS src_key, 1 AS dst_key, 2 AS w', '2 AS src_key, 2 AS dst_key, 2 AS w');
 const peerSelection = ', selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id) ' +
@@ -80,7 +80,7 @@ export const graphSubtractionSourceSuccesses = [
   ...['nodes', 'edges'].map(kind => textCase('nonempty-subset-and-endpoint-closure', '', kind, subsetRows[kind], {
     text: subsetPrefix + peerSelection + 'FROM g |> subtract_graphs(with: peer)' + output(kind)})),
   textCase('zero-is-retained-value', '', 'nodes', [node(0)], {
-    text: prefix.replace('7 AS p;', '0 AS p;') + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes')}),
+    text: prefix.replace('7 AS p)', '0 AS p)') + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes')}),
   textCase('nullable-empty-contract', '', 'nodes', [], {
     text: nullablePrefix + 'FROM g |> subtract_graphs(with: g)' + output('nodes'), results: result('nodes', [], true)}),
 ];

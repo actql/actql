@@ -25,6 +25,7 @@ for (const [name, previous] of Object.entries(retained.snapshots)) {
       for (const child of Object.values(value)) visit(child);
     }
     visit(expected);
+    if (name === 'graph-mean') expected.graphMeanSourceRefusalOracles = expected.graphMeanSourceRefusalOracles.map(expectedWrapper);
     // Full comparison includes rows, ordered schema, refusal codes, parameter
     // declarations/values, limits, read counts and byte-identical JSON controls.
     assert.deepEqual(current, expected);
