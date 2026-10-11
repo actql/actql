@@ -44,7 +44,7 @@ pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation
 
 pub fn admit_client_effect_review_checkpoint_binding(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientEffectCheckpointBindingIssue]
 
-pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn admit_client_infer_captured_input(PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.ModelSourceObservation) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
@@ -256,6 +256,8 @@ pub fn client_effect_imported_result_evidence_refs(ClientEffectRunMaterials, @ph
 
 pub fn client_effect_imported_scope_json(ClientEffectImportedEvidence) -> String
 
+pub fn client_effect_issued_normalization_materials_wire(ClientEffectIssuedNormalizationMaterials) -> String
+
 pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_artifact_invocation(ClientEffectLocalResultArtifact) -> ClientEffectLocalInvocation
@@ -307,6 +309,8 @@ pub fn client_effect_local_table_definition_cid(ClientEffectLocalTableDefinition
 pub fn client_effect_local_table_definition_json(ClientEffectLocalTableDefinition) -> String
 
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
+
+pub fn client_effect_normalization_materials_cid(ClientEffectRunMaterials) -> String?
 
 pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObservation) -> String
 
@@ -794,7 +798,9 @@ pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation,
 
 pub fn issue_prepared_client_effect_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
-pub fn issue_prepared_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, request? : ClientRequestIdentity?) -> Result[String, ClientEffectRunMaterialsIssue]
+pub fn issue_prepared_client_effect_normalization_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientEffectNormalization, request? : ClientRequestIdentity?) -> Result[ClientEffectIssuedNormalizationMaterials, ClientEffectRunMaterialsIssue]
+
+pub fn issue_prepared_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, request? : ClientRequestIdentity?, normalization? : ClientEffectNormalization?) -> Result[String, ClientEffectRunMaterialsIssue]
 
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
@@ -1087,6 +1093,8 @@ pub fn recovered_client_table_preview_matches_source(RecoveredClientTablePreview
 pub fn recovered_client_table_preview_member_index(RecoveredClientTablePreview) -> Int
 
 pub fn recovered_client_table_preview_operation(RecoveredClientTablePreview) -> @effect_application.TableOperation
+
+pub fn restore_client_effect_run_normalization(ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
 pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
@@ -1391,6 +1399,8 @@ pub(all) enum ClientEffectImportedEvidenceIssue {
   Relation(@run_publication.AcquisitionRelationIssue)
 } derive(Eq, @debug.Debug)
 
+type ClientEffectIssuedNormalizationMaterials
+
 type ClientEffectLocalIdentity
 
 pub(all) enum ClientEffectLocalIdentityIssue {
@@ -1469,10 +1479,15 @@ type ClientEffectNormalization
 pub(all) enum ClientEffectNormalizationIssue {
   Inventory(@program_check.CompletionFreeInventoryIssue)
   ForeignPreparation
+  ForeignMaterials
+  MissingOriginalJournal
+  UnverifiedOriginalMaterials
   ForeignCatalog
   SubstitutedJournal
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
+
+type ClientEffectNormalizationMaterialCustody
 
 type ClientEffectProducerArtifact
 
@@ -1506,6 +1521,7 @@ pub(all) enum ClientEffectRunIssue {
 }
 
 pub(all) struct ClientEffectRunMaterials {
+  normalization : ClientEffectNormalizationMaterialCustody?
   prepared : PreparedClientEffectComputation
   compilation : ClientEffectCompilation
   allowed : ClientEffectAllowedRun
@@ -1520,6 +1536,7 @@ pub(all) enum ClientEffectRunMaterialsIssue {
   Binding(ClientEffectCompiledRunIssue)
   RunMismatch
   Request(ClientRequestIdentityIssue)
+  Normalization(ClientEffectNormalizationIssue)
 }
 
 pub(all) enum ClientEffectSourceArtifactIssue {

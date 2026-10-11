@@ -310,14 +310,25 @@ fn fold_script_set_terminal_select(
     @builder.snapshot(construction.builder, steps[steps.length() - 1]),
   )
   let cursor = @builder.cursor(source)
-  if @wire.object_length(cursor) != Some(3) {
+  let count = @wire.object_length(cursor)
+  if count != Some(2) && count != Some(3) {
     return false
   }
   guard @wire.open_object(cursor) is Ok(object) else { return false }
   guard @wire.lookup(object, "as") is Some(name) else { return false }
   guard @wire.text(name) is Ok(name) && name == producer else { return false }
-  guard @wire.lookup(object, "from") is Some(from) else { return false }
-  guard @wire.text(from) is Ok(from) else { return false }
+  let from = match @wire.lookup(object, "from") {
+    Some(from) => {
+      guard count == Some(3) && @wire.text(from) is Ok(name) else {
+        return false
+      }
+      Some(name)
+    }
+    None => {
+      guard count == Some(2) else { return false }
+      None
+    }
+  }
   guard @wire.lookup(object, "select") is Some(select) else { return false }
   guard @wire.array_length(select) is Some(count) else { return false }
   let columns : Map[String, String] = Map([])
@@ -352,11 +363,16 @@ fn fold_script_set_terminal_select(
       },
     )
   }
-  steps[steps.length() - 1] = construction.object([
-    ("from", construction.text(from)),
+  // An implicit receiver still consumes the same preceding evaluated value.
+  // Do not manufacture a producer name or repeat its expression.
+  let members = [
     ("select", construction.array(projected)),
     ("as", construction.text(producer)),
-  ])
+  ]
+  if from is Some(name) {
+    members.insert(0, ("from", construction.text(name)))
+  }
+  steps[steps.length() - 1] = construction.object(members)
   true
 }
 

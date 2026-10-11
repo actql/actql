@@ -2,6 +2,9 @@
 pub(all) enum ClientEffectNormalizationIssue {
   Inventory(@checked.CompletionFreeInventoryIssue)
   ForeignPreparation
+  ForeignMaterials
+  MissingOriginalJournal
+  UnverifiedOriginalMaterials
   ForeignCatalog
   SubstitutedJournal
   Evidence(@publication.RunEvidenceValueIssue)

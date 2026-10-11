@@ -168,6 +168,15 @@ _SUBMISSION_SIGNATURES = {
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_SOURCE_PUBLICATION_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'prepare': ('i64 i32 i32', 'i32'),
+    'advance': ('i64 i32 i32', 'i32'),
+    'progress': ('i64 i32 i32', 'i64'),
+    'finish': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _MATERIAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
@@ -321,6 +330,8 @@ class LocalCore:
                              for name, value in _RUN_SIGNATURES.items()})
             expected.update({'actql_submission_' + name: value
                              for name, value in _SUBMISSION_SIGNATURES.items()})
+            expected.update({'actql_source_publication_' + name: value
+                             for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
             expected.update({'actql_material_' + name: value
                              for name, value in _MATERIAL_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
@@ -360,7 +371,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 16:
+            if self._exports['actql_host_abi_version'](self._store) != 17:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -570,6 +581,80 @@ class LocalCore:
 
     def close_submission_projection(self, value: _Output) -> bool:
         return self._close_output(value, 'submission', 'close')
+
+    def reserve_source_publication(self, compute: _Compute, source: _Input, *,
+                                   cleanup: Callable[[], bool]) -> _Output:
+        """Borrow the original acquisition; never fetch it or publish a Run."""
+        with self._lock:
+            self._owned_compute(compute)
+            self._owned_input(source)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'source_publication')))
+            handle = self._call('source_publication', 'reserve', compute.handle, source.handle,
+                                ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_source_publication', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'source_publication')
+            self._loans[ticket] = value
+            return value
+
+    def prepare_source_publication(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'source_publication')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current Source publication configuration')
+            self._check('prepare_source_publication', self._call(
+                'source_publication', 'prepare', value.handle, current_configuration))
+
+    def advance_source_publication(self, value: _Output, quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local Source identity quantum')
+        with self._lock:
+            self._owned_output(value, 'source_publication')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('advance_source_publication', self._call(
+                'source_publication', 'advance', value.handle, quantum))
+            ready = self._call('source_publication', 'progress', value.handle, 0)
+            work = self._call('source_publication', 'progress', value.handle, 1)
+            if ready not in (0, 1) or not 0 <= work <= quantum:
+                raise LocalCoreError('source_publication_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def source_publication_work(self, value: _Output) -> int:
+        with self._lock:
+            self._owned_output(value, 'source_publication')
+            work = self._call('source_publication', 'progress', value.handle, 2)
+            if work < 0:
+                raise LocalCoreError('source_publication_work', work)
+            return work
+
+    def finish_source_publication(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'source_publication')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current Source publication configuration')
+            self._check('finish_source_publication', self._call(
+                'source_publication', 'finish', value.handle, current_configuration))
+
+    def read_source_publication(self, value: _Output) -> bytes:
+        return self._read_output(value, 'source_publication', 'length')
+
+    def close_source_publication(self, value: _Output) -> bool:
+        return self._close_output(value, 'source_publication', 'close')
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:

@@ -1,4 +1,4 @@
-import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl, joinOnColumnControl} from './fixtures/public-query-input.mjs';
+import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl, joinOnColumnControl, parenthesizedJoinControl} from './fixtures/public-query-input.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
@@ -209,4 +209,27 @@ test('ON range refusals retain qualified column and USING controls',()=>{
  assert.ok(refusals.every(item=>item.expectedCode==='ClientProgramImplementationLimit'));
  assert.ok(refusals.some(item=>item.text.includes('FROM records JOIN')),
   'the retained public refusal must also prove no acquired Source I/O');
+});
+
+
+test('parenthesized JOIN controls retain equality keys NULLs duplicates and explicit ceilings',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ assert.deepEqual(parenthesizedJoinControl.stages[0].steps[2].join,
+  {with:'right',kind:'inner',on:[{left:'id',right:'key'}],max_output_rows:10,select:{id:'left.id',tag:'right.tag'}});
+ const expected=[{id:2,tag:20},{id:2,tag:20},{id:2,tag:21},{id:2,tag:21}];
+ for(const name of ['json-control','sql-null-duplicates','pipe-conjunction']){
+  assert.deepEqual(cases.get('join-parenthesized-'+name).expected,expected);
+  assert.deepEqual(cases.get('join-parenthesized-'+name).columns,
+   [{name:'id',contract:{type:'number',nullable:true}},{name:'tag',contract:{type:'number',nullable:false}}]);
+ }
+ for(const name of ['sql-null-duplicates','pipe-conjunction']){
+  assert.equal(cases.get('join-parenthesized-'+name).text.split('CAST(NULL AS FLOAT64)').length-1,2,
+   'the source declares the same nullable Number key contracts as the independent JSON control');
+ }
+ assert.ok(cases.get('join-parenthesized-quoted-cte').text.includes('((`L`.id))=(r.id)'));
+ assert.ok(cases.get('join-parenthesized-scalar-receivers').text.includes('((l))=(r)'));
+ assert.equal(cases.get('join-parenthesized-acquired-source').sourceReadSessionCount,1);
+ const refusals=queryCompositionRefusals.filter(item=>item.name.startsWith('join-parenthesized-refusal-'));
+ assert.equal(refusals.length,3);
+ assert.ok(refusals.every(item=>item.expectedCode==='ClientProgramImplementationLimit'));
 });

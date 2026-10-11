@@ -289,6 +289,27 @@ and the expected Run definition CID. It does not issue fresh authorization or
 extend the saved lifetime. `effectRunStartCurrent` checks the original policy
 and Run lifetime; the Host must independently recheck current authority.
 
+For the finite completion-free Resident Effect profile,
+`issuePreparedEffectRunMaterials(allowed, definition, request)` uses the original
+checked preparation retained by the allowed Run. It accepts no replacement
+Program, environment or parameters and performs no re-preparation or compilation.
+It returns an opaque `IssuedEffectRunMaterials` with the original `wire`. The
+private Owner reference remains process-local. Pass that same object as the
+fourth `admitEffectRunMaterials` argument when restoring journal-bearing bytes.
+An object copied from its visible fields or a wire without original custody is
+refused. No serializable remote proof or transport signature is implied.
+The original preparation Owner issues its inventory-backed journal before the
+material projection; actual completions and unsupported profiles refuse rather
+than falling back to a fabricated empty journal.
+
+`restoreEffectRunNormalization` accepts only the exact object returned by
+`admitEffectRunMaterials`. It reuses saved original journal bytes through the
+material Owner without journal issuance. Copying its visible fields does not
+recreate that custody. Initial execution-material admission still reconstructs
+execution ownership once; the normalization inverse does not repeat it.
+Neither a journal nor a material content digest supplies current authority,
+Provider permission, approval or physical cleanup evidence.
+
 These APIs perform no Source acquisition, Preview, approval or physical Effect.
 Run admission is not Effect approval. Dispatch, retained input custody,
 Checkpoint/Resolution and physical apply remain responsibilities of their

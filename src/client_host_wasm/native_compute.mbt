@@ -10,6 +10,7 @@ priv struct StoredNativeCompute {
   mut outcome : Result[Unit, @local_run.LocalComputeIssue]?
   mut host : @local_run.LocalComputeHost?
   mut start : @local_run.LocalComputeStart?
+  mut capture : @native_host.NativeHostSourceCapture?
 }
 
 ///|
@@ -48,6 +49,7 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
     outcome: None,
     host: None,
     start: None,
+    capture: None,
   }
   original.compute_reserved = true
   value.next_handle += 1
@@ -130,6 +132,7 @@ pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
       return 0
     }
   }
+  record.capture = Some(capture)
   let host = match
     @local_run.configure_captured_source_local_compute_on_ledger(
       plan,
@@ -192,6 +195,9 @@ pub fn close_native_compute(nonce : Int64, handle : Int) -> Int {
   record.closing = true
   if record.pending {
     return -33
+  }
+  if value.source_publications.values().any(source => source.compute == handle) {
+    return -9
   }
   if value.tasks.values().any(task => task.compute == handle) {
     return -9

@@ -28,6 +28,8 @@ fn binary_name(op : BinaryOperator) -> String {
     SafeSubtract => "safe_subtract"
     SafeMultiply => "safe_multiply"
     Modulo => "modulo"
+    RoundAt => "round"
+    TruncAt => "trunc"
     Strpos => "strpos"
     TrimSet => "trim"
     LTrimSet => "ltrim"
