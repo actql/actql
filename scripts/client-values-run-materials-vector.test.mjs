@@ -1029,7 +1029,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290');
+    'sha256:33b0bfa360655e99545d5113d519949f47e326056e620b59450931dd12aa510a');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1225,13 +1225,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:fc36c8ac16ef4ab3ba363d3b21ab10a7c1f4d7cf91c5b6e75b11b1e946027ac7");
+    "sha256:7ef7ffb9d2c7326eec34f6b9314484ab95885121751f4773c080316287113a51");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:fca5e8eb227e0e3cd233e73f107230354fa9e021bb0712b3519b42144474a3a2");
+    "sha256:2946a195fc99c390cd10264f3475ab2b29706095689f8b35e479abc87babb917");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:032eb2d4c80c3e7b195fd9607efa5128fa7689525674a08e4f5d0ae59fe82213");
+    "sha256:71b7ece9b9d5312b939b795bb0fe11e3a2826b1ccc97b966166b31b256174c06");
   assert.equal(current.run.run_definition_cid,
-    "sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290");
+    "sha256:33b0bfa360655e99545d5113d519949f47e326056e620b59450931dd12aa510a");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(
@@ -2855,6 +2855,75 @@ test('grouped LIMIT integration retains the exact adopted main preimages', () =>
     prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
   assert.equal(prior.run_preimages.run.run_definition_cid,
     'sha256:ed7f1bf1c519f1110597e678b82232e2e5e2e6108dc418a4e286c739a75e9bbb');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('hex integer syntax retains complete pre-extension Values identity preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-hex-integer-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '599f487bbb0be365320706ad28eab972448ed75d');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('hex integer integration retains complete adopted main identity preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-hex-integer-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '27d36302a6e653cc4005603dddf7c1bae09f5f95');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:ae69a17eeeee065ed495074f3f909bd9f342cae6913f1a438fc1eb9cd0c2092a');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('hex integer integration retains complete actual current main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-hex-integer-integrated-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '1887855e9bf867ba9c3abb724dc52ebe4be3daa1');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('positive navigation offset closure retains complete adopted main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-positive-navigation-offset-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '195fc902a6041432190d9f84272d47ce4bb2622b');
+  const {grammar_manifest_cid: grammarCid, ...body} = prior.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('positive navigation integration retains complete actual current main preimages', () => {
+  const prior = JSON.parse(readFileSync("scripts/fixtures/pre-positive-navigation-integrated-main-values-identities.json", 'utf8'));
+  assert.equal(prior.source_revision, "e3bbe9c34ae89100917eff26a21737648c1e1a01");
+  const {grammar_manifest_cid: grammarCid, ...body} = prior.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid, "sha256:ab15f675ec664f9d6e0c4e621c25af7859508256682e0a60fbe0d632a95ca628");
   assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
   assert.deepEqual(valuesProgramOracle(), prior.program_identity);
 });

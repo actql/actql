@@ -1922,16 +1922,11 @@ fn QueryParser::safe_integer_text(
   start : Int,
   zero_allowed : Bool,
 ) -> Int64 raise QueryAbort {
-  let mut result = 0L
-  for unit in text {
+  for _ in 0..<text.length() {
     self.spend(1)
-    let digit = unit.to_int() - 48
-    if digit < 0 ||
-      digit > 9 ||
-      result > (9007199254740991L - digit.to_int64()) / 10L {
-      raise QueryAbort("Integer literal exceeds safe range", start)
-    }
-    result = result * 10L + digit.to_int64()
+  }
+  guard exact_integer_literal(text) is Some(result) else {
+    raise QueryAbort("Integer literal exceeds safe range", start)
   }
   if !zero_allowed && result == 0L {
     raise QueryAbort("Expected positive integer literal", start)
