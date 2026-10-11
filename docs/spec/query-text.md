@@ -607,8 +607,17 @@ type/nullability requirement is a recorded common-profile gap for inputs whose
 selected columns differ only in nullability; the Frontend does not cast or infer
 types from rows to bypass it. Empty input retains the declared output contracts.
 
-This connection does not yet cover the standard FROM-suffix form, multiple
-value columns or row-value aliases. Those forms remain unimplemented coverage,
+The same single-value operation is accepted as a FROM postfix on a named table,
+CTE or parenthesized Relation: `FROM input [AS original] UNPIVOT (...) [AS shaped]`.
+It transforms only that input before surrounding JOIN, WHERE or SELECT. Its output
+alias replaces the input range; selected columns and the old range do not survive.
+The existing lowerer rejects value-table inputs, consistent with the selected
+GoogleSQL rule. Explicit projections of UNNEST values form ordinary Relations.
+Mixed CTE/ordinary JOIN ports use the existing producer-binding path and retain
+the authored JOIN kind, predicate and maximum output rows. No extra acquisition,
+new execution owner or inferred schema is introduced.
+
+This connection does not yet cover multiple value columns or row-value aliases. Those forms remain unimplemented coverage,
 not permanent language prohibitions. They are not reinterpreted as this form.
 Value/name columns must differ from each other and from selected input names,
 under the existing identifier rules. Kept-name collisions remain ambiguous;
