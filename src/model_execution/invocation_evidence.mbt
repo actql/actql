@@ -2,6 +2,7 @@
 priv enum ModelEvidencePhase {
   ResponseWire(@admitted.WireEmitCursor, @encode.Writer)
   OutputWire(@admitted.WireEmitCursor, @encode.Writer)
+  Metadata(@canonical.CanonicalEmit, @encode.Writer)
   Seal
 }
 
@@ -10,7 +11,7 @@ priv enum ModelEvidencePhase {
 // observation has been sealed. This is not a durable slot/cost/authority record.
 priv struct ModelEvidencePreparation {
   request : ModelRequest
-  response : ModelResponse
+  response : ModelObservedResponse
   key_cid : String
   checked : @admitted.CheckedValue
   mut response_cid : String?
@@ -22,7 +23,7 @@ priv struct ModelEvidencePreparation {
 fn start_model_evidence(
   state : ModelState,
   request : ModelRequest,
-  response : ModelResponse,
+  response : ModelObservedResponse,
   key_cid : String,
   checked : @admitted.CheckedValue,
 ) -> Result[ModelEvidencePreparation, ModelExecutionIssue] {
@@ -84,8 +85,17 @@ fn advance_model_evidence(
         }
         Ok(None)
       }
-      Seal =>
-        seal_model_invocation_evidence(state, value).map(result => Some(result))
+      Metadata(cursor, writer) => {
+        if !@canonical.advance_emit(cursor) {
+          return Ok(None)
+        }
+        @canonical.cancel_emit(cursor)
+        @encode.end_object(writer)
+        let wire = finish_model_invocation_wire(writer)
+        value.phase = Seal
+        finish_model_invocation_evidence(state, wire).map(result => Some(result))
+      }
+      Seal => seal_model_invocation_evidence(state, value)
     }
   } catch {
     _ => Err(OutputValue)
@@ -96,20 +106,42 @@ fn advance_model_evidence(
 fn seal_model_invocation_evidence(
   state : ModelState,
   value : ModelEvidencePreparation,
-) -> Result[@publication.RunEvidenceValue, ModelExecutionIssue] {
+) -> Result[@publication.RunEvidenceValue?, ModelExecutionIssue] {
   guard state.call_scope is Some(scope) &&
     value.response_cid is Some(response_cid) &&
     value.output_cid is Some(output_cid) else {
     return Err(OutputIdentity)
   }
   let request = value.request
+  let observation = value.response.observation
+  let historical = observation.origin == @publication.HistoricalAdmitted
+  // Reported observations come from an admitted original saved record or this
+  // execution's retained physical response. Store custody remains separate;
+  // a provider-supplied profile CID cannot issue a response here.
+  if !historical {
+    let saved = state.restored_evidence is Some(original) &&
+      @publication.model_invocation_evidence_version(original) ==
+      Some("actql-model-invocation-evidence/0.2") &&
+      observation.response_profile_cid is Some(_) &&
+      observation.response_complete == Some(true)
+    if !saved && !model_reported_response_owned(state, request, value.response) {
+      return Err(OutputIdentity)
+    }
+  }
   try {
     let writer = @encode.writer(16384, 1024, 16)
     errdefer @encode.cancel_writer(writer)
     @encode.begin_object(writer)
     for
       (name, text) in [
-        ("version", "actql-model-invocation-evidence/0.1"),
+        (
+          "version",
+          if historical {
+            "actql-model-invocation-evidence/0.1"
+          } else {
+            "actql-model-invocation-evidence/0.2"
+          },
+        ),
         (
           "model_task_contract_cid",
           @environment.model_task_identity(state.task).2,
@@ -127,15 +159,31 @@ fn seal_model_invocation_evidence(
           "authored_model_selector",
           @environment.model_task_model_selector(state.task),
         ),
-        ("provider_reported_model_id", value.response.provider_model),
-        ("provider_request_id", value.response.provider_request_id),
         ("structured_response_artifact_cid", response_cid),
         ("validated_structured_output_cid", output_cid),
-        ("finish_reason", "stop"),
-        ("observed_at", value.response.observed_at),
+        ("observed_at", observation.observed_at),
       ] {
       @encode.key(writer, name)
       @encode.string_value(writer, text)
+    }
+    for
+      (name, text) in [
+        ("provider_reported_model_id", observation.provider_model),
+        ("provider_request_id", observation.provider_request_id),
+        (
+          "finish_reason",
+          if historical {
+            observation.historical_finish_reason
+          } else {
+            observation.provider_finish_reason
+          },
+        ),
+      ] {
+      if historical && text is None {
+        return Err(OutputIdentity)
+      }
+      @encode.key(writer, name)
+      emit_model_optional_text(writer, text)
     }
     @encode.key(writer, "attempt")
     @encode.number_value(writer, 1)
@@ -159,35 +207,62 @@ fn seal_model_invocation_evidence(
       @encode.end_array(writer)
     }
     @encode.key(writer, "input_tokens")
-    @encode.decimal_number_value(
-      writer,
-      value.response.input_tokens.to_string(),
-    )
+    emit_model_optional_tokens(writer, observation.input_tokens)
     @encode.key(writer, "output_tokens")
-    @encode.decimal_number_value(
-      writer,
-      value.response.output_tokens.to_string(),
-    )
-    @encode.end_object(writer)
-    let wire = finish_model_invocation_wire(writer)
-    let reconstructed = match
-      @publication.seal_run_evidence_value(
-        "model_invocation_evidence", wire, 16384, 1024, 16,
-      ) {
-      Err(issue) => return Err(InvocationEvidence(issue))
-      Ok(value) => value
-    }
-    if state.restored_evidence is Some(original) {
-      match
-        @publication.check_model_replayed_observation(original, reconstructed) {
-        Err(issue) => return Err(InvocationEvidence(issue))
-        Ok(_) => return Ok(original)
+    emit_model_optional_tokens(writer, observation.output_tokens)
+    if !historical {
+      for
+        (name, text) in [
+          ("provider_reported_revision", observation.provider_revision),
+          ("gateway_request_id", observation.gateway_request_id),
+          ("response_profile_cid", observation.response_profile_cid),
+          ("raw_response_artifact_cid", observation.raw_response_artifact_cid),
+        ] {
+        @encode.key(writer, name)
+        emit_model_optional_text(writer, text)
+      }
+      @encode.key(writer, "response_complete")
+      @encode.bool_value(writer, true)
+      @encode.key(writer, "provider_metadata")
+      match observation.provider_metadata {
+        Some(metadata) => {
+          value.phase = Metadata(
+            @canonical.start_emit(metadata, writer),
+            writer,
+          )
+          return Ok(None)
+        }
+        None => @encode.null_value(writer)
       }
     }
-    Ok(reconstructed)
+    @encode.end_object(writer)
+    let wire = finish_model_invocation_wire(writer)
+    finish_model_invocation_evidence(state, wire).map(result => Some(result))
   } catch {
     _ => Err(OutputIdentity)
   }
+}
+
+///|
+fn finish_model_invocation_evidence(
+  state : ModelState,
+  wire : String,
+) -> Result[@publication.RunEvidenceValue, ModelExecutionIssue] {
+  let reconstructed = match
+    @publication.seal_run_evidence_value(
+      "model_invocation_evidence", wire, 16384, 1024, 16,
+    ) {
+    Err(issue) => return Err(InvocationEvidence(issue))
+    Ok(value) => value
+  }
+  if state.restored_evidence is Some(original) {
+    match
+      @publication.check_model_replayed_observation(original, reconstructed) {
+      Err(issue) => return Err(InvocationEvidence(issue))
+      Ok(_) => return Ok(original)
+    }
+  }
+  Ok(reconstructed)
 }
 
 ///|
@@ -209,6 +284,10 @@ fn cancel_model_evidence(value : ModelEvidencePreparation) -> Unit {
       @admitted.cancel_wire_emit(cursor)
       @encode.cancel_writer(writer)
     }
+    Metadata(cursor, writer) => {
+      @canonical.cancel_emit(cursor)
+      @encode.cancel_writer(writer)
+    }
     Seal => ()
   }
 }
@@ -217,7 +296,7 @@ fn cancel_model_evidence(value : ModelEvidencePreparation) -> Unit {
 fn accept_model_slot(
   state : ModelState,
   request : ModelRequest,
-  response : ModelResponse,
+  response : ModelObservedResponse,
   input_key_cid : String,
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
@@ -235,18 +314,19 @@ fn accept_model_slot(
     }
   }
   state.responses.push(response.value)
+  let observation = response.observation
   state.captures.push({
     slot: request.slot,
     slot_cid: request.slot_cid,
     input_key_cid,
     fixed_request_cid: request.fixed_request_cid,
     provider_id: @environment.model_task_connector(state.task),
-    provider_model: response.provider_model,
-    provider_request_id: response.provider_request_id,
+    provider_model: observation.provider_model,
+    provider_request_id: observation.provider_request_id,
     value: checked,
-    input_tokens: response.input_tokens,
-    output_tokens: response.output_tokens,
-    observed_at: response.observed_at,
+    input_tokens: observation.input_tokens,
+    output_tokens: observation.output_tokens,
+    observed_at: observation.observed_at,
   })
   if state.durable_calls {
     state.settlement_pending = Some(state.next_slot)

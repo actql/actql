@@ -1,5 +1,6 @@
 ///|
 pub enum ModelPhysicalEvent {
+  BeforeInvoke
   InvokeStarted
   InvokeReturned
   InvokeFailed
@@ -7,8 +8,10 @@ pub enum ModelPhysicalEvent {
 }
 
 ///|
-/// A diagnostic fact issued at actual invoke, not a dispatch permit, saved
+/// A diagnostic fact at the named boundary, not a dispatch permit, saved
 /// response, usage receipt, or semantic completion. No payload is exposed.
+/// BeforeInvoke explicitly precedes the final current check and is unsent.
+/// Started means the invocation entry was crossed, not provider delivery.
 pub struct ModelPhysicalObservation {
   slot : Int
   attempt_cid : String
@@ -18,7 +21,9 @@ pub struct ModelPhysicalObservation {
 ///|
 /// Bind the installed Host's metadata-only observer to this exact live owner.
 /// Delivery is outside the execution boundary; this hook only copies facts
-/// and samples the physical clock. It cannot replace admission or enter_call.
+/// It cannot replace admission or enter_call. BeforeInvoke is delivered before
+/// the final gate; start/return facts are delivered after physical invocation.
+/// Their delivery timestamps cannot measure a synchronous invocation interval.
 pub fn bind_prepared_model_observation(
   value : ModelPreparedCallSet,
   observe : (ModelPhysicalObservation) -> Unit,
@@ -58,12 +63,14 @@ pub fn model_physical_observation_facts(
     value.slot,
     value.attempt_cid,
     match value.event {
+      BeforeInvoke => "before_invoke"
       InvokeStarted => "started"
       InvokeReturned => "returned"
       InvokeFailed => "failed"
       InvokeCancelled => "cancelled"
     },
     match value.event {
+      BeforeInvoke => "not_started"
       InvokeStarted => "running"
       InvokeReturned => "confirmed"
       InvokeFailed => "failed"

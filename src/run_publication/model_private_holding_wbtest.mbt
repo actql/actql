@@ -59,3 +59,65 @@ test "scoped Model custody uses the canonical independent preimage" {
     ),
   )
 }
+
+///|
+test "raw Model custody has one original entered cell and no legacy address" {
+  let definition : PublicationContract = {
+    name: "run_definition",
+    identity_field: "run_definition_cid",
+    identity: "sha256:" + "a".repeat(64),
+    wire: "{}",
+    value: @json.from_json(Json::null(), 1, 1, 1),
+  }
+  let store = "sha256:" + "b".repeat(64)
+  let scope = "sha256:" + "c".repeat(64)
+  let slot = "sha256:" + "d".repeat(64)
+  let attempt = "sha256:" + "e".repeat(64)
+  // Authored canonical preimage hashed independently with Node SHA-256.
+  // An address is not evidence of a saved object, permission or success.
+  let expected = Some(
+    "sha256:e88bde47a2c79876172258ccef1d3ffa32c681445466cfbc2e0ea3213e6d33a5",
+  )
+  assert_eq(
+    model_scoped_private_holding_cid(
+      definition, store, scope, slot, attempt, 1, "entered", "model_raw_response",
+    ),
+    expected,
+  )
+  for changed in ["sha256:" + "f".repeat(64), "invalid"] {
+    assert_true(
+      model_scoped_private_holding_cid(
+        definition, store, scope, slot, changed, 1, "entered", "model_raw_response",
+      ) !=
+      expected,
+    )
+    assert_true(
+      model_scoped_private_holding_cid(
+        definition, store, changed, slot, attempt, 1, "entered", "model_raw_response",
+      ) !=
+      expected,
+    )
+    assert_true(
+      model_scoped_private_holding_cid(
+        definition, changed, scope, slot, attempt, 1, "entered", "model_raw_response",
+      ) !=
+      expected,
+    )
+  }
+  assert_eq(
+    model_scoped_private_holding_cid(
+      definition, store, scope, slot, attempt, 1, "settled", "model_raw_response",
+    ),
+    None,
+  )
+  assert_eq(
+    model_scoped_private_holding_cid(
+      definition, store, scope, slot, attempt, 2, "entered", "model_raw_response",
+    ),
+    None,
+  )
+  assert_eq(
+    model_private_holding_cid(definition, store, "model_raw_response", 0),
+    None,
+  )
+}

@@ -1,6 +1,7 @@
 ///|
 fn evidence_account(
   outcome : @authorization.ConfiguredOutcome,
+  operations? : Array[String] = ["infer"],
 ) -> @authorization.AdmittedAccountConfiguration {
   @authorization.admit_account_configuration({
     account_id: "infer-fixture",
@@ -12,7 +13,7 @@ fn evidence_account(
           principal: @authorization.All,
           connection: @authorization.All,
           resource: @authorization.All,
-          operation: @authorization.AnyOf(["infer"]),
+          operation: @authorization.AnyOf(operations),
         },
         exclusions: [],
       },

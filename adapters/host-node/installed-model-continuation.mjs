@@ -10,6 +10,8 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
 import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
+import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
+import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -330,35 +332,19 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entries: new Map()};
     live.set(preparedCallSet, owner);
     ownership.owner = owner;
+    const persistence = selected.entryPersistence !== 'async' ? undefined :
+      createNodeInferEntryPersistence({moon, preparedCallSet, journal: cp.journal,
+        ioNotification: operation.ioNotification,
+        settled(entry, receipt) {
+          if (owner.pending?.entry !== entry) return;
+          if (receipt !== undefined) owner.entries.set(owner.pending.slot, receipt);
+          owner.pending = undefined;
+        }});
     if (observation?.canMeasure('infer')) {
-      let physical;
-      const installed = operation.bindModelObservation(preparedCallSet, facts => {
-        try {
-          if (facts.event === 'started') {
-            // MoonBit emits this only at actual invoke, after durable entry
-            // and cancellation checks, never during approval or replay.
-            physical = {slot: facts.slot, attemptCid: facts.attemptCid,
-              started: performance.now()};
-            return;
-          }
-          const interval = physical;
-          physical = undefined;
-          const receipt = owner.entries.get(facts.slot);
-          if (interval === undefined || interval.slot !== facts.slot ||
-              interval.attemptCid !== facts.attemptCid ||
-              receipt?.attemptCid !== facts.attemptCid) {
-            observation.noteLoss(); return;
-          }
-          observation.emit('infer', 'transport_completed', {
-            ref: {namespaceId, authorityScopeCid, runDefinitionCid: receipt.runDefinitionCid},
-            task: receipt.taskIndex, slot: receipt.ordinal, attempt: receipt.attemptIndex,
-            attemptCid: facts.attemptCid,
-            // This is the physical callback disposition, not Run completion
-            // or proof that a returned response was valid, saved, or published.
-            outcome: facts.outcome,
-          }, {segment: facts.attemptCid, durationMs: performance.now() - interval.started});
-        } catch { observation.noteLoss(); }
-      });
+      const installed = operation.bindModelObservation(preparedCallSet,
+        createInferPhysicalObservation({observation,
+          reference: {namespaceId, authorityScopeCid},
+          receiptAt: slot => owner.entries.get(slot)}));
       if (!installed) observation.noteLoss();
     }
     const unreconciled = new Map();
@@ -486,8 +472,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         signal?.throwIfAborted();
         if (view === undefined) view = cp.journal.registerImmediateModelCallSet({modelCallSet: originals, declaredResults, parentResume});
         owner.decision = decision;
-        operation.bindModelDispatch(control, plan, preparedCallSet, bound,
-          {account: selected.observeAccount(), principalId, at: now(), delegated: decision.runtimeDecision,
+        const dispatch = {account: selected.observeAccount(), principalId, at: now(), delegated: decision.runtimeDecision,
             observeAccount: selected.observeAccount, observeAt: now,
             enterCall(original) {
               if (!owner.available || !owner.currentProvider() ||
@@ -514,7 +499,33 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                 owner.entryFailure = error;
                 return false;
               } finally { owner.pending = undefined; }
+            }};
+        if (persistence === undefined) {
+          operation.bindModelDispatch(control, plan, preparedCallSet, bound, dispatch);
+        } else {
+          operation.bindModelEntryPersistence(control, plan, preparedCallSet, bound,
+            {...dispatch, beginEntry(original) {
+              if (!owner.available || !owner.currentProvider() ||
+                  original.callWire !== originals.slotWires[original.slot] ||
+                  !operation.entryCurrent(original.entry, preparedCallSet)) return undefined;
+              const attempt = control.admitRunEvidence('model_call_attempt', original.attemptWire, limits);
+              const reference = {...select(inventory, scopeKeys), ordinal: original.slot,
+                slotCid: inventory.slots[original.slot].slotCid,
+                attemptIndex: JSON.parse(attempt.wire).attempt, attemptCid: attempt.identity,
+                attemptWire: original.attemptWire, authorityWire: original.authorityWire};
+              owner.pending = original;
+              // Retain the exact pending Entry across physical journal await.
+              // Neither an unknown save nor a late ACK may re-enter or send.
+              const view = claim === undefined
+                ? persistence.beginImmediate(original, reference,
+                    {decision, parentResume})
+                : persistence.beginResumed(original, {...reference,
+                    checkpointCid: existing.checkpointCid,
+                    resolutionCid: decision.admission.resolutionCid}, claim);
+              if (view === undefined) owner.pending = undefined;
+              return view;
             }});
+        }
         for (const [slot, {entry, historical}] of unreconciled) {
           if (!owner.available || !owner.currentProvider()) fail('ModelProviderBindingChanged');
           signal?.throwIfAborted();

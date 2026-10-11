@@ -86,6 +86,10 @@ pub fn bind_model_invocation_saved_call(BoundModelInvocationScope, Int, RunEvide
 
 pub fn bind_model_invocation_scope(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, Array[RunEvidenceValue], ModelInvocationBoundary) -> Result[BoundModelInvocationScope, RunEvidenceValueIssue]
 
+pub fn bind_model_raw_capture_policy(RunEvidenceValue, CapturedEffectDependencyBody, CapturedEffectDependencyBody, CapturedEffectDependencyBody, CapturedEffectDependencyBody) -> Result[BoundModelRawCapturePolicy, RunEvidenceValueIssue]
+
+pub fn bind_model_raw_response(BoundModelRawCapturePolicy, RunEvidenceValue, BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelRawResponse, RunEvidenceValueIssue]
+
 pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunPublicationAdmission, PublicationContract) -> Result[BoundModelAttemptEvidence, RunEvidenceValueIssue]
 
 pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
@@ -163,6 +167,8 @@ pub fn check_model_invocation_review(BoundModelInvocationScope, RunEvidenceValue
 pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_original_run_binding(RunPublicationAdmission, PublicationContract) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_model_raw_response_binding(BoundModelRawCapturePolicy, RunEvidenceValue, BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_replayed_observation(RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -400,6 +406,8 @@ pub fn issue_local_result_occurrence_evidence(String, String, String, String, Ar
 
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
+pub fn issue_model_raw_response(BoundModelRawCapturePolicy, BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, String, Int, Int, Bool, String) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
+
 pub fn issue_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
@@ -483,6 +491,20 @@ pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
 pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
+
+pub fn model_raw_capture_policy_originals(BoundModelRawCapturePolicy) -> Array[CapturedEffectDependencyBody]
+
+pub fn model_raw_capture_policy_value(BoundModelRawCapturePolicy) -> RunEvidenceValue
+
+pub fn model_raw_response_matches_selection(BoundModelRawResponse, BoundModelRawCapturePolicy, BoundModelInvocationScope) -> Bool
+
+pub fn model_raw_response_profile_cid(BoundModelRawResponse) -> String
+
+pub fn model_raw_response_store_binding(BoundModelRawResponse) -> (String, String, String, String, Int)
+
+pub fn model_raw_response_transport_facts(BoundModelRawResponse) -> (Int, Bool, String)
+
+pub fn model_raw_response_value(BoundModelRawResponse) -> RunEvidenceValue
 
 pub fn model_scoped_private_holding_cid(PublicationContract, String, String, String, String, Int, String, String) -> String?
 
@@ -814,6 +836,14 @@ pub struct BoundModelAttemptEvidence {
 }
 
 pub struct BoundModelInvocationScope {
+  // private fields
+}
+
+pub struct BoundModelRawCapturePolicy {
+  // private fields
+}
+
+pub struct BoundModelRawResponse {
   // private fields
 }
 
