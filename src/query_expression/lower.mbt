@@ -194,6 +194,11 @@ fn scalar_call(
     "LENGTH" => ("LENGTH", "len", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
+    "POW" | "POWER" => ("POW", "pow", 2, 2)
+    "EXP" => ("EXP", "exp", 1, 1)
+    "LN" => ("LN", "ln", 1, 1)
+    "LOG" => ("LOG", "log", 1, 2)
+    "LOG10" => ("LOG10", "log10", 1, 1)
     "ABS" => ("ABS", "abs", 1, 1)
     "SIGN" => ("SIGN", "sign", 1, 1)
     "ROUND" => ("ROUND", "round", 1, 2)
@@ -215,6 +220,8 @@ fn scalar_call(
     "LTRIM" => ("LTRIM", "ltrim", 1, 2)
     "RTRIM" => ("RTRIM", "rtrim", 1, 2)
     "REPLACE" => ("REPLACE", "replace", 3, 3)
+    "GREATEST" => ("GREATEST", "greatest", 1, 2147483647)
+    "LEAST" => ("LEAST", "least", 1, 2147483647)
     "COALESCE" => ("COALESCE", "coalesce", 1, 2147483647)
     "IFNULL" => ("IFNULL", "coalesce", 2, 2)
     "IF" => ("IF", "if", 3, 3)
@@ -231,8 +238,20 @@ fn scalar_call(
 pub fn same_scalar_function(
   left : Array[@query.NamePart],
   right : Array[@query.NamePart],
+  arity? : Int? = None,
 ) -> Bool {
-  try scalar_call(left) == scalar_call(right) catch {
+  try {
+    let a = scalar_call(left)
+    let b = scalar_call(right)
+    if a == b {
+      true
+    } else {
+      // LOG(x) is the documented unary synonym of LN(x). No general
+      // lowered-operator fallback may erase public function/arity identity.
+      arity == Some(1) &&
+      ((a.0 == "LOG" && b.0 == "LN") || (a.0 == "LN" && b.0 == "LOG"))
+    }
+  } catch {
     Abort(_) => false
   }
 }
@@ -604,7 +623,9 @@ fn append_resolved(
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if name == "ceil" {
+              if name == "log" && args.length() == 1 {
+                lowering.form("ln", nodes[args[0]])
+              } else if name == "ceil" {
                 // Finite-number ceiling uses one operand subtree. The numeric
                 // zero also supplies ordinary typing for an untyped NULL.
                 let zero = lowering.form("literal", lowering.add(Number(0)))

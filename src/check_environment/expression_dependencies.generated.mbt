@@ -2,7 +2,7 @@
 
 ///|
 fn expression_dependency_root_cid() -> String {
-  "sha256:f1535aecc9cdc2c476ac7219947d806ca3718e21614983e1a4c0081b29925915"
+  "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8"
 }
 
 ///|

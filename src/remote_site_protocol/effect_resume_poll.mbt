@@ -115,3 +115,12 @@ pub fn remote_poll_effect_resume_delivery_json(
 ) -> String {
   value.delivery_json
 }
+
+///|
+/// Re-emit admitted routing unchanged for a protected local holder channel.
+/// This carries no independent Resolution admission or current resume fence.
+pub fn remote_poll_effect_resume_envelope_json(
+  value : RemotePollEffectResume,
+) -> Result[String, DispatchIssue] {
+  remote_poll_effect_resume_body(value.request, value.delivery_json)
+}

@@ -1819,7 +1819,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `abs`, `sign`, `round`, `trunc`, and `floor`;
+- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
 - the authoring-only string `template` form;
 - `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
@@ -1928,6 +1928,10 @@ The conversion/boundary truth table is normative:
 | `to_timestamp(string)` | canonical millisecond UTC `Z` spelling only; offsets fail |
 | `modulo(a,b)` | truncating remainder with dividend sign; zero divisor fails |
 | `sqrt(x)` | negative fails |
+| `pow(x,y)` | negative base requires integral exponent; zero with negative exponent fails; zero to zero is one; overflow fails and underflow returns canonical zero |
+| `exp(x)` | natural exponential; finite-input overflow fails; underflow returns canonical zero |
+| `ln(x)`, `log10(x)` | natural/base-ten logarithm; nonpositive input fails |
+| `log(x,base)` | positive value and positive base other than one required |
 | `abs(x)` | exact finite binary64 magnitude, including subnormals and maximum finite values; canonical positive zero; null propagates |
 | `sign(x)` | exactly -1, positive zero or 1 for negative, zero or positive finite binary64 input; either zero sign yields positive zero; null propagates |
 | `round(x)` | nearest integer, with exact halfway cases rounded away from zero; finite binary64 number only; null propagates |
@@ -2003,10 +2007,13 @@ atomic, not null, except where the named function explicitly specifies it.
 | `contains` | S, S → boolean | Exact matching | RelA |
 | `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
+| `pow`, `log` | N, N → N | Finite binary64 domains below; result nullable exactly when either operand is nullable; both ordered children evaluated once | RelA |
+| `exp`, `ln`, `log10` | N → N | Finite binary64 domains below; operand nullability preserved | RelA |
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; legacy safe division by zero returns null, overflow fails | RelA |
 | `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
 | `safe_negate` | N → N | Finite binary64 negation cannot overflow; preserves operand nullability | RelA |
 | `abs`, `sign` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
+| `greatest`, `least` | N × … × N → N (one or more) | Finite numeric order; strict NULL after once-only ordered child demand; nullable iff any child is nullable | RelA |
 | `round`, `trunc` | N → N or N × N → N | One or two children evaluated once on demand in authored order; result nullable exactly when any child is nullable; explicit decimal position must be integral when both values are non-null | RelA |
 | `to_number`, `to_boolean`, `to_timestamp` | S or the exact target type → indicated type | [Explicit casts](#casts) closed conversion table; same-type identity | RelA |
 | `to_string` | string, number, decimal, boolean, timestamp, or date → S | Canonical spelling; json/object/array/vector and both reference types are rejected | RelA |
@@ -2047,6 +2054,78 @@ case-sensitive with `%`, `_`, and backslash escape; `replace` is
 non-overlapping left-to-right and an empty search is a no-op. `lower`/`upper`
 use Unicode 16.0 default mappings; a runtime without exactly those tables MUST
 reject those functions rather than use host-dependent mappings.
+
+<!-- requirement-block: scalar-expressions.finite-number-powers-and-logarithms -->
+Finite Number math MUST accept unary `exp`, `ln`, `log10` and binary `pow`,
+`log` with a Number result, nullable exactly when any operand is nullable.
+
+<!-- requirement-block: scalar-expressions.finite-math-no-coercion -->
+These functions MUST NOT coerce STRING, BOOLEAN, DECIMAL, arrays or objects
+into Number.
+
+<!-- requirement-block: scalar-expressions.finite-math-canonical-arities -->
+JSON `pow` and `log` bodies MUST be exactly two ordered expressions, while
+JSON `exp`, `ln` and `log10` bodies are one expression.
+
+<!-- requirement-block: scalar-expressions.finite-math-text-aliases -->
+Expression text MUST accept `power(x, y)` as `pow(x, y)` and `log(x)` as
+`ln(x)` without a distinct canonical operation.
+
+<!-- requirement-block: scalar-expressions.finite-pow-domain -->
+For non-null finite inputs, POW MUST require an integral exponent for a
+negative base, fail for a zero base with a negative exponent, and return one
+for zero to zero.
+
+<!-- requirement-block: scalar-expressions.finite-exp-pow-range -->
+EXP and POW MUST fail on overflow, preserve representable subnormals and
+return canonical positive zero for unrepresentable underflow.
+
+<!-- requirement-block: scalar-expressions.finite-logarithm-domain -->
+LN and LOG10 MUST require a positive argument; binary LOG requires a positive
+value and a positive base other than one.
+
+<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation scalar-expressions.finite-math-target-independent-kernel -->
+These functions MUST evaluate demanded operands once in source order and
+preserve ordinary child failures before strict NULL handling, including a
+later demanded child failure after an earlier NULL. They do not catch child
+errors. The same pinned portable numeric kernel MUST be used across JS,
+WebAssembly and Native, preserving exact logical Number bits for identical
+admitted inputs and selected contracts. Live-BigQuery last-bit equality is not
+guaranteed.
+
+<!-- requirement-block: scalar-expressions.number-extrema scalar-expressions.number-extrema-null scalar-expressions.number-extrema-demand scalar-expressions.number-extrema-order scalar-expressions.number-extrema-subset scalar-expressions.number-extrema-identity -->
+`greatest(x, ...)` and `least(x, ...)` MUST take one or more finite binary64
+`number` expressions.
+
+The result MUST be `number`, nullable exactly when any operand is nullable,
+with each immediate untyped NULL taking the unique number signature including
+an all-NULL list and any NULL producing NULL only after all demanded child
+evaluations succeed.
+
+ActQL's common expression continuation MUST evaluate each demanded child
+exactly once in authored left-to-right order, preserve the first child failure
+and enclosing lazy IF/CASE/COALESCE demand, and retain the existing
+entry/operand/result charges, live-root, frame, control/workspace and cancellation
+rules without charging fold accumulators as extra semantic results.
+
+For non-null operands the result MUST be the greatest or least operand in the
+existing finite numeric order, preserving its exact binary64 value with canonical
+positive zero for either zero sign, with singleton calls using the same zero
+rule and without arithmetic overflow or precision reduction.
+
+This finite Number subset MUST reject STRING, BOOLEAN, temporal, decimal,
+BYTES, non-finite and mixed-type overloads, explicit collation, and implicit
+conversions without adding a private STRING comparator or changing shared global
+comparison or canonical-key ordering. GoogleSQL string ordering is by Unicode
+code point, whereas the current canonical ActQL string owner orders UTF-16 code
+units. Other overloads remain implementation gaps, without imposing new
+language-wide restrictions.
+
+The closed source forms `{greatest: [first, ...]}` and `{least: [first, ...]}`
+MUST lower to the same operation with an ordered nonempty machine `body` array,
+retaining singleton calls and every authored child in order including repetitions,
+without sorting, deduplication or constant folding and without changing the
+meanings of earlier contract bodies or CIDs.
 
 <!-- requirement-block: scalar-expressions.round-trunc scalar-expressions.round-trunc-evaluation scalar-expressions.round-trunc-precision-integrality scalar-expressions.round-trunc-precision-position-bounds scalar-expressions.round-trunc-precision-algorithm scalar-expressions.round-trunc-precision-final-scaling scalar-expressions.round-trunc-precision-operation-order scalar-expressions.round-trunc-precision-overflow scalar-expressions.round-trunc-budgets scalar-expressions.round-trunc-exclusions scalar-expressions.round-trunc-precision-identity -->
 `round(x)` and `trunc(x)` MUST each take one finite binary64 `number`,
@@ -2291,8 +2370,11 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `trim(x, characters)`, `ltrim(x, characters)`, `rtrim(x, characters)` | corresponding scalar trim with an explicit STRING code-point set |
+| `pow(x, y)`, `power(x, y)` | canonical `pow` with two ordered Number expressions |
+| `log(x)` | canonical unary `ln` |
+| `log(x, base)` | canonical binary `log` |
 | `round(x, n)`, `trunc(x, n)` | corresponding finite binary64 scalar with an explicit integral NUMBER decimal-position expression |
 | `to_number(x)`, `to_string(x)`, `to_boolean(x)`, `to_timestamp(x)` | explicit conversion |
 | `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `strpos(value, subvalue)`, `safe_div(left, right)`, `safe_add(left, right)`, `safe_subtract(left, right)`, `safe_multiply(left, right)`, `safe_divide(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
@@ -10211,7 +10293,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:fd7c7c298d51392bf9034a6e999373068d5f73065420ba5276b7af1ab66d3072
+../../spec/contracts/actql-aoa.json# sha256:693901eb7cdc7f0ed0fa8034ce150100e5256fa5a0398c32c1df9c14f328f6a4
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10220,13 +10302,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:f1535aecc9cdc2c476ac7219947d806ca3718e21614983e1a4c0081b29925915
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:0f6da91d702bc6063f1ad66ed084fd7df37028912b59e63d73f4a3c4bf2555f7
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:cc901cc8dec4bc3fb92a677b4ec6b7bae7f143a52ca39216b76b9e061936a597
+../../spec/contracts/actql-expressions.json# sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:74946f7980f7f6b6b4ed8bb4bfbac365e0226dffc969db4bd1d2060dd3b11588
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:96bf3fd77689f37b5ed6a8bfc1d8af44c85a544f9b7d3be263569e95fea6c4ce
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:1c95eceaaef8207fee616832e3291f951cddae874077276778940b87829b09e5
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:f1661e535dcb9a56b19dee493b7d974af11f9473f4e39345dfc4c69d182c6fc0
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:fb4d935382338782a54ce5d3e81dd532c05762d9ce446f2600a0a30d49ab4d53
+../../spec/contracts/actql-expressions.json#/laws sha256:6eef6e41a652688589e911a39ddc04bd474e921c69d9de988f9108ee80fc62b9
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:f37a3ab662a77f627925e858c3f9e22634139f427c9c09ffef1eab254e4828dd
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:4e6c59ef3eb781849b6135177ca52f6801c2df8bb3707d9a072cb96cb2adfbb7
 ```
 
 <!-- stage-contract-pins:start -->

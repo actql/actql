@@ -54,6 +54,9 @@ fn Parser::call(
   let (minimum, maximum) = match name {
     "len"
     | "sqrt"
+    | "exp"
+    | "ln"
+    | "log10"
     | "abs"
     | "sign"
     | "safe_negate"
@@ -68,8 +71,10 @@ fn Parser::call(
     | "try_number"
     | "nfkc"
     | "case_fold" => (1, 1)
-    "trim" | "ltrim" | "rtrim" | "round" | "trunc" => (1, 2)
+    "trim" | "ltrim" | "rtrim" | "round" | "trunc" | "log" => (1, 2)
     "contains"
+    | "pow"
+    | "power"
     | "strpos"
     | "starts_with"
     | "ends_with"
@@ -97,13 +102,19 @@ fn Parser::call(
     "decimal_divide" => (5, 5)
     "regex_match" => (2, 3)
     "regex_extract" | "regex_replace" => (3, 4)
-    "concat" | "concat_strict" | "coalesce" => (1, self.tokens.length())
+    "concat" | "concat_strict" | "coalesce" | "greatest" | "least" =>
+      (1, self.tokens.length())
     "vector_concat" => (2, self.tokens.length())
     _ => raise UnknownFunction(token.start, token.end)
   }
   if args.length() < minimum || args.length() > maximum {
     raise InvalidArguments(token.start, token.end)
   }
+  // Normalize only documented aliases after validating their own arity.
+  if name == "log" && args.length() == 1 {
+    return self.form("ln", args[0])
+  }
+  let name = if name == "power" { "pow" } else { name }
   if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(name) {
     return self.form(
       "cast",

@@ -54,6 +54,9 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Exp
+  Ln
+  Log10
   Abs
   Sign
   Round
@@ -72,6 +75,8 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  Pow
+  Log
   RoundAt
   TruncAt
   Strpos
@@ -97,6 +102,8 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
@@ -220,6 +227,9 @@ fn expression_tag(
     | "rtrim"
     | "floor"
     | "sqrt"
+    | "exp"
+    | "ln"
+    | "log10"
     | "abs"
     | "sign"
     | "round"
@@ -240,6 +250,8 @@ fn expression_tag(
     | "safe_subtract"
     | "safe_multiply"
     | "modulo"
+    | "pow"
+    | "log"
     | "strpos"
     | "starts_with"
     | "ends_with"
@@ -257,6 +269,8 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "concat"
     | "concat_strict"
     | "len"
@@ -326,6 +340,9 @@ fn expression_children(
     | "lower"
     | "floor"
     | "sqrt"
+    | "exp"
+    | "ln"
+    | "log10"
     | "abs"
     | "sign"
     | "safe_negate"
@@ -926,6 +943,9 @@ fn lower_typed_expression_measured(
           }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
+        "exp" => Unary(Exp, args[0])
+        "ln" => Unary(Ln, args[0])
+        "log10" => Unary(Log10, args[0])
         "abs" => Unary(Abs, args[0])
         "sign" => Unary(Sign, args[0])
         "round" =>
@@ -958,6 +978,8 @@ fn lower_typed_expression_measured(
         "safe_subtract" => Binary(SafeSubtract, args[0], args[1])
         "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
+        "pow" => Binary(Pow, args[0], args[1])
+        "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
@@ -986,6 +1008,8 @@ fn lower_typed_expression_measured(
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)
+        "greatest" => Many(Greatest, args)
+        "least" => Many(Least, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)

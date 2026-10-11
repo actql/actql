@@ -56,6 +56,9 @@ fn expression_role(
     | "is_unknown"
     | "len"
     | "sqrt"
+    | "exp"
+    | "ln"
+    | "log10"
     | "abs"
     | "sign"
     | "safe_negate"
@@ -80,6 +83,8 @@ fn expression_role(
     | "multiply"
     | "divide"
     | "modulo"
+    | "pow"
+    | "log"
     | "eq"
     | "neq"
     | "lt"
@@ -95,6 +100,8 @@ fn expression_role(
     | "or"
     | "concat_strict"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "if"
     | "between"
     | "contains"
@@ -149,7 +156,13 @@ fn arity(
 ) -> Unit raise Stop {
   let valid = match tag {
     "array" => true
-    "and" | "or" | "concat_strict" | "coalesce" | "concat" => size >= 1
+    "and"
+    | "or"
+    | "concat_strict"
+    | "coalesce"
+    | "concat"
+    | "greatest"
+    | "least" => size >= 1
     "vector_concat" => size >= 2
     "if" | "between" | "replace" | "date_add" | "date_diff" => size == 3
     _ => size == 2

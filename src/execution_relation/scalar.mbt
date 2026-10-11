@@ -134,6 +134,23 @@ pub fn unary(
         Number(n) => finite(if n < 0.0 { -n } else { n })
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Exp | Ln | Log10 =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else if op == @lower.Exp {
+            finite(@math.exp(n))
+          } else if n <= 0.0 {
+            Err(ArithmeticFailure)
+          } else if op == @lower.Ln {
+            finite(@math.ln(n))
+          } else {
+            finite(@math.log10(n))
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Sqrt =>
       match value {
         Null => Ok(Null)
@@ -349,6 +366,8 @@ pub fn binary(
     | Multiply
     | Divide
     | Modulo
+    | Pow
+    | Log
     | SafeAdd
     | SafeSubtract
     | SafeMultiply
@@ -373,6 +392,20 @@ pub fn binary(
             finite(a / b)
           }
         Modulo => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a % b) }
+        Pow =>
+          if (a < 0.0 && b.trunc() != b) || (a == 0.0 && b < 0.0) {
+            Err(ArithmeticFailure)
+          } else {
+            // Integrality stays in binary64, including finite exponents beyond
+            // every bounded integer range. Reuse canonical finite/zero handling.
+            finite(@math.pow(a, b))
+          }
+        Log =>
+          if a <= 0.0 || b <= 0.0 || b == 1.0 {
+            Err(ArithmeticFailure)
+          } else {
+            finite(@math.ln(a) / @math.ln(b))
+          }
         Equal
         | NotEqual
         | IsDistinctFrom
@@ -461,6 +494,8 @@ fn binary_comparison_result(
     | SafeSubtract
     | SafeMultiply
     | Modulo
+    | Pow
+    | Log
     | In
     | NotIn
     | RoundAt
@@ -506,8 +541,14 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce | Concat | ConcatStrict | Replace | Substring | Between =>
-      Err(InvalidOperand)
+    Coalesce
+    | Concat
+    | ConcatStrict
+    | Replace
+    | Substring
+    | Between
+    | Greatest
+    | Least => Err(InvalidOperand)
   }
 }
 
@@ -523,5 +564,48 @@ fn membership_result(
     Null
   } else {
     Boolean(op == @lower.NotIn)
+  }
+}
+
+///|
+// Extrema reuse the common finite-number comparison owner. The common Many
+// continuation still evaluates later children after NULL and owns every root.
+fn number_extremum(
+  op : @lower.ManyOperator,
+  previous : Value,
+  value : Value,
+  first : Bool,
+) -> Result[Value, ScalarIssue] {
+  if op != @lower.Greatest && op != @lower.Least {
+    return Err(InvalidOperand)
+  }
+  match value {
+    Null => Ok(Null)
+    Number(n) => {
+      // Validate even after an earlier NULL, including a non-null singleton.
+      match compare(value, value) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      if first {
+        return finite(n)
+      }
+      match previous {
+        Null => Ok(Null)
+        Number(_) =>
+          match compare(previous, value) {
+            Err(issue) => Err(issue)
+            Ok(order) =>
+              if (op == @lower.Greatest && order < 0) ||
+                (op == @lower.Least && order > 0) {
+                finite(n)
+              } else {
+                Ok(previous)
+              }
+          }
+        _ => Err(InvalidOperand)
+      }
+    }
+    _ => Err(InvalidOperand)
   }
 }

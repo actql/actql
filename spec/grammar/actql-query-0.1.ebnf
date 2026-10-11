@@ -185,9 +185,10 @@ pivot_call = pivot_aggregate, "(", expression, ")" | "COUNT", "(", "*", ")" ;
 pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
 pivot_value = query_string, [ [ "AS" ], identifier ] ;
 unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
-                   "(", identifier, "FOR", identifier, "IN", "(",
+                   "(", unpivot_column_set, "FOR", identifier, "IN", "(",
                    unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;
-unpivot_input = identifier, [ [ "AS" ], ( query_string | integer ) ] ;
+unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
+unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",

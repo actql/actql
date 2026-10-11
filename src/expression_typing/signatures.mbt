@@ -564,11 +564,18 @@ fn infer(
       )
     }
     "sqrt"
+    | "pow"
+    | "exp"
+    | "ln"
+    | "log"
+    | "log10"
     | "floor"
     | "abs"
     | "sign"
     | "round"
     | "trunc"
+    | "greatest"
+    | "least"
     | "safe_negate"
     | "safe_div"
     | "safe_divide"

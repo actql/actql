@@ -1093,6 +1093,8 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  Pow
+  Log
   RoundAt
   TruncAt
   Strpos
@@ -1479,6 +1481,8 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
@@ -1895,6 +1899,9 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Exp
+  Ln
+  Log10
   Abs
   Sign
   Round

@@ -153,6 +153,8 @@ fn check_backend_capabilities(
             | SafeSubtract
             | SafeMultiply
             | Modulo
+            | Pow
+            | Log
             | RoundAt
             | TruncAt
             | TrimSet
