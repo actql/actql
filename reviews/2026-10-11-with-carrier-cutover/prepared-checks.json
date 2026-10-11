@@ -1,0 +1,47 @@
+{
+  "source_sha": "6d0f1a3782d687dc98715ea144e0b8cd177e49c6",
+  "source_tree": "6201eeb09af32789b0f548e42f03fa7047bba4a0",
+  "heavy": false,
+  "timeout_seconds": 60,
+  "grace_seconds": 5,
+  "note": "Use repository-pinned environment and existing nonzero wrappers. These commands are reproducible selections, not permission to run concurrent gates or new Heavy/public campaigns.",
+  "commands": [
+    [
+      "node",
+      "scripts/local-checks.mjs",
+      "test",
+      "node",
+      "--timeout-seconds",
+      "60",
+      "--kill-grace-seconds",
+      "5",
+      "--",
+      "scripts/frontend-profile.test.mjs",
+      "scripts/sga-query-call-contract.test.mjs",
+      "scripts/client-values-run-materials-vector.test.mjs",
+      "scripts/compilation-manifests.test.mjs"
+    ],
+    [
+      "node",
+      "scripts/local-checks.mjs",
+      "test",
+      "moon",
+      "--timeout-seconds",
+      "60",
+      "--kill-grace-seconds",
+      "5",
+      "--",
+      "--target",
+      "js",
+      "src/query_syntax/graph_test.mbt",
+      "src/query_syntax/string_literals_test.mbt",
+      "src/query_syntax/literal_forms_test.mbt",
+      "src/query_program/with_graph_binding_test.mbt",
+      "src/query_program/quoted_graph_macro_wbtest.mbt",
+      "src/source_frontend/with_graph_binding_test.mbt",
+      "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+    ]
+  ],
+  "actual_evidence": "p1-grammar-pin-execution.json",
+  "public_execution": "not_started"
+}
