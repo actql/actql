@@ -14,10 +14,11 @@ pub fn install_native_credential_resource_service_with_initial_use_claim(
   client : @http.Client,
   operations : Array[NativeCredentialOperation],
   authorize : (NativeCredentialAuthorization) -> Bool,
-  claim_initial_use : (@credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[
-    Unit,
-    NativeCredentialResourceIssue,
-  ],
+  claim_initial_use : (
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue],
   retain_use : (@credential.RemoteCredentialUse) -> Result[
     Unit,
     NativeCredentialResourceIssue,

@@ -97,10 +97,11 @@ struct NativeCredentialResourceService {
     Unit,
     NativeCredentialResourceIssue,
   ])?
-  claim_initial_remote_use : ((@credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[
-    Unit,
-    NativeCredentialResourceIssue,
-  ])?
+  claim_initial_remote_use : ((
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue])?
   clock : () -> Int64
 }
 
@@ -384,10 +385,11 @@ fn install_native_credential_resource_service_with_clock(
     Unit,
     NativeCredentialResourceIssue,
   ])? = None,
-  claim_initial_remote_use? : ((@credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[
-    Unit,
-    NativeCredentialResourceIssue,
-  ])? = None,
+  claim_initial_remote_use? : ((
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue])? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   if claim_initial_remote_use is Some(_) && retain_remote_use is None {
     return Err(InvalidConfiguration)

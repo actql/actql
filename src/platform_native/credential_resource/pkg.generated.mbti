@@ -31,6 +31,8 @@ pub fn call_native_local_preparation_credential_resource_guarded_request_at_path
 
 pub fn install_native_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
+pub fn install_native_credential_resource_service_with_initial_use_claim(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool, (@remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[Unit, NativeCredentialResourceIssue], (@remote_credential.RemoteCredentialUse) -> Result[Unit, NativeCredentialResourceIssue]) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
+
 pub fn install_native_credential_resource_service_with_use_retention(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeCredentialAuthorization) -> Bool, (@remote_credential.RemoteCredentialUse) -> Result[Unit, NativeCredentialResourceIssue]) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn install_native_local_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeLocalCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]

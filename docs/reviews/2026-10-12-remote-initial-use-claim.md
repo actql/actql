@@ -67,5 +67,13 @@ fixture and fail if it is absent. They cover claim refusal before ordinal/use,
 saved-use replay after failed retention, and current-permission loss during the
 claim. They are compile-only until an explicit physical verification window.
 Pure existing retention and Local read-only checks are reported separately.
+The new fixed `ForeignEffectMaterials` CLI diagnostic fixture is also
+Native compile-only. The normal integration exposed the previously missing
+exhaustive branch; the branch logs no caller/provider payload.
 No Provider, public Effect, Result/release, Preview or hosted CI acceptance is
 asserted by this preparation unit.
+
+Current main `8334cedac2200004a60d69b40d5a715200f59e72` (including the
+reviewed #1483/#1486 integration) is normally merged. The original Host
+subject/current/admission suppliers remain uninstalled; their three existing
+struct warnings are retained without suppression or dummy construction.
