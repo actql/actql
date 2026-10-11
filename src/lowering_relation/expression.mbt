@@ -125,6 +125,8 @@ pub(all) enum ManyOperator {
   ConcatStrict
   Replace
   Repeat
+  Translate
+  Instr
   Split
   Substring
   LeftString
@@ -315,6 +317,8 @@ fn expression_tag(
     | "chr"
     | "reverse"
     | "repeat"
+    | "translate"
+    | "instr"
     | "replace"
     | "split"
     | "substring"
@@ -1073,6 +1077,8 @@ fn lower_typed_expression_measured(
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
         "repeat" => Many(Repeat, args)
+        "translate" => Many(Translate, args)
+        "instr" => Many(Instr, args)
         "split" => Many(Split, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)

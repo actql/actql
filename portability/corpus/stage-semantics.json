@@ -6,10 +6,10 @@
       "name": "local-binding-and-parameter-uses",
       "empty": false,
       "stage": 0,
-      "expected_cid": "sha256:3d972fc9a9eb4435528c77ac116c995e4fa8479f27e02556373d849a2cdb3824",
+      "expected_cid": "sha256:0f546c44df0ee801671ddbea6f02c162d1127feca662585aaf1f07bfa9ab0bfa",
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3",
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
         "parameters": {
           "m": {
             "type": "number"
@@ -125,10 +125,10 @@
       "name": "other-stage-declarations-excluded",
       "empty": false,
       "stage": 1,
-      "expected_cid": "sha256:c9069a70c1638ffc959d86efc1210800fd6fe826652867db3886c8b3afafb5fc",
+      "expected_cid": "sha256:fc4597eda6e0657b42c22c77b2c4a0f7164bd3d6c8891b5b50cd92d3d238d888",
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3",
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
         "parameters": {
           "m": {
             "type": "number"
@@ -168,10 +168,10 @@
       "name": "explicit-empty-maps-and-lists",
       "empty": true,
       "stage": 1,
-      "expected_cid": "sha256:9d3d87d98e74632d28e04599852195214cfba88c9ee533ee39bb776619963456",
+      "expected_cid": "sha256:712271fd7c4f6871ab75f61cd6a9b8b84f950b3d73c69f14659f4b797331138d",
       "envelope": {
         "version": "actql-stage-semantics/0.1",
-        "expression_contract_cid": "sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3",
+        "expression_contract_cid": "sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068",
         "parameters": {},
         "parameter_references": [],
         "bindings": {},

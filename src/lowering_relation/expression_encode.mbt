@@ -262,6 +262,8 @@ fn emit_frames(
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
                   Repeat => "repeat"
+                  Translate => "translate"
+                  Instr => "instr"
                   Split => "split"
                   Substring => "substring"
                   LeftString => "left"

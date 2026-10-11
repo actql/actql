@@ -2101,6 +2101,75 @@ node. SQL and expression-text CBRT select this same common operation without
 folding, duplication or synthetic children, including constant arguments.
 Earlier pinned bodies retain their meaning and identities.
 
+<!-- requirement-block: scalar-expressions.google-translate-instr-signatures -->
+`translate(value, source, target)` MUST accept exactly three STRING operands.
+`instr(value, subvalue[, position[, occurrence]])` accepts two STRING operands
+and zero, one or two finite Number operands in that order. Untyped NULL takes
+the unique positional signature. No implicit conversion, BYTES, collation,
+regex or distinct INT64 overload is introduced.
+
+<!-- requirement-block: scalar-expressions.google-translate-value -->
+Demanded non-null `translate` MUST map each original Unicode scalar at most
+once using its source index to select the corresponding target scalar, leave
+scalars absent from source unchanged, delete source scalars without a target,
+and ignore surplus target scalars. Reject every duplicate source scalar,
+including unused duplicates and an empty value. Mapping is simultaneous,
+not cascading; preserve astral scalars, combining marks and NUL without
+normalization or grapheme segmentation.
+
+<!-- requirement-block: scalar-expressions.google-instr-value -->
+Demanded non-null `instr` MUST return the 1-based Unicode scalar start position
+of the requested exact subvalue occurrence, or zero when unreachable. Omitted
+position and occurrence each mean one. Positive position starts a forward search
+at that 1-based scalar; negative position starts a backward search at scalar
+length plus position plus one. Count overlapping matches separately, preserve
+exact strings without normalization, and apply the same direction to subsequent
+occurrences.
+
+<!-- requirement-block: scalar-expressions.google-instr-empty -->
+An empty `instr` subvalue MUST match the scalar length plus one boundaries.
+Positive position starts at that boundary; negative position starts at scalar
+length plus position plus two. Each further occurrence moves one boundary in
+the search direction; return zero outside the boundary range. Empty value and
+empty subvalue at default position and occurrence return one. Thus
+`instr('ab', '', 1, 3)` is three, its fourth occurrence is zero,
+`instr('a', '', -1)` is two, and `instr('a', '', -2)` is one.
+
+<!-- requirement-block: scalar-expressions.google-instr-number-domain -->
+After strict NULL propagation, `instr` MUST require an integral nonzero position
+and integral positive occurrence, validating both domains before empty or
+out-of-range shortcuts. This explicitly adapts Google's INT64 parameters to the
+existing finite binary64 Number domain without a safe-integer or INT64 cap.
+Compare valid positions and occurrences with bounded scalar or boundary counts
+before narrowing; huge unreachable integral values return zero without a huge
+binary64 decrement loop. Earlier SUBSTR and padding domains remain unchanged.
+
+<!-- requirement-block: scalar-expressions.google-translate-instr-typing -->
+Typing MUST check every authored operand without evaluating it and union all
+supplied operand nullabilities. `translate` returns String, retaining only its
+value input max_codepoints bound when present: deletion can empty the result
+and substitution can expand UTF-8 width, so min_length and max_utf8_bytes are
+dropped. `instr` returns Number; omitted defaults do not add operands or narrow
+the type. Runtime domain checks do not replace static operand checking.
+
+<!-- requirement-block: scalar-expressions.google-translate-instr-demand-resources -->
+The common continuation MUST demand every supplied child exactly once in
+authored left-to-right order, preserving later child failures after an earlier
+NULL, before strict NULL propagation and operation-domain validation. Preserve
+enclosing lazy demand, retained roots, logical operand/result and control
+charges, live-value/output-byte and workspace limits, and cooperative
+cancellation. Admit scratch and complete output storage through existing owners
+before allocation. No arbitrary scalar cap or frontend/Host evaluator is added.
+
+<!-- requirement-block: scalar-expressions.google-translate-instr-identity -->
+Canonical lowering MUST retain ordered arrays `{translate: [value, source,
+target]}` and `{instr: [value, subvalue, position?, occurrence?]}`, with matching
+`{op, body}` machine nodes containing the same authored expression nodes.
+Preserve two-, three- and four-operand INSTR forms as distinct identities even
+when explicit defaults have equal results. SQL and expression-text calls select
+these same operations without folding, duplication, injected default children
+or rewriting INSTR as STRPOS. Earlier pinned bodies retain their identities.
+
 <!-- requirement-block: scalar-expressions.google-repeat-reverse-signatures -->
 `repeat(value, count)` MUST accept exactly a STRING and finite Number in that
 order and return String with their unioned nullability. `reverse(value)` accepts
@@ -2293,6 +2362,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | `substring` | S, N[, N] → S | GoogleSQL scalar positions; optional length; strict NULL; demanded index-domain failures; known input upper bounds retained | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
+| `translate` | S, S, S → S | Simultaneous scalar mapping/deletion; duplicate source fails after strict NULL; retain only value max_codepoints | RelA |
+| `instr` | S, S[, N[, N]] → N | Directed overlapping occurrence search; defaults one; empty-pattern boundaries; integral nonzero position and positive occurrence | RelA |
 | `strpos` | S, S → N | First exact match at a 1-based Unicode scalar position; absent 0; empty subvalue 1; nullable exactly when either operand is nullable | RelA |
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
 | `pow`, `log` | N, N → N | Finite binary64 domains below; result nullable exactly when either operand is nullable; both ordered children evaluated once | RelA |
@@ -2679,6 +2750,8 @@ an optional final argument, not expression syntax.
 | `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
 | `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
 | `split(value[, delimiter])` | common ordered-array expression; ordinary optional STRING delimiter; omitted delimiter remains omitted |
+| `translate(value, source, target)` | common ternary ordered-array expression; simultaneous STRING scalar mapping |
+| `instr(value, subvalue[, position[, occurrence]])` | common two-to-four operand ordered-array expression; omitted defaults remain omitted |
 | `substring(value, start[, length])` | common scalar substring named body; omitted length is distinct from explicit NULL |
 | `split_part(value, delimiter, index)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
 | `try_number(value)`, `nfkc(value)`, `case_fold(value)` | [Text, time, and regular expressions](#text-time) unary expressions |
@@ -10586,7 +10659,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:85737f1db43af7961c5e61b3fe1c18268de9920d12a8bda1340a295d4865a3f8
+../../spec/contracts/actql-aoa.json# sha256:b9131c4fab115a11c97d902b59788c5d0b54edfa563acb6dfb39e5a40463408a
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10595,13 +10668,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:c4511cdd7ccbe6cdf6753d9464bba042c675b604ee99faacf3d9f9a4da0e28e1
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:86819d0eb7fe74883985f02b2df0498a42e525ca9ee13a9be9f46c02d4c02153
+../../spec/contracts/actql-expressions.json# sha256:14a39a0812d6bb5a7a6a4a78c1431c5d6bf14407645b883da1f0acb3627e9068
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:813b8eb2aedb09ded46851075f0bc5c2df5158782e791b267c9097517abb96b5
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:15d526e1fef0f003c3cc66715c5a7ca60ff1d24508eab20b44cc37f6124131c3
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:636abe75da6a384b94cf061b04bc37767a63169c9f1129ac6cca41a8c22b2497
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e54bb919a70ce82b8948963f8e37e40d34032015e0a8385aa13d8e77bc97905a
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:82a7f1ac5b45964400ae39b891bb82112ae2a41b4a8aa2397e86a8fcbc63a9dd
+../../spec/contracts/actql-expressions.json#/laws sha256:155b0f74d126dd952d00923262fc3635a00c8f6518e6d15009269a17b8e1ef3b
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:b924311d35a118ab7ba0944690f6175606d8fcea0fdb89ad8bb8071fa7f589e3
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:efd1cf279fa61aa22b1e1634646bd8cf9136967fccbb4eec81416ebe1ac0f012
 ```
 
 <!-- stage-contract-pins:start -->

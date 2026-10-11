@@ -201,6 +201,25 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`TRANSLATE(value, source, target)` selects the ordered ternary `translate`
+common expression for STRING only. Its simultaneous Unicode scalar mapping
+leaves absent scalars unchanged, deletes source scalars without corresponding
+targets, ignores surplus targets and rejects duplicate source scalars.
+`INSTR(value, subvalue[, position[, occurrence]])` selects ordered `instr`
+with two to four authored operands. Defaults are one; canonical bodies retain
+omission rather than adding children. It returns 1-based scalar positions or
+zero, searches backward for negative position, and counts overlapping matches.
+Empty subvalue matches the length-plus-one scalar boundaries: positive position
+selects that boundary, negative position selects length plus position plus two.
+Both numeric operands require integral finite Number values, position nonzero
+and occurrence positive. This explicitly adapts the
+[GoogleSQL INT64 parameters](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#instr)
+to the existing finite binary64 domain without an INT64 or safe-integer cap;
+large unreachable valid values return zero before narrowing. The
+[TRANSLATE reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#translate)
+and common strict NULL, child-error, typing, resource and cancellation owners
+apply. BYTES, collation, regex and implicit coercion are not added.
+
 `REPEAT(value, count)` selects the ordered binary `repeat` common expression;
 `REVERSE(value)` selects direct unary `reverse`. REPEAT accepts a STRING and
 nonnegative integral finite Number count, returning empty for zero or an empty

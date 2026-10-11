@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "3834e239750ed29dfc34a512655835a8dc9064651ef92d2a56cff5ef6b508a26",
+  "grammar_sha256": "02ac66c34edc5114f0b919e8c5a9e7b147f2154268e29b8e3b9b1ba1b8ed6222",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5819,6 +5819,40 @@
               "properties": {
                 "atanh": {
                   "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "translate"
+              ],
+              "properties": {
+                "translate": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "instr"
+              ],
+              "properties": {
+                "instr": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
                 }
               }
             }
@@ -12166,6 +12200,48 @@
                 },
                 "body": {
                   "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "translate"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "instr"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
                 }
               }
             }
@@ -23927,6 +24003,40 @@
                   "$ref": "#/$defs/source_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "translate"
+              ],
+              "properties": {
+                "translate": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "instr"
+              ],
+              "properties": {
+                "instr": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -29374,6 +29484,48 @@
                 },
                 "body": {
                   "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "translate"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "instr"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
                 }
               }
             }
@@ -37167,6 +37319,40 @@
                   "$ref": "#/$defs/source_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "translate"
+              ],
+              "properties": {
+                "translate": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "instr"
+              ],
+              "properties": {
+                "instr": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -42616,6 +42802,48 @@
                   "$ref": "#/$defs/machine_expression"
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "translate"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "instr"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -43703,6 +43931,20 @@
       "algorithm": "Use the selected target's pinned MoonBit core math atanh primitive and canonical finite-result validation. Do not reconstruct it from other operations or use a frontend/Host evaluator. Preserve every existing numeric accuracy and exception contract; general last-bit equality across native, WebAssembly, JavaScript, platform math libraries or live BigQuery is not asserted.",
       "evaluation": "Demand the sole child exactly once and preserve its failure before strict NULL propagation. Preserve enclosing lazy demand, retained roots, logical operand/result and control charges, live-value and workspace limits, and cooperative cancellation through the common continuation and canonical scalar evaluator.",
       "identity": "The closed source is {atanh: expression} and the closed machine node is {op: atanh, body: expression_node}. ATANH selects this same direct operation. Retain every authored child in order without folding or duplication, including constants; earlier pinned contract bodies retain their identities."
+    },
+    "translate": {
+      "signature": "Exactly three ordered STRING operands: value, source and target. Return String with the union of all operand nullabilities. Untyped NULL takes the unique STRING signature. No implicit conversion, BYTES, collation or regex overload is admitted.",
+      "typing": "Type-check every authored operand without evaluating it. Preserve only the value input max_codepoints bound when present; drop min_length because deletion can empty the result and max_utf8_bytes because substitution can expand encoded width.",
+      "value": "After all demanded children succeed and strict NULL propagation, translate each original Unicode scalar at most once using its index in source to select the corresponding target scalar. Leave absent scalars unchanged, delete source scalars with no corresponding target, and ignore surplus target scalars. Reject every duplicate source scalar even when unused or when the value is empty. Mapping is simultaneous, not cascading. Preserve exact astral scalars, combining marks and NUL without normalization or grapheme segmentation.",
+      "evaluation": "Demand every child exactly once in authored left-to-right order and preserve any child failure before strict NULL propagation. Preserve enclosing lazy demand, retained roots, logical operand/result and control charges, live-value/output-byte and workspace limits, and cooperative cancellation. Admit scratch and complete output storage through existing resource owners before allocation; do not add an arbitrary scalar cap or a frontend/Host evaluator.",
+      "identity": "The closed source is {translate: [value, source, target]} and the closed machine node is {op: translate, body: [value_node, source_node, target_node]}. TRANSLATE selects this same ordered ternary operation. Retain every authored child without folding or duplication, including constants; earlier pinned contract bodies retain their identities."
+    },
+    "instr": {
+      "signature": "Two to four ordered operands: STRING value, STRING subvalue, optional finite Number position and optional finite Number occurrence. Return Number with the union of all supplied operand nullabilities. Untyped NULL takes each unique positional signature. No implicit conversion, BYTES, collation, regex or distinct INT64 overload is admitted.",
+      "typing": "Type-check every authored operand without evaluating it. Return Number, nullable exactly when any supplied operand is nullable. Omitted position and occurrence each mean one at evaluation; omission does not add an operand or narrow the type.",
+      "value": "After all demanded children succeed and strict NULL propagation, require integral nonzero position and integral positive occurrence in the existing finite binary64 Number domain. This explicitly adapts GoogleSQL INT64 parameters without a safe-integer or INT64 cap. Match exact Unicode scalar sequences; return the 1-based scalar start position of the requested occurrence, or zero if unreachable. Positive position searches forward from that 1-based start; negative position searches backward from scalar length plus position plus one. Count overlapping matches separately. For empty subvalue, match the length-plus-one boundaries: positive position starts at that boundary, while negative position starts at scalar length plus position plus two. Each further occurrence advances one boundary in the search direction; return zero beyond either edge. Empty value and empty subvalue return one at default position/occurrence. Preserve exact strings without normalization.",
+      "evaluation": "Demand every supplied child exactly once in authored left-to-right order, preserving later child errors after an earlier NULL, before strict NULL propagation and operation-domain checks. Validate Number integrality and sign before shortcuts or bounded integer conversion. Compare valid positions and occurrences against bounded scalar/boundary counts before narrowing; huge unreachable integral values return zero without huge binary64 decrement loops. Preserve enclosing lazy demand, retained roots, logical operand/result and control charges, live-value and workspace limits, and cooperative cancellation through existing owners. No new scalar cap, frontend evaluator or Host evaluator is introduced.",
+      "identity": "The closed source is {instr: [value, subvalue, position?, occurrence?]} and the closed machine node retains the corresponding two-to-four ordered expression nodes in {op: instr, body: [...]}. INSTR selects this same operation. Preserve authored omission and explicit defaults as distinct identities; do not insert synthetic default children, fold constants, duplicate children or rewrite INSTR as STRPOS. Earlier pinned contract bodies retain their identities."
     }
   },
   "regex_ast_contract": {
