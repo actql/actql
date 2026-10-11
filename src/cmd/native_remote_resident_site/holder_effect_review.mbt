@@ -72,6 +72,7 @@ fn publish_holder_effect_review(
   configuration : HolderEffectReviewPublication,
   resources : HolderOutputResources,
   authorize_evidence_read : () -> Bool,
+  authorize_publication : () -> Bool,
 ) -> Bool {
   guard !task.released &&
     !task.release_requested &&
@@ -84,6 +85,7 @@ fn publish_holder_effect_review(
     !task.released &&
     !task.release_requested &&
     authorize_evidence_read() &&
+    authorize_publication() &&
     (configuration.current)()
   }
   let original = (fn() -> @remote.RemoteEffectCheckpointReport? {
@@ -157,8 +159,8 @@ fn drive_holder_effect_review(
   journal : @journal.Journal,
   resources : HolderOutputResources,
   installation : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody?,
-  publication : (@remote.DispatchRequest) -> HolderEffectReviewPublication?,
   authorize_evidence_read : () -> Bool,
+  authorize_publication : () -> Bool,
 ) -> Bool {
   guard !task.released &&
     !task.release_requested &&
@@ -195,9 +197,15 @@ fn drive_holder_effect_review(
       return false
     }
   }
-  guard publication(task.request) is Some(installed) else { return false }
+  // Publication belongs to this exact task's original installation. A later
+  // progress tick cannot select a replacement policy or Checkpoint lifetime.
+  guard task.effect_catalog_review is Some(installed) else { return false }
   publish_holder_effect_review(
-    task, installed, resources, authorize_evidence_read,
+    task,
+    installed.publication,
+    resources,
+    authorize_evidence_read,
+    authorize_publication,
   )
 }
 

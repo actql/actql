@@ -1,0 +1,117 @@
+Warning: [0007]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:21:3 ]
+    │
+ 21 │   stage : @parameters.CollectedStage?
+    │   ──┬──  
+    │     ╰──── Warning (unused_field): Field 'stage' is never read
+────╯
+Warning: [0006]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:50:3 ]
+    │
+ 50 │   Publication(StagePorts)
+    │   ─────┬─────  
+    │        ╰─────── Warning (unused_constructor): Variant 'Publication' is never constructed
+────╯
+Warning: [0006]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:51:3 ]
+    │
+ 51 │   Topology(CheckedStageTopology)
+    │   ────┬───  
+    │       ╰───── Warning (unused_constructor): Variant 'Topology' is never constructed
+────╯
+Warning: [0006]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:56:3 ]
+    │
+ 56 │   Publication(ResultImports)
+    │   ─────┬─────  
+    │        ╰─────── Warning (unused_constructor): Variant 'Publication' is never constructed
+────╯
+Warning: [0006]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:62:3 ]
+    │
+ 62 │   Publication(AttachedImports)
+    │   ─────┬─────  
+    │        ╰─────── Warning (unused_constructor): Variant 'Publication' is never constructed
+────╯
+Error: [4124]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:125:66 ]
+     │
+ 125 │     return resolve_imports(source, index, producers, limits).map(Publication)
+     │                                                                  ─────┬─────  
+     │                                                                       ╰─────── The constructor Publication is ambiguous: it may come from type ProgramAttachedImports or ProgramImports. 
+You can use `ProgramAttachedImports::Publication` or `ProgramImports::Publication` to disambiguate.
+─────╯
+Error: [4124]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:147:63 ]
+     │
+ 147 │     Publication(v) => attach_imports(v, stage, max_work~).map(Publication)
+     │                                                               ─────┬─────  
+     │                                                                    ╰─────── The constructor Publication is ambiguous: it may come from type ProgramAttachedImports or ProgramImports. 
+You can use `ProgramAttachedImports::Publication` or `ProgramImports::Publication` to disambiguate.
+─────╯
+Error: [4034]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:224:18 ]
+     │
+ 224 │     exports.push({ name, producer: owner, input, })
+     │                  ────────────────┬────────────────  
+     │                                  ╰────────────────── Mutiple possible record types detected: CheckedTopologyExport, CheckedTopologyImport, please add more annotation.
+─────╯
+Error: [4015]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:284:22 ]
+     │
+ 284 │   value.local_inputs.and_then(fn(entries) { entries.get(index) })
+     │                      ────┬───  
+     │                          ╰───── Type Array[@actql/actql/stage_local_inputs.Attached]? has no method and_then.
+─────╯
+Warning: [0013]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:284:22 ]
+     │
+ 284 │   value.local_inputs.and_then(fn(entries) { entries.get(index) })
+     │                      ────┬───  
+     │                          ╰───── Warning (unresolved_type_variable): The type of this expression is ((_/0) -> _/1) -> @actql/actql/stage_local_inputs.Attached?, which contains unresolved type variables. The type variable is default to Unit.
+─────╯
+Error: [4015]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:284:53 ]
+     │
+ 284 │   value.local_inputs.and_then(fn(entries) { entries.get(index) })
+     │                                                     ─┬─  
+     │                                                      ╰─── Type _/0 has no method get.
+─────╯
+Error: [4015]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:289:27 ]
+     │
+ 289 │   value.reconciled_inputs.and_then(fn(entries) { entries.get(index) })
+     │                           ────┬───  
+     │                               ╰───── Type Array[@actql/actql/stage_local_inputs.ReconciledAttachment]? has no method and_then.
+─────╯
+Warning: [0013]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:289:27 ]
+     │
+ 289 │   value.reconciled_inputs.and_then(fn(entries) { entries.get(index) })
+     │                           ────┬───  
+     │                               ╰───── Warning (unresolved_type_variable): The type of this expression is ((_/0) -> _/1) -> @actql/actql/stage_local_inputs.ReconciledAttachment?, which contains unresolved type variables. The type variable is default to Unit.
+─────╯
+Error: [4015]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:289:58 ]
+     │
+ 289 │   value.reconciled_inputs.and_then(fn(entries) { entries.get(index) })
+     │                                                          ─┬─  
+     │                                                           ╰─── Type _/0 has no method get.
+─────╯
+Error: [4124]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/local_program.mbt:422:18 ]
+     │
+ 422 │         Ok(v) => Publication(v)
+     │                  ─────┬─────  
+     │                       ╰─────── The constructor Publication is ambiguous: it may come from type ProgramAttachedImports or ProgramImports. 
+You can use `ProgramAttachedImports::Publication` or `ProgramImports::Publication` to disambiguate.
+─────╯
+Error: [4124]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/local_program.mbt:424:15 ]
+     │
+ 424 │       None => Topology({ stage: collected, results: projected.unwrap(), contextual: contextual.unwrap(), table_inputs, })
+     │               ────┬───  
+     │                   ╰───── The constructor Topology is ambiguous: it may come from type ProgramAttachedImports or ProgramImports. 
+You can use `ProgramAttachedImports::Topology` or `ProgramImports::Topology` to disambiguate.
+─────╯
+Failed with 7 warnings, 9 errors.

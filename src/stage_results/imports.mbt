@@ -95,6 +95,41 @@ pub fn resolve_imports(
   producers : Array[StagePorts],
   limits : ImportLimits,
 ) -> Result[ResultImports, ImportIssue] {
+  let (entries, work, text_bytes) = match
+    resolve_result_references(
+      source,
+      stage_index,
+      producers,
+      limits,
+      owner_stage=fn(owner) { owner.stage },
+      lookup=fn(owner, name) { @results.lookup_port(owner.ports, name) },
+    ) {
+    Err(e) => return Err(e)
+    Ok(v) => v
+  }
+  Ok({
+    source,
+    stage: stage_index,
+    entries: entries.map(fn(entry) {
+      let (name, producer, port) = entry
+      { name, producer, port, }
+    }),
+    work,
+    text_bytes,
+  })
+}
+
+///|
+// Resolve the same source-bound Result references for publication and static
+// topology. The caller supplies an owner-issued output, never an input schema.
+fn[P, I] resolve_result_references(
+  source : @parameters.Source,
+  stage_index : Int,
+  producers : Array[P],
+  limits : ImportLimits,
+  owner_stage~ : (P) -> @parameters.CollectedStage,
+  lookup~ : (P, String) -> I?,
+) -> Result[(Array[(String, P, I)], Int, Int), ImportIssue] {
   if limits.max_work < 0 || limits.max_imports < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -104,17 +139,17 @@ pub fn resolve_imports(
   }
   let mut work = limits.max_work
   let mut text = limits.max_text_bytes
-  let known : Map[String, StagePorts] = Map([])
+  let known : Map[String, P] = Map([])
   // Charge before constructing indexes, including unused supplied producers.
   if producers.length() > work {
     return Err(BudgetExceeded)
   }
   work -= producers.length()
   for producer in producers {
-    if !physical_equal(@parameters.source(producer.stage), source) {
+    if !physical_equal(@parameters.source(owner_stage(producer)), source) {
       return Err(ForeignSource)
     }
-    let index = @parameters.stage_index(producer.stage)
+    let index = @parameters.stage_index(owner_stage(producer))
     if index >= stage_index {
       return Err(NotEarlierStage(index))
     }
@@ -133,7 +168,7 @@ pub fn resolve_imports(
     return Err(BudgetExceeded)
   }
   work -= count
-  let entries : Array[ResultImport] = []
+  let entries : Array[(String, P, I)] = []
   for i in 0..<count {
     let (name, reference) = @syntax.import_at(stage, i).unwrap()
     match reference {
@@ -152,21 +187,15 @@ pub fn resolve_imports(
           None => return Err(MissingProducer(producer))
           Some(v) => v
         }
-        let port = match @results.lookup_port(owner.ports, result) {
+        let port = match lookup(owner, result) {
           None => return Err(MissingResult(producer, result))
           Some(v) => v
         }
-        entries.push({ name, producer: owner, port, })
+        entries.push((name, owner, port))
       }
     }
   }
-  Ok({
-    source,
-    stage: stage_index,
-    entries,
-    work: limits.max_work - work,
-    text_bytes: limits.max_text_bytes - text,
-  })
+  Ok((entries, limits.max_work - work, limits.max_text_bytes - text))
 }
 
 ///|
@@ -248,34 +277,60 @@ pub fn attach_imports(
   stage : @parameters.CollectedStage,
   max_work~ : Int,
 ) -> Result[AttachedImports, ImportIssue] {
+  match
+    check_import_attachment(
+      imports.source,
+      imports.stage,
+      imports.entries,
+      imports.work,
+      stage,
+      max_work,
+      entry_name=input_name,
+      entry_input=input_producer,
+    ) {
+    Err(e) => return Err(e)
+    Ok(work) => Ok({ imports, stage, work, })
+  }
+}
+
+///|
+fn[T] check_import_attachment(
+  source : @parameters.Source,
+  index : Int,
+  entries : Array[T],
+  prior_work : Int,
+  stage : @parameters.CollectedStage,
+  max_work : Int,
+  entry_name~ : (T) -> String,
+  entry_input~ : (T) -> @pipeline.ProducedInput,
+) -> Result[Int, ImportIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  if !physical_equal(imports.source, @parameters.source(stage)) {
+  if !physical_equal(source, @parameters.source(stage)) {
     return Err(ForeignSource)
   }
-  if imports.stage != @parameters.stage_index(stage) {
+  if index != @parameters.stage_index(stage) {
     return Err(InvalidStage)
   }
-  if imports.work > max_work ||
-    imports.entries.length() > max_work - imports.work {
+  if prior_work > max_work || entries.length() > max_work - prior_work {
     return Err(BudgetExceeded)
   }
   let pipeline = @collection.pipeline(@parameters.collection(stage))
-  for entry in imports.entries {
-    let index = match @pipeline.lookup(pipeline, entry.name) {
+  for entry in entries {
+    let index = match @pipeline.lookup(pipeline, entry_name(entry)) {
       Some(@pipeline.Input(i)) => i
-      _ => return Err(ForeignInput(entry.name))
+      _ => return Err(ForeignInput(entry_name(entry)))
     }
     match @pipeline.input_producer(pipeline, index) {
       Some(actual) =>
-        if !physical_equal(actual, input_producer(entry)) {
-          return Err(ForeignInput(entry.name))
+        if !physical_equal(actual, entry_input(entry)) {
+          return Err(ForeignInput(entry_name(entry)))
         }
-      None => return Err(ForeignInput(entry.name))
+      None => return Err(ForeignInput(entry_name(entry)))
     }
   }
-  Ok({ imports, stage, work: imports.work + imports.entries.length(), })
+  Ok(prior_work + entries.length())
 }
 
 ///|
