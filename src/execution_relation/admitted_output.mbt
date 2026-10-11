@@ -20,6 +20,23 @@ struct AdmittedOutputRows {
 }
 
 ///|
+/// An input is a terminal Relation output only for an operation-free owner.
+/// This does not grant completion authority or expose intermediate inputs of
+/// an executable pipeline as completed results.
+fn admitted_relation_output_target(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+) -> Bool {
+  let prepared = @lower.bound_preparation(owner)
+  match target {
+    Step(index) => @lower.node_at(prepared, index) is Some(_)
+    Input(_) =>
+      @lower.node_count(prepared) == 0 &&
+      @lower.preparation_output_target(prepared) == Some(target)
+  }
+}
+
+///|
 pub fn prepare_admitted_output(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -34,8 +51,7 @@ pub fn prepare_admitted_output(
     Err(issue) => return Err(issue)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard target is Step(index) &&
-    @lower.node_at(prepared, index) is Some(_) &&
+  guard admitted_relation_output_target(owner, target) &&
     @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(NotRelationOutput)
   }

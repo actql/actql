@@ -110,6 +110,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs'],
   ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
   ['scripts/fixtures/graph-mean-source-input.mjs', 'graph-mean-source-input.mjs'],
+  ['scripts/fixtures/input-stage-result.mjs', 'input-stage-result.mjs'],
+  ['scripts/graph-public-failure.test.mjs', 'graph-public-failure.test.mjs'],
   ['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs'],
   ['scripts/fixtures/retained-graph-observer.mjs', 'retained-graph-observer.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
@@ -217,6 +219,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
 for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
+  'fixtures/graph-snapshot-failure-store.mjs', 'fixtures/retained-graph-observer.mjs',
+  'fixtures/input-stage-result.mjs',
   'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs', 'fixtures/graph-reach-source-input.mjs',
   'fixtures/graph-shortest-source-input.mjs', 'fixtures/graph-mean-source-input.mjs',
   'fixtures/graph-graft-source-input.mjs', 'fixtures/graph-union-source-input.mjs']) {
@@ -389,6 +393,9 @@ if (process.argv.includes('--graph-shortest-only')) {
 }
 if (process.argv.includes('--graph-mean-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_MEAN_ONLY = '1';
+}
+if (process.argv.includes('--input-stage-result-only')) {
+  runtimeEnvironment.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY = '1';
 }
 if (process.argv.includes('--graph-remaining-operations-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY = '1';
@@ -698,6 +705,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--graph-reach-only',
   '--graph-shortest-only',
   '--graph-mean-only',
+  '--input-stage-result-only',
   '--graph-remaining-operations-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
@@ -794,12 +802,23 @@ async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
   }
 }
 if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only') ||
+    process.argv.includes('--input-stage-result-only') ||
     process.argv.includes('--graph-mean-only') ||
     process.argv.includes('--graph-remaining-operations-only') ||
     process.argv.includes('--graph-shortest-only')) {
   // The Local and HTTPS producers have exited. Read the original retained
-  // Graph-derived Results in new processes; no String fixture was selected.
+  // selected Results in new processes; no String fixture was selected.
   await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});
+  if (process.argv.includes('--input-stage-result-only')) {
+    await mkdir(join(root, 'tls'));
+    await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
+    await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
+    await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
+    // Reuse the existing real-Store failure harness, not a second custody owner.
+    console.log(run(process.execPath, ['--test', 'graph-public-failure.test.mjs'], root,
+      {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1', ACTQL_TEST_INPUT_STAGE_RESULT_ONLY: '1'},
+      180000).trimEnd());
+  }
   return;
 }
 if (process.argv.includes('--source-graph-member-only')) return;
