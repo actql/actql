@@ -364,6 +364,38 @@ queryCompositionSuccesses.push(
  [{element:2,position:0},{element:null,position:1},{element:2,position:2}],[optionalNumber('element',true),optionalNumber('position')]),
 );
 
+// JOIN carries the admitted operand kind: a value-table receiver stays a
+// value, while WITH OFFSET is an ordinary row. Controls are authored JSON.
+export const joinValueControl={version:'actql/0.1',id:'fixture.join_value_receiver',params:derivedScalarDeclarations,
+ stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:7}]},as:'left'},
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'element'},as:'right'},
+ {from:'left',cross_join:{with:'right',max_output_rows:10,select:{value:'right.element'}},as:'joined'},
+ {from:'joined',sort:[{field:'value',dir:'asc',nulls:'first'}]},
+ {select:['value'],as:'out'},
+ ],results:{rows:{from:'out',fields:['value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const joinValueCase=(name,text,expected=derivedScalarRows,columns=derivedValueColumns,extra={})=>({
+ name:'join-value-'+name,format:'sql',text,expected,columns,
+ parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},
+ sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const joinValueScalarText='SELECT r AS value FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST(@items) old_r) r MAX_OUTPUT_ROWS 10 ORDER BY value NULLS FIRST';
+queryCompositionSuccesses.push(
+ joinValueCase('json-control',JSON.stringify(joinValueControl),derivedScalarRows,derivedValueColumns,{format:'json',parameterDeclarations:undefined}),
+ joinValueCase('right-null-duplicates',joinValueScalarText),
+ joinValueCase('right-empty',joinValueScalarText,[],derivedValueColumns,{parameters:{items:[]}}),
+ joinValueCase('quoted-right','FROM (SELECT 7 AS id) l |> CROSS JOIN (FROM UNNEST(@items) old_r) `ORDER` MAX_OUTPUT_ROWS 10 |> SELECT `ORDER` AS value |> ORDER BY value NULLS FIRST',derivedScalarRows,derivedValueColumns,{format:'aql-text'}),
+ joinValueCase('both-scalar-on','SELECT l AS left_value,r AS right_value FROM (FROM UNNEST([1,2]) old_l) l JOIN (FROM UNNEST([2,3]) old_r) r ON l=r MAX_OUTPUT_ROWS 10 ORDER BY left_value',[{left_value:2,right_value:2}],[optionalNumber('left_value'),optionalNumber('right_value')],{parameterDeclarations:undefined,parameters:undefined}),
+ joinValueCase('right-range-column-collision','SELECT r AS value FROM (SELECT 1 AS id,90 AS r) l JOIN (FROM UNNEST([1,2]) old_r) r ON l.id=r MAX_OUTPUT_ROWS 10',[{value:1}],[optionalNumber('value')],{parameterDeclarations:undefined,parameters:undefined}),
+ joinValueCase('left-null-extension','SELECT l.id,r AS value FROM (SELECT 1 AS id UNION ALL SELECT 3) l LEFT JOIN (FROM UNNEST([1,2]) old_r) r ON l.id=r MAX_OUTPUT_ROWS 10 ORDER BY l.id',[{id:1,value:1},{id:3,value:null}],[optionalNumber('id'),optionalNumber('value',true)],{parameterDeclarations:undefined,parameters:undefined}),
+ joinValueCase('right-object','SELECT r AS value,r.id AS id FROM (SELECT 7 AS key) l CROSS JOIN (FROM UNNEST(@items) old_r) r MAX_OUTPUT_ROWS 10 ORDER BY id NULLS FIRST,value.label NULLS FIRST',derivedObjectRows,derivedObjectColumns,{parameterDeclarations:derivedObjectDeclarations,parameters:{items:derivedObjectItems}}),
+ joinValueCase('offset-row','SELECT r AS row,r.element AS value,r.position FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST(@items) element WITH OFFSET position) r MAX_OUTPUT_ROWS 10 ORDER BY position',
+ [{row:{element:2,position:0},value:2,position:0},{row:{element:null,position:1},value:null,position:1},{row:{element:2,position:2},value:2,position:2}],
+ [{name:'row',contract:{type:'object',nullable:false,fields:{element:{type:'number',nullable:true},position:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('value',true),optionalNumber('position')]),
+);
+
+
 // Independent ordinary-row expectations. A NULL element is one NULL field,
 // not a NULL row; the declared OFFSET remains non-NULL.
 const wholeRowHead='FROM UNNEST(@items) element WITH OFFSET position';
@@ -891,3 +923,9 @@ export async function exercisePublicQueryInput(connect, options,
     await client.close();
   }
 }
+
+queryCompositionRefusals.push(...[
+ ['old-receiver','SELECT old_r FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
+ ['scalar-star','SELECT r.* FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
+ ['duplicate-range','SELECT r AS value FROM (SELECT 7 AS id) r CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'join-value-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramInvalidInput'})));

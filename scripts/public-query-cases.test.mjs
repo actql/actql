@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
-import {relationDataSuccesses, relationDataRefusals, queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl} from './fixtures/public-query-input.mjs';
+import {relationDataSuccesses, relationDataRefusals, queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
 import {pipePivotSuccesses,pipePivotRefusals,fromPivotAcquiredProgram,pivotArgumentExpressionProgram} from './fixtures/pipe-pivot-source-input.mjs';
 
@@ -176,4 +176,16 @@ test('PIVOT expression controls distinguish consumed fields, constants and froze
   assert.deepEqual(cases.get('pipe-pivot-argument-expression-property-null-propagation').expected,
     [{product: 1, A: 11}, {product: 2, A: null}, {product: 3, A: null}]);
   assert.equal(pipePivotRefusals.filter(item => item.name.startsWith('pipe-pivot-refusal-argument-expression-')).length, 6);
+});
+
+test('JOIN value receiver fixtures distinguish scalar object and ordinary row kinds',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ assert.deepEqual(cases.get('join-value-json-control').expected,cases.get('join-value-right-null-duplicates').expected);
+ assert.deepEqual(cases.get('join-value-json-control').columns,cases.get('join-value-right-null-duplicates').columns);
+ assert.deepEqual(joinValueControl.stages[0].steps[4].cross_join,{with:'right',max_output_rows:10,select:{value:'right.element'}});
+ assert.deepEqual(cases.get('join-value-right-range-column-collision').expected,[{value:1}]);
+ assert.deepEqual(cases.get('join-value-both-scalar-on').expected,[{left_value:2,right_value:2}]);
+ assert.equal(cases.get('join-value-right-object').columns[0].contract.nullable,true);
+ assert.equal(cases.get('join-value-offset-row').columns[0].contract.nullable,false);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('join-value-refusal-')).length,3);
 });
