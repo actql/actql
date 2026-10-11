@@ -1,0 +1,8 @@
+Warning: [0007]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/src/stage_syntax/stages.mbt:47:8 ]
+    │
+ 47 │   priv source_usage : @source.ParseUsage
+    │        ──────┬─────  
+    │              ╰─────── Warning (unused_field): Field 'source_usage' is never read
+────╯
+Finished. moon: ran 69 tasks, now up to date (1 warnings, 0 errors)

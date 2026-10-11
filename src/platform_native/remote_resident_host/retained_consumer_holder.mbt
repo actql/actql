@@ -780,6 +780,18 @@ pub fn ResidentRetainedConsumer::effect_computation(
 }
 
 ///|
+/// Read-only projection of this exact original consumer dispatch after the
+/// existing journal, Runtime, completed computation and receiver-borrow checks.
+/// This is not a Host identity, current permission or a replacement issuer.
+pub fn ResidentRetainedConsumer::effect_original_dispatch(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> @remote.DispatchRequest? {
+  guard self.effect_computation(journal) is Some(_) else { return None }
+  Some(self.request)
+}
+
+///|
 /// Project the exact admitted consumer binding only while the existing Effect
 /// computation, receiver borrow, journal and original request are current.
 /// The producer Source binding is a separate identity and is never substituted.

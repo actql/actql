@@ -214,9 +214,19 @@ pub fn bind_effect_results(
       field: None,
     })
   }
-  let program = @parameters.program(
-    @parameters.operations_source(operations(checked)),
-  )
+  let program = match
+    @parameters.complete_program(
+      @parameters.operations_source(operations(checked)),
+    ) {
+    Some(program) => program
+    None =>
+      return Err({
+        kind: ForeignProgram,
+        stage_index: -1,
+        effect_id: "",
+        field: None,
+      })
+  }
   if !physical_equal(@syntax.effect_headers_owner(headers), program) {
     return Err({
       kind: ForeignProgram,
