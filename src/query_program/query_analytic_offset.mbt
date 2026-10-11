@@ -1,6 +1,6 @@
 ///|
-// Parentheses retain the literal/whole-parameter role required by the common
-// analytic contract. Never turn an arbitrary expression into an offset value.
+// Grouping and numeric unary plus retain the literal/whole-parameter role.
+// Never turn an arbitrary expression into an offset value.
 fn lower_analytic_offset(
   construction : Construction,
   expression : @query.Expression,
@@ -17,7 +17,7 @@ fn lower_analytic_offset(
     work += 1
     let node = @query.expression_node(expression, index).unwrap()
     match node.kind {
-      Parenthesized(child) => index = child
+      Parenthesized(child) | Unary("+", child) => index = child
       Number(text) => {
         let mut value = 0L
         for unit in text {

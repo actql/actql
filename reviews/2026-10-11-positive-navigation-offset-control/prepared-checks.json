@@ -1,0 +1,24 @@
+{
+  "source_baseline": "195fc902a6041432190d9f84272d47ce4bb2622b",
+  "runtime_executed": false,
+  "compile_executed": false,
+  "public_executed": false,
+  "heavy_started": false,
+  "shared_interface_changed": false,
+  "moon_js_commands": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/positive_navigation_offset_test.mbt src/query_program/grouped_analytic_offset_test.mbt src/query_program/unary_plus_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/positive-navigation-offset-source-input.test.mjs scripts/analytic-offset-profiles.test.mjs scripts/public-query-profiles.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "public_command": "node scripts/test-packed-public-query.mjs --analytic-offset-only",
+  "expected_public_cohort": {
+    "normal": 5,
+    "refusal": 13
+  },
+  "producer_cap_seconds": 300,
+  "public_cap_seconds": 300,
+  "public_allocation": "Unreserved; no B Heavy execution is authorized by this preparation. Use the existing shared allocation only when explicitly handed off.",
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "B does not retry or bypass its earlier process-inspection rejection. Prepared runtime commands are for the independently authorized Root review worktree."
+}
