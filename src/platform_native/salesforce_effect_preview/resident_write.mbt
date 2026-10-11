@@ -556,7 +556,7 @@ pub fn NativeResidentEffectApprovedRow::send(
     is Err(_) {
     return Err(ForeignRequest)
   }
-  let method = match
+  let http_verb = match
     native_resident_effect_row_method(
       self.request,
       self.observation.map(@catalog.target_observation_version_cid),
@@ -603,7 +603,7 @@ pub fn NativeResidentEffectApprovedRow::send(
         access.grant,
         access.use_id,
         access.scope,
-        method,
+        http_verb,
         @catalog.single_write_request_path(self.request),
         @utf8.encode(@catalog.single_write_request_body(self.request)),
         () => self.current(),
