@@ -181,5 +181,9 @@ test "prefix check preserves bounded accounting and actual local ownership" {
   let producer = @collection.pipeline(
     @parameters.collection(topology_stage_source(capture)),
   )
-  assert_true(physical_equal(issue.pipeline, producer))
+  // A separate check issues a new typed pipeline owner. Its retained source
+  // must still be the original capture steps in the same source arena.
+  let capture_steps = @pipeline.source(producer)
+  assert_eq(@decode.tree_index(capture_steps, @pipeline.source(issue.pipeline)),
+    @decode.tree_index(capture_steps, capture_steps))
 }
