@@ -181,13 +181,21 @@ fn attach_program_imports(
       attach_imports(v, stage, max_work~).map(fn(v) {
         ProgramAttachedImports::Publication(v)
       })
-    Topology(v) => {
-      match check_import_attachment(v.source, v.index, v.entries, v.work,
-        stage, max_work, entry_name=fn(e) { e.name }, entry_input=fn(e) { e.input }) {
+    Topology(v) =>
+      match
+        check_import_attachment(
+          v.source,
+          v.index,
+          v.entries,
+          v.work,
+          stage,
+          max_work,
+          entry_name=fn(e) { e.name },
+          entry_input=fn(e) { e.input },
+        ) {
         Err(e) => Err(e)
         Ok(work) => Ok(Topology({ ..v, stage: Some(stage), work, }))
       }
-    }
   }
 }
 
@@ -437,7 +445,15 @@ pub fn topology_import_stage(
 }
 
 ///|
-pub fn topology_calendar_profile(value : CheckedTopology) -> @calendar_profile.Profile? { value.calendar_profile }
+pub fn topology_calendar_profile(
+  value : CheckedTopology,
+) -> @calendar_profile.Profile? {
+  value.calendar_profile
+}
 
 ///|
-pub fn topology_model_tasks(value : CheckedTopology) -> @environment.ModelTasks? { value.model_tasks }
+pub fn topology_model_tasks(
+  value : CheckedTopology,
+) -> @environment.ModelTasks? {
+  value.model_tasks
+}

@@ -277,8 +277,17 @@ pub fn attach_imports(
   stage : @parameters.CollectedStage,
   max_work~ : Int,
 ) -> Result[AttachedImports, ImportIssue] {
-  match check_import_attachment(imports.source, imports.stage, imports.entries,
-    imports.work, stage, max_work, entry_name=input_name, entry_input=input_producer) {
+  match
+    check_import_attachment(
+      imports.source,
+      imports.stage,
+      imports.entries,
+      imports.work,
+      stage,
+      max_work,
+      entry_name=input_name,
+      entry_input=input_producer,
+    ) {
     Err(e) => return Err(e)
     Ok(work) => Ok({ imports, stage, work, })
   }
@@ -286,9 +295,14 @@ pub fn attach_imports(
 
 ///|
 fn[T] check_import_attachment(
-  source : @parameters.Source, index : Int, entries : Array[T], prior_work : Int,
-  stage : @parameters.CollectedStage, max_work : Int,
-  entry_name~ : (T) -> String, entry_input~ : (T) -> @pipeline.ProducedInput,
+  source : @parameters.Source,
+  index : Int,
+  entries : Array[T],
+  prior_work : Int,
+  stage : @parameters.CollectedStage,
+  max_work : Int,
+  entry_name~ : (T) -> String,
+  entry_input~ : (T) -> @pipeline.ProducedInput,
 ) -> Result[Int, ImportIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
@@ -299,8 +313,7 @@ fn[T] check_import_attachment(
   if index != @parameters.stage_index(stage) {
     return Err(InvalidStage)
   }
-  if prior_work > max_work ||
-    entries.length() > max_work - prior_work {
+  if prior_work > max_work || entries.length() > max_work - prior_work {
     return Err(BudgetExceeded)
   }
   let pipeline = @collection.pipeline(@parameters.collection(stage))

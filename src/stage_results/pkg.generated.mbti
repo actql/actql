@@ -307,6 +307,8 @@ pub fn stage_port_table_inputs(StagePorts) -> @relation_results.CheckedTableInpu
 
 pub fn stage_table_inputs_at(Checked, Int) -> @relation_results.CheckedTableInputs?
 
+pub fn topology_calendar_profile(CheckedTopology) -> @calendar_profile.Profile?
+
 pub fn topology_export_at(CheckedTopology, Int) -> CheckedTopologyExport?
 
 pub fn topology_export_count(CheckedTopology) -> Int
@@ -334,6 +336,8 @@ pub fn topology_input_stage(CheckedTopologyImport) -> CheckedStageTopology
 pub fn topology_local_environment(CheckedTopology) -> @stage_local_inputs.ProgramEnvironmentInputs?
 
 pub fn topology_local_input_at(CheckedTopology, Int) -> @stage_local_inputs.Attached?
+
+pub fn topology_model_tasks(CheckedTopology) -> @check_environment.ModelTasks?
 
 pub fn topology_reconciled_input_at(CheckedTopology, Int) -> @stage_local_inputs.ReconciledAttachment?
 
