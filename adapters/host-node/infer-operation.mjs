@@ -28,7 +28,30 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
-  ioNotification}) {
+  ioNotification, originalPreparation}) {
+  // The original installing Run has already reserved this entire simultaneous
+  // envelope, including this adapter's controls. Do not derive it from counts,
+  // aggregate headroom or the later Model seal's distinct requirements.
+  if (originalPreparation !== undefined) {
+    if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined ||
+        restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
+        originalPreparation === null || typeof originalPreparation !== 'object' ||
+        typeof originalPreparation.readRetainedBytes !== 'bigint' ||
+        originalPreparation.readRetainedBytes <= 0n ||
+        typeof originalPreparation.readExecutionBytes !== 'bigint' ||
+        originalPreparation.readExecutionBytes < 0n ||
+        typeof originalPreparation.modelRetainedBytes !== 'bigint' ||
+        originalPreparation.modelRetainedBytes <= 0n ||
+        typeof originalPreparation.modelExecutionBytes !== 'bigint' ||
+        originalPreparation.modelExecutionBytes < 0n) {
+      throw new TypeError('InvalidInferOriginalPreparation');
+    }
+    if (!moon.clientProgramInferOriginalPreparationAvailable(originalPreparation.read,
+      originalPreparation.compiled, originalPreparation.runDefinition, graph,
+      originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes)) {
+      throw new TypeError('InferOriginalPreparationUnavailable');
+    }
+  }
   if (retainOperation !== undefined && typeof retainOperation !== 'function') {
     throw new TypeError('InvalidInferOperationCustody');
   }
@@ -77,7 +100,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
   let active;
-  try { active = checked(restoredInput !== undefined && composedInput !== undefined
+  try { active = checked(originalPreparation !== undefined
+    ? moon.clientProgramStartOriginalInferExecution(preparedProgram, step, graph,
+      registry, values, provider, originalPreparation.compiled, originalPreparation.runDefinition,
+      originalPreparation.read, originalPreparation.readRetainedBytes,
+      originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
+      originalPreparation.modelExecutionBytes, fragment, ordered)
+    : restoredInput !== undefined && composedInput !== undefined
     ? moon.clientProgramStartRestoredComposedInferInput(composedInput.occurrence, graph,
       composedInput.prefix, provider, restoredInput.snapshot.binding,
       restoredInput.snapshot.descriptorWire, restoredInput.snapshot.rows,

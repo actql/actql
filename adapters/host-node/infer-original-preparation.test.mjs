@@ -58,3 +58,66 @@ test('original preparation typed refusal is preserved without a retry or replace
   assert.equal(f.calls.filter(call => call[0] === 'preparation').length, 1);
   assert.equal(f.calls.filter(call => call[0] === 'cleanup').length, 1);
 });
+
+function fundedFixture(available = true, startIssue) {
+  const calls = [], active = {}, read = {}, compiled = {}, runDefinition = {}, graph = {};
+  let stopped = false;
+  const moon = {
+    clientProgramInferOriginalPreparationAvailable(...args) {
+      calls.push(['probe', ...args]); return available;
+    },
+    clientProgramStartOriginalInferExecution(...args) {
+      calls.push(['start', ...args]);
+      return startIssue === undefined ? {$tag: 1, _0: active} : {$tag: 0, _0: startIssue};
+    },
+    clientProgramCancelInferExecution: () => { stopped = true; },
+    clientProgramInferExecutionStopped: () => stopped,
+    clientProgramCleanupInferExecution: () => ({$tag: 1, _0: true}),
+  };
+  const originalPreparation = {read, compiled, runDefinition, readRetainedBytes: 7n,
+    readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n};
+  const options = {moon, preparedProgram: {}, step: 2, graph, registry: 'registry',
+    values: 'values', fragment: 'fragment', ordered: 'ordered', provider: {}, originalPreparation};
+  return {options, originalPreparation, calls, graph};
+}
+
+test('funded start probes original envelope before Core allocation and keeps distinct Model grant', async () => {
+  const f = fundedFixture();
+  const operation = openNodeInferOperation(f.options);
+  assert.deepEqual(f.calls[0], ['probe', f.originalPreparation.read,
+    f.originalPreparation.compiled, f.originalPreparation.runDefinition, f.graph, 7n, 5n]);
+  assert.deepEqual(f.calls[1], ['start', f.options.preparedProgram, 2, f.graph,
+    'registry', 'values', f.options.provider, f.originalPreparation.compiled,
+    f.originalPreparation.runDefinition, f.originalPreparation.read, 7n, 5n, 100n, 5n,
+    'fragment', 'ordered']);
+  assert.equal('ledger' in operation, false);
+  assert.equal('startup' in operation, false);
+  await operation.close();
+});
+
+test('funded start refuses original envelope without opening or replacing an execution', () => {
+  const f = fundedFixture(false);
+  assert.throws(() => openNodeInferOperation(f.options), /InferOriginalPreparationUnavailable/u);
+  assert.equal(f.calls.length, 1);
+});
+
+test('funded start preserves Core recheck refusal and never falls back to unowned start', () => {
+  const cause = {kind: 'OriginalCapacity', detail: 'ChangedOriginalState'};
+  const f = fundedFixture(true, cause);
+  assert.throws(() => openNodeInferOperation(f.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === cause);
+  assert.equal(f.calls.length, 2);
+});
+
+test('funded start does not reinterpret restored or malformed installation as fresh funding', () => {
+  for (const mutate of [
+    f => { f.options.restoredInput = {}; },
+    f => { f.originalPreparation.readRetainedBytes = 0n; },
+    f => { f.originalPreparation.readExecutionBytes = -1n; },
+    f => { f.originalPreparation.modelRetainedBytes = 1; },
+  ]) {
+    const f = fundedFixture(); mutate(f);
+    assert.throws(() => openNodeInferOperation(f.options), /InvalidInferOriginalPreparation/u);
+    assert.equal(f.calls.length, 0);
+  }
+});

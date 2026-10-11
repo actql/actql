@@ -689,6 +689,76 @@ pub fn client_program_bind_infer_original_preparation(
 }
 
 ///|
+/// Private installation probe before allocating Node operation/IO controls.
+/// The complete envelope must already be reserved by the original Run owner.
+#export_name("clientProgramInferOriginalPreparationAvailable")
+pub fn client_program_infer_original_preparation_available(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @infer_host.original_model_preparation_available(
+    read, compiled, definition, graph, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Recheck original funding before the ordinary bounded input/Execution start.
+/// This private caller does not install a public asynchronous capability.
+#export_name("clientProgramStartOriginalInferExecution")
+pub fn client_program_start_original_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  read : @publication_host.ClientModelReadPreparation,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  // Even the installed limits/config projection follows the funded probe.
+  if !@infer_host.original_model_preparation_available(
+      read, compiled, definition, graph, read_retained_bytes, read_execution_bytes,
+    ) {
+    return Err(
+      @infer_host.OriginalCapacity(
+        @publication_host.Read(
+          @publication_host.Resource(@resources.ChangedOriginalState),
+        ),
+      ),
+    )
+  }
+  @infer_host.start_original_model_preparation(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @infer_host.standard_limits(),
+    compiled,
+    definition,
+    graph,
+    read,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
 /// Expose the admitted account token, never adapter-authored authority JSON.
 #export_name("clientProgramIssueInferDispatchAdmission")
 pub fn client_program_issue_infer_dispatch_admission(
