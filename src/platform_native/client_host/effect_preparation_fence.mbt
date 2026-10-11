@@ -19,6 +19,8 @@ struct NativeClientEffectPreparationFence {
   artifact : @host.ClientEffectLocalResultArtifact
   occurrence : @host.ClientEffectLocalIdentity
   member_index : Int
+  stage : Int
+  effect_id : String
   identity : @credential.LocalPreparationFenceIdentity
 }
 
@@ -155,6 +157,8 @@ pub fn NativeClientEffectSourceWork::prepare_observation_fence(
     artifact: facts.consumer,
     occurrence,
     member_index: descriptor.0,
+    stage,
+    effect_id,
     identity,
   }
   fence.require_current().map(_ => fence)

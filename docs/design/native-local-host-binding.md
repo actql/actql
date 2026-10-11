@@ -434,6 +434,24 @@ new grant or another GET. Historical named Catalog restoration reprojects
 exact retained response bytes/use evidence through the existing recovery
 function and rejects missing, changed or foreign originals without I/O.
 
+The original preparation fence visits actual captured target proposals through
+`visit_native_effect_target_requests`, the same Mapping/request visitor used
+by Remote observation. The checked authored member and pinned consumer index
+come from that fence and its capture context, rather than CLI-supplied row
+positions, selectors or changes. Each receiver sees a
+`NativeClientLocalPreparationTarget` bound to this live Work, current Catalog
+and original checked GET. Original request intent/scope and Run invocation must
+match. Current Work, cancellation and capture checks bracket projection and
+receiver callbacks; an incomplete export is not a complete observation batch.
+
+The target's credential scope projects its actual GET, original occurrence,
+consumer Unit and fence. This is identity material only. It issues no grant,
+claims no use and confers no independent read, issuer or mutation permission.
+Host adoption/current Account and credential installation still require their
+own checked binding before grant acknowledgement or physical entry. Closing
+the capture invalidates operational use of retained targets; retaining their
+public identities does not recreate a token or permit Source/Compute replay.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract

@@ -37,6 +37,8 @@ pub fn prepare_native_resident_effect_review_from_context(@remote_resident_host.
 
 pub fn prepare_native_resident_effect_review_from_original_materials(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
 
+pub fn visit_native_effect_target_requests(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, () -> Bool, (Int, @catalog.SingleWriteRequest) -> Result[Unit, NativeResidentEffectTargetIssue]) -> Result[Int, NativeResidentEffectTargetIssue]
+
 // Errors
 
 // Types and methods
