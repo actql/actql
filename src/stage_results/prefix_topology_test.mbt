@@ -206,7 +206,9 @@ test "Effect binding refuses a check-only prefix without unwrapping a Program" {
   let (topology, _) = check_local_program(source, local_program_limits()).unwrap()
   let stages = []
   for index in 0..<@parameters.stage_count(source) {
-    stages.push(topology_stage_source(topology_stage_at(topology, index).unwrap()))
+    stages.push(
+      topology_stage_source(topology_stage_at(topology, index).unwrap()),
+    )
   }
   let operations = @parameters.collect_prepared_operations(source, stages, {
     max_work: 1000000,
@@ -224,7 +226,9 @@ test "Effect binding refuses a check-only prefix without unwrapping a Program" {
   }).unwrap()
   let (_, headers) = effect_binding_inputs("{}")
   assert_eq(
-    effect_result_binding_issue_kind(bind_effect_results(headers, checked, 100).unwrap_err()),
+    effect_result_binding_issue_kind(
+      bind_effect_results(headers, checked, 100).unwrap_err(),
+    ),
     ForeignProgram,
   )
 }
