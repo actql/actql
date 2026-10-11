@@ -862,6 +862,7 @@ pub(all) struct CommittedResultRead {
   logical_result_cid : String
   result_schema_cid : String
   ordering_evidence_cid : String
+  effective_data_policy_cid : String
   effective_retention_policy_cid : String
   durable_result_binding_cid : String
   material_generation_cid : String
