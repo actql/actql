@@ -53,6 +53,8 @@ pub fn check_effect_preview_plan_inventory(EffectMappingRules, Int, @run_publica
 
 pub fn check_effect_preview_static_inventory(EffectStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewStaticInventoryIssue]
 
+pub fn check_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(CheckedTopology, LocalProgramUsage), LocalProgramIssue]
+
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits, table_inputs? : Array[@relation_results.CheckedTableInputs?]?) -> Result[Checked, CollectionIssue]
 
 pub fn effect_command_input_at(EffectCommandInputs, Int) -> EffectCommandInputBinding?
@@ -305,6 +307,54 @@ pub fn stage_port_table_inputs(StagePorts) -> @relation_results.CheckedTableInpu
 
 pub fn stage_table_inputs_at(Checked, Int) -> @relation_results.CheckedTableInputs?
 
+pub fn topology_calendar_profile(CheckedTopology) -> @calendar_profile.Profile?
+
+pub fn topology_export_at(CheckedTopology, Int) -> CheckedTopologyExport?
+
+pub fn topology_export_count(CheckedTopology) -> Int
+
+pub fn topology_export_input(CheckedTopologyExport) -> @pipeline_typing.ProducedInput
+
+pub fn topology_export_name(CheckedTopologyExport) -> String
+
+pub fn topology_export_stage(CheckedTopologyExport) -> CheckedStageTopology
+
+pub fn topology_import_at(CheckedTopologyImports, Int) -> CheckedTopologyImport?
+
+pub fn topology_import_count(CheckedTopologyImports) -> Int
+
+pub fn topology_import_stage(CheckedTopologyImports) -> @stage_parameters.CollectedStage
+
+pub fn topology_imports_at(CheckedTopology, Int) -> CheckedTopologyImports?
+
+pub fn topology_input_name(CheckedTopologyImport) -> String
+
+pub fn topology_input_producer(CheckedTopologyImport) -> @pipeline_typing.ProducedInput
+
+pub fn topology_input_stage(CheckedTopologyImport) -> CheckedStageTopology
+
+pub fn topology_local_environment(CheckedTopology) -> @stage_local_inputs.ProgramEnvironmentInputs?
+
+pub fn topology_local_input_at(CheckedTopology, Int) -> @stage_local_inputs.Attached?
+
+pub fn topology_model_tasks(CheckedTopology) -> @check_environment.ModelTasks?
+
+pub fn topology_reconciled_input_at(CheckedTopology, Int) -> @stage_local_inputs.ReconciledAttachment?
+
+pub fn topology_source(CheckedTopology) -> @stage_parameters.Source
+
+pub fn topology_stage_at(CheckedTopology, Int) -> CheckedStageTopology?
+
+pub fn topology_stage_orders(CheckedStageTopology) -> @pipeline_typing.ContextualClosure
+
+pub fn topology_stage_results(CheckedStageTopology) -> @relation_results.CheckedResultInputs
+
+pub fn topology_stage_source(CheckedStageTopology) -> @stage_parameters.CollectedStage
+
+pub fn topology_stage_table_inputs(CheckedStageTopology) -> @relation_results.CheckedTableInputs?
+
+pub fn topology_usage(CheckedTopology) -> LocalProgramUsage
+
 pub fn usage(Checked) -> Usage
 
 pub fn wire_results(@stage_parameters.Source, Array[StagePorts], Array[AttachedImports], WiringLimits) -> Result[ResultWiring, WiringIssue]
@@ -329,6 +379,16 @@ pub fn wiring_usage(ResultWiring) -> (Int, Int)
 type AttachedImports
 
 type Checked
+
+type CheckedStageTopology
+
+type CheckedTopology
+
+type CheckedTopologyExport
+
+type CheckedTopologyImport
+
+type CheckedTopologyImports
 
 pub(all) enum CollectionIssue {
   InvalidLimits
@@ -729,6 +789,7 @@ pub enum Issue {
 
 pub enum LocalProgramIssue {
   InvalidLimits
+  CheckOnlyPrefix
   BudgetExceeded
   ForeignEnvironmentSource
   ForeignModelEnvironment
@@ -803,6 +864,7 @@ pub(all) struct Usage {
 pub(all) enum WiringIssue {
   InvalidLimits
   StageCountMismatch
+  CheckOnlyPrefix
   ForeignStage(Int)
   ForeignProducer(Int, String)
   UnknownExport(String, String)

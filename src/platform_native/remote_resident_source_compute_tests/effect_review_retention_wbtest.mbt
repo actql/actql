@@ -148,6 +148,25 @@ fn retained_effect_review_retention_store(
     is Err(EvidenceDenied),
   )
   assert_eq(evidence_reads.val, 2)
+  // Both earlier checks allow this read. Current authority is unavailable
+  // only after the final paired Store confirmation, before plaintext returns.
+  let final_reads = Ref(0)
+  assert_true(
+    retention.review_projection(
+      () => {
+        final_reads.val += 1
+        final_reads.val < 3
+      },
+      65536,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(final_reads.val, 3)
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(retention.report().unwrap()),
+    @remote.remote_effect_checkpoint_report_json(report),
+  )
   let closing_reads = Ref(0)
   assert_true(
     retention.review_projection(
@@ -216,6 +235,17 @@ fn retained_effect_review_retention_store(
         is Err(EvidenceDenied),
       )
       assert_eq(original_reads.val, 2)
+      let final_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          final_reads.val += 1
+          final_reads.val < 3
+        })
+        is Err(EvidenceDenied),
+      )
+      assert_eq(final_reads.val, 3)
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+      assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
       let restored = read_original(() => true).unwrap()
       assert_eq(restored.1, projection_wire)
       assert_eq(

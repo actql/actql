@@ -1,0 +1,4 @@
+[actql/actql] test stage_results/prefix_topology_test.mbt:158 ("prefix check preserves bounded accounting and actual local ownership") failed: src/stage_results/prefix_topology_test.mbt:184:3-184:56@actql/actql FAILED: `false` is not true
+Total tests: 18, passed: 17, failed: 1.
+["moon","test","--target","js","src/stage_syntax/prefix_test.mbt","src/stage_results/prefix_topology_test.mbt","src/stage_results/checked_topology_test.mbt","src/stage_results/local_program_test.mbt","src/pipeline_check_context/prefix_sourceview_test.mbt"]: process failed (2); counts={"tests":18,"passed":17,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/focused-evidence/focused-test-aWRpRU

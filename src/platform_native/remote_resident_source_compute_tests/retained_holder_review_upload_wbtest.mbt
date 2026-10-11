@@ -107,11 +107,11 @@ fn retained_holder_upload_original_review(
   assert_true(
     work.upload_review_projection(client, report_url, url, () => {
       reads.val += 1
-      reads.val < 5
+      reads.val < 9
     })
     is Err(Review(_)),
   )
-  assert_eq(reads.val, 5)
+  assert_eq(reads.val, 9)
   let target_reads = Ref(0)
   let configured = {
     ..publication,
@@ -193,22 +193,44 @@ fn retained_holder_upload_original_review(
   assert_true(
     restore_upload(() => {
       original_reads.val += 1
-      original_reads.val < 3
+      original_reads.val < 5
     })
     is Err(OriginalReview(EvidenceDenied)),
   )
-  assert_eq(original_reads.val, 3)
+  assert_eq(original_reads.val, 5)
+  // Both original reads allow, but current permission fails after the journal
+  // confirmation and prepared body, immediately before the artifact send.
+  let send_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      send_reads.val += 1
+      send_reads.val < 8
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(send_reads.val, 8)
   // Artifact save can outlive disclosure authority. Keep its original report
   // and bytes, but do not turn remote success into current completion permission.
   let save_reads = Ref(0)
   assert_true(
     restore_upload(() => {
       save_reads.val += 1
-      save_reads.val < 5
+      save_reads.val < 9
     })
     is Err(OriginalReview(EvidenceDenied)),
   )
-  assert_eq(save_reads.val, 5)
+  assert_eq(save_reads.val, 9)
+  // The last journal read must not turn an earlier Allow into current success.
+  // The remote artifact is retained even when this final fence refuses it.
+  let final_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      final_reads.val += 1
+      final_reads.val < 12
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(final_reads.val, 12)
   restore_upload(() => true).unwrap()
   let (restored_report, restored_wire) = context
     .read_original_review_projection(

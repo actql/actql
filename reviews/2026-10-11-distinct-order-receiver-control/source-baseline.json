@@ -1,0 +1,6 @@
+{
+  "head": "61655a2f732592d4ad07b11f2d15aaa4edcd61ac",
+  "tree": "51d2b2e7aac5eb9f311dc75e1e72da1465e2a136",
+  "helperSha256": "b52a7b352a73164645beb08d42d16bcf24b33b94809d72e5d27c90d5a5d5274b",
+  "finding": "Source inspection only; pre-fix runtime failure not executed."
+}

@@ -63,6 +63,29 @@ fn holder_effect_catalog_grant_scope(
 }
 
 ///|
+/// Catalog describe is a bodyless GET. The existing Resource Owner rejects
+/// GET operations with a nonzero request-body allowance.
+fn holder_effect_catalog_operation(
+  scope : @effect_resource.NativeCredentialScope,
+  resource : String,
+  api_version : String,
+  secret_path : String,
+) -> @effect_resource.NativeCredentialOperation {
+  {
+    resource_origin: scope.resource_origin,
+    operation: scope.operation,
+    path: "/services/data/" +
+    api_version +
+    "/sobjects/" +
+    resource +
+    "/describe",
+    secret_path,
+    verb: @http.Get,
+    max_request_bytes: 0,
+  }
+}
+
+///|
 /// This borrows the existing physical credential Owners. The caller retains
 /// the installation and every read/save failure until its own cleanup is
 /// confirmed. Closing these handles is not Catalog custody or task release.
@@ -95,6 +118,7 @@ fn open_holder_effect_catalog_installation(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  configuration_current : () -> Bool,
 ) -> HolderEffectCatalogInstallation? raise CommandStop {
   guard original.invocation(max_bytes, max_nodes, max_depth)
     is Some((_, invocation)) else {
@@ -193,6 +217,7 @@ fn open_holder_effect_catalog_installation(
   }
   let current = () => {
     original.current() &&
+    configuration_current() &&
     snapshot.all(entry => {
       match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
         Ok(value) => value == entry.1
@@ -236,20 +261,7 @@ fn open_holder_effect_catalog_installation(
     @effect_resource.install_native_credential_resource_service(
       database,
       client,
-      [
-        {
-          resource_origin: scope.resource_origin,
-          operation: scope.operation,
-          path: "/services/data/" +
-          read(10) +
-          "/sobjects/" +
-          read(9) +
-          "/describe",
-          secret_path: read(18),
-          verb: @http.Get,
-          max_request_bytes: 65536,
-        },
-      ],
+      [holder_effect_catalog_operation(scope, read(9), read(10), read(18))],
       authorization => {
         current() &&
         authorization.grant_cid ==

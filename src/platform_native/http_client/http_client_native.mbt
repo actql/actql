@@ -107,6 +107,24 @@ extern "C" fn client_status_ffi(client : Client) -> Int = "actql_native_http_cli
 
 ///|
 #borrow(client)
+extern "C" fn client_response_limit_ffi(client : Client) -> Int64 = "actql_native_http_client_response_limit"
+
+///|
+/// Project the actual immutable ceiling adopted by this HTTP Owner. This is
+/// for prefunding existing response/Store custody before physical entry; it
+/// neither reserves capacity nor grants send, disclosure or retry authority.
+pub fn Client::response_limit(self : Client) -> Result[Int64, NativeHttpIssue] {
+  match client_response_limit_ffi(self) {
+    -1L => Err(Closed)
+    -2L => Err(InvalidConfiguration)
+    -3L => Err(Cancelled)
+    value if value >= 0L && value <= 2147483647L => Ok(value)
+    _ => Err(InvalidConfiguration)
+  }
+}
+
+///|
+#borrow(client)
 extern "C" fn client_body_ffi(client : Client) -> Bytes = "actql_native_http_client_body"
 
 ///|

@@ -1372,7 +1372,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:9c951c47f7294219438002df20aa61ff4634a9056b48baf26f3d27ef72ae302e -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:53ad67f3502022aaff539cb4d68a393af558f8be4ce0653935fe772efcf94d8c -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:98cabab7effed19178941d006ff89d3d6c08da0ebbc721d0a975058b4762d67c -->
 
 <a id="parameter-value-projection"></a>
@@ -1618,6 +1618,65 @@ Malformed bodies remain invalid, rather than being reclassified as an
 implementation limitation. This profile does not narrow the language's
 contract-bounded retry semantics. Unknown outcomes retain accounting and
 capture responsibility; replay cannot silently invoke the provider again.
+
+<a id="model-response-profile"></a>
+
+### Installed Model response profile
+
+<!-- requirement-block: model-response-profile.body -->
+The initial `actql-model-response-profile/0.1` MUST be a closed canonical
+body with the registered adapter, operation, task, completion, probability,
+observations, limits, controls and self identity fields, matching its reference,
+`self_cid` and the canonical SHA-256 preimage excluding only root `self_cid`.
+Unknown versions or fields, omitted nullable discriminators, invalid numbers
+and noncanonical bytes refuse; no body is repaired. This owned contract is
+distinct from private physical port `model-physical-port/1`, external SDK
+interface v4 and package versions. Existing Task, evidence, capture and
+synchronous API contracts retain their original identities and behavior.
+
+<!-- requirement-block: model-response-profile.installation -->
+The existing installed-provider boundary MUST bind the original adapter build,
+builder/codec/validator identifiers and revisions, optional SDK package/version
+and exact transitive lock Artifact, fixed endpoint/POST operation, checked Task
+CID and input/output schema CIDs to the selected profile before entry/send.
+An SDK-free profile explicitly has `sdk: null`; a fake lock does not substitute.
+Build, validator and lock originals exclude the containing configuration, so
+the profile does not recursively bind a configuration that references itself.
+The existing configuration original and its schema reference this profile CID.
+Credentials and current endpoint/egress authority remain separate. A matching
+body or a plain cross-reference record is neither trusted installation nor
+operational conformance, permission, captured response, or resource funding.
+
+<!-- requirement-block: model-response-profile.completion -->
+Actual successful adoption MUST independently validate complete transport,
+the selected endpoint envelope and checked output through the bound codec,
+without deriving completion, precision, authority or retry from the profile
+declaration, opaque metadata, SDK defaults or a missing finish observation.
+`generation_finish` requires that codec's successful nontruncated endpoint
+finish; `native_decision` requires its native complete Decision envelope.
+Generation has `probability: null`; Decision binds an explicit native/estimated
+source and a registered precision/law profile, separately from its answer shape.
+The currently admitted native Decision Task rejects estimated support.
+Supported raw fields form a unique subset in the registered observation order.
+Actual token quantities, provider IDs and bounded metadata remain independently
+nullable, preserving observed zero, empty object, original values and unknown.
+
+<!-- requirement-block: model-response-profile.bounds -->
+The initial single-request profile MUST declare positive finite request,
+response, chunk/count, header, metadata, parse work/node/depth, adapter holding
+and workspace bounds, at most four active/unsettled slots, one model request
+and disabled retry/fallback/hedging/tools/repair/cache/media fetch/workflow
+restore/SDK telemetry/redirect controls, enforcing these through its installation.
+These integer quantities are at most 2147483647, using checked wide arithmetic
+for simultaneous comparisons; overflow refuses, never wraps. Declared adapter
+holding covers at least response backing plus one chunk and headers, but that
+minimum is not the whole resource sum. External chunk allocation before a read,
+SDK decode copies/objects, Promises, retained readers, original request/Entry,
+input/response/capture/unknown holdings and cleanup-pending custody remain funded
+in the existing cumulative resource Owner. Byte bounds do not prove parser CPU
+or isolation bounds. A declaration without verified enforcement and cumulative
+funding cannot be installed as a public async capability. Replay still uses
+original saved evidence and performs no new inference.
 
 <a id="model-attempt-evidence"></a>
 
@@ -1982,7 +2041,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:38ddaf618513269328b76b6b8fb87a03e1ac099091f9e931e611e94e399a3f07
+../../../spec/contracts/actql-check-environment.json# sha256:2edbaec105871702a061b1e21f0ff929cc7c76f4010bcd3f681e0d7ad89b43fb
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
@@ -2010,6 +2069,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_prompt sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_response_profile sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_retry_policy sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_backoff sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:2ef4cc7eb176d29e8abadf8be9c4741b4253ddfae554667dc51e68fe5c0c0a72
@@ -2019,11 +2079,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:5a3c3ebb6329328db68d3a1875e05cd574e3b3289c5ebf6c0cc4be5d4feb7fb7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:a01d7a60405f4a069d39e4197527ed617ff01e6ceecefdd54dcb9df4daaf4d10
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:1a7ae76c47dc12c6d3f1b134ed10b625f1cf49ec0df65dd4f397f756bc49aa0e
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:de6fd2435809739d7d234a882658f5dbbf2bd36f877bf30b18d1ec452db7ca1b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f

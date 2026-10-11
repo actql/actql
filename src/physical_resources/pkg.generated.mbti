@@ -8,7 +8,11 @@ import {
 // Values
 pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocation, LedgerIssue]
 
+pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
+
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
+
+pub fn capacity_reservation_matches(Ledger, CapacityReservation, Int64, Int64) -> Bool
 
 pub fn capacity_reservation_open(CapacityReservation) -> Bool
 
@@ -24,11 +28,25 @@ pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn execution_delegation_limits(ExecutionDelegation) -> LedgerLimits
 
+pub fn finish_original_ledger_inventory(Ledger, Bool) -> Result[Bool, OriginalReadIssue]
+
+pub fn[T] fund_original_read(Ledger, T, OriginalLedgerDescriptor[T], Int64, Int64) -> Result[FundedReadClaim[T], OriginalReadIssue]
+
+pub fn[T] funded_read_available(FundedReadClaim[T], T) -> Bool
+
+pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64) -> Bool
+
+pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
+
+pub fn[T] handoff_funded_read_capacity(FundedReadClaim[T], T, Int64, Int64) -> Result[(Ledger, CapacityReservation), OriginalReadIssue]
+
 pub fn holding_available(Ledger, Holding) -> Bool
 
 pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
+
+pub fn[T] issue_recorded_original_ledger_descriptor(OriginalLedgerIdentity, T) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue]
 
 pub fn ledger_admission_limits(Ledger) -> LedgerLimits
 
@@ -43,6 +61,10 @@ pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssu
 pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
+
+pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
+
+pub fn quantity_configuration_matches(Ledger, QuantityAmounts?) -> Bool
 
 pub fn quantity_usage(Ledger) -> QuantityUsage
 
@@ -80,6 +102,8 @@ pub fn settle_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage?) ->
 
 pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
 
+pub fn[T] settle_funded_read(FundedReadClaim[T], Bool) -> Result[Unit, OriginalReadIssue]
+
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
@@ -88,12 +112,16 @@ pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
 
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
+pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Unit
+
 // Errors
 
 // Types and methods
 type CapacityReservation
 
 type ExecutionDelegation
+
+type FundedReadClaim[T]
 
 type Holding
 
@@ -136,6 +164,20 @@ pub(all) struct LedgerUsage {
   reserved_retention_bytes : Int64
   reserved_execution_bytes : Int64
   peak_retention_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+type OriginalLedgerDescriptor[T]
+
+type OriginalLedgerIdentity
+
+pub(all) enum OriginalReadIssue {
+  InvalidBootstrap
+  IncompleteInventory
+  ForeignOrigin
+  ChangedOriginalState
+  SpentClaim
+  CleanupPending
+  Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {

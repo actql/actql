@@ -185,7 +185,10 @@ test "actual explicit Source filter and select have preparation-owned empty inve
     @publication.run_evidence_value_identity(journal),
     "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087",
   )
-  assert_true(@checked.completion_free_inventory_work(original.inventory) > 0)
+  guard original.inventory is MappedCreate(inventory) else {
+    fail("create profile")
+  }
+  assert_true(@checked.completion_free_inventory_work(inventory) > 0)
   let foreign = normalization_fixture()
   assert_true(
     prepared_client_effect_normalization_evidence(foreign, original)

@@ -31,6 +31,9 @@ semantic identity must equal the original Checkpoint's required artifact. The
 existing Store Owner then authenticates that same saved Preview. After the
 authorization callback, the context, original report, paired Checkpoint, and
 Preview are read/confirmed again before returning the original Review bytes.
+Current disclosure permission and the original consumer facts are checked once
+more after that final Store read. Revocation at this last boundary refuses the
+read without releasing or replacing original custody.
 
 This read adds no reservation, Store write, Provider operation, new Preview,
 Checkpoint, Run, or input capture. It does not retire any evidence custody or
@@ -52,6 +55,8 @@ authority, Store closure during the final authorization callback, successful
 subsequent readback, and unchanged Store/Ledger reservations. Those new
 physical assertions are compiled only until an explicit Native validation
 window is assigned. Matching CLI compilation also does not execute it.
+The integration repair additionally checks refusal at the third, final
+authorization callback in that same Native fixture; this remains compile-only.
 
 ## Remaining boundaries
 

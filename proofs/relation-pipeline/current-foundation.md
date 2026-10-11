@@ -207,8 +207,10 @@ dependency receipts with a separate, additive record in
 ```
 
 The target must be an independently validated resolution, bound by its exact
-original bytes. Every supplement introduction follows an original introduction
-and an introduction of each supplied receipt. Supplement bytes, mode, filename,
+original bytes. Every effective supplement introduction strictly follows an
+original introduction and an introduction of each supplied receipt. Rejected
+co-introductions require the explicit later repair disposition below; they are
+retained as rejected records and never supply effective inputs. Supplement bytes, mode, filename,
 membership and every introduction are checked against real Git and retained
 unchanged, using the same inheritance and working/index safeguards as originals.
 
@@ -227,6 +229,46 @@ When present, a separate `supplements` array records the new records, their
 digests and introductions; affected integrations list their supplement IDs.
 Without supplements, declaration and aggregate formats/results are unchanged.
 This is dependency provenance, not an approval or permission to execute.
+
+### Repairing a rejected atomic co-introduction
+
+A resolution supplement added in the same commit as a supplied declaration
+fails strict precedence. The original failure and immutable record remain
+unchanged. An append-only `actql-foundation-supplement-repair/0.1` disposition
+can bind a new independently valid receipt for this exact failure class:
+
+```json
+{
+  "version": "actql-foundation-supplement-repair/0.1",
+  "id": "repair-co-introduction",
+  "target": {"id": "rejected-supplement", "digest": "<original JSON SHA-256>"},
+  "rejectedIntroductions": [{"revision": "<actual SHA>", "parents": ["<actual parent SHA>"]}],
+  "replacement": {"id": "later-valid-supplement", "digest": "<replacement JSON SHA-256>"},
+  "reason": "Retain the rejection and bind a strictly later independent receipt"
+}
+```
+
+Both bindings name ordinary resolution supplements by exact immutable bytes.
+The replacement has exactly the same target and input IDs. Every failed
+dependency introduction in the original must be that same commit, rather than
+a later, absent or unrelated declaration. `rejectedIntroductions` contains
+exactly all affected actual introduction SHAs in sorted order, with actual
+ordered parents. Each replacement introduction strictly follows every original
+introduction and independently satisfies the normal source, target, dependency,
+complete-membership and omission checks. Every disposition introduction strictly
+follows every replacement introduction. Missing declarations, bad source or
+digest bindings, originally visible omissions, redundant or future inputs,
+non-ancestral histories, duplicate dispositions, replacement reuse and chained
+repairs still reject. Every inherited record remains byte- and mode-identical.
+
+The manifest retains the original with `disposition: "repaired_co_introduction"`
+and its `temporalRepair` ID, including the actual failed introduction. Only the
+strictly later replacement supplies effective late inputs; the disposition
+itself supplies none. A rejected receipt cannot act as an equivalence member.
+Without a valid disposition, the original strict-precedence failure remains.
+This explicit repair changes the treatment of retained invalid provenance; it
+does not make equal commits strict ancestors or change product semantics,
+protected transition coverage, historical pins or execution/proof obligations.
 
 Ordinary `foundation.test.mjs` regressions use small, self-contained real-Git
 fixtures. They cover failure before supplementation, success afterward,

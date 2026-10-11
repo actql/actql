@@ -187,8 +187,7 @@ test "original review codec rejects replacement projection and continuation byte
 test "original review codec rejects noncanonical duplicate and extra fields within original limits" {
   let wire = original_review_codec_wire("review")
   let checkpoint = original_review_codec_checkpoint(wire, "review")
-  for
-    candidate in [wire + "\n", "{\"unit_id\":\"unit\"," + wire[1:].to_owned()] {
+  for candidate in [wire + "\n", "{\"unit_id\":\"unit\"," + wire[1:].to_owned()] {
     assert_true(
       original_review_codec_read(candidate, checkpoint)
       is Err(MalformedContinuation),

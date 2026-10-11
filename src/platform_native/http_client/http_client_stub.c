@@ -987,6 +987,16 @@ int32_t actql_native_http_client_request_bearer_file(
   return result;
 }
 
+int64_t actql_native_http_client_response_limit(actql_native_http_client *client) {
+  if (client == NULL || client->library == NULL ||
+      client->max_response_bytes < 0 || client->max_response_bytes > INT32_MAX) {
+    return -2;
+  }
+  if (client->closed) return -1;
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return -3;
+  return client->max_response_bytes;
+}
+
 int32_t actql_native_http_client_status(actql_native_http_client *client) {
   if (client == NULL || client->status < 0 || client->status > INT32_MAX) {
     return 0;

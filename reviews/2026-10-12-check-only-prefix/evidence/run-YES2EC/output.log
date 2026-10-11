@@ -1,0 +1,23 @@
+Error: [4018]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/src/stage_results/prefix_topology_test.mbt:176:61 ]
+     │
+ 176 │     Err(issue) => fail("unexpected exact-budget boundary: \{issue}"),
+     │                                                             ──┬──  
+     │                                                               ╰──── Type @actql/actql/stage_results.LocalProgramIssue does not implement trait Show: no `impl` is defined
+─────╯
+Error: [3800]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/src/stage_results/prefix_topology_test.mbt:176:69 ]
+     │
+ 176 │     Err(issue) => fail("unexpected exact-budget boundary: \{issue}"),
+     │                                                                     ┬  
+     │                                                                     ╰── Expecting a newline or `;` here, but encountered `,`.
+─────╯
+Error: [3800]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/src/stage_results/prefix_topology_test.mbt:177:47 ]
+     │
+ 177 │     Ok(_) => fail("one-less work must refuse"),
+     │                                               ┬  
+     │                                               ╰── Expecting a newline or `;` here, but encountered `,`.
+─────╯
+["moon","test","--target","js","src/stage_results/prefix_topology_test.mbt","src/pipeline_check_context/prefix_sourceview_test.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/focused-evidence/focused-test-X1ExC1

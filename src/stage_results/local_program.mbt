@@ -23,6 +23,7 @@ pub(all) struct LocalProgramUsage {
 ///|
 pub enum LocalProgramIssue {
   InvalidLimits
+  CheckOnlyPrefix
   BudgetExceeded
   ForeignEnvironmentSource
   ForeignModelEnvironment
@@ -54,6 +55,60 @@ pub fn prepare_local_program(
   calendar_profile? : @calendar_profile.Profile? = None,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue] {
+  match
+    prepare_program_internal(
+      source,
+      limits,
+      environment~,
+      sourceview_registrations~,
+      calendar_profile~,
+      model_tasks~,
+      check_only=false,
+    ) {
+    Ok((Publication(wiring), usage)) => Ok((wiring, usage))
+    Ok(_) => abort("mixed preparation modes")
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Check complete topology before demand selection. This does not resolve
+/// publication orders, admit runtime values or issue execution permission.
+/// Operation-required input order is still checked by the ordinary pipeline.
+pub fn check_local_program(
+  source : @parameters.Source,
+  limits : LocalProgramLimits,
+  environment? : @local.ProgramEnvironmentInputs? = None,
+  sourceview_registrations? : Array[Array[(String, @pipeline.InputContract)]]? = None,
+  calendar_profile? : @calendar_profile.Profile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
+) -> Result[(CheckedTopology, LocalProgramUsage), LocalProgramIssue] {
+  match
+    prepare_program_internal(
+      source,
+      limits,
+      environment~,
+      sourceview_registrations~,
+      calendar_profile~,
+      model_tasks~,
+      check_only=true,
+    ) {
+    Ok((Topology(topology), usage)) => Ok((topology, usage))
+    Ok(_) => abort("mixed preparation modes")
+    Err(e) => Err(e)
+  }
+}
+
+///|
+fn prepare_program_internal(
+  source : @parameters.Source,
+  limits : LocalProgramLimits,
+  environment? : @local.ProgramEnvironmentInputs? = None,
+  sourceview_registrations? : Array[Array[(String, @pipeline.InputContract)]]? = None,
+  calendar_profile? : @calendar_profile.Profile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
+  check_only~ : Bool,
+) -> Result[(PreparedProgram, LocalProgramUsage), LocalProgramIssue] {
   if limits.max_stages < 0 ||
     limits.max_steps < 0 ||
     limits.max_results < 0 ||
@@ -63,6 +118,9 @@ pub fn prepare_local_program(
     limits.max_text_bytes < 0 ||
     limits.max_depth < 0 {
     return Err(InvalidLimits)
+  }
+  if !check_only && @parameters.complete_program(source) is None {
+    return Err(CheckOnlyPrefix)
   }
   let count = @parameters.stage_count(source)
   if sourceview_registrations is Some(registrations) &&
@@ -97,8 +155,8 @@ pub fn prepare_local_program(
     nodes -= used.nodes
     text -= used.text_bytes
   }
-  let stages : Array[StagePorts] = []
-  let imports : Array[AttachedImports] = []
+  let stages : Array[ProgramStage] = []
+  let imports : Array[ProgramAttachedImports] = []
   let local_inputs : Array[@local.Attached] = []
   let reconciled_inputs : Array[@local.ReconciledAttachment] = []
   // wire_results includes these exact retained prefixes in its reported usage.
@@ -145,19 +203,21 @@ pub fn prepare_local_program(
     nodes -= local_used.nodes
     text -= local_used.text_bytes
     let resolved = match
-      resolve_imports(source, i, stages, {
-        max_work: work,
-        max_imports: work,
-        max_text_bytes: text,
-      }) {
+      resolve_program_imports(
+        source,
+        i,
+        stages,
+        { max_work: work, max_imports: work, max_text_bytes: text, },
+        check_only,
+      ) {
       Err(e) => return Err(Import(i, e))
       Ok(v) => v
     }
-    let (import_work, import_text) = import_usage(resolved)
+    let (import_work, import_text) = program_import_usage(resolved)
     work -= import_work
     text -= import_text
     let local_count = @local.count(prepared)
-    let resolved_count = import_count(resolved)
+    let resolved_count = program_import_count(resolved)
     let remote = match sourceview_registrations {
       Some(registrations) => registrations[i]
       None => []
@@ -187,10 +247,8 @@ pub fn prepare_local_program(
       )
     }
     for j in 0..<resolved_count {
-      let entry = import_at(resolved, j).unwrap()
-      inputs.push(
-        (input_name(entry), @pipeline.ProducedInput(input_producer(entry))),
-      )
+      let (name, input) = program_import_at(resolved, j)
+      inputs.push((name, @pipeline.ProducedInput(input)))
     }
     let names : Map[String, Unit] = Map([])
     for (name, registration) in remote {
@@ -281,11 +339,11 @@ pub fn prepare_local_program(
       }
     }
     let attached = match
-      attach_imports(resolved, collected, max_work=work + import_work) {
+      attach_program_imports(resolved, collected, work + import_work) {
       Err(e) => return Err(Import(i, e))
       Ok(v) => v
     }
-    work -= attached_work(attached) - import_work
+    work -= program_attached_work(attached) - import_work
     let checked = match
       @results.check_inventory(
         pipeline,
@@ -307,33 +365,82 @@ pub fn prepare_local_program(
     work -= used.work
     nodes -= used.nodes
     text -= used.text_bytes
-    let orders = match
-      @results.resolve_all_orders(checked, {
-        // Contextual traversal includes earlier producers, not new source steps.
-        max_steps: work,
-        max_results: result_count,
-        max_work: work,
-        max_text_bytes: text,
-      }) {
-      Err(e) => return Err(Order(i, e))
-      Ok(v) => v
+    let (publication, projected, contextual, projection_used) = if check_only {
+      let contextual = match
+        @pipeline.resolve_contextual_closure(
+          pipeline,
+          max_steps=work,
+          max_work=work,
+          max_text_bytes=text,
+        ) {
+        Err(e) =>
+          return Err(
+            Order(
+              i,
+              if physical_equal(e.pipeline, pipeline) {
+                @results.PipelineOrder(e.issue)
+              } else {
+                @results.ProducerOrder(e)
+              },
+            ),
+          )
+        Ok(v) => v
+      }
+      let (order_work, order_text) = @pipeline.contextual_closure_usage(
+        contextual,
+      )
+      let inputs = match
+        @results.prepare_checked_inputs(checked, {
+          max_results: result_count,
+          max_work: work - order_work,
+          max_nodes: nodes,
+          max_text_bytes: text - order_text,
+          max_depth: limits.max_depth,
+        }) {
+        Err(e) => return Err(Ports(i, e))
+        Ok(v) => v
+      }
+      let used = @results.checked_inputs_usage(inputs)
+      (
+        None,
+        Some(inputs),
+        Some(contextual),
+        {
+          ..used,
+          work: used.work + order_work,
+          text_bytes: used.text_bytes + order_text,
+        },
+      )
+    } else {
+      let orders = match
+        @results.resolve_all_orders(checked, {
+          // Contextual traversal includes earlier producers, not new source steps.
+          max_steps: work,
+          max_results: result_count,
+          max_work: work,
+          max_text_bytes: text,
+        }) {
+        Err(e) => return Err(Order(i, e))
+        Ok(v) => v
+      }
+      // prepare_ports includes the orders' prefix; bill the combined result once.
+      let ports = match
+        @results.prepare_ports(orders, {
+          max_results: result_count,
+          max_work: work,
+          max_nodes: nodes,
+          max_text_bytes: text,
+          max_depth: limits.max_depth,
+        }) {
+        Err(e) => return Err(Ports(i, e))
+        Ok(v) => v
+      }
+      let used = @results.ports_usage(ports)
+      (Some(ports), None, None, used)
     }
-    // prepare_ports includes the orders' prefix; bill the combined result once.
-    let ports = match
-      @results.prepare_ports(orders, {
-        max_results: result_count,
-        max_work: work,
-        max_nodes: nodes,
-        max_text_bytes: text,
-        max_depth: limits.max_depth,
-      }) {
-      Err(e) => return Err(Ports(i, e))
-      Ok(v) => v
-    }
-    let used = @results.ports_usage(ports)
-    work -= used.work
-    nodes -= used.nodes
-    text -= used.text_bytes
+    work -= projection_used.work
+    nodes -= projection_used.nodes
+    text -= projection_used.text_bytes
     let table_inputs = match @decode.lookup(body, "table_inputs") {
       None => None
       Some(source) => {
@@ -358,15 +465,66 @@ pub fn prepare_local_program(
         Some(inputs)
       }
     }
-    let owner = match bind_ports(collected, ports, table_inputs~) {
-      Err(e) => return Err(Import(i, e))
-      Ok(v) => v
+    let owner : ProgramStage = match publication {
+      Some(ports) =>
+        match bind_ports(collected, ports, table_inputs~) {
+          Err(e) => return Err(Import(i, e))
+          Ok(v) => Publication(v)
+        }
+      None =>
+        Topology({
+          stage: collected,
+          results: projected.unwrap(),
+          contextual: contextual.unwrap(),
+          table_inputs,
+        })
     }
-    wiring_work += used.work + attached_work(attached)
-    wiring_text += used.text_bytes + import_text
+    wiring_work += projection_used.work + program_attached_work(attached)
+    wiring_text += projection_used.text_bytes + import_text
     stages.push(owner)
     imports.push(attached)
   }
+  if check_only {
+    let topology = match
+      finish_checked_topology(
+        source,
+        stages,
+        imports,
+        {
+          max_work: work,
+          max_text_bytes: text,
+          max_imports: limits.max_work,
+          max_exports: limits.max_work,
+        },
+        local_inputs,
+        environment,
+        reconciled_inputs,
+        {
+          work: limits.max_work - work,
+          nodes: limits.max_nodes - nodes,
+          tokens: limits.max_tokens - tokens,
+          text_bytes: limits.max_text_bytes - text,
+          steps: limits.max_steps - steps,
+          results: limits.max_results - results,
+        },
+        calendar_profile,
+        model_tasks,
+      ) {
+      Err(e) => return Err(Wiring(e))
+      Ok(v) => v
+    }
+    return Ok((Topology(topology), topology.usage))
+  }
+  let stages = stages.map(fn(stage) {
+    guard stage is Publication(owner) else { abort("mixed preparation modes") }
+    owner
+  })
+  let imports = imports.map(fn(imported) {
+    guard imported is Publication(owner) else {
+      abort("mixed preparation modes")
+    }
+    owner
+  })
   let wired = match
     wire_results(source, stages, imports, {
       max_work: work + wiring_work,
@@ -390,7 +548,7 @@ pub fn prepare_local_program(
   }
   Ok(
     (
-      {
+      Publication({
         ..wired,
         preparation_usage: Some(preparation_usage),
         local_inputs: if environment is None {
@@ -404,7 +562,7 @@ pub fn prepare_local_program(
         } else {
           None
         },
-      },
+      }),
       preparation_usage,
     ),
   )

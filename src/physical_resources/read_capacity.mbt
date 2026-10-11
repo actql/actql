@@ -31,6 +31,10 @@ pub fn reserve_capacity(
     ledger.limits.execution_bytes - usage.reserved_execution_bytes {
     return Err(ExecutionLimit)
   }
+  match check_original_reservation_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let retained = usage.held_bytes +
     usage.reserved_retention_bytes +
     retained_bytes
@@ -45,26 +49,46 @@ pub fn reserve_capacity(
   } else {
     Some(serial - 1)
   }
-  Ok({
-    reservation: {
-      owner: ledger,
-      serial,
-      transfer: 0L,
-      retention: retained_bytes,
-      execution: execution_bytes,
-      open: true,
-      cleanup_pending: false,
-      quantities: None,
-      uncertain_quantities: None,
-      observed_quantities: (false, false, false),
-      completed_output: None,
-    },
-  })
+  let reservation : Reservation = {
+    owner: ledger,
+    serial,
+    transfer: 0L,
+    retention: retained_bytes,
+    execution: execution_bytes,
+    open: true,
+    cleanup_pending: false,
+    quantities: None,
+    uncertain_quantities: None,
+    observed_quantities: (false, false, false),
+    completed_output: None,
+  }
+  record_original_reservation(ledger, reservation)
+  Ok({ reservation, })
 }
 
 ///|
 pub fn capacity_reservation_open(reservation : CapacityReservation) -> Bool {
   reservation_open(reservation.reservation)
+}
+
+///|
+// Check an exact previously admitted byte-only token without exposing its
+// mutable inner reservation or creating transfer/quantity/send authority.
+pub fn capacity_reservation_matches(
+  ledger : Ledger,
+  reservation : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  let token = reservation.reservation
+  physical_equal(ledger, token.owner) &&
+  token.open &&
+  !token.cleanup_pending &&
+  token.retention == retained_bytes &&
+  token.execution == execution_bytes &&
+  token.transfer == 0L &&
+  token.quantities is None &&
+  token.uncertain_quantities is None
 }
 
 ///|
