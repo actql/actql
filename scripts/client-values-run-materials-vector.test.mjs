@@ -1,3 +1,4 @@
+import {readHistoricalJson} from './historical-json.mjs';
 // Independent, hand-assembled preimages for the fixed MoonBit Values fixture.
 // No product compiler/issuer/output is imported. Unchanged dependency CIDs
 // are the baseline vector's pins; all affected bodies are rehashed here.
@@ -2367,7 +2368,7 @@ test('pre-decimal-position-ROUND/TRUNC Values dependencies and complete Run prei
 
 
 test('pre-finite-math Values dependencies and complete Run preimages remain immutable', () => {
-  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-finite-math-values-identities.json', 'utf8'));
+  const frozen = readHistoricalJson('scripts/fixtures/pre-finite-math-values-identities.json');
   assert.equal(frozen.source_revision, 'db4f717a5f3a9aea094a027e51e308463c84d597');
   assert.equal(cid(frozen), 'sha256:48ed34e2debe626f548d3dd6ed5e1697524217fd310fc44267b5d8dc99893326');
   assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
@@ -2450,7 +2451,7 @@ test('multi-column UNPIVOT retains the preceding complete Values identity preima
 
 
 test('pre-number-extrema Values dependencies and complete Run preimages remain immutable', () => {
-  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-number-extrema-values-identities.json', 'utf8'));
+  const frozen = readHistoricalJson('scripts/fixtures/pre-number-extrema-values-identities.json');
   assert.equal(frozen.source_revision, "5b78417131cb4d2d7be2b2a862e643587ab282eb");
   assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
   assert.equal(frozen.recovery_revision, '4c59fe14d56a08ef3ada1352bee1de2bc3acbb49');
@@ -2493,7 +2494,7 @@ test('pre-number-extrema Values dependencies and complete Run preimages remain i
 });
 
 test('pre-pad-sides Values dependencies and complete Run preimages remain immutable', () => {
-  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-pad-sides-values-identities.json', 'utf8'));
+  const frozen = readHistoricalJson('scripts/fixtures/pre-pad-sides-values-identities.json');
   assert.equal(frozen.source_revision, "584d01284b18411fcbaaa4c30094c6962dc46a52");
   assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
   assert.equal(frozen.recovery_revision, '3f8d0461dace5ebaf506e11c388c9b8b6757e128');
@@ -2536,7 +2537,7 @@ test('pre-pad-sides Values dependencies and complete Run preimages remain immuta
 });
 
 test('pre-split Values dependencies and complete Run preimages remain immutable', () => {
-  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-split-values-identities.json', 'utf8'));
+  const frozen = readHistoricalJson('scripts/fixtures/pre-split-values-identities.json');
   assert.equal(frozen.source_revision, "789c412262d0ac6bf906896755c8b2525c0720ad");
   assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
   assert.equal(frozen.recovery_revision, 'd338cb0fdfd21d995e53e46a3c8de52d95a83d96');
@@ -2579,7 +2580,7 @@ test('pre-split Values dependencies and complete Run preimages remain immutable'
 });
 
 test('pre-unicode-scalars Values dependencies and complete Run preimages remain immutable', () => {
-  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-unicode-scalars-values-identities.json', 'utf8'));
+  const frozen = readHistoricalJson('scripts/fixtures/pre-unicode-scalars-values-identities.json');
   assert.equal(frozen.source_revision, "c7fe4309a9b9433fab1ed68b14b46a132256efb7");
   assert.equal(frozen.source_revision_kind, "published-parent-with-exact-recovery-tree-match");
   assert.equal(frozen.recovery_revision, '943ac358a07345c375b28eefd4d41670616ac1ea');
