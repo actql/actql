@@ -211,6 +211,17 @@ try:
     assert fixture.attempt > 0 and call('source', 'start', fixture.attempt) == 0
     assert call('source', 'started', fixture.attempt) == 0
     fixture.view = fixture.connection.begin_read_view()
+    if source_publication:
+        # Command reservation is permitted only while acquisition is active.
+        # An unproduced, capacity-refused command still owns its physical ticket.
+        command_input = copy(read_account)
+        ticket += 1
+        collision_ticket = ticket
+        fixture.inputs[collision_ticket] = b''
+        refused_command = call('source', 'reserve_command', fixture.attempt, 1,
+                               command_input, collision_ticket, 9000000)
+        assert refused_command > 0, 'Refused reservation still owns its cleanup ticket'
+        assert call('source', 'produce_command', refused_command) == -4
     fields, rows, columns = stream_rows(command(1))
     event(1, fields=fields, rows=rows, columns=encode(columns).decode())
     for kind, receipt in ((2, 2), (3, 3)):
@@ -243,13 +254,6 @@ try:
                 assert handle > 0
                 return handle
 
-            command_input = copy(read_account)
-            ticket += 1
-            collision_ticket = ticket
-            fixture.inputs[collision_ticket] = b''
-            refused_command = call('source', 'reserve_command', fixture.attempt, 1,
-                                   command_input, collision_ticket, 9000000)
-            assert refused_command > 0, 'Refused reservation still owns its cleanup ticket'
             collision_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
                                     'max_work': 1000000, 'max_workspace_slots': 1000000})
             assert call('source_publication', 'reserve', compute, collision_input,
