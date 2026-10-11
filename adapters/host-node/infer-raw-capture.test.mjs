@@ -45,6 +45,60 @@ function cleanupWakeFixture() {
   };
 }
 
+for (const boundary of ['holding', 'receipt']) {
+test(`saved raw ${boundary} cleanup keeps the original failed confirmation reader before retiring its view`, async t => {
+  const f = await fixture(t, {bytes: Buffer.from('{"original":"raw"}')});
+  const call = Object.freeze({original: Symbol('original call double')});
+  f.moon.clientProgramObserveInferRawCapture = () => ({$tag: 1, _0: f.view});
+  const retained = [];
+  const wake = cleanupWakeFixture();
+  let pending = true;
+  let retries = 0;
+  let injected = false;
+  const reader = Object.freeze({
+    status: () => ({pending}),
+    async retry() {
+      if (++retries === 1) throw new Error('OriginalReaderCloseStillPending');
+      pending = false;
+    },
+  });
+  const failure = Object.assign(new Error('OriginalConfirmationReaderPending'),
+    {cleanupPending: true, cleanupHandle: reader});
+  const store = {...f.physical, async confirmModelRawEvidence(...args) {
+    const saved = await f.store.confirmModelRawEvidence(...args);
+    if (!injected && saved !== undefined &&
+        (boundary === 'holding' || retained[0]?.holding.status().committed === true)) {
+      injected = true;
+      throw failure;
+    }
+    return saved;
+  }};
+  const persist = createModelRawTransportPersistence({store,
+    moon: f.moon, registration: {}, retainHolding: value => retained.push(value),
+    notify: () => wake.notify()});
+  const raw = Object.freeze({body: f.bytes, status: 200,
+    transportComplete: true, observedAt: '2026-10-12T00:00:00.000Z'});
+  await assert.rejects(persist(call, raw), error => error === failure);
+  assert.equal(retained[0].holding.status().committed, boundary === 'receipt');
+  await assert.rejects(persist(call, raw), {message: 'ModelRawReaderCleanupPending'});
+  assert.equal(persist.cleanup(call), false);
+  assert.equal(persist.cleanup(call), false); // Same pending retry flight.
+  await wake.wait(0);
+  assert.equal(retries, 1);
+  assert.equal(pending, true);
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.acknowledgements, 0);
+  assert.equal(persist.cleanup({}), false);
+  await rawFixtureCleanup(persist, call, wake);
+  assert.equal(retries, 2);
+  assert.equal(pending, false);
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.acknowledgements, 0);
+  assert.equal(retained[0].holding.status().committed, true);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+}
+
 test('raw caller cleanup retries original failed writer release without replacement or early capacity return', async t => {
   const f = await fixture(t, {refuseCommit: true, releaseFailure: true});
   const call = Object.freeze({original: Symbol('original physical call double')});

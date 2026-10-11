@@ -28,18 +28,45 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
       return Object.freeze({kind, cid, wire});
     });
   const binding = Object.freeze({semanticCid, holdingCid, wire, contentCid, byteCount});
-  const holding = preparePrivatePublicationHolding(store,
+  let storeReadCleanup;
+  let storeReadFlight;
+  // Only a failure from this trusted original Store read may supply this
+  // handle. A caller's reported CID/error never supplies cleanup custody.
+  const observeStoreRead = async read => {
+    if (storeReadFlight !== undefined ||
+        storeReadCleanup?.status().pending === true) {
+      throw new TypeError('ModelRawReaderCleanupPending');
+    }
+    try { return await read(); }
+    catch (error) {
+      const handle = error?.cleanupHandle;
+      if (typeof handle?.status === 'function' &&
+          typeof handle?.retry === 'function' && handle.status().pending === true) {
+        storeReadCleanup = handle;
+      }
+      throw error;
+    }
+  };
+  const confirmRaw = actual => observeStoreRead(() => store.confirmModelRawEvidence(actual));
+  // A narrow port, not another copy of the Store registry. Holding's own
+  // reconciliation reads must retain the same failed reader handle too.
+  const holding = preparePrivatePublicationHolding({
+    confirmModelRawEvidence: confirmRaw,
+    prepareModelRawEvidence: store.prepareModelRawEvidence,
+    commitPhysicalHolding: store.commitPhysicalHolding,
+  },
     {...binding, name: 'model_raw_response'}, bytes);
   const persist = async () => {
       let confirmed = false;
       try {
         current();
-        await store.confirmModelRawCaptureOriginals(originals, store.storeAuthorityCid);
+        await observeStoreRead(() => store.confirmModelRawCaptureOriginals(
+          originals, store.storeAuthorityCid));
         current();
         await holding.commit();
         // Commit acknowledgement alone cannot supply the nominal receipt.
         // Reconfirm exact descriptor/body bytes and directory durability first.
-        const saved = await store.confirmModelRawEvidence(binding);
+        const saved = await confirmRaw(binding);
         if (saved === undefined) throw Object.assign(
           new Error('ModelRawCapturePersistenceUnknown'),
           {code: 'ModelRawCapturePersistenceUnknown'});
@@ -63,6 +90,22 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
   return Object.freeze({
     holding,
     persist,
+    cleanupStoreReads(notify) {
+      if (storeReadFlight !== undefined) return false;
+      if (storeReadCleanup === undefined) return true;
+      if (storeReadCleanup.status().pending !== true) {
+        storeReadCleanup = undefined;
+        return true;
+      }
+      const original = storeReadCleanup;
+      storeReadFlight = Promise.resolve().then(() => original.retry())
+        .catch(() => { /* The same original reader stays pending. */ })
+        .finally(() => {
+          storeReadFlight = undefined;
+          notify();
+        });
+      return false;
+    },
     async persistChat(metadata) {
       const saved = await persist();
       try {
@@ -159,6 +202,9 @@ export function createModelRawTransportPersistence({store, moon, registration,
       return true;
     };
     if (port === undefined) return retireView(); // No holding was constructed.
+    // A committed raw cell does not prove its failed confirmation reader is
+    // retired. Keep this same port/transport view until Store cleanup succeeds.
+    if (!port.cleanupStoreReads(wake)) return false;
     const status = port.holding.status();
     if (status.operationPending || status.preparedPending) {
       if (!status.operationPending) {
