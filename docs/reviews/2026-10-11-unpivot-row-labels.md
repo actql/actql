@@ -88,3 +88,20 @@ Intermediate compile/test diagnostics remain in their original guarded receipts;
 the initial public-AST inspection and one current-vector expectation were fixed
 in the test code, without changing product semantics or independent expected
 rows. No failure is relabeled as a successful run.
+
+## Integration correction: bounded literal String schema
+
+The first installed Local/HTTPS invocation at integration source
+`956e654a8af325c59cb5a19ca5383ad801d639c8` (`run-YAl7bC`) failed
+its first complete-schema assertion. The independently authored fixture had
+omitted the existing String literal contract's `max_utf8_bytes`. It is preserved
+as a failed, incomplete public campaign; its missing case inventories are not
+success evidence.
+
+The corrected oracle follows the existing literal typing and contract join:
+`first`/`second` require six UTF-8 bytes, `first`/`current` require seven, and
+`same` requires four. Typed empty output retains the six-byte static bound.
+Input text, independent expected rows, multiplicity, nullable fields, column
+order, refusal policies and product implementation are unchanged. The normal
+corpus inventory digest is recomputed solely from the declared fixture bytes
+through its independent data enumerator, preserving all case counts.
