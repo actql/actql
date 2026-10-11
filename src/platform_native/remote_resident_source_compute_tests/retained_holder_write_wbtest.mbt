@@ -78,6 +78,12 @@ fn retained_holder_write_row(
       limits,
     )
   }
+  // A completed computation and a signed proposal do not expose a Named Result
+  // before the original row outcome and final Receipt chain are available.
+  assert_true(
+    work.completed_result_output(() => true, limits)
+    is Err(Row(ReconciliationRequired)),
+  )
   let delivery = @remote.prepare_remote_effect_resume_delivery(
     report,
     resolution,
@@ -152,6 +158,15 @@ fn retained_holder_write_row(
     work.answer_effect_current(current_query, () => false, limits.ledger)
     is Err(EvidenceDenied),
   )
+  if @env.get_env_var("ACTQL_TEST_EFFECT_CURRENT_FIXTURE_URL") is Some(url) {
+    retained_holder_report_effect_current(
+      work,
+      current_query,
+      url,
+      limits.ledger,
+      true,
+    )
+  }
   let before_reply = work
     .answer_effect_current(current_query, () => true, limits.ledger)
     .unwrap()
@@ -217,6 +232,16 @@ fn retained_holder_write_row(
   )
   mark("missing-response-end")
   let request = row.request()
+  let create = @catalog.single_write_request_kind(request)
+    is @catalog.SingleCreate
+  let response_status = if create { 201 } else { 204 }
+  // Independently authored physical Provider response, not a receipt or a
+  // synthesized successful Effect. The Catalog response Owner admits it.
+  let response_body = if create {
+    b"{\"id\":\"001000000000001AAA\",\"success\":true,\"errors\":[]}"
+  } else {
+    b""
+  }
   assert_eq(@catalog.single_write_request_body(request), "{\"Count__c\":3}")
   let origin = retained_runtime_required_env(
     "ACTQL_TEST_NATIVE_HTTP_BEARER_URL",
@@ -234,7 +259,7 @@ fn retained_holder_write_row(
     connector_registration: "salesforce",
     connector_revision: "salesforce/0.1",
     resource_origin: origin,
-    operation: "salesforce:record:update",
+    operation: @catalog.single_write_request_grant_operation(request),
     run_invocation_cid: @publication.publication_contract_identity(invocation),
     task_attempt: 1,
     dispatch_request_cid: @remote.dispatch_request_identity(
@@ -293,7 +318,11 @@ fn retained_holder_write_row(
         operation: scope.operation,
         path: @catalog.single_write_request_path(request),
         secret_path: secret,
-        verb: @http.Patch,
+        verb: if create {
+          @http.Post
+        } else {
+          @http.Patch
+        },
         max_request_bytes: 1024,
       },
     ],
@@ -341,13 +370,25 @@ fn retained_holder_write_row(
     scope,
   ).unwrap()
   assert_eq(observed_use.outcome, "succeeded")
-  assert_eq(observed_use.status, Some(204))
+  assert_eq(observed_use.status, Some(response_status))
   assert_true(row.send(access) is Err(ReconciliationRequired))
+  let retry_accesses = Ref(0)
+  let retry_access = (_ : @catalog.SingleWriteRequest) => {
+    retry_accesses.val += 1
+    abort("claimed row selected another mutation credential")
+  }
+  // The physical response exists but its journal write is still blocked.
+  // The same adapter retries response custody, never Provider access or send.
+  assert_true(row.execute_or_settle(retry_access) is Err(Journal(Physical(_))))
+  assert_eq(retry_accesses.val, 0)
   peer.rollback().unwrap()
   println("native-approved-row: retrying original raw response custody")
   assert_eq(row.retry_response_custody().unwrap(), true)
   assert_eq(row.retry_response_custody().unwrap(), false)
-  assert_eq(peer.read("site_effect_response_bytes", cid).unwrap().body, b"")
+  assert_eq(
+    peer.read("site_effect_response_bytes", cid).unwrap().body,
+    response_body,
+  )
   // Current write permission is gone. Historical custody remains observable
   // and can settle its exact saved response without another approval or send.
   allowed.val = false
@@ -375,6 +416,15 @@ fn retained_holder_write_row(
     "native-current-pending",
     limits.ledger,
   ).unwrap()
+  if @env.get_env_var("ACTQL_TEST_EFFECT_CURRENT_FIXTURE_URL") is Some(url) {
+    retained_holder_report_effect_current(
+      work,
+      pending_query,
+      url,
+      limits.ledger,
+      false,
+    )
+  }
   let pending_reply = work
     .answer_effect_current(pending_query, () => true, limits.ledger)
     .unwrap()
@@ -390,9 +440,9 @@ fn retained_holder_write_row(
     (pending_observation.ledger_head_cid, 3, true),
   )
   assert_eq(@effect.effect_ledger_entry_cid(restored.dispatching.unwrap()), cid)
-  assert_eq(restored.response.unwrap().status_code, 204)
+  assert_eq(restored.response.unwrap().status_code, response_status)
   assert_eq(restored.response.unwrap().credential_use_cid, observed_use.use_cid)
-  assert_eq(restored.response.unwrap().body, b"")
+  assert_eq(restored.response.unwrap().body, response_body)
   assert_true(direct_prepare() is Err(Resolution(_)))
   assert_true(prepare() is Err(AuthorityDenied))
   assert_true(work.retry_cleanup() is Err(Unavailable))
@@ -408,6 +458,12 @@ fn retained_holder_write_row(
     "native-approved-row: retaining responsibility after terminal save failure",
   )
   assert_true(work.settle_saved_row(limits) is Err(Journal(Physical(_))))
+  assert_true(work.retry_approved_row_custody() is Err(Journal(Physical(_))))
+  assert_true(
+    work.completed_result_output(() => true, limits)
+    is Err(Row(Journal(Physical(_)))),
+  )
+  assert_eq(retry_accesses.val, 0)
   mark("terminal-failure-start")
   assert_true(
     work.complete_saved_effect(() => true, limits)
@@ -456,6 +512,15 @@ fn retained_holder_write_row(
     )
     is Err(InvalidDispatch),
   )
+  if @env.get_env_var("ACTQL_TEST_EFFECT_CURRENT_FIXTURE_URL") is Some(url) {
+    retained_holder_report_effect_current(
+      work,
+      terminal_query,
+      url,
+      limits.ledger,
+      false,
+    )
+  }
   let terminal_reply = work
     .answer_effect_current(terminal_query, () => true, limits.ledger)
     .unwrap()
@@ -473,7 +538,10 @@ fn retained_holder_write_row(
     @publication.effect_row_outcome_receipt_terminal_state(receipt),
     Some("applied"),
   )
-  assert_eq(peer.read("site_effect_response_bytes", cid).unwrap().body, b"")
+  assert_eq(
+    peer.read("site_effect_response_bytes", cid).unwrap().body,
+    response_body,
+  )
   let original = peer
     .read(
       "site_effect_ledger_head",
@@ -483,13 +551,17 @@ fn retained_holder_write_row(
   assert_eq(original.revision, 1L)
   let repeated = work.settle_saved_row(limits).unwrap()
   assert_eq(
-    @effect.effect_ledger_entry_cid(row.settle().unwrap().1),
+    @effect.effect_ledger_entry_cid(
+      row.execute_or_settle(retry_access).unwrap().1,
+    ),
     @effect.effect_ledger_entry_cid(terminal),
   )
+  assert_eq(retry_accesses.val, 0)
   assert_eq(
     @effect.effect_ledger_entry_cid(repeated.1),
     @effect.effect_ledger_entry_cid(terminal),
   )
+  assert_eq(work.retry_approved_row_custody().unwrap(), false)
   assert_eq(
     peer
     .read(
@@ -564,6 +636,26 @@ fn retained_holder_write_row(
     ).unwrap(),
     0,
   )
+  assert_true(
+    work.completed_result_output(() => false, limits) is Err(EvidenceDenied),
+  )
+  let (published_output, published_completion) = work
+    .completed_result_output(() => true, limits)
+    .unwrap()
+  assert_eq(
+    @remote.dispatch_request_identity(published_output.request),
+    work.dispatch_identity(),
+  )
+  assert_eq(
+    published_output.result_definition_cid,
+    Some(@publication.publication_contract_identity(result.definition)),
+  )
+  assert_eq(
+    @publication.publication_contract_json(published_completion.final_receipt),
+    @publication.publication_contract_json(completion.final_receipt),
+  )
+  assert_eq(retry_accesses.val, 0)
+  assert_eq(consumer.usage().reserved_retention_bytes, before)
   mark("repeated-receipts-start")
   let repeated_completion = work
     .complete_saved_effect(() => true, limits)
@@ -608,4 +700,98 @@ fn retained_holder_write_row(
   println(
     "native-approved-row: common receipt and original Ledger terminal saved without another send",
   )
+}
+
+///|
+/// The peer accepts transport bytes only. Original query/row/report admission
+/// and Ledger facts are issued by the actual review Owner above.
+fn retained_holder_report_effect_current(
+  work : @effect_provider.NativeResidentEffectReview,
+  query : @remote.RemoteEffectCurrentQuery,
+  url : String,
+  limits : @checkpoint.WireLimits,
+  first : Bool,
+) -> Unit raise {
+  let required = name => @env.get_env_var(name).unwrap()
+  let http = @http.load_library(required("ACTQL_TEST_NATIVE_HTTP_LIBRARY")).unwrap()
+  let client = http
+    .create_authenticated_client(
+      required("ACTQL_TEST_NATIVE_HTTP_CA"),
+      Bearer(required("ACTQL_TEST_NATIVE_HTTP_SECRET")),
+      65536L,
+      2000,
+      5000,
+    )
+    .unwrap()
+  defer assert_true(client.close())
+  let body = @remote.remote_effect_current_query_json(query)
+  if first {
+    assert_true(
+      work.report_effect_current(body, client, url, () => false, limits)
+      is Err(EvidenceDenied),
+    )
+    let foreign = body.replace(
+      old="\"report_cid\":\"",
+      new="\"report_cid\":\"foreign-",
+    )
+    assert_true(
+      work.report_effect_current(foreign, client, url, () => true, limits)
+      is Err(Query(_)),
+    )
+    let report = @remote.remote_effect_current_query_report(query)
+    let other = @remote.prepare_remote_effect_current_query(
+      report, "foreign-effect-member", "native-current-foreign-transport", limits,
+    ).unwrap()
+    assert_true(
+      work.report_effect_current(
+        @remote.remote_effect_current_query_json(other),
+        client,
+        url,
+        () => true,
+        limits,
+      )
+      is Err(Observation(Row(ForeignRequest))),
+    )
+    // The first actual post is refused by the peer. It must not become an
+    // Effect success or an automatic Provider retry.
+    assert_true(
+      work.report_effect_current(body, client, url, () => true, limits)
+      is Err(Transport(HttpStatus(503))),
+    )
+  }
+  let sent = work
+    .report_effect_current(body, client, url, () => true, limits)
+    .unwrap()
+  let current = work.answer_effect_current(query, () => true, limits).unwrap()
+  assert_eq(
+    @remote.remote_effect_current_reply_json(sent),
+    @remote.remote_effect_current_reply_json(current),
+  )
+  if first {
+    let root = @filesystem.open_root(required("ACTQL_TEST_NATIVE_TARGET_ROOT")).unwrap()
+    let authorized = () => {
+      root.inspect_generation("current-evidence-revoked") is Ok(None)
+    }
+    assert_true(authorized())
+    let revoked = @remote.prepare_remote_effect_current_query(
+      @remote.remote_effect_current_query_report(query),
+      @remote.remote_effect_current_query_effect_id(query),
+      "native-current-revoked",
+      limits,
+    ).unwrap()
+    // The actual peer retires the independent read permission during HTTP.
+    // Transport may have accepted the old snapshot, but no current reply may
+    // be returned to the caller after that revocation.
+    assert_true(
+      work.report_effect_current(
+        @remote.remote_effect_current_query_json(revoked),
+        client,
+        url,
+        authorized,
+        limits,
+      )
+      is Err(EvidenceDenied),
+    )
+    assert_false(authorized())
+  }
 }

@@ -11,17 +11,17 @@ const fragment=(start,end)=>source.slice(source.indexOf(start),source.indexOf(en
 const declarations=fragment('const canonical =','test(\'merged Frontend')+
  fragment('const policy =','test(\'Values bridge')+
  fragment('const ceiling =','test(\'baseline preimages');
-const grammar=JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json'));
+const grammar=JSON.parse(readFileSync(process.argv[3] ?? 'spec/manifests/actql-grammar-0.1.json'));
 const aoa=JSON.parse(readFileSync('spec/contracts/actql-aoa.json'));
 const barrier=JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json'));
 const body=`${declarations}\nconst deps=valuesDependencyOracle(), identity=valuesProgramOracle();
-result={source_revision:null, source_baseline:'fdd0c76c7975905740078e93c735f910135bafd1', prepared:true, grammar,
+result={source_revision:recordedRevision, source_baseline:'f17e9fb2c93c84d0008d09018692f2c0e3f90d17', prepared:recordedRevision === null, grammar,
   aoa_contract_cid:cid(aoa),barrier_contract_manifest_cid:barrierInput.barrier_contract_manifest_cid,
   values_dependencies:deps,program_identity:identity,
   run_preimages:vector(grammar.grammar_manifest_cid,cid(aoa),deps,
     barrierInput.barrier_contract_manifest_cid,identity,{canonicalCandidates:true})};`;
 const sandbox={createHash,readFileSync,assert,valuesDependencyOracle,valuesProgramOracle,
-  grammar,aoa,barrierInput:barrier,result:null};
+  grammar,aoa,barrierInput:barrier,recordedRevision:process.argv[4] ?? null,result:null};
 vm.runInNewContext(body,sandbox,{timeout:10000});
 const result=JSON.parse(JSON.stringify(sandbox.result));
 const dest=process.argv[2];

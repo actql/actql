@@ -15,6 +15,7 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
   validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
+import {validWirePlanViewShape, validWireRunViewShape} from '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
@@ -2129,6 +2130,23 @@ async function connectSelected(selected, port) {
           {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef});
         return answer;
       },
+      inspect: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}));
+        if (!validClientBody('inspect-run', {connection: selected.wire, ...input})) {
+          fail('InvalidRunInspectRequest');
+        }
+        const response = await runRequest('inspect-run', input, signal);
+        const view = captureResponse(await responseValue(response));
+        if (!validWireRunViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref) ||
+            view.run_state.legacy_state !== undefined &&
+            (view.run_state.legacy_state.run_id !== view.run_state.run_id ||
+             view.run_state.legacy_state.status !== view.run_state.status ||
+             view.run_state.legacy_state.updated_at !== view.run_state.updated_at ||
+             view.run_state.legacy_state.control?.revision !== view.run_state.control_revision)) {
+          fail('InvalidClientHostRunView');
+        }
+        return freezeInput(view);
+      },
       status: async ({signal} = {}) => {
         return readRunObservation('status', {}, signal);
       },
@@ -2448,6 +2466,29 @@ async function connectSelected(selected, port) {
       }
       checkRequests.set(outcome, body);
       return freezeInput(outcome);
+    },
+    // Read the adopted static compiler projection without allocating a Run or
+    // submission identity. Runtime control and Sample collection are separate.
+    plan: async (input, options = {}) => {
+      const kind = options.kind ?? (typeof input === 'string' ? 'aql' : 'program');
+      const body = snapshotClientRequest({kind,
+        input: kind === 'aql' ? {text: input, format: options.format ?? 'aql-text',
+          ...(options.parameterDeclarations === undefined ? {} :
+            {parameterDeclarations: options.parameterDeclarations})} : input,
+        parameters: options.parameters ?? null,
+        maxWireBytes: options.maxWireBytes ?? 65536,
+        maxNodes: options.maxNodes ?? 10000, maxDepth: options.maxDepth ?? 64});
+      if (!validClientBody('plan', {connection: selected.wire, ...body})) {
+        fail('InvalidClientPlanRequest');
+      }
+      const response = await exchange('plan', body, options.signal);
+      const view = detachResponse(captureResponse(await responseValue(response)));
+      if (!validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
+      const map = view.logical_map;
+      const {self_cid: observed, ...preimage} = map;
+      if (map.compiled_plan_cid !== view.compiled_plan_cid ||
+          await contentCid(preimage) !== observed) fail('InvalidClientHostPlanView');
+      return freezeInput(view);
     },
     start: (program, options = {}) => {
       if (program === null || typeof program !== 'object' ||

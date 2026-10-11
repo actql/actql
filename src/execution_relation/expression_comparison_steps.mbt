@@ -71,6 +71,9 @@ fn advance_binary_comparison(
     | SafeSubtract
     | SafeMultiply
     | Modulo
+    | Pow
+    | Atan2
+    | Log
     | In
     | NotIn
     | RoundAt

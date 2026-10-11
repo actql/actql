@@ -68,3 +68,27 @@ unit. An independently authorized Owner can apply this commit in its own clean
 worktree and run the listed limited checks with the existing guard. A future
 public check uses the existing `--pipe-pivot-only` route and requires explicit
 shared-Heavy scheduling; no new Heavy campaign is started for this preparation.
+
+
+## Normal main integration
+
+After author commit `3174c19ecc10898bc53195a4836aaffddef8fbc2`, GitHub exposed
+new main `f17e9fb2c93c84d0008d09018692f2c0e3f90d17`. It is adopted by normal
+merge, without rewriting either parent. Scalar-contract changes on main also
+change Values dependencies and Program identity; these are upstream changes,
+not changes made by the grouped PIVOT parser. The claim above that this unit
+changes only grammar-bound identities is relative to each adopted baseline.
+
+Keep both the original fdd predecessor and the adopted f17 predecessor intact.
+The original author working-source vector is retained as
+`author3174-current-values-preimages.json`. It is not the integrated source's
+current vector. `pre-pivot-grouped-string-main-values-identities.json` fixes
+f17's independent complete preimage and current dependency closure before the
+PIVOT-only grammar change. The integrated `current-values-preimages.json` is
+again independent prepared data, not a runtime result.
+
+Conflict resolution preserves all main scalar/history tests and ordinary
+source changes. Regenerate compiler/grammar, canonical and metadata artifacts
+from the merged inputs; adjust only current CID expectations from the new
+independent preimage. Preserve main's workflows and historical declarations.
+No broad runtime verification, main gate or old public cohort is rerun.

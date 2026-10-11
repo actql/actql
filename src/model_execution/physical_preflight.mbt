@@ -47,8 +47,13 @@ pub fn model_physical_request_plan(
     quantities.duration_ms > 9007199254740991L {
     return Err(InvalidLimits)
   }
-  if quantities.tokens <
-    @environment.model_task_generation_config(request.task).max_output_tokens {
+  // This installed synchronous generation profile has no Decision transport.
+  // Contract admission is not provider compatibility or a fabricated token cap.
+  guard @environment.model_task_generation_config(request.task)
+    is Some(generation) else {
+    return Err(InvalidProvider)
+  }
+  if quantities.tokens < generation.max_output_tokens {
     return Err(InvalidLimits)
   }
   let mut retained_evidence = evidence

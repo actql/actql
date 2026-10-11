@@ -53,11 +53,11 @@ const selected = Object.freeze({
     identity: 'authoring_context_cid',
   }),
   model_invocation_evidence: Object.freeze({
-    schema: 'model_invocation_evidence',
+    schema: 'model_invocation_evidence_compatible',
     identity: 'model_invocation_evidence_cid',
   }),
   model_capture_bundle: Object.freeze({
-    schema: 'model_capture_bundle',
+    schema: 'model_capture_bundle_compatible',
     identity: 'bundle_cid',
   }),
   model_slot_capture: Object.freeze({
@@ -483,7 +483,15 @@ for (const [name, selection] of Object.entries(selected)) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
   }
   const body = structuredClone(complete);
-  omitRequiredProperty(body, selection.identity);
+  if (['model_invocation_evidence', 'model_capture_bundle'].includes(name)) {
+    // Both exact registered versions exclude only their own identity field.
+    // Unknown versions and mixed embedded captures match neither branch.
+    for (const version of body.oneOf) {
+      omitRequiredProperty(version, selection.identity);
+    }
+  } else {
+    omitRequiredProperty(body, selection.identity);
+  }
   if (name === 'effect_preview') {
     // The generated body descriptor is the semantic CID preimage, not the
     // transported Preview minus only its self field.

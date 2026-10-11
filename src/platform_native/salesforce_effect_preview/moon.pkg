@@ -10,6 +10,7 @@ import {
   "actql/actql/canonical_json" @canonical,
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/platform_native/http_client" @http,

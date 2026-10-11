@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 21 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 23 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -892,15 +892,55 @@ durable transaction boundary. The preparation's original admission, compiled
 plan, Program definition, Source logical input, policy and authority references
 must remain bound through final Receipt, Captured Run and commit validation.
 
+### Private preflight custody before activation
+
+Private ABI 22 adds `actql_publication_preflight_reserve`,
+`actql_publication_preflight_prepare`, `actql_publication_preflight_length` and
+`actql_publication_preflight_close`. The original completed Source publication
+and a sealed intent input are retained by one nominal child. The input is a
+closed object of Host namespace, policy/target CIDs, request/attempt timestamps,
+fence, optional external idempotency key and the complete aligned retention
+array. Neither semantic Result definitions nor a replacement Run or invocation
+are supplied. The existing checked intent and preflight Owners validate it and
+return the original request/attempt bytes. NULL does not mean absent.
+
+`actql_task_start` requires this retained preflight and checks current Run/Source
+access before calling the existing activation Owner. It does not derive a task
+grant from preflight success. Cached start and preflight reuse also check current
+access. The child remains attached to its original Compute and Source; it cannot
+be replaced while live. Parent close seals further use while retaining custody.
+
+Publication accepts only the complete original Result occurrence list and work
+limits. A late `retention` field is refused; policies come from the retained
+preflight. The existing nominal cache/reuse guard retains original Receipt and
+artifact identity after a cancelled snapshot, and each Result must match its
+checked inventory index. Commit request, attempt and index are derived from that original intent by
+the existing issuers before the existing commit Owner is invoked.
+
+Close retains the child while tasks or publication children exist. Output
+cleanup and the exact input-borrow stop/return must both succeed before removing
+the handle. A failed cleanup can be retried on that same handle; closing a loan
+neither certifies Run cancellation nor changes the durable outcome. Python
+preserves the same nominal family, refuses copies before I/O, and returns exact
+Core bytes without reconstructing intent. Its loader checks the four scalar
+signatures together with the current private ABI and accepts no older fallback.
+
+This preflight does not establish a live physical publication fence, current
+publisher permission, Store installation or durable Run recovery. Those remain
+separate obligations through the original final Receipt and commit chain.
+
 ### Original publication commit validation
 
 Private ABI 20 adds `actql_publication_prepare_commit`,
 `actql_publication_advance_commit`, `actql_publication_commit_progress` and
 `actql_publication_finish_commit` on the original publication handle. Preparation
-borrows a closed input containing only `bindings`, `request`, `attempt` and
-`index_entry`; each is an admitted publication contract, with bindings as an
-array. The Receipt, Captured Run, Manifest, original normalization and Result
-inventory come from the retained Core handle rather than supplied replacements.
+now borrows a closed input containing only `bindings` and `committed_at`.
+Bindings are an array of admitted durable binding contract strings. Private
+ABI 23 derives the request, attempt and candidate index from the original
+retained preflight using the existing index issuer. Supplied replacements for
+these contracts are refused as unknown fields; Python does not build their CIDs.
+The Receipt, Captured Run, Manifest, original normalization and Result inventory
+come from the retained Core handle rather than supplied replacements.
 The physical Host supplies binding facts; consistency validation does not prove
 that physical payload bytes were written.
 
@@ -917,6 +957,66 @@ Successful finish proves chain validation only. The physical Store must separate
 verify actual payload facts, current publication authority and the durable commit
 boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
 retry an unknown operation or supply saved-Run recovery.
+
+### Validated commit candidate export
+
+The portable publisher callback port is installed by the trusted Host using the
+original preflight request and attempt and a fixed Store authority identity.
+It presents the same six facts as Native publication: stage, namespace,
+authority scope, Run, request and optional index. Policy and target are the
+external references in the original request preimage; projection does not
+publish their bodies or supply their current authorization. The Host must
+select their genuine configured originals and evaluate its independent
+publisher authority for `request`, `commit` and `return_committed`.
+
+Every check fences the original nominal request/attempt and Store identity,
+then checks current Host custody before and after the authority callback. The
+Local adapter also obtains a fresh account for current original Run/Source
+authorization on both sides. Neither Run/Source access nor an SDK boolean
+implements publisher authority. A denied or revoked check changes no Result,
+payload, attempt or Run state. A prior successful callback caches no grant.
+Returning an existing committed index can refer to an earlier attempt of the
+same request; its stored full chain still requires the existing validator.
+This callback port does not install a Store, validate physical payloads, commit
+an index or establish public Local admission or durable recovery.
+
+The portable `prepare_local_preflight_payload_request` projection binds one
+original nominal Result to the publication attempt fixed before Compute. It
+rechecks original preflight, retention and current Run/Source access, then asks
+the completed-output Owner to project the existing `PublicationPayloadRequest`.
+That Owner requires a live EOF receipt, issued evidence and artifact, and obtains
+schema, codec, ordering, byte count and row count from the exact retained export.
+Only physical Store authority, material generation and a payload byte ceiling
+are supplied by trusted Host configuration. The ceiling must cover the exact
+payload; it does not replace aggregate workspace or transfer reservations.
+
+This request does not start I/O, authorize a publisher or create a durable
+record. The existing publication payload Owner retains responsibility for
+reservation, writing, sealing, durable transition confirmation and cleanup.
+Retained metadata or cancellation of a borrowed snapshot cannot replace the
+original live receipt, and a released parent cannot issue another payload intent.
+
+Private ABI 23 adds `actql_publication_commit_export_reserve`,
+`actql_publication_commit_export_produce`,
+`actql_publication_commit_export_length` and
+`actql_publication_commit_export_close`. Reservation requires successful finish
+of the original complete-chain validator. Encoding returns exactly the existing
+Core's `request`, `attempt` and `index_entry` contract strings, within a reserved
+1 MiB output buffer and separately reserved physical copy allowance. Current
+Run and Source access is checked before initial and cached production.
+
+The child pins its original publication. Parent close seals new production and
+retains custody; failed output cleanup retains the same child and reservation
+for explicit retry. The parent still owns its original immutable commit input
+borrow and nominal Result/Receipt/artifact. No source acquisition, task
+activation, Receipt reissuance or physical Store call occurs during export.
+
+The index is a candidate accepted by the semantic validator. Its `committed_at`
+is a supplied physical observation, not proof that a Store transaction committed.
+The physical Host must separately check current publisher authority, verify
+payloads and obtain durable acceptance. A copied export never supplies those
+permissions. Python returns the exact bytes and treats closing this loan as
+resource cleanup, without cancelling a Run or resending a publication.
 
 ### Original Result storage binding output
 

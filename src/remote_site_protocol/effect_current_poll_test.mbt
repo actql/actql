@@ -24,6 +24,7 @@ test "Effect current poll retains exact query without dispatch or resume authori
   assert_false(remote_poll_operation_is_release(operation))
   assert_false(remote_poll_operation_is_cancel(operation))
   let routed = admit_remote_poll_effect_current_json(fixed).unwrap()
+  assert_eq(remote_poll_effect_current_envelope_json(routed), Ok(fixed))
   assert_eq(
     dispatch_request_identity(remote_poll_effect_current_request(routed)),
     dispatch_request_identity(
@@ -70,6 +71,9 @@ test "Effect current routing cannot adopt a substituted holder report" {
     new="sha256:0000000000000000000000000000000000000000000000000000000000000000",
   )
   let routed = admit_remote_poll_effect_current_json(changed).unwrap()
+  // Re-emission preserves the untrusted routing input; it cannot turn it
+  // into evidence for the receiving holder's original report.
+  assert_eq(remote_poll_effect_current_envelope_json(routed), Ok(changed))
   assert_true(
     admit_remote_effect_current_query_json(
       remote_poll_effect_current_query_json(routed),

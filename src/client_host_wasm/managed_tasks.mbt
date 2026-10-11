@@ -97,6 +97,15 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   if value.closing || record.closing || compute.closing {
     return -5
   }
+  // Fix original publication scope before the activation Owner is invoked.
+  // Current Run/Source access is separate from the task dispatch permit.
+  guard compute_publication_preflight(value, record.compute)
+    is Some((_, preflight)) else {
+    return -36
+  }
+  if !stored_preflight_current(value, preflight, current.account) {
+    return -32
+  }
   if record.operations is Some(_) || record.issue is Some(_) {
     return 0
   }

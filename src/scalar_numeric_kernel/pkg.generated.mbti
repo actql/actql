@@ -1,0 +1,59 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/scalar_numeric_kernel"
+
+// Values
+pub fn acos(Double) -> Double
+
+pub fn acosh(Double) -> Double
+
+pub fn asin(Double) -> Double
+
+pub fn asinh(Double) -> Double
+
+pub fn atan(Double) -> Double
+
+pub fn atan2(Double, Double) -> Double
+
+pub fn atanh(Double) -> Double
+
+pub fn cbrt(Double) -> Double
+
+pub fn cos(Double) -> Double
+
+pub fn cosh(Double) -> Double
+
+pub fn exp(Double) -> Double
+
+pub fn expm1(Double) -> Double
+
+pub fn hypot(Double, Double) -> Double
+
+pub fn ln(Double) -> Double
+
+pub fn ln_1p(Double) -> Double
+
+pub fn log10(Double) -> Double
+
+pub fn log2(Double) -> Double
+
+pub fn pow(Double, Double) -> Double
+
+pub fn scalbn(Double, Int) -> Double
+
+pub fn scalbnf(Float, Int) -> Float
+
+pub fn sin(Double) -> Double
+
+pub fn sinh(Double) -> Double
+
+pub fn tan(Double) -> Double
+
+pub fn tanh(Double) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -539,15 +539,42 @@ fn advance_model(
       slot: state.next_slot,
       trace,
       admission,
+      acknowledgement: None,
+      gate_issued: false,
+      send_started: false,
     }
     state.entering = Some(entry)
     let admitted = enter(entry)
-    state.entering = None
     if !admitted {
+      state.entering = None
       return @bounded.Failed(CallEntryRefused, 1, 1)
     }
+    // Preserve entered-attempt responsibility before final current checks.
+    // The legacy immediate adapter's true result reports actual persistence;
+    // it does not itself authorize transport or fabricate a new approval.
+    state.attempts[state.next_slot] = trace
+    state.attempt_slots.push(state.next_slot)
+    let started = match acknowledge_model_call_entry(entry, prepared_set) {
+      None =>
+        match model_call_start_current(entry, reader) {
+          Err(issue) => Err(issue)
+          Ok(_) => Err(CallEntryRefused)
+        }
+      Some(acknowledgement) =>
+        match issue_model_call_send_gate(acknowledgement, reader) {
+          Err(issue) => Err(issue)
+          Ok(gate) => consume_model_call_send_gate(gate, reader)
+        }
+    }
+    state.entering = None
+    match started {
+      Err(Cancelled) => return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+      Err(Deadline) => return @bounded.Stopped(@bounded.Deadline, 1, 1)
+      Err(issue) => return @bounded.Failed(issue, 1, 1)
+      Ok(_) => ()
+    }
   }
-  if attempt is Some(attempt) {
+  if !state.durable_calls && attempt is Some(attempt) {
     state.attempts[state.next_slot] = attempt
     state.attempt_slots.push(state.next_slot)
   }
@@ -745,6 +772,12 @@ fn start_model_owned(
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  // Task admission does not enable a native Decision transport in this
+  // synchronous profile. Refuse before acquiring inputs or creating a Ledger.
+  if source is Provider(_) &&
+    @environment.model_task_kind(task) == @environment.Decision {
+    return Err(InvalidProvider)
+  }
   if source is Provider(provider) &&
     provider.provider_id != @environment.model_task_connector(task) {
     return Err(InvalidProvider)

@@ -1093,6 +1093,9 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  Pow
+  Atan2
+  Log
   RoundAt
   TruncAt
   Strpos
@@ -1479,10 +1482,18 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
+  Repeat
+  Split
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, @debug.Debug)
 
@@ -1888,6 +1899,10 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ByteLength
+  Unicode
+  Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -1895,6 +1910,22 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
+  Sin
+  Cos
+  Tan
+  Asin
+  Acos
+  Atan
+  Sinh
+  Cosh
+  Tanh
+  Asinh
+  Acosh
+  Atanh
+  Exp
+  Ln
+  Log10
   Abs
   Sign
   Round
