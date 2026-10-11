@@ -196,6 +196,8 @@ pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.Publicati
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_compiled_run_result_names(ClientCompiledRun) -> Array[String]
+
 pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClientProgram, Int) -> Result[ClientResultTransformation?, ClientCompiledRunIssue]
 
 pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> @run_publication.CapturedEffectDependencyBody?
@@ -571,6 +573,8 @@ pub fn client_retained_task_route_physical(ClientRetainedTaskRoute) -> ClientTra
 pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> @remote_site_protocol.DispatchRequest
 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
+
+pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLimits
 
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
@@ -1101,6 +1105,8 @@ pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, Clien
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
+
+pub fn prepared_client_publication_policy_bodies(PreparedClientProgram, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
 
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 

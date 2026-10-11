@@ -1412,6 +1412,88 @@ test "native formal delivery durably binds attempt receipt and success" {
 }
 
 ///|
+test "native lookup keeps retained admission without a streaming record unresolved" {
+  guard native_payload_fixture("partial-delivery-admission", 256L)
+    is Some((store, authority, _)) else {
+    abort("Native delivery lookup requires its actual SQLite Store")
+  }
+  let token = "partial-delivery-" + @env.now().to_string()
+  let fixture = native_commit_fixture(store, authority, token)
+  commit_native_fixture(store, fixture).unwrap() |> ignore
+  let grant = @publication.issue_result_read_grant(
+    fixture.index,
+    fixture.manifest,
+    ["answer"],
+    ["jsonl"],
+    "principal",
+    "download",
+    native_payload_cid(token + "-ceiling"),
+    64,
+    1,
+    "2026-09-21T00:00:00.000Z",
+    native_payload_cid(token + "-authorization"),
+    native_payload_cid(token + "-egress"),
+    65536,
+    512,
+    16,
+  ).unwrap()
+  let attempt_id = token + "-original-opening"
+  let attempt = @publication.issue_delivery_attempt(
+    fixture.index,
+    fixture.manifest,
+    grant,
+    "answer",
+    "jsonl",
+    attempt_id,
+    "2026-09-20T01:00:00.000Z",
+    65536,
+    512,
+    16,
+  ).unwrap()
+  // Persist the actual admission substeps, then stop before the next Owner
+  // substep writes its initial record. No acceptance/terminal receipt is faked.
+  put_publication_contract(store, grant).unwrap()
+  put_publication_contract(store, attempt).unwrap()
+  assert_true(
+    claim_result_read_grant_use(store, grant, attempt, 65536, 512, 16).unwrap(),
+  )
+  claim_delivery_attempt(store, attempt_id, attempt).unwrap()
+  let grant_cid = @publication.publication_contract_identity(grant)
+  let before = store.database
+    .read("result_read_grant_usage", grant_cid)
+    .unwrap()
+  let scope : @publication.DeliveryAttemptLookupScope = {
+    namespace_id: "namespace_id",
+    authority_scope_cid: fixture.authority_scope_cid,
+    run_definition_cid: @publication.publication_contract_identity(
+      fixture.run_definition,
+    ),
+    principal_id: "principal",
+    purpose: "download",
+    result_name: "answer",
+    attempt_id,
+  }
+  for _ in 0..<2 {
+    guard store.lookup_result_delivery(scope) is Ok(Some(value)) else {
+      fail("durable original admission is not absence")
+    }
+    assert_eq(
+      @publication.publication_contract_identity(value.attempt),
+      @publication.publication_contract_identity(attempt),
+    )
+    assert_true(value.record is None)
+    assert_true(value.host_release_receipt is None)
+  }
+  let after = store.database.read("result_read_grant_usage", grant_cid).unwrap()
+  assert_eq(after.body, before.body)
+  assert_eq(after.revision, before.revision)
+  assert_true(
+    store.inspect_result_delivery(attempt_id) is Err(Database(@sqlite.NotFound)),
+  )
+  assert_true(store.close().unwrap())
+}
+
+///|
 test "native delivery limit failure keeps its reader until explicit close" {
   guard native_payload_fixture("delivery-limit", 128L)
     is Some((store, authority, _)) else {
@@ -1958,4 +2040,88 @@ test "native publication recovery never takes what stands at an allocation name 
     current.val = reopened
   }
   assert_true(current.val.close().unwrap())
+}
+
+///|
+// Executed only by a Native fixture with explicitly installed SQLite/root.
+// Reopening never grants original Run custody or authorization.
+test "Native original Store restoration refuses missing marker and database without initialization" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root_path) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  let root = @filesystem.open_root(root_path).unwrap()
+  let name = "reopen-missing-" + @env.now().to_string()
+  root.create_directory(name).unwrap() |> ignore
+  let selected = root_path + "/" + name
+  let child = root.open_child(name).unwrap()
+  let authority = native_payload_cid("existing-store-authority")
+  assert_true(
+    open_existing_store(library, selected, authority, 64L, 8L, 65536L)
+    is Err(UnknownStoreFormat(_)),
+  )
+  assert_true(
+    child.inspect_generation("publication-format.json").unwrap() is None,
+  )
+  assert_true(
+    child.inspect_generation(".actql-publication.sqlite3").unwrap() is None,
+  )
+  admit_store_format(selected, true).unwrap()
+  let marker = child
+    .inspect_generation("publication-format.json")
+    .unwrap()
+    .unwrap()
+  assert_true(
+    open_existing_store(library, selected, authority, 64L, 8L, 65536L)
+    is Err(Database(_)),
+  )
+  assert_eq(
+    child.inspect_generation("publication-format.json").unwrap(),
+    Some(marker),
+  )
+  assert_true(
+    child.inspect_generation(".actql-publication.sqlite3").unwrap() is None,
+  )
+}
+
+///|
+test "Native original Store restoration reuses durable payload and exact database custody" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root_path) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  let root = @filesystem.open_root(root_path).unwrap()
+  let name = "reopen-original-" + @env.now().to_string()
+  root.create_directory(name).unwrap() |> ignore
+  let selected = root_path + "/" + name
+  let authority = native_payload_cid("retained-store-authority")
+  let original = open_store(library, selected, authority, 16L, 8L, 65536L).unwrap()
+  let request = native_payload_request(authority, name, 16L)
+  let writer = original.begin_payload(request).unwrap()
+  writer.append(b"exact-original").unwrap()
+  let info = writer.seal().unwrap()
+  let custody = original.custody_location().unwrap()
+  assert_true(original.close().unwrap())
+  let restored = open_existing_store(
+    library, selected, authority, 16L, 8L, 65536L,
+  ).unwrap()
+  assert_eq(restored.custody_location().unwrap(), custody)
+  assert_eq(
+    restored.reconcile_payload(request).unwrap().unwrap().material_generation_cid,
+    info.material_generation_cid,
+  )
+  let reader = restored
+    .open_payload_reader(info.material_generation_cid)
+    .unwrap()
+  assert_eq(reader.next(16).unwrap().bytes, b"exact-original")
+  assert_true(reader.next(1).unwrap().eof)
+  reader.close().unwrap()
+  assert_eq(restored.capacity_usage().unwrap().reserved_bytes, 16L)
+  restored.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_eq(restored.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(restored.close().unwrap())
 }

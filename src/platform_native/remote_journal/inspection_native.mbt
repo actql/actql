@@ -22,6 +22,18 @@ pub fn CoordinatorInitializationCleanup::pending(
 extern "C" fn inspection_open(path : Bytes, length : Int) -> JournalInspection = "actql_journal_inspection_open"
 
 ///|
+#borrow(path)
+extern "C" fn inspection_open_bounded(
+  path : Bytes,
+  length : Int,
+  max_snapshot_bytes : Int64,
+) -> JournalInspection = "actql_journal_inspection_open_bounded"
+
+///|
+#borrow(owner)
+extern "C" fn inspection_limit_exceeded(owner : JournalInspection) -> Bool = "actql_journal_inspection_limit_exceeded"
+
+///|
 #borrow(owner)
 extern "C" fn inspection_ready(owner : JournalInspection) -> Bool = "actql_journal_inspection_ready"
 
@@ -43,6 +55,9 @@ extern "C" fn inspection_close(owner : JournalInspection) -> Bool = "actql_journ
 
 ///|
 fn inspection_issue(owner : JournalInspection) -> NativeRemoteJournalIssue {
+  if inspection_limit_exceeded(owner) {
+    return Physical(@sqlite.CapacityExceeded)
+  }
   let message = @utf8.decode(inspection_error(owner)) catch {
     _ => "invalid inspection diagnostic"
   }
@@ -80,6 +95,61 @@ fn inspect_coordinator_copy(
   cleanup : CoordinatorInitializationCleanup,
   control : @remote.CoordinatorDispatchJournal,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
+  inspect_sqlite_copy(library, max_record_bytes, cleanup, database => {
+    guard database is Some(database) else { return Ok(()) }
+    inspect_coordinator_rows(database, control)
+  })
+}
+
+///|
+fn inspect_coordinator_rows(
+  database : @sqlite.Database,
+  control : @remote.CoordinatorDispatchJournal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  let mut cursor = ""
+  while true {
+    let entry = match database.scan_after("coordinator_dispatch", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    let durable = match
+      @remote.admit_durable_coordinator_dispatch_record(entry.body) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    let key = match
+      @remote.durable_coordinator_dispatch_record_attempt_identity(durable) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    if key != entry.key ||
+      entry.revision !=
+      @remote.durable_coordinator_dispatch_record_revision(durable).to_int64() {
+      return Err(StateCollision)
+    }
+    // Reuse the expected authority of the caller-owned journal, never the
+    // authority asserted by the stored record, without committing an intent.
+    match
+      @remote.prepare_coordinator_dispatch_intent(
+        control,
+        @remote.durable_coordinator_dispatch_record_request(durable),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Protocol(issue))
+    }
+    cursor = entry.key
+  }
+  Ok(())
+}
+
+///|
+fn[T] inspect_sqlite_copy(
+  library : @sqlite.Library,
+  max_record_bytes : Int64,
+  cleanup : CoordinatorInitializationCleanup,
+  inspect : (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue],
+) -> Result[T, NativeRemoteJournalIssue] {
   if max_record_bytes < 0L {
     return Err(Physical(@sqlite.InvalidLimit))
   }
@@ -96,45 +166,48 @@ fn inspect_coordinator_copy(
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
     }
-    let mut cursor = ""
-    while true {
-      let entry = match database.scan_after("coordinator_dispatch", cursor) {
-        Ok(value) => value
-        Err(@sqlite.NotFound) => break
-        Err(issue) => return Err(Physical(issue))
-      }
-      let durable = match
-        @remote.admit_durable_coordinator_dispatch_record(entry.body) {
-        Ok(value) => value
-        Err(issue) => return Err(Protocol(issue))
-      }
-      let key = match
-        @remote.durable_coordinator_dispatch_record_attempt_identity(durable) {
-        Ok(value) => value
-        Err(issue) => return Err(Protocol(issue))
-      }
-      if key != entry.key ||
-        entry.revision !=
-        @remote.durable_coordinator_dispatch_record_revision(durable).to_int64() {
-        return Err(StateCollision)
-      }
-      // Reuse the expected authority of the caller-owned journal, never the
-      // authority asserted by the stored record, without committing an intent.
-      match
-        @remote.prepare_coordinator_dispatch_intent(
-          control,
-          @remote.durable_coordinator_dispatch_record_request(durable),
-        ) {
-        Ok(_) => ()
-        Err(issue) => return Err(Protocol(issue))
-      }
-      cursor = entry.key
-    }
   }
+  let admission = inspect(cleanup.database)
   if !inspection_validate(cleanup.inspection) {
     return Err(inspection_issue(cleanup.inspection))
   }
-  Ok(())
+  admission
+}
+
+///|
+/// Inspect an isolated read-only copy using the existing snapshot and cleanup
+/// owner. `None` means physical absence, not a fresh Host or resend permission.
+/// The callback must not retain the copied database: it is closed before this
+/// function succeeds. Source identity is checked again after the callback.
+/// The combined DB/WAL copy is bounded before creating scratch files;
+/// `max_record_bytes` separately bounds each SQLite row read.
+/// Inspection does not authorize a later writer; it must recheck its own
+/// custody and initialization intent within its transaction.
+pub fn[T] inspect_sqlite_source(
+  library : @sqlite.Library,
+  path : String,
+  max_record_bytes : Int64,
+  max_snapshot_bytes : Int64,
+  inspect : (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue],
+) -> Result[T, NativeRemoteJournalIssue] {
+  // Reject invalid limits before allocating an inspection copy.
+  if max_record_bytes < 0L || max_snapshot_bytes < 0L {
+    return Err(Physical(@sqlite.InvalidLimit))
+  }
+  let bytes = @utf8.encode(path)
+  let cleanup : CoordinatorInitializationCleanup = {
+    inspection: inspection_open_bounded(
+      bytes,
+      bytes.length(),
+      max_snapshot_bytes,
+    ),
+    database: None,
+    pending: true,
+  }
+  let admission = inspect_sqlite_copy(
+    library, max_record_bytes, cleanup, inspect,
+  )
+  finish_coordinator_inspection(cleanup, admission)
 }
 
 ///|
@@ -157,10 +230,10 @@ fn inspect_coordinator_source(
 }
 
 ///|
-fn finish_coordinator_inspection(
+fn[T] finish_coordinator_inspection(
   cleanup : CoordinatorInitializationCleanup,
-  admission : Result[Unit, NativeRemoteJournalIssue],
-) -> Result[Unit, NativeRemoteJournalIssue] {
+  admission : Result[T, NativeRemoteJournalIssue],
+) -> Result[T, NativeRemoteJournalIssue] {
   match cleanup.retry() {
     Ok(_) => admission
     Err(issue) =>

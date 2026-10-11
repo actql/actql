@@ -5,6 +5,33 @@ type Library
 type Sha256Hasher
 
 ///|
+pub fn Library::random_bytes(
+  _self : Library,
+  _length : Int,
+) -> Result[Bytes, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::hmac_sha256(
+  _self : Library,
+  _key : Bytes,
+  _message : Bytes,
+) -> Result[Bytes, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::verify_hmac_sha256(
+  _self : Library,
+  _key : Bytes,
+  _message : Bytes,
+  _tag : Bytes,
+) -> Result[Bool, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Library::sha256_hasher(
   _self : Library,
 ) -> Result[Sha256Hasher, NativeSignatureIssue] {

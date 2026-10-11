@@ -52,6 +52,25 @@ pub fn Library::open_database(
 }
 
 ///|
+pub fn Library::open_existing_database(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::initialize_owned_database(
+  _self : Library,
+  _path : String,
+  _ownership : @filesystem.NativeFileOwnership,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::read(
   _self : Database,
   scope : String,
@@ -119,6 +138,16 @@ pub fn Database::rollback(_self : Database) -> Result[Unit, NativeSqliteIssue] {
 }
 
 ///|
+pub fn Database::fence_transactions(_self : Database) -> Unit {
+  ()
+}
+
+///|
+pub fn Database::transaction_fenced(_self : Database) -> Bool {
+  true
+}
+
+///|
 pub fn Database::reserve_capacity(
   _self : Database,
   _scope : String,
@@ -165,6 +194,16 @@ pub fn Database::claim_ordinal(
   ignore(scope)
   ignore(key)
   ignore(max_claims)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::claim_ordinal_action(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
 
