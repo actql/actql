@@ -163,8 +163,8 @@ test "Graph equality rejects unknown arguments and repeated Carrier transitions"
       }
       assert_eq(@origin.kind(origin), @origin.Authored)
       let span = @origin.span(origin)
-      assert_eq(span.start_byte, 473)
-      assert_eq(span.end_byte, 481)
+      assert_eq(span.start_byte, 462)
+      assert_eq(span.end_byte, 470)
     } else {
       assert_true(result is Err(InvalidQuery), msg=suffix)
     }

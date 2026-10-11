@@ -116,8 +116,8 @@ test "Graph difference rejects hidden Graph columns and repeated transitions" {
       }
       assert_eq(@origin.kind(origin), @origin.Authored)
       let span = @origin.span(origin)
-      assert_eq(span.start_byte, 471)
-      assert_eq(span.end_byte, 479)
+      assert_eq(span.start_byte, 460)
+      assert_eq(span.end_byte, 468)
     } else {
       assert_true(result is Err(InvalidQuery), msg=suffix)
     }
