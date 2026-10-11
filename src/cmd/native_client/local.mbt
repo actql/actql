@@ -22,7 +22,9 @@ fn local_configuration(text : String) -> (String, String) raise ClientStop {
     Err(_) => stop("InvalidLocalConfiguration")
   }
   let object = match
-    @decode.closed_object(root, ["version", "native", "state_dir"]) {
+    @decode.closed_object(root, [
+      "version", "native", "state_dir", "account_config",
+    ]) {
     Ok(value) => value
     Err(_) => stop("InvalidLocalConfiguration")
   }
@@ -37,7 +39,8 @@ fn local_configuration(text : String) -> (String, String) raise ClientStop {
     @decode.text(value) is Err(_) {
     stop("InvalidLocalConfiguration")
   }
-  let native = match @decode.closed_object(native, ["check_environment"]) {
+  let native = match
+    @decode.closed_object(native, ["check_environment", "local"]) {
     Ok(value) => value
     Err(_) => stop("InvalidLocalConfiguration")
   }
@@ -93,7 +96,15 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
       stop("Local mode cannot use Remote connection options")
     }
   }
-  guard matches.subcommand is Some(("check", child)) else {
+  guard matches.subcommand is Some((operation, child)) else {
+    stop("LocalOperationUnavailable")
+  }
+  if operation == "adopt" ||
+    operation == "connect" ||
+    operation == "new-submission" {
+    return execute_native_local_adoption(matches, operation, child)
+  }
+  if operation != "check" {
     stop("LocalOperationUnavailable")
   }
   let root = required(matches, "config-root")

@@ -781,7 +781,8 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("parameter-declarations-file"),
       ]),
-      @argparse.Command("connect"),
+      @argparse.Command("adopt", flags=[@argparse.FlagArg("json")]),
+      @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("new-submission", options=[
         @argparse.OptionArg("request-id", required=true),
       ]),
@@ -850,8 +851,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   match required(matches, "mode") {
     "local" => return execute_native_local(matches)
     "remote" =>
-      if matches.subcommand is Some(("check", _)) {
-        stop("check requires an explicit Local configuration")
+      if matches.subcommand is Some(("check", _)) ||
+        matches.subcommand is Some(("adopt", _)) {
+        stop("operation requires an explicit Local configuration")
       }
     _ => stop("unsupported Client mode")
   }

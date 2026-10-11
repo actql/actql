@@ -18,8 +18,8 @@ Remote endpoint and authentication flags are refused in this mode.
 
 Human output states that no Run was admitted. `check --json` returns
 `kind: prepared`; it is not a verified public diagnostics report. Unsupported
-inputs or operations are refused. Source alias discovery, trusted configuration
-adoption, Local Run commands, Checkpoint answers and cross-process Local recovery
+inputs or operations are refused. Source alias discovery,
+Local Run commands, Checkpoint answers and cross-process Local Run recovery
 are not completed by this preparation entry. The source fixtures are in
 `scripts/fixtures/native-local-cli`; current source changes do not establish
 fresh installed-artifact acceptance by themselves.
@@ -34,6 +34,58 @@ run the Remote acceptance campaign. Its scope is preparation, value preservation
 and refusal; Local Run, approval and process recovery remain separate unfinished
 requirements. Run this through the existing heavy guard after preparing a
 clean-source Native CLI RC with the existing artifact/release producers.
+
+## Explicit Local Host adoption
+
+The source candidate adds `adopt`, `connect` and `new-submission` in explicit
+Local mode. These connect the existing account, adoption, journal and Submission
+epoch Owners; they do not yet execute or publish a Local Run. Installed-artifact
+acceptance for these commands is separate from the earlier preparation fixture.
+
+`adopt --json` explicitly finalizes a private Host. `connect --json` opens only
+the same retained Host and refuses absent state or unfinished initialization;
+it never initializes keys or repairs missing originals. Both return account and
+adoption identities, without a Run or Provider grant. The human form says that
+no Run has been admitted. `new-submission --request-id <nonce>` returns the
+existing epoch/nonce reference only when the selected execution account permits
+the `principal × connection × run × submit` tuple. A reference is not acceptance
+or Provider read/apply authority. No-match and delegated permission are refused
+in this first slice.
+
+In addition to the preparation settings, the selected `actql-config/0.1`
+document requires `account_config` (one file name in the selected private root)
+and `native.local`:
+
+```json
+{
+  "account_id": "operator",
+  "principal": "operator",
+  "connection": "cli",
+  "state_parent": "/absolute/private/state-parent",
+  "state_name": "host",
+  "managed_root": "/absolute/private/managed-root",
+  "sqlite_library": "/absolute/path/to/installed/sqlite-library",
+  "signature_library": "/absolute/path/to/installed/crypto-library",
+  "submission_ttl_ms": 60000,
+  "journal_record_limit": 8,
+  "journal_snapshot_bytes": 8388608
+}
+```
+
+The configuration, state parent and managed root must be explicitly selected
+private directories. Physical library paths must name the installed platform
+runtimes; this candidate has not yet closed their standard Local distribution
+packaging. The CLI rejects an untrusted configuration root before loading these
+libraries. The three limits are explicit: TTL is at most one day, record count
+at most 1024, and snapshot bytes at most 512 MiB. `state_dir`, if supplied, must
+equal `state_parent + "/" + state_name` exactly.
+
+The config file and Check Environment original are durably bound with the
+account and managed-root identity. Changing selected content, replacing a
+source file even with identical bytes, or losing custody refuses reconnection.
+No missing original is repaired from current source files. Source/Result,
+original Run recovery, typed Direct Local credentials and approval-backed
+Effect remain the following execution slices.
 
 ## Remote transport
 
