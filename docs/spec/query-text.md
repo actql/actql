@@ -1493,6 +1493,10 @@ without that marker. A scalar SELECT explicitly ends PatternScope and exports
 only its authored columns; pattern aliases and hidden identity/path slots do
 not reappear in an outer scope. A table subquery, JOIN or set operand requires
 Relation. An authored row alias requires Relation, independently of spelling.
+Both explicit/implicit FROM aliases and Pipe AS parse on a Graph input, then
+receive the static `RangeAliasRequiresRelation` reason before any execution.
+WITH producer aliasing retains the Graph; a Graph-to-Relation bridge or explicit
+MATCH SELECT permits the ordinary row alias on the resulting Relation.
 
 ~~~aql
 WITH selected AS (

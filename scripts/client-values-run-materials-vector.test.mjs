@@ -2982,8 +2982,13 @@ test('grouped ROWS retains both complete predecessor Values preimages', () => {
 test('WITH cutover preserves the old complete Values closure and independently pins the new Run', () => {
   const before = JSON.parse(readFileSync('scripts/fixtures/pre-with-carrier-cutover-values-identities.json', 'utf8'));
   const after = JSON.parse(readFileSync('scripts/fixtures/submitted-with-carrier-cutover-values-identities.json', 'utf8'));
+  const priorWith = JSON.parse(readFileSync('scripts/fixtures/pre-with-graph-range-alias-values-identities.json', 'utf8'));
+  assert.equal(priorWith.run_preimages.run.run_definition_cid, 'sha256:6d206c334a24421dbe9ad8543a6ff1bf8e1c89299112f21a4e14a80f0d384266');
+  assert.deepEqual(priorWith.program_identity, after.program_identity);
+  assert.deepEqual(priorWith.values_dependencies, after.values_dependencies);
+  assert.notEqual(priorWith.grammar.grammar_manifest_cid, after.grammar.grammar_manifest_cid);
   assert.equal(before.source_revision, 'f01d05b7ee93364b804aeb0e934c2981da089ac8');
-  for (const fixture of [before, after]) {
+  for (const fixture of [before, priorWith, after]) {
     const {grammar_manifest_cid: grammarCid, ...body} = fixture.grammar;
     assert.equal(cid(body), grammarCid);
     assert.deepEqual(vector(grammarCid, fixture.aoa_contract_cid,

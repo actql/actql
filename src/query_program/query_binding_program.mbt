@@ -4,10 +4,14 @@ fn current_script_graph(
   query : @query.Query,
   graphs : Array[ScriptGraph],
 ) -> ScriptGraph? raise Abort {
-  match current {
+  let resolved = match current {
     Some(_) => current
     None => script_graph_input(query, graphs)
   }
+  if resolved is Some(_) {
+    check_graph_range_alias(@query.graph_source_query(query))
+  }
+  resolved
 }
 
 ///|

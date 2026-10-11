@@ -104,3 +104,21 @@ test "public typed Graph FROM does not admit an implicit Relation projection" {
     )
   }
 }
+
+///|
+test "public SQL and Text retain the exact non-Relation row alias reason" {
+  let formats : Array[Format] = [Text, Sql]
+  let prefix = "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES))) "
+  for format in formats {
+    for
+      tail in [
+        "FROM GRAPH g AS r |> MATCH WALK (a:Node) |> SELECT a.id", "FROM g r |> node_rows() |> SELECT id",
+        "FROM g |> AS r |> node_rows() |> SELECT id",
+      ] {
+      assert_true(
+        lower(prefix + tail, format, Some(test_context()))
+        is Err(QueryLowering(@query.RangeAliasRequiresRelation)),
+      )
+    }
+  }
+}

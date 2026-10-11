@@ -57,7 +57,7 @@ select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join 
                 [ where_clause ], [ group_clause ],
                 [ having_clause ], [ qualify_clause ], [ window_clause ] ;
 pipe_query    = "FROM", carrier_source, { "|>", pipe_item } ;
-carrier_source = source | "GRAPH", path ;
+carrier_source = source | "GRAPH", path, [ source_alias ] ;
 (* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type
    expectation; MATCH does not require the marker. An authored row alias
    requires Relation and never renames Graph element definitions. *)
