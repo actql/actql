@@ -290,6 +290,30 @@ fn local_submission_start(
   if !current() {
     stop("LocalSubmissionAuthorizationDenied")
   }
+  if settings.read_file is Some(file) {
+    let read = local_read_installation_or_stop(
+      @utf8.decode(local_host_result(host.selected_configuration(file))) catch {
+        _ => stop("InvalidLocalReadPolicyOriginal")
+      },
+    )
+    if read.enabled {
+      match
+        journal.retain_publication_policy_originals(
+          request, prepared, compiled, definition, current,
+        ) {
+        Ok(_) => ()
+        Err(PublicationPolicy(@checked.MissingDependency)) =>
+          stop("LocalResultPolicyOriginalsMissing")
+        Err(PublicationPolicy(@checked.BudgetExceeded) | CapacityExceeded) =>
+          stop("LocalResultPolicyOriginalsLimit")
+        Err(AuthorizationDenied) => stop("LocalResultPolicyAuthorityDenied")
+        Err(Fenced) => stop("LocalResultPolicyOriginalsFenced")
+        Err(CustodyLost | PublicationPolicy(@checked.ForeignBody)) =>
+          stop("LocalResultPolicyOriginalsCustodyLost")
+        Err(_) => stop("LocalResultPolicyOriginalsUnavailable")
+      }
+    }
+  }
   let managed = local_host_result(host.managed_root_path()).unwrap_or_else(() => {
     stop("LocalManagedRootRequired")
   })
