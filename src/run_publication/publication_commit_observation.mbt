@@ -26,10 +26,24 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
   }
   let chain = inputs.computation
   let child = start_effect_free_publication_commit_check(
-    chain.run_definition, chain.invocation, chain.definitions, chain.artifacts,
-    inputs.derivations, inputs.orderings, inputs.retentions, inputs.bindings,
-    chain.manifest, chain.receipt, chain.captured_run, stored_request, stored_attempt,
-    stored_index, chain.max_wire_bytes, chain.max_nodes, chain.max_depth, remaining,
+    chain.run_definition,
+    chain.invocation,
+    chain.definitions,
+    chain.artifacts,
+    inputs.derivations,
+    inputs.orderings,
+    inputs.retentions,
+    inputs.bindings,
+    chain.manifest,
+    chain.receipt,
+    chain.captured_run,
+    stored_request,
+    stored_attempt,
+    stored_index,
+    chain.max_wire_bytes,
+    chain.max_nodes,
+    chain.max_depth,
+    remaining,
   )
   view.observed = Some(child)
   preparation.peak = Int::max(preparation.peak, preparation.live + child.peak)
@@ -68,10 +82,15 @@ pub fn PublicationCommitPreparation::finish_observed_commit(
     Err(issue) => return Err(issue)
   }
   guard view.observed is Some(child) &&
-    !child.closed && child.phase is Done && child.inputs is Some(stored) else {
+    !child.closed &&
+    child.phase is Done &&
+    child.inputs is Some(stored) else {
     return Err(CommitEncoding)
   }
-  if !public_index_same_committed_content(stored.index_entry, original.index_entry) {
+  if !public_index_same_committed_content(
+      stored.index_entry,
+      original.index_entry,
+    ) {
     return Err(CommitReferenceMismatch("stored_index"))
   }
   Ok(stored.index_entry)
@@ -85,8 +104,11 @@ pub fn PublicationCommitPreparation::release_observed_commit(
   preparation : PublicationCommitPreparation,
   view : PublicationCommitReadView,
 ) -> Result[Unit, PublicationCommitIssue] {
-  guard preparation.view is Some(original) && physical_equal(original, view) &&
-    !view.released && view.owner is Some(owner) && physical_equal(owner, preparation) &&
+  guard preparation.view is Some(original) &&
+    physical_equal(original, view) &&
+    !view.released &&
+    view.owner is Some(owner) &&
+    physical_equal(owner, preparation) &&
     view.observed is Some(child) else {
     return Err(CommitEncoding)
   }
