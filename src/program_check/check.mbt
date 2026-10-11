@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  completion_free_audit : CompletionFreeAudit
   has_effects : Bool
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
@@ -309,6 +310,7 @@ fn check(
     error => raise Units(error)
   }
   {
+    completion_free_audit: audit_completion_free_units(units),
     has_effects: effect_headers is Some(_),
     keyed_input_proofs,
     nest_limits,

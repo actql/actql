@@ -238,6 +238,8 @@ pub fn client_effect_compilation_template(ClientEffectCompilation) -> @run_publi
 
 pub fn client_effect_compilation_unit_id(ClientEffectCompilation) -> String
 
+pub fn client_effect_completion_free_catalog_cid() -> String
+
 pub fn client_effect_dependency_capture_bodies(ClientEffectDependencyCapture) -> Array[@run_publication.CapturedEffectDependencyBody]
 
 pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
@@ -786,6 +788,8 @@ pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, In
 
 pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
 
+pub fn issue_prepared_client_effect_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
+
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
@@ -1004,6 +1008,8 @@ pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> Clien
 
 pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) -> ClientInferOccurrence?
 
+pub fn prepared_client_effect_normalization_evidence(PreparedClientEffectComputation, ClientEffectNormalization) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
+
 pub fn prepared_client_effect_publication_data_policy_cid(PreparedClientEffectComputation) -> String?
 
 pub fn prepared_client_effect_publication_policy_bodies(PreparedClientEffectComputation, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
@@ -1081,6 +1087,8 @@ pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_rel
 pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
+
+pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
 pub fn source_free_caller_input_intent_cid() -> String
 
@@ -1449,6 +1457,16 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
   MissingMapping
   WorkLimit
 } derive(@debug.Debug)
+
+type ClientEffectNormalization
+
+pub(all) enum ClientEffectNormalizationIssue {
+  Inventory(@program_check.CompletionFreeInventoryIssue)
+  ForeignPreparation
+  ForeignCatalog
+  SubstitutedJournal
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
 
 type ClientEffectProducerArtifact
 
