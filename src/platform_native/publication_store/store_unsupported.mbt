@@ -32,6 +32,18 @@ pub fn open_store(
 }
 
 ///|
+pub fn open_existing_store(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+) -> Result[Store, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::begin_payload(
   _self : Store,
   _request : @payload.PublicationPayloadRequest,

@@ -344,9 +344,21 @@ extern "C" fn store_format_ffi(
 fn admit_store_format(
   root_path : String,
   establish : Bool,
+  existing_only? : Bool = false,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let path = @utf8.encode(root_path)
-  match store_format_ffi(path, path.length(), if establish { 1 } else { 0 }) {
+  match
+    store_format_ffi(
+      path,
+      path.length(),
+      if existing_only {
+        -1
+      } else if establish {
+        1
+      } else {
+        0
+      },
+    ) {
     0 => Ok(())
     1 => Err(LegacyStoreFormat(root_path))
     2 => Err(UnknownStoreFormat(root_path))
@@ -483,6 +495,41 @@ pub fn open_store(
   max_objects : Int64,
   max_record_bytes : Int64,
 ) -> Result[Store, NativePublicationStoreIssue] {
+  open_store_owned(
+    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    false,
+  )
+}
+
+///|
+/// Restore an existing physical Store without format or database initialization.
+/// This is not evidence of original Run binding or current authority: the Host
+/// must still verify those with the retained journal and Store custody location.
+/// Missing, empty or divergent originals refuse; no fresh custody is substituted.
+pub fn open_existing_store(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+) -> Result[Store, NativePublicationStoreIssue] {
+  open_store_owned(
+    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    true,
+  )
+}
+
+///|
+fn open_store_owned(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  existing_only : Bool,
+) -> Result[Store, NativePublicationStoreIssue] {
   if capacity_bytes < 0L ||
     max_objects < 1L ||
     max_record_bytes < 1L ||
@@ -493,7 +540,7 @@ pub fn open_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  match admit_store_format(root_path, false) {
+  match admit_store_format(root_path, false, existing_only~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -501,7 +548,7 @@ pub fn open_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  match admit_store_format(root_path, true) {
+  match admit_store_format(root_path, true, existing_only~) {
     Ok(_) => ()
     Err(issue) => {
       ignore(lock.close())
@@ -509,7 +556,12 @@ pub fn open_store(
     }
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
-  let database = match library.open_database(journal_path, max_record_bytes) {
+  let selected = if existing_only {
+    library.open_existing_database(journal_path, max_record_bytes)
+  } else {
+    library.open_database(journal_path, max_record_bytes)
+  }
+  let database = match selected {
     Ok(value) => value
     Err(issue) => {
       ignore(lock.close())

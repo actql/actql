@@ -2041,3 +2041,87 @@ test "native publication recovery never takes what stands at an allocation name 
   }
   assert_true(current.val.close().unwrap())
 }
+
+///|
+// Executed only by a Native fixture with explicitly installed SQLite/root.
+// Reopening never grants original Run custody or authorization.
+test "Native original Store restoration refuses missing marker and database without initialization" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root_path) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  let root = @filesystem.open_root(root_path).unwrap()
+  let name = "reopen-missing-" + @env.now().to_string()
+  root.create_directory(name).unwrap() |> ignore
+  let selected = root_path + "/" + name
+  let child = root.open_child(name).unwrap()
+  let authority = native_payload_cid("existing-store-authority")
+  assert_true(
+    open_existing_store(library, selected, authority, 64L, 8L, 65536L)
+    is Err(UnknownStoreFormat(_)),
+  )
+  assert_true(
+    child.inspect_generation("publication-format.json").unwrap() is None,
+  )
+  assert_true(
+    child.inspect_generation(".actql-publication.sqlite3").unwrap() is None,
+  )
+  admit_store_format(selected, true).unwrap()
+  let marker = child
+    .inspect_generation("publication-format.json")
+    .unwrap()
+    .unwrap()
+  assert_true(
+    open_existing_store(library, selected, authority, 64L, 8L, 65536L)
+    is Err(Database(_)),
+  )
+  assert_eq(
+    child.inspect_generation("publication-format.json").unwrap(),
+    Some(marker),
+  )
+  assert_true(
+    child.inspect_generation(".actql-publication.sqlite3").unwrap() is None,
+  )
+}
+
+///|
+test "Native original Store restoration reuses durable payload and exact database custody" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root_path) else {
+    return
+  }
+  let library = @sqlite.load_library(library_path).unwrap()
+  let root = @filesystem.open_root(root_path).unwrap()
+  let name = "reopen-original-" + @env.now().to_string()
+  root.create_directory(name).unwrap() |> ignore
+  let selected = root_path + "/" + name
+  let authority = native_payload_cid("retained-store-authority")
+  let original = open_store(library, selected, authority, 16L, 8L, 65536L).unwrap()
+  let request = native_payload_request(authority, name, 16L)
+  let writer = original.begin_payload(request).unwrap()
+  writer.append(b"exact-original").unwrap()
+  let info = writer.seal().unwrap()
+  let custody = original.custody_location().unwrap()
+  assert_true(original.close().unwrap())
+  let restored = open_existing_store(
+    library, selected, authority, 16L, 8L, 65536L,
+  ).unwrap()
+  assert_eq(restored.custody_location().unwrap(), custody)
+  assert_eq(
+    restored.reconcile_payload(request).unwrap().unwrap().material_generation_cid,
+    info.material_generation_cid,
+  )
+  let reader = restored
+    .open_payload_reader(info.material_generation_cid)
+    .unwrap()
+  assert_eq(reader.next(16).unwrap().bytes, b"exact-original")
+  assert_true(reader.next(1).unwrap().eof)
+  reader.close().unwrap()
+  assert_eq(restored.capacity_usage().unwrap().reserved_bytes, 16L)
+  restored.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_eq(restored.capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(restored.close().unwrap())
+}
