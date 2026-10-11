@@ -93,6 +93,10 @@ struct NativeCredentialResourceService {
     NativeLocalPreparationCredentialInstallation,
   ]
   preparation_raw_store : NativeLocalPreparationRawStore?
+  retain_remote_use : ((@credential.RemoteCredentialUse) -> Result[
+    Unit,
+    NativeCredentialResourceIssue,
+  ])?
   clock : () -> Int64
 }
 
@@ -362,6 +366,10 @@ fn install_native_credential_resource_service_with_clock(
     NativeLocalPreparationCredentialInstallation,
   ] = [],
   preparation_raw_store? : NativeLocalPreparationRawStore? = None,
+  retain_remote_use? : ((@credential.RemoteCredentialUse) -> Result[
+    Unit,
+    NativeCredentialResourceIssue,
+  ])? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
@@ -384,6 +392,7 @@ fn install_native_credential_resource_service_with_clock(
     authorize_preparation,
     preparation_installations: preparation_installations.map(value => value),
     preparation_raw_store,
+    retain_remote_use,
     clock,
   })
 }
@@ -683,6 +692,14 @@ fn call_native_credential_resource_owned_scope(
       Ok(_) => ()
       Err(issue) => return Err(RawObservation(issue))
     }
+  }
+  // The actual use is already durable. Retain it in the installed original
+  // custody before the final authorization/clock/revocation fences and I/O.
+  // Unconfirmed retention leaves the claimed use unresolved, not failed/sent.
+  match
+    retain_remote_use_before_send(credential_use, service.retain_remote_use) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let send_time = match observe_trusted_clock(service) {
     Ok(value) => value
