@@ -83,7 +83,7 @@ test('reviewed inventory and runner extension preserve eager Session isolation a
   const helper = original.read(helperPath).toString();
   assert.equal(hash(helper), 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb');
   assert.equal(hash(execFileSync('git', ['--no-replace-objects', 'show',
-    `6e1955f4a2d9598e0292f603a1d928b8d631b108:${helperPath}`], {cwd: root})), hash(helper));
+    `d59370025d07aba9f0f364855e9d97c095d0b23e:${helperPath}`], {cwd: root})), hash(helper));
   assert.equal(readFileSync(new URL(`../../${helperPath}`, import.meta.url)).toString(), helper);
   assert.equal(readFileSync(new URL(`../../${path}`, import.meta.url)).toString(), current,
     'The executed module must match the actual Git input');
