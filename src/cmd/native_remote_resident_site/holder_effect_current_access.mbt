@@ -44,22 +44,27 @@ priv struct HolderEffectHostAdmission {
   site_key : String
   site_generation : Int
   read_current : (HolderEffectEvidencePurpose) -> HolderEffectHostCurrent?
+  original_identity : @effect_review.NativeEffectCloudHostIdentityRead
 }
 
 ///|
 /// Re-evaluate the existing Account/Decision Owner at every fence. Read and
 /// publication have different tuples and boundaries; a read-only Allow or
-/// delegated answer cannot authorize the Coordinator transfer.
+/// delegated answer cannot authorize the Coordinator transfer. The installed
+/// caller supplies fresh original identity before and after the decision; the
+/// same current Account fence is repeated after the final identity HTTP read.
 fn holder_effect_current_decision(
   subject : HolderEffectHostSubject,
   dispatch_cid : String,
   purpose : HolderEffectEvidencePurpose,
   read_current : (HolderEffectEvidencePurpose) -> HolderEffectHostCurrent?,
+  current_original? : () -> Bool = () => true,
 ) -> Bool {
   if subject.principal.is_empty() || subject.account_id.is_empty() {
     return false
   }
   guard read_current(purpose) is Some(selected) &&
+    current_original() &&
     (selected.current)() &&
     selected.configuration.account_id() == subject.account_id &&
     selected.configuration.configuration_cid() == subject.configuration_cid else {
@@ -93,7 +98,7 @@ fn holder_effect_current_decision(
       delegated_action=selected.delegated_action,
     )
     is Ok(_)
-  allowed && (selected.current)()
+  allowed && (selected.current)() && current_original() && (selected.current)()
 }
 
 ///|
@@ -131,12 +136,45 @@ fn holder_effect_evidence_allowed(
     @remote.dispatch_request_execution_scope(original.task.request)[1] ==
     admission.site_generation.to_string()
   }
-  guard current() else { return false }
+  guard current() &&
+    physical_equal(
+      admission.original_identity.control.client,
+      resources.control,
+    ) &&
+    original.consumer.effect_original_dispatch(original.journal)
+    is Some(dispatch) &&
+    @remote.dispatch_request_identity(dispatch) ==
+    @remote.dispatch_request_identity(original.task.request) &&
+    admission.original_identity.scope.site_key == resources.site_key &&
+    admission.original_identity.scope.site_generation ==
+    resources.site_generation.to_int64() &&
+    admission.original_identity.scope.authority_scope_cid ==
+    resources.coordinator_authority &&
+    holder_effect_control_read_url(
+      resources.observation_url,
+      "effect-host-identity-current",
+    )
+    is Some(identity_url) &&
+    admission.original_identity.control.url == identity_url else {
+    return false
+  }
   let allowed = holder_effect_current_decision(
     admission.subject,
     @remote.dispatch_request_identity(original.task.request),
     purpose,
     admission.read_current,
+    current_original=() => {
+      guard current() &&
+        admission.original_identity.read_original_consumer(
+          original.consumer,
+          original.producer,
+          original.journal,
+        )
+        is Some(identity) else {
+        return false
+      }
+      identity.principal_id() == admission.subject.principal && current()
+    },
   )
   allowed && current()
 }
