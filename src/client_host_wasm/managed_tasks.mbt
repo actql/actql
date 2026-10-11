@@ -17,6 +17,8 @@ priv struct StoredManagedTask {
   live : Ref[Bool]
   mut completed : @execution.ManagedCompletedOutput[Int]?
   mut finalization_invoked : Bool
+  source_exports : Array[@execution.CompletedOutputExport?]
+  source_capacities : Array[@resources.SharedCapacity?]
 }
 
 ///|
@@ -75,6 +77,8 @@ pub fn reserve_managed_task(
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
+    source_exports: [],
+    source_capacities: [],
   }
   value.next_handle += 1
   handle
@@ -149,6 +153,8 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
       for _ in operations.inputs {
         record.positions.push(0)
         record.finished_inputs.push(false)
+        record.source_exports.push(None)
+        record.source_capacities.push(None)
       }
     }
     Ok(None) => record.issue = Some(@local_run.UnsupportedCapability)
@@ -271,6 +277,19 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
       return -9
     }
   }
+  for port in 0..<record.source_exports.length() {
+    if record.source_exports[port] is Some(stream) {
+      @execution.cancel_completed_output_export(stream)
+      record.source_exports[port] = None
+    }
+    if record.source_capacities[port] is Some(capacity) {
+      if @resources.close_shared_capacity(capacity) is Err(_) ||
+        @resources.settle_shared_capacity(capacity) is Err(_) {
+        return -9
+      }
+      record.source_capacities[port] = None
+    }
+  }
   value.tasks.remove(handle) |> ignore
   0
 }
@@ -284,11 +303,7 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
     value.tasks.get(handle) is Some(record) &&
     record.operations is Some(operations) &&
     value.computes.get(record.compute) is Some(compute) &&
-    value.native_attempts.get(compute.attempt) is Some(original) &&
-    original.outcome is Some(Ok(native)) &&
-    original.observation is Some(observation) &&
-    value.native_sources.get(original.configuration)
-    is Some({ outcome: Some(Ok(configuration)), .. }) else {
+    compute.source is Some(source) else {
     return -2
   }
   if value.closing || record.closing {
@@ -303,9 +318,6 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if record.producers.length() != operations.inputs.length() {
     return -32
   }
-  let limits = @native_host.configured_native_host_limits(
-    @local_run.local_native_source_configuration(configuration),
-  )
   for _ in 0..<quantum {
     let mut port = 0
     while port < record.finished_inputs.length() && record.finished_inputs[port] {
@@ -318,38 +330,7 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
     let producer = record.producers[port]
     record.pending = true
     let outcome : Result[Unit, @local_run.LocalComputeIssue] = if producer == 0 {
-      match
-        @native_host.native_host_retained_output(
-          native,
-          observation,
-          limits.output_entries,
-          limits.output_name_bytes,
-        ) {
-        Err(_) => Err(@local_run.Configuration)
-        Ok(output) => {
-          let row = record.positions[port]
-          if row == @execution.completed_row_count(output) {
-            (transfer.finish)()
-            .map(_ => record.finished_inputs[port] = true)
-            .map_err(issue => @local_run.Managed(issue))
-          } else {
-            match
-              @execution.completed_output_row_wire(
-                output,
-                row,
-                limits.transport.max_bytes,
-                limits.transport.max_nodes,
-                64,
-              ) {
-              Err(_) => Err(@local_run.Configuration)
-              Ok(wire) =>
-                (transfer.append)(wire)
-                .map(_ => record.positions[port] += 1)
-                .map_err(issue => @local_run.Managed(issue))
-            }
-          }
-        }
-      }
+      feed_original_source(value, record, source, transfer, port)
     } else {
       match stored_producer(value, record.compute, producer) {
         Some({ completed: Some(output), operations: Some(parent), .. }) => {
@@ -380,6 +361,69 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
     }
   }
   0
+}
+
+///|
+/// The buffered capture used to configure Compute is also its original input.
+/// No retained-stream material, raw output getter or second physical read is
+/// introduced. Each call advances the existing export by one logical step.
+fn feed_original_source(
+  value : Instance,
+  record : StoredManagedTask,
+  source : @query.CapturedInputSource,
+  transfer : @managed.LocalManagedInputTransfer[Int],
+  port : Int,
+) -> Result[Unit, @local_run.LocalComputeIssue] {
+  if record.source_exports[port] is None {
+    if record.source_capacities[port] is None {
+      match @resources.reserve_shared_capacity(value.root, 2097152L) {
+        Ok(capacity) => record.source_capacities[port] = Some(capacity)
+        Err(_) => return Err(@local_run.Configuration)
+      }
+    }
+    let limits = result_export_limits()
+    match
+      @query.prepare_captured_source_relation_export(
+        source,
+        limits.max_rows,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ) {
+      Ok(stream) => record.source_exports[port] = Some(stream)
+      Err(_) => return Err(@local_run.Configuration)
+    }
+  }
+  let stream = record.source_exports[port].unwrap()
+  match @execution.advance_completed_output_export(stream, 1, 10000) {
+    Err(_) => Err(@local_run.Configuration)
+    Ok(progress) =>
+      match progress.batch {
+        Some(batch) => {
+          // The common export supplies the leading '[' or ',' delimiter.
+          // The managed input consumes the exact row object behind it.
+          if batch.length() < 2 ||
+            batch[0].to_int() !=
+            (if record.positions[port] == 0 { 91 } else { 44 }) {
+            return Err(@local_run.Configuration)
+          }
+          (transfer.append)(batch[1:].to_owned())
+          .map(_ => record.positions[port] += 1)
+          .map_err(issue => @local_run.Managed(issue))
+        }
+        None if progress.complete =>
+          match @execution.finish_completed_output_export(stream) {
+            Err(_) => Err(@local_run.Configuration)
+            Ok(_) =>
+              (transfer.finish)()
+              .map(_ => record.finished_inputs[port] = true)
+              .map_err(issue => @local_run.Managed(issue))
+          }
+        None => Ok(())
+      }
+  }
 }
 
 ///|

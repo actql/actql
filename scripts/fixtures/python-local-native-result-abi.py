@@ -236,7 +236,8 @@ try:
                                   call('task', 'issue', task),
                                   [call('task', 'assessment', task, 0, field) for field in range(8)])
             for _ in range(1000):
-                assert call('task', 'feed', task, 1) == 0
+                fed = call('task', 'feed', task, 1)
+                assert fed == 0, ('Original typed input feeding failure', fed, call('task', 'issue', task))
                 if call('task', 'inputs_ready', task) == 0:
                     break
             else:
