@@ -450,14 +450,19 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
     def test_schema_real_sqlite_attachment_preserves_separate_identity_and_wire(self):
         _, _, _, caller, _, state, _, _, _ = self.bridge()
         with TemporaryDirectory() as directory:
-            store = LocalByteStore(Path(directory) / 'store.sqlite',
-                max_records=8, max_record_bytes=4096, max_payload_bytes=8192)
-            key = 'namespace:13:result_schema:' + state['schema_identity'].decode()
-            with caller.serialized():
-                result = store.compare_exchange_projected_attached(
-                    1, lambda _, consume: caller.project_schema(0, consume), (),
-                    before_commit=lambda: None)
-            self.assertIsNotNone(result)
-            self.assertEqual(store.read(key).payload, state['schema_wire'])
-            self.assertEqual(caller.pending_outputs, ())
-            store.close()
+            with LocalByteStore(Path(directory) / 'store.sqlite',
+                    max_records=8, max_record_bytes=4096, max_payload_bytes=8192) as store:
+                self.assertEqual(store.compare_exchange('payload', None, b'original'), 0)
+                self.assertTrue(store.reserve_capacity('payload', 'payload', 64, 1, 64, 1))
+                originals = ((ByteFence('payload', 0, b'original'),
+                              CapacityReservation('payload', 'payload', 64, 1)),)
+                key = 'namespace:13:result_schema:' + state['schema_identity'].decode()
+                with caller.serialized():
+                    result = store.compare_exchange_projected_attached(
+                        1, lambda _, consume: caller.project_schema(0, consume), originals,
+                        before_commit=lambda: None)
+                self.assertEqual(result, (0,))
+                self.assertEqual(store.read(key), StoredBytes(0, state['schema_wire']))
+                self.assertEqual(store.read('payload'), StoredBytes(0, b'original'))
+                self.assertEqual(store.read_capacity('payload', 'payload'), originals[0][1])
+                self.assertEqual(caller.pending_outputs, ())
