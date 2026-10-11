@@ -190,6 +190,7 @@ fn execute_holder_effect_resume(
   task : HolderTaskCustody,
   body : String,
   configuration : @effect_review.NativeResidentEffectResumeConfiguration,
+  control : @effect_review.NativeEffectCloudCurrentRead,
   current_site : () -> Bool,
 ) -> Bool {
   let current = () => {
@@ -201,7 +202,10 @@ fn execute_holder_effect_resume(
     @remote.dispatch_request_identity(task.request) else {
     return false
   }
-  match review.execute_remote_approved_row(body, configuration, current) {
+  match
+    review.execute_remote_approved_row_with_cloud_current(
+      body, configuration, control, current,
+    ) {
     Ok(_) => {
       report("effect-row-settled", [
         ("request_cid", @remote.dispatch_request_identity(task.request)),
@@ -216,6 +220,39 @@ fn execute_holder_effect_resume(
       false
     }
   }
+}
+
+///|
+/// Reuse the same operator-configured Site scope and authentication as the
+/// observations channel. A candidate delivery supplies no endpoint or origin.
+/// A nonstandard URL has no inferred fallback and keeps the original pending.
+fn holder_effect_resume_current_url(observation_url : String) -> String? {
+  let suffix = "/outbound/observations"
+  if !observation_url.has_prefix("https://") ||
+    !observation_url.has_suffix(suffix) {
+    return None
+  }
+  Some(
+    observation_url.unsafe_substring(
+      start=0,
+      end=observation_url.length() - suffix.length(),
+    ) +
+    "/outbound/effect-resume-current",
+  )
+}
+
+///|
+/// A bounded fresh challenge for this holder invocation. Sequence exhaustion
+/// fails closed; a new query never becomes a new Run or execution identity.
+fn holder_effect_resume_query_id(
+  dispatch_cid : String,
+  now_ms : Int64,
+  sequence : Int64,
+) -> String? {
+  if now_ms < 0L || sequence < 1L || sequence > 9007199254740991L {
+    return None
+  }
+  Some(dispatch_cid + ":" + now_ms.to_string() + ":" + sequence.to_string())
 }
 
 ///|
