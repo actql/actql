@@ -136,8 +136,8 @@ test "Native read binding never substitutes submit or Result read for both curre
     writer.seal(file).unwrap() |> ignore
     let account_body = @utf8.encode(
       (
-        #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"explicit-operations","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run","result/answer"]},"operation":{"any_of":["submit","read"]},"exclusions":[{"principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["\#(denied_resource)"]},"operation":{"any_of":["read"]}}]}]}
-      ),
+        #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"explicit-operations","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run","result/answer"]},"operation":{"any_of":["submit","read"]},"exclusions":[{"principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["DENIED_RESOURCE"]},"operation":{"any_of":["read"]}}]}]}
+      ).replace_all(old="DENIED_RESOURCE", new=denied_resource),
     )
     let host = policy_host_fixture(name, files=[file], account_body~)
     let crypto = epoch_test_crypto()

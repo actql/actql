@@ -51,13 +51,17 @@ fn initialize_native_local_client_rows(
       "client_run_custody", "client_runs", "client_effect_custody", "client_effect_response_meta",
       "client_effect_response_bytes", "client_effect_row_receipt", "client_cancellations",
       "client_cancel_custody", "client_cancel_originals", "client_submitted_intent_custody",
-      "client_submitted_intents",
+      "client_submitted_intents", "client_local_read_custody", "client_local_read_evidence",
     ] {
     match database.scan_after(record_namespace, "") {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
+  }
+  match initialize_local_read_evidence(database, adoption) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match initialize_native_client_epoch_in_transaction(database, crypto) {
     Ok(_) => ()

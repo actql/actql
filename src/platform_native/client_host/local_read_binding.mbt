@@ -99,7 +99,8 @@ fn NativeLocalReadPolicyBinding::require_request(
   }
   if !self.selection.result_names.contains(facts.request.result_name) ||
     !self.selection.formats.contains(facts.request.format) ||
-    facts.request.purpose != self.selection.purpose {
+    facts.request.purpose != self.selection.purpose ||
+    facts.request.attempt_id.is_empty() {
     return Err(SelectionMismatch)
   }
   let observed = match @values.timestamp_epoch_milliseconds(facts.observed_at) {
