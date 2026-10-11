@@ -51,9 +51,46 @@ let checkpointReportRequests = 0;
 let checkpointReportWire;
 const reviewUploadBodies = [];
 const writeBodies = [];
+const effectCurrentReports = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (residentMappedCreate && request.method === 'POST' && request.url === '/fixture/effect-current') {
+    if (request.headers.authorization !== 'Bearer native-target-test' ||
+        request.headers['content-type'] !== 'application/json') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks = []; let bytes = 0;
+    request.on('data', chunk => {bytes += chunk.length; if (bytes > 65536) request.destroy(); else chunks.push(chunk);});
+    request.on('end', async () => {
+      try {
+        assert.equal(checkpointReportRequests, 2);
+        assert.notEqual(checkpointReportWire, undefined);
+        const body = Buffer.concat(chunks);
+        const reply = JSON.parse(body.toString('utf8'));
+        const original = JSON.parse(nativeEffectCheckpointReplyFixture(checkpointReportWire));
+        assert.equal(reply.version, 'actql-remote-effect-current-reply/0.1');
+        for (const field of ['report_cid', 'checkpoint_cid', 'dispatch_request_cid']) {
+          assert.equal(reply[field], original[field]);
+        }
+        assert.equal(typeof reply.response_saved, 'boolean');
+        effectCurrentReports.push({queryId: reply.query_id, queryCid: reply.query_cid,
+          reportCid: reply.report_cid, ledgerHeadCid: reply.ledger_head_cid,
+          recoveryAction: reply.recovery_action, responseSaved: reply.response_saved,
+          bodySha256: createHash('sha256').update(body).digest('hex')});
+        if (reply.query_id === 'native-current-revoked') {
+          // Revoke this fixture's independent evidence-read authority after
+          // receiving the bytes, before returning its transport receipt.
+          await writeFile(join(root, 'current-evidence-revoked'), 'revoked');
+        }
+        // A transport refusal retains the original review. This peer does not
+        // issue an Effect ACK, durable Cloud commit or authority to retry a write.
+        response.writeHead(effectCurrentReports.length === 1 ? 503 : 200);
+        response.end();
+      } catch { response.writeHead(422); response.end(); }
+    });
+    return;
+  }
   if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review-report') {
     if (request.headers.authorization !== 'Bearer native-target-test' ||
         request.headers['content-type'] !== 'application/json') {
@@ -252,6 +289,7 @@ try {
         .toString('base64url'),
     });
   }
+  if (residentMappedCreate) testEnv.ACTQL_TEST_EFFECT_CURRENT_FIXTURE_URL = origin + '/fixture/effect-current';
   // Only this package consumes the target fixture. A full Core run must not
   // accidentally activate unrelated optional HTTP tests with this endpoint.
   for (const suffix of ['HTTP_URL', 'HTTP_CA', 'HTTP_SECRET', 'HTTP_LIBRARY', 'TARGET_ROOT',
@@ -288,6 +326,7 @@ try {
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, reviewUploads, reviewUploadBodies,
+    effectCurrentReports,
     checkpointReportRequests, checkpointReportSha256:checkpointReportWire===undefined?undefined:
       createHash('sha256').update(checkpointReportWire).digest('hex'),
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
@@ -313,6 +352,15 @@ try {
   assert.equal(reviewUploads,residentOriginalHolder?3:0);
   assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
   if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
+  if (residentMappedCreate) {
+    assert.equal(effectCurrentReports.length, 5, 'Denied or foreign queries reached the transport');
+    assert.deepEqual(effectCurrentReports.map(value => [value.queryId, value.recoveryAction, value.responseSaved]), [
+      ['native-current-before-send', 0, false], ['native-current-before-send', 0, false],
+      ['native-current-revoked', 0, false],
+      ['native-current-pending', 3, true], ['native-current-terminal', 5, true],
+    ]);
+    assert.deepEqual(effectCurrentReports[0], effectCurrentReports[1], 'Explicit retry changed the original current snapshot before the write');
+  }
   if (residentProposals) {
     assert.deepEqual(paths, []);
     assert.deepEqual(bearer.effectTargets(), {reads: residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
