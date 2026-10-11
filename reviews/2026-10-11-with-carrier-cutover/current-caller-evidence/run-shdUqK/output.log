@@ -1,0 +1,3 @@
+Total tests: 22, passed: 22, failed: 0.
+["moon","test","--target","js","src/query_syntax/with_relational_public_callers_test.mbt"]: executed; counts={"tests":22,"passed":22,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-0r9jCd

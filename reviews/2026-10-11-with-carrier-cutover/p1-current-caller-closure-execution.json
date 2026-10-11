@@ -1,0 +1,879 @@
+{
+  "fixedCallerSource": "4884eb16affa1eaf19b1fd8e9fe4814801b32a1d",
+  "adoptedMain": "ea78aedba122a258ee9357663155ca5cba67b28b",
+  "rootAdoptions": [
+    "542f99f7b318ef19d784b796c9eb200377719148",
+    "49d311d8a6f026270c7d5c7f872d883aa61841ab",
+    "9231427063b4391dc843384d0741c6c9ff186a83",
+    "747b5ad73a30ccc4dd9b2e157d3840bb005f550d"
+  ],
+  "checks": [
+    {
+      "source": "d356c42405f67e351b57fddf838c4aff01a3c82b",
+      "parser": "22/22",
+      "node": "81/81",
+      "runs": [
+        "run-shdUqK",
+        "run-492msU"
+      ]
+    },
+    {
+      "source": "79118a7d6acde76a33a48d80abed533a928eaac8",
+      "parser": "25/25",
+      "node": "27/27",
+      "runs": [
+        "run-SEHsX1",
+        "run-z0B1fH"
+      ]
+    },
+    {
+      "source": "4884eb16affa1eaf19b1fd8e9fe4814801b32a1d",
+      "parser": "6/6",
+      "node": "30/30",
+      "runs": [
+        "run-F3qya3",
+        "run-4LOdt6"
+      ]
+    }
+  ],
+  "retainedFailures": [
+    {
+      "run": "run-Mdcn7A",
+      "actual": "Node79/81",
+      "cause": "Snapshot comparator omitted standalone fixture export; an existing profile-loop syntax assertion assumed adjacent lines."
+    },
+    {
+      "run": "run-N7lu5M",
+      "actual": "Node25/27",
+      "cause": "Graph mean bare-text refusal oracle comparison omitted wrapper conversion; subtraction nullable/zero/subset source replacements still searched retired semicolon delimiters."
+    },
+    {
+      "run": "run-shKvqe",
+      "actual": "JS22/25",
+      "cause": "Outer WITH followed by an unparenthesized inner WITH. Parenthesized the complete inner query without flattening its scope."
+    },
+    {
+      "run": "run-ytMcTE",
+      "actual": "Node29/30",
+      "cause": "Extra whitespace before snapshot binding commas differed from the frozen wrapper-only comparison. Source spacing was corrected; no expected result changed."
+    }
+  ],
+  "unchanged": "All frozen JSON controls, expected rows, ordered schema, NULL behavior, predicates, parameter values, JOIN bounds, read counts, and Effect terminal body remain unchanged.",
+  "remainingDATA": "Explicit public DATA refusal cases, immutable reproduction files, and withdrawn internal structural-decoder fixtures only. Native SGA uses the current WITH graph-source-input fixture.",
+  "release": {
+    "actualOwnersAndGroupsAbsent": true,
+    "ownLockAbsent": true,
+    "receipts": [
+      {
+        "run": "run-Mdcn7A",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-Mdcn7A/summary.json",
+        "owner": 70480,
+        "exitCode": 1,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-WDXAlc",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-WDXAlc/summary.json",
+        "owner": 71791,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-shdUqK",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-shdUqK/summary.json",
+        "owner": 72446,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-492msU",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-492msU/summary.json",
+        "owner": 73635,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-N7lu5M",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-N7lu5M/summary.json",
+        "owner": 75363,
+        "exitCode": 1,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-shKvqe",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-shKvqe/summary.json",
+        "owner": 77038,
+        "exitCode": 2,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-MKIocM",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-MKIocM/summary.json",
+        "owner": 79825,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-SEHsX1",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-SEHsX1/summary.json",
+        "owner": 80043,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-z0B1fH",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-z0B1fH/summary.json",
+        "owner": 80351,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-ibnCG1",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-ibnCG1/summary.json",
+        "owner": 82531,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-ytMcTE",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-ytMcTE/summary.json",
+        "owner": 82905,
+        "exitCode": 1,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-4LOdt6",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-4LOdt6/summary.json",
+        "owner": 83109,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-F3qya3",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-F3qya3/summary.json",
+        "owner": 83256,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      }
+    ]
+  },
+  "unexecuted": [
+    "Host/public Local/HTTPS",
+    "Provider I/O",
+    "Wheel runtime",
+    "P2 SGA role completion and all four-Carrier end-to-end acceptance",
+    "Hosted CI"
+  ],
+  "p1Decision": "Current caller retirement ready for coordinator review; full P2 and Host campaigns are separate incomplete work, not new P1 merge conditions.",
+  "files": [
+    {
+      "original": "_build/local-checks/attempts/run-Mdcn7A/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-Mdcn7A/summary.json",
+      "bytes": 2698,
+      "sha256": "158107db37d548f4acbf0e8e8a881851f0f8a95de3fd378884542eaefcad4e02"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-Mdcn7A/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-Mdcn7A/output.log",
+      "bytes": 269796,
+      "sha256": "e6f40e088b272397f7c9840b5963a1918219887da7bec6895a52e6e83df10a79"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/0001.summary.json",
+      "bytes": 630,
+      "sha256": "5c4461bdee98b615fc441c00622498c0f34a0e4fbdc66a14324e86e362c31924"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/summary.json",
+      "bytes": 3039,
+      "sha256": "fde981c36d9078fe4d8f6f8ba7f864f425f8842244a582df2632c1cdbcf4a685"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/001.stdout.log",
+      "bytes": 268375,
+      "sha256": "cd594920ef3be5516936d6cb9f42922e7e810a96ce7bb0f225d2a5a198147658"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/001.started.json",
+      "bytes": 1983,
+      "sha256": "2e16a15a944eb5cd78cd5a728ddff0aa8d3d753077d299a41951873ab0133759"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/001.result.json",
+      "bytes": 2165,
+      "sha256": "f1cb046d9f36d8702cb7492e39f59f9dbbd076bbe48dc4f9f5b984dc292bc102"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/0002.summary.json",
+      "bytes": 2800,
+      "sha256": "8f19794da7ee6737072d76af772a29f8786a961c831dd94958b2461af84e06ab"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/0004.summary.json",
+      "bytes": 3039,
+      "sha256": "fde981c36d9078fe4d8f6f8ba7f864f425f8842244a582df2632c1cdbcf4a685"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-I3pq3z/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-I3pq3z/0003.summary.json",
+      "bytes": 3018,
+      "sha256": "2c58749a38bb8c848b3ccd81508b3947f7223bf520c4aec8d1b2e14138eca6ad"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-WDXAlc/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-WDXAlc/summary.json",
+      "bytes": 1402,
+      "sha256": "73b6d7d9432aa20f38bc3a5d539fe7eb3ec3d7201e77ec93b9010f1c7533cdf0"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-WDXAlc/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-WDXAlc/output.log",
+      "bytes": 44,
+      "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-shdUqK/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-shdUqK/summary.json",
+      "bytes": 1653,
+      "sha256": "c27fb9cc6543e324cd924293c2ce7a8a033cd21d31a70cc27d5c3dff8c95ba63"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-shdUqK/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-shdUqK/output.log",
+      "bytes": 373,
+      "sha256": "f8132b6abcc673727399763e3d0bf596430772762b06135eb87a9a3225543fca"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/0001.summary.json",
+      "bytes": 630,
+      "sha256": "cb4d587af9146b765d13c8bf6907c20a9e0234da417de14713ca4067bd6f57a7"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/summary.json",
+      "bytes": 1810,
+      "sha256": "09426cfdc6603793fdb190b76b653ad39de4dd2fc12bcb16905434e4801b0844"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/001.stdout.log",
+      "bytes": 40,
+      "sha256": "df3be9c3566db7c72a4765e9ce4828d79cf286f7b1723a42cdd284a2918f64dd"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/001.started.json",
+      "bytes": 816,
+      "sha256": "bb47074a7e3adbb93290fc7def1e87c3901bcd6a337ca4a751d36d66668f43a6"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/001.result.json",
+      "bytes": 1001,
+      "sha256": "96ca8b67f4c457f8f79ecb96eea29ded887cd528055a2067fb34faba96c41efb"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/0002.summary.json",
+      "bytes": 1569,
+      "sha256": "67eb3fa71068fc76d17b1c0bbbec0f202e81304dbd46a86ae7784bdf5c0deb18"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/0004.summary.json",
+      "bytes": 1810,
+      "sha256": "09426cfdc6603793fdb190b76b653ad39de4dd2fc12bcb16905434e4801b0844"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-0r9jCd/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-0r9jCd/0003.summary.json",
+      "bytes": 1790,
+      "sha256": "890a22b6fb9fae24490018a4d8fc3e0f1ec1d08f3be19e8d012acdceb80ca776"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-492msU/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-492msU/summary.json",
+      "bytes": 2697,
+      "sha256": "58c4346e30f2e53cc3884cf22bac04e2b477d2e42d24f3fc82d4f538b8521a91"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-492msU/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-492msU/output.log",
+      "bytes": 49280,
+      "sha256": "1c3b0f7a2b256c6c111b55a4b0cb3c5bc93139708cce2d5950b76ab335822c0c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/0001.summary.json",
+      "bytes": 630,
+      "sha256": "dfbddce86aa558b930f92fce2f60d265b449a827006fce06f752eb9dc99d8a29"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/summary.json",
+      "bytes": 3031,
+      "sha256": "8f2f18491d199732ba56982e42780dd05a52482f4b445c801d6c0f7cf362eb30"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/001.stdout.log",
+      "bytes": 47869,
+      "sha256": "b12e1b3b7ba7463aa05878b9e398e3a587589cc83421c14ccff38b7c87f4fdef"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/001.started.json",
+      "bytes": 1983,
+      "sha256": "dd6ae06adf387ebc2fbee3c69cfb0e0d3acbf0164fb245b2fc03ab8d05349ed9"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/001.result.json",
+      "bytes": 2158,
+      "sha256": "217788e20909b578b834b08a59244b6ff81110ff52d243937c37bd5c8c5bfbcc"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/0002.summary.json",
+      "bytes": 2800,
+      "sha256": "426a8807bc4b035d853af59b25ddbd157f87c294ba9c557da4140ae3627bdcf5"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/0004.summary.json",
+      "bytes": 3031,
+      "sha256": "8f2f18491d199732ba56982e42780dd05a52482f4b445c801d6c0f7cf362eb30"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-TXcTFj/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-TXcTFj/0003.summary.json",
+      "bytes": 3011,
+      "sha256": "98486b46b5328749a08e63127b67c24d80f86b8d9ab38afc2ebd0f86ec7f55a2"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-N7lu5M/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-N7lu5M/summary.json",
+      "bytes": 1626,
+      "sha256": "35de85d0564579fdfcff4b7463102dc27ebf59497be9bb3ffe7ba21a82c00ad1"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-N7lu5M/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-N7lu5M/output.log",
+      "bytes": 203323,
+      "sha256": "d6957bb9728a819355705c5edbb32171a29dde8f4b1c57c8efc8d482de420f0e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/0001.summary.json",
+      "bytes": 630,
+      "sha256": "68313d8b15114288cf1edb8e2215466c0c5cda5d26708307702577775300af4b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/summary.json",
+      "bytes": 1971,
+      "sha256": "8307c6014d4189877ba20220c2fe1ff07450cd6960ac2c33331a3e0e11fdf4f8"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/001.stdout.log",
+      "bytes": 202818,
+      "sha256": "38cedf4affb91ac3981c137f4932a9da39aca45aa6b98e7b0a254169a632b4a1"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/001.started.json",
+      "bytes": 982,
+      "sha256": "a88185a77b57e90c5f522d56077cdf151d10e2c248f6e6fb043d75cce2ba1a0e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/001.result.json",
+      "bytes": 1165,
+      "sha256": "e28faab2cd9781d55838389b8e33352fc3ad8d329ccde41facb426a5aeb1e2f2"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/0002.summary.json",
+      "bytes": 1731,
+      "sha256": "11020fc5965915d8c69451fa501539c018d6687c375b1f09211330095cd4d9f6"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/0004.summary.json",
+      "bytes": 1971,
+      "sha256": "8307c6014d4189877ba20220c2fe1ff07450cd6960ac2c33331a3e0e11fdf4f8"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-jiJrR1/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-jiJrR1/0003.summary.json",
+      "bytes": 1950,
+      "sha256": "f37f3b267a0f022fad04919296863f4e192e8a87eddba8d16bfbc7da77736a6b"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-shKvqe/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-shKvqe/summary.json",
+      "bytes": 1657,
+      "sha256": "df5586a25c877246800924e1e7abd42c9cd44e437f1b6944ccdd63522340ed1f"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-shKvqe/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-shKvqe/output.log",
+      "bytes": 6315,
+      "sha256": "54c3e0766eef93c223d7865b2cb84fe7f0b71d43e99b00a735995cbc5c9afdc5"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/0001.summary.json",
+      "bytes": 630,
+      "sha256": "48e39d49b1cf9c5099ba5355ae978bd65ffd4b5ee8a500145e11e644a441fbae"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/summary.json",
+      "bytes": 1807,
+      "sha256": "752af15fadc06943214a547aeae06fa35865cb097dd222b5ead9cfd8193ac5a3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/001.stdout.log",
+      "bytes": 5973,
+      "sha256": "32a591d35a84fc5f76d7dec5749bfd94e76f4537f4ac112e55007aae9cc83c4f"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/001.started.json",
+      "bytes": 815,
+      "sha256": "0bc6d2a6253932c95e6b18e2d5f2deaeec072942d31c02d771cab795e8a06cd7"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/001.result.json",
+      "bytes": 997,
+      "sha256": "a965cdfaee266bbd98a79899a98b30fb0099e00ac4ba376a59c61efc6ba94ffb"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/0002.summary.json",
+      "bytes": 1568,
+      "sha256": "edf55144d2771e782b54cbd67ed0ed6a00e6eb7b8ac453432cfe7c0a0a84a020"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/0004.summary.json",
+      "bytes": 1807,
+      "sha256": "752af15fadc06943214a547aeae06fa35865cb097dd222b5ead9cfd8193ac5a3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-OLgZpr/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-OLgZpr/0003.summary.json",
+      "bytes": 1786,
+      "sha256": "21e6bae2f7861aba08e0822798b5ebbcde9b8e86ffa225d5a21068af5ad4137d"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-MKIocM/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-MKIocM/summary.json",
+      "bytes": 1394,
+      "sha256": "69912de25ab14fcfc7e4f899a25cb365363d98307e21501aaa865394312df8bf"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-MKIocM/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-MKIocM/output.log",
+      "bytes": 44,
+      "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-SEHsX1/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-SEHsX1/summary.json",
+      "bytes": 1656,
+      "sha256": "41d65c9f196049b866ff4bf74bbe41aabbeb6fca0ba6726483b64b8e05d75aa4"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-SEHsX1/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-SEHsX1/output.log",
+      "bytes": 372,
+      "sha256": "4eac4d462eb5e9d1bf8daf17d4e70c773d7054466fd5db7313aac2c50d3d56be"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/0001.summary.json",
+      "bytes": 630,
+      "sha256": "acd8948e1022499138acc905218f168d384f557ca84421c52b166151f28888dd"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/summary.json",
+      "bytes": 1816,
+      "sha256": "b58ade15c9d2c92ba310941a66f702f62c38f6c773c18babd8cf79cabc7b3652"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/001.stdout.log",
+      "bytes": 40,
+      "sha256": "1f90a005b7e282503a5e26d8069407a20038c45b53de5ee0d719047365a3a561"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/001.started.json",
+      "bytes": 815,
+      "sha256": "86665f6611fb6a3a784aaa1e09da3efb38cea58c93fbd9394939be0463a70b1e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/001.result.json",
+      "bytes": 1007,
+      "sha256": "434a9b0a10b15e3290a66ce2b3dae1989a845b0a9a15ea0a81ef545d543e2a2a"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/0002.summary.json",
+      "bytes": 1568,
+      "sha256": "c20c75c6557b2252cb6606751674a51822380514b6f6fdd08e4bb8cb07a8b506"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/0004.summary.json",
+      "bytes": 1816,
+      "sha256": "b58ade15c9d2c92ba310941a66f702f62c38f6c773c18babd8cf79cabc7b3652"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwPPkQ/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-PwPPkQ/0003.summary.json",
+      "bytes": 1796,
+      "sha256": "3bb5593e1079f03cde1cb5689af186623536e89cdf737d21d9117becd5ce9525"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-z0B1fH/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-z0B1fH/summary.json",
+      "bytes": 1625,
+      "sha256": "fd48e55341b1f3e7894aa65a39f4f955a9b070c8891b3938ae6652c8443fd7e2"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-z0B1fH/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-z0B1fH/output.log",
+      "bytes": 14859,
+      "sha256": "cb90f6870f736d548438306d92d85df06857b207a9f12b23fad013a9c43c9c79"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/0001.summary.json",
+      "bytes": 630,
+      "sha256": "04f97caee575e9352691de46aa6d26e095e4412950accb1b0f6badc4e84b7ebf"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/summary.json",
+      "bytes": 1962,
+      "sha256": "c3b7a9f62e3c390a8e79f570bde700f31c779ccca97adc465eedad889d9e2d1c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/001.stdout.log",
+      "bytes": 14364,
+      "sha256": "59d2cd3a1814cdfc72c7dbc500533d798bc0ccac651e81361ffbe6f20b4896b6"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/001.started.json",
+      "bytes": 982,
+      "sha256": "c1aace18a96ebf1bb635c46e32c36d3546ceb75bfe3fc88a695f0876f54a39cf"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/001.result.json",
+      "bytes": 1157,
+      "sha256": "391ac34ffd8460b23a232572241cdea70fafc78dbf881ee21a69631c7c712db8"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/0002.summary.json",
+      "bytes": 1731,
+      "sha256": "6b487e5ac4b0e7f55ad24af820b47c40dd09d40d1e1b960fb11723d73e9440b3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/0004.summary.json",
+      "bytes": 1962,
+      "sha256": "c3b7a9f62e3c390a8e79f570bde700f31c779ccca97adc465eedad889d9e2d1c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-o3be7z/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-o3be7z/0003.summary.json",
+      "bytes": 1942,
+      "sha256": "8e734aacd4109d59632ac3bfc15c5fd95b7194ca1341a1898208e842e0c002e2"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-ibnCG1/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-ibnCG1/summary.json",
+      "bytes": 1457,
+      "sha256": "6ec0527ed5fd7b692586d8dc2957633e2679895e314abebc2a1d893c83954d47"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-ibnCG1/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-ibnCG1/output.log",
+      "bytes": 44,
+      "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-ytMcTE/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-ytMcTE/summary.json",
+      "bytes": 1968,
+      "sha256": "26c090a4d6d4f8c5f9fdd978d6a8415c6009894ffa14cb353fa39236c51bdadd"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-ytMcTE/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-ytMcTE/output.log",
+      "bytes": 35485,
+      "sha256": "f8d77180a55d4ac1727c3ff99857f18f23a0b42331fa81e839e20e106c5e8884"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/0001.summary.json",
+      "bytes": 630,
+      "sha256": "90b4fb61c56daf1daf01d1b7f1421f492d1d894242d2a21fb5984fb1eeecd2dc"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/summary.json",
+      "bytes": 2301,
+      "sha256": "7030636cd26c36136384afff77fbd17f67c62a3803bcecd674febdb27c4aa82d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/001.stdout.log",
+      "bytes": 34696,
+      "sha256": "3c068192a9bc47970b8d3edc093f3517746e17ed098769962ba11a8b509f584b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/001.started.json",
+      "bytes": 1296,
+      "sha256": "bb617604efd2cfd968a6c6f2ab3745593a44319384bcfdee0f88ff0548bb6ea7"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/001.result.json",
+      "bytes": 1471,
+      "sha256": "c14a4f65e7a2fb99516d500cf3a685727650b5c051900bc90a1ed715542e8b9c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/0002.summary.json",
+      "bytes": 2069,
+      "sha256": "6406ad8864256c0b13ef1756769f698dcdac37ca1779f1158db9deab5226f077"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/0004.summary.json",
+      "bytes": 2301,
+      "sha256": "7030636cd26c36136384afff77fbd17f67c62a3803bcecd674febdb27c4aa82d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-ow7OBT/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-ow7OBT/0003.summary.json",
+      "bytes": 2280,
+      "sha256": "e095b843d67d6c1ec31d689fa7441377e809a9aeac3e84056ba1ddeffb2a34de"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-4LOdt6/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-4LOdt6/summary.json",
+      "bytes": 1967,
+      "sha256": "315395c3854b4ebe28c28f137580b58e3b3dbbb9c4e42cf96d728ad4f4b6790b"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-4LOdt6/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-4LOdt6/output.log",
+      "bytes": 18325,
+      "sha256": "d0666b09c727bceb7923d6329d10621a27fea4bb5dc184f4e78dedb09209899e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/0001.summary.json",
+      "bytes": 630,
+      "sha256": "00a0f283187908c056e64b1e10613676ed542e05f728fca25164a164b0a8cf22"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/summary.json",
+      "bytes": 2308,
+      "sha256": "c5b99f0b09624f5800294a02d3cd37de55ea3c958497b91d9607127030701436"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/001.stdout.log",
+      "bytes": 17546,
+      "sha256": "d516d23bb0f3567400192da0735e027bbd40b3dee178d4814608dea1564cfd2e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/001.started.json",
+      "bytes": 1296,
+      "sha256": "dae69abc3775c93eef44e26325c2ca1a204db0dc7de0e183c42fa1344ca56e45"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/001.result.json",
+      "bytes": 1479,
+      "sha256": "ebf1f4c97968b3ee8f2c8d73858d3fd42fcbc0b7495b799a6df8aa02ab0dde3f"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/0002.summary.json",
+      "bytes": 2069,
+      "sha256": "a4865948b4a9e3d773f0b4cd62c26a55e8c3067008a92af850a65d4062b94b02"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/0004.summary.json",
+      "bytes": 2308,
+      "sha256": "c5b99f0b09624f5800294a02d3cd37de55ea3c958497b91d9607127030701436"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BGH8BQ/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-BGH8BQ/0003.summary.json",
+      "bytes": 2288,
+      "sha256": "fa4318373323a03f4909bcb01be81f31db87053877df28588ae2cac20f740115"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-F3qya3/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-F3qya3/summary.json",
+      "bytes": 1633,
+      "sha256": "9bcb205b6ad6081978e9c9754fe2ef9779004934c6f124159268f10df5b5a939"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-F3qya3/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-F3qya3/output.log",
+      "bytes": 365,
+      "sha256": "d58049c640877a74cddd5bcfc05eab0336b5054e6b695b65dff997ed9d351bc7"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/0001.summary.json",
+      "bytes": 630,
+      "sha256": "d5bb0c0b4a524333b65055a2592c4907a675fe76113a375177c4a51e46856da4"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/summary.json",
+      "bytes": 1804,
+      "sha256": "73064c065d7dde3c4c82633754fc365466ae1f17d72b18ed0afde7a154b5ca9d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/001.stdout.log",
+      "bytes": 38,
+      "sha256": "98566e3b0f8ddd392230312d4a93343c59922153eac8fd89fe88ef3a5e9815cd"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/001.started.json",
+      "bytes": 812,
+      "sha256": "e8eba8462543caf3971ec9cf8cea138871f51de2c0067403a8353300116a7926"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/001.result.json",
+      "bytes": 995,
+      "sha256": "30985a9f6521b67a58a932a42062a271e553b16f495c438339d7f71e30d30853"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/0002.summary.json",
+      "bytes": 1565,
+      "sha256": "c27751ded1baefc401c0f676898197afa89c59841faf06079de9edd7dd00ebeb"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/0004.summary.json",
+      "bytes": 1804,
+      "sha256": "73064c065d7dde3c4c82633754fc365466ae1f17d72b18ed0afde7a154b5ca9d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-bhvMyo/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/0003.summary.json",
+      "bytes": 1784,
+      "sha256": "90211613f4e10735c649983d701d76c51518de8bcd3ab4679830943777c296a9"
+    }
+  ]
+}

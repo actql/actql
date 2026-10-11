@@ -1,0 +1,598 @@
+TAP version 13
+# Subtest: conditional order has an independent complete JSON control and discriminating rows
+ok 1 - conditional order has an independent complete JSON control and discriminating rows
+  ---
+  duration_ms: 6.855584
+  type: 'test'
+  ...
+# Subtest: normal and focused public routes retain conditional inputs and existing limits
+ok 2 - normal and focused public routes retain conditional inputs and existing limits
+  ---
+  duration_ms: 16.215583
+  type: 'test'
+  ...
+# Subtest: DISTINCT qualified conditional keys retain independent Programs values and exact refusals
+ok 3 - DISTINCT qualified conditional keys retain independent Programs values and exact refusals
+  ---
+  duration_ms: 0.852625
+  type: 'test'
+  ...
+# Subtest: Boolean order uses an independent Program and NULL/multiplicity counterexamples
+ok 4 - Boolean order uses an independent Program and NULL/multiplicity counterexamples
+  ---
+  duration_ms: 1.238833
+  type: 'test'
+  ...
+# Subtest: membership order fixes NULL, intervals and null-safe ordering independently
+ok 5 - membership order fixes NULL, intervals and null-safe ordering independently
+  ---
+  duration_ms: 0.811125
+  type: 'test'
+  ...
+# Subtest: independent member aggregate control retains one observation and the original capture predicate
+ok 6 - independent member aggregate control retains one observation and the original capture predicate
+  ---
+  duration_ms: 1.438917
+  type: 'test'
+  ...
+# Subtest: receiver and modifier counterexamples retain independent NULL duplicate and empty expectations
+ok 7 - receiver and modifier counterexamples retain independent NULL duplicate and empty expectations
+  ---
+  duration_ms: 0.276042
+  type: 'test'
+  ...
+# Subtest: aggregate member obligations are copied and registered in the existing normal and focused Host cohorts
+ok 8 - aggregate member obligations are copied and registered in the existing normal and focused Host cohorts
+  ---
+  duration_ms: 0.561375
+  type: 'test'
+  ...
+# Subtest: independent scalar and object Programs preserve source predicate, order fields and projection
+ok 9 - independent scalar and object Programs preserve source predicate, order fields and projection
+  ---
+  duration_ms: 2.993125
+  type: 'test'
+  ...
+# Subtest: parameter and input-column collisions produce different order, while nullable keys retain duplicates
+ok 10 - parameter and input-column collisions produce different order, while nullable keys retain duplicates
+  ---
+  duration_ms: 1.050875
+  type: 'test'
+  ...
+# Subtest: ordinary packed registration includes parameter cases without raising installed capacity
+ok 11 - ordinary packed registration includes parameter cases without raising installed capacity
+  ---
+  duration_ms: 23.676084
+  type: 'test'
+  ...
+# Subtest: collection orders discriminate input properties, current slots and independent per-call order
+ok 12 - collection orders discriminate input properties, current slots and independent per-call order
+  ---
+  duration_ms: 1.347708
+  type: 'test'
+  ...
+# Subtest: independent JSON controls preserve predicate, scalar aggregate argument and actual array key assertion
+ok 13 - independent JSON controls preserve predicate, scalar aggregate argument and actual array key assertion
+  ---
+  duration_ms: 2.679458
+  type: 'test'
+  ...
+# Subtest: collection order cases retain one source acquisition and standard installed ceilings
+ok 14 - collection order cases retain one source acquisition and standard installed ceilings
+  ---
+  duration_ms: 1.182833
+  type: 'test'
+  ...
+# Subtest: delimiter chunk expectations distinguish decoded, raw and decomposed values
+ok 15 - delimiter chunk expectations distinguish decoded, raw and decomposed values
+  ---
+  duration_ms: 0.2875
+  type: 'test'
+  ...
+# Subtest: default delimiter keeps duplicates, filter demand, NULL output and nullable Result contract
+ok 16 - default delimiter keeps duplicates, filter demand, NULL output and nullable Result contract
+  ---
+  duration_ms: 0.7625
+  type: 'test'
+  ...
+# Subtest: ordinary packed route and focused selection both include collection property order cases
+ok 17 - ordinary packed route and focused selection both include collection property order cases
+  ---
+  duration_ms: 25.369167
+  type: 'test'
+  ...
+# Subtest: grouped STRING_AGG delimiters preserve complete independent values and nullable schemas
+ok 18 - grouped STRING_AGG delimiters preserve complete independent values and nullable schemas
+  ---
+  duration_ms: 0.781
+  type: 'test'
+  ...
+# Subtest: signed order has independent scalar and keyed-array JSON controls
+ok 19 - signed order has independent scalar and keyed-array JSON controls
+  ---
+  duration_ms: 9.268417
+  type: 'test'
+  ...
+# Subtest: expected signed order distinguishes sign removal, NULL placement and snapshot receivers
+ok 20 - expected signed order distinguishes sign removal, NULL placement and snapshot receivers
+  ---
+  duration_ms: 0.462334
+  type: 'test'
+  ...
+# Subtest: normal and focused packed routes include signed inputs without altering capacity or refusal semantics
+ok 21 - normal and focused packed routes include signed inputs without altering capacity or refusal semantics
+  ---
+  duration_ms: 19.361084
+  type: 'test'
+  ...
+# Subtest: independent partition obligations distinguish NULL, alias, snapshot and demand
+ok 22 - independent partition obligations distinguish NULL, alias, snapshot and demand
+  ---
+  duration_ms: 4.091125
+  type: 'test'
+  ...
+# Subtest: partition expressions enter the ordinary packed corpus and existing narrow driver
+ok 23 - partition expressions enter the ordinary packed corpus and existing narrow driver
+  ---
+  duration_ms: 21.886583
+  type: 'test'
+  ...
+# Subtest: partition obligations distinguish input, SELECT alias, NULL and current Pipe values
+ok 24 - partition obligations distinguish input, SELECT alias, NULL and current Pipe values
+  ---
+  duration_ms: 4.933542
+  type: 'test'
+  ...
+# Subtest: partition properties are in the normal packed corpus as well as the focused selection
+ok 25 - partition properties are in the normal packed corpus as well as the focused selection
+  ---
+  duration_ms: 23.566125
+  type: 'test'
+  ...
+# Subtest: independent concatenation Programs preserve predicate operands grouping and order
+ok 26 - independent concatenation Programs preserve predicate operands grouping and order
+  ---
+  duration_ms: 1.139083
+  type: 'test'
+  ...
+# Subtest: receiver collision reverses ordered IDs while empty and rejected inputs stay explicit
+ok 27 - receiver collision reverses ordered IDs while empty and rejected inputs stay explicit
+  ---
+  duration_ms: 0.367958
+  type: 'test'
+  ...
+# Subtest: concatenation fixtures enter both ordinary and selected packed acceptance
+ok 28 - concatenation fixtures enter both ordinary and selected packed acceptance
+  ---
+  duration_ms: 4.178542
+  type: 'test'
+  ...
+# Subtest: GROUP ORDER alias and range controls have independently opposite ordered keys
+ok 29 - GROUP ORDER alias and range controls have independently opposite ordered keys
+  ---
+  duration_ms: 1.632917
+  type: 'test'
+  ...
+# Subtest: GROUP ORDER receiver regressions are normal registered cases and a narrow existing-driver selection
+ok 30 - GROUP ORDER receiver regressions are normal registered cases and a narrow existing-driver selection
+  ---
+  duration_ms: 22.612292
+  type: 'test'
+  ...
+# Subtest: receiver control preserves input filter, object projection and both independent grouping keys
+ok 31 - receiver control preserves input filter, object projection and both independent grouping keys
+  ---
+  duration_ms: 1.733167
+  type: 'test'
+  ...
+# Subtest: receiver cases distinguish scopes, computed subtrees, NULL, duplicates and empty schema
+ok 32 - receiver cases distinguish scopes, computed subtrees, NULL, duplicates and empty schema
+  ---
+  duration_ms: 0.42125
+  type: 'test'
+  ...
+# Subtest: receiver source cases are copied and registered in normal and selected public cohorts
+ok 33 - receiver source cases are copied and registered in normal and selected public cohorts
+  ---
+  duration_ms: 1.210041
+  type: 'test'
+  ...
+# Subtest: independent membership controls retain ordered atoms predicate grouping and parameters
+ok 34 - independent membership controls retain ordered atoms predicate grouping and parameters
+  ---
+  duration_ms: 33.099042
+  type: 'test'
+  ...
+# Subtest: receiver and parameter counterexamples distinguish scope and three-valued membership
+ok 35 - receiver and parameter counterexamples distinguish scope and three-valued membership
+  ---
+  duration_ms: 5.445416
+  type: 'test'
+  ...
+# Subtest: membership reuse enters ordinary and selected packed acceptance with the same corpus
+ok 36 - membership reuse enters ordinary and selected packed acceptance with the same corpus
+  ---
+  duration_ms: 1.393958
+  type: 'test'
+  ...
+# Subtest: independent negated IS Programs retain their exact common operations and argument contracts
+ok 37 - independent negated IS Programs retain their exact common operations and argument contracts
+  ---
+  duration_ms: 1.587167
+  type: 'test'
+  ...
+# Subtest: NULL and receiver counterexamples distinguish exact IS truth tables from ordinary NOT
+ok 38 - NULL and receiver counterexamples distinguish exact IS truth tables from ordinary NOT
+  ---
+  duration_ms: 2.4695
+  type: 'test'
+  ...
+# Subtest: negated predicate reuse enters both ordinary packed acceptance and its narrow selector
+ok 39 - negated predicate reuse enters both ordinary packed acceptance and its narrow selector
+  ---
+  duration_ms: 7.463917
+  type: 'test'
+  ...
+# Subtest: ORDER window controls distinguish alias, qualified input and pre-QUALIFY scopes
+ok 40 - ORDER window controls distinguish alias, qualified input and pre-QUALIFY scopes
+  ---
+  duration_ms: 8.709208
+  type: 'test'
+  ...
+# Subtest: ordinary packed acceptance includes ORDER windows; narrow selection retains pristine packages
+ok 41 - ordinary packed acceptance includes ORDER windows; narrow selection retains pristine packages
+  ---
+  duration_ms: 18.84925
+  type: 'test'
+  ...
+# Subtest: set star preserves schema-supplied private names and authored row values
+ok 42 - set star preserves schema-supplied private names and authored row values
+  ---
+  duration_ms: 1.217666
+  type: 'test'
+  ...
+# Subtest: JOIN ORDER windows retain authored keys ceiling predicate and operand scopes
+ok 43 - JOIN ORDER windows retain authored keys ceiling predicate and operand scopes
+  ---
+  duration_ms: 0.564084
+  type: 'test'
+  ...
+# Subtest: JOIN SELECT windows preserve input scope predicate multiplicity and result columns
+ok 44 - JOIN SELECT windows preserve input scope predicate multiplicity and result columns
+  ---
+  duration_ms: 0.633083
+  type: 'test'
+  ...
+# Subtest: visible-row DISTINCT expectations discriminate private old slots and NULL duplicates
+ok 45 - visible-row DISTINCT expectations discriminate private old slots and NULL duplicates
+  ---
+  duration_ms: 3.874875
+  type: 'test'
+  ...
+# Subtest: post-JOIN DISTINCT preserves full-row multiplicity before projection
+ok 46 - post-JOIN DISTINCT preserves full-row multiplicity before projection
+  ---
+  duration_ms: 1.332791
+  type: 'test'
+  ...
+# Subtest: CROSS JOIN control preserves eight rows and its explicit output ceiling
+ok 47 - CROSS JOIN control preserves eight rows and its explicit output ceiling
+  ---
+  duration_ms: 5.22775
+  type: 'test'
+  ...
+# Subtest: Pipe DISTINCT is included in the ordinary packed corpus and focused cohort
+ok 48 - Pipe DISTINCT is included in the ordinary packed corpus and focused cohort
+  ---
+  duration_ms: 15.341459
+  type: 'test'
+  ...
+# Subtest: PIVOT independent controls preserve duplicates NULLs grouping and declared column order
+ok 49 - PIVOT independent controls preserve duplicates NULLs grouping and declared column order
+  ---
+  duration_ms: 30.424583
+  type: 'test'
+  ...
+# Subtest: PIVOT uses the same cases in the normal corpus and scoped packed execution
+ok 50 - PIVOT uses the same cases in the normal corpus and scoped packed execution
+  ---
+  duration_ms: 25.888916
+  type: 'test'
+  ...
+# Subtest: HAVING scope oracles preserve named aliases and reject actual anonymous slots
+ok 51 - HAVING scope oracles preserve named aliases and reject actual anonymous slots
+  ---
+  duration_ms: 1.013833
+  type: 'test'
+  ...
+# Subtest: COUNT star includes NULL rows while retaining every unconsumed current key
+ok 52 - COUNT star includes NULL rows while retaining every unconsumed current key
+  ---
+  duration_ms: 0.402083
+  type: 'test'
+  ...
+# Subtest: grouped PIVOT String buckets retain independent counts full schemas and explicit refusals
+ok 53 - grouped PIVOT String buckets retain independent counts full schemas and explicit refusals
+  ---
+  duration_ms: 0.364875
+  type: 'test'
+  ...
+# Subtest: QUALIFY oracles distinguish aliases inputs NULLs duplicates and output demand
+ok 54 - QUALIFY oracles distinguish aliases inputs NULLs duplicates and output demand
+  ---
+  duration_ms: 5.988042
+  type: 'test'
+  ...
+# Subtest: grouped later-clause oracles separate COUNT aliases from retained input keys
+ok 55 - grouped later-clause oracles separate COUNT aliases from retained input keys
+  ---
+  duration_ms: 2.326667
+  type: 'test'
+  ...
+# Subtest: QUALIFY runs in both the ordinary and narrow packed public corpora
+ok 56 - QUALIFY runs in both the ordinary and narrow packed public corpora
+  ---
+  duration_ms: 20.683583
+  type: 'test'
+  ...
+# Subtest: aggregate OVER key oracles retain duplicate counts nullable input and ordered columns
+ok 57 - aggregate OVER key oracles retain duplicate counts nullable input and ordered columns
+  ---
+  duration_ms: 0.848792
+  type: 'test'
+  ...
+# Subtest: scalar aliases use independently authored typed group controls
+ok 58 - scalar aliases use independently authored typed group controls
+  ---
+  duration_ms: 3.776417
+  type: 'test'
+  ...
+# Subtest: normal and focused consumers retain scalar alias source and refusal cases
+ok 59 - normal and focused consumers retain scalar alias source and refusal cases
+  ---
+  duration_ms: 1.554375
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent aggregate-order-parameter inventory
+ok 60 - WITH Relation retains complete independent aggregate-order-parameter inventory
+  ---
+  duration_ms: 11.644916
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent aggregate-property inventory
+ok 61 - WITH Relation retains complete independent aggregate-property inventory
+  ---
+  duration_ms: 6.878041
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent aggregate-signed-order inventory
+ok 62 - WITH Relation retains complete independent aggregate-signed-order inventory
+  ---
+  duration_ms: 7.506292
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent analytic-order inventory
+ok 63 - WITH Relation retains complete independent analytic-order inventory
+  ---
+  duration_ms: 4.9335
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent analytic-partition-expression inventory
+ok 64 - WITH Relation retains complete independent analytic-partition-expression inventory
+  ---
+  duration_ms: 3.266958
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent analytic-partition-property inventory
+ok 65 - WITH Relation retains complete independent analytic-partition-property inventory
+  ---
+  duration_ms: 2.148125
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent concat-expression-reuse inventory
+ok 66 - WITH Relation retains complete independent concat-expression-reuse inventory
+  ---
+  duration_ms: 1.737708
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent distinct-order inventory
+ok 67 - WITH Relation retains complete independent distinct-order inventory
+  ---
+  duration_ms: 2.181375
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent group-order-range-alias inventory
+ok 68 - WITH Relation retains complete independent group-order-range-alias inventory
+  ---
+  duration_ms: 1.518458
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent group-property-receiver inventory
+ok 69 - WITH Relation retains complete independent group-property-receiver inventory
+  ---
+  duration_ms: 1.483792
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent implicit-property inventory
+ok 70 - WITH Relation retains complete independent implicit-property inventory
+  ---
+  duration_ms: 2.610833
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent membership-expression-reuse inventory
+ok 71 - WITH Relation retains complete independent membership-expression-reuse inventory
+  ---
+  duration_ms: 2.705166
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent negated-predicate-reuse inventory
+ok 72 - WITH Relation retains complete independent negated-predicate-reuse inventory
+  ---
+  duration_ms: 1.5415
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent scalar-alias-group inventory
+ok 73 - WITH Relation retains complete independent scalar-alias-group inventory
+  ---
+  duration_ms: 1.146542
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent qualify inventory
+ok 74 - WITH Relation retains complete independent qualify inventory
+  ---
+  duration_ms: 4.077792
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent pipe-pivot inventory
+ok 75 - WITH Relation retains complete independent pipe-pivot inventory
+  ---
+  duration_ms: 3.100375
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent pipe-distinct inventory
+ok 76 - WITH Relation retains complete independent pipe-distinct inventory
+  ---
+  duration_ms: 1.647042
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent order-window inventory
+ok 77 - WITH Relation retains complete independent order-window inventory
+  ---
+  duration_ms: 3.672875
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent aggregate-property-order inventory
+ok 78 - WITH Relation retains complete independent aggregate-property-order inventory
+  ---
+  duration_ms: 4.603083
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent aggregate-conditional-order inventory
+ok 79 - WITH Relation retains complete independent aggregate-conditional-order inventory
+  ---
+  duration_ms: 8.081417
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent aggregate-member-call-reuse inventory
+ok 80 - WITH Relation retains complete independent aggregate-member-call-reuse inventory
+  ---
+  duration_ms: 5.270084
+  type: 'test'
+  ...
+# Subtest: WITH Relation retains complete independent distinct-signed-order inventory
+ok 81 - WITH Relation retains complete independent distinct-signed-order inventory
+  ---
+  duration_ms: 4.181625
+  type: 'test'
+  ...
+1..81
+# tests 81
+# suites 0
+# pass 81
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 575.938625
+ACTQL_TEST_CASE {"name":"conditional order has an independent complete JSON control and discriminating rows","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-conditional-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal and focused public routes retain conditional inputs and existing limits","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-conditional-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"DISTINCT qualified conditional keys retain independent Programs values and exact refusals","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-conditional-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Boolean order uses an independent Program and NULL/multiplicity counterexamples","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-conditional-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"membership order fixes NULL, intervals and null-safe ordering independently","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-conditional-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent member aggregate control retains one observation and the original capture predicate","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-member-call-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver and modifier counterexamples retain independent NULL duplicate and empty expectations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-member-call-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"aggregate member obligations are copied and registered in the existing normal and focused Host cohorts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-member-call-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent scalar and object Programs preserve source predicate, order fields and projection","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-order-parameter-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"parameter and input-column collisions produce different order, while nullable keys retain duplicates","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-order-parameter-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary packed registration includes parameter cases without raising installed capacity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-order-parameter-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"collection orders discriminate input properties, current slots and independent per-call order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent JSON controls preserve predicate, scalar aggregate argument and actual array key assertion","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"collection order cases retain one source acquisition and standard installed ceilings","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"delimiter chunk expectations distinguish decoded, raw and decomposed values","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"default delimiter keeps duplicates, filter demand, NULL output and nullable Result contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary packed route and focused selection both include collection property order cases","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped STRING_AGG delimiters preserve complete independent values and nullable schemas","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"signed order has independent scalar and keyed-array JSON controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-signed-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"expected signed order distinguishes sign removal, NULL placement and snapshot receivers","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-signed-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal and focused packed routes include signed inputs without altering capacity or refusal semantics","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-signed-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent partition obligations distinguish NULL, alias, snapshot and demand","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/analytic-partition-expression-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"partition expressions enter the ordinary packed corpus and existing narrow driver","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/analytic-partition-expression-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"partition obligations distinguish input, SELECT alias, NULL and current Pipe values","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/analytic-partition-property-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"partition properties are in the normal packed corpus as well as the focused selection","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/analytic-partition-property-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent concatenation Programs preserve predicate operands grouping and order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/concat-expression-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver collision reverses ordered IDs while empty and rejected inputs stay explicit","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/concat-expression-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"concatenation fixtures enter both ordinary and selected packed acceptance","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/concat-expression-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"GROUP ORDER alias and range controls have independently opposite ordered keys","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-order-range-alias-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"GROUP ORDER receiver regressions are normal registered cases and a narrow existing-driver selection","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-order-range-alias-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver control preserves input filter, object projection and both independent grouping keys","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-property-receiver-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver cases distinguish scopes, computed subtrees, NULL, duplicates and empty schema","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-property-receiver-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver source cases are copied and registered in normal and selected public cohorts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-property-receiver-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent membership controls retain ordered atoms predicate grouping and parameters","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/membership-expression-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver and parameter counterexamples distinguish scope and three-valued membership","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/membership-expression-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"membership reuse enters ordinary and selected packed acceptance with the same corpus","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/membership-expression-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent negated IS Programs retain their exact common operations and argument contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/negated-predicate-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"NULL and receiver counterexamples distinguish exact IS truth tables from ordinary NOT","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/negated-predicate-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"negated predicate reuse enters both ordinary packed acceptance and its narrow selector","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/negated-predicate-reuse-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ORDER window controls distinguish alias, qualified input and pre-QUALIFY scopes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/order-window-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary packed acceptance includes ORDER windows; narrow selection retains pristine packages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/order-window-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"set star preserves schema-supplied private names and authored row values","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/order-window-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"JOIN ORDER windows retain authored keys ceiling predicate and operand scopes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/order-window-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"JOIN SELECT windows preserve input scope predicate multiplicity and result columns","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/order-window-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"visible-row DISTINCT expectations discriminate private old slots and NULL duplicates","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-distinct-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"post-JOIN DISTINCT preserves full-row multiplicity before projection","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-distinct-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"CROSS JOIN control preserves eight rows and its explicit output ceiling","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-distinct-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Pipe DISTINCT is included in the ordinary packed corpus and focused cohort","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-distinct-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"PIVOT independent controls preserve duplicates NULLs grouping and declared column order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-pivot-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"PIVOT uses the same cases in the normal corpus and scoped packed execution","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-pivot-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"HAVING scope oracles preserve named aliases and reject actual anonymous slots","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-pivot-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"COUNT star includes NULL rows while retaining every unconsumed current key","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-pivot-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped PIVOT String buckets retain independent counts full schemas and explicit refusals","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-pivot-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"QUALIFY oracles distinguish aliases inputs NULLs duplicates and output demand","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/qualify-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped later-clause oracles separate COUNT aliases from retained input keys","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/qualify-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"QUALIFY runs in both the ordinary and narrow packed public corpora","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/qualify-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"aggregate OVER key oracles retain duplicate counts nullable input and ordered columns","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/qualify-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"scalar aliases use independently authored typed group controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/scalar-alias-group-source.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal and focused consumers retain scalar alias source and refusal cases","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/scalar-alias-group-source.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent aggregate-order-parameter inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent aggregate-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent aggregate-signed-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent analytic-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent analytic-partition-expression inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent analytic-partition-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent concat-expression-reuse inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent distinct-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent group-order-range-alias inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent group-property-receiver inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent implicit-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent membership-expression-reuse inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent negated-predicate-reuse inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent scalar-alias-group inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent qualify inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent pipe-pivot inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent pipe-distinct inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent order-window inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent aggregate-property-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent aggregate-conditional-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent aggregate-member-call-reuse inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Relation retains complete independent distinct-signed-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":34.622708,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-conditional-order-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":18.896,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-member-call-reuse-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":37.009125,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-order-parameter-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":7,"failed":0,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":7,"suites":0},"duration_ms":39.286542,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-property-order-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":36.953166,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/aggregate-signed-order-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":40.799333,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/analytic-partition-expression-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":38.753792,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/analytic-partition-property-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":21.199792,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/concat-expression-reuse-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":31.322917,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-order-range-alias-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":31.751959,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-property-receiver-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":58.998667,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/membership-expression-reuse-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":40.786416,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/negated-predicate-reuse-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":69.59775,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/order-window-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":31.1785,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-distinct-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":67.34825,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/pipe-pivot-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":44.412292,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/qualify-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":56.548459,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/scalar-alias-group-source.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":22,"failed":0,"passed":22,"cancelled":0,"skipped":0,"todo":0,"topLevel":22,"suites":0},"duration_ms":124.445042,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-relational-public-fixtures.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":81,"failed":0,"passed":81,"cancelled":0,"skipped":0,"todo":0,"topLevel":81,"suites":0},"duration_ms":575.938625}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-relational-public-fixtures.test.mjs","scripts/aggregate-order-parameter-source-input.test.mjs","scripts/aggregate-property-order-source-input.test.mjs","scripts/aggregate-signed-order-source-input.test.mjs","scripts/aggregate-conditional-order-source-input.test.mjs","scripts/aggregate-member-call-reuse-source-input.test.mjs","scripts/analytic-partition-expression-source-input.test.mjs","scripts/analytic-partition-property-source-input.test.mjs","scripts/concat-expression-reuse-source-input.test.mjs","scripts/group-order-range-alias-source-input.test.mjs","scripts/group-property-receiver-source-input.test.mjs","scripts/membership-expression-reuse-source-input.test.mjs","scripts/negated-predicate-reuse-source-input.test.mjs","scripts/scalar-alias-group-source.test.mjs","scripts/qualify-source-input.test.mjs","scripts/pipe-pivot-source-input.test.mjs","scripts/pipe-distinct-source-input.test.mjs","scripts/order-window-source-input.test.mjs"]: executed; counts={"tests":81,"passed":81,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-TXcTFj
