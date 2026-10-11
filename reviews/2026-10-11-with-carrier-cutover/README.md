@@ -441,3 +441,17 @@ Bounded formatting completed with whitespace only (including the adjacent Delta
 fixture); Delta JS7/7 remains evidence of its earlier exact source. Raw logs,
 receipts and SHA256 are preserved, with actual Owner/group/ownlock absence.
 This establishes compile/check evidence, not actual Host rows or Local/HTTPS.
+
+## WITH Graph definition/label selection and Relation JOIN retirement
+
+[p1-graph-definition-selection-execution.json](p1-graph-definition-selection-execution.json)
+records clean `283712d050ad822c53cb6d10b00bba1ca4d6aa9d`: actual JS8/8
+(`run-7ctRLA`) and no-change formatter (`run-y00de3`). Definition/label selectors,
+nullable properties, original keys and seven Graph Relation operations retain
+their independent common controls, CROSS JOIN max10 and value/tag field order.
+The complete definition-selection Program changes only the deterministic
+Relation/Graph producer names. Conditional q remains refused as the independently
+traced common Operation(PresenceRequired), now at WITH static admission. No
+frontend presence or identity evidence is invented. Exact source/tree, commands,
+raw receipts and SHA256 are retained with actual Owner/group/ownlock release.
+Host rows/order, packages and Local/HTTPS remain unexecuted.

@@ -1,0 +1,127 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "WITH Graph definition/label selection and seven Graph Relation JOIN controls. Original schemas, keys, typed identity, case-sensitive data, case-insensitive selector names, Conditional presence and ceilings retained. No product change.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-graph-definition-selection-original-callers.json",
+  "independent_derivation": "with-graph-definition-selection-derivation.json",
+  "unexecuted": [
+    "Host Local/HTTPS values/schema/order",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-y00de3",
+      "source": "283712d050ad822c53cb6d10b00bba1ca4d6aa9d",
+      "tree": "1f9cb5d8c99c72a42a6a15f0e766966f3b6029ac",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 4495,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_row_selection_test.mbt",
+          "src/query_program/graph_relation_join_input_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-y00de3/local-checks/output.log",
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-y00de3/local-checks/summary.json",
+          "sha256": "e2caa772398ebb91382c09a3d7e06b75694cc02ab7359928079ce63a56002ad2"
+        }
+      },
+      "formatter": "completed without source changes"
+    },
+    {
+      "run": "run-7ctRLA",
+      "source": "283712d050ad822c53cb6d10b00bba1ca4d6aa9d",
+      "tree": "1f9cb5d8c99c72a42a6a15f0e766966f3b6029ac",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 4932,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_row_selection_test.mbt",
+          "src/query_program/graph_relation_join_input_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/local-checks/output.log",
+          "sha256": "e3140f4fa440231da8ea4b6afbb85cb2d05ebd28e5fa9beb97b8bacc74a09ef4"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/local-checks/summary.json",
+          "sha256": "6cb26078f7fe72e8a0e262a7cf0510d7cf493c9dd82060f63175c896c9393b90"
+        },
+        "focused-test-koehzH/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/0001.summary.json",
+          "sha256": "6c377fa672676ee3cdd9ddd462df482bf0bcda2718521bfcfac2c9856d9ec881"
+        },
+        "focused-test-koehzH/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/0002.summary.json",
+          "sha256": "0b8a8efb9ee87f63a5d6695289746abf886a307471dbcddde081765464fa3517"
+        },
+        "focused-test-koehzH/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/0003.summary.json",
+          "sha256": "2bced7eadf7eef149db258aa1ed589cd5aaa98a20289aa75a45af93943a79c8a"
+        },
+        "focused-test-koehzH/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/0004.summary.json",
+          "sha256": "c7672a3036f763bcbac20c3c916667812e085c0a87865b628128b7d18fafb820"
+        },
+        "focused-test-koehzH/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/001.result.json",
+          "sha256": "09e78b0098ac84b1c9f5a440a7c322771de217adb993e8c475544e85643e1d40"
+        },
+        "focused-test-koehzH/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/001.started.json",
+          "sha256": "0fd669d6da6f3eec427a84b114f836545eaf7087a0f8ec40330687e3364b30dc"
+        },
+        "focused-test-koehzH/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-koehzH/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/001.stdout.log",
+          "sha256": "764157e72b2dd2e8e0a0545e7f821c609e694e542766a3c5c6666f28561c5f05"
+        },
+        "focused-test-koehzH/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-definition-selection-evidence/run-7ctRLA/focused-test-koehzH/summary.json",
+          "sha256": "c7672a3036f763bcbac20c3c916667812e085c0a87865b628128b7d18fafb820"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 8,
+        "passed": 8,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ]
+}
