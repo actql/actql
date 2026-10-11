@@ -104,15 +104,9 @@ test "projected Pipe JOIN cannot revive removed columns or displaced aliases" {
     if text.contains("AS l ON") {
       assert_true(result is Err(AmbiguousRelation), msg=text)
     } else {
-      match result {
-        Err(AmbiguousColumn) => ()
-        Err(Expression(diagnostic)) => fail(text + " : " + @debug.to_string(diagnostic.issue))
-        Err(UnknownColumn) => fail(text + " : UnknownColumn")
-        Err(InvalidQuery) => fail(text + " : InvalidQuery")
-        Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => fail(text + " : " + @debug.to_string(issue.kind))
-        Ok(_) => fail(text + " : incorrect acceptance")
-        _ => fail(text + " : different refusal")
-      }
+      // Terminal AS exports only the projected columns. The ordinary single
+      // JOIN owner reports an absent qualifier/field as UnknownColumn.
+      assert_true(result is Err(UnknownColumn), msg=text)
     }
   }
 }

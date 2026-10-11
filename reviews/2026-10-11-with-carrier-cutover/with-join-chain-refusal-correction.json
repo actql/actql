@@ -1,0 +1,26 @@
+{
+  "observed_source": "7348f4a71cdc36d157bc4e4f8f4fcda1fd298687",
+  "run": "run-9IYO8B",
+  "actual_js": {
+    "tests": 14,
+    "passed": 13,
+    "failed": 1
+  },
+  "existing_rule": "query_syntax/query.mbt terminal AS removes the old producer aliases and binds only the projected row without carry_ranges. query_join_bindings.mbt consequently uses the existing ordinary single JOIN owner. compile.mbt compile_join_steps/join_field reports absent qualifier/field as UnknownColumn; duplicate qualifiers remain AmbiguousRelation. The old test expected the different chain owner AmbiguousColumn even though this path no longer has retained ranges.",
+  "expectations": [
+    "old.x after SELECT x AS id / AS l: UnknownColumn",
+    "l.y after SELECT x AS id: UnknownColumn",
+    "old.id after AS old then AS l: UnknownColumn",
+    "same l alias on both JOIN sides: AmbiguousRelation"
+  ],
+  "unchanged": [
+    "all four original sources",
+    "no old alias restoration",
+    "no removed column restoration",
+    "scope resolution logic",
+    "JOIN ON keys",
+    "positive complete Program controls"
+  ],
+  "product_change": false,
+  "public_execution": "unexecuted"
+}

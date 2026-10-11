@@ -1,7 +1,7 @@
 ///|
 // Lower only syntax roles. Membership, predicates, path mode, hop bounds,
 // typed identities, output schema and resource evidence belong to the common
-// traversal checker and owner. A DATA selector reuses its emitted producer.
+// traversal checker and owner. A WITH selector reuses its emitted producer.
 fn script_traversal_argument(
   construction : Construction,
   argument : @query.SgaArgument,
@@ -11,7 +11,7 @@ fn script_traversal_argument(
   match argument {
     Producer(name) => {
       let input = resolve_relation_input([name], known)
-      // This first connection consumes earlier DATA producers. Installed
+      // This first connection consumes earlier WITH producers. Installed
       // selector Sources need the existing capture/share boundary, not an
       // undeclared producer or a new acquisition path in this lowerer.
       guard input.source is StepReference else { raise Abort(UnsupportedGraph) }
