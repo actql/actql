@@ -153,7 +153,11 @@ fn lower_script_bindings(
         !input_relation_matches([binding.name], input)
       })
       if binding.origin is AuthoredWith(_, _, _) {
-        sources.binding_ranges.push({ steps, start: binding_start, end: steps.length(), })
+        sources.binding_ranges.push({
+          steps,
+          start: binding_start,
+          end: steps.length(),
+        })
       }
       continue
     }
@@ -220,7 +224,11 @@ fn lower_script_bindings(
       !same_name(graph.name, binding.name)
     })
     if binding.origin is AuthoredWith(_, _, _) {
-      sources.binding_ranges.push({ steps, start: binding_start, end: steps.length(), })
+      sources.binding_ranges.push({
+        steps,
+        start: binding_start,
+        end: steps.length(),
+      })
     }
   }
   (scoped, scoped_graphs)

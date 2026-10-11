@@ -52,7 +52,8 @@ fn trace_query_binding_demand(
       let n = @pipeline.step_count(pipeline)
       let m = @pipeline.input_count(pipeline)
       spend(n + m)
-      if stage >= capture_count && stage_arrays[stage - capture_count].length() != n {
+      if stage >= capture_count &&
+        stage_arrays[stage - capture_count].length() != n {
         raise DemandStop(ForeignStage)
       }
       owners.push(Array::make(n, -1))
@@ -69,20 +70,27 @@ fn trace_query_binding_demand(
         }
       }
       guard owner is Some(stage) else { raise DemandStop(ForeignStage) }
-      if range.start < 0 || range.end < range.start || range.end > owners[stage].length() {
+      if range.start < 0 ||
+        range.end < range.start ||
+        range.end > owners[stage].length() {
         raise DemandStop(InvalidRange)
       }
       spend(range.end - range.start)
       for step in range.start..<range.end {
         let previous = owners[stage][step]
-        if previous < 0 || range.end - range.start < ranges[previous].end - ranges[previous].start {
+        if previous < 0 ||
+          range.end - range.start <
+          ranges[previous].end - ranges[previous].start {
           owners[stage][step] = index
         }
       }
     }
     let pending : Array[(Int, @pipeline.Target)] = []
     let demanded_bodies = Array::make(ranges.length(), false)
-    fn enqueue(stage : Int, target : @pipeline.Target) -> Unit raise DemandStop {
+    fn enqueue(
+      stage : Int,
+      target : @pipeline.Target,
+    ) -> Unit raise DemandStop {
       spend(1)
       pending.push((stage, target))
     }
@@ -101,13 +109,18 @@ fn trace_query_binding_demand(
       let stage = @stage_parameters.stage_index(
         @stage_results.stage_port_source(@stage_results.export_stage(root)),
       )
-      enqueue(stage, @relation_results.port_target(@stage_results.export_port(root)))
+      enqueue(
+        stage,
+        @relation_results.port_target(@stage_results.export_port(root)),
+      )
     }
     while pending.pop() is Some((stage, target)) {
       spend(1)
       match target {
         Step(step) => {
-          if steps[stage][step] { continue }
+          if steps[stage][step] {
+            continue
+          }
           steps[stage][step] = true
           let body = owners[stage][step]
           if body >= 0 && !demanded_bodies[body] {
@@ -125,7 +138,9 @@ fn trace_query_binding_demand(
           }
         }
         Input(input) => {
-          if inputs[stage][input] { continue }
+          if inputs[stage][input] {
+            continue
+          }
           inputs[stage][input] = true
           let name = @pipeline.input_at(pipelines[stage], input).unwrap().0
           let imports = @stage_results.attached_imports(
@@ -137,10 +152,15 @@ fn trace_query_binding_demand(
             let edge = @stage_results.import_at(imports, index).unwrap()
             if @stage_results.input_name(edge) == name {
               let producer_stage = @stage_parameters.stage_index(
-                @stage_results.stage_port_source(@stage_results.input_stage(edge)),
+                @stage_results.stage_port_source(
+                  @stage_results.input_stage(edge),
+                ),
               )
               let producer = @stage_results.input_producer(edge)
-              if !physical_equal(@pipeline.producer_pipeline(producer), pipelines[producer_stage]) {
+              if !physical_equal(
+                  @pipeline.producer_pipeline(producer),
+                  pipelines[producer_stage],
+                ) {
                 raise DemandStop(ForeignStage)
               }
               enqueue(producer_stage, @pipeline.producer_target(producer))
@@ -152,7 +172,9 @@ fn trace_query_binding_demand(
             let stage_source = @stage_parameters.stage_at(source, stage).unwrap()
             for (imported, _) in @program.imports(stage_source) {
               spend(1)
-              if imported == name { raise DemandStop(MissingImport) }
+              if imported == name {
+                raise DemandStop(MissingImport)
+              }
             }
           }
         }

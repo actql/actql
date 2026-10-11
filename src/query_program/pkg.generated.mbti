@@ -34,6 +34,13 @@ pub fn unresolved_relation_reference(Issue) -> Array[@query_syntax.NamePart]?
 // Errors
 
 // Types and methods
+pub(all) enum BindingDemandIssue {
+  WorkLimit
+  ForeignStage
+  InvalidRange
+  MissingImport
+}
+
 pub(all) enum BindingPreparationIssue {
   Declarations(@stage_parameters.Issue)
   SourceDeclarations(@sourceview_input.Issue)
@@ -41,6 +48,7 @@ pub(all) enum BindingPreparationIssue {
   SourceRegistration(@pipeline_check_context.SourceRegistrationIssue)
   SourceProgram(@pipeline_check_context.SourceViewProgramIssue)
   LocalProgram(@stage_results.LocalProgramIssue)
+  Demand(BindingDemandIssue)
 }
 
 pub(all) struct Context {

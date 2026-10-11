@@ -612,7 +612,8 @@ pub fn compile_query_script(
     // Resolve and check every authored binding before demand selection. This
     // temporary syntax owner does not publish another Program/Plan/Run.
     let source = resolve_query_members(source, document, context, limits)
-    let complete = match @program.admit_generated_source(source, limits.program) {
+    let complete = match
+      @program.admit_generated_source(source, limits.program) {
       Ok(program) => program
       Err(issue) => return Err(Admission(issue))
     }
@@ -620,18 +621,24 @@ pub fn compile_query_script(
       Ok(wiring) => wiring
       Err(issue) => return Err(BindingPreparation(issue))
     }
-    let demand = match trace_query_binding_demand(
-      wiring, stage_arrays, sources.stages.length(), sources.binding_ranges,
-      limits.max_expression_work,
-    ) {
+    let demand = match
+      trace_query_binding_demand(
+        wiring,
+        stage_arrays,
+        sources.stages.length(),
+        sources.binding_ranges,
+        limits.max_expression_work,
+      ) {
       Ok(demand) => demand
       Err(issue) => return Err(BindingPreparation(Demand(issue)))
     }
-    let source = match prune_query_binding_source(source, demand, document, limits) {
+    let source = match
+      prune_query_binding_source(source, demand, document, limits) {
       Ok(source) => source
       Err(issue) => return Err(issue)
     }
-    let program = match @program.admit_generated_source(source, limits.program) {
+    let program = match
+      @program.admit_generated_source(source, limits.program) {
       Ok(program) => program
       Err(issue) => return Err(Admission(issue))
     }

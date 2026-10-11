@@ -20,7 +20,8 @@ test "valid unused WITH Source emits the independent source-free Program" {
     assert_eq(@program.stage_count(actual), 1)
     // An actual provider call and its zero-I/O public receipt remain separate
     // acceptance. This complete machine Program has no acquisition declaration.
-    match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    match
+      @check.check_parsed(actual, check_environment(), None, check_limits()) {
       Checked(_) => ()
       Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
       _ => fail("unused Source must not be requested by the emitted Program")
