@@ -95,6 +95,7 @@ fn open_holder_effect_catalog_installation(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  configuration_current : () -> Bool,
 ) -> HolderEffectCatalogInstallation? raise CommandStop {
   guard original.invocation(max_bytes, max_nodes, max_depth)
     is Some((_, invocation)) else {
@@ -193,6 +194,7 @@ fn open_holder_effect_catalog_installation(
   }
   let current = () => {
     original.current() &&
+    configuration_current() &&
     snapshot.all(entry => {
       match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
         Ok(value) => value == entry.1

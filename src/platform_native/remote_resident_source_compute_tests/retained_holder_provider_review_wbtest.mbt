@@ -243,16 +243,19 @@ fn retained_holder_provider_review(
   // A valid Catalog with the same Resource shape is still foreign to the
   // original holder. Reject before taking another completed-output export or
   // allowing the Provider access callback to run.
+  guard policy.catalog.binding is @catalog.SiteCatalog(original_catalog_binding) else {
+    fail("original Remote Catalog binding required")
+  }
   for
     foreign in [
-      { ..policy.catalog.binding, site_key: "foreign-site", },
-      { ..policy.catalog.binding, site_generation: 2, },
+      { ..original_catalog_binding, site_key: "foreign-site", },
+      { ..original_catalog_binding, site_generation: 2, },
       {
-        ..policy.catalog.binding,
+        ..original_catalog_binding,
         run_invocation_cid: retained_compute_cid("f"),
       },
       {
-        ..policy.catalog.binding,
+        ..original_catalog_binding,
         dispatch_request_cid: retained_compute_cid("f"),
       },
     ] {
@@ -477,6 +480,7 @@ fn retained_holder_provider_review(
     original_journal_path=Some(
       root_path + "/" + name + ".runtime/execution.sqlite3",
     ),
+    original_context=Some((owned_context, journal)),
   )
   let saved = journal
     .effect_checkpoint_report(dispatch, {

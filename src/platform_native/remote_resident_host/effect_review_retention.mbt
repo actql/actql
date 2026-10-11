@@ -394,10 +394,19 @@ pub fn ResidentEffectReviewRetention::original_review_projection(
   }
   // A trusted authorization callback can close the Store or start retirement.
   // Authenticate all original custody again after that boundary.
-  match self.confirm_original_checkpoint(consumer, request, run_definition) {
-    Ok(persisted) => Ok((persisted, review.review_wire))
-    Err(issue) => Err(issue)
+  let persisted = match
+    self.confirm_original_checkpoint(consumer, request, run_definition) {
+    Ok(persisted) => persisted
+    Err(issue) => return Err(issue)
   }
+  // Share main's final-read fence with the Local persistence-witness path.
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if self.retiring || !consumer.resident_effect_inputs_current(self.inputs) {
+    return Err(Unavailable)
+  }
+  Ok((persisted, review.review_wire))
 }
 
 ///|
@@ -423,10 +432,22 @@ pub fn ResidentEffectReviewRetention::review_projection(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.report() {
-    Ok(report) => Ok((report, wire))
-    Err(issue) => Err(issue)
+  // Keep the Remote report and main's final-read authorization fence while
+  // Local callers retain their actual common persistence witness.
+  let report = match self.report() {
+    Ok(report) => report
+    Err(issue) => return Err(issue)
   }
+  // The paired Store read may outlive the preceding authorization check.
+  // Revalidate before returning its plaintext; a refused disclosure retains
+  // the original report, input borrow and cleanup reservations for retry.
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if self.retiring || !self.consumer.resident_effect_inputs_current(self.inputs) {
+    return Err(Unavailable)
+  }
+  Ok((report, wire))
 }
 
 ///|

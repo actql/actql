@@ -35,6 +35,10 @@ struct Ledger {
   // Capacity-only reads use disjoint identities without consuming send attempts.
   // None is exhausted; a settled identity is never made available again.
   mut next_capacity_serial : Int?
+  // Private opt-in census belongs to this Ledger. Its independently derived
+  // control envelope must be funded before registration; no ordinary caller
+  // enables it, and it is not a separate accounting owner.
+  mut original_inventory : LedgerOriginalInventory?
 }
 
 ///|
@@ -97,6 +101,7 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     delegated_holdings: 0,
     quantity_limits: None,
     next_capacity_serial: Some(-1),
+    original_inventory: None,
     quantity_usage: {
       reserved: zero_quantities(),
       uncertain: zero_quantities(),
@@ -179,6 +184,10 @@ pub fn reserve_attempt(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match check_original_reservation_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let retained = u.held_bytes + u.reserved_retention_bytes + retained_bytes
   ledger.usage = {
     ..u,
@@ -198,7 +207,7 @@ pub fn reserve_attempt(
       reserved: add_quantities(ledger.quantity_usage.reserved, amount),
     }
   }
-  Ok({
+  let reservation : Reservation = {
     owner: ledger,
     serial: u.attempts,
     transfer: transfer_bytes,
@@ -210,7 +219,9 @@ pub fn reserve_attempt(
     uncertain_quantities: None,
     observed_quantities: (false, false, false),
     completed_output: None,
-  })
+  }
+  record_original_reservation(ledger, reservation)
+  Ok(reservation)
 }
 
 ///|
@@ -315,6 +326,10 @@ pub fn retain_allocation(
   if u.holdings >= ledger.limits.holdings - ledger.delegated_holdings {
     return Err(HoldingLimit)
   }
+  match check_original_holding_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   reservation.retention -= bytes
   ledger.usage = {
     ..u,
@@ -322,13 +337,15 @@ pub fn retain_allocation(
     reserved_retention_bytes: u.reserved_retention_bytes - bytes,
     held_bytes: u.held_bytes + bytes,
   }
-  Ok({
+  let holding : Holding = {
     owner: ledger,
     serial: u.holdings,
     reservation_serial: reservation.serial,
     bytes,
     live: true,
-  })
+  }
+  record_original_holding(ledger, holding)
+  Ok(holding)
 }
 
 ///|
@@ -463,6 +480,11 @@ pub fn settle_reservation(
   match reservation_check(ledger, reservation) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if ledger.original_inventory is Some(inventory) &&
+    physical_equal(inventory.bootstrap.reservation, reservation) {
+    // Only final original-Run cleanup may retire the funded census itself.
+    return Err(InvalidCharge)
   }
   let u = ledger.usage
   ledger.usage = {
