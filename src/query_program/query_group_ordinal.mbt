@@ -41,17 +41,11 @@ fn resolved_group_key(
         }
         width += columns
       }
-      let mut ordinal = 0
-      for unit in text {
-        let digit = unit.to_int() - 48
-        if digit < 0 || digit > 9 || ordinal > (width - digit) / 10 {
-          raise Abort(UnsupportedGrouping)
-        }
-        ordinal = ordinal * 10 + digit
-        if ordinal > width {
-          raise Abort(UnsupportedGrouping)
-        }
+      guard @query.exact_integer_literal(text) is Some(value) &&
+        value <= width.to_int64() else {
+        raise Abort(UnsupportedGrouping)
       }
+      let mut ordinal = value.to_int()
       if ordinal < 1 {
         raise Abort(UnsupportedGrouping)
       }
