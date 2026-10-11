@@ -24,6 +24,7 @@ pub(all) enum PublicationOutputExportIssue {
   Output(@execution.CompletedExportIssue)
   Evidence(@publication.ResultEvidenceIssuanceIssue)
   Artifact(@publication.ResultArtifactIssuanceIssue)
+  DurableBinding(@publication.DurableResultBindingIssue)
   Capture(@publication.CapturedRunIssuanceIssue)
   Source(@query.CapturedSourceIssue)
 }

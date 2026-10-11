@@ -839,6 +839,24 @@ cancels its snapshot/capture preparations without cancelling the original Run,
 then retires its output and input loan through their existing cleanup Owners.
 
 
+### Original Result storage binding
+
+The portable completed-export Owner can issue a durable representation binding
+for its original live receipt, Result definition, ordering evidence and artifact.
+It derives the row count, field order, schema and existing canonical row-wire
+codec pin from that export. The physical Host supplies the observed byte count,
+SHA256, material generation and Store authority identities. A different size or
+digest is refused before the existing durable-binding issuer is called. This
+entry describes the original canonical export bytes, not another physical codec.
+
+The Local wrapper obtains the Run definition, invocation and retention from the
+original nominal LocalResultPublication and rechecks current Run/Source authority.
+No adapter-generated semantic JSON or replacement provenance is accepted there.
+Cancelling a borrowed snapshot leaves its parent export facts live; releasing the
+parent revokes binding issuance. Issuance alone proves neither physical retention,
+Store commit, publication permission nor a Run outcome. A durable Store must
+still verify its actual payload and current publication authority separately.
+
 ### Original publication commit validation
 
 Private ABI 20 adds `actql_publication_prepare_commit`,
