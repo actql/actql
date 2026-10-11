@@ -13,7 +13,7 @@ test "named Graph match feeds traversal paths in one checked source Program" {
   // step supplies the oracle; compiler output does not supply expectations.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"node_key":"aql_query_expr_0"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","bindings":{"identity":"id"},"where":{"literal":true},"fields":["id"]},"as":"aql_sga_4"},{"from":"aql_sga_4","select":[{"element":"id"}],"as":"aql_data_3"},{"from":"aql_data_2","traverse":{"start":{"from":"aql_data_3","id":"element"},"direction":"out","min_hops":0,"max_hops":1,"path_mode":"trail","emit":"paths","max_output_rows":10},"as":"aql_sga_5"},{"from":"aql_sga_5","select":["start_id","end_id","hop_count","node_ids","edge_ids"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["start_id","end_id","hop_count","node_ids","edge_ids"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"node_key":"aql_query_expr_0"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","match_nodes":{"definition":"N","bindings":{"identity":"id"},"where":{"literal":true},"fields":["id"]},"as":"aql_sga_4"},{"from":"aql_sga_4","select":[{"element":"id"}],"as":"aql_script_cte_3"},{"from":"aql_with_graph_2","traverse":{"start":{"from":"aql_script_cte_3","id":"element"},"direction":"out","min_hops":0,"max_hops":1,"path_mode":"trail","emit":"paths","max_output_rows":10},"as":"aql_sga_5"},{"from":"aql_sga_5","select":["start_id","end_id","hop_count","node_ids","edge_ids"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["start_id","end_id","hop_count","node_ids","edge_ids"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -70,6 +70,6 @@ test "combined match and path source preserves independent refusal boundaries" {
   }
   assert_eq(@origin.kind(origin), @origin.Authored)
   let span = @origin.span(origin)
-  assert_eq(span.start_byte, 430)
-  assert_eq(span.end_byte, 435)
+  assert_eq(span.start_byte, 419)
+  assert_eq(span.end_byte, 424)
 }
