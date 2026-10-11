@@ -418,31 +418,11 @@ fn start_occurrence(
   // a large caller envelope cannot silently widen the selected contract.
   // Replay consumes existing observations, not another physical allowance.
   let limits = if source is Physical(_) && plan is Some(graph) {
-    let execution = @publication_host.client_infer_plan_graph_execution_contract(
-      graph,
-    )
-    let ledger = limits.model.ledger
     {
       ..limits,
       model: {
         ..limits.model,
-        ledger: {
-          ..ledger,
-          attempts: Int64::min(
-            ledger.attempts.to_int64(),
-            @environment.model_execution_ceiling(
-              execution,
-              @environment.TotalAttempts,
-            ),
-          ).to_int(),
-          transfer_bytes: Int64::min(
-            ledger.transfer_bytes,
-            @environment.model_execution_ceiling(
-              execution,
-              @environment.TotalWireBytes,
-            ),
-          ),
-        },
+        ledger: original_model_ledger_limits(graph, limits.model),
       },
     }
   } else {
