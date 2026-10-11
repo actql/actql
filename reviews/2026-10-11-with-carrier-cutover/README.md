@@ -164,3 +164,16 @@ retains the failed source-link assertion and authoring syntax error.
 The earlier [static receipt](a0-expansion-static.json) pins its earlier inputs;
 the [final bounded metadata receipt](a0-final-static.json) is separate from
 product execution.
+
+## First product slices and actual bounded execution
+
+[p1-execution-index.json](p1-execution-index.json) records clean-source JS28/28
+at `91f3679aa` and JS21/21 at `ec618ac03`, along with the original failed
+receipts and pinned formatting. These are context and lexical-reference checks,
+not common Carrier checking, lowering or public execution. Graph mapping inputs,
+SGA Producer roles and marked Graph source names use the existing nearest-scope
+resolver; constructor-local definitions/REFERENCES, labels and literal data
+retain their roles. Marked Graph rows without MATCH remain an explicit pending
+cutover boundary. Original DATA entry and constructor spelling still exist in
+this intermediate source and must be removed by the complete coherent P1 unit.
+No compatibility language or public completion is established by these slices.

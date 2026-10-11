@@ -24,7 +24,9 @@ test "CTAS nonwrapper keeps set ORDER LIMIT and Pipe continuations" {
   assert_eq(right.kind, "union")
   assert_eq(right.duplicates, "all")
   assert_true(final_operation_at(set, 0) is Some(Order(_)))
-  assert_true(final_operation_at(set, 1) is Some(Limit(Integer(1L), Integer(0L))))
+  assert_true(
+    final_operation_at(set, 1) is Some(Limit(Integer(1L), Integer(0L))),
+  )
   let filtered = parse_query(
     "CREATE TABLE output AS (SELECT 1 AS id /* ) */) |> WHERE id = 2;",
     query_limits(),
@@ -37,10 +39,7 @@ test "CTAS nonwrapper keeps set ORDER LIMIT and Pipe continuations" {
   assert_true(operation_at(result, 0) is Some(RetainResult(_)))
   // A ')' in a string is not the wrapper's closing token.
   ignore(
-    parse_query(
-      "CREATE TABLE output AS (SELECT ')' AS value);",
-      query_limits(),
-    ).unwrap(),
+    parse_query("CREATE TABLE output AS (SELECT ')' AS value);", query_limits()).unwrap(),
   )
 }
 
@@ -49,7 +48,10 @@ test "Pure producer placement refuses Result at the original source token" {
   for
     (text, offset) in [
       ("WITH unused AS (SELECT 1 AS id |> RESULT forbidden) SELECT 2 AS id", 34),
-      ("CREATE TABLE output AS (SELECT 1 AS id |> RESULT forbidden) |> WHERE id > 0", 42),
+      (
+        "CREATE TABLE output AS (SELECT 1 AS id |> RESULT forbidden) |> WHERE id > 0",
+        42,
+      ),
       ("CREATE TABLE output AS ((SELECT 1 AS id |> RESULT forbidden))", 43),
       ("SELECT 1 AS id |> UNION ALL (SELECT 2 AS id |> RESULT forbidden)", 47),
     ] {
@@ -74,8 +76,7 @@ test "Compute accepts INFER but never a nested terminal write" {
   assert_true(operation_at(query, 1) is Some(RetainResult(_)))
   for
     text in [
-      "CREATE TABLE output AS SELECT 1 AS id |> CREATE TABLE other",
-      "CREATE TABLE output AS (SELECT 1 AS id |> EFFECT save CREATE TABLE other)",
+      "CREATE TABLE output AS SELECT 1 AS id |> CREATE TABLE other", "CREATE TABLE output AS (SELECT 1 AS id |> EFFECT save CREATE TABLE other)",
     ] {
     match parse_query(text, query_limits()) {
       Err({ issue: Syntax(message), .. }) =>

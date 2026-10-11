@@ -1,7 +1,7 @@
 {
   "owner": "B",
   "integration_owner": "Root",
-  "phase": "P1-A product implementation in progress; execution unverified",
+  "phase": "P1 context and producer lexical seams implemented with focused JS evidence; common WITH cutover in progress",
   "branch": "feat/frontend-with-carrier-cutover",
   "base": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
   "pending_integration": [],
@@ -14,7 +14,7 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "Original independent controls retained. Context/parser product edits have begun; new syntax tests, checker, runtime and public execution remain unexecuted.",
+  "proof_boundary": "See p1-execution-index.json: exact earlier clean SHA JS28/28 and JS21/21, bounded formatter results, failures retained. No common checker/Host/public completion.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,

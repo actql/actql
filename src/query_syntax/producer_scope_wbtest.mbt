@@ -15,11 +15,7 @@ fn producer_scope_parser(text : String) -> QueryParser {
     max_cte_count: 20,
     max_work: 10000,
   }
-  let source = tokenize(
-    text,
-    lexical,
-    source_path="producer-scope.sql",
-  ).unwrap()
+  let source = tokenize(text, lexical, source_path="producer-scope.sql").unwrap()
   {
     source,
     limits,
@@ -57,22 +53,14 @@ test "Graph mapping resolves nearest producer without renaming definitions" {
   )
   let mapping = parser.graph()
   parser.end()
-  assert_eq(mapping.nodes[0].producer, [
-    { value: "inner_rows", quoted: false, },
-  ])
+  assert_eq(mapping.nodes[0].producer, [{ value: "inner_rows", quoted: false, }])
   assert_eq(mapping.nodes[0].name, { value: "ROWS", quoted: true, })
-  assert_eq(mapping.nodes[0].labels[0].name, {
-    value: "rows",
-    quoted: false,
-  })
+  assert_eq(mapping.nodes[0].labels[0].name, { value: "rows", quoted: false, })
   assert_eq(mapping.edges[0].producer, [
     { value: "catalog", quoted: false, },
     { value: "edges", quoted: false, },
   ])
-  assert_eq(mapping.edges[0].source.definition, {
-    value: "ROWS",
-    quoted: true,
-  })
+  assert_eq(mapping.edges[0].source.definition, { value: "ROWS", quoted: true, })
   assert_eq(mapping.edges[0].destination.definition, {
     value: "ROWS",
     quoted: true,

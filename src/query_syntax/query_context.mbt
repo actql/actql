@@ -30,8 +30,8 @@ fn QueryParser::ctas_whole_wrapper(self : QueryParser) -> Bool raise QueryAbort 
             Some({ value: Symbol(59), .. }) => {
               self.spend(1)
               token_at(self.source, index + 2)
-                .map(token => token.value == End)
-                .unwrap_or(false)
+              .map(token => token.value == End)
+              .unwrap_or(false)
             }
             _ => false
           }
