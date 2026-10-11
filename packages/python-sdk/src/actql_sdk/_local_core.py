@@ -262,6 +262,7 @@ _COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity'
 
 _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'count': ('i64 i32 i32', 'i32'),
+    'result_count': ('i64 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
     'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
@@ -567,7 +568,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 40:
+            if self._exports['actql_host_abi_version'](self._store) != 41:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1241,6 +1242,18 @@ class LocalCore:
             if type(count) is not int or not 8 <= count < 2**31:
                 code = count if type(count) is int and count < 0 else -33
                 raise LocalCoreError('publication_commit_material_count', code)
+            return count
+
+    def publication_commit_result_count(self, publication: _Output,
+                                        current_configuration: int) -> int:
+        """Count original completed Result occurrences, without Store or I/O."""
+        with self._lock:
+            self._publication_configuration(publication, current_configuration)
+            count = self._call('publication_commit_export', 'result_count',
+                               publication.handle, current_configuration)
+            if type(count) is not int or not 0 <= count < 2**31:
+                code = count if type(count) is int and count < 0 else -33
+                raise LocalCoreError('publication_commit_result_count', code)
             return count
 
     def produce_publication_commit_material(self, value: _Output,

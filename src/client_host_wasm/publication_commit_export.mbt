@@ -134,6 +134,26 @@ pub fn publication_commit_export_count(
 }
 
 ///|
+/// Count original completed Result occurrences after the same nominal Done
+/// view/current-account check. This is not a durable Store or admitted Run count.
+#export_name("actql_publication_commit_export_result_count")
+pub fn publication_commit_export_result_count(
+  nonce : Int64,
+  publication : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(publication) is Some(parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  match publication_commit_export_view(value, parent, current.account) {
+    Ok(_) => parent.publications.length()
+    Err(code) => code
+  }
+}
+
+///|
 /// Copy one original field into the existing accounted output. Fields are
 /// wire=0, name=1, identity_field=2 and identity=3, all exact UTF-8 bytes.
 /// Raw fields avoid re-escaping a bounded contract inside a second JSON value.

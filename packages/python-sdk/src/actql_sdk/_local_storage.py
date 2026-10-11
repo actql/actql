@@ -496,6 +496,37 @@ class LocalByteStore:
         limits are unchanged; the Host separately accounts original fences,
         live projection bytes, key/generation descriptors and SQLite workspace.
         """
+        return self._projected_attached(
+            count, project, originals, before_commit=before_commit, reuse_identical=False)
+
+    def store_publication_projected_attached(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Insert original publication bytes, reusing only byte-identical records.
+
+        The trusted Host supplies Core-issued immutable contract/schema addresses
+        and the scoped index reference. Each original occurrence is consumed and
+        cleaned up, even when an identity was already stored. Existing bytes are
+        never overwritten or normalized; mismatch rolls back the entire prefix.
+        No expected CAS generation is accepted on this insert-only path.
+
+        An existing index with different bytes is a physical conflict. Core must
+        inspect the actually stored index and validate its full chain separately;
+        this adapter does not compare committed content or choose an index.
+        Returned generations are physical observations, never a publication ACK.
+        All original/current fences and cleanup rules of the projected transaction
+        apply. The Host reserves the bounded equality copy and SQLite workspace.
+        """
+        return self._projected_attached(
+            count, project, originals, before_commit=before_commit, reuse_identical=True)
+
+    def _projected_attached(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            before_commit: Callable[[], object], reuse_identical: bool) -> tuple[int, ...] | None:
         if (type(count) is not int or not 1 <= count <= self._max_records
                 or not callable(project) or not callable(before_commit)):
             raise ValueError('Invalid Local physical projection batch')
@@ -528,11 +559,31 @@ class LocalByteStore:
                             if not active or get_ident() != thread or delivered:
                                 raise ValueError('Local physical projection consumer is not active')
                             self._exchange_write_keys((write,))
-                            if write.key in keys or write.key in original_keys:
+                            if (write.key in original_keys
+                                    or (not reuse_identical and write.key in keys)):
                                 raise ValueError('Duplicate or original Local physical projection key')
+                            if reuse_identical and write.expected_generation is not None:
+                                raise ValueError('Publication physical projection is insert-only')
                             existing = database.execute(
                                 'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
                                 (write.key,)).fetchone()
+                            if reuse_identical and existing is not None:
+                                # Bound the stored equality copy before fetching bytes.
+                                # This does not validate any Core identity or chain.
+                                if existing[1] > self._max_record_bytes:
+                                    raise LocalStorageError('Local physical payload capacity exceeded')
+                                if existing[1] != len(write.payload):
+                                    raise _ProjectedWriteConflict()
+                                stored = database.execute(
+                                    'SELECT payload FROM core_bytes WHERE key = ?',
+                                    (write.key,)).fetchone()
+                                if stored is None or stored[0] != write.payload:
+                                    raise _ProjectedWriteConflict()
+                                del stored
+                                keys.add(write.key)
+                                generations.append(existing[0])
+                                delivered = True
+                                return
                             if ((existing is None) != (write.expected_generation is None)
                                     or (existing is not None
                                         and existing[0] != write.expected_generation)):

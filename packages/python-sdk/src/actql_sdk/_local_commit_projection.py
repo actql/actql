@@ -49,6 +49,50 @@ class OriginalCommitProjection:
             return self._core.publication_commit_material_count(
                 self._publication, self._configuration)
 
+    def storage_count(self) -> int:
+        """Count original inventory, Result schemas and one scoped index reference.
+
+        This is the number of physical projection operations, including reused
+        identities, not a count of newly written records or a publication ACK.
+        """
+        with self._core._lock:
+            self._ready()
+            return sum(self._storage_counts()) + 1
+
+    def _storage_counts(self) -> tuple[int, int]:
+        materials = self._core.publication_commit_material_count(
+            self._publication, self._configuration)
+        results = self._core.publication_commit_result_count(
+            self._publication, self._configuration)
+        if materials + results + 1 >= 2**31:
+            raise LocalCoreError('original_commit_storage_count', -33)
+        return materials, results
+
+    def project_storage_entry(self, ordinal: int, consume: Callable[[ByteWrite], object], *,
+                              expected_generation: int | None = None) -> None:
+        """Consume exactly one original field pair in physical storage order.
+
+        Inventory uses its original Owner ordinal, then each original Result's
+        schema, then the Owner's scoped index key and index CID. No contract list
+        or schema deduplication is built here. The physical Store retains exact
+        byte-reuse/conflict decisions, and every binding/fence/current publisher
+        must still be checked separately by the trusted Host before COMMIT.
+        """
+        if type(ordinal) is not int or not 0 <= ordinal < 2**31:
+            raise ValueError('Invalid original Local storage projection ordinal')
+        with self._core._lock:
+            self._ready()
+            materials, results = self._storage_counts()
+            if ordinal < materials:
+                self.project_contract(ordinal, consume, expected_generation=expected_generation)
+            elif ordinal < materials + results:
+                self.project_schema(ordinal - materials, consume,
+                                    expected_generation=expected_generation)
+            elif ordinal == materials + results:
+                self.project_index_reference(consume, expected_generation=expected_generation)
+            else:
+                raise ValueError('Original Local storage projection ordinal is out of range')
+
     @contextmanager
     def serialized(self) -> Iterator[None]:
         """Hold Core before entering the physical Store transaction/lock.
