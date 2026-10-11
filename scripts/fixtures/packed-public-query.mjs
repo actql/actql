@@ -1061,6 +1061,15 @@ async function exerciseExactPhysicalTargets() {
   }
 }
 const retainedStrings = {};
+const cteValueTableReceipts = [];
+async function retainCteValueTableCases(complete = false) {
+  if (cteValueTableReceipts.length === 0) return;
+  const mode = transport ?? 'both';
+  await writeFile(`cte-value-table-receipts.${mode}.json`, JSON.stringify({
+    version: 'actql-cte-value-table-acceptance/0.1', mode, complete,
+    cases: cteValueTableReceipts,
+  }) + '\n');
+}
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
 };
@@ -1077,8 +1086,15 @@ const recordCohort = (mode, directory, cohort, authorization) => {
     saved.authorization = authorization;
   }
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
-  return item => {
+  return async item => {
     recordString(mode)(item);
+    if (item.name.startsWith('cte-value-table-')) {
+      cteValueTableReceipts.push({mode, name: item.name, ref: item.ref,
+        results: item.observedResults, beforeSubmit: item.beforeSubmit, beforeRead: item.beforeRead});
+      // Persist after each verified case so a later failure keeps actual Run
+      // and read values. No resubmission, extra read or test oracle is added.
+      await retainCteValueTableCases();
+    }
     if (boundaryNames.has(item.name)) {
       saved.samples.push({source: cohort.successes.find(source => source.name === item.name),
         ref: item.ref, submissionRef: item.submissionRef});
@@ -1173,6 +1189,7 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 }
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
+  await retainCteValueTableCases(true);
   assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
   if (graphRemainingOperationsOnly) for (const cohort of retainedCohorts) {
     assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,

@@ -765,7 +765,10 @@ try {
   if (acceptanceStarted) {
     const reports = ['transport-processes.json',
       ...(process.argv.includes('--two-source-only') ? [] :
-        ['transport-completion.local.json', 'transport-completion.remote.json'])];
+        ['transport-completion.local.json', 'transport-completion.remote.json']),
+      ...((process.argv.includes('--cte-value-table-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['cte-value-table-receipts.local.json', 'cte-value-table-receipts.remote.json'] : [])];
     await retainTransportReports(reports, acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
   }
   try {

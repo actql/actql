@@ -115,3 +115,39 @@ were then added as consuming-route coverage and passed **3/3** (`run-dR0stQ`).
 The intermediate `run-jWGAqz` was a test-import qualification error before
 execution, not a product failure. New-SHA packages and public execution must be
 verified separately; the old tarballs are not relabeled.
+
+
+## Corrected-source public execution and receipt retention
+
+Source `e574e14898b56750b92086d7aa5a4871b9bf6f0c` produced normal packages
+successfully (`run-2odZOD`) and passed all nine normal/two refusal cases in each
+transport (`run-C3YIFs`). Independent inventory digests agree for 11/11 Local
+and 11/11 HTTPS. The real client checked Named Result rows, complete column
+contracts, order, attach, lookup and same-request replay. Refusals checked no
+admission or Source I/O. Evidence is retained in
+`worktrees/.codex-scratch/public-query-evidence-XU7JDo`; the ordinary manifest
+is `/private/tmp/actql-b-cte-value-table-e574e1489-pack/packed-client-packages.json`.
+Both workers exited zero; the guard's owner and workers were absent, complete
+output and actual lock absence were independently checked, then the slot was
+returned to E. This is selected local evidence, not Hosted CI.
+
+That successful narrow driver did not copy its temporary Run/value samples
+before artifact cleanup. The completed inventories and comparison logs remain,
+but the requested raw Run/read-value receipts were not retained. Do not call
+that evidence obligation complete or manufacture the missing references.
+
+The receipt correction reuses the existing completed-case hook: it receives the
+rows and schema already read and compared by the public client. It performs no
+extra read, acquisition, dispatch or submission. Only CTE value-table cases
+record their actual Run reference, observed Named Result rows/columns and
+before-submit/before-read counters. Each completed case persists before the
+next one starts; the existing driver's finally block copies these small
+reports to evidence before removing its installation. Independent expectations
+are unchanged. Focused Node coverage of the receipt, refusal guards and fixture
+registration passed **44/44** (`run-kRj0dI`); this includes a mock hook check,
+not new-SHA public execution. The null-prototype result-name map preserves
+arbitrary named-result keys without prototype assignment.
+
+New-cohort receipt completeness remains pending until the receipt correction
+is committed and the same selected Local/HTTPS acceptance runs on its own
+ordinary five-package cohort. No other Heavy campaign is requested.
