@@ -3,6 +3,7 @@ fn normalization_materials_admit(
   wire : String,
   run : String,
   original? : ClientEffectIssuedNormalizationMaterials? = None,
+  expected_request? : ClientRequestIdentity? = None,
 ) -> ClientEffectRunMaterials {
   let (_, _, limits) = client_composed_effect_base_fixture()
   admit_client_effect_run_materials(
@@ -14,6 +15,7 @@ fn normalization_materials_admit(
     run_materials_limits(),
     limits,
     original_materials=original,
+    expected_request~,
   ).unwrap()
 }
 
@@ -142,7 +144,7 @@ test "normalization restoration refuses missing original journal and substituted
   )
   assert_true(
     normalization_materials_untrusted_admission(changed, run)
-    is Err(Normalization(UnverifiedOriginalMaterials)),
+    is Err(Normalization(SubstitutedJournal)),
   )
   assert_true(
     @publication.run_evidence_value_identity(journal) !=
@@ -208,6 +210,7 @@ fn normalization_materials_untrusted_admission(
   wire : String,
   run : String,
   original? : ClientEffectIssuedNormalizationMaterials? = None,
+  expected_request? : ClientRequestIdentity? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let (_, _, limits) = client_composed_effect_base_fixture()
   admit_client_effect_run_materials(
@@ -219,6 +222,7 @@ fn normalization_materials_untrusted_admission(
     run_materials_limits(),
     limits,
     original_materials=original,
+    expected_request~,
   )
 }
 
@@ -267,6 +271,7 @@ test "unissued nominal proof and changed exact material bytes are refused" {
     original: proof.original,
     run_cid: proof.run_cid,
     wire: proof.wire,
+    normalization_profile: proof.normalization_profile,
   }
   assert_true(
     normalization_materials_untrusted_admission(

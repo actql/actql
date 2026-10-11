@@ -197,8 +197,7 @@ fn lower_script_set_relation(
     steps,
     output + "_",
   )
-  let rebound = query_has_join_set_operand(query) &&
-    !set_operand_retains_result(query) &&
+  let rebound = !set_operand_retains_result(query) &&
     rebind_script_set_terminal_output(
       construction, steps, first_step, result, output,
     )
