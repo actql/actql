@@ -2,6 +2,7 @@
 fn journal_test_run(
   request_id : String,
   run_id : String,
+  scope? : String = "sha256:" + "a".repeat(64),
 ) -> (
   @host.ClientRequestIdentity,
   @host.PreparedClientProgram,
@@ -15,7 +16,7 @@ fn journal_test_run(
     None,
     @host.client_standard_program_preparation_limits(),
   ).unwrap()
-  journal_test_prepared_run(prepared, request_id, run_id)
+  journal_test_prepared_run(prepared, request_id, run_id, scope~)
 }
 
 ///|
@@ -23,6 +24,7 @@ fn journal_test_prepared_run(
   prepared : @host.PreparedClientProgram,
   request_id : String,
   run_id : String,
+  scope? : String = "sha256:" + "a".repeat(64),
 ) -> (
   @host.ClientRequestIdentity,
   @host.PreparedClientProgram,
@@ -62,7 +64,7 @@ fn journal_test_prepared_run(
   let compiled = @host.issue_client_values_compiled_run(
     prepared,
     compilation,
-    "sha256:" + "a".repeat(64),
+    scope,
     "sha256:" + "b".repeat(64),
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
@@ -70,9 +72,7 @@ fn journal_test_prepared_run(
     compiled, "local-test", run_id, "2026-10-10T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let request = @host.prepare_source_free_client_request_identity(
-    prepared,
-    "sha256:" + "a".repeat(64),
-    request_id,
+    prepared, scope, request_id,
   ).unwrap()
   (request, prepared, compiled, definition)
 }

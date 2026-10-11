@@ -298,8 +298,14 @@ fn local_submission_start(
     )
     if read.enabled {
       match
-        journal.retain_publication_policy_originals(
-          request, prepared, compiled, definition, current,
+        host.retain_publication_policy_originals(
+          crypto,
+          settings.principal,
+          settings.connection,
+          request,
+          prepared,
+          compiled,
+          definition,
         ) {
         Ok(_) => ()
         Err(PublicationPolicy(@checked.MissingDependency)) =>

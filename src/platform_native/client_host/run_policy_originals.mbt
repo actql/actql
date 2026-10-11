@@ -120,15 +120,15 @@ fn read_run_policy_originals(
 /// Keep exact checked originals only before dispatch/start. The existing Run
 /// transaction, current authority and checked binding decide the mutation.
 /// A restored Run with missing originals is never re-prepared to repair them.
-pub fn NativeClientRunJournal::retain_publication_policy_originals(
+fn NativeClientRunJournal::retain_publication_policy_originals(
   self : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   prepared : @host.PreparedClientProgram,
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
-  current_authorization : () -> Bool,
+  authority : NativeLocalPolicyAuthority,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  if !current_authorization() {
+  if !authority.current_for(self, request) {
     return Err(AuthorizationDenied)
   }
   match
@@ -141,7 +141,7 @@ pub fn NativeClientRunJournal::retain_publication_policy_originals(
     Err(issue) => return Err(issue)
   }
   self.transaction(() => {
-    if !current_authorization() {
+    if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
     let record = match self.retained(request) {
@@ -157,7 +157,7 @@ pub fn NativeClientRunJournal::retain_publication_policy_originals(
       if original != wire {
         return Err(CustodyLost)
       }
-      if !current_authorization() {
+      if !authority.current_for(self, request) {
         return Err(AuthorizationDenied)
       }
       return Ok(record)
@@ -168,7 +168,7 @@ pub fn NativeClientRunJournal::retain_publication_policy_originals(
       return Err(Fenced)
     }
     // Recheck after preparation/transaction reads, immediately before CAS.
-    if !current_authorization() {
+    if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
     self.save({ ..record, publication_policy_originals: Some(wire), })
@@ -179,20 +179,20 @@ pub fn NativeClientRunJournal::retain_publication_policy_originals(
 /// Resolve only a retained original under current read authority. The caller
 /// obtains actual_policy_cid from the committed Result Artifact, not from
 /// current Source configuration. This method never creates a grant or payload.
-pub fn NativeClientRunJournal::lookup_publication_policy_original(
+fn NativeClientRunJournal::lookup_publication_policy_original(
   self : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   actual_policy_cid : String,
-  current_authorization : () -> Bool,
+  authority : NativeLocalPolicyAuthority,
 ) -> Result[
   @publication.CapturedEffectDependencyBody,
   NativeClientRunJournalIssue,
 ] {
-  if !current_authorization() {
+  if !authority.current_for(self, request) {
     return Err(AuthorizationDenied)
   }
   self.transaction(() => {
-    if !current_authorization() {
+    if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
     let record = match self.retained(request) {
@@ -217,7 +217,7 @@ pub fn NativeClientRunJournal::lookup_publication_policy_original(
       is Some(body) else {
       return Err(PublicationPolicy(@checked.MissingDependency))
     }
-    if !current_authorization() {
+    if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
     Ok(body)
