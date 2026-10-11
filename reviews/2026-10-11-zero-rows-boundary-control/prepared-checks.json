@@ -1,0 +1,27 @@
+{
+  "baseline": "340f70afffcd828a6650929eb61c5dc124607658",
+  "baseline_inspection": {
+    "path": "src/query_syntax/query.mbt",
+    "function": "QueryParser::frame_boundary",
+    "behavior": "safe_integer(false) rejects literal 0 as Expected positive integer literal",
+    "executed": false
+  },
+  "runtime_executed": false,
+  "public_executed": false,
+  "heavy_started": false,
+  "moon_js_commands": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_syntax/zero_rows_frame_test.mbt src/query_syntax/analytic_frame_parameter_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/zero_rows_frame_test.mbt src/query_program/short_rows_frame_test.mbt src/query_program/analytic_frame_parameter_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/short-rows-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "public_route": "--short-rows-only",
+  "public_scheduling": "No Heavy started. Same-source normal packages and existing guard require separately allocated acceptance.",
+  "additions": {
+    "normal": 5,
+    "refusal": 5
+  },
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "Do not retry or bypass B process-inspection refusal."
+}

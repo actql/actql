@@ -52,3 +52,13 @@ test('ordinary and selected packed acceptance share the STRING_AGG obligations',
   const end = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
   assert.match(end, /process\.argv\.includes\('--analytic-string-agg-only'\).*?return;/su);
 });
+
+
+test('grouped window delimiter retains NULL frames multiplicity and independent ordered schema', () => {
+  const actual = analyticStringAggSuccesses.find(item => item.name === 'analytic-string-agg-grouped-delimiter');
+  assert.deepEqual(actual.expected, [{id: 1, names: null}, {id: 2, names: 'b'},
+    {id: 3, names: 'b|a'}, {id: 4, names: 'b|a|b'}, {id: 5, names: 'b|a|b'}]);
+  assert.deepEqual(actual.columns, [{name: 'id', contract: {type: 'number', nullable: false}},
+    {name: 'names', contract: {type: 'string', nullable: true}}]);
+  assert.equal(actual.sourceReadSessionCount, 1);
+});
