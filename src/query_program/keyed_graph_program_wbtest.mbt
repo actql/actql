@@ -163,10 +163,11 @@ test "keyed source refuses internal Graph star and unadapted identity binding" {
     is Err(UnsupportedGraph),
   )
   assert_true(
-    keyed_script(
+    @query.parse_query_script(
       prefix +
       "FROM GRAPH g LABELS {\"node\":{\"field\":\"id\"}} |> MATCH WALK (a:Node) |> SELECT a.id",
+      mapping_syntax_limits(),
     )
-    is Err(UnsupportedGraph),
+    is Err({ issue: @query.Syntax("Graph LABELS annotation is retired"), .. }),
   )
 }
