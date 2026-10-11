@@ -21,8 +21,11 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_output_argument(operation : String, path : Array[String]) -> Bool {
   (operation == "match_nodes" || operation == "match_edges") &&
-  (path == ["bindings", "identity"] ||
-   path == ["bindings", "source"] || path == ["bindings", "target"])
+  (
+    path == ["bindings", "identity"] ||
+    path == ["bindings", "source"] ||
+    path == ["bindings", "target"]
+  )
 }
 
 ///|
@@ -36,12 +39,19 @@ fn sga_expression_position(operation : String, path : Array[String]) -> Bool {
     "match_nodes" | "match_edges" => path[0] == "where"
     "reach" => path.length() >= 2 && path[0] == "start" && path[1] == "where"
     "traverse" =>
-      path[0] == "node_where" || path[0] == "edge_where" ||
-      (path.length() >= 2 &&
-       ((path[0] == "start" && path[1] == "where") ||
-        (path[0] == "hops" && ["node_where", "edge_where"].contains(path[1]))))
+      path[0] == "node_where" ||
+      path[0] == "edge_where" ||
+      (
+        path.length() >= 2 &&
+        (
+          (path[0] == "start" && path[1] == "where") ||
+          (path[0] == "hops" && ["node_where", "edge_where"].contains(path[1]))
+        )
+      )
     "shortest_path" =>
-      path.length() >= 2 && ["source", "target"].contains(path[0]) && path[1] == "where"
+      path.length() >= 2 &&
+      ["source", "target"].contains(path[0]) &&
+      path[1] == "where"
     "subgraph" =>
       path[0] == "edges" ||
       (path.length() >= 2 && path[0] == "nodes" && path[1] == "where")

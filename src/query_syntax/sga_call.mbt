@@ -216,7 +216,8 @@ fn QueryParser::sga_argument(
     Symbol(43 | 45 as sign) => {
       let number = self.advance()
       match number.value {
-        Numeric(value) => NumberValue((if sign == 45 { "-" } else { "+" }) + value)
+        Numeric(value) =>
+          NumberValue((if sign == 45 { "-" } else { "+" }) + value)
         _ => raise QueryAbort("Expected SGA numeric value", number.start)
       }
     }
@@ -241,7 +242,8 @@ fn QueryParser::sga_arguments(
     // Fold typed argument vocabulary only. Object-valued data (for
     // example a predicate's literal object) retains its authored field names.
     // Folding every nested String key would change a value before admission.
-    let key = if path.is_empty() || sga_selector_object(operation, path) ||
+    let key = if path.is_empty() ||
+      sga_selector_object(operation, path) ||
       sga_expression_position(operation, path) {
       ascii_upper(name.value).to_lower()
     } else {

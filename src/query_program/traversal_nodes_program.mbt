@@ -36,7 +36,8 @@ fn script_traversal_argument(
     ParameterValue(name) =>
       construction.object([("$param", construction.parameter_text(name))])
     ObjectValue(fields) => {
-      if fields.length() == 1 && fields[0].0 == "field" &&
+      if fields.length() == 1 &&
+        fields[0].0 == "field" &&
         fields[0].1 is FieldReference(path) {
         return script_sga_expression_field(construction, path)
       }
@@ -44,14 +45,16 @@ fn script_traversal_argument(
       // current Graph or the global producer scope. The common selector still
       // checks identity/type/presence after ordinary source name resolution.
       let operand = fields.filter(field => field.0 == "from")
-      let selector_input = if operand.length() == 1 && operand[0].1 is Producer(name) {
+      let selector_input = if operand.length() == 1 &&
+        operand[0].1 is Producer(name) {
         Some((name, resolve_relation_input([name], known)))
       } else {
         None
       }
       construction.object(
         fields.map(field => {
-          let value = if field.0 == "id" && field.1 is FieldReference(path) &&
+          let value = if field.0 == "id" &&
+            field.1 is FieldReference(path) &&
             selector_input is Some((name, input)) {
             script_sga_selector_field(construction, path, name, input)
           } else {
@@ -131,7 +134,6 @@ fn lower_script_traversal_rows(
   }
 }
 
-
 ///|
 // Preserve a genuine property path as ordinary common expression nodes. A
 // quoted dotted identifier remains one field; no sampled value or new evaluator.
@@ -140,12 +142,18 @@ fn script_sga_expression_field(
   path : Array[@query.NamePart],
 ) -> @builder.Node raise Abort {
   guard !path.is_empty() else { raise Abort(InvalidQuery) }
-  let mut value = construction.object([("field", construction.text(path[0].value))])
+  let mut value = construction.object([
+    ("field", construction.text(path[0].value)),
+  ])
   for index = 1; index < path.length(); index = index + 1 {
     value = construction.object([
-      ("property", construction.object([
-        ("value", value), ("name", construction.text(path[index].value)),
-      ])),
+      (
+        "property",
+        construction.object([
+          ("value", value),
+          ("name", construction.text(path[index].value)),
+        ]),
+      ),
     ])
   }
   value
@@ -163,7 +171,7 @@ fn script_sga_selector_field(
     raise Abort(UnknownColumn)
   }
   let selected = columns(input).filter(field => {
-    same_name(path.last().unwrap(), {value: field, quoted: false})
+    same_name(path.last().unwrap(), { value: field, quoted: false, })
   })
   guard selected.length() == 1 else { raise Abort(UnknownColumn) }
   construction.text(selected[0])
