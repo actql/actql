@@ -355,8 +355,11 @@ constructs type, identity, uniqueness or order evidence. The
 is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
-parameter, including transparent grouping such as `LIMIT ((@count)) OFFSET (1)`.
-Grouping uses the existing expression budgets and does not evaluate arithmetic,
+parameter, including transparent grouping and numeric unary plus such as
+`LIMIT +((@count)) OFFSET (+1)`. The selected GoogleSQL positive integer sign
+retains the literal/parameter role; it does not introduce an expression into
+the common `take` operands. Grouping and each unary-plus wrapper use the existing
+expression budgets and do not evaluate arithmetic,
 casts, calls or row references. Names lower to the ordinary `take.count` and
 `take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
@@ -467,8 +470,12 @@ See the pinned [analytic resolver](https://github.com/google/googlesql/blob/d82d
 and its independent ORDER/frame refusal cases.
 
 In the implemented inline `OVER` profile, numeric `ROWS` boundaries
-accept an integer literal or a whole named parameter, for example
-`ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
+accept an integer literal or a whole named parameter, including bounded
+transparent grouping and numeric unary plus, for example
+`ROWS BETWEEN (+@before) PRECEDING AND ((@after)) FOLLOWING`. The shared
+integer-operand parser retains the ordinary literal/Parameter role without
+evaluating arithmetic, casts, calls or row references. Each wrapper uses the
+existing expression depth/node budgets. Direction remains
 syntax; the parameter is lowered to the common `preceding`/`following`
 Parameter slot. Declarations and bound values use ordinary Program checking,
 including safe-integer and interval-order validation; no default replaces a
