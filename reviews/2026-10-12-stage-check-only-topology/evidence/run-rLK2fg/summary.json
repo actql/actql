@@ -1,0 +1,70 @@
+{
+  "startedAt": "2026-10-11T17:46:26.192Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "checked-topology-pinned-interface",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/relation_results",
+        "src/stage_results",
+        "src/pipeline_check_context"
+      ],
+      "startedAt": "2026-10-11T17:46:26.261Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:46:27.263Z",
+      "endedAt": "2026-10-11T17:46:27.266Z"
+    },
+    {
+      "name": "checked-topology-pinned-format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/relation_results/checked_inputs.mbt",
+        "src/relation_results/ports.mbt",
+        "src/stage_results/checked_topology.mbt",
+        "src/stage_results/checked_topology_test.mbt",
+        "src/stage_results/local_program.mbt",
+        "src/stage_results/imports.mbt",
+        "src/pipeline_check_context/prepare_sourceview_program.mbt",
+        "src/pipeline_check_context/checked_topology_test.mbt",
+        "src/pipeline_check_context/checked_topology_catalog_fixture_test.mbt"
+      ],
+      "startedAt": "2026-10-11T17:46:27.338Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:46:27.460Z",
+      "endedAt": "2026-10-11T17:46:27.462Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "58c67a4a-d4b7-465b-ac3d-64d633347f54",
+    "pid": 62454,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+    "startedAt": "2026-10-11T17:46:26.256Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/local-checks/attempts/run-rLK2fg"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-1b19ab159a259a7241ded8424dc718f1fdf88fee1ad239f513cb5fe4317f5b51.lock"
+  ],
+  "endedAt": "2026-10-11T17:46:27.525Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
