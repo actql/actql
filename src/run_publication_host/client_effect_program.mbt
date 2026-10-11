@@ -25,6 +25,7 @@ pub(all) enum ClientEffectComputationIssue {
 /// The ordinary checked computation and its exact static Effect inventory
 /// share one Program owner. This is not an executable Effect Run or permit.
 struct PreparedClientEffectComputation {
+  mut normalization : ClientEffectNormalization?
   source : @syntax.Program
   candidate : @checked.EffectProgramStaticCandidate
   graph : @strategy.CheckedEffectComputationDAG
@@ -128,6 +129,7 @@ pub fn prepare_parsed_client_effect_computation(
     Err(issue) => return Err(Graph(issue))
   }
   Ok({
+    normalization: None,
     source: parsed,
     candidate,
     graph,
