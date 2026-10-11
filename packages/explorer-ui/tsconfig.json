@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "noEmit": true, "skipLibCheck": false,
+    "baseUrl": "../..", "paths": {"@actql/sdk": ["packages/sdk/index.d.ts"]}
+  },
+  "files": ["read-model.typecheck.mts", "read-model.d.ts"]
+}
