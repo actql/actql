@@ -32,10 +32,34 @@ must remain separate from actual rows and schema receipts.
 Prepared tests are outside `src`; they are not registered CI coverage.
 `common-control.prepared_test.mbt` is intended for `query_program` using its
 existing test helpers. `parser.prepared_test.mbt` is intended for `query_syntax`
-after the grouped AST is implemented. The incomplete patch references a missing
-multi-column lowerer and requires generated API/grammar metadata and independent
-identity-vector updates. Do not publish it as a completed implementation.
+after the grouped AST is implemented. The AST patch and `lowering.prepared.mbt` are an uncompiled proposal; neither
+is installed in product source. They require generated API/grammar metadata and
+independent identity-vector updates. Do not publish it as a completed implementation.
 
 #1407 author 070, coordinator integration 82f, integration 956, and any later
 multi-column source/package cohort remain different evidence identities. The
 Root-owned producer/public campaign must not be joined or restarted by B.
+
+## Follow-up source evidence and authored bounds
+
+The generic common UNPIVOT path retains nested values without conversion
+(`execution_relation/unpivot_rows.mbt::evaluate_unpivot_into`). The bounded path
+reads the selected input cell and rechecks it against its declared output
+contract (`execution_relation/bounded_unpivot.mbt`, BuildCell). These source
+paths make the proposed object bundle plausible; they do not prove normal
+checker, planner selection, lifetime, capacity or public execution success.
+
+`lowering.prepared.mbt` reuses evaluated fields, constructs one closed object
+per tuple, projects every component through common property expressions and
+uses an ordinary OR of IS NOT NULL for EXCLUDE. Generated names are reserved
+against authored outputs and remain private. Literal labels use ordinary
+conditional expressions; omitted tuple labels join current public names with
+`_`. It is prepared code only and has not been compiled or executed.
+
+The independent month contract includes `max_utf8_bytes: 3`, derived from the
+authored literals `Jan` and `Feb` and the common literal/join contracts. This
+also applies to the empty input. The unbounded draft expectation is preserved
+in commit 4a3013001; the correction is not inferred from product output.
+`literal-bound-derivation.json` records the separate derivation. No #1407
+fixture, oracle, row or author commit was modified. Root's failed 956 public
+run and fixture-only 4c correction remain separate external evidence.

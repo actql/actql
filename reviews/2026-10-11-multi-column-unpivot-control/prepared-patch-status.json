@@ -12,11 +12,12 @@
     "src/query_syntax/unpivot_test.mbt"
   ],
   "missing": [
-    "lower_multi_column_unpivot implementation",
-    "independent checked lowering fixture",
-    "generated MoonBit API and grammar pins",
+    "apply and typecheck prepared AST/lowerer as a separate unit after control proof",
+    "install and execute independent lowering fixtures",
+    "generated MoonBit API, grammar pins and independent identity vectors",
     "normal checker proof and public execution"
   ],
   "reason": "Keep the current shared Heavy window and frozen String-label unit separate from the next unit.",
-  "patchFile": "ast-connection.prepared.patch.json"
+  "patchFile": "ast-connection.prepared.patch.json",
+  "preparedLowerer": "lowering.prepared.mbt"
 }
