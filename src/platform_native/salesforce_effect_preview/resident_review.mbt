@@ -781,6 +781,7 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(
   created_at : String,
   expires_at : String,
   limits : @checkpoint.WireLimits,
+  computation_capacity? : @resident.ResidentEffectComputationCapacity? = None,
 ) -> Result[
   @remote.RemoteEffectCheckpointReport,
   NativeResidentEffectReviewIssue,
@@ -792,7 +793,7 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let report = match retention.persist(store) {
+  let report = match retention.persist(store, computation_capacity~) {
     Ok(value) => value
     Err(issue) => return Err(Retention(issue))
   }

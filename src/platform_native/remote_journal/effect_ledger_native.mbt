@@ -1,14 +1,4 @@
 ///|
-fn effect_response_cid_valid(use_cid : String) -> Bool {
-  use_cid.length() == 71 &&
-  use_cid.has_prefix("sha256:") &&
-  use_cid
-  .unsafe_substring(start=7, end=use_cid.length())
-  .iter()
-  .all(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
-}
-
-///|
 priv suberror EffectLedgerStorageFailure {
   StorageIssue(NativeRemoteJournalIssue)
 }
@@ -271,13 +261,10 @@ pub fn Journal::record_effect_ledger_response(
     return Err(Physical(@sqlite.BodyTooLarge))
   }
   let cid = @effect.effect_ledger_entry_cid(dispatching)
-  let metadata = @utf8.encode(
-    use_cid +
-    "\n" +
-    response.status_code.to_string() +
-    "\n" +
-    effect_response_body_digest(response.body),
-  )
+  let metadata = effect_response_record_metadata(
+    response,
+    self.max_record_bytes,
+  ).unwrap()
   let bytes = Bytes::from_array(response.body.to_array())
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -391,24 +378,17 @@ pub fn Journal::effect_ledger_response(
       ) {
       (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => Ok(None)
       (Ok(meta), Ok(bytes)) if meta.revision == 0L && bytes.revision == 0L => {
-        let text = @utf8.decode(meta.body) catch {
-          _ => return Err(StateCollision)
-        }
-        let parts = text.split("\n").map(value => value.to_owned()).to_array()
-        guard parts.length() == 3 else { return Err(StateCollision) }
-        let status = @string.parse_int(parts[1]) catch {
-          _ => return Err(StateCollision)
-        }
-        if !effect_response_cid_valid(parts[0]) ||
-          status < 100 ||
-          status > 599 ||
-          status.to_string() != parts[1] ||
-          effect_response_body_digest(bytes.body) != parts[2] {
+        guard effect_response_record_fields(
+            meta.body,
+            bytes.body,
+            self.max_record_bytes,
+          )
+          is Some((use_cid, status)) else {
           return Err(StateCollision)
         }
         Ok(
           Some({
-            credential_use_cid: parts[0],
+            credential_use_cid: use_cid,
             status_code: status,
             body: Bytes::from_array(bytes.body.to_array()),
           }),

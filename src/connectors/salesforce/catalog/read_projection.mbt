@@ -15,7 +15,7 @@ pub(all) enum ReadProjectionIssue {
 /// It grants neither current source authority nor an executable acquisition.
 pub struct ReadProjection {
   observation_cid : String
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   resource : String
   fields : Array[FieldMetadata]
   contracts : Array[@contract.Contract]
@@ -135,7 +135,7 @@ pub fn prepare_read_projection(
   sql.write_string(resource.name)
   Ok({
     observation_cid: observation.cid,
-    binding: current,
+    binding: SiteCatalog(current),
     resource: resource.name,
     fields,
     contracts,
@@ -267,7 +267,7 @@ pub fn recheck_read_projection(
     return Err(ForeignCurrentObservation)
   }
   let resource = match
-    catalog_observation_resource(current, next, plan.resource) {
+    catalog_owned_observation_resource(current, next, plan.resource) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
@@ -319,7 +319,7 @@ pub fn read_projection_matches_site_scope(
   run_invocation_cid : String,
   dispatch_request_cid : String,
 ) -> Bool {
-  let binding = plan.binding
+  guard plan.binding is SiteCatalog(binding) else { return false }
   binding.namespace_id == namespace_id &&
   binding.principal == principal &&
   binding.environment == environment &&

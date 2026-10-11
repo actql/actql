@@ -16,7 +16,7 @@ pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationSe
 
 pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
-pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
+pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int, commit_guard? : (() -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
 
 pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
@@ -165,6 +165,7 @@ pub(all) enum NativeRunPublicationIssue {
   InvalidConfiguration
   AccessDenied
   CommitConflict
+  CommitFenceUnavailable
   Store(@publication_store.NativePublicationStoreIssue)
   Issuance(@actql/actql/run_publication.PublicationCommitIssuanceIssue)
   Commit(@actql/actql/run_publication.PublicationCommitIssue)

@@ -1,0 +1,25 @@
+{
+  "version": "actql/0.1",
+  "id": "native.local.source-result",
+  "stages": [
+    {
+      "id": "acquire",
+      "inputs": {"records": {"connector": "crm/main", "resource": "r", "view": "v"}},
+      "steps": [
+        {"filter": "id > 0", "as": "filtered"},
+        {"select": ["id"], "as": "captured"}
+      ],
+      "results": {"rows": {"from": "captured", "fields": ["id"]}}
+    },
+    {
+      "id": "compute",
+      "inputs": {"rows": {"result": {"stage": "acquire", "result": "rows"}}},
+      "steps": [
+        {"filter": "id > 2", "as": "filtered"},
+        {"select": ["id"], "as": "selected"}
+      ],
+      "results": {"rows": {"from": "selected", "fields": ["id"]}}
+    }
+  ],
+  "results": {"answer": {"from": {"stage": "compute", "result": "rows"}}}
+}
