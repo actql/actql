@@ -1138,6 +1138,9 @@ try:
             assert call('task', 'close', task) == 0
         assert call('compute', 'close', compute) == -9
         fixture.cleanup_ready = False
+        # Output is already retired. The original input reader's physical
+        # stop, rather than former output cleanup, keeps this borrow pending.
+        fixture.stop_ready = False
         reserved = fixture.call('reserved')
         assert_status('publication_preflight', 'close', -9, preflight)
         assert fixture.call('reserved') == reserved
