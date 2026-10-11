@@ -10,7 +10,8 @@ const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
 const base = new Map([
   ...sharedFiles.map(path => [path, path]),
-  [pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8')],
+  ...[pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies]
+    .map(({path}) => [path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')]),
   ['proofs/ci-evidence/actions.mjs', 'actions'], ['proofs/ci-evidence/inputs.mjs', 'inputs'],
   ['proofs/bounded-session/action-inputs.mjs', 'encoder'], ['toolchain.json', '{}'], ['moon.mod', 'module'],
   ['scripts/setup-moonbit.mjs', 'setup'], ['.github/actions/setup-toolchain/action.yml', 'setup'],
@@ -60,6 +61,26 @@ test('remaining evaluated pipeline inventory bytes and new imports stay bound an
   }
   assert.equal(compareInputs(original, inventory(base, 'b'.repeat(40), action,
     {[pipelineInventoryBoundary.path]: '100755'})).eligible, false);
+});
+
+test('the reviewed transitive helper is bound; new imports, effects, missing bytes and modes remain open', () => {
+  const path = 'proofs/relation-pipeline/proof-runner-extension.mjs';
+  const original = inventory();
+  assert.deepEqual(original.unresolved, []);
+  assert(original.inputs.files.some(entry => entry.path === path));
+  for (const change of [
+    files => files.set(path, files.get(path) + '\nimport "./unreviewed-extension.mjs";\n'),
+    files => files.set(path, files.get(path) + '\nspawnSync("unreviewed-process");\n'),
+    files => files.delete(path),
+  ]) {
+    const files = new Map(base); change(files);
+    const observed = inventory(files);
+    assert(observed.unresolved.includes('unreviewed pipeline inventory import/effect boundary'));
+    assert.equal(compareInputs(original, observed).eligible, false);
+  }
+  const changedMode = inventory(base, 'b'.repeat(40), action, {[path]: '100755'});
+  assert(changedMode.unresolved.includes('unreviewed pipeline inventory import/effect boundary'));
+  assert.equal(compareInputs(original, changedMode).eligible, false);
 });
 
 for (const [label, mutate] of [
