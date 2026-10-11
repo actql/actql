@@ -2,6 +2,7 @@
 pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Unavailable
   Normalization(@host.ClientEffectNormalizationIssue)
+  Catalog(NativeResidentEffectCatalogPolicyIssue)
   Result(@resident.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
 }
