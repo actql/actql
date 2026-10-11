@@ -117,6 +117,83 @@ const resultReadPermission = {entry_id: 'result-read', outcome: 'allow',
   principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
   resource: {any_of: ['result/answer']}, operation: {any_of: ['read']}, exclusions: []};
 
+// Explicit operator disclosure settings. A syntactically admitted original is
+// not a payload grant, current Account permission or a completed read attempt.
+function readPolicy() {
+  return {version: 'actql-config/0.1', native: {result_read: {
+    enabled: true, principal: 'operator', connection: 'cli', result_names: ['answer'],
+    formats: ['jsonl'], purpose: 'inspection', sink: 'stdout',
+    data_policy_cids: [`sha256:${'a'.repeat(64)}`], max_bytes: 65536,
+    max_uses: 1, expires_at: '2026-10-12T00:00:00.000Z',
+  }}};
+}
+
+async function selectReadPolicy(f, policy = readPolicy()) {
+  f.configuration.native.local.installation_files = ['read.settings.json'];
+  f.configuration.native.local.read_file = 'read.settings.json';
+  await writeFile(join(f.root, 'read.settings.json'), JSON.stringify(policy) + '\r\n');
+  await f.save();
+}
+
+test('Native CLI retains explicitly selected read settings across exited processes without issuing a grant', async () => {
+  const f = await fixture('read-policy-retained');
+  const policy = readPolicy();
+  policy.native.result_read.enabled = false;
+  policy.native.result_read.purpose = 'e\u0301\r\ninspection';
+  await selectReadPolicy(f, policy);
+  const adopted = success(invoke(f, ['adopt', '--json']));
+  const connected = success(invoke(f, ['connect', '--json']));
+  assert.equal(connected.adoptionCid, adopted.adoptionCid);
+  assert.equal(Object.hasOwn(connected, 'grant'), false);
+  const original = await journal(f);
+  policy.native.result_read.purpose = 'é\ninspection';
+  await writeFile(join(f.root, 'read.settings.json'), JSON.stringify(policy) + '\r\n');
+  refusal(invoke(f, ['connect', '--json']), /LocalConfigurationChanged/u);
+  assert.deepEqual(await journal(f), original, 'No settings refresh or custody repair');
+});
+
+test('Native CLI requires explicit selection of the read Policy original', async () => {
+  const f = await fixture('read-policy-unselected');
+  await selectReadPolicy(f);
+  f.configuration.native.local.installation_files = [];
+  await f.save();
+  refusal(invoke(f, ['adopt', '--json']), /LocalReadPolicyOriginalNotSelected/u);
+  await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+});
+
+test('Native CLI refuses malformed or excessive read settings before Host creation', async () => {
+  const cases = [
+    ['byte-cap', policy => {policy.max_bytes = 536870913;}, /InvalidLocalReadPolicyLimits/u],
+    ['uses-cap', policy => {policy.max_uses = 1025;}, /InvalidLocalReadPolicyLimits/u],
+    ['zero-budget', policy => {policy.max_bytes = 0;}, /InvalidLocalReadPolicyLimits/u],
+    ['duplicate-name', policy => {policy.result_names = ['answer', 'answer'];}, /InvalidLocalReadPolicyOriginal/u],
+    ['unknown-field', policy => {policy.allow_all = true;}, /InvalidLocalReadPolicyOriginal/u],
+    ['missing-expiry', policy => {delete policy.expires_at;}, /InvalidLocalReadPolicyOriginal/u],
+    ['invalid-expiry', policy => {policy.expires_at = '2026-02-30T00:00:00.000Z';}, /InvalidLocalReadPolicyOriginal/u],
+    ['bad-policy-cid', policy => {policy.data_policy_cids = ['missing'];}, /InvalidLocalReadPolicyReference/u],
+    ['format', policy => {policy.formats = ['arrow'];}, /UnsupportedLocalReadFormat/u],
+    ['sink', policy => {policy.sink = 'external-model';}, /UnsupportedLocalReadSink/u],
+  ];
+  for (const [name, mutate, expected] of cases) {
+    const f = await fixture(`read-policy-refusal-${name}`);
+    const policy = readPolicy(); mutate(policy.native.result_read);
+    await selectReadPolicy(f, policy);
+    refusal(invoke(f, ['adopt', '--json']), expected);
+    await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+  }
+});
+
+test('Native CLI cannot substitute an independently valid read settings original after adoption', async () => {
+  const f = await fixture('read-policy-substitution');
+  await selectReadPolicy(f);
+  success(invoke(f, ['adopt', '--json']));
+  const original = await journal(f);
+  const replacement = readPolicy(); replacement.native.result_read.max_bytes = 131072;
+  await writeFile(join(f.root, 'read.settings.json'), JSON.stringify(replacement) + '\r\n');
+  refusal(invoke(f, ['connect', '--json']), /LocalConfigurationChanged/u);
+  assert.deepEqual(await journal(f), original);
+});
+
 test('Native CLI original Submission lookup stays unresolved across separate exited processes', async () => {
   const f = await fixture('lookup-unaccepted', [submitPermission]);
   success(invoke(f, ['adopt', '--json']));

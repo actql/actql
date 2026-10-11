@@ -152,6 +152,22 @@ Host close must succeed before the reply is published. Actual retained-attempt
 CLI acceptance and the new read admission path remain unfinished; the defined
 process fixtures are not fresh-artifact execution evidence.
 
+An optional `native.local.read_file` selects a separate closed
+`actql-config/0.1` file with `native.result_read` settings. It must also occur
+in the existing finite `installation_files` selection. The existing exclusive
+adoption Owner retains and rechecks its exact bytes and physical generation;
+replacing even a valid selected original is refused rather than silently
+adopted. Run settings, Source Policy and Account contracts are unchanged.
+
+Read settings explicitly name `enabled`, `principal`, `connection`, literal
+`result_names`, existing `formats`, `purpose`, `sink: "stdout"`, original
+`data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. Missing,
+unknown, duplicate or excessive fields are refused. Admission of these settings
+is not current read permission, a grant or validation of the referenced Policy
+originals. The payload admission/issuer and original Policy connection remain
+unfinished. Missing read settings do not disable the independent metadata-only
+`delivery-attempt` lookup.
+
 In addition to the preparation settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
 and `native.local`:

@@ -15,6 +15,7 @@ priv struct LocalHostSettings {
   installation_files : Array[String]
   source_file : String?
   run_file : String?
+  read_file : String?
 }
 
 ///|
@@ -53,7 +54,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   let fields = @decode.closed_object(fields, [
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
-    "journal_snapshot_bytes", "installation_files", "source_file", "run_file",
+    "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -102,6 +103,10 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    read_file: match @decode.lookup(fields, "read_file") {
+      None => None
+      Some(_) => Some(local_settings_text(fields, "read_file"))
+    },
     run_file: match @decode.lookup(fields, "run_file") {
       None => None
       Some(_) => Some(local_settings_text(fields, "run_file"))
@@ -210,6 +215,17 @@ fn execute_native_local_adoption(
       Some((file, @utf8.encode(body)))
     }
   }
+  let selected_read = match settings.read_file {
+    None => None
+    Some(file) => {
+      if !settings.installation_files.contains(file) {
+        stop("LocalReadPolicyOriginalNotSelected")
+      }
+      let body = text_file(root, file, 65536L)
+      ignore(local_read_installation_or_stop(body))
+      Some((file, @utf8.encode(body)))
+    }
+  }
   let crypto = @local_crypto.load_library(settings.signature_library).unwrap_or_else(() => {
       stop("NativeLocalSignatureUnavailable")
     },
@@ -251,6 +267,15 @@ fn execute_native_local_adoption(
     }
   }
   if selected_run is Some((file, body)) {
+    guard session.selected_configuration(file) is Ok(selected) &&
+      selected == body else {
+      if !session.close() {
+        stop("LocalConfigurationChangedCleanupPending")
+      }
+      stop("LocalConfigurationChanged")
+    }
+  }
+  if selected_read is Some((file, body)) {
     guard session.selected_configuration(file) is Ok(selected) &&
       selected == body else {
       if !session.close() {
