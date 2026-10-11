@@ -85,6 +85,10 @@ preparation, not compiler/runtime acceptance.
 [static-commands.json](static-commands.json) records six individual pinned
 MoonBit formatter commands, seven Node syntax checks, five read-only freshness
 checks (including 553 canonical identities) and diff whitespace check, all exit 0.
+The first staged whitespace check found an EOF delimiter blank in the newly
+tracked baseline parser excerpt. [The original excerpt and failed check](initial-excerpt-whitespace.json)
+are retained; only its display-copy delimiter was trimmed before final submission.
+The earlier unstaged whitespace checks did not include that untracked file.
 The large generated canonical test is checked by its read-only generator;
 a whole-file formatter, full Core/targets, packed, performance and Hosted CI
 are not claimed.

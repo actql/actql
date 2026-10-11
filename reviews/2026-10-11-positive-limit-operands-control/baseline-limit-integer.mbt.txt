@@ -26,4 +26,3 @@ fn QueryParser::limit_integer(
     Integer(self.safe_integer(zero_allowed))
   }
 }
-
