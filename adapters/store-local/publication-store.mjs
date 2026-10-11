@@ -95,11 +95,51 @@ async function writeExclusive(path, bytes) {
 }
 
 async function readBounded(path, maximum) {
-  const state = await lstat(path);
-  if (!state.isFile() || state.size > maximum) {
+  if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
-  return readFile(path);
+  // Pin the original allocation before allocating its bounded output. A
+  // nonblocking open also refuses a raced-in FIFO without waiting for a writer.
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+    constants.O_NONBLOCK);
+  try {
+    const before = await handle.stat({bigint: true});
+    if (!before.isFile() || before.size < 0n ||
+        before.size > BigInt(maximum)) {
+      fail('InvalidPublicationStoreObject');
+    }
+    const sameFile = state => state.isFile() &&
+      state.dev === before.dev && state.ino === before.ino &&
+      state.size === before.size && state.mtimeNs === before.mtimeNs &&
+      state.ctimeNs === before.ctimeNs;
+    if (!sameFile(await lstat(path, {bigint: true}))) {
+      fail('InvalidPublicationStoreObject');
+    }
+    const size = Number(before.size);
+    // Avoid pooled backing and growth/concatenation. The one-byte probe is a
+    // separate bounded allocation; neither buffer is a byte-capacity grant.
+    const bytes = Buffer.allocUnsafeSlow(size);
+    let offset = 0;
+    while (offset < size) {
+      const {bytesRead} = await handle.read(bytes, offset, size - offset, offset);
+      if (!Number.isSafeInteger(bytesRead) || bytesRead <= 0 ||
+          bytesRead > size - offset) {
+        fail('InvalidPublicationStoreObject');
+      }
+      offset += bytesRead;
+    }
+    const probe = Buffer.allocUnsafeSlow(1);
+    const {bytesRead} = await handle.read(probe, 0, 1, size);
+    if (bytesRead !== 0 || !sameFile(await handle.stat({bigint: true})) ||
+        !sameFile(await lstat(path, {bigint: true}))) {
+      fail('InvalidPublicationStoreObject');
+    }
+    return bytes;
+  } finally {
+    // Preserve the existing awaited close boundary. A close rejection is not
+    // successful read completion or proof that cleanup responsibility ended.
+    await handle.close();
+  }
 }
 
 async function processIsAlive(pid) {
