@@ -23,7 +23,8 @@ test "WITH Graph shared SQL and text route matches independent Program" {
   let writer = @encode.writer(65536, 8192, 64)
   @program.emit_program_source(expected, writer)
   let expected_text = @encode.finish(writer)
-  for format in [Text, Sql] {
+  let formats : Array[Format] = [Text, Sql]
+  for format in formats {
     let actual = lower(
       source,
       format,
@@ -45,7 +46,8 @@ test "WITH Graph shared SQL and text route matches independent Program" {
 
 ///|
 test "public WITH cutover rejects retired DATA without structural fallback" {
-  for format in [Text, Sql] {
+  let formats : Array[Format] = [Text, Sql]
+  for format in formats {
     assert_true(
       lower(
         "DATA n = SELECT 1 AS id; SELECT id FROM n",
