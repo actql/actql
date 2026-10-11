@@ -57,3 +57,25 @@ capacity limits, serialization or grammar pins.
 
 The parent value-table scope correction is #1364. Its exact prior SHA evidence
 must not be represented as this branch's or the updated parent's success.
+
+## First packed attempt: refusal fixture correction
+
+At `458ae678511378c9b461db4afd73be104d3ac2d0`, normal five-package
+production and independent digests passed. Composition acceptance failed on
+the first new refusal code assertion, receipt `public-query-evidence-5ay8p6`,
+command 010, guard `run-Wiqu8Q`. The expected generic `ClientProgramRejected`
+was incorrect. This is not evidence of a wrong row or unintended admission.
+
+The selected existing public contract is explicit: `client_check.mbt` projects
+`QueryLowering(UnsupportedJoin)` as `Limit("implementation_limit")`;
+`client-program-preparation.mjs` discloses that typed check fact as
+`ClientProgramImplementationLimit`. Existing preparation-disclosure tests
+independently require this projection for `source_unsupported`. Correct the
+fixture to that exact code, retaining the unsupported-key rule, all expected
+rows/types/order and zero-admission/provider-I/O assertions. Do not weaken the
+checker or change the product diagnostic to satisfy the old fixture.
+
+Both actual workers terminated and the guard released its locks. The receipt
+remains failed/incomplete; subsequent cases and retention completion cannot
+be inferred from partial stdout. The original logs and package correspondence
+are retained separately from any corrected-SHA acceptance.
