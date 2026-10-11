@@ -280,6 +280,39 @@ fn infer(
     )
   }
   match tag {
+    "split" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let mut nullable = input.nullable
+      if node.children.get(1) is Some(delimiter) {
+        nullable = require_type(t, nodes, delimiter, "string").nullable ||
+          nullable
+      }
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // Parts are contiguous scalar sequences of the input and may be empty.
+      // Even an empty input has one part. A nonempty delimiter can add a final
+      // empty part; never carry an input minimum into an element contract.
+      let maximum = match (limits.max_codepoints, limits.max_utf8_bytes) {
+        (Some(a), Some(b)) => Some(a.min(b))
+        (Some(a), None) | (None, Some(a)) => Some(a)
+        (None, None) => None
+      }
+      let max_items = match maximum {
+        Some(n) if n < 9007199254740991L => Some(n + 1L)
+        _ => None
+      }
+      let item = @contract.string_contract(
+        nullable=false,
+        max_codepoints=limits.max_codepoints,
+        max_utf8_bytes=limits.max_utf8_bytes,
+      ).unwrap()
+      typed(
+        t,
+        @contract.array_contract(item, nullable~, max_items~).unwrap(),
+        source,
+      )
+    }
     "substring" | "left" | "right" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let mut nullable = input.nullable
@@ -301,6 +334,16 @@ fn infer(
         ).unwrap(),
         source,
       )
+    }
+    "reverse" =>
+      // Reordering scalars preserves every admitted scalar/UTF-8 length bound.
+      typed(t, require_type(t, nodes, node.children[0], "string"), source)
+    "repeat" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let count = require_type(t, nodes, node.children[1], "number")
+      // A dynamic count can expand the value or make it empty. Do not infer
+      // output limits by evaluating or duplicating the authored count child.
+      primitive(t, StringType, input.nullable || count.nullable, source)
     }
     "lpad" | "rpad" => {
       let input = require_type(t, nodes, node.children[0], "string")
@@ -550,6 +593,8 @@ fn infer(
     | "ltrim"
     | "rtrim"
     | "len"
+    | "byte_length"
+    | "unicode"
     | "concat"
     | "concat_strict"
     | "replace"
@@ -564,7 +609,7 @@ fn infer(
       }
       primitive(
         t,
-        if tag == "len" || tag == "strpos" {
+        if ["len", "byte_length", "unicode", "strpos"].contains(tag) {
           NumberType
         } else if ["contains", "like", "starts_with", "ends_with"].contains(tag) {
           BooleanType
@@ -575,7 +620,20 @@ fn infer(
         source,
       )
     }
+    "chr" => {
+      let nullable = arguments(t, nodes, node, "number")
+      typed(
+        t,
+        @contract.string_contract(
+          nullable~,
+          max_codepoints=Some(1L),
+          max_utf8_bytes=Some(4L),
+        ).unwrap(),
+        source,
+      )
+    }
     "sqrt"
+    | "cbrt"
     | "pow"
     | "exp"
     | "ln"

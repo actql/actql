@@ -52,8 +52,14 @@ fn Parser::call(
   token : Token,
 ) -> Node raise ExpressionError {
   let (minimum, maximum) = match name {
-    "len"
+    "byte_length"
+    | "octet_length"
+    | "unicode"
+    | "chr"
+    | "reverse"
+    | "len"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -72,7 +78,8 @@ fn Parser::call(
     | "nfkc"
     | "case_fold" => (1, 1)
     "trim" | "ltrim" | "rtrim" | "round" | "trunc" | "log" => (1, 2)
-    "left"
+    "repeat"
+    | "left"
     | "right"
     | "contains"
     | "pow"
@@ -99,6 +106,7 @@ fn Parser::call(
     | "try_decimal"
     | "split_part"
     | "vector_score" => if name == "date_trunc" { (2, 2) } else { (3, 3) }
+    "split" => (1, 2)
     "substring" | "lpad" | "rpad" => (2, 3)
     "quantize" => (4, 4)
     "decimal_divide" => (5, 5)
@@ -116,7 +124,13 @@ fn Parser::call(
   if name == "log" && args.length() == 1 {
     return self.form("ln", args[0])
   }
-  let name = if name == "power" { "pow" } else { name }
+  let name = if name == "power" {
+    "pow"
+  } else if name == "octet_length" {
+    "byte_length"
+  } else {
+    name
+  }
   if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(name) {
     return self.form(
       "cast",

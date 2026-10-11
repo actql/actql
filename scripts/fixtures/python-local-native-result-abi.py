@@ -36,6 +36,9 @@ source_cases = []
 publication_cases = []
 binding_cases = []
 preflight_cases = []
+preflight_retirement_cases = []
+preflight_inputs = {}
+preflight_output_tickets = {}
 commit_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
@@ -434,6 +437,8 @@ try:
             fixture.inputs[ticket] = b''
             handle = call('publication_preflight', 'reserve', source_pin, input_handle, ticket, 2097200)
             assert handle > 0
+            preflight_inputs[handle] = input_handle
+            preflight_output_tickets[handle] = ticket
             return handle
 
         # Task reservation alone invokes no operation; the original preflight
@@ -467,6 +472,8 @@ try:
         assert_status('publication_preflight', 'prepare', -33, denied, configuration)
         assert_status('publication_preflight', 'close', 0, denied)
         preflight = preflight_loan()
+        assert_status('publication_preflight', 'retire_output', -33, preflight)
+        assert fixture.cleanups.get(preflight_output_tickets[preflight], 0) == 0
         assert_status('publication_preflight', 'prepare', 0, preflight, configuration)
         assert_status('publication_preflight', 'prepare', -32, preflight, denied_preflight_configuration)
         assert_status('publication_preflight', 'prepare', 0, preflight, configuration)
@@ -487,6 +494,27 @@ try:
         assert call('run', 'close_configuration', denied_preflight_configuration) == 0
         assert fixture.queries == 3
         preflight_cases.append('original_intent_current_access_and_no_source_reexecution')
+        # Retire only the already copied transport output. The original
+        # preflight, Source pin and input borrow remain for task/publication use.
+        allocated_before_retire = fixture.call('allocated')
+        fixture.cleanup_ready = False
+        assert_status('publication_preflight', 'retire_output', -9, preflight)
+        assert fixture.call('allocated') == allocated_before_retire
+        assert fixture.call('close', preflight_inputs[preflight]) == -9
+        fixture.cleanup_ready = True
+        assert_status('publication_preflight', 'retire_output', 0, preflight)
+        assert fixture.call('allocated') == allocated_before_retire - 4194352
+        assert_status('publication_preflight', 'retire_output', 0, preflight)
+        assert fixture.cleanups[preflight_output_tickets[preflight]] == 2
+        assert_status('publication_preflight', 'length', -33, preflight)
+        assert fixture.call('byte', preflight, 0) == -2
+        assert_status('publication_preflight', 'prepare', 0, preflight, configuration)
+        assert fixture.call('close', preflight_inputs[preflight]) == -9
+        assert fixture.queries == 3
+        preflight_retirement_cases.extend([
+            'unfinished_projection_cannot_retire_semantic_custody',
+            'same_output_cleanup_retry_releases_only_exact_allocation',
+            'retired_output_refuses_reads_and_keeps_original_input_borrow'])
         tasks = []
         for _ in range(2):
             task = call('task', 'reserve', compute, configuration)
@@ -925,6 +953,7 @@ try:
                             rfc8785.dumps(expected_index_body)).hexdigest()
                         assert fixture.queries == expected['source_queries']
                         commit_cases.append('original_index_intent_and_current_authority')
+                        preflight_retirement_cases.append('original_commit_candidate_uses_same_retired_output_preflight')
                     loan, input_handle = binding_loan(facts)
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     assert_status('publication', 'close', -9, value)
@@ -948,6 +977,7 @@ try:
                     # same child output and reader cleanup both succeed.
                     assert call('result', 'close', result) == -9
                     assert call('source_publication', 'close', source_pin) == -9
+                    preflight_retirement_cases.append('source_close_retains_original_pin_after_transport_retirement')
                     assert_status('publication', 'finish', -32, value, configuration)
                 fixture.cleanup_ready = False
                 reserved = fixture.call('reserved')
@@ -980,6 +1010,14 @@ try:
         assert_status('publication_preflight', 'close', -9, preflight)
         fixture.stop_ready = True
         assert_status('publication_preflight', 'close', 0, preflight)
+        assert fixture.call('close', preflight_inputs[preflight]) == 0
+        assert fixture.cleanups[preflight_output_tickets[preflight]] == 2
+        preflight_retirement_cases.append('full_close_returns_same_original_input_borrow_after_tasks')
+        retirement_expected = json.loads((root / 'scripts/fixtures/python-local-preflight-output-retirement.json').read_text())
+        expected_retirement_cases = [name for name in retirement_expected['cases']
+                                     if (commit_candidate or name != 'original_commit_candidate_uses_same_retired_output_preflight')
+                                     and (final_publication or name != 'source_close_retains_original_pin_after_transport_retirement')]
+        assert preflight_retirement_cases == expected_retirement_cases
         assert_status('source_publication', 'close', 0, source_pin)
         assert fixture.queries == 3
         preflight_cases.append('original_source_pin_and_same_borrow_cleanup_retry')
@@ -1033,6 +1071,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'result_publication_cases': publication_cases,
                   'result_binding_cases': binding_cases,
                   'publication_preflight_cases': preflight_cases,
+                  'preflight_retirement_cases': preflight_retirement_cases,
                   'commit_candidate_cases': commit_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',

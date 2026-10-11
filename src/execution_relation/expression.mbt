@@ -111,6 +111,7 @@ priv enum Evaluation {
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
+  SplitFunction(SplitFunctionState)
   PropertyName(PropertyNameState)
   FieldName(FieldNameState)
   ObjectName(ObjectNameState)
@@ -382,6 +383,13 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.selection_pending = false
   match frame.state {
     TextFunction(state) => state.builder = None
+    SplitFunction(state) => {
+      state.text_builder = None
+      if state.admission is Some(admission) {
+        close_raw_text_admission(admission)
+      }
+      state.admission = None
+    }
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
     MeasureArray(_, _, cursor) | MeasureObject(_, _, cursor) =>
       clear_logical_measure(cursor)
@@ -721,15 +729,21 @@ fn advance_expression_frame_impl(
               frame.state = Enter(first)
               continue
             }
-            if op == @lower.Replace ||
+            if op == @lower.Split ||
+              op == @lower.Replace ||
+              op == @lower.Repeat ||
               op == @lower.Substring ||
               op == @lower.LeftString ||
               op == @lower.RightString ||
               op == @lower.LPad ||
               op == @lower.RPad {
-              let valid = if op == @lower.Replace {
+              let valid = if op == @lower.Split {
+                children.length() == 1 || children.length() == 2
+              } else if op == @lower.Replace {
                 children.length() == 3
-              } else if op == @lower.LeftString || op == @lower.RightString {
+              } else if op == @lower.LeftString ||
+                op == @lower.RightString ||
+                op == @lower.Repeat {
                 children.length() == 2
               } else {
                 children.length() == 2 || children.length() == 3
@@ -739,7 +753,11 @@ fn advance_expression_frame_impl(
               }
               frame.stack.push(
                 TextArguments({
-                  kind: if op == @lower.Replace {
+                  kind: if op == @lower.Split {
+                    TextSplit
+                  } else if op == @lower.Repeat {
+                    TextRepeat
+                  } else if op == @lower.Replace {
                     TextReplace
                   } else if op == @lower.LeftString {
                     TextLeft
@@ -769,6 +787,8 @@ fn advance_expression_frame_impl(
               Concat
               | ConcatStrict
               | Replace
+              | Repeat
+              | Split
               | Substring
               | LeftString
               | RightString
@@ -960,6 +980,12 @@ fn advance_expression_frame_impl(
             if args.children.get(args.index) is Some(next) {
               frame.stack.push(TextArguments(args))
               frame.state = Enter(next)
+            } else if args.kind == TextSplit {
+              let state = match start_split_function(frame, args) {
+                Ok(state) => state
+                Err(issue) => return Err(issue)
+              }
+              frame.state = SplitFunction(state)
             } else {
               let state = match
                 start_text_function(
@@ -1115,6 +1141,10 @@ fn advance_expression_frame_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             if op == @lower.Length ||
+              op == @lower.ByteLength ||
+              op == @lower.Unicode ||
+              op == @lower.Chr ||
+              op == @lower.Reverse ||
               op == @lower.Upper ||
               op == @lower.Lower ||
               op == @lower.Trim ||
@@ -1127,6 +1157,14 @@ fn advance_expression_frame_impl(
                   [frame.current_root],
                   if op == @lower.Length {
                     TextLength
+                  } else if op == @lower.ByteLength {
+                    TextByteLength
+                  } else if op == @lower.Unicode {
+                    TextUnicode
+                  } else if op == @lower.Reverse {
+                    TextReverse
+                  } else if op == @lower.Chr {
+                    TextChr
                   } else if op == @lower.Upper {
                     TextUpper
                   } else if op == @lower.Lower {
@@ -1484,6 +1522,8 @@ fn advance_expression_frame_impl(
             }
             let combined = match op {
               Replace
+              | Repeat
+              | Split
               | Substring
               | LeftString
               | RightString
@@ -1667,6 +1707,27 @@ fn advance_expression_frame_impl(
             }
             frame.current_root = None
             release_slots(workspace, 3)
+            frame.state = Return(value)
+          }
+        }
+      }
+      SplitFunction(state) => {
+        frame.active = state.expression
+        match advance_split_function(frame, state) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            for root in state.roots {
+              if release(root) is Some(issue) {
+                return Err({
+                  kind: LogicalValue(issue),
+                  expression: state.expression,
+                })
+              }
+            }
+            release_slots(workspace, state.reserved + state.allocated)
+            frame.current_root = state.root
+            frame.result_prepaid = state.root is Some(_)
             frame.state = Return(value)
           }
         }

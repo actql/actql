@@ -117,3 +117,88 @@ class PublicationPreflightCustodyTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 action()
         self.assertEqual(len(calls), before)
+
+    def test_output_retirement_keeps_semantic_loan_and_discards_transport_bytes(self):
+        core, source, request, calls, state, wire = self.bridge()
+        state['retire_output'] = 0
+        value = core.reserve_publication_preflight(source, request, cleanup=lambda: True)
+        core.prepare_publication_preflight(value, 31)
+        self.assertEqual(core.read_publication_preflight(value), wire)
+        original_call = core._call
+
+        def call(family, name, *args):
+            code = original_call(family, name, *args)
+            if name == 'retire_output' and code == 0:
+                self.assertEqual(core._cleanup(value.ticket), 0)
+            return code
+
+        core._call = call
+        self.assertTrue(core.retire_publication_preflight_output(value))
+        self.assertNotIn(value.ticket, core._inputs)
+        self.assertIs(core._loans[value.ticket], value)
+        self.assertIs(core._loans[7], source)
+        self.assertIs(core._loans[1], request)
+        with self.assertRaises(RuntimeError):
+            core.read_publication_preflight(value)
+        core.prepare_publication_preflight(value, 31)
+        self.assertFalse(any(f in ('source', 'task', 'run', 'publication')
+                             for f, _, _ in calls))
+        self.assertTrue(core.retire_publication_preflight_output(value))
+        state['close'] = 0
+        self.assertTrue(core.close_publication_preflight(value))
+        self.assertNotIn(value.ticket, core._loans)
+        self.assertNotIn(value.ticket, core._released)
+
+    def test_output_retirement_pending_cleanup_retains_same_loan_for_retry(self):
+        core, source, request, _, state, wire = self.bridge()
+        ready = [False]
+        cleanup_calls = []
+
+        def cleanup():
+            cleanup_calls.append(True)
+            return ready[0]
+
+        value = core.reserve_publication_preflight(source, request, cleanup=cleanup)
+        core.prepare_publication_preflight(value, 31)
+        core.read_publication_preflight(value)
+        original_call = core._call
+        state['retire_output'] = 0
+        core._call = lambda family, name, *args: (
+            core._cleanup(value.ticket) * -9 if name == 'retire_output'
+            else original_call(family, name, *args))
+        core._closing = True
+        self.assertFalse(core.retire_publication_preflight_output(value))
+        self.assertIs(core._loans[value.ticket], value)
+        self.assertEqual(core._inputs[value.ticket].payload, wire)
+        self.assertIs(core._loans[7], source)
+        self.assertIs(core._loans[1], request)
+        ready[0] = True
+        self.assertTrue(core.retire_publication_preflight_output(value))
+        self.assertEqual(len(cleanup_calls), 2)
+        self.assertTrue(core.retire_publication_preflight_output(value))
+        self.assertEqual(len(cleanup_calls), 2)
+        self.assertIs(core._loans[value.ticket], value)
+
+    def test_incomplete_retirement_is_a_refusal_not_cleanup_success(self):
+        core, source, request, _, state, _ = self.bridge()
+        state['retire_output'] = -33
+        value = core.reserve_publication_preflight(source, request, cleanup=lambda: True)
+        with self.assertRaises(LocalCoreError) as caught:
+            core.retire_publication_preflight_output(value)
+        self.assertEqual(caught.exception.code, -33)
+        self.assertIs(core._loans[value.ticket], value)
+        self.assertIn(value.ticket, core._inputs)
+
+    def test_copied_foreign_and_wrong_family_retirement_reject_before_io(self):
+        core, source, request, calls, _, _ = self.bridge()
+        value = core.reserve_publication_preflight(source, request, cleanup=lambda: True)
+        foreign, _, _, _, _, _ = self.bridge()
+        before = len(calls)
+        for action in (
+            lambda: core.retire_publication_preflight_output(copy.copy(value)),
+            lambda: foreign.retire_publication_preflight_output(value),
+            lambda: core.retire_publication_preflight_output(source),
+        ):
+            with self.assertRaises(ValueError):
+                action()
+        self.assertEqual(len(calls), before)

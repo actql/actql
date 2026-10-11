@@ -204,6 +204,7 @@ _PUBLICATION_PREFLIGHT_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'prepare': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
+    'retire_output': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
 _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
@@ -741,6 +742,16 @@ class LocalCore:
 
     def read_publication_preflight(self, value: _Output) -> bytes:
         return self._read_output(value, 'publication_preflight', 'length')
+
+    def retire_publication_preflight_output(self, value: _Output) -> bool:
+        """Retire copied output, retaining the original semantic preflight loan."""
+        with self._lock:
+            self._owned_output(value, 'publication_preflight')
+            code = self._call('publication_preflight', 'retire_output', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_preflight_output', code)
+            return True
 
     def close_publication_preflight(self, value: _Output) -> bool:
         return self._close_output(value, 'publication_preflight', 'close')

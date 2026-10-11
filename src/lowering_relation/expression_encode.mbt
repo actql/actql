@@ -190,6 +190,7 @@ fn emit_frames(
                   RTrim => "rtrim"
                   Floor => "floor"
                   Sqrt => "sqrt"
+                  Cbrt => "cbrt"
                   Exp => "exp"
                   Ln => "ln"
                   Log10 => "log10"
@@ -205,6 +206,10 @@ fn emit_frames(
                   IsFalse => "is_false"
                   IsUnknown => "is_unknown"
                   Length => "len"
+                  ByteLength => "byte_length"
+                  Unicode => "unicode"
+                  Chr => "chr"
+                  Reverse => "reverse"
                 },
               ),
             )
@@ -251,6 +256,8 @@ fn emit_frames(
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
+                  Repeat => "repeat"
+                  Split => "split"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

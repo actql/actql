@@ -191,9 +191,15 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
+    "UNICODE" => ("UNICODE", "unicode", 1, 1)
+    "CHR" => ("CHR", "chr", 1, 1)
+    "REVERSE" => ("REVERSE", "reverse", 1, 1)
+    "REPEAT" => ("REPEAT", "repeat", 2, 2)
     "LENGTH" => ("LENGTH", "len", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
+    "CBRT" => ("CBRT", "cbrt", 1, 1)
     "POW" | "POWER" => ("POW", "pow", 2, 2)
     "EXP" => ("EXP", "exp", 1, 1)
     "LN" => ("LN", "ln", 1, 1)
@@ -209,6 +215,7 @@ fn scalar_call(
     "SAFE_SUBTRACT" => ("SAFE_SUBTRACT", "safe_subtract", 2, 2)
     "SAFE_MULTIPLY" => ("SAFE_MULTIPLY", "safe_multiply", 2, 2)
     "STRPOS" => ("STRPOS", "strpos", 2, 2)
+    "SPLIT" => ("SPLIT", "split", 1, 2)
     "SUBSTR" | "SUBSTRING" => ("SUBSTR", "substring", 2, 3)
     "LEFT" => ("LEFT", "left", 2, 2)
     "RIGHT" => ("RIGHT", "right", 2, 2)
