@@ -730,6 +730,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn finish_client_model_read_scope(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Bool, ClientModelReadPreparationIssue]
+
 pub fn handoff_client_model_read(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelReadPreparationIssue]
