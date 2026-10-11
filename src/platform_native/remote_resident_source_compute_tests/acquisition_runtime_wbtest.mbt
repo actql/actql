@@ -7,6 +7,7 @@ fn acquisition_runtime_case(
   through_consumer : Bool,
   effect? : Bool = false,
   completion_free? : Bool = false,
+  completion_free_review? : Bool = false,
   provider? : Bool = false,
   parent_ack_failure? : Bool = false,
   revoke_effect_at_start? : Bool = false,
@@ -79,9 +80,26 @@ fn acquisition_runtime_case(
     536870912L,
     536870912L,
   ).unwrap()
+  if completion_free_review {
+    assert_true(
+      completion_free &&
+      effect &&
+      through_consumer &&
+      through_consumer_holder &&
+      !provider,
+    )
+  }
   let finite = if completion_free {
     assert_true(effect && !provider)
-    Some(native_completion_free_effect_fixture())
+    Some(
+      native_completion_free_effect_fixture(
+        authoring=if completion_free_review {
+          Some(native_mapped_create_authoring())
+        } else {
+          None
+        },
+      ),
+    )
   } else {
     None
   }
@@ -688,6 +706,7 @@ fn acquisition_runtime_case(
       effect_pair~,
       effect_producer=original_effect_producer.val,
       provider~,
+      completion_free_review~,
       through_consumer_holder~,
       cancel_consumer_before_start~,
       cancel_consumer_after_borrow~,
@@ -980,4 +999,18 @@ test "Effect original holders retain physical Provider review and Checkpoint wit
 ///|
 test "completion-free original materials execute the physical Source producer once" {
   acquisition_runtime_case(false, effect=true, completion_free=true)
+}
+
+///|
+test "original completion-free Source and consumer issue a mapped-create Preview without target IO" {
+  native_mapped_create_phase("case-entered")
+  println("native-mapped-create: entering actual acquisition harness")
+  acquisition_runtime_case(
+    true,
+    effect=true,
+    completion_free=true,
+    completion_free_review=true,
+    through_consumer_holder=true,
+  )
+  native_mapped_create_phase("harness-cleanup-confirmed")
 }
