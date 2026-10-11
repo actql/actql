@@ -74,3 +74,7 @@ export const analyticStringAggExecutionFailures = [{
   text: `SELECT STRING_AGG(IF(1 / 0 > 0, 'a', 'b')) OVER (${frame}) AS names FROM records`,
   resultNames: ['answer'], sourceReadSessionCount: 1,
 }];
+
+
+analyticStringAggSuccesses.push(success('grouped-delimiter',
+  `SELECT id, ${call({delimiter: ", (('|'))"})} FROM records WHERE id > 0 ORDER BY id`));

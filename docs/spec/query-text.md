@@ -55,6 +55,12 @@ and triple quotes, and raw and decoded chunks. Without separation they are
 rejected. Quoted identifiers do not concatenate. Decoded byte, token and work
 budgets apply to every chunk, and the resulting expression's source range
 covers the original chunks and intervening trivia.
+In an explicit STRING_AGG delimiter, grouping parentheses around these literal
+chunks preserve the decoded String value. This applies to ordinary and window
+aggregates. The delimiter remains a non-NULL String literal in the selected
+profile; grouping does not admit parameters, NULL, other scalar types or
+computed delimiter expressions. The ordinary aggregate's WHERE/ORDER and the
+window's OVER/frame keep their independent scope and bounds.
 
 Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
