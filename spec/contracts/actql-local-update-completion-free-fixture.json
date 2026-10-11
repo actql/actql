@@ -1,0 +1,6 @@
+{
+  "catalog_preimage": "{\"applicability\":{\"audit_work_limit\":10000,\"change_sources\":[\"field\",\"scalar_literal\"],\"checked_operations\":[\"filter\",\"select\",\"values\"],\"effect_kind\":\"mapped_update\",\"expression_nodes\":[\"$param\",\"and\",\"eq\",\"field\",\"gt\",\"gte\",\"literal\",\"lt\",\"lte\",\"neq\",\"not\",\"or\",\"typed_literal\"],\"mapping_conversions\":\"none\",\"max_source_inputs\":1,\"max_stages\":2,\"proof\":\"original-checked-computation-and-update-owners-audit\",\"selector_classes\":[\"id\"],\"source_selection\":\"explicit\"},\"profile\":\"actql-local-update-completion-free/0.1\",\"rules\":[],\"version\":\"actql-normalization-rule-catalog/0.1\"}",
+  "catalog_cid": "sha256:9ba6d5dff43cd54b0d61d6923fd4cb3143e1a5e238bad20b297133393d783468",
+  "journal_preimage": "{\"entries\":[],\"rule_catalog_cid\":\"sha256:9ba6d5dff43cd54b0d61d6923fd4cb3143e1a5e238bad20b297133393d783468\",\"version\":\"actql-normalization-journal/0.1\"}",
+  "journal_cid": "sha256:e9f69915b6368e0c8e1669b010e57e65f633bd5a8d589d3b3575c2b043f4b44d"
+}

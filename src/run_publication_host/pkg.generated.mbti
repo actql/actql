@@ -312,7 +312,11 @@ pub fn client_effect_local_table_definition_cid(ClientEffectLocalTableDefinition
 
 pub fn client_effect_local_table_definition_json(ClientEffectLocalTableDefinition) -> String
 
+pub fn client_effect_local_update_completion_free_catalog_cid() -> String
+
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
+
+pub fn client_effect_normalization_catalog_cid(ClientEffectNormalization) -> String
 
 pub fn client_effect_normalization_materials_cid(ClientEffectRunMaterials) -> String?
 
@@ -819,6 +823,8 @@ pub fn issue_prepared_client_direct_task_result_root(PreparedClientProgram, Int,
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
 pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?, normalization? : ClientEffectNormalization?) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
+
+pub fn issue_prepared_client_effect_local_update_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
 pub fn issue_prepared_client_effect_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
