@@ -12,6 +12,8 @@ import {admitNativeArtifact} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
+import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
+import {inspectNativeLocalJournal, assertNativeLocalJournalUnchanged} from './native-local-journal-observation.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const fixtures = fileURLToPath(new URL('./fixtures/native-local-cli/', import.meta.url));
@@ -22,12 +24,24 @@ const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(
     ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
     : JSON.stringify(value);
 
+// Check the authored original before any Native process. Do not silently repair
+// its bytes: the shared Check Environment Owner requires canonical input.
+export function verifyNativeLocalCheckEnvironmentOriginal(bytes) {
+  const environment = JSON.parse(bytes.toString('utf8'));
+  const {evidence_bundle_cid, ...preimage} = environment;
+  verifyIdentity(preimage, evidence_bundle_cid);
+  assert(Buffer.from(canonicalText(environment), 'utf8').equals(Buffer.from(bytes)),
+    'The original Check Environment must contain exact canonical bytes');
+  return environment;
+}
+
 export async function inspectNativeLocalSourceFixture() {
   const names = ['source-program.json', 'source-expected.json', 'source-environment.json',
     'source-installation.json', 'run-installation.json', 'read-installation.json'];
   const bytes = await Promise.all(names.map(name => readFile(join(fixtures, name))));
   const [program, expected, environment, sourceOriginal, runOriginal, readOriginal] =
     bytes.map(value => JSON.parse(value));
+  verifyNativeLocalCheckEnvironmentOriginal(bytes[2]);
   const source = sourceOriginal.native.source, run = runOriginal.native.run;
   const read = readOriginal.native.result_read;
   const policy = environment.contract_registry.find(value => value.kind === 'data_policy');
@@ -62,16 +76,21 @@ const permission = (entry_id, resource, operation) => ({entry_id, outcome: 'allo
 
 // Read-only diagnostics of the existing journal, after each Native process has
 // exited. These records do not replace public lookup or grant/Store admission.
-function inspectJournal(path) {
+function inspectResultMetadata(path) {
   const database = new DatabaseSync(path, {readOnly: true});
   try {
     return {
-      records: database.prepare('SELECT namespace, record_key, revision, body FROM actql_records ORDER BY namespace, record_key')
-        .all().map(row => ({...row, body: Buffer.from(row.body).toString('utf8')})),
-      capacity: database.prepare('SELECT * FROM actql_capacity ORDER BY namespace, reservation_key').all(),
-      claims: database.prepare('SELECT * FROM actql_claims ORDER BY namespace, claim_key').all(),
+      usage: database.prepare("SELECT body FROM actql_records WHERE namespace = 'result_read_grant_usage' ORDER BY record_key")
+        .all().map(row => JSON.parse(Buffer.from(row.body).toString('utf8'))),
+      contracts: database.prepare("SELECT body FROM actql_records WHERE namespace = 'publication_contract' ORDER BY record_key")
+        .all().map(row => JSON.parse(Buffer.from(row.body).toString('utf8'))),
     };
   } finally { database.close(); }
+}
+
+function assertJournalSnapshotUnchanged(before, after, message) {
+  assertNativeLocalJournalUnchanged(before.host, after.host, message);
+  assertNativeLocalJournalUnchanged(before.store, after.store, message);
 }
 
 export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
@@ -100,8 +119,8 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
   const record = {sourceSha, artifact, artifactManifestSha256: hash(await readFile(join(artifactDirectory, 'artifact.json'))),
     inputs: selected.inputs, commands, checks, acceptance: false,
     scope: 'Native CLI artifact; no npm install, Effect or full-holder release claim'};
-  const snapshot = () => ({host: inspectJournal(join(root, 'host', 'client.sqlite3')),
-    store: inspectJournal(join(managed, 'results', '.actql-publication.sqlite3'))});
+  const snapshot = () => ({host: inspectNativeLocalJournal(join(root, 'host', 'client.sqlite3')),
+    store: inspectNativeLocalJournal(join(managed, 'results', '.actql-publication.sqlite3'))});
   const invoke = args => {
     const command = [executable, '--mode', 'local', '--config-root', root,
       '--config-file', 'actql.config.json', ...args];
@@ -185,7 +204,7 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
     const beforeReads = snapshot();
     const neverOpened = success(invoke(lookupArgs('first-read')));
     assert.equal(neverOpened.history, 'unresolved');
-    assert.deepEqual(snapshot(), beforeReads, 'Metadata lookup must not issue grants or reserve/open payloads');
+    assertJournalSnapshotUnchanged(beforeReads, snapshot(), 'Metadata lookup must not issue grants or reserve/open payloads');
     const delivered = [];
     for (const attempt of ['first-read', 'explicit-new-read']) {
       const payload = invoke(readArgs(attempt));
@@ -206,7 +225,7 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
       const stable = snapshot();
       assert.deepEqual(success(invoke(lookupArgs(attempt))), observed);
       refused(invoke(readArgs(attempt)), /LocalReadAttemptAlreadyStarted/u);
-      assert.deepEqual(snapshot(), stable, 'Same attempt neither reopens nor consumes another grant/reservation');
+      assertJournalSnapshotUnchanged(stable, snapshot(), 'Same attempt neither reopens nor consumes another grant/reservation');
       assert.equal(lookup().controlRevision, original.controlRevision, 'Read does not mutate Run control');
       delivered.push(observed);
     }
@@ -214,14 +233,15 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
     const completedReads = snapshot();
     const evidence = completedReads.host.records.filter(row => row.namespace === 'client_local_read_evidence');
     assert.equal(evidence.length, 2, 'Only the two explicitly requested attempts have originals');
-    const usage = completedReads.store.records.filter(row => row.namespace === 'result_read_grant_usage').map(row => JSON.parse(row.body));
+    const metadata = inspectResultMetadata(join(managed, 'results', '.actql-publication.sqlite3'));
+    const usage = metadata.usage;
     assert.equal(usage.length, 2);
     for (const [index, item] of usage.entries()) {
       assert.equal(item.use_count, 1); assert.equal(item.max_uses, 1);
       assert.equal(item.delivery_attempt_cids.length, 1);
       assert(delivered.some(value => value.attempt.delivery_attempt_cid === item.delivery_attempt_cids[0]), `usage ${index}`);
     }
-    const contracts = completedReads.store.records.filter(row => row.namespace === 'publication_contract').map(row => JSON.parse(row.body));
+    const contracts = metadata.contracts;
     const binding = contracts.find(value => value.version === 'actql-durable-result-binding/0.1');
     assert(binding);
     assert.deepEqual(binding.result_fields, selected.expected.columns);
@@ -240,20 +260,20 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
     assert.equal(interrupted.hostReleaseReceipt, null, 'An interrupted read is not a completed delivery');
     const afterReads = snapshot();
     refused(invoke(readArgs('bounded-interruption', '1')), /LocalReadAttemptAlreadyStarted/u);
-    assert.deepEqual(snapshot(), afterReads, 'Interruption cannot reopen the original attempt');
+    assertJournalSnapshotUnchanged(afterReads, snapshot(), 'Interruption cannot reopen the original attempt');
     assert.equal(lookup().controlRevision, original.controlRevision);
     checks.push('Explicit one-byte sink cap retains a prefix without a completion receipt or internal replacement attempt');
     await writeFile(join(root, 'foreign-run.json'), JSON.stringify({...original.ref, namespaceId: 'another-run'}));
     const foreign = [...readArgs('foreign')]; foreign[foreign.indexOf('original-run.json')] = 'foreign-run.json';
     refused(invoke(foreign), /LocalOriginalRunReferenceMismatch/u);
-    assert.deepEqual(snapshot(), afterReads, 'Foreign reference must fail without new originals or grant');
+    assertJournalSnapshotUnchanged(afterReads, snapshot(), 'Foreign reference must fail without new originals or grant');
     checks.push('Foreign Run reference refused without modifying retained custody');
     // Changing the originally adopted file is not a current Policy update.
     const changed = structuredClone(selected.readOriginal);
     changed.native.result_read.max_bytes = 32768;
     await writeFile(join(root, 'read-installation.json'), JSON.stringify(changed));
     refused(invoke(readArgs('replacement-read')), /LocalConfigurationChanged/u);
-    assert.deepEqual(snapshot(), afterReads, 'Replacing the selected original cannot refresh adoption or grant');
+    assertJournalSnapshotUnchanged(afterReads, snapshot(), 'Replacing the selected original cannot refresh adoption or grant');
     checks.push('Changed adopted read original refused without refreshing custody');
     record.beforeReads = beforeReads; record.afterReads = afterReads; record.delivered = delivered;
     record.interrupted = interrupted;

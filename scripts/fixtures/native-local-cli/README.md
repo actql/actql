@@ -50,6 +50,13 @@ inspection is read-only diagnostics; it neither repairs records nor substitutes
 for the public commands. All process outputs, artifact/input digests and original
 Host/Store custody remain in the owned scratch directory for review.
 
+Original Submission lookup advances the existing epoch Owner's durable clock.
+The diagnostic oracle preserves every other record digest/revision, capacity
+reservation and claim exactly, and requires the original epoch key digest to
+remain unchanged with monotonic clock/revision. The epoch authentication key
+and raw journal bodies are excluded from the acceptance receipt; original
+custody remains in the private Host/Store files.
+
 Successful exit does not prove npm installation, Effect approval, cleanup-fault
 retry, all temporary holders released, or physical Source/Compute call counts.
 Those need their corresponding public Owner observations and acceptance. The

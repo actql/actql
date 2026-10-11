@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {after, test} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {inspectNativeLocalJournal, assertNativeLocalJournalUnchanged} from './native-local-journal-observation.mjs';
 
 const binary = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? fileURLToPath(new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe', import.meta.url));
@@ -397,14 +398,19 @@ test('Native CLI saves original submission before preparation refusal and refuse
   assert.equal(first.phase, 'preparing');
   assert.equal(Object.hasOwn(first, 'runDefinitionCid'), false);
   await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
-  const before = await journal(f);
+  const before = inspectNativeLocalJournal(join(f.root, 'host', 'client.sqlite3'));
   await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/source-program.json', import.meta.url)),
     join(f.root, 'input.json'));
   refusal(invoke(f, originalStart), /LocalSubmissionAcceptanceUnavailable/u);
+  const refusedOriginal = inspectNativeLocalJournal(join(f.root, 'host', 'client.sqlite3'));
+  assertNativeLocalJournalUnchanged(before, refusedOriginal,
+    'A changed input cannot mutate original Submission, Run, claims or reservations');
   const later = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
   assert.equal(later.intentCid, first.intentCid);
   assert.equal(later.revision, first.revision);
-  assert.deepEqual(await journal(f), before);
+  assertNativeLocalJournalUnchanged(refusedOriginal,
+    inspectNativeLocalJournal(join(f.root, 'host', 'client.sqlite3')),
+    'Original lookup changes only the monotonic epoch clock');
 });
 
 test('Native CLI original AQL refusal is retained and lookup does not lower or execute it again', async () => {
@@ -685,9 +691,13 @@ test('Native CLI refuses conflicting request assertion before durable acceptance
   await writeFile(join(f.root, 'input.json'), '{}');
   const before = await journal(f);
   refusal(invoke(f, [...originalStart, '--request-id', 'other']), /LocalSubmissionIdentityMismatch/u);
+  assert.deepEqual(await journal(f), before, 'Conflicting request must be refused before durable acceptance');
+  const beforeLookup = inspectNativeLocalJournal(join(f.root, 'host', 'client.sqlite3'));
   const looked = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
   assert.equal(looked.history, 'unresolved');
-  assert.deepEqual(await journal(f), before);
+  assertNativeLocalJournalUnchanged(beforeLookup,
+    inspectNativeLocalJournal(join(f.root, 'host', 'client.sqlite3')),
+    'Lookup cannot create an original operation, claim or reservation');
 });
 
 test('Native CLI binds selected Source settings without opening Source or granting access', async () => {
