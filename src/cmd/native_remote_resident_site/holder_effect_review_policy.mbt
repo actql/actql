@@ -43,7 +43,8 @@ fn holder_effect_review_key(value : String) -> Bytes? {
 ///|
 /// Fixed operator filenames, original contract admission and bounded settings.
 /// The root must be chosen by the Host; no poll, Program or candidate report
-/// supplies it. This function is not yet installed by the production CLI.
+/// supplies it. The caller needs the separate current evidence permission
+/// before selecting this installation; configuration is not that permission.
 fn load_holder_effect_review_policy(
   root : String,
   matches : @argparse.Matches,
