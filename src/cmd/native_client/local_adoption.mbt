@@ -13,6 +13,7 @@ priv struct LocalHostSettings {
   record_limit : Int
   snapshot_bytes : Int64
   installation_files : Array[String]
+  source_file : String?
 }
 
 ///|
@@ -51,7 +52,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   let fields = @decode.closed_object(fields, [
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
-    "journal_snapshot_bytes", "installation_files",
+    "journal_snapshot_bytes", "installation_files", "source_file",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -100,6 +101,10 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    source_file: match @decode.lookup(fields, "source_file") {
+      None => None
+      Some(_) => Some(local_settings_text(fields, "source_file"))
+    },
   }
   if settings.principal.length() > 512 || settings.connection.length() > 512 {
     stop("InvalidLocalHostConfiguration")
@@ -178,6 +183,17 @@ fn execute_native_local_adoption(
     }
     selected_files.push(file)
   }
+  let selected_source = match settings.source_file {
+    None => None
+    Some(file) => {
+      if !settings.installation_files.contains(file) {
+        stop("LocalSourceOriginalNotSelected")
+      }
+      let body = text_file(root, file, 65536L)
+      ignore(local_source_installation(body))
+      Some((file, @utf8.encode(body)))
+    }
+  }
   let crypto = @local_crypto.load_library(settings.signature_library).unwrap_or_else(() => {
       stop("NativeLocalSignatureUnavailable")
     },
@@ -208,6 +224,15 @@ fn execute_native_local_adoption(
       stop("LocalConfigurationChangedCleanupPending")
     }
     stop("LocalConfigurationChanged")
+  }
+  if selected_source is Some((file, body)) {
+    guard session.selected_configuration(file) is Ok(selected) &&
+      selected == body else {
+      if !session.close() {
+        stop("LocalConfigurationChangedCleanupPending")
+      }
+      stop("LocalConfigurationChanged")
+    }
   }
   let host = match
     session.open_journal(

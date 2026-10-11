@@ -107,6 +107,28 @@ No missing original is repaired from current source files. Source/Result,
 original Run recovery, typed Direct Local credentials and approval-backed
 Effect remain the following execution slices.
 
+An optional `native.local.source_file` names one of the explicitly selected
+`installation_files`. Its bounded `actql-config/0.1` document contains only
+`version` and `native.source`. The Source settings decoder admits the closed
+physical binding, contract originals, Ledger/dispatch/search/import limits and
+estimate profiles into the existing Native Source/Compute configuration types.
+It does not load DuckDB, open a Source database or grant read permission. All
+numeric settings are explicit; physical byte budgets are at most 512 MiB, and
+unknown keys, missing required values, fractional limits and escaping DB names
+are refused before Host initialization. The DB name is one component under the
+adopted managed root; the execution connection must separately validate that
+physical binding and current Source authority before opening it.
+
+The input example `scripts/fixtures/native-local-cli/source-installation.json`
+reuses the existing Native Source contract originals. Its library placeholder
+must be replaced with the explicitly selected actual library in a test-owned
+configuration before adoption. `source-program.json` authors an explicit `v`
+Source View, then filter/select in acquisition and Compute; the independent
+expectation is one `answer` row `{id: 3}`. Explicit selection avoids pretending
+that the existing sole-view semantic completion has an empty normalization
+journal. These are input/expectation fixtures for the next public execution
+connection, not evidence that CLI Source/Result execution has already passed.
+
 ## Remote transport
 
 Build with the pinned MoonBit toolchain using `moon build --target native

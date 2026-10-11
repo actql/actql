@@ -263,3 +263,62 @@ test('Native CLI rejects ambiguous or excessive installation selections before H
     await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
   }
 });
+
+async function sourceFixture(name, update = () => {}) {
+  const f = await fixture(name);
+  const source = JSON.parse(await readFile(fileURLToPath(new URL(
+    './fixtures/native-local-cli/source-installation.json', import.meta.url)), 'utf8'));
+  // Configuration admission must not load the Source library or open its DB.
+  source.native.source.duckdb_library = '/not-installed-for-adoption';
+  update(source.native.source);
+  await writeFile(join(f.root, 'source-installation.json'), JSON.stringify(source));
+  f.configuration.native.local.installation_files = ['source-installation.json'];
+  f.configuration.native.local.source_file = 'source-installation.json';
+  await f.save();
+  return f;
+}
+
+test('Native CLI binds selected Source settings without opening Source or granting access', async () => {
+  const f = await sourceFixture('typed-source-original');
+  const source = await readFile(join(f.root, 'source-installation.json'));
+  const adopted = success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  const restored = success(invoke(f, ['connect', '--json']));
+  assert.equal(restored.adoptionCid, adopted.adoptionCid);
+  assert.deepEqual(await journal(f), before);
+  assert.deepEqual(await readFile(join(f.root, 'source-installation.json')), source);
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+  refusal(invoke(f, ['new-submission', '--request-id', 'source-without-grant']),
+    /LocalSubmissionAuthorizationDenied/u);
+  assert.deepEqual(await journal(f), before);
+});
+
+test('Native CLI Source setting selection cannot bypass durable original custody', async () => {
+  const f = await sourceFixture('typed-source-unselected');
+  f.configuration.native.local.installation_files = [];
+  await f.save();
+  refusal(invoke(f, ['adopt', '--json']), /LocalSourceOriginalNotSelected/u);
+  await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+});
+
+test('Native CLI rejects malformed Source budgets and escaping locations before Host initialization', async () => {
+  const updates = [
+    source => { source.memory_bytes = 536870913; },
+    source => { source.ledger.retained_bytes = 536870913; },
+    source => { source.imports.max_rows = 1.5; },
+    source => { source.database_file = '../foreign.duckdb'; },
+    source => { source.database_file = '/foreign.duckdb'; },
+    source => { source.dispatch.guards.unrecognized = 1; },
+    source => { source.estimates[0].native_rates[0].work_slots = [0, 0]; },
+    source => { source.estimates[0].output_rows_per_mille = 1001; },
+    source => { source.contracts.query = null; },
+    source => { source.source_contract_cid = 'sha256:invalid'; },
+    source => { source.dispatch.capacity.contract_cid = 'sha256:invalid'; },
+    source => { delete source.execution_bytes; },
+  ];
+  for (const [index, update] of updates.entries()) {
+    const f = await sourceFixture(`typed-source-refusal-${index}`, update);
+    refusal(invoke(f, ['adopt', '--json']), /InvalidLocalSource/u);
+    await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+  }
+});
