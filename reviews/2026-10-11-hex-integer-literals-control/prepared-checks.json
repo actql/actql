@@ -1,0 +1,28 @@
+{
+  "baseline": "599f487bbb0be365320706ad28eab972448ed75d",
+  "runtime_executed": false,
+  "compile_executed": false,
+  "public_executed": false,
+  "heavy_started": false,
+  "interface_generation_executed": false,
+  "interface_generation_command": "moon info --target js src/query_syntax src/query_expression src/query_program",
+  "interface_generation_note": "Run in the independent review worktree with the existing 60-second non-Heavy guard; commit only generator-produced pkg.generated.mbti changes. B does not retry the process-inspection rejection.",
+  "moon_js_commands": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_syntax/hex_integer_test.mbt src/query_syntax/lexer_test.mbt src/query_syntax/limit_parameter_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_expression/hex_integer_test.mbt src/query_expression/lower_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/hex_integer_test.mbt src/query_program/order_ordinal_test.mbt src/query_program/group_ordinal_test.mbt src/query_program/grouped_analytic_offset_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/hex-integer-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "public_command": "node scripts/test-packed-public-query.mjs --hex-integer-only",
+  "public_route": "--hex-integer-only (existing consumer; not started; shared Heavy allocation required)",
+  "expected_public_cohort": {
+    "normal": 7,
+    "refusal": 7
+  },
+  "producer_cap_seconds": 300,
+  "public_cap_seconds": 300,
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "Do not retry or bypass B process-inspection rejection. No raw runtime tests, new Owner or alternate consumer."
+}
