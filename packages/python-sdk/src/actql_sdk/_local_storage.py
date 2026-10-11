@@ -1,10 +1,11 @@
 """Physical opaque-byte persistence; Core owns every Run meaning and decision."""
+from collections.abc import Callable
 from dataclasses import dataclass
 import os
 from pathlib import Path
 import sqlite3
 import stat
-from threading import RLock
+from threading import RLock, get_ident
 
 _APPLICATION_ID = 0x41514C42
 _SCHEMA = '''CREATE TABLE core_bytes (
@@ -62,6 +63,10 @@ class LocalStorageInitializationError(LocalStorageError):
     def __init__(self, cleanup_store: 'LocalByteStore') -> None:
         super().__init__('Local storage initialization cleanup is pending')
         self.cleanup_store = cleanup_store
+
+
+class _ProjectedWriteConflict(Exception):
+    """Internal physical CAS refusal; not a Run or publication outcome."""
 
 
 class LocalByteStore:
@@ -464,6 +469,120 @@ class LocalByteStore:
                 # Do not publish observations or repeat cleanup if this fails.
                 database.execute('ROLLBACK')
                 return result
+
+    def compare_exchange_projected_attached(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Consume one borrowed opaque projection at a time, in one transaction.
+
+        The trusted Host supplies the original Core count and calls the consumer
+        exactly once for each ordinal while its output loan is live. The
+        consumer copies that one write into SQLite synchronously; the Host must
+        finish the same loan's cleanup before project returns. Cleanup failure
+        must raise, retaining the original handle/reservation outside this Store.
+
+        The Host first obtains original full-chain validation/current authority.
+        before_commit then calls the original current publisher Owner port after
+        all projection cleanup, before COMMIT. It must return None only after
+        that port succeeds; refusal/unknown raises. This callback is not itself
+        authorization evidence. Core still owns ACK and uncertainty decisions.
+
+        Original payload bytes/generations/capacity are fenced before production
+        and again before COMMIT. Any prefix is uncommitted; conflict rolls it
+        back, failure propagates without retry, and lost ACK is not replay
+        permission. No metadata payload list is retained here. Per-record/store
+        limits are unchanged; the Host separately accounts original fences,
+        live projection bytes, key/generation descriptors and SQLite workspace.
+        """
+        if (type(count) is not int or not 1 <= count <= self._max_records
+                or not callable(project) or not callable(before_commit)):
+            raise ValueError('Invalid Local physical projection batch')
+        self._validate_originals(originals, set())
+        original_keys = {fence.key for fence, _ in originals}
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN IMMEDIATE')
+            try:
+                if not self._originals_match_locked(originals):
+                    database.execute('ROLLBACK')
+                    return None
+                record_count, payload_bytes = database.execute(
+                    'SELECT count(*), coalesce(sum(length(payload)), 0) FROM core_bytes'
+                ).fetchone()
+                generations: list[int] = []
+                keys: set[str] = set()
+                thread = get_ident()
+
+                def consume_ordinal(ordinal: int) -> None:
+                    nonlocal record_count, payload_bytes
+                    active = True
+                    delivered = False
+                    failure: BaseException | None = None
+
+                    def consume(write: ByteWrite) -> None:
+                        nonlocal delivered, failure, record_count, payload_bytes
+                        try:
+                            if not active or get_ident() != thread or delivered:
+                                raise ValueError('Local physical projection consumer is not active')
+                            self._exchange_write_keys((write,))
+                            if write.key in keys or write.key in original_keys:
+                                raise ValueError('Duplicate or original Local physical projection key')
+                            existing = database.execute(
+                                'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
+                                (write.key,)).fetchone()
+                            if ((existing is None) != (write.expected_generation is None)
+                                    or (existing is not None
+                                        and existing[0] != write.expected_generation)):
+                                raise _ProjectedWriteConflict()
+                            generation = 0 if existing is None else existing[0] + 1
+                            next_count = record_count + (1 if existing is None else 0)
+                            next_bytes = payload_bytes - (0 if existing is None else existing[1]) + len(write.payload)
+                            if next_count > self._max_records or next_bytes > self._max_payload_bytes:
+                                raise LocalStorageError('Local physical payload capacity exceeded')
+                            if existing is None:
+                                database.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
+                                                 (write.key, generation, write.payload))
+                            else:
+                                database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
+                                                 (generation, write.payload, write.key))
+                            keys.add(write.key)
+                            generations.append(generation)
+                            record_count, payload_bytes = next_count, next_bytes
+                            delivered = True
+                        except BaseException as error:
+                            failure = error
+                            raise
+
+                    try:
+                        result = project(ordinal, consume)
+                    finally:
+                        active = False
+                    # A producer cannot swallow a consumer refusal, duplicate
+                    # delivery or failed physical write and promote it to success.
+                    if failure is not None:
+                        raise failure
+                    if result is not None or not delivered:
+                        raise ValueError('Incomplete Local physical projection')
+
+                for ordinal in range(count):
+                    consume_ordinal(ordinal)
+                if before_commit() is not None:
+                    raise ValueError('Invalid Local physical precommit callback result')
+                if not self._originals_match_locked(originals):
+                    database.execute('ROLLBACK')
+                    return None
+                database.execute('COMMIT')
+                return tuple(generations)
+            except _ProjectedWriteConflict:
+                database.execute('ROLLBACK')
+                return None
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
 
     def _exchange_write_keys(self, writes: tuple[ByteWrite, ...]) -> set[str]:
         if type(writes) is not tuple or not 1 <= len(writes) <= self._max_records:
