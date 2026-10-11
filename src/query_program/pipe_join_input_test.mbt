@@ -21,7 +21,7 @@ test "projected Pipe JOIN agrees with an independent complete existing Program" 
       "SELECT id FROM lefts |> AS l |> CROSS JOIN rights AS r MAX_OUTPUT_ROWS 10 |> SELECT l.id AS a, r.id AS b",
       "FROM lefts AS old |> SELECT id |> AS discarded |> AS `L` |> CROSS JOIN rights AS r MAX_OUTPUT_ROWS 10 |> SELECT l.id AS a, r.id AS b",
     ] {
-    let program = checked_data_join(
+    let program = checked_with_join(
       "DATA lefts = SELECT 1 AS id; DATA rights = SELECT 2 AS id; DATA paired = " +
       body +
       "; FROM paired |> SELECT a, b",

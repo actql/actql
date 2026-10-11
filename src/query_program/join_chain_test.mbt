@@ -6,7 +6,7 @@ test "JOIN chain resolves every previous range and output alias" {
       "FROM seed AS l |> JOIN seed AS r ON l.x = r.x |> JOIN seed AS s ON r.x = s.x |> SELECT l.x AS y |> ORDER BY y + 1",
       "SELECT l.x AS y FROM seed AS l JOIN seed AS r ON l.x = r.x JOIN seed AS s ON l.x = s.x ORDER BY r.y + 1",
     ] {
-    let program = checked_data_join(
+    let program = checked_with_join(
       "DATA seed = FROM t |> SELECT x, y; DATA joined = " +
       body +
       "; FROM joined |> SELECT y",
@@ -22,7 +22,7 @@ test "JOIN chain resolves every previous range and output alias" {
 
 ///|
 test "JOIN chain USING merges only unqualified key visibility" {
-  let program = checked_data_join(
+  let program = checked_with_join(
     "DATA seed = FROM t |> SELECT x, y; SELECT x, l.y AS a, r.y AS b, s.y AS c FROM seed AS l JOIN seed AS r USING (x) JOIN seed AS s USING (x)",
     join_order_context(),
   )
@@ -105,7 +105,7 @@ test "JOIN chain Program agrees with an independent existing-IR fixture" {
 
 ///|
 test "JOIN chain preserves shared CTE capture and rejected resource ceilings" {
-  let program = checked_data_join(
+  let program = checked_with_join(
     "DATA joined = WITH seed AS (FROM orders |> SELECT id) SELECT l.id FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id; FROM joined |> SELECT id",
     { ..fixture_context(), captured_stage: Some("capture"), },
   )
@@ -126,7 +126,7 @@ test "JOIN chain preserves shared CTE capture and rejected resource ceilings" {
 
 ///|
 test "JOIN chain DISTINCT reuses the selected expression after projection" {
-  let program = checked_data_join(
+  let program = checked_with_join(
     "DATA seed = FROM t |> SELECT x, y; SELECT DISTINCT l.x AS out FROM seed AS l JOIN seed AS m ON l.x = m.x JOIN seed AS r ON m.x = r.x ORDER BY l.x",
     join_order_context(),
   )

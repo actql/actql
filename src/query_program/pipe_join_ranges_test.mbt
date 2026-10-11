@@ -42,7 +42,7 @@ test "Pipe JOIN remaps evaluated slots rather than rebinding original values" {
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = checked_data_join(
+  let actual = checked_with_join(
     "DATA lefts = SELECT 1 AS x, 10 AS y; DATA rights = SELECT 1 AS k; DATA paired = FROM lefts |> AS l |> SET x = x + 10 |> JOIN rights AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT x AS current, l.x AS original, rr.k AS matched; FROM paired |> SELECT current, original, matched",
     { ..fixture_context(), inputs: [], },
   )
