@@ -1,0 +1,21 @@
+{
+  "version": "actql-frontend-prepared-checks/0.1",
+  "status": "prepared; not executed by B",
+  "base": "1887855e9bf867ba9c3abb724dc52ebe4be3daa1",
+  "runtime": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/group_order_range_alias_test.mbt src/query_program/order_grouped_subexpression_test.mbt src/query_program/group_property_receiver_scope_test.mbt",
+    "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/group-order-range-alias-source-input.test.mjs scripts/public-query-profiles.test.mjs"
+  ],
+  "public": {
+    "command": "node scripts/test-packed-public-query.mjs --group-order-range-alias-only",
+    "producerSeconds": 300,
+    "publicSeconds": 300,
+    "normalDeclarationsPerTransport": 6,
+    "refusalDeclarationsPerTransport": 3,
+    "transports": ["Local", "HTTPS"],
+    "sharedWindow": "not reserved; not started",
+    "packages": ["client-wire", "sdk", "run-host-core", "local-node", "node"],
+    "preserve": ["clean fixed source and tree", "existing grace/work/capacity limits", "five tarball digests and manifest", "actual ordered rows/full schema/refusal", "same request and Source counters", "command and termination receipts", "Owner/children/groups/locks release"]
+  },
+  "notRequested": ["full Core", "proof campaign", "Hosted CI", "manual CI rerun", "merge"]
+}

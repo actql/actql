@@ -120,6 +120,7 @@ for (const [source, destination] of [
   ['scripts/graph-public-failure.test.mjs', 'graph-public-failure.test.mjs'],
   ['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs'],
   ['scripts/fixtures/retained-graph-observer.mjs', 'retained-graph-observer.mjs'],
+  ['scripts/fixtures/group-order-range-alias-source-input.mjs', 'group-order-range-alias-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
@@ -514,6 +515,9 @@ if (process.argv.includes('--join-order-only')) {
 if (process.argv.includes('--group-ordinal-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_ORDINAL_ONLY = '1';
 }
+if (process.argv.includes('--group-order-range-alias-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_ORDER_RANGE_ALIAS_ONLY = '1';
+}
 if (process.argv.includes('--order-grouped-subexpression-only')) {
   runtimeEnvironment.ACTQL_TEST_ORDER_GROUPED_SUBEXPRESSION_ONLY = '1';
 }
@@ -735,7 +739,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unpivot-multicolumn-only
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
+  '--group-order-range-alias-only', '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--cte-value-table-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -885,6 +889,7 @@ if (process.argv.includes('--pipe-join-ranges-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
 if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--named-window-only')) return;
+if (process.argv.includes('--group-order-range-alias-only')) return;
 if (process.argv.includes('--group-by-all-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--min-max-distinct-only')) return;
@@ -911,7 +916,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-any-direction-only',
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
-  '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
+  '--group-order-range-alias-only', '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--cte-value-table-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {

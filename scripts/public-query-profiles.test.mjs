@@ -273,10 +273,10 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
-  assert.equal(pin.totalCases, 3916);
-  assert.deepEqual(pin.counts, {"successes":2469,"executionFailures":50,"refusals":1397});
+  assert.equal(pin.totalCases, 3925);
+  assert.deepEqual(pin.counts, {"successes":2475,"executionFailures":50,"refusals":1400});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {"successes":2416,"executionFailures":48,"refusals":1362}],
+    ['standard', {"successes":2422,"executionFailures":48,"refusals":1365}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
@@ -301,3 +301,5 @@ import './full-join-scope-source-input.test.mjs';
 import './pipe-join-input.test.mjs';
 
 import './unpivot-multicolumn-source-input.test.mjs';
+
+import './group-order-range-alias-source-input.test.mjs';
