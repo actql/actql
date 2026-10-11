@@ -4,6 +4,7 @@ pub(all) enum LocalResultPublicationIssue {
   AuthorizationMismatch
   Source(LocalSourcePublicationIssue)
   MissingFacts
+  ForeignPublication
   Manifest(@publication.ResultManifestIssuanceIssue)
   Normalization(LocalRunNormalizationIssue)
   Receipt(@publication.RunReceiptIssuanceIssue)
@@ -208,6 +209,30 @@ pub fn local_result_publication_contracts(
     value.ordering,
     value.retention,
   ]
+}
+
+///|
+/// Borrow the original one-shot issuance for another bounded snapshot child.
+/// Equal-looking replacement owners and changed retention cannot acquire it.
+/// Current authority is checked again; the cached projection is not a grant.
+pub fn reuse_local_result_publication(
+  value : LocalResultPublication,
+  host : LocalComputeHost,
+  invocation : LocalSourceInvocation,
+  output : @host.PublicationOutputExport,
+  retention : @publication.PublicationContract,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Result[LocalResultPublication, LocalResultPublicationIssue] {
+  if !physical_equal(value.host, host) ||
+    !physical_equal(value.invocation, invocation) ||
+    !physical_equal(value.output, output) ||
+    @publication.publication_contract_identity(value.retention) !=
+    @publication.publication_contract_identity(retention) ||
+    @publication.publication_contract_json(value.retention) !=
+    @publication.publication_contract_json(retention) {
+    return Err(ForeignPublication)
+  }
+  validate_local_result_publication_current(value, account).map(_ => value)
 }
 
 ///|

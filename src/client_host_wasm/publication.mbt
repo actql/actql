@@ -225,19 +225,35 @@ pub fn prepare_publication(
   record.max_workspace = max_workspace
   record.pending = true
   for result in handles {
-    let stream = value.result_exports.get(result).unwrap().stream.unwrap()
-    match
-      @local_run.issue_local_result_publication(
-        host,
-        invocation,
-        stream,
-        retention,
-        current.account,
-        1048576,
-        100000,
-        64,
-      ) {
-      Ok(publication) => record.publications.push(publication)
+    let parent = value.result_exports.get(result).unwrap()
+    let stream = parent.stream.unwrap()
+    let issued = match parent.publication {
+      Some(publication) =>
+        @local_run.reuse_local_result_publication(
+          publication,
+          host,
+          invocation,
+          stream,
+          retention,
+          current.account,
+        )
+      None =>
+        @local_run.issue_local_result_publication(
+          host,
+          invocation,
+          stream,
+          retention,
+          current.account,
+          1048576,
+          100000,
+          64,
+        )
+    }
+    match issued {
+      Ok(publication) => {
+        parent.publication = Some(publication)
+        record.publications.push(publication)
+      }
       Err(_) => {
         record.failed = true
         record.pending = false
