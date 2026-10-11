@@ -1070,7 +1070,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   const boundaryNames = new Set([cohort.successes[0]?.name,
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
-  if (graphRemainingOperationsOnly) {
+  if (graphRemainingOperationsOnly || inputStageResultOnly) {
     saved.expectedSampleNames = [...boundaryNames];
     saved.authorization = authorization;
   }
@@ -1088,7 +1088,8 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
-  const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+  const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+    ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
@@ -1113,7 +1114,8 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
-    const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+    const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+      ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,

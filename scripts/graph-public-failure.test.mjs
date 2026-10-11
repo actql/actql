@@ -8,6 +8,7 @@ import {createRetainedGraphAuthorization} from './fixtures/retained-graph-observ
 import {graphSnapshotFailureStore} from './fixtures/graph-snapshot-failure-store.mjs';
 import {graphGraftSourceSuccesses} from './fixtures/graph-graft-source-input.mjs';
 import {graphReachSourceSuccesses} from './fixtures/graph-reach-source-input.mjs';
+import {inputStageResultSuccesses} from './fixtures/input-stage-result.mjs';
 
 const packed = process.env.ACTQL_GRAPH_PACKED === '1';
 const {connect} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
@@ -23,7 +24,11 @@ await mkdir(scratch, {recursive:true});
 // Both retained snapshot lanes are shared: Graft/Mean produce Graph material;
 // Reach/Shortest produce Relation material. Do not repeat their full normal
 // operation matrix merely to test the same Store failure/cleanup ownership.
-const cases = [
+const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
+const cases = inputStageResultOnly ? [
+  {family:'input-only-relation', failure:'seal', key:'relation-task-1',
+    sample:inputStageResultSuccesses[0]},
+] : [
   {family:'carrier', failure:'seal', key:'task-3', sample:graphGraftSourceSuccesses[0]},
   {family:'relation', failure:'append', key:'relation-task-3', sample:
     graphReachSourceSuccesses.find(sample => sample.name === 'graph-reach-json-connected-out')},
