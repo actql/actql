@@ -135,14 +135,15 @@ test "entry acknowledgement binds the original handle and starts each call once"
     calls, current, now, egress,
   )
   let saved : Array[@model.ModelCallEntryAcknowledgement] = []
+  let checks : Array[Bool] = []
   bind_model_dispatch(active, prepared, admission, entry => {
     let acknowledgement = @model.acknowledge_model_call_entry(entry, prepared).unwrap()
-    assert_true(
+    checks.push(
       @model.model_call_entry_acknowledgement_current(acknowledgement, prepared),
     )
     // The same original persistence acknowledgement is idempotent, not a new
     // permission. The execution consumes its single original start gate.
-    assert_true(
+    checks.push(
       physical_equal(
         acknowledgement,
         @model.acknowledge_model_call_entry(entry, prepared).unwrap(),
@@ -160,6 +161,10 @@ test "entry acknowledgement binds the original handle and starts each call once"
   assert_true(fixture_finish(active) is Complete(_, ..))
   assert_eq(calls.val, 2)
   assert_eq(saved.length(), 2)
+  assert_eq(checks.length(), 4)
+  for check in checks {
+    assert_true(check)
+  }
   for acknowledgement in saved {
     assert_true(
       !@model.model_call_entry_acknowledgement_current(
@@ -182,10 +187,11 @@ test "entry persistence cannot reuse earlier permission after cancellation revoc
       calls, current, now, egress,
     )
     let entries = Ref(0)
+    let entry_current = Ref(false)
     let original_attempts : Array[String] = []
     bind_model_dispatch(active, prepared, admission, entry => {
       entries.val += 1
-      assert_true(@model.model_call_entry_current(entry, prepared))
+      entry_current.val = @model.model_call_entry_current(entry, prepared)
       let (_, _, attempt, _) = @model.model_call_entry_originals(entry).unwrap()
       original_attempts.push(attempt)
       match variant {
@@ -212,6 +218,7 @@ test "entry persistence cannot reuse earlier permission after cancellation revoc
       _ => assert_true(result is Failed(Model(@model.Authorization(_)), ..))
     }
     assert_eq(entries.val, 1)
+    assert_true(entry_current.val)
     assert_eq(calls.val, 0)
     let model = active.model.unwrap()
     if variant == "false" || variant == "unknown" {
