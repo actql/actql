@@ -116,6 +116,38 @@ test('static read calls only the public Plan API with unchanged Host projection 
     format: 'sql', maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}}]);
 });
 
+test('static read preserves tighter caller bounds and unrelated Plan options', async () => {
+  const signal = new AbortController().signal;
+  const options = {format: 'sql', maxWireBytes: 1024, maxNodes: 32,
+    maxDepth: 4, signal, parameters: {n: 1}};
+  const before = {...options}, calls = [];
+  await readStaticPlan({plan(input, selected) {
+    calls.push(selected); return fixture();
+  }}, 'SELECT 1 AS n', options, ticket());
+  assert.deepEqual(calls, [before]);
+  assert.deepEqual(options, before);
+});
+
+test('static read caps larger caller bounds at the finite projection ceilings', async () => {
+  const calls = [];
+  await readStaticPlan({plan(input, options) {
+    calls.push(options); return fixture();
+  }}, 'SELECT 1 AS n', {maxWireBytes: 65537, maxNodes: 10001,
+    maxDepth: 65}, ticket());
+  assert.deepEqual(calls, [{maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]);
+});
+
+test('static read never coerces invalid bounds before existing SDK admission', async () => {
+  for (const value of [null, '4', NaN, Infinity, 1.5, -1, 0]) {
+    const options = {maxWireBytes: value, maxNodes: value, maxDepth: value};
+    const calls = [];
+    await readStaticPlan({plan(input, selected) {
+      calls.push(selected); return fixture();
+    }}, 'SELECT 1 AS n', options, ticket());
+    assert.deepEqual(calls, [options]);
+  }
+});
+
 test('a delayed old-scope Plan reply and old-scope 401 are both discarded', async () => {
   for (const failed of [false, true]) {
     const epoch = createReadEpoch(), original = epoch.capture();
@@ -200,5 +232,12 @@ test('public SDK facade admits original Plan and Run wire without submitting any
   assert.equal(model.logicalMapCid, view.logical_map.self_cid);
   assert.equal(model.providerIO, 0);
   assert.deepEqual(await readExistingRun(client, reference, ticket()), runView);
+  assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run']);
+  for (const name of ['maxWireBytes', 'maxNodes', 'maxDepth']) {
+    for (const value of ['4', NaN, Infinity, 1.5, -1, 0]) {
+      await assert.rejects(readStaticPlan(client, 'SELECT 1 AS n',
+        {format: 'sql', [name]: value}, ticket()), {code: 'InvalidClientPlanRequest'});
+    }
+  }
   assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run']);
 });

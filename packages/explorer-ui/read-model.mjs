@@ -92,6 +92,19 @@ export function createReadEpoch() {
 
 const projectionLimits = Object.freeze({maxWireBytes: 65536,
   maxNodes: 10000, maxDepth: 64});
+function boundedProjectionOptions(options) {
+  const bounded = {...options};
+  for (const [name, ceiling] of Object.entries(projectionLimits)) {
+    const requested = bounded[name];
+    // Never expand a tighter caller budget. Invalid values remain unchanged
+    // so the existing SDK, rather than this view adapter, admits or refuses them.
+    if (requested === undefined) bounded[name] = ceiling;
+    else if (Number.isSafeInteger(requested)) {
+      bounded[name] = Math.min(requested, ceiling);
+    }
+  }
+  return bounded;
+}
 async function currentRead(ticket, read) {
   ticket.assertCurrent();
   try {
@@ -108,7 +121,7 @@ async function currentRead(ticket, read) {
 export async function readStaticPlan(client, input, options, ticket) {
   return currentRead(ticket, async () => {
     if (typeof client.plan !== 'function') refuse('ExplorerCapabilityUnavailable');
-    const view = await client.plan(input, {...options, ...projectionLimits});
+    const view = await client.plan(input, boundedProjectionOptions(options));
     ticket.assertCurrent();
     return planReadModel(view);
   });

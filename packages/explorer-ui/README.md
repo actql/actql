@@ -22,7 +22,8 @@ never retries an operation.
 
 Presentation is bounded to 256 steps and 1024 ports; overflow refuses the whole
 view. It does not truncate a full map under its original CID. Static Plan/inspect
-requests preserve the existing 65536-byte / 10000-node / depth-64 limits. These
+requests cap reads at 65536 bytes / 10000 nodes / depth 64, preserve tighter
+caller limits, and leave invalid values to existing SDK admission. These
 are view limits, not changes to Host computation or resource ceilings.
 
 The future common UI uses the adopted React/Vite/TanStack/Tailwind/shadcn stack,
