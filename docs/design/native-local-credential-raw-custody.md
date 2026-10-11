@@ -26,6 +26,18 @@ the credential Owner additionally validates the original use, trusted lifetime
 and durable revocation. A live acknowledgement connection does not supply a
 post-closure Work token or recreate one from an identity-only reference.
 
+Original raw recovery has a separate borrowed read view of the same credential
+journal and private Store. The credential Owner shares its original-use,
+outcome, durable revocation and trusted-clock readers between live transport
+and this view. No HTTP client, secret installation, issuer or claim method is
+required to retrieve retained bytes. The Host still supplies authenticated
+original Run/grant/Store custody and current checked-target read; the reference
+and read-view binding are not authority. Query and return recheck current
+permission, the original use's lifetime and durable revocation after callbacks.
+Closing a Work does not create a replacement send fence. Missing use/response
+custody, denied disclosure or expired/revoked material refuses without repairing
+the original outcome or allocating another use.
+
 The private raw Store AES key is derived as HMAC-SHA-256 using the existing
 authenticated private epoch key. The UTF-8 message is the closed, value-preserving
 JSON object, in this order: `adoption_cid`, `domain`, `store_binding`.
