@@ -173,7 +173,9 @@ test "prefix check preserves bounded accounting and actual local ownership" {
   let short = check_local_program(source, { ..exact, max_work: used.work - 1, })
   match short {
     Err(BudgetExceeded | Wiring(BudgetExceeded)) => ()
-    Err(issue) => fail("unexpected exact-budget boundary: \{issue}"),
-    Ok(_) => fail("one-less work must refuse"),
+    Err(Order(1, PipelineOrder(issue))) =>
+      assert_eq(issue.kind, @pipeline.BudgetExceeded)
+    Err(_) => fail("one-less work must fail at the charged order boundary")
+    Ok(_) => fail("one-less work must refuse")
   }
 }
