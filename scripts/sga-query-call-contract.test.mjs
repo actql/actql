@@ -582,7 +582,11 @@ test('PIVOT scalar argument only changes its source grammar and lowering rules p
 
 test('integrated derived scopes preserve common contracts and both historical parent closures', () => {
   const before = read('scripts/fixtures/pre-derived-scope-stack-values-identities.json').grammar;
-  const after = read('spec/manifests/actql-grammar-0.1.json');
+  // Preserve the accepted derived-scope boundary; later scalar extensions
+  // are checked by the separate current manifest and expression contracts.
+  const retained = read('scripts/fixtures/adopted-derived-scope-stack-grammar.json');
+  assert.equal(retained.source_revision, 'ec9b3966a2126eecf8880e1fe1608fce26a5f3bc');
+  const after = retained.grammar;
   const {grammar_manifest_cid: bc, query_text_grammar_sha256: bg, query_text_rules_sha256: br, ...commonBefore} = before;
   const {grammar_manifest_cid: ac, query_text_grammar_sha256: ag, query_text_rules_sha256: ar, ...commonAfter} = after;
   assert.deepEqual(commonAfter, commonBefore);
