@@ -486,24 +486,12 @@ pub fn credential_signature_envelope_grant(
 fn use_body(
   credential_use : RemoteCredentialUse,
 ) -> Result[String, RemoteCredentialIssue] {
-  let writer = @encode.writer(4096, 12, 2) catch {
-    _ => return Err(InvalidCredentialGrant)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "grant_cid")
-    @encode.string_value(writer, credential_use.grant.grant_cid)
-    @encode.key(writer, "use_id")
-    @encode.string_value(writer, credential_use.use_id)
-    @encode.key(writer, "use_ordinal")
-    @encode.number_value(writer, credential_use.use_ordinal.to_double())
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-credential-use/0.1")
-    @encode.end_object(writer)
-    Ok(@encode.finish(writer))
-  } catch {
-    _ => Err(InvalidCredentialGrant)
-  }
+  credential_use_record_body(
+    credential_use.grant.grant_cid,
+    credential_use.use_id,
+    credential_use.use_ordinal,
+    "actql-remote-credential-use/0.1",
+  )
 }
 
 ///|

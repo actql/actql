@@ -8,6 +8,17 @@ type CoordinatorJournal
 type CoordinatorInitializationCleanup
 
 ///|
+pub fn[T] inspect_sqlite_source(
+  _library : @sqlite.Library,
+  _path : String,
+  _max_record_bytes : Int64,
+  _max_snapshot_bytes : Int64,
+  _inspect : (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue],
+) -> Result[T, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn CoordinatorInitializationCleanup::pending(
   _self : CoordinatorInitializationCleanup,
 ) -> Bool {

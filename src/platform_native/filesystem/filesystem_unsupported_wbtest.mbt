@@ -4,4 +4,5 @@ test "non-native targets reject the native filesystem capability" {
   guard open_root("") is Err(UnsupportedTarget) else {
     fail("non-native target accepted the native filesystem capability")
   }
+  assert_true(open_private_root("") is Err(UnsupportedTarget))
 }

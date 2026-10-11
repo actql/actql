@@ -19,6 +19,10 @@ fn retained_effect_preview_inputs(
   acquired_bodies : (String, String),
   dependencies : Array[@host.ClientEffectDependencyCapture],
   public_capture : @resident.ResidentEffectResultCapture,
+  original_work? : (
+    @client.NativeClientEffectSourceWork,
+    @client.NativeClientRunJournal,
+  )? = None,
 ) -> Unit raise {
   let owner = materials.prepared
   let retention = retained_compute_effect_retention()
@@ -160,7 +164,10 @@ fn retained_effect_preview_inputs(
       old="@ARTIFACT@",
       new=@host.client_effect_local_result_artifact_cid(artifact),
     )
-    .replace_all(old="@AUTHORITY@", new=retained_compute_cid("c"))
+    .replace_all(
+      old="@AUTHORITY@",
+      new=@host.client_request_authority_scope_cid(materials.request.unwrap()),
+    )
     .replace_all(old="@FIXTURE@", new=retained_compute_cid("d"))
   let draft = @publication.canonical_effect_preview_draft_wire(
     raw, 65536, 4096, 64,
@@ -168,6 +175,51 @@ fn retained_effect_preview_inputs(
   let (wire, preview) = @publication.author_effect_preview_semantic_wire(
     draft, run_cid, authoring_cid, 65536, 4096, 64,
   ).unwrap()
+  let (wire, preview) = if original_work is Some(_) {
+    let scope = @host.client_request_logical_scope(materials.request.unwrap())
+    // Semantic authoring leaves dispatch bindings unfinished. The original
+    // request Owner, not a transported seed or row position, supplies scope.
+    assert_true(
+      @effect.recover_effect_preview_apply_keys(
+        preview, scope, 1, 10000, 20000, 4096, 32, 8,
+      )
+      is Err(@effect.Mismatch(@effect.RowKeyMismatch(0, 0))),
+    )
+    let key = @effect.prepare_effect_dispatch_key(
+      scope,
+      @publication.effect_preview_semantic_identity(preview),
+      @publication.effect_preview_row_correlation_wire(preview, 0, 0).unwrap(),
+      4096,
+      32,
+      8,
+    ).unwrap()
+    let completed = @publication.complete_effect_preview_dispatch_keys(
+      wire,
+      [[@effect.effect_dispatch_key_cid(key)]],
+      run_cid,
+      authoring_cid,
+      65536,
+      4096,
+      64,
+    ).unwrap()
+    let admitted = @effect.admit_effect_preview_apply_identity(
+      completed,
+      run_cid,
+      authoring_cid,
+      scope,
+      [[key]],
+      65536,
+      4096,
+      64,
+    ).unwrap()
+    assert_eq(
+      @publication.effect_preview_semantic_identity(admitted),
+      @publication.effect_preview_semantic_identity(preview),
+    )
+    (completed, admitted)
+  } else {
+    (wire, preview)
+  }
   let result = @publication.admit_publication_contract(
     "result_artifact",
     @host.client_effect_local_result_artifact_json(artifact),
@@ -182,9 +234,14 @@ fn retained_effect_preview_inputs(
     materials, inputs, admitted_source, local_manifest, artifact, imported, acquired,
     acquired_bodies, dependencies,
   )
-  retained_effect_source_store(
-    consumer, materials, inputs, artifact, admitted_source, local_result, stop_custodies,
-  )
+  // Source custody has independent physical Store/cleanup acceptance.
+  // Keep that fault exercise in its own Run; review retains the same actual
+  // source/dependency facts through the complete computation capture Owner.
+  if original_work is None {
+    retained_effect_source_store(
+      consumer, materials, inputs, artifact, admitted_source, local_result, stop_custodies,
+    )
+  }
   assert_true(
     @publication.captured_effect_source_matches_result_facts(
       admitted_source, result, "r",
@@ -252,8 +309,24 @@ fn retained_effect_preview_inputs(
     .unwrap()
   assert_true(@strategy.captured_effect_plan_proof_matches(proof, captured, 0))
   retained_effect_complete_capture(
-    consumer, materials, inputs, invocation, captured, proof, admitted_source, local_source,
-    inventory, authoring, public_capture,
+    consumer,
+    materials,
+    inputs,
+    invocation,
+    captured,
+    proof,
+    admitted_source,
+    local_source,
+    inventory,
+    authoring,
+    public_capture,
+    review_retention=original_work is Some(_),
+    private_preview=if original_work is Some(_) {
+      Some((wire, authoring_cid))
+    } else {
+      None
+    },
+    original_work~,
   )
   public_capture.output.cancel()
   assert_true(

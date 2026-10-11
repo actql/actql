@@ -5,6 +5,12 @@ Client transport executable. The executable uses HTTPS/mTLS and the existing
 Client–Host protocol. It does not embed a Local execution engine. Connecting to
 a Local Host over HTTPS is remote transport, not embedded Local execution.
 
+The current source candidate also has an explicit `--mode local` preparation
+entry. Its `check` response is `kind: prepared`, not a public diagnostic report
+or Run admission. Source execution, durable CLI recovery, Checkpoint resolution
+and installed Local runtime acceptance are still unfinished. The preparation
+entry does not make this Remote release a completed standard Local CLI.
+
 This release uses `actql@0.0.2`; the existing `0.0.1` name placeholder is not
 overwritten. Package version and protocol version are independent. Node
 22.22.0 or newer starts the npm launcher; the Native executable itself is

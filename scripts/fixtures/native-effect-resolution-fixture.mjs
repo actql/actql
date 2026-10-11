@@ -12,9 +12,11 @@ const fixed = value => 'sha256:' + value.repeat(64);
 
 // Independent, side-effect-free approval fixture. Private signing keys remain
 // in memory; no real reviewer role, Provider send or deployment is installed.
-export function nativeResolutionFixture(checkpointWire) {
-  const reviewer = generateKeyPairSync('ed25519');
-  const host = generateKeyPairSync('ed25519');
+export function nativeResolutionFixture(checkpointWire, {
+  decision = 'approved', resolutionId = 'native-original-resolution',
+  reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519'),
+} = {}) {
+  if (!['approved', 'rejected'].includes(decision)) throw new Error('Invalid fixture decision');
   const body = {
     version: 'actql-execution-checkpoint/0.1',
     checkpoint_id: 'native-resolution-checkpoint',
@@ -52,13 +54,13 @@ export function nativeResolutionFixture(checkpointWire) {
     compatibility_approval: {...signedApproval, attestation_cid: cid(signedApproval)},
   };
   const resolution = {
-    version: 'actql-checkpoint-resolution/0.1', resolution_id: 'native-original-resolution',
+    version: 'actql-checkpoint-resolution/0.1', resolution_id: resolutionId,
     checkpoint_id: checkpoint.checkpoint_id, checkpoint_cid: checkpoint.checkpoint_cid,
     run_id: checkpoint.run_id, run_definition_cid: checkpoint.run_definition_cid,
-    decision: 'approved', actor: 'native-reviewer', decided_at: timestamp,
+    decision, actor: 'native-reviewer', decided_at: timestamp,
     required_artifact_cid: checkpoint.required_artifact.artifact_cid,
     review_projection_cid: checkpoint.review_projection_cid,
-    approval_evidence_cid: cid(evidence),
+    ...(decision === 'approved' ? {approval_evidence_cid: cid(evidence)} : {}),
   };
   const signed = {...resolution, proof: proof(resolution, 'reviewer-key')};
   const resolutionWire = JSON.stringify({...signed, resolution_cid: cid(signed)});
@@ -75,7 +77,7 @@ export function nativeResolutionFixture(checkpointWire) {
     authorization_evidence: authorization, authorization_evidence_cid: cid(authorization),
     verified_by_policy_cid: fixed('7'), verified_reviewer_id: 'native-reviewer',
     authorization_context_cid: fixed('6'), requirements, verified_at: timestamp,
-    approval_evidence: evidence,
+    ...(decision === 'approved' ? {approval_evidence: evidence} : {}),
   };
   const signature = sign(null, Buffer.from(cid(wrapper)), host.privateKey).toString('base64');
   const attested = {...wrapper,

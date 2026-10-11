@@ -1,0 +1,15 @@
+{
+  "version": "actql-config/0.1",
+  "native": {
+    "run": {
+      "namespace_id": "local-example",
+      "store_name": "results",
+      "store_authority_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "store_capacity_bytes": 1048576,
+      "store_objects": 8,
+      "store_record_bytes": 1048576,
+      "result_payload_bytes": 65536,
+      "retention_policy_wire": "{\"available_until\":\"2099-01-01T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"effective_data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"effective_retention_policy_cid\":\"sha256:eaa2bdcfc3048331c4cf99cce2f6a4fcd5d8baa7c56693df7940995abbc89027\",\"extension_ceiling_at\":\"2099-01-02T00:00:00.000Z\",\"metadata_delete_by\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"retention_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"version\":\"actql-result-retention-policy/0.1\"}"
+    }
+  }
+}

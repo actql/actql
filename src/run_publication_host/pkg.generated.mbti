@@ -158,6 +158,8 @@ pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, Str
 
 pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, ClientEffectLocalIdentityIssue]
 
+pub fn claim_client_model_read_preparation(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[ClientModelReadConsumer, ClientModelReadPreparationIssue]
+
 pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn client_cancellation_identity_relation(ClientCancellationIdentity, ClientCancellationIdentity) -> ClientCancellationIdentityRelation
@@ -189,6 +191,8 @@ pub fn client_compiled_run_matches_effect(ClientCompiledRun, PreparedClientEffec
 pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_compiled_run_result_names(ClientCompiledRun) -> Array[String]
 
 pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClientProgram, Int) -> Result[ClientResultTransformation?, ClientCompiledRunIssue]
 
@@ -434,6 +438,8 @@ pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_model_read_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
+pub fn client_model_read_consumer_available(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
+
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -563,6 +569,8 @@ pub fn client_retained_task_route_physical(ClientRetainedTaskRoute) -> ClientTra
 pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> @remote_site_protocol.DispatchRequest
 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
+
+pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLimits
 
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
@@ -706,9 +714,13 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
+pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
+
 pub fn handoff_client_model_read(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelReadPreparationIssue]
+
+pub fn handoff_client_model_read_consumer_input_capacity(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
 pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
@@ -1090,6 +1102,8 @@ pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
 
+pub fn prepared_client_publication_policy_bodies(PreparedClientProgram, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
+
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
@@ -1140,6 +1154,8 @@ pub fn restore_prepared_client_local_normalization(PreparedClientProgram, Client
 
 pub fn settle_client_model_read(ClientModelReadPreparation, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn settle_client_model_read_consumer(ClientModelReadConsumer, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
+
 pub fn source_free_caller_input_intent_cid() -> String
 
 pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
@@ -1155,6 +1171,8 @@ pub fn start_client_result_transformation(ClientResultTransformation, @execution
 pub fn start_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 pub fn stop_client_model_read(ClientModelReadPreparation) -> Unit
+
+pub fn stop_client_model_read_consumer(ClientModelReadConsumer) -> Unit
 
 pub fn submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String
 
@@ -1822,6 +1840,8 @@ pub(all) enum ClientModelInputCapacityIssue {
   ForeignInput
   Read(ClientModelReadPreparationIssue)
 } derive(Eq, @debug.Debug)
+
+type ClientModelReadConsumer
 
 type ClientModelReadPreparation
 
