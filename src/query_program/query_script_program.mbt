@@ -348,6 +348,7 @@ pub fn compile_query_script(
       value_tables: Map([]),
     }
     let root = @query.script_query(script)
+    let has_bindings = @query.query_binding_count(root) > 0
     let reserved = context.inputs.map(input => input.name)
     let (known, graphs) = lower_script_bindings(
       construction,
@@ -603,7 +604,7 @@ pub fn compile_query_script(
     }
     match admit_query_source(source, document, context, limits) {
       Ok(program) => {
-        if @query.query_binding_count(root) > 0 {
+        if has_bindings {
           match prepare_query_bindings(program, context, limits) {
             Ok(_) => ()
             Err(issue) => return Err(BindingPreparation(issue))
