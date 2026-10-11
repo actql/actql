@@ -171,6 +171,34 @@ pub fn client_values_host_compile_tasks(
 }
 
 ///|
+#export_name("clientValuesHostStaticPlanView")
+pub fn client_values_host_static_plan_view(
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientValuesCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @host.ClientInteractivePlanIssue] {
+  @host.client_values_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientValuesHostTaskStaticPlanView")
+pub fn client_values_host_task_static_plan_view(
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientTaskCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @host.ClientInteractivePlanIssue] {
+  @host.client_task_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientValuesHostTaskPlanWire")
 pub fn client_values_host_task_plan_wire(
   value : @host.ClientTaskCompilation,
