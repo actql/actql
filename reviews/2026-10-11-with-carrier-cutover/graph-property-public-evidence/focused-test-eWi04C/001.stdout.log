@@ -1,0 +1,128 @@
+TAP version 13
+# Public query passed: harness-control/acquired-data-empty-retains-schema
+# Subtest: acquired WITH empty Result still checks nullable type and column order
+ok 1 - acquired WITH empty Result still checks nullable type and column order
+  ---
+  duration_ms: 11.384792
+  type: 'test'
+  ...
+# Subtest: acquired WITH expectations detect lost duplicates and NULL values
+ok 2 - acquired WITH expectations detect lost duplicates and NULL values
+  ---
+  duration_ms: 1.6285
+  type: 'test'
+  ...
+# Subtest: acquired WITH detects repeated capture and I/O during Result reads
+ok 3 - acquired WITH detects repeated capture and I/O during Result reads
+  ---
+  duration_ms: 2.563792
+  type: 'test'
+  ...
+# Subtest: acquired Graph TRAIL expectations preserve parallel-edge multiplicity
+ok 4 - acquired Graph TRAIL expectations preserve parallel-edge multiplicity
+  ---
+  duration_ms: 1.568625
+  type: 'test'
+  ...
+# Subtest: a late WITH rejection must still have zero provider I/O and Run admission
+ok 5 - a late WITH rejection must still have zero provider I/O and Run admission
+  ---
+  duration_ms: 1.815125
+  type: 'test'
+  ...
+# Subtest: public source acceptance checks epoch-bound ready and typed refusal outcomes
+ok 6 - public source acceptance checks epoch-bound ready and typed refusal outcomes
+  ---
+  duration_ms: 2.331334
+  type: 'test'
+  ...
+# Subtest: independent member control derives before DISTINCT and sorts only its evaluated output
+ok 7 - independent member control derives before DISTINCT and sorts only its evaluated output
+  ---
+  duration_ms: 3.352292
+  type: 'test'
+  ...
+# Subtest: receiver collisions reverse the expected order and NULL and multiplicity remain explicit
+ok 8 - receiver collisions reverse the expected order and NULL and multiplicity remain explicit
+  ---
+  duration_ms: 3.073792
+  type: 'test'
+  ...
+# Subtest: member fixtures reach the existing selected and normal packed entrances
+ok 9 - member fixtures reach the existing selected and normal packed entrances
+  ---
+  duration_ms: 2.858667
+  type: 'test'
+  ...
+# Subtest: DISTINCT receiver controls pin numeric outputs and an independent invalid property
+ok 10 - DISTINCT receiver controls pin numeric outputs and an independent invalid property
+  ---
+  duration_ms: 2.110542
+  type: 'test'
+  ...
+# Subtest: DISTINCT receiver cases participate in normal registration and the bounded existing driver
+ok 11 - DISTINCT receiver cases participate in normal registration and the bounded existing driver
+  ---
+  duration_ms: 11.658834
+  type: 'test'
+  ...
+# Subtest: WITH Graph/property retains complete independent acquired-data inventory
+ok 12 - WITH Graph/property retains complete independent acquired-data inventory
+  ---
+  duration_ms: 5.876291
+  type: 'test'
+  ...
+# Subtest: WITH Graph/property retains complete independent order-property inventory
+ok 13 - WITH Graph/property retains complete independent order-property inventory
+  ---
+  duration_ms: 4.485334
+  type: 'test'
+  ...
+# Subtest: WITH Graph/property retains complete independent analytic-property inventory
+ok 14 - WITH Graph/property retains complete independent analytic-property inventory
+  ---
+  duration_ms: 4.575083
+  type: 'test'
+  ...
+# Subtest: WITH Graph/property retains complete independent distinct-order-member inventory
+ok 15 - WITH Graph/property retains complete independent distinct-order-member inventory
+  ---
+  duration_ms: 5.280417
+  type: 'test'
+  ...
+# Subtest: WITH Graph/property retains complete independent distinct-order-receiver inventory
+ok 16 - WITH Graph/property retains complete independent distinct-order-receiver inventory
+  ---
+  duration_ms: 2.326292
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 181.887708
+ACTQL_TEST_CASE {"name":"acquired WITH empty Result still checks nullable type and column order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"acquired WITH expectations detect lost duplicates and NULL values","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"acquired WITH detects repeated capture and I/O during Result reads","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"acquired Graph TRAIL expectations preserve parallel-edge multiplicity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"a late WITH rejection must still have zero provider I/O and Run admission","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"public source acceptance checks epoch-bound ready and typed refusal outcomes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent member control derives before DISTINCT and sorts only its evaluated output","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"receiver collisions reverse the expected order and NULL and multiplicity remain explicit","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"member fixtures reach the existing selected and normal packed entrances","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"DISTINCT receiver controls pin numeric outputs and an independent invalid property","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-receiver-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"DISTINCT receiver cases participate in normal registration and the bounded existing driver","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-receiver-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph/property retains complete independent acquired-data inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-property-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph/property retains complete independent order-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-property-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph/property retains complete independent analytic-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-property-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph/property retains complete independent distinct-order-member inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-property-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph/property retains complete independent distinct-order-receiver inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-property-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":6,"failed":0,"passed":6,"cancelled":0,"skipped":0,"todo":0,"topLevel":6,"suites":0},"duration_ms":36.464334,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/acquired-data-acceptance.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":28.467166,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-member-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":21.233375,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-order-receiver-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":40.881333,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-property-public-fixtures.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":16,"failed":0,"passed":16,"cancelled":0,"skipped":0,"todo":0,"topLevel":16,"suites":0},"duration_ms":181.887708}

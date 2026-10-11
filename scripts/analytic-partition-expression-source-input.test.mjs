@@ -36,7 +36,15 @@ test('partition expressions enter the ordinary packed corpus and existing narrow
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }
   assert.equal(fixture.split('analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses').length - 1, 1);
-  assert.match(fixture, /of publicQueryProfiles\(scopeInputs\)\) \{\s*const scopeInputs = profileInputs;/);
+  const profileStart = fixture.indexOf('of publicQueryProfiles(scopeInputs)) {');
+  assert.ok(profileStart >= 0);
+  const cohortStart = fixture.indexOf('const cohorts =', profileStart);
+  assert.ok(cohortStart > profileStart);
+  // Tail filtering and completion inventory may precede the binding. The
+  // selected cohort must still consume this immutable profile's own inputs.
+  const declarations = fixture.slice(profileStart, cohortStart);
+  assert.match(declarations, /\bconst scopeInputs = profileInputs;/);
+  assert.equal((declarations.match(/\bconst scopeInputs =/g) ?? []).length, 1);
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_ANALYTIC_PARTITION_EXPRESSION_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/analytic-partition-expression-source-input.mjs', 'analytic-partition-expression-source-input.mjs']"));
   const afterAcceptance = driver.slice(driver.indexOf("if (process.argv.includes('--having-object-property-only')) return;"));

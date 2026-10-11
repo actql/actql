@@ -28,6 +28,22 @@ pub fn handoff_client_model_read_input_capacity(
   if !client_model_read_origin_matches(value, compiled, definition, plan) {
     return Err(Read(ForeignRun))
   }
+  match check_client_model_input_scope(compiled, plan, scope, rows) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  handoff_client_model_read_capacity(
+    value, compiled, definition, plan, retained_bytes, execution_bytes,
+  ).map_err(issue => Read(issue))
+}
+
+///|
+fn check_client_model_input_scope(
+  compiled : ClientCompiledRun,
+  plan : ClientInferPlanGraph,
+  scope : ClientInferCallScope,
+  rows : @execution.PreparedInferRows,
+) -> Result[Unit, ClientModelInputCapacityIssue] {
   if !physical_equal(scope.owner, compiled.owner) ||
     !physical_equal(scope.plan, plan) {
     return Err(ForeignCallScope)
@@ -38,7 +54,5 @@ pub fn handoff_client_model_read_input_capacity(
   if !client_infer_call_scope_matches_rows(scope, rows, plan.request_cid) {
     return Err(ForeignInput)
   }
-  handoff_client_model_read_capacity(
-    value, compiled, definition, plan, retained_bytes, execution_bytes,
-  ).map_err(issue => Read(issue))
+  Ok(())
 }

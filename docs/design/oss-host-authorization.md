@@ -167,8 +167,12 @@ is configuration discovery, not proof that the file is trusted. The Local Host
 must identify the selected file/account to the operator, and its documented
 trust boundary must make clear that execution of an untrusted repository does
 not authorize that repository to supply elevated grants or trusted signer keys.
-The exact trusted-config bootstrap mechanism remains to be designed; this draft
-does not add an undocumented flag or change existing discovery defaults.
+The adopted Native Local bootstrap uses explicit operator adoption into private
+Host state, rather than discovery as trust. Its initialization, recovery and
+identity requirements are specified in
+[Native Local Host binding](native-local-host-binding.md). Adoption is not
+implemented merely by selecting a file; existing discovery defaults do not
+silently confer authority.
 
 Configuration identity and applicability participate in authorization evidence,
 not Program Definition identity. Resume rechecks applicable current authority;
@@ -491,14 +495,19 @@ dependency is introduced. Store construction and key setup remain Host work.
 
 ## Pending product decisions
 
-Select trusted local configuration bootstrap, concrete config schema,
-immediate decision envelope and technical failure mapping before implementation.
+Explicit trusted Local configuration adoption and a distinct Direct Local
+credential scope are now adopted; see
+[Native Local Host binding](native-local-host-binding.md). Concrete config
+schema, immediate decision envelope and technical failure mapping must follow
+those bindings before their public implementation is considered complete.
 All-target scope, explicit exclusion, conflict rejection and no-match deny are
 agreed semantics, no longer pending product choices. Initial grants are not
 inferred from the convenience examples above: a documented initial profile may
-be written once with durable adoption evidence. Specify its exact contents,
-trusted freshness detection, store/config recovery protocol and containment
-checks before implementation. Do not claim those mechanisms already exist.
+be written once with durable adoption evidence. Publish its exact contents and
+CID, and implement the adopted freshness, store/config recovery and containment
+checks before shipping it. Empty authority is valid and Provider rights remain
+explicit. The adoption decision is not evidence that those mechanisms already
+exist.
 
 ## Acceptance checklist
 

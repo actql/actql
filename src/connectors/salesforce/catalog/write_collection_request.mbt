@@ -65,7 +65,7 @@ pub fn write_collection_request_body(value : WriteCollectionRequest) -> String {
 pub fn write_collection_request_org_id(
   value : WriteCollectionRequest,
 ) -> String {
-  value.projection.binding.org_id
+  catalog_binding_org_id(value.projection.binding)
 }
 
 ///|

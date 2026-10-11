@@ -15,7 +15,7 @@ PROGRAM = {'version': 'actql/0.1', 'id': 'python.local.structured', 'stages': [
                {'select': ['value'], 'as': 'selected'}],
      'results': {'rows': {'from': 'selected', 'fields': ['value']}}}],
     'results': {'answer': {'from': {'stage': 'compute', 'result': 'rows'}}}}
-AQL = 'DATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer'
+AQL = 'WITH seed AS (SELECT 1 AS n) FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer'
 
 
 def encode(value):

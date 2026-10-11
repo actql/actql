@@ -105,12 +105,30 @@ is checked together with the original preparation, exact bytes and Run CID.
 There is no public wire-to-proof constructor. The wire accessor does not confer
 trust on another string.
 
-The proof belongs to its caller and any admitted material custody. The original
-preparation has no reverse index of issued Runs or material bytes. The private
+The proof belongs to its caller and any admitted material custody. Issuance
+adds no reverse index of issued Runs or material bytes to the preparation. The private
 issuer identity retains no proof or preparation, so dropping the last caller or
 custody reference makes those per-Run bytes reclaimable by the runtime. Repeated
 issuance can return another valid proof; wire equality does not acquire proof.
 This adds neither a Run count limit nor a new resource reservation Owner.
+
+For an in-process original Work, `bind_prepared_client_effect_original_materials`
+connects that existing opaque proof to the same checked preparation and physical
+compilation. The proof privately retains its issuing compilation; this is not a
+new field in materials wire or a changed CID preimage. The connection verifies
+the nominal issuer, original inventory, Run definition, request, profile and
+exact existing materials bytes before installing the preparation's first live
+material custody. It neither prepares nor recompiles another Owner.
+
+An already-bound preparation reuses only the same exact custody. A different
+Run, request or physical compilation, even with equal wire bytes, is refused;
+corrupted retained custody is not repaired. This binding does not issue a
+replacement normalization journal or refresh the original lifetime. The
+existing bounded materials encoder bounds the temporary exact-byte comparison;
+the retained custody borrows the issued original bytes and journal. Durable
+capture, current authorization, cancellation, work-start claims, settlement of
+unknown Effects and physical cleanup remain independent responsibilities of
+their existing Owners. Material binding grants none of those operations.
 
 For a Run compiled without the finite profile described below, journal-bearing
 Effect material admission requires this original projection. It verifies exact

@@ -32,6 +32,18 @@ pub fn open_store(
 }
 
 ///|
+pub fn open_existing_store(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+) -> Result[Store, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::begin_payload(
   _self : Store,
   _request : @payload.PublicationPayloadRequest,
@@ -386,6 +398,14 @@ pub fn Store::inspect_result_delivery(
 }
 
 ///|
+pub fn Store::lookup_result_delivery(
+  _self : Store,
+  _scope : @publication.DeliveryAttemptLookupScope,
+) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::reclaim_payload(
   _self : Store,
   _material_generation_cid : String,
@@ -425,4 +445,11 @@ pub fn Store::close(_self : Store) -> Result[Bool, NativePublicationStoreIssue] 
 fn retain_native_imports() -> Unit {
   ignore(@sha.hasher())
   ignore(@utf8.encode(""))
+}
+
+///|
+pub fn Store::custody_location(
+  _self : Store,
+) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
 }

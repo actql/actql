@@ -4,6 +4,7 @@ pub(all) enum NativeResultAccessIssue {
   InvalidProgress
   AccessDenied
   ResultUnavailable
+  LookupUnavailable
   Store(@store.NativePublicationStoreIssue)
   Publication(@publication.DeliveryIssuanceIssue)
 }
@@ -56,6 +57,7 @@ struct NativeResultAccessAuthority {
   authorize_request : (NativeResultAccessRequest) -> Bool
   admit_read : (NativeResultReadFacts) -> NativeResultReadAdmission?
   authorize_delivery : (NativeResultDeliveryAuthorization) -> Bool
+  authorize_lookup : ((@publication.DeliveryAttemptLookupScope) -> Bool)?
 }
 
 ///|
@@ -146,8 +148,9 @@ pub fn install_native_result_access_authority(
   authorize_request : (NativeResultAccessRequest) -> Bool,
   admit_read : (NativeResultReadFacts) -> NativeResultReadAdmission?,
   authorize_delivery : (NativeResultDeliveryAuthorization) -> Bool,
+  authorize_lookup? : ((@publication.DeliveryAttemptLookupScope) -> Bool)? = None,
 ) -> NativeResultAccessAuthority {
-  { authorize_request, admit_read, authorize_delivery, }
+  { authorize_request, admit_read, authorize_delivery, authorize_lookup, }
 }
 
 ///|
@@ -161,11 +164,16 @@ pub fn install_native_result_access_service(
   max_row_bytes : Int,
   input_chunk_bytes : Int,
 ) -> Result[NativeResultAccessService, NativeResultAccessIssue] {
+  // These are the existing durable row-framer's supported limits. Reject
+  // incompatible service settings before issuing a grant or read attempt.
   if max_wire_bytes < 1 ||
     max_nodes < 1 ||
     max_depth < 1 ||
+    max_depth > 64 ||
     max_row_bytes < 1 ||
-    input_chunk_bytes < 1 {
+    max_row_bytes > 16777216 ||
+    input_chunk_bytes < 1 ||
+    input_chunk_bytes > 16777216 {
     return Err(InvalidRequest)
   }
   Ok({
@@ -190,6 +198,15 @@ fn observed_at(
   } else {
     Ok(value)
   }
+}
+
+///|
+/// Original physical custody only, not a grant or a current read permit.
+/// An original-Run adapter uses it to reject a substituted installed Store.
+pub fn NativeResultAccessService::custody_location(
+  self : NativeResultAccessService,
+) -> Result[(String, UInt64, UInt64), NativeResultAccessIssue] {
+  self.store.custody_location().map_err(issue => Store(issue))
 }
 
 ///|

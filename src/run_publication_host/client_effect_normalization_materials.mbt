@@ -9,9 +9,10 @@ let original_effect_materials_issuer : Ref[Unit] = Ref(())
 struct ClientEffectIssuedNormalizationMaterials {
   issuer : Ref[Unit]
   original : ClientEffectNormalization
+  compilation : ClientEffectCompilation
   run_cid : String
   wire : String
-  normalization_profile : Bool
+  normalization_profile : ClientEffectNormalizationInventory?
 }
 
 ///|
@@ -42,6 +43,7 @@ pub fn issue_prepared_client_effect_normalization_materials(
   Ok({
     issuer: original_effect_materials_issuer,
     original,
+    compilation: allowed.compilation,
     run_cid,
     wire,
     normalization_profile: allowed.compilation.normalization_profile,
@@ -63,6 +65,11 @@ fn original_effect_materials_match(
 ) -> Bool {
   issued.wire == wire &&
   issued.run_cid == run_cid &&
+  physical_equal(issued.compilation.owner, issued.original.owner) &&
+  same_client_effect_normalization_profile(
+    issued.normalization_profile,
+    issued.compilation.normalization_profile,
+  ) &&
   physical_equal(issued.issuer, original_effect_materials_issuer) &&
   prepared_client_effect_normalization_evidence(
     issued.original.owner,
@@ -123,22 +130,34 @@ pub fn restore_client_effect_run_normalization(
     None =>
       // Generic wire cannot select the legacy path. The private compilation
       // profile was admitted through the saved invocation and exact Run CID.
-      if !materials.compilation.normalization_profile {
+      if materials.compilation.normalization_profile is None {
         return Err(UnverifiedOriginalMaterials)
       }
   }
   // The retained original checker inventory, not wire shape or execution
   // success, supplies the applicability proof. Missing/unsupported proof
   // remains a refusal even if the supplied journal has the fixed empty CID.
-  match @checked.effect_program_completion_free_inventory(prepared.candidate) {
-    Ok(inventory) =>
-      if !@checked.completion_free_inventory_matches(
-          inventory,
-          prepared.candidate,
-        ) {
+  let inventory = match materials.compilation.normalization_profile {
+    Some(inventory) => {
+      if !client_effect_normalization_inventory_matches(inventory, prepared) {
         return Err(ForeignPreparation)
       }
-    Err(issue) => return Err(Inventory(issue))
+      inventory
+    }
+    None => {
+      guard custody.issued is Some(issued) &&
+        issued.normalization_profile is None &&
+        issued.original.inventory is MappedCreate(_) else {
+        return Err(UnverifiedOriginalMaterials)
+      }
+      // Existing nominal create material custody on the legacy Template is
+      // retained. It does not authorize update or unverified wire restoration.
+      match checked_client_effect_normalization_inventory(prepared) {
+        Ok(MappedCreate(inventory)) => MappedCreate(inventory)
+        Ok(_) => return Err(ForeignCatalog)
+        Err(issue) => return Err(issue)
+      }
+    }
   }
   let journal = match
     @publication.admit_run_evidence_value(
@@ -154,7 +173,7 @@ pub fn restore_client_effect_run_normalization(
   // Independently frozen catalog/journal preimages are published alongside
   // the issuer. Never construct a replacement journal during restoration.
   if @publication.run_evidence_value_identity(journal) !=
-    "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087" {
+    client_effect_normalization_inventory_journal_cid(inventory) {
     return Err(SubstitutedJournal)
   }
   Ok(journal)
@@ -179,6 +198,7 @@ pub fn client_effect_normalization_materials_cid(
 /// Run's bound compiler profile are required before returning review custody.
 fn admit_completion_free_material_journal(
   wire : String,
+  inventory : ClientEffectNormalizationInventory,
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
   let journal = match
     @publication.admit_run_evidence_value(
@@ -188,7 +208,7 @@ fn admit_completion_free_material_journal(
     Err(issue) => return Err(Evidence(issue))
   }
   if @publication.run_evidence_value_identity(journal) !=
-    "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087" ||
+    client_effect_normalization_inventory_journal_cid(inventory) ||
     wire != @publication.run_evidence_value_json(journal) {
     return Err(SubstitutedJournal)
   }

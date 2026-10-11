@@ -13,6 +13,43 @@ pub fn prepared_client_effect_publication_policy_bodies(
   let program = @checked.effect_program_static_checked_computation(
     prepared_client_effect_computation_candidate(value),
   )
+  checked_client_publication_policy_bodies(
+    program, cid, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Original checked Effect-free Result policy bodies, including their exact
+/// Catalog references. This does not acquire data, reprepare a restored Run,
+/// authorize read/egress or replace unknown provenance with public.
+pub fn prepared_client_publication_policy_bodies(
+  value : PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
+  guard prepared_client_publication_data_policy_cid(value) is Some(cid) else {
+    return Err(MissingDependency)
+  }
+  checked_client_publication_policy_bodies(
+    @strategy.graph_program(value.graph),
+    cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    retain_catalog=true,
+  )
+}
+
+///|
+fn checked_client_publication_policy_bodies(
+  program : @checked.CheckedProgram,
+  cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  retain_catalog? : Bool = false,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let mut remaining = Int::min(max_bytes, 16777216)
   let mut work = Int::min(max_nodes, 4096)
   let count = @checked.unit_count(program)
@@ -74,6 +111,9 @@ pub fn prepared_client_effect_publication_policy_bodies(
   if sources > work {
     return Err(BudgetExceeded)
   }
+  if retain_catalog {
+    work -= sources
+  }
   for index in 0..<sources {
     let source = @checked.source_execution_subject(
       @checked.publication_policy_source_at(policy, index).unwrap(),
@@ -84,6 +124,109 @@ pub fn prepared_client_effect_publication_policy_bodies(
       }) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
+    }
+    if retain_catalog {
+      // The existing policy codec distinguishes whole-body checked identities
+      // from self-excluding Catalog identities. Never rehash a Catalog body as
+      // a checked policy or resolve these references from current Host input.
+      let source_policy = @environment.source_view_data_policy(
+        source.response_policy.authoritative,
+      )
+      let references = [
+        (
+          "data_policy",
+          @environment.contract_identity(
+            @environment.data_policy_envelope(source_policy),
+          ).2,
+        ),
+        (
+          "source_view_contract",
+          @acquisition.selected_cid(source.response_policy.source),
+        ),
+      ]
+      if references.length() > work {
+        return Err(BudgetExceeded)
+      }
+      work -= references.length()
+      for (kind, identity) in references {
+        if seen.contains(identity) {
+          guard bodies.iter().find_first(body => body.1 == identity)
+            is Some(body) &&
+            body.0 == kind else {
+            return Err(ForeignBody)
+          }
+          continue
+        }
+        let original = match
+          @checked.checked_local_catalog_dependency_body(
+            program,
+            source.stage,
+            kind,
+            identity,
+            remaining,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        let body = @checked.checked_local_dependency_body_json(original)
+        match
+          @publication.admit_captured_effect_dependency_body(
+            kind,
+            Some(identity),
+            body,
+            remaining,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(_) => ()
+          Err(_) => return Err(ForeignBody)
+        }
+        remaining -= @utf8.encode(body).length()
+        bodies.push((kind, identity, body))
+        seen[identity] = true
+      }
+    }
+  }
+  if retain_catalog {
+    let admitted : Array[@publication.CapturedEffectDependencyBody] = []
+    for (kind, identity, wire) in bodies {
+      match
+        @publication.admit_captured_effect_dependency_body(
+          kind,
+          Some(identity),
+          wire,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(body) => admitted.push(body)
+        Err(_) => return Err(ForeignBody)
+      }
+    }
+    match
+      @publication.validate_captured_effect_dependency_bodies(
+        admitted,
+        [admitted[0]],
+        0,
+        {
+          max_entries: Int::min(max_nodes, 4096),
+          max_total_bytes: Int::min(max_bytes, 16777216),
+          max_depth,
+          max_references: Int::min(max_nodes, 4096),
+        },
+      ) {
+      Ok(_) => ()
+      Err(@publication.MissingDependency) => return Err(MissingDependency)
+      Err(
+        @publication.InvalidLimits
+        | @publication.EntryLimit
+        | @publication.ByteLimit
+        | @publication.ReferenceLimit
+        | @publication.DepthLimit
+      ) => return Err(BudgetExceeded)
+      Err(_) => return Err(ForeignBody)
     }
   }
   Ok(bodies)

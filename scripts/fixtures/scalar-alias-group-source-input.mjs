@@ -28,8 +28,8 @@ export const scalarAliasGroupProgram = {version: 'actql/0.1',
 const expected = [{width: 1, total: 3}, {width: 2, total: 3},
   {width: null, total: null}];
 const columns = ['width', 'total'].map(name => ({name, contract: nullableNumber}));
-const prefix = 'DATA texts = SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 '
-  + 'THEN @b ELSE @c END AS name FROM records WHERE id > 0; ';
+const prefix = 'WITH texts AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 '
+  + 'THEN @b ELSE @c END AS name FROM records WHERE id > 0) ';
 const sql = 'SELECT CHAR_LENGTH(name) AS width, COUNT(*) + CHARACTER_LENGTH(texts.name) '
   + 'AS total FROM texts GROUP BY CHAR_LENGTH(name) ORDER BY width NULLS LAST';
 const success = (name, text, extra = {}) => ({name: 'group-ordinal-scalar-alias-' + name,

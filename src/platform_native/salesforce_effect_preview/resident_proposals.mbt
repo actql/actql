@@ -20,10 +20,191 @@ pub(all) enum NativeResidentEffectTargetIssue {
 
 ///|
 /// Project the actual retained consumer Result through its checked mapping,
-/// prepare exact Provider requests, and read the physical targets under separate
-/// current observe grants. The caller retains the inputs and every credential
-/// use on failure; partial observations are not a complete Preview or a write
-/// permit. It must not repeat Source/Compute or silently retry consumed reads.
+/// prepare exact Provider requests and pass them to a bounded receiver. This
+/// reads retained data only and provides no grant or Provider entry permission.
+/// Receivers must retain physical uses on partial failure independently of this
+/// export. Local and Remote reuse the same Mapping, proposal and request Owners.
+pub fn visit_native_effect_target_requests(
+  consumer : @resident.ResidentSourceCompute,
+  materials : @host.ClientEffectRunMaterials,
+  inputs : @strategy.CapturedEffectInputs,
+  stage : Int,
+  effect_id : String,
+  local_result : Int,
+  mapping : @catalog.ExecutionMapping,
+  projection : @catalog.WriteProjection,
+  api_version : String,
+  export_limits : @host.PublicationOutputExportLimits,
+  body_limits : @catalog.WriteBodyLimits,
+  request_limits : @catalog.WriteRequestLimits,
+  max_rows : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_utf16_units : Int,
+  current : () -> Bool,
+  accept : (Int, @catalog.SingleWriteRequest) -> Result[
+    Unit,
+    NativeResidentEffectTargetIssue,
+  ],
+) -> Result[Int, NativeResidentEffectTargetIssue] {
+  if max_rows < 1 ||
+    max_fields < 1 ||
+    max_work < 1 ||
+    max_utf16_units < 1 ||
+    body_limits.max_bytes < 1 ||
+    body_limits.max_nodes < 1 ||
+    body_limits.max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  if !current() {
+    return Err(Proposal(@resident.Unavailable))
+  }
+  guard @host.client_effect_member_descriptor(
+      materials.prepared,
+      stage,
+      effect_id,
+      max_work,
+    )
+    is Ok(descriptor) &&
+    descriptor.2 == "update" &&
+    descriptor.4 == mapping.mapping_ref &&
+    descriptor.5 == mapping.mapping_cid &&
+    mapping.operation is @catalog.WriteUpdateById &&
+    @strategy.captured_effect_inputs_run_definition_cid(inputs) ==
+    Some(@publication.publication_contract_identity(materials.run_definition)) else {
+    return Err(ForeignMapping)
+  }
+  match @catalog.check_execution_write(mapping, projection) {
+    Ok(_) => ()
+    Err(issue) => return Err(Mapping(issue))
+  }
+  let mut count = 0
+  let mut failure : NativeResidentEffectTargetIssue? = None
+  let receive = (index : Int, selector : String, changes : String) => {
+    let acquire = () => {
+      if index != count || index >= max_rows {
+        return Err(NativeResidentEffectTargetIssue::InvalidLimits)
+      }
+      if !current() {
+        return Err(Proposal(@resident.Unavailable))
+      }
+      let request = match
+        native_effect_target_request_from_proposal(
+          mapping, projection, selector, changes, api_version, body_limits, request_limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if !current() {
+        return Err(Proposal(@resident.Unavailable))
+      }
+      match accept(index, request) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      if !current() {
+        return Err(Proposal(@resident.Unavailable))
+      }
+      count += 1
+      Ok(())
+    }
+    match acquire() {
+      Ok(_) => Ok(())
+      Err(issue) => {
+        failure = Some(issue)
+        Err(())
+      }
+    }
+  }
+  let result = consumer.read_effect_proposals(
+    inputs,
+    descriptor.0,
+    local_result,
+    export_limits,
+    max_fields,
+    max_work,
+    body_limits.max_bytes,
+    body_limits.max_nodes,
+    body_limits.max_depth,
+    max_utf16_units,
+    receive,
+  )
+  if !current() {
+    return Err(Proposal(@resident.Unavailable))
+  }
+  match result {
+    Ok(total) if total == count => Ok(count)
+    Ok(_) => Err(InvalidChanges)
+    Err(@resident.ReceiverRejected) =>
+      match failure {
+        Some(issue) => Err(issue)
+        None => Err(InvalidChanges)
+      }
+    Err(issue) => Err(Proposal(issue))
+  }
+}
+
+///|
+// Decode only the original proposal representation emitted by the existing
+// capture Owner. It preserves values and uses the checked Mapping/request
+// Owner; this helper performs no Provider acquisition or grant issuance.
+fn native_effect_target_request_from_proposal(
+  mapping : @catalog.ExecutionMapping,
+  projection : @catalog.WriteProjection,
+  selector : String,
+  changes : String,
+  api_version : String,
+  body_limits : @catalog.WriteBodyLimits,
+  request_limits : @catalog.WriteRequestLimits,
+) -> Result[@catalog.SingleWriteRequest, NativeResidentEffectTargetIssue] {
+  let body = try {
+    let source = match
+      @source.parse_json_bytes_preserving(@utf8.encode(changes), {
+        max_input_bytes: body_limits.max_bytes,
+        max_nodes: body_limits.max_nodes,
+        max_depth: body_limits.max_depth,
+      }) {
+      Ok(value) => value
+      Err(_) => return Err(InvalidChanges)
+    }
+    let value = @canonical.from_source(
+      source,
+      body_limits.max_nodes,
+      body_limits.max_depth,
+      body_limits.max_bytes,
+      data_keys=true,
+    )
+    guard @canonical.object_field_count(value) == Some(2) &&
+      @canonical.object_field(value, "state")
+      is Some(@canonical.String("present")) &&
+      @canonical.object_field(value, "value") is Some(body) else {
+      return Err(InvalidChanges)
+    }
+    @canonical.stringify_value(
+      body,
+      body_limits.max_bytes,
+      body_limits.max_nodes,
+      body_limits.max_depth,
+    )
+  } catch {
+    _ => return Err(InvalidChanges)
+  }
+  let request = match
+    @catalog.recover_single_write_request(
+      projection, body, selector, api_version, body_limits, request_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Request(issue))
+  }
+  @catalog.check_execution_single_write(mapping, request)
+  .map(_ => request)
+  .map_err(issue => Mapping(issue))
+}
+
+///|
+/// Observe the existing Remote target requests through the same checked
+/// proposal visitor. Physical responses and consumed reads remain with their
+/// original credential/capture Owners on partial failure.
 pub fn observe_native_resident_effect_targets(
   consumer : @resident.ResidentSourceCompute,
   materials : @host.ClientEffectRunMaterials,
@@ -58,34 +239,6 @@ pub fn observe_native_resident_effect_targets(
   ],
   NativeResidentEffectTargetIssue,
 ] {
-  if max_rows < 1 ||
-    max_fields < 1 ||
-    max_work < 1 ||
-    max_utf16_units < 1 ||
-    body_limits.max_bytes < 1 ||
-    body_limits.max_nodes < 1 ||
-    body_limits.max_depth < 1 {
-    return Err(InvalidLimits)
-  }
-  guard @host.client_effect_member_descriptor(
-      materials.prepared,
-      stage,
-      effect_id,
-      max_work,
-    )
-    is Ok(descriptor) &&
-    descriptor.2 == "update" &&
-    descriptor.4 == mapping.mapping_ref &&
-    descriptor.5 == mapping.mapping_cid &&
-    mapping.operation is @catalog.WriteUpdateById &&
-    @strategy.captured_effect_inputs_run_definition_cid(inputs) ==
-    Some(@publication.publication_contract_identity(materials.run_definition)) else {
-    return Err(ForeignMapping)
-  }
-  match @catalog.check_execution_write(mapping, projection) {
-    Ok(_) => ()
-    Err(issue) => return Err(Mapping(issue))
-  }
   let rows : Array[
     (
       @catalog.SingleWriteRequest,
@@ -94,55 +247,25 @@ pub fn observe_native_resident_effect_targets(
       @catalog.TargetPreviewRow,
     ),
   ] = []
-  let mut failure : NativeResidentEffectTargetIssue? = None
-  let receive = (index : Int, selector : String, changes : String) => {
-    let acquire = () => {
-      if index != rows.length() || index >= max_rows {
-        return Err(NativeResidentEffectTargetIssue::InvalidLimits)
-      }
-      let body = try {
-        let source = match
-          @source.parse_json_bytes_preserving(@utf8.encode(changes), {
-            max_input_bytes: body_limits.max_bytes,
-            max_nodes: body_limits.max_nodes,
-            max_depth: body_limits.max_depth,
-          }) {
-          Ok(value) => value
-          Err(_) => return Err(InvalidChanges)
-        }
-        let value = @canonical.from_source(
-          source,
-          body_limits.max_nodes,
-          body_limits.max_depth,
-          body_limits.max_bytes,
-          data_keys=true,
-        )
-        guard @canonical.object_field_count(value) == Some(2) &&
-          @canonical.object_field(value, "state")
-          is Some(@canonical.String("present")) &&
-          @canonical.object_field(value, "value") is Some(body) else {
-          return Err(InvalidChanges)
-        }
-        @canonical.stringify_value(
-          body,
-          body_limits.max_bytes,
-          body_limits.max_nodes,
-          body_limits.max_depth,
-        )
-      } catch {
-        _ => return Err(InvalidChanges)
-      }
-      let request = match
-        @catalog.recover_single_write_request(
-          projection, body, selector, api_version, body_limits, request_limits,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Request(issue))
-      }
-      match @catalog.check_execution_single_write(mapping, request) {
-        Ok(_) => ()
-        Err(issue) => return Err(Mapping(issue))
-      }
+  let result = visit_native_effect_target_requests(
+    consumer,
+    materials,
+    inputs,
+    stage,
+    effect_id,
+    local_result,
+    mapping,
+    projection,
+    api_version,
+    export_limits,
+    body_limits,
+    request_limits,
+    max_rows,
+    max_fields,
+    max_work,
+    max_utf16_units,
+    () => true,
+    (index, request) => {
       let granted = match access(index, request) {
         Ok(value) => value
         Err(issue) => return Err(Provider(issue))
@@ -163,36 +286,7 @@ pub fn observe_native_resident_effect_targets(
       }
       rows.push((request, use_cid, observation, row))
       Ok(())
-    }
-    match acquire() {
-      Ok(_) => Ok(())
-      Err(issue) => {
-        failure = Some(issue)
-        Err(())
-      }
-    }
-  }
-  let result = consumer.read_effect_proposals(
-    inputs,
-    descriptor.0,
-    local_result,
-    export_limits,
-    max_fields,
-    max_work,
-    body_limits.max_bytes,
-    body_limits.max_nodes,
-    body_limits.max_depth,
-    max_utf16_units,
-    receive,
+    },
   )
-  match result {
-    Ok(count) if count == rows.length() => Ok(rows)
-    Ok(_) => Err(InvalidChanges)
-    Err(@resident.ReceiverRejected) =>
-      match failure {
-        Some(issue) => Err(issue)
-        None => Err(InvalidChanges)
-      }
-    Err(issue) => Err(Proposal(issue))
-  }
+  result.map(_ => rows)
 }

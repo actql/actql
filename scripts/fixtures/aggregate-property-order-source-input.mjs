@@ -13,11 +13,11 @@ const parameters = {p1: {score: 20}, p2: {score: 10}, p3: null, p4: {score: null
   o1: {score: 5}, o2: {score: 30}, o3: {score: 15}, o4: {score: 25}};
 const sourceRows = [{id: 2, amount: 10}, {id: 1, amount: 20},
   {id: 3, amount: null}, {id: 4, amount: 40}, {id: 2, amount: 10}, {id: 0, amount: 99}];
-const data = 'DATA objects = SELECT id, '
+const data = 'WITH objects AS (SELECT id, '
   + "CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, "
   + 'CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, '
   + 'CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const column = (name, contract = string) => ({name, contract});
 const parameterCase = prefix => ({case: {when: [
   {when: {eq: [{field: 'id'}, {literal: 1}]}, then: {$param: prefix + '1'}},
@@ -77,7 +77,7 @@ export const aggregatePropertyOrderSuccesses = [
   success('sql', "SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"),
   success('parenthesized-receiver', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects"),
   success('parenthesized-qualified-receiver', "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((before.payload)).`score` NULLS LAST, id) AS names"),
-  success('parenthesized-range-collision', 'DATA colliding = SELECT id, name, payload, other, other.score AS score FROM objects; '
+  success('parenthesized-range-collision', ', colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) '
     + "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM colliding AS payload"),
   success('parenthesized-receiver-empty', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects", {
     sourceRows: [], expected: [{names: null}],

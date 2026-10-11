@@ -52,6 +52,25 @@ pub fn Library::open_database(
 }
 
 ///|
+pub fn Library::open_existing_database(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::initialize_owned_database(
+  _self : Library,
+  _path : String,
+  _ownership : @filesystem.NativeFileOwnership,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::read(
   _self : Database,
   scope : String,
@@ -119,6 +138,16 @@ pub fn Database::rollback(_self : Database) -> Result[Unit, NativeSqliteIssue] {
 }
 
 ///|
+pub fn Database::fence_transactions(_self : Database) -> Unit {
+  ()
+}
+
+///|
+pub fn Database::transaction_fenced(_self : Database) -> Bool {
+  true
+}
+
+///|
 pub fn Database::reserve_capacity(
   _self : Database,
   _scope : String,
@@ -169,6 +198,16 @@ pub fn Database::claim_ordinal(
 }
 
 ///|
+pub fn Database::claim_ordinal_action(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::capacity_usage(
   _self : Database,
   _scope : String,
@@ -185,4 +224,15 @@ pub fn Database::close(_self : Database) -> Unit {
 #warnings("-unused_value")
 fn retain_native_import() -> Unit {
   ignore(@utf8.encode(""))
+}
+
+///|
+pub fn Database::remove_exact(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _expected_revision : Int64,
+  _expected_body : Bytes,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
 }

@@ -39,6 +39,57 @@ fn effect_checkpoint_text(
 }
 
 ///|
+/// Encode immutable original wire, preserving values and line endings. This
+/// private codec proves no issuance; only the original capture Owner calls it
+/// after the complete common computation-chain admission has succeeded.
+fn original_computation_evidence_wire(
+  fields : Array[(String, String)],
+  limits : @checkpoint.WireLimits,
+) -> Result[String, ResidentEffectReviewCheckpointIssue] {
+  let expected = [
+    "run_definition_wire", "invocation_wire", "result_definition_wire", "result_artifact_wire",
+    "result_manifest_wire", "computation_receipt_wire",
+  ]
+  if fields.length() != expected.length() {
+    return Err(ForeignCapture)
+  }
+  for index in 0..<expected.length() {
+    if fields[index].0 != expected[index] {
+      return Err(ForeignCapture)
+    }
+  }
+  try {
+    let writer = @encode.writer(
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    @encode.begin_object(writer)
+    for (name, wire) in fields {
+      effect_checkpoint_text(writer, name, wire)
+    }
+    @encode.end_object(writer)
+    let value = @canonical.from_json(
+      @json.parse(@encode.finish(writer)),
+      limits.max_nodes,
+      limits.max_depth,
+      limits.max_wire_bytes,
+      data_keys=true,
+    )
+    Ok(
+      @canonical.stringify_value(
+        value,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ),
+    )
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
 /// Prepare the original Effect review from authenticated capture/Preview
 /// readback. This Native provider snapshot includes both original wire bodies,
 /// authoring and request identity; its byte CID is never the Captured Run CID.
@@ -71,6 +122,13 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     @host.prepared_client_effect_request_scope(materials.prepared, request) {
     Ok(value) => value
     Err(issue) => return Err(Request(issue))
+  }
+  guard capture.original is Some(funded) &&
+    funded.evidence is Some(original) &&
+    !funded.physical_cleanup_confirmed &&
+    @resources.capacity_reservation_open(funded.reservation) &&
+    !capture.released else {
+    return Err(ForeignCapture)
   }
   let captured = match capture.confirm() {
     Ok(value) => value
@@ -105,6 +163,62 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     Some(@publication.effect_capture_holding_identity(capture.binding)) {
     return Err(ForeignCapture)
   }
+  // Keep the exact original contract wire, rather than attempting to rebuild
+  // a computation Receipt or recapture its Result after a Host restart.
+  if @publication.publication_contract_json(original.run) !=
+    @publication.publication_contract_json(materials.run_definition) {
+    return Err(ForeignCapture)
+  }
+  let original_wire = match
+    original_computation_evidence_wire(
+      [
+        (
+          "run_definition_wire",
+          @publication.publication_contract_json(original.run),
+        ),
+        (
+          "invocation_wire",
+          @publication.publication_contract_json(original.invocation),
+        ),
+        (
+          "result_definition_wire",
+          @publication.publication_contract_json(original.definition),
+        ),
+        (
+          "result_artifact_wire",
+          @publication.publication_contract_json(original.artifact),
+        ),
+        (
+          "result_manifest_wire",
+          @publication.publication_contract_json(original.manifest),
+        ),
+        (
+          "computation_receipt_wire",
+          @publication.publication_contract_json(original.receipt),
+        ),
+      ],
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @publication.validate_effectful_computation_evidence_chain(
+      original.run,
+      original.invocation,
+      [original.definition],
+      [original.artifact],
+      original.manifest,
+      original.receipt,
+      captured,
+      identity,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(_) => ()
+    Err(_) => return Err(ForeignCapture)
+  }
   // The review window cannot create a fresh lifetime for the original Run.
   // Current Host authorization is still required independently at waiting,
   // approval and physical start; this is evidence preparation only.
@@ -127,7 +241,11 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     Ok(_) => ()
     Err(issue) => return Err(Keys(issue))
   }
-  guard self.effect_retained is Some(retained) else { return Err(Unavailable) }
+  let binding = match
+    self.effect_review_input_binding(materials, inputs, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let unit = @host.client_effect_compilation_unit_id(materials.compilation)
   let encoded = try {
     let writer = @encode.writer(
@@ -144,13 +262,16 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     effect_checkpoint_text(writer, "preview_cid", preview_cid)
     @encode.key(writer, "provider")
     @encode.begin_object(writer)
-    effect_checkpoint_text(
-      writer,
-      "retained_input_binding",
-      @remote.remote_input_binding_body(
-        @output.native_remote_retained_task_input_binding(retained.input),
-      ),
-    )
+    match binding {
+      Retained(body) =>
+        effect_checkpoint_text(writer, "retained_input_binding", body)
+      Acquired(source_ref, source_contract_cid) => {
+        effect_checkpoint_text(writer, "acquired_source_ref", source_ref)
+        effect_checkpoint_text(
+          writer, "acquired_source_contract_cid", source_contract_cid,
+        )
+      }
+    }
     effect_checkpoint_text(
       writer,
       "captured_run_wire",
@@ -167,6 +288,7 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
       "store_authority_cid",
       @publication.effect_capture_holding_authority(capture.binding),
     )
+    effect_checkpoint_text(writer, "original_computation_wire", original_wire)
     @encode.key(writer, "request")
     @encode.begin_object(writer)
     effect_checkpoint_text(

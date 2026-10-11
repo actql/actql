@@ -92,6 +92,7 @@ function fixture(t) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
+    'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
@@ -99,6 +100,8 @@ function fixture(t) {
   mkdirSync(join(checkout, 'scripts/fixtures'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
+  copyFileSync(new URL('fixtures/native-effect-resolution-fixture.mjs', import.meta.url),
+    join(checkout, 'scripts/fixtures/native-effect-resolution-fixture.mjs'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
   writeFileSync(join(checkout, '.github/workflows/ci.yml'),
     JSON.stringify({jobs: {core: {'timeout-minutes': 30, steps: [coreStep]}}}));
@@ -108,12 +111,37 @@ function fixture(t) {
   const moon = join(bin, 'moon');
   writeFileSync(moon, `#!${process.execPath}
 const assert = require('node:assert/strict');
-const {writeFileSync, existsSync, statSync} = require('node:fs');
+const {writeFileSync, existsSync, statSync, readlinkSync} = require('node:fs');
 const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
+if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
+     'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
+    process.argv.includes('--index')) {
+  const fixed = digit => 'sha256:' + digit.repeat(64);
+  console.log('ACTQL_CLIENT_CHECKPOINT ' + JSON.stringify({
+    checkpoint_id: 'mock-checkpoint', checkpoint_cid: fixed('1'),
+    run_id: 'mock-run', run_definition_cid: fixed('2'),
+    required_artifact: {artifact_cid: fixed('3')}, review_projection_cid: fixed('4'),
+    requirements: ['effect_scope_approved'], created_at: '2026-10-10T00:00:00.000Z',
+  }));
+  console.log('Total tests: 1, passed: 1, failed: 0.');
+  process.exit(0);
+}
 const root = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT;
 console.log('CHILD_ROOT=' + root);
+if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT, join(root, 'private-host-root'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_BROAD_ROOT, join(root, 'broad-host-root'));
+  assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT).mode & 0o777, 0o700);
+  assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_BROAD_ROOT).mode & 0o777, 0o750);
+  assert.equal(readlinkSync(process.env.ACTQL_TEST_NATIVE_PRIVATE_ALIAS), process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT);
+  if (process.platform === 'darwin') {
+    assert.equal(process.env.ACTQL_TEST_NATIVE_PRIVATE_ACL_ROOT, join(root, 'private-host-acl'));
+    assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_PRIVATE_ACL_ROOT).mode & 0o777, 0o700);
+  }
+  console.log('PRIVATE_HOST_FIXTURE_PROVISIONED');
+}
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
 assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
 assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
@@ -218,6 +246,20 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
+  f.verifyExternal();
+});
+
+test('selected Native filesystem provisions owned private-root counterexamples', t => {
+  const f = fixture(t);
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+    '--deny-warn', 'src/platform_native/filesystem/private_root_wbtest.mbt'],
+  {cwd: f.checkout, encoding: 'utf8', env: {...f.env,
+    ACTQL_TEST_NATIVE_PRIVATE_ROOT: f.parent}});
+  const path = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
+  assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+  assert.ok(path && !existsSync(path));
   f.verifyExternal();
 });
 

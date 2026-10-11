@@ -213,12 +213,34 @@ test "native SQLite bounded claims are stable and restart safe" {
   assert_eq(first.claim_ordinal("credential", "one", 2L).unwrap(), 1L)
   assert_eq(second.claim_ordinal("credential", "one", 2L).unwrap(), 1L)
   assert_eq(second.claim_ordinal("credential", "two", 2L).unwrap(), 2L)
+  assert_true(
+    first.claim_ordinal_action("typed-credential", "one", 2L) is Ok(Fresh(1L)),
+  )
+  assert_true(
+    second.claim_ordinal_action("typed-credential", "one", 2L)
+    is Ok(Retained(1L)),
+  )
+  assert_true(
+    second.claim_ordinal_action("typed-credential", "two", 2L) is Ok(Fresh(2L)),
+  )
   guard first.claim_ordinal("credential", "three", 2L) is Err(CapacityExceeded) else {
     fail("bounded claim ceiling was not enforced")
   }
   first.close()
   second.close()
   let reopened = library.open_database(database_path, 64L).unwrap()
+  assert_true(
+    reopened.claim_ordinal_action("typed-credential", "one", 2L)
+    is Ok(Retained(1L)),
+  )
+  assert_true(
+    reopened.claim_ordinal_action("typed-credential", "two", 2L)
+    is Ok(Retained(2L)),
+  )
+  assert_true(
+    reopened.claim_ordinal_action("typed-credential", "three", 2L)
+    is Err(CapacityExceeded),
+  )
   assert_eq(reopened.claim_ordinal("credential", "two", 2L).unwrap(), 2L)
   guard reopened.claim_ordinal("credential", "three", 2L)
     is Err(CapacityExceeded) else {
