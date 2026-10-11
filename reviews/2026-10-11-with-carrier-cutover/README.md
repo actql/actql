@@ -11,18 +11,29 @@ supplied IDs and all 130 IDs remain in [acceptance-id-inventory.json](acceptance
 No SQL compatibility sidequest, alternate checker/evaluator, compatibility
 parser or new acquisition/storage owner is added.
 
-The latest tested product source is `6d0f1a3782d687dc98715ea144e0b8cd177e49c6`,
-tree `6201eeb09af32789b0f548e42f03fa7047bba4a0`.
-[p1-grammar-pin-execution.json](p1-grammar-pin-execution.json) records actual
-JS29/29, corrected SGA Node11/11 and five read-only freshness commands in
-`run-Jdvclk`, under the existing 60-second/grace5 nonHeavy guard. Earlier
-`4d63461aa` Node87/88 includes 61/61 independent Values vector tests, 6/6
-manifest tests and 10/10 profile tests, with one remaining SGA historical-body
-assertion failure. Those 77 successful checks belong to that SHA; they are not
-an executed Node88 result for `6d0f1a378`. Original failures remain preserved.
-Actual Owner6688, its process group and own lock were observed absent.
-[prepared-checks.json](prepared-checks.json) contains reproducible limited
-commands and exact product source/tree for an independent worktree.
+The latest tested product source is `dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57`,
+tree `1248b74577adb18d2a21d4ff3abbeefb9137b8ea`.
+[p1-graph-row-alias-execution.json](p1-graph-row-alias-execution.json) preserves
+JS17/17 and five read-only freshness checks in `run-Ufj9hv`, and the two corrected
+independent current-vector assertions Node2/2 in `run-T6stAJ`, under the existing
+60-second/grace5 nonHeavy guard. Node91/93 on earlier `aedb20368` retains its two
+stale-current-literal failures; it is not Node93/93 on the latest source. Earlier
+`f3dd115f6` Node5/5 and JS7/7 remain separate caller-migration evidence. All actual
+Owner/group/own locks were observed released.
+
+The direct connector caller is **not closed**: `run-T6stAJ` failed compilation
+before any JS test due to missing `QueryLowering(RangeAliasRequiresRelation |
+BindingPreparation(_))` cases in E/Root-owned `client_check.mbt:314`.
+[p1-diagnostic-caller-handoff.json](p1-diagnostic-caller-handoff.json) retains
+its exact source, command and required common diagnostic/disclosure boundary.
+The independent JS selection does not bypass that required product caller or
+make public preparation/Host execution complete. B has not edited that owner.
+[prepared-checks.json](prepared-checks.json) contains the reproducible independent
+commands and source/tree; the failed command remains in the separate handoff.
+
+Previous `6d0f1a378` JS29/29, SGA Node11/11 and five freshness checks remain in
+[p1-grammar-pin-execution.json](p1-grammar-pin-execution.json). Earlier `4d63461aa`
+Node77 successful assertions belong to that SHA. Original receipts are unchanged.
 
 ## Implemented P1 boundaries
 
@@ -43,6 +54,15 @@ commands and exact product source/tree for an independent worktree.
 - Resolved SGA Producer occurrences are included in the conservative Source
   use census. ID/data strings are not mistaken for producer references. Sharing
   does not replace the common checked topology or imply additional authority.
+- Graph FROM/Pipe row aliases parse consistently and receive the adopted
+  `RangeAliasRequiresRelation` static reason before the existing Graph owner.
+  Producer aliases and ordinary row aliases after an explicit Relation bridge or
+  MATCH SELECT remain valid; no row schema is fabricated for Graph.
+- Current Graph rows public fixture sources use WITH/GRAPH directly. Their 23
+  normal/13 refusal declarations preserve complete independent metadata and JSON
+  controls. Old authored text is retained in
+  [pre-with-graph-row-source-input.json](pre-with-graph-row-source-input.json) only
+  as history. Representative checker tests are not complete cohort execution.
 - Retired LABELS property annotations are refused at the authored token; their
   AST field and lexer flag are removed by actual pinned interface generation.
   Graph label membership and ordinary property/literal values remain distinct.
@@ -69,6 +89,11 @@ Unit and ResultPlan identity are unchanged; grammar-dependent invocation,
 executable/compiled Plan and Run identities change. New expectations come from
 complete independently assembled preimages, never a runtime's returned CID.
 Old stored Runs and source bytes are not reinterpreted under the new grammar.
+The preceding WITH closure is additionally retained in
+`scripts/fixtures/pre-with-graph-range-alias-values-identities.json`; grammar
+`sha256:f9006fa913e4abfee8c8348a093db8405eb546bf39a625824d42079441a843c4`
+and Run `sha256:8c387d8fbe388e526cafc19402cf5cc3091035092b97df1a99061e31436bd444`
+come from independently checked full preimages, not observed runtime CIDs.
 
 ## Remaining cutover obligations
 
@@ -77,8 +102,8 @@ This Draft is not the completed revision. Remaining work is finite P1/P2:
 1. Replace remaining current DATA fixture/caller/tutorial sources directly,
    preserving source semantics, independent rows/types/order and negative cases.
    Immutable receipts and private structural machine fixtures stay intact.
-2. Close consistent authored non-Relation alias/type refusals, all four Carrier
-   bindings and adopted SGA/VecA/TEA argument-role connections. No second parser,
+2. Complete the diagnostic caller handoff, the remaining four Carrier alias/type
+   connections and all four Carrier bindings and adopted SGA/VecA/TEA argument-role connections. No second parser,
    scalar-name guessing or generic OP/raw JSON evaluator is permitted.
 3. Execute the agreed SQL/AQL-text/README and four-Carrier packed Local/HTTPS
    cohorts with independent Program/value/schema/refusal expectations, same

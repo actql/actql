@@ -1,6 +1,6 @@
 {
-  "source_sha": "6d0f1a3782d687dc98715ea144e0b8cd177e49c6",
-  "source_tree": "6201eeb09af32789b0f548e42f03fa7047bba4a0",
+  "source_sha": "dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57",
+  "source_tree": "1248b74577adb18d2a21d4ff3abbeefb9137b8ea",
   "heavy": false,
   "timeout_seconds": 60,
   "grace_seconds": 5,
@@ -16,10 +16,9 @@
       "--kill-grace-seconds",
       "5",
       "--",
-      "scripts/frontend-profile.test.mjs",
-      "scripts/sga-query-call-contract.test.mjs",
-      "scripts/client-values-run-materials-vector.test.mjs",
-      "scripts/compilation-manifests.test.mjs"
+      "--test-name-pattern",
+      "^(baseline preimages and changed normative pins independently determine the Run CID|current contract inputs independently determine the Values Run and consuming fixtures)$",
+      "scripts/client-values-run-materials-vector.test.mjs"
     ],
     [
       "node",
@@ -33,15 +32,15 @@
       "--",
       "--target",
       "js",
-      "src/query_syntax/graph_test.mbt",
-      "src/query_syntax/string_literals_test.mbt",
-      "src/query_syntax/literal_forms_test.mbt",
-      "src/query_program/with_graph_binding_test.mbt",
-      "src/query_program/quoted_graph_macro_wbtest.mbt",
+      "src/query_syntax/with_graph_alias_test.mbt",
+      "src/query_program/with_graph_range_alias_test.mbt",
+      "src/query_program/graph_rows_test.mbt",
+      "src/query_program/graph_rows_positional_set_test.mbt",
       "src/source_frontend/with_graph_binding_test.mbt",
       "src/run_publication_host/client_values_run_materials_wbtest.mbt"
     ]
   ],
-  "actual_evidence": "p1-grammar-pin-execution.json",
-  "public_execution": "not_started"
+  "actual_evidence": "p1-graph-row-alias-execution.json",
+  "public_execution": "not_started",
+  "known_unclosed_caller": "p1-diagnostic-caller-handoff.json"
 }
