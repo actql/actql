@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import errno
 import fcntl
+import hashlib
 import os
 from pathlib import Path
 import stat
@@ -20,13 +21,20 @@ class PhysicalFileObservation:
     size: int
 
 
+@dataclass(frozen=True)
+class PhysicalFileSnapshot:
+    observation: PhysicalFileObservation
+    physical_digest: str
+
+
 class LocalFileError(RuntimeError):
     """Physical failure, never Run outcome or permission to repeat I/O."""
 
 
 class _PayloadFile:
     __slots__ = ('root', 'name', 'descriptor', 'identity', 'max_bytes', 'written',
-                 'creation_synced', 'write_unknown', 'closing', 'close_pending')
+                 'creation_synced', 'write_unknown', 'closing', 'close_pending',
+                 'write_stopped', 'snapshot')
 
     def __init__(self, root: object, name: str, descriptor: int, max_bytes: int) -> None:
         self.root = root
@@ -39,6 +47,22 @@ class _PayloadFile:
         self.write_unknown = False
         self.closing = False
         self.close_pending = False
+        self.write_stopped = False
+        self.snapshot: _FileSnapshot | None = None
+
+
+class _FileSnapshot:
+    """One bounded observation of an original stopped physical descriptor."""
+
+    __slots__ = ('file', 'stamp', 'offset', 'hash', 'invalid', 'result')
+
+    def __init__(self, value: _PayloadFile, stamp: tuple[int, ...]) -> None:
+        self.file = value
+        self.stamp = stamp
+        self.offset = 0
+        self.hash = hashlib.sha256()
+        self.invalid = False
+        self.result: PhysicalFileSnapshot | None = None
 
 
 class LocalFileAcquisitionError(LocalFileError):
@@ -350,7 +374,7 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._open()
-            if (value.closing or value.write_unknown or not value.creation_synced
+            if (value.closing or value.write_unknown or value.write_stopped or not value.creation_synced
                     or value.descriptor is None):
                 raise LocalFileError('Original Local file write is unavailable or unknown')
             observed = self.observe(value)
@@ -380,6 +404,98 @@ class LocalFileRoot:
                 raise LocalFileError('Original Local file physical size changed')
             os.fsync(value.descriptor)
             return self.observe(value)
+
+    def _snapshot_stamp(self, value: _PayloadFile) -> tuple[int, ...]:
+        observed = self.observe(value)
+        root = self._observation_root()
+        if value.closing or value.descriptor is None:
+            raise LocalFileError('Original Local snapshot descriptor is closing')
+        current = os.fstat(value.descriptor)
+        named = os.stat(value.name, dir_fd=root, follow_symlinks=False)
+        stamp = (current.st_dev, current.st_ino, current.st_size,
+                 current.st_mtime_ns, current.st_ctime_ns)
+        if (not stat.S_ISREG(named.st_mode)
+                or PhysicalFileIdentity(current.st_dev, current.st_ino) != observed.identity
+                or current.st_size != observed.size or current.st_size != value.written
+                or stamp != (named.st_dev, named.st_ino, named.st_size,
+                             named.st_mtime_ns, named.st_ctime_ns)):
+            raise LocalFileError('Original Local snapshot name or generation changed')
+        return stamp
+
+    def begin_snapshot(self, value: _PayloadFile) -> _FileSnapshot:
+        """Stop append and flush this same descriptor before bounded hashing.
+
+        This is a physical fact, not a Core Sealed transition. The trusted Host
+        must first confirm original file ownership and reserve hash/chunk
+        workspace. No whole-file buffer is retained; a scheduler can yield
+        between calls to advance_snapshot. A failed flush keeps append stopped
+        and allows flushing the same descriptor again without another write.
+        """
+        with self._lock:
+            self._owned(value)
+            self._open()
+            if (value.closing or value.write_unknown or not value.creation_synced
+                    or value.descriptor is None):
+                raise LocalFileError('Original Local snapshot is pending or unknown')
+            if value.snapshot is not None:
+                self._validate_snapshot(value.snapshot)
+                return value.snapshot
+            value.write_stopped = True
+            self.sync(value)
+            cursor = _FileSnapshot(value, self._snapshot_stamp(value))
+            value.snapshot = cursor
+            return cursor
+
+    def _validate_snapshot(self, cursor: _FileSnapshot) -> _PayloadFile:
+        if type(cursor) is not _FileSnapshot:
+            raise ValueError('Foreign Local snapshot cursor')
+        value = cursor.file
+        self._owned(value)
+        if value.snapshot is not cursor:
+            raise ValueError('Copied or foreign Local snapshot cursor')
+        if cursor.invalid or not value.write_stopped:
+            raise LocalFileError('Original Local snapshot is invalid')
+        try:
+            if self._snapshot_stamp(value) != cursor.stamp:
+                raise LocalFileError('Original Local snapshot generation changed')
+        except BaseException:
+            cursor.invalid = True
+            raise
+        return value
+
+    def advance_snapshot(self, cursor: _FileSnapshot) -> PhysicalFileSnapshot | None:
+        """Read at most one original bounded chunk; never restart or rewrite it.
+
+        The final facts are rechecked on reuse. Unknown writes, changed names,
+        changed bytes and retired handles cannot yield an accepted snapshot.
+        Closing the writer retires this cursor and keeps all named bytes and
+        disk reservations for the existing Store Owner.
+        """
+        with self._lock:
+            value = self._validate_snapshot(cursor)
+            if cursor.result is not None:
+                return cursor.result
+            size = cursor.stamp[2]
+            count = min(self._max_chunk_bytes, size - cursor.offset)
+            if count:
+                assert value.descriptor is not None
+                data = os.pread(value.descriptor, count, cursor.offset)
+                self._validate_snapshot(cursor)
+                if len(data) != count:
+                    cursor.invalid = True
+                    raise LocalFileError('Original Local snapshot read was incomplete')
+                try:
+                    cursor.hash.update(data)
+                except BaseException:
+                    cursor.invalid = True
+                    raise
+                cursor.offset += count
+            if cursor.offset < size:
+                return None
+            cursor.result = PhysicalFileSnapshot(
+                PhysicalFileObservation(PhysicalFileIdentity(cursor.stamp[0], cursor.stamp[1]), size),
+                'sha256:' + cursor.hash.hexdigest())
+            return cursor.result
 
     @staticmethod
     def _closed_after_uncertainty(descriptor: int, identity: PhysicalFileIdentity | None) -> bool | None:

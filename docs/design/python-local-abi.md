@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 29; this private ABI
+before opening the instance. `actql_host_abi_version` returns 31; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1240,3 +1240,23 @@ EBADF or a different current identity proves the original descriptor retired;
 that fact still says nothing about file reclaim, durable capacity or a Run.
 If the original descriptor cannot be distinguished, the Host retains pending
 responsibility until an authoritative physical stop boundary resolves it.
+
+The same private file port can stop append, flush the original descriptor and
+observe its physical SHA-256 with a bounded cursor. `begin_snapshot` permanently
+stops new append before flushing. A failed flush retains that same stopped
+descriptor; retrying the flush does not repeat a write. Unknown writes cannot
+begin a snapshot. `advance_snapshot` reads at most one selected chunk with
+`pread`, leaving the original write offset unchanged. The caller can yield or
+stop the descriptor between steps. The Host must reserve the hash state and
+transient read chunk before using this port; this is not aggregate accounting.
+
+Each step and cached-result reuse checks the original nominal handle, exact
+name/device/inode/size and observed modification/change timestamps. A changed
+generation, short read or closing descriptor invalidates the cursor; copied
+cursors and retired handles are refused before I/O. An ordinary failed read can
+retry that same offset without restarting hashing or writing. Empty files yield
+the SHA-256 of zero bytes without a data read. The returned identity, size and
+digest are physical observations only. The original Core payload Owner still
+requires its persisted ownership, current authorization, exact durable
+successor and Sealed transition. No pathname adoption, final-name installation,
+Store commit, capacity release or Run completion occurs in this operation.
