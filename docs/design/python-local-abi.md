@@ -960,6 +960,22 @@ retry an unknown operation or supply saved-Run recovery.
 
 ### Validated commit candidate export
 
+The portable `prepare_local_preflight_payload_request` projection binds one
+original nominal Result to the publication attempt fixed before Compute. It
+rechecks original preflight, retention and current Run/Source access, then asks
+the completed-output Owner to project the existing `PublicationPayloadRequest`.
+That Owner requires a live EOF receipt, issued evidence and artifact, and obtains
+schema, codec, ordering, byte count and row count from the exact retained export.
+Only physical Store authority, material generation and a payload byte ceiling
+are supplied by trusted Host configuration. The ceiling must cover the exact
+payload; it does not replace aggregate workspace or transfer reservations.
+
+This request does not start I/O, authorize a publisher or create a durable
+record. The existing publication payload Owner retains responsibility for
+reservation, writing, sealing, durable transition confirmation and cleanup.
+Retained metadata or cancellation of a borrowed snapshot cannot replace the
+original live receipt, and a released parent cannot issue another payload intent.
+
 Private ABI 23 adds `actql_publication_commit_export_reserve`,
 `actql_publication_commit_export_produce`,
 `actql_publication_commit_export_length` and
