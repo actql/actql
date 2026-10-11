@@ -53,12 +53,18 @@ test('folded duplicates and unmodified invalid strategies require typed input re
 });
 
 test('existing unsupported peer shapes retain the common implementation-limit category', () => {
-  for (const index of [1, 5, 7]) {
+  for (const index of [1, 5]) {
     assert.equal(graphUnionSourceRefusals.find(c => c.name === 'graph-union-refuse-' + index).expectedCode,
       'ClientProgramImplementationLimit');
   }
-  for (const suffix of ['list-peer', 'empty-peer-list', 'missing-peer', 'extra-argument', 'lost-graph-scope']) {
+  for (const suffix of ['list-peer', 'empty-peer-list', 'missing-peer', 'extra-argument']) {
     assert.equal(graphSubtractionSourceRefusals.find(c => c.name === 'graph-subtraction-' + suffix).expectedCode,
       'ClientProgramImplementationLimit');
   }
+  // A Relation at a Graph input is invalid before implementation selection.
+  for (const [cases, name] of [
+    [graphUnionSourceRefusals, 'graph-union-refuse-7'],
+    [graphSubtractionSourceRefusals, 'graph-subtraction-lost-graph-scope'],
+  ]) assert.equal(cases.find(c => c.name === name).expectedCode,
+    'ClientProgramInvalidInput');
 });
