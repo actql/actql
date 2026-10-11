@@ -24,12 +24,14 @@ test "WITH script shares original query and constructor source positions" {
 
 ///|
 test "WITH bodies reuse SQL Pipe CTE and set expression grammar" {
-  for body in [
-    "SELECT 1 AS id |> WHERE id > 0", "SELECT 1 AS id UNION ALL SELECT 2 AS id",
-    "WITH seed AS (SELECT 1 AS id) FROM seed |> SELECT id", "(SELECT 1 AS id |> SELECT id)",
-  ] {
+  for
+    body in [
+      "SELECT 1 AS id |> WHERE id > 0", "SELECT 1 AS id UNION ALL SELECT 2 AS id",
+      "WITH seed AS (SELECT 1 AS id) FROM seed |> SELECT id", "(SELECT 1 AS id |> SELECT id)",
+    ] {
     let script = parse_query_script(
-      "WITH nodes AS (" + body + ") FROM nodes |> SELECT id", query_limits(),
+      "WITH nodes AS (" + body + ") FROM nodes |> SELECT id",
+      query_limits(),
     ).unwrap()
     let query = script_query(script)
     let last = query_binding_at(query, query_binding_count(query) - 1).unwrap()
@@ -41,17 +43,22 @@ test "WITH bodies reuse SQL Pipe CTE and set expression grammar" {
 
 ///|
 test "WITH rejects duplicate names malformed and retired entry points" {
-  for text in [
-    "WITH n AS (SELECT 1 AS id), `N` AS (SELECT 2 AS id) SELECT 1 AS id",
-    "WITH n AS (SELECT 1 AS id FROM n SELECT id) SELECT id FROM n",
-    "WITH n AS (SELECT 1 AS id)", "WITH g AS (PROPERTY GRAPH (NODE TABLES (n KEY (id)))) SELECT 1 AS id",
-    "PROGRAM p { STAGE s { STEP n OP values {} } }",
-    "DATA n = SELECT 1 AS id; FROM n |> SELECT id",
-    "WITH n AS (SELECT 1 AS id) SELECT 2 AS id; SELECT 3 AS id",
-  ] {
+  for
+    text in [
+      "WITH n AS (SELECT 1 AS id), `N` AS (SELECT 2 AS id) SELECT 1 AS id", "WITH n AS (SELECT 1 AS id FROM n SELECT id) SELECT id FROM n",
+      "WITH n AS (SELECT 1 AS id)", "WITH g AS (PROPERTY GRAPH (NODE TABLES (n KEY (id)))) SELECT 1 AS id",
+      "PROGRAM p { STAGE s { STEP n OP values {} } }", "DATA n = SELECT 1 AS id; FROM n |> SELECT id",
+      "WITH n AS (SELECT 1 AS id) SELECT 2 AS id; SELECT 3 AS id",
+    ] {
     assert_true(parse_query_script(text, query_limits()) is Err(_), msg=text)
   }
-  assert_eq(starts_query("DATA n = SELECT 1 AS id; SELECT id FROM n", query_limits().lexical), Ok(false))
+  assert_eq(
+    starts_query(
+      "DATA n = SELECT 1 AS id; SELECT id FROM n",
+      query_limits().lexical,
+    ),
+    Ok(false),
+  )
 }
 
 ///|
@@ -59,12 +66,24 @@ test "WITH applies one shared syntax lexical and work budget" {
   let text = "WITH n AS (SELECT 1 AS id), m AS (SELECT 2 AS id) SELECT 3 AS id"
   let baseline = parse_query_script(text, query_limits()).unwrap()
   let work = script_work(baseline)
-  assert_true(parse_query_script(text, { ..query_limits(), max_work: work, }) is Ok(_))
-  assert_true(parse_query_script(text, { ..query_limits(), max_work: work - 1, }) is Err(_))
-  assert_true(parse_query_script(text, { ..query_limits(), max_cte_count: 1, }) is Err(_))
-  assert_true(parse_query_script(text, { ..query_limits(), max_syntax_nodes: 1, }) is Err(_))
+  assert_true(
+    parse_query_script(text, { ..query_limits(), max_work: work, }) is Ok(_),
+  )
+  assert_true(
+    parse_query_script(text, { ..query_limits(), max_work: work - 1, })
+    is Err(_),
+  )
+  assert_true(
+    parse_query_script(text, { ..query_limits(), max_cte_count: 1, }) is Err(_),
+  )
+  assert_true(
+    parse_query_script(text, { ..query_limits(), max_syntax_nodes: 1, })
+    is Err(_),
+  )
   let issue = parse_query_script(
-    "WITH n AS (SELECT 1 AS id),\nm AS () SELECT 1 AS id", query_limits(), source_path="bad.aql",
+    "WITH n AS (SELECT 1 AS id),\nm AS () SELECT 1 AS id",
+    query_limits(),
+    source_path="bad.aql",
   ).unwrap_err()
   assert_eq(issue.span.unwrap().source_path, "bad.aql")
   assert_eq(issue.span.unwrap().start_line, 2)

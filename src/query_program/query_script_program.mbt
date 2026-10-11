@@ -55,19 +55,42 @@ fn lower_script_relation(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
   )
   let query = @query.after_producer_primary(query)
-  let graph = current.or_else(() => script_graph_input(query, graphs))
-  let query = if graph is Some(_) { @query.graph_source_query(query) } else { query }
+  let graph = current_script_graph(current, query, graphs)
+  let query = if graph is Some(_) {
+    @query.graph_source_query(query)
+  } else {
+    query
+  }
   if graph is Some(graph) && @query.set_part_count(query) == 0 {
-    if @query.graph_query(query).map(value => value.pattern is Some(_)).unwrap_or(false) {
+    if @query.graph_query(query)
+      .map(value => value.pattern is Some(_))
+      .unwrap_or(false) {
       return lower_script_keyed_graph_query(
-        construction, query, graphs, limits, steps, reserved, output,
-        retained.unwrap_or([]), known~, current=Some(graph),
+        construction,
+        query,
+        graphs,
+        limits,
+        steps,
+        reserved,
+        output,
+        retained.unwrap_or([]),
+        known~,
+        current=Some(graph),
       )
     }
     if script_has_graph_rows(query) {
       return lower_script_graph_rows(
-        construction, query, graph, limits, steps, reserved, output,
-        known~, graphs~, retained~, positional_set_output~,
+        construction,
+        query,
+        graph,
+        limits,
+        steps,
+        reserved,
+        output,
+        known~,
+        graphs~,
+        retained~,
+        positional_set_output~,
       )
     }
     raise Abort(UnsupportedGraph)
@@ -327,16 +350,26 @@ pub fn compile_query_script(
     let root = @query.script_query(script)
     let reserved = context.inputs.map(input => input.name)
     let (known, graphs) = lower_script_bindings(
-      construction, root, context.inputs, [], context, sources, limits,
-      steps, reserved,
+      construction,
+      root,
+      context.inputs,
+      [],
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
     )
     let current_graph = lower_script_primary(
       construction, root, known, graphs, context, sources, limits, steps, reserved,
     )
     let tail = @query.after_producer_primary(@query.after_query_bindings(root))
-    let mut query = if current_graph is Some(_) || script_graph_input(tail, graphs) is Some(_) {
+    let mut query = if current_graph is Some(_) ||
+      script_graph_input(tail, graphs) is Some(_) {
       @query.graph_source_query(tail)
-    } else { tail }
+    } else {
+      tail
+    }
     let mut stage_context = context
     let mut stage_steps = steps
     let mut stage_sources = sources
@@ -357,7 +390,8 @@ pub fn compile_query_script(
       let graph_row_set = script_has_graph_rows(current) &&
         @query.set_part_count(current) > 0
       let result = if script_has_graph_rows(current) && !graph_row_set {
-        guard primary_graph.or_else(() => script_graph_input(current, graphs)) is Some(graph) else {
+        guard current_script_graph(primary_graph, current, graphs)
+          is Some(graph) else {
           if stage_known.any(input => {
               input_relation_matches(@query.relation(current), input)
             }) {

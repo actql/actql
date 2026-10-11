@@ -84,7 +84,8 @@ fn unshared_script_sources(
   while pending.pop() is Some(query) {
     match @query.producer_primary(query) {
       Some(GraphValue(mapping)) =>
-        for path in mapping.nodes.map(node => node.producer) +
+        for
+          path in mapping.nodes.map(node => node.producer) +
           mapping.edges.map(edge => edge.producer) {
           for input in inputs {
             if input_relation_matches(path, input) {
@@ -93,7 +94,9 @@ fn unshared_script_sources(
           }
         }
       Some(GraphGenerator(_)) =>
-        for input in inputs { counts[input.name] = 2 }
+        for input in inputs {
+          counts[input.name] = 2
+        }
       None => ()
     }
     for index in 0..<@query.query_binding_count(query) {

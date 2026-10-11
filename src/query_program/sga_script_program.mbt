@@ -1,5 +1,5 @@
 ///|
-// Use the existing DATA naming rule and its separate Graph namespace. A
+// Use resolved WITH producer coordinates and the current Graph contract. A
 // Graph is never fabricated as an Input with Relation columns.
 fn script_graph_input(
   query : @query.Query,

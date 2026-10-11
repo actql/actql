@@ -186,7 +186,8 @@ test "SGA query and WITH composition share their original token stream" {
     query_limits(),
   ).unwrap()
   assert_true(
-    producer_primary(query_binding_at(script_query(script), 0).unwrap().query) is Some(GraphGenerator(_)),
+    producer_primary(query_binding_at(script_query(script), 0).unwrap().query)
+    is Some(GraphGenerator(_)),
   )
   let body = query_binding_at(script_query(script), 1).unwrap().query
   assert_true(operation_at(body, 0) is Some(GraphCall(_)))

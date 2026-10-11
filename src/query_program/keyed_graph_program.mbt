@@ -347,6 +347,7 @@ fn lower_script_keyed_graph_query(
     pattern_query.pattern is Some(pattern) else {
     raise Abort(UnsupportedGraph)
   }
+  let relation = @query.relation(query)
   let input_graph = match current {
     Some(graph) => graph
     None => {

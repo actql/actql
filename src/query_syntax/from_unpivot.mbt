@@ -10,7 +10,12 @@ fn QueryParser::from_postfix_source(
   implicit_source_alias? : Bool = false,
 ) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool) raise QueryAbort {
   if !self.has("UNPIVOT") {
-    return self.from_pivot_source(relation, input_alias, bindings, implicit_source_alias~)
+    return self.from_pivot_source(
+      relation,
+      input_alias,
+      bindings,
+      implicit_source_alias~,
+    )
   }
   let clause = self.unpivot_clause()
   let output_alias = self.optional_source_alias()

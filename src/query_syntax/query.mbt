@@ -970,7 +970,12 @@ fn QueryParser::query_source(
 ) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool) raise QueryAbort {
   if self.peek().value != Symbol(40) {
     let (relation, source_alias, implicit_source_alias) = self.source_name()
-    return self.from_postfix_source(relation, source_alias, [], implicit_source_alias~)
+    return self.from_postfix_source(
+      relation,
+      source_alias,
+      [],
+      implicit_source_alias~,
+    )
   }
   let inner = self.parenthesized()
   let source_alias = self.optional_source_alias()
@@ -2118,7 +2123,9 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       replacements: [],
     })
   let operations : Array[QueryOperation] = []
-  let (initial_relation, initial_alias, initial_ctes, initial_implicit_alias) = if self.has("FROM") {
+  let (initial_relation, initial_alias, initial_ctes, initial_implicit_alias) = if self.has(
+      "FROM",
+    ) {
     self.keyword("FROM")
     if self.has("UNNEST") {
       operations.push(self.unnest_source())
@@ -2147,7 +2154,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
         {
           source: self.source,
           primary: None,
-    implicit_source_alias,
+          implicit_source_alias,
           positional_output: false,
           bound_source: None,
           relation,
@@ -2616,7 +2623,9 @@ fn QueryParser::pipe(
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
-  let (relation, source_alias, bindings, implicit_source_alias) = if self.has("GRAPH") {
+  let (relation, source_alias, bindings, implicit_source_alias) = if self.has(
+      "GRAPH",
+    ) {
     self.keyword("GRAPH")
     let relation = self.resolve_producer(self.path())
     let label_field = self.graph_labels()
@@ -2632,7 +2641,7 @@ fn QueryParser::pipe(
     {
       source: self.source,
       primary: None,
-    implicit_source_alias,
+      implicit_source_alias,
       positional_output: false,
       bound_source: None,
       bindings,
@@ -2695,7 +2704,7 @@ fn QueryParser::pipe_tail(
       let producer : Query = {
         source: self.source,
         primary: input.primary,
-    implicit_source_alias: input.implicit_source_alias,
+        implicit_source_alias: input.implicit_source_alias,
         positional_output: input.positional_output,
         bound_source: input.bound_source,
         bindings,
@@ -2721,7 +2730,7 @@ fn QueryParser::pipe_tail(
       let producer : Query = {
         source: self.source,
         primary: input.primary,
-    implicit_source_alias: input.implicit_source_alias,
+        implicit_source_alias: input.implicit_source_alias,
         positional_output: input.positional_output,
         bound_source: input.bound_source,
         bindings,
