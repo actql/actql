@@ -217,6 +217,16 @@ fn retained_holder_write_row(
   )
   mark("missing-response-end")
   let request = row.request()
+  let create = @catalog.single_write_request_kind(request)
+    is @catalog.SingleCreate
+  let response_status = if create { 201 } else { 204 }
+  // Independently authored physical Provider response, not a receipt or a
+  // synthesized successful Effect. The Catalog response Owner admits it.
+  let response_body = if create {
+    b"{\"id\":\"001000000000001AAA\",\"success\":true,\"errors\":[]}"
+  } else {
+    b""
+  }
   assert_eq(@catalog.single_write_request_body(request), "{\"Count__c\":3}")
   let origin = retained_runtime_required_env(
     "ACTQL_TEST_NATIVE_HTTP_BEARER_URL",
@@ -234,7 +244,7 @@ fn retained_holder_write_row(
     connector_registration: "salesforce",
     connector_revision: "salesforce/0.1",
     resource_origin: origin,
-    operation: "salesforce:record:update",
+    operation: @catalog.single_write_request_grant_operation(request),
     run_invocation_cid: @publication.publication_contract_identity(invocation),
     task_attempt: 1,
     dispatch_request_cid: @remote.dispatch_request_identity(
@@ -293,7 +303,11 @@ fn retained_holder_write_row(
         operation: scope.operation,
         path: @catalog.single_write_request_path(request),
         secret_path: secret,
-        verb: @http.Patch,
+        verb: if create {
+          @http.Post
+        } else {
+          @http.Patch
+        },
         max_request_bytes: 1024,
       },
     ],
@@ -341,13 +355,16 @@ fn retained_holder_write_row(
     scope,
   ).unwrap()
   assert_eq(observed_use.outcome, "succeeded")
-  assert_eq(observed_use.status, Some(204))
+  assert_eq(observed_use.status, Some(response_status))
   assert_true(row.send(access) is Err(ReconciliationRequired))
   peer.rollback().unwrap()
   println("native-approved-row: retrying original raw response custody")
   assert_eq(row.retry_response_custody().unwrap(), true)
   assert_eq(row.retry_response_custody().unwrap(), false)
-  assert_eq(peer.read("site_effect_response_bytes", cid).unwrap().body, b"")
+  assert_eq(
+    peer.read("site_effect_response_bytes", cid).unwrap().body,
+    response_body,
+  )
   // Current write permission is gone. Historical custody remains observable
   // and can settle its exact saved response without another approval or send.
   allowed.val = false
@@ -390,9 +407,9 @@ fn retained_holder_write_row(
     (pending_observation.ledger_head_cid, 3, true),
   )
   assert_eq(@effect.effect_ledger_entry_cid(restored.dispatching.unwrap()), cid)
-  assert_eq(restored.response.unwrap().status_code, 204)
+  assert_eq(restored.response.unwrap().status_code, response_status)
   assert_eq(restored.response.unwrap().credential_use_cid, observed_use.use_cid)
-  assert_eq(restored.response.unwrap().body, b"")
+  assert_eq(restored.response.unwrap().body, response_body)
   assert_true(direct_prepare() is Err(Resolution(_)))
   assert_true(prepare() is Err(AuthorityDenied))
   assert_true(work.retry_cleanup() is Err(Unavailable))
@@ -473,7 +490,10 @@ fn retained_holder_write_row(
     @publication.effect_row_outcome_receipt_terminal_state(receipt),
     Some("applied"),
   )
-  assert_eq(peer.read("site_effect_response_bytes", cid).unwrap().body, b"")
+  assert_eq(
+    peer.read("site_effect_response_bytes", cid).unwrap().body,
+    response_body,
+  )
   let original = peer
     .read(
       "site_effect_ledger_head",
