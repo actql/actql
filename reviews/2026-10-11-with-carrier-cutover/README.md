@@ -404,3 +404,22 @@ Effect, assertion and multi-Result continuation controls were executed without
 editing their source or Owner. This is compile/check evidence, not Model/Effect
 Host execution. Raw receipts, focused logs and SHA256 are retained; actual
 Owner/group/ownlock absence was observed for both attempts.
+
+## WITH Delta and bounded MATCH caller retirement
+
+[p1-delta-mode-retirement-execution.json](p1-delta-mode-retirement-execution.json)
+records clean `79f2f224dd944950ecb9ef8f791ac83adcb1804f`: actual JS7/7
+(`run-bWaC6C`). Three current caller files use WITH/GRAPH. Original typed JSON
+wire bytes and all Delta CIDs, selector identity, quoted bindings, default WALK,
+explicit WALK/TRAIL/ACYCLIC and hop0..2 remain unchanged. Independent complete
+Programs account for both Relation and literal seed reservations. Malformed
+Delta sources reach exact common static causes; no invalid Program is fabricated.
+
+Initial cf985 JS5/7 remains failed: the fixture omitted the literal seed from
+its allocation prediction and expected invalid bodies beyond static admission.
+The later 86c373 compile failure remains failed with zero executed tests: a
+multiline replacement left a nonexistent error constructor in the fixture.
+The bounded formatter completed with one-file whitespace changes. Raw receipts,
+focused output and SHA256 are retained; actual Owner/group/ownlock absence was
+observed for all attempts. This establishes compile/check evidence only, not
+Host Delta/MATCH execution, package or Local/HTTPS completion.

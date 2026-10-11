@@ -24,5 +24,12 @@
       "initial allocation prediction excluded literal seed4 from reserved names; restore the original independent SGA5/6 names"
     ]
   },
-  "typed_refusals": "pipeline_typing.check closed body/required with and field => InvalidBody; pipeline_typing.types read_name converts failed decode.text for field1 to InvalidBody; graph_typing.delta => Graph UnknownDeltaField missing. Original malformed sources unchanged."
+  "typed_refusals": "pipeline_typing.check closed body/required with and field => InvalidBody; pipeline_typing.types read_name converts failed decode.text for field1 to InvalidBody; graph_typing.delta => Graph UnknownDeltaField missing. Original malformed sources unchanged.",
+  "compile_failure": {
+    "source": "86c373c6f9d0ebe09822c2317fae76d3ac4d26ca",
+    "run": "run-lPzmFW",
+    "exit_code": 1,
+    "tests_executed": 0,
+    "cause": "An earlier text replacement missed the formatted multiline assertion and left nonexistent pipeline.Decode(WrongType); fixed the fixture to the independently traced InvalidBody cause. No product defect."
+  }
 }
