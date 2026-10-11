@@ -29,6 +29,7 @@ priv struct StoredPublication {
   mut commit_input : Int?
   mut commit_borrow : @buffers.BufferBorrow?
   mut commit : @publication.PublicationCommitPreparation?
+  mut commit_index : @publication.PublicationContract?
   mut commit_progress : (Bool, Int)?
   mut commit_failed : Bool
   mut commit_finished : Bool
@@ -110,6 +111,7 @@ pub fn reserve_publication(
     commit_input: None,
     commit_borrow: None,
     commit: None,
+    commit_index: None,
     commit_progress: None,
     commit_failed: false,
     commit_finished: false,
@@ -542,6 +544,9 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.commit_exports.values().any(child => child.publication == handle) {
+    return -9
+  }
   if value.result_bindings
     .values()
     .any(binding => binding.publication == handle) {

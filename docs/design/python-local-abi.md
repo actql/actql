@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 22 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 23 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -914,8 +914,8 @@ Publication accepts only the complete original Result occurrence list and work
 limits. A late `retention` field is refused; policies come from the retained
 preflight. The existing nominal cache/reuse guard retains original Receipt and
 artifact identity after a cancelled snapshot, and each Result must match its
-checked inventory index. Proposed commit request/attempt CIDs must match the
-original intent before the existing commit Owner is invoked.
+checked inventory index. Commit request, attempt and index are derived from that original intent by
+the existing issuers before the existing commit Owner is invoked.
 
 Close retains the child while tasks or publication children exist. Output
 cleanup and the exact input-borrow stop/return must both succeed before removing
@@ -934,9 +934,11 @@ separate obligations through the original final Receipt and commit chain.
 Private ABI 20 adds `actql_publication_prepare_commit`,
 `actql_publication_advance_commit`, `actql_publication_commit_progress` and
 `actql_publication_finish_commit` on the original publication handle. Preparation
-borrows a closed input containing only `bindings`, `request`, `attempt` and
-`index_entry`; each is an admitted publication contract, with bindings as an
-array. The request and attempt must match the original retained preflight.
+now borrows a closed input containing only `bindings` and `committed_at`.
+Bindings are an array of admitted durable binding contract strings. Private
+ABI 23 derives the request, attempt and candidate index from the original
+retained preflight using the existing index issuer. Supplied replacements for
+these contracts are refused as unknown fields; Python does not build their CIDs.
 The Receipt, Captured Run, Manifest, original normalization and Result inventory
 come from the retained Core handle rather than supplied replacements.
 The physical Host supplies binding facts; consistency validation does not prove
@@ -955,6 +957,30 @@ Successful finish proves chain validation only. The physical Store must separate
 verify actual payload facts, current publication authority and the durable commit
 boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
 retry an unknown operation or supply saved-Run recovery.
+
+### Validated commit candidate export
+
+Private ABI 23 adds `actql_publication_commit_export_reserve`,
+`actql_publication_commit_export_produce`,
+`actql_publication_commit_export_length` and
+`actql_publication_commit_export_close`. Reservation requires successful finish
+of the original complete-chain validator. Encoding returns exactly the existing
+Core's `request`, `attempt` and `index_entry` contract strings, within a reserved
+1 MiB output buffer and separately reserved physical copy allowance. Current
+Run and Source access is checked before initial and cached production.
+
+The child pins its original publication. Parent close seals new production and
+retains custody; failed output cleanup retains the same child and reservation
+for explicit retry. The parent still owns its original immutable commit input
+borrow and nominal Result/Receipt/artifact. No source acquisition, task
+activation, Receipt reissuance or physical Store call occurs during export.
+
+The index is a candidate accepted by the semantic validator. Its `committed_at`
+is a supplied physical observation, not proof that a Store transaction committed.
+The physical Host must separately check current publisher authority, verify
+payloads and obtain durable acceptance. A copied export never supplies those
+permissions. Python returns the exact bytes and treats closing this loan as
+resource cleanup, without cancelling a Run or resending a publication.
 
 ### Original Result storage binding output
 

@@ -47,6 +47,9 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ByteLength
+  Unicode
+  Chr
   Upper
   Lower
   Trim
@@ -279,6 +282,9 @@ fn expression_tag(
     | "concat"
     | "concat_strict"
     | "len"
+    | "byte_length"
+    | "unicode"
+    | "chr"
     | "replace"
     | "split"
     | "substring"
@@ -362,7 +368,7 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" => [body]
+    "len" | "byte_length" | "unicode" | "chr" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -972,6 +978,9 @@ fn lower_typed_expression_measured(
           }
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
+        "byte_length" => Unary(ByteLength, args[0])
+        "unicode" => Unary(Unicode, args[0])
+        "chr" => Unary(Chr, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])

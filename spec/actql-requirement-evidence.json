@@ -2060,6 +2060,72 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.google-unicode-signatures",
+      "statement_sha256": "e82bd559eb13305d946e4977a7a35245f1fb91165954335e76698c16e25e2118",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.google-byte-length-value",
+      "statement_sha256": "aa28909fd9bbe9c3a6997f854673f037fbb81824d14fea824708c1ac8c8f6470",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.google-unicode-value",
+      "statement_sha256": "fa0c4db3cf9fe8cbb5df0ba9df4db5533d41330e0ec629720249841a1761d421",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.google-chr-value",
+      "statement_sha256": "40fddbd6816a2a4381f46ab4010ef00e78278b955fe619772298181983cfd2ea",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.google-unicode-demand-resources",
+      "statement_sha256": "643cfb9f94c83a50310792afc7432babb28a41f3d2ddad2810c8cff9d0a7dd74",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/scalar-expressions.google-unicode-identity",
+      "statement_sha256": "89c756632b48bd37e511cbe1fccd8f28c1d72e638b25c63a7b0e684323391d13",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.function-0-1-result-to-number-string-canonical",
       "statement_sha256": "cd87ee18592e98f143c756bcbd425ba8307cfa9415ce4a7578a96a41f46eaa9d",
       "status": "pending",
@@ -9178,7 +9244,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "b62864b23d13f8e37493c9ef22348a7cfeaf6c9c8363c1913bdc0b66f20e953d",
+      "statement_sha256": "6dfe225369833ac486f5d12fc6f04714d0165fcce37592602339577b755ff80f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13820,7 +13886,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "5523523eebee229bebd74299862d45b0e922fc21e7e8ae59c6a7f7e2d9fc72fd",
+      "statement_sha256": "be7abf069251b757446e6aa5923f7cbfd01ee138b3695d93554d03032c4c97b9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

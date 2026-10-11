@@ -43,6 +43,16 @@ try:
         left.store, left.nonce, handle, 0) == -2
     assert left.exports['actql_publication_finish_commit'](
         left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_publication_commit_export_reserve'](
+        left.store, left.nonce, handle, 2, 2097200) == -2
+    assert left.exports['actql_publication_commit_export_produce'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_publication_commit_export_length'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_publication_commit_export_close'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_publication_commit_export_close'](
+        left.store, right.nonce, handle) == -2
     assert left.exports['actql_result_binding_reserve'](
         left.store, left.nonce, handle, 0, handle, 2, 131300) == -2
     assert left.exports['actql_result_binding_produce'](

@@ -1954,6 +1954,52 @@ substitutes for bounded continuation work. This is an ordinary common
 expression with no split-specific text-time profile, policy or envelope;
 nested profile calls retain their own obligations and input preflight.
 
+<!-- requirement-block: scalar-expressions.google-unicode-signatures -->
+`byte_length(value)` and `unicode(value)` MUST accept exactly one STRING
+expression and return Number with that operand's nullability. `chr(value)`
+accepts exactly one finite Number expression and returns String with its
+operand's nullability. Untyped NULL takes each operation's unique signature.
+The CHR result has intrinsic `max_codepoints = 1` and `max_utf8_bytes = 4`,
+without a minimum length; type derivation does not evaluate its child.
+There are no implicit conversions, BYTES, Decimal or distinct INT64 overloads.
+
+<!-- requirement-block: scalar-expressions.google-byte-length-value -->
+A demanded non-null `byte_length` MUST return the exact UTF-8 byte count of
+its complete String operand, including zero for empty input. This is not a
+UTF-16 code-unit, Unicode scalar, grapheme or JSON-escaped byte count. Preserve
+all input scalars without normalization; `octet_length` is its text alias.
+
+<!-- requirement-block: scalar-expressions.google-unicode-value -->
+A demanded non-null `unicode` MUST return the first Unicode scalar's code
+point, or zero for empty input or a leading U+0000. An astral scalar contributes
+its complete code point, not a surrogate or encoded byte. Combining marks
+remain independent scalars without normalization or grapheme segmentation.
+
+<!-- requirement-block: scalar-expressions.google-chr-value -->
+A demanded non-null `chr` MUST require an integral Number in the inclusive
+ranges 0..55295 or 57344..1114111 before integer conversion. Zero returns an
+empty String; every other admitted code point returns exactly one Unicode
+scalar, including noncharacters. Negative, fractional, surrogate and above
+U+10FFFF values fail without truncation or wrapping. NULL propagates before
+this domain validation and produces NULL.
+
+<!-- requirement-block: scalar-expressions.google-unicode-demand-resources -->
+The common expression continuation MUST demand each sole child exactly once
+and preserve its failure before strict NULL propagation. Enclosing lazy demand,
+retained roots, logical operand/result and control charges, live-value,
+output-byte, workspace and cancellation owners remain unchanged. Admit complete
+CHR output bytes and storage before constructing the bounded String. These
+ordinary operations require no text-time profile or frontend/Host evaluator.
+
+<!-- requirement-block: scalar-expressions.google-unicode-identity -->
+Canonical lowering MUST retain the three closed direct unary source bodies
+`{byte_length: expression}`, `{unicode: expression}` and `{chr: expression}`
+and corresponding `{op, body: expression_node}` machine nodes, without folding,
+duplication or synthetic arrays. SQL and expression-text BYTE_LENGTH and
+OCTET_LENGTH share `byte_length`; no canonical `octet_length` operation is
+added. UNICODE and CHR select their respective common nodes. Earlier pinned
+contract bodies retain their original meaning and identities.
+
 Explicit String transformations follow their declared Unicode and locale-independent laws; ordinary String values are preserved. `replace`
 is literal substring replacement, not regex. `date_add` and `date_diff`
 require an explicit unit from `ms|s|m|h|d`; calendar-month or timezone guesses
@@ -10383,7 +10429,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:3c3c61d271c2b565628b619018bd0e18f41e77147e247dd77f09883e93e2da6d
+../../spec/contracts/actql-aoa.json# sha256:1fa5cc588d3be937a81e81fe6db82c9567642161ce2de765562a61c51b67d8bb
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10392,13 +10438,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:d752e7e90f157fa37acbaebec1e66ac600495525fc3f6eeb6da735d8f6e12aa4
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:e648a2564aff5339e198e3d3e080df29ecac8499f73ab4b36de32fc5f0efab07
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:ff8d88ceccfa345d61008b4f2075378260a99e5aa3c9ccdde2e923b35f4db9b3
+../../spec/contracts/actql-expressions.json# sha256:2ad80bf3d427161361cf64b9ab02287a71106f4c06a491bcf4f7c75ae79af446
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5ce8328b019562ccbe848d18c4ee7478daf89ea52dff536f5083542c279a3554
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:3bac77d2737423da92b922d157b8530a000d568c68a6a8feea8570c209dcf7a1
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:10690d2d5b3922755fb6c8bfd95c75de328a519dc42d55b64c95b0ebd7f260f0
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:1a49a7e0d9c35fbf3dca46937467639cdaa3215da923769aae9619b73da464d8
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:5b5bfe0945d7c7c388f56160b7250155d0cdebc1d930bc6be8ab8e0de2f13d67
+../../spec/contracts/actql-expressions.json#/laws sha256:101a7079bedd56533a5ab7870be0ddf0a1fb982023d70b0ae2e632fd7424cce5
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:71bc6f8621a204abac66ffa59550577b60b6e5d54719512ae0dfa2a0c07b6a75
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:344bac38662b37e228459e5579826f2525fd8316c822f7a383ea3c85577fadc9
 ```
 
 <!-- stage-contract-pins:start -->

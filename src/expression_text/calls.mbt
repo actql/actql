@@ -52,7 +52,11 @@ fn Parser::call(
   token : Token,
 ) -> Node raise ExpressionError {
   let (minimum, maximum) = match name {
-    "len"
+    "byte_length"
+    | "octet_length"
+    | "unicode"
+    | "chr"
+    | "len"
     | "sqrt"
     | "exp"
     | "ln"
@@ -117,7 +121,13 @@ fn Parser::call(
   if name == "log" && args.length() == 1 {
     return self.form("ln", args[0])
   }
-  let name = if name == "power" { "pow" } else { name }
+  let name = if name == "power" {
+    "pow"
+  } else if name == "octet_length" {
+    "byte_length"
+  } else {
+    name
+  }
   if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(name) {
     return self.form(
       "cast",

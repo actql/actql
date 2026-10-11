@@ -205,6 +205,9 @@ fn emit_frames(
                   IsFalse => "is_false"
                   IsUnknown => "is_unknown"
                   Length => "len"
+                  ByteLength => "byte_length"
+                  Unicode => "unicode"
+                  Chr => "chr"
                 },
               ),
             )

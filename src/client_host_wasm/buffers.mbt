@@ -45,6 +45,7 @@ priv struct Instance {
   publication_preflights : Map[Int, StoredPublicationPreflight]
   publications : Map[Int, StoredPublication]
   result_bindings : Map[Int, StoredResultBinding]
+  commit_exports : Map[Int, StoredPublicationCommitExport]
   tasks : Map[Int, StoredManagedTask]
   result_exports : Map[Int, StoredResultExport]
   result_chunks : Map[Int, StoredResultChunk]
@@ -156,6 +157,7 @@ pub fn open(
         publication_preflights: {},
         publications: {},
         result_bindings: {},
+        commit_exports: {},
         tasks: {},
         result_exports: {},
         result_chunks: {},
@@ -321,6 +323,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     !value.publication_preflights.is_empty() ||
     !value.publications.is_empty() ||
     !value.result_bindings.is_empty() ||
+    !value.commit_exports.is_empty() ||
     !value.tasks.is_empty() ||
     !value.result_exports.is_empty() ||
     !value.result_chunks.is_empty() {
@@ -358,6 +361,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.publication_preflights.clear()
     value.publications.clear()
     value.result_bindings.clear()
+    value.commit_exports.clear()
     value.tasks.clear()
     value.result_exports.clear()
     value.result_chunks.clear()

@@ -13,6 +13,9 @@ priv struct TextArgumentsState {
 ///|
 priv enum TextFunctionKind {
   TextLength
+  TextByteLength
+  TextUnicode
+  TextChr
   TextStrpos
   TextReplace
   TextSplit
@@ -52,6 +55,7 @@ priv struct TextFunctionState {
   roots : Array[ExpressionRootLease?]
   kind : TextFunctionKind
   null_result : Bool
+  chr_scalar : Char?
   input : String
   search : String
   mut replacement : String
@@ -96,13 +100,35 @@ fn start_text_function(
   for i, value in values {
     match value {
       Null => null_result = true
-      Text(_) if !is_slice_text_function(kind) ||
-        i == 0 ||
-        (is_pad_text_function(kind) && i == 2) => ()
-      Number(_) if (kind == TextSubstring && i > 0) ||
+      Text(_) if kind != TextChr &&
+        (
+          !is_slice_text_function(kind) ||
+          i == 0 ||
+          (is_pad_text_function(kind) && i == 2)
+        ) => ()
+      Number(_) if kind == TextChr ||
+        (kind == TextSubstring && i > 0) ||
         (is_slice_text_function(kind) && i == 1) => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
     }
+  }
+  let chr_scalar = if kind == TextChr && !null_result {
+    // Validate the complete Number before narrowing; no host conversion may
+    // wrap a fraction, non-finite value, surrogate or out-of-range code point.
+    guard values[0] is Number(number) &&
+      @scalar.read_integer_number(number) is Some(point) &&
+      point >= 0.0 &&
+      point <= 1114111.0 &&
+      !(point >= 55296.0 && point <= 57343.0) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if point == 0.0 {
+      None
+    } else {
+      Some(point.to_int().unsafe_to_char())
+    }
+  } else {
+    None
   }
   let mut substring_start = 0L
   let mut substring_end = 9007199254740991L
@@ -137,6 +163,8 @@ fn start_text_function(
     return Err({ kind: WorkspaceLimit, expression, })
   }
   let output_root = if kind != TextLength &&
+    kind != TextByteLength &&
+    kind != TextUnicode &&
     kind != TextStrpos &&
     !null_result &&
     scope is Some(scope) {
@@ -182,6 +210,7 @@ fn start_text_function(
     roots,
     kind,
     null_result,
+    chr_scalar,
     input,
     search: if is_pad_text_function(kind) {
       if values.get(2) is Some(pattern) {
@@ -254,7 +283,7 @@ fn text_function_scalar(text : String, offset : Int) -> (Char, Int, Int, Int)? {
     return None
   }
   let unit = text[offset].to_int()
-  if unit >= 0xd800 && unit <= 0xdbff {
+  let scalar = if unit >= 0xd800 && unit <= 0xdbff {
     if offset + 1 >= text.length() {
       return None
     }
@@ -262,47 +291,62 @@ fn text_function_scalar(text : String, offset : Int) -> (Char, Int, Int, Int)? {
     if trailing < 0xdc00 || trailing > 0xdfff {
       return None
     }
-    let scalar = 0x10000 + ((unit - 0xd800) << 10) + trailing - 0xdc00
-    return Some((scalar.unsafe_to_char(), offset + 2, 4, 4))
-  }
-  if unit >= 0xdc00 && unit <= 0xdfff {
+    (0x10000 + ((unit - 0xd800) << 10) + trailing - 0xdc00).unsafe_to_char()
+  } else if unit >= 0xdc00 && unit <= 0xdfff {
     return None
+  } else {
+    unit.unsafe_to_char()
   }
-  let width = if unit < 0x80 { 1 } else if unit < 0x800 { 2 } else { 3 }
-  let wire = if unit == 34 ||
-    unit == 92 ||
-    unit == 8 ||
-    unit == 9 ||
-    unit == 10 ||
-    unit == 12 ||
-    unit == 13 {
+  let (units, width, wire) = text_function_scalar_widths(scalar)
+  Some((scalar, offset + units, width, wire))
+}
+
+///|
+/// The decoder and CHR share exact UTF-16, raw UTF-8 and canonical JSON widths.
+/// CHR's zero special case is handled before this scalar-only measurement.
+fn text_function_scalar_widths(scalar : Char) -> (Int, Int, Int) {
+  let point = scalar.to_int()
+  let width = if point < 0x80 {
+    1
+  } else if point < 0x800 {
     2
-  } else if unit < 32 {
+  } else if point < 0x10000 {
+    3
+  } else {
+    4
+  }
+  let wire = if point == 34 ||
+    point == 92 ||
+    point == 8 ||
+    point == 9 ||
+    point == 10 ||
+    point == 12 ||
+    point == 13 {
+    2
+  } else if point < 32 {
     6
   } else {
     width
   }
-  Some((unit.unsafe_to_char(), offset + 1, width, wire))
+  (if point < 0x10000 { 1 } else { 2 }, width, wire)
 }
 
 ///|
-fn append_text_function_scalar(
+fn append_text_function_codepoint(
   state : TextFunctionState,
-  text : String,
-  offset : Int,
-) -> Result[Int, EvalIssue] {
+  scalar : Char,
+  units : Int,
+  width : Int,
+  wire : Int,
+) -> Result[Unit, EvalIssue] {
   let expression = state.expression
-  guard text_function_scalar(text, offset) is Some((scalar, next, width, wire)) else {
-    return Err({ kind: Scalar(InvalidOperand), expression, })
-  }
   if state.building {
     guard state.builder is Some(builder) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
     builder.write_char(scalar)
   } else {
-    if next - offset > 1073741823 - state.units ||
-      wire > 2147483647 - state.bytes {
+    if units > 1073741823 - state.units || wire > 2147483647 - state.bytes {
       return Err({ kind: WorkspaceLimit, expression, })
     }
     if state.output_root is Some(root) {
@@ -319,11 +363,27 @@ fn append_text_function_scalar(
         Ok(_) => ()
       }
     }
-    state.units += next - offset
+    state.units += units
     state.bytes += wire
     state.weight += width.to_int64()
   }
-  Ok(next)
+  Ok(())
+}
+
+///|
+fn append_text_function_scalar(
+  state : TextFunctionState,
+  text : String,
+  offset : Int,
+) -> Result[Int, EvalIssue] {
+  guard text_function_scalar(text, offset) is Some((scalar, next, width, wire)) else {
+    return Err({ kind: Scalar(InvalidOperand), expression: state.expression, })
+  }
+  match
+    append_text_function_codepoint(state, scalar, next - offset, width, wire) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(next)
+  }
 }
 
 ///|
@@ -446,16 +506,49 @@ fn advance_text_function(
     state.position = next
     return Ok(None)
   }
-  if state.kind == TextLength {
+  if state.kind == TextLength || state.kind == TextByteLength {
     if state.position == state.input.length() {
-      return Ok(Some(Number(state.count.to_double())))
+      return Ok(
+        Some(
+          Number(
+            if state.kind == TextLength {
+              state.count.to_double()
+            } else {
+              (state.weight - 1L).to_double()
+            },
+          ),
+        ),
+      )
     }
     guard text_function_scalar(state.input, state.position)
-      is Some((_, next, _, _)) else {
+      is Some((_, next, width, _)) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
     state.position = next
     state.count += 1
+    // Int64 keeps the exact byte count even when UTF-8 exceeds the number of
+    // admitted UTF-16 code units. Every increment remains one charged poll.
+    state.weight += width.to_int64()
+    return Ok(None)
+  }
+  if state.kind == TextUnicode {
+    if state.input.is_empty() {
+      return Ok(Some(Number(0.0)))
+    }
+    guard text_function_scalar(state.input, 0) is Some((scalar, _, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    return Ok(Some(Number(scalar.to_int().to_double())))
+  }
+  if state.kind == TextChr &&
+    state.position == 0 &&
+    state.chr_scalar is Some(scalar) {
+    let (units, width, wire) = text_function_scalar_widths(scalar)
+    match append_text_function_codepoint(state, scalar, units, width, wire) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    state.position = 1
     return Ok(None)
   }
   if state.kind == TextStrpos {
@@ -521,6 +614,12 @@ fn advance_text_function(
   let end = if is_trim_text_function(state.kind) ||
     is_slice_text_function(state.kind) {
     state.trim_end
+  } else if state.kind == TextChr {
+    if state.chr_scalar is Some(_) {
+      1
+    } else {
+      0
+    }
   } else {
     state.input.length()
   }
