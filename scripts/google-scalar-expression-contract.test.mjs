@@ -16,26 +16,27 @@ function bodies() {
   return [{schemas: {source, node}, laws: {}, grammar_sha256: ''},
     {artifact_schemas: {program: structuredClone(source)}, artifact_schema_cids: {}}];
 }
-const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_divide" | "safe_negate" ;\n';
+const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_divide" | "safe_negate" ;\n';
 
 test('GoogleSQL scalar schemas preserve exact arities, local references and original operators', () => {
   const [expression, protocol] = bodies();
   const original = structuredClone(expression.schemas);
   assert.deepEqual(updateGoogleScalarContracts(expression, protocol, grammar, true), {
+    pow: {source: 2, node: 1}, exp: {source: 2, node: 1}, ln: {source: 2, node: 1}, log: {source: 2, node: 1}, log10: {source: 2, node: 1},
     starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1}, trim: {source: 2, node: 1}, ltrim: {source: 2, node: 1}, rtrim: {source: 2, node: 1}, safe_add: {source: 2, node: 1}, safe_subtract: {source: 2, node: 1}, safe_multiply: {source: 2, node: 1}, safe_divide: {source: 2, node: 1}, safe_negate: {source: 2, node: 1},
   });
   for (const [kind, schema] of Object.entries(original)) {
     for (const shape of schema.oneOf) assert.ok(expression.schemas[kind].oneOf
       .some(candidate => JSON.stringify(candidate) === JSON.stringify(shape)));
   }
-  for (const name of ['starts_with', 'ends_with', 'strpos', 'safe_add', 'safe_subtract', 'safe_multiply', 'safe_divide']) {
+  for (const name of ['pow', 'log', 'starts_with', 'ends_with', 'strpos', 'safe_add', 'safe_subtract', 'safe_multiply', 'safe_divide']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {type: 'array', minItems: 2, maxItems: 2,
       items: {$ref: '#/$defs/source_expression'}});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body.items, {$ref: '#/$defs/machine_expression'});
   }
-  for (const name of ['sign', 'safe_negate']) {
+  for (const name of ['exp', 'ln', 'log10', 'sign', 'safe_negate']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {$ref: '#/$defs/source_expression'});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
@@ -587,5 +588,57 @@ test('explicit trim sets preserve exact unary predecessor bodies and close pair 
   for (const entry of preimages.identity_envelopes) {
     assert.equal(canonical(entry.envelope), entry.canonical);
     assert.equal(cid(entry.envelope), entry.expected_cid);
+  }
+});
+
+test('POW schema and law mutations reject domain, arity and identity widening', () => {
+  const [expression, protocol] = bodies();
+  updateGoogleScalarContracts(expression, protocol, grammar, true);
+  assert.match(expression.laws.pow.value, /negative base requires an integral exponent/);
+  assert.match(expression.laws.pow.value, /Zero to zero is one/);
+  assert.match(expression.laws.pow.value, /canonical positive zero/);
+  assert.match(expression.laws.pow.identity, /GoogleSQL MOD has no FLOAT64 signature/);
+  for (const mutate of [
+    e => { e.laws.pow.signature = 'arbitrary number or string'; },
+    e => { e.laws.pow.value = 'NaN for fractional powers of negative bases'; },
+    e => { e.laws.pow.evaluation = 'skip second operand after NULL'; },
+    e => { e.schemas.source.oneOf.find(s => s.required[0] === 'pow').properties.pow.minItems = 1; },
+    e => { e.schemas.node.oneOf.find(s => s.properties.op.const === 'pow').properties.body.maxItems = 3; },
+    e => { e.schemas.source.oneOf.find(s => s.required[0] === 'pow').properties.pow.items = {$ref: '#/wrong'}; },
+    e => { e.schemas.node.oneOf.push(structuredClone(e.schemas.node.oneOf.find(s => s.properties.op.const === 'pow'))); },
+  ]) {
+    const changed = structuredClone(expression);
+    mutate(changed);
+    assert.throws(() => updateGoogleScalarContracts(changed, protocol, grammar));
+  }
+});
+
+test('Exponential and logarithmic contracts retain unary aliases and binary LOG shape', () => {
+  const [expression, protocol] = bodies();
+  updateGoogleScalarContracts(expression, protocol, grammar, true);
+  assert.match(expression.laws.exp.value, /non-finite result.*arithmetic failure/);
+  assert.match(expression.laws.ln.identity, /LN\(x\) and LOG\(x\).*same unary operation/);
+  assert.match(expression.laws.log.identity, /Canonical JSON log is binary only/);
+  assert.match(expression.laws.log.value, /base to differ from one/);
+  assert.match(expression.laws.log10.value, /less than or equal to zero/);
+  for (const name of ['exp', 'ln', 'log', 'log10']) {
+    assert.match(expression.laws[name].algorithm, /same pinned portable MoonBit core Double algorithms/);
+    assert.match(expression.laws[name].algorithm, /preserve exact logical Number bits across targets/);
+    assert.match(expression.laws[name].algorithm, /no live-BigQuery last-bit equivalence is claimed/);
+    const changed = structuredClone(expression);
+    changed.laws[name].evaluation = 'skip child errors';
+    assert.throws(() => updateGoogleScalarContracts(changed, protocol, grammar));
+  }
+  for (const mutate of [
+    e => { e.laws.log.value = 'allow base one'; },
+    e => { e.schemas.source.oneOf.find(s => s.required[0] === 'ln').properties.ln = {type: 'array', minItems: 1, maxItems: 1}; },
+    e => { e.schemas.node.oneOf.find(s => s.properties.op.const === 'exp').properties.body = {type: 'number'}; },
+    e => { e.schemas.source.oneOf.find(s => s.required[0] === 'log').properties.log.minItems = 1; },
+    e => { e.schemas.node.oneOf.find(s => s.properties.op.const === 'log').properties.body.maxItems = 3; },
+    e => { e.schemas.node.oneOf.find(s => s.properties.op.const === 'log10').properties.body = {$ref: '#/wrong'}; },
+  ]) {
+    const changed = structuredClone(expression);
+    mutate(changed);
+    assert.throws(() => updateGoogleScalarContracts(changed, protocol, grammar));
   }
 });

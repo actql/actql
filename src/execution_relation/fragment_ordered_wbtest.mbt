@@ -45,7 +45,7 @@ test "ordered request generates complete fragment and regenerates all evidence a
   }
   assert_eq(
     binding.node.graph.cid,
-    "sha256:c69481fedc4542ff1dfc060d79a907307311cc9818d9d92f8f7e8d9794eedb3a",
+    "sha256:cf4240bbb5d6ec33481983a4a39f7cbbc17b38ec36d06f010cf0853ef4734662",
   )
   let text = @identity.stringify_value(
     checked.candidate.artifact.value,
