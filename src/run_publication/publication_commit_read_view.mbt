@@ -4,6 +4,7 @@
 struct PublicationCommitReadView {
   mut owner : PublicationCommitPreparation?
   mut released : Bool
+  mut observed : PublicationCommitPreparation?
 }
 
 ///|
@@ -19,7 +20,7 @@ pub fn PublicationCommitPreparation::finish_view(
     preparation.live >= preparation.max_workspace {
     return Err(CommitEncoding)
   }
-  let view = { owner: Some(preparation), released: false, }
+  let view = { owner: Some(preparation), released: false, observed: None, }
   preparation.view = Some(view)
   preparation.live += 1
   preparation.peak = Int::max(preparation.peak, preparation.live)
@@ -157,6 +158,10 @@ pub fn PublicationCommitPreparation::release_view(
     return Ok(())
   }
   guard view.owner is Some(owner) && physical_equal(preparation, owner) else {
+    return Err(CommitEncoding)
+  }
+  // A live stored-chain validation still borrows the original inventories.
+  if view.observed is Some(child) && !child.closed {
     return Err(CommitEncoding)
   }
   view.released = true

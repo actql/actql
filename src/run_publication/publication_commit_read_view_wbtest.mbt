@@ -65,6 +65,7 @@ test "commit view copied descriptor cannot borrow or release original inputs" {
   let copy : PublicationCommitReadView = {
     owner: Some(preparation),
     released: false,
+    observed: None,
   }
   assert_true(preparation.view_count(copy) is Err(CommitEncoding))
   assert_true(preparation.view_contract(copy, 7) is Err(CommitEncoding))

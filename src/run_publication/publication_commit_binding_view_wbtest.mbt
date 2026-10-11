@@ -8,6 +8,7 @@ test "commit binding view copied token cannot acquire original inputs" {
   let copied : PublicationCommitReadView = {
     owner: Some(preparation),
     released: false,
+    observed: None,
   }
   assert_true(preparation.view_binding(copied, 0) is Err(CommitEncoding))
   let binding = preparation.view_binding(view, 0).unwrap()

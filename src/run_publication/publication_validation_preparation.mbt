@@ -346,7 +346,11 @@ pub fn PublicationCommitPreparation::cancel(
   }
   // A completed view still owns the borrowed originals until its physical
   // output use has stopped and the caller explicitly releases that view.
-  if preparation.view is Some(_) {
+  if preparation.view is Some(view) {
+    match view.observed {
+      Some(child) => child.cancel()
+      None => ()
+    }
     preparation.closed = true
     return
   }
