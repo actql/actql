@@ -148,6 +148,8 @@ pub fn model_raw_capture_save_current(ModelRawCaptureSave) -> Result[Unit, Model
 
 pub fn model_raw_capture_save_originals(ModelRawCaptureSave) -> Array[@run_publication.CapturedEffectDependencyBody]
 
+pub fn model_saved_raw_chat_response(ModelSavedRawReceipt, String, @canonical_json.CanonicalValue?) -> Result[ModelPhysicalChatResponse, ModelRawCaptureSaveIssue]
+
 pub fn model_saved_raw_receipt_matches(ModelSavedRawReceipt, ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
@@ -418,13 +420,8 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalUnknown(ModelPhysicalUsage)
 }
 
-pub(all) struct ModelPhysicalChatResponse {
-  body : String
-  status : Int
-  transport_eof : Bool
-  raw_response_artifact_cid : String
-  observed_at : String
-  provider_metadata : @canonical_json.CanonicalValue?
+pub struct ModelPhysicalChatResponse {
+  // private fields
 }
 
 pub(all) struct ModelPhysicalEncodedResponse {

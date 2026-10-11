@@ -81,6 +81,7 @@ fn async_response_fixture(
   ),
   now? : Ref[String] = Ref("2026-10-02T00:00:00.000Z"),
   observe_call? : (@model.ModelPhysicalCall) -> Unit = _ => (),
+  observe_response? : (() -> @model.ModelPhysicalCallPoll)? = None,
 ) -> (Execution, Int64) raise {
   let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
@@ -108,7 +109,10 @@ fn async_response_fixture(
                   () => {
                     polls.val += 1
                     if ready.val {
-                      observed
+                      match observe_response {
+                        Some(read) => read()
+                        None => observed
+                      }
                     } else {
                       @model.PhysicalPending
                     }

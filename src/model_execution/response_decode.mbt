@@ -15,12 +15,15 @@ priv struct ModelResponseDecode {
   mut phase : ModelResponseDecodePhase
   limits : @environment.ModelResponseProfileLimits
   mut remaining : Int
-  raw_chat : ModelPhysicalChatResponse?
+  mut raw_chat : ModelPhysicalChatResponse?
   mut observation : @publication.ModelCaptureObservation?
 }
 
 ///|
-fn cancel_model_response_decode(cursor : ModelResponseDecode) -> Unit {
+fn cancel_model_response_decode(
+  cursor : ModelResponseDecode,
+  preserve_observation? : Bool = false,
+) -> Unit {
   match cursor.phase {
     ReadChat(chat) => cancel_chat_envelope_decode(chat)
     ParseAnswer(parse) => @source.cancel_json_parse(parse)
@@ -29,6 +32,10 @@ fn cancel_model_response_decode(cursor : ModelResponseDecode) -> Unit {
     DecodeReclaimed => ()
   }
   cursor.phase = DecodeReclaimed
+  if !preserve_observation {
+    cursor.raw_chat = None
+    cursor.observation = None
+  }
 }
 
 ///|
@@ -121,6 +128,9 @@ fn advance_encoded_model_response(
         physical.endpoint_complete,
         answer_complete: true,
       }
+      // Transfer the selected observation before retiring the child aliases.
+      // The original physical terminal still owns its separate raw custody.
+      cancel_model_response_decode(cursor)
       call.decoded_response = Some(decoded)
       // Only initialize metadata/value admission here. Its first transition
       // belongs to the next original Model advance.
@@ -188,7 +198,9 @@ fn advance_model_response_decode(
       match @admitted.advance_typed_admission(typed) {
         @admitted.TypedAdmissionContinue => ()
         @admitted.TypedAdmissionComplete(checked, _, _) => {
-          cancel_model_response_decode(cursor)
+          // The parent consumes selected raw observations with this answer;
+          // parser reclamation alone cannot drop them before that transfer.
+          cancel_model_response_decode(cursor, preserve_observation=true)
           return Ok(Some(checked))
         }
         _ => {

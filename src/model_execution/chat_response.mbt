@@ -10,7 +10,9 @@ fn begin_chat_model_response(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
-  guard state.physical_plans.get(prepared.request.slot) is Some(plan) &&
+  guard state.pending_response is Some(original_call) &&
+    model_chat_response_original(raw, original_call) &&
+    state.physical_plans.get(prepared.request.slot) is Some(plan) &&
     plan.response_profile is Some(profile) &&
     @environment.model_response_profile_completion_basis(profile) ==
     "generation_finish" &&

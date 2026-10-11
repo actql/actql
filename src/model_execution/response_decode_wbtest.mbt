@@ -101,6 +101,7 @@ test "cancelled answer child cursor cannot restart or retain an active parser" {
   cancel_model_response_decode(cursor)
   cancel_model_response_decode(cursor)
   assert_true(cursor.phase is DecodeReclaimed)
+  assert_true(cursor.raw_chat is None && cursor.observation is None)
   assert_true(
     advance_model_response_decode(cursor, output, limits) is Err(OutputIdentity),
   )

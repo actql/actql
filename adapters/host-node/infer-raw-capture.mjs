@@ -29,9 +29,7 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
   const binding = Object.freeze({semanticCid, holdingCid, wire, contentCid, byteCount});
   const holding = preparePrivatePublicationHolding(store,
     {...binding, name: 'model_raw_response'}, bytes);
-  return Object.freeze({
-    holding,
-    async persist() {
+  const persist = async () => {
       let confirmed = false;
       try {
         current();
@@ -58,6 +56,30 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
         if (!holding.status().committed || holding.status().preparedPending) {
           error.cleanupPending = true;
         }
+        throw error;
+      }
+  };
+  return Object.freeze({
+    holding,
+    persist,
+    async persistChat(metadata) {
+      const saved = await persist();
+      try {
+        // Preserve an observed BOM as U+FEFF, along with Unicode and newlines.
+        // The descriptor and bytes have already been compared by the Store.
+        const body = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true})
+          .decode(saved.bytes);
+        const response = checked(moon.clientProgramInferSavedRawChatResponse(
+          saved.receipt, body, metadata,
+        ));
+        return Object.freeze({receipt: saved.receipt, response});
+      } catch (error) {
+        // Invalid UTF-8 is not a successful response, and cannot erase the
+        // original raw receipt or turn saved custody into an unsent attempt.
+        error.rawPersistenceConfirmed = true;
+        error.rawCustodyRetained = true;
+        error.rawReceipt = saved.receipt;
+        error.cleanupHandle = holding;
         throw error;
       }
     },

@@ -49,3 +49,13 @@ pub fn client_program_infer_saved_raw_receipt_matches(
 ) -> Bool {
   @model.model_saved_raw_receipt_matches(receipt, call, response)
 }
+
+///|
+#export_name("clientProgramInferSavedRawChatResponse")
+pub fn client_program_infer_saved_raw_chat_response(
+  receipt : @model.ModelSavedRawReceipt,
+  body : String,
+  metadata : @identity.CanonicalValue?,
+) -> Result[@model.ModelPhysicalChatResponse, @model.ModelRawCaptureSaveIssue] {
+  @model.model_saved_raw_chat_response(receipt, body, metadata)
+}

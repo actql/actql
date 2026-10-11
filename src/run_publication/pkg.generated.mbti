@@ -498,6 +498,8 @@ pub fn model_raw_response_profile_cid(BoundModelRawResponse) -> String
 
 pub fn model_raw_response_store_binding(BoundModelRawResponse) -> (String, String, String, String, Int)
 
+pub fn model_raw_response_transport_facts(BoundModelRawResponse) -> (Int, Bool, String)
+
 pub fn model_raw_response_value(BoundModelRawResponse) -> RunEvidenceValue
 
 pub fn model_scoped_private_holding_cid(PublicationContract, String, String, String, String, Int, String, String) -> String?

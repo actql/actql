@@ -155,6 +155,7 @@ fn model_reported_response_owned(
     }
     Some(PhysicalChatResponse(raw)) => {
       guard call.decoded_response is Some(original) &&
+        model_chat_response_original(raw, call) &&
         original.observation.raw_response_artifact_cid ==
         Some(raw.raw_response_artifact_cid) &&
         original.observation.observed_at == raw.observed_at &&

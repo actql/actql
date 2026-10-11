@@ -8,12 +8,16 @@ struct RawSaveFixture {
   ready : Ref[Bool]
   calls : Ref[Int]
   work : Int64
+  response : Ref[@model.ModelPhysicalCallPoll]
 }
 
 ///|
 // Ordinary Program/Entry/physical-call owners, with deterministic transport,
 // installation and Store-ACK doubles. This does not assert real persistence.
-fn raw_save_fixture() -> RawSaveFixture raise {
+fn raw_save_fixture(
+  cleanup_calls? : Array[Bool] = [],
+  release? : Ref[Bool] = Ref(true),
+) -> RawSaveFixture raise {
   let calls = Ref(0)
   let current = Ref(
     evidence_account(@authorization.Allow, operations=[
@@ -23,17 +27,21 @@ fn raw_save_fixture() -> RawSaveFixture raise {
   let now = Ref("2026-10-02T00:00:00.000Z")
   let ready = Ref(false)
   let captured : Ref[@model.ModelPhysicalCall?] = Ref(None)
+  let response = Ref(
+    @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
+  )
   let (active, prefix) = async_response_fixture(
     calls,
     Ref(0),
     Ref(0),
-    [],
+    cleanup_calls,
     ready,
-    Ref(true),
-    @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
+    release,
+    response.val,
     current~,
     now~,
     observe_call=call => captured.val = Some(call),
+    observe_response=Some(() => response.val),
   )
   let prepared = prepared_call_set(active).unwrap()
   let scope = @model.prepared_model_scope(prepared).unwrap()
@@ -65,6 +73,7 @@ fn raw_save_fixture() -> RawSaveFixture raise {
     ready,
     calls,
     work,
+    response,
   }
 }
 

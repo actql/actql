@@ -24,15 +24,16 @@ pub(all) struct ModelPhysicalEncodedResponse {
 ///|
 /// Original non-streaming Chat response custody. These are physical facts,
 /// not a provider's selected answer, completion proof or dispatch authority.
-/// Artifact persistence and its exact raw bytes remain the installed caller's
-/// responsibility; this child never canonicalizes or replaces their identity.
-pub(all) struct ModelPhysicalChatResponse {
-  body : String
-  status : Int
-  transport_eof : Bool
-  raw_response_artifact_cid : String
-  observed_at : String
-  provider_metadata : @canonical.CanonicalValue?
+/// The trusted installed caller decodes only the exact bytes reconfirmed by
+/// the original Store. A CID string cannot construct this original-call view.
+pub struct ModelPhysicalChatResponse {
+  priv body : String
+  priv status : Int
+  priv transport_eof : Bool
+  priv raw_response_artifact_cid : String
+  priv observed_at : String
+  priv provider_metadata : @canonical.CanonicalValue?
+  priv saved_raw : ModelSavedRawReceipt
 }
 
 ///|

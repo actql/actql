@@ -206,3 +206,45 @@ pub fn model_saved_raw_receipt_matches(
     @publication.model_raw_response_value(receipt.original.response),
   )
 }
+
+///|
+/// Trusted installed decoder only: body is the fatal UTF-8 decoding of the
+/// exact reconfirmed Store bytes. This factory binds transport observations
+/// from the saved descriptor, not caller-supplied status/CID or completion.
+/// It does not issue present read/disclosure, send or answer-validity rights.
+pub fn model_saved_raw_chat_response(
+  receipt : ModelSavedRawReceipt,
+  body : String,
+  provider_metadata : @canonical.CanonicalValue?,
+) -> Result[ModelPhysicalChatResponse, ModelRawCaptureSaveIssue] {
+  let original = receipt.original
+  if !model_raw_capture_call_owned(original.call) {
+    return Err(ForeignCall)
+  }
+  let (status, eof, observed_at) = @publication.model_raw_response_transport_facts(
+    original.response,
+  )
+  Ok({
+    body,
+    status,
+    transport_eof: eof,
+    raw_response_artifact_cid: @publication.run_evidence_value_identity(
+      @publication.model_raw_response_value(original.response),
+    ),
+    observed_at,
+    provider_metadata,
+    saved_raw: receipt,
+  })
+}
+
+///|
+fn model_chat_response_original(
+  response : ModelPhysicalChatResponse,
+  call : ModelPhysicalCall,
+) -> Bool {
+  model_saved_raw_receipt_matches(
+    response.saved_raw,
+    call,
+    @publication.model_raw_response_value(response.saved_raw.original.response),
+  )
+}

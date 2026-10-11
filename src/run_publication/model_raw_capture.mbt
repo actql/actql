@@ -213,6 +213,23 @@ pub fn model_raw_response_profile_cid(value : BoundModelRawResponse) -> String {
 }
 
 ///|
+/// Actual transport observations from the original admitted raw descriptor.
+/// EOF and an HTTP status are not endpoint or answer completion evidence.
+pub fn model_raw_response_transport_facts(
+  value : BoundModelRawResponse,
+) -> (Int, Bool, String) {
+  let status = match @json.object_field(value.response.value, "http_status") {
+    Some(@json.Number(status)) => status.to_int()
+    _ => abort("admitted raw descriptor HTTP status")
+  }
+  let eof = match @json.object_field(value.response.value, "transport_eof") {
+    Some(@json.Bool(eof)) => eof
+    _ => abort("admitted raw descriptor EOF")
+  }
+  (status, eof, evidence_string(value.response.value, "observed_at").unwrap())
+}
+
+///|
 /// The existing Model/Store adapter supplies actual byte/transport observations.
 /// This issuer binds them to original scope/attempt/policy, but is neither a
 /// physical content hash verifier nor a saved receipt or completion issuer.

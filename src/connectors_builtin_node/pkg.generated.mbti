@@ -827,6 +827,8 @@ pub fn client_program_infer_result_name(@run_publication_host.ClientResultTransf
 
 pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransformation) -> Int
 
+pub fn client_program_infer_saved_raw_chat_response(@model_execution.ModelSavedRawReceipt, String, @canonical_json.CanonicalValue?) -> Result[@model_execution.ModelPhysicalChatResponse, @model_execution.ModelRawCaptureSaveIssue]
+
 pub fn client_program_infer_saved_raw_receipt_matches(@model_execution.ModelSavedRawReceipt, @model_execution.ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
 
 pub fn client_program_infer_stopped_attempt_count(@client_infer_host.Execution) -> Int?

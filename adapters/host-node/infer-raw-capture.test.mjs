@@ -27,12 +27,13 @@ async function fixture(t, options = {}) {
     return {kind, cid: digest(wire), wire};
   });
   for (const original of originals) await store.putSemantic(original.wire, original.cid);
-  const bytes = Uint8Array.of(0x7b, 0xc3, 0x28, 0x7d);
+  const bytes = options.bytes ?? Uint8Array.of(0x7b, 0xc3, 0x28, 0x7d);
   const binding = {semanticCid: digest('raw descriptor'), holdingCid: digest('raw cell'),
-    wire: '{"independent":"raw descriptor"}', contentCid: digest(bytes), byteCount: 4};
+    wire: '{"independent":"raw descriptor"}', contentCid: digest(bytes),
+    byteCount: bytes.byteLength};
   const view = Object.freeze({original: Symbol('original Model view double')});
   const receipt = Object.freeze({view});
-  const state = {allowed: true, writes: 0, acknowledgements: 0};
+  const state = {allowed: true, writes: 0, acknowledgements: 0, decoded: []};
   // Core installation/Entry/grant/receipt doubles only. Actual Store bytes,
   // encryption, original availability and reconfirmation run below. This does
   // not claim a joined real nominal Core receipt or public Provider acceptance.
@@ -56,6 +57,12 @@ async function fixture(t, options = {}) {
       assert.equal(state.allowed, true);
       state.acknowledgements++;
       return {$tag: 1, _0: receipt};
+    },
+    clientProgramInferSavedRawChatResponse(actual, body, metadata) {
+      assert.equal(actual, receipt);
+      const response = Object.freeze({actual, body, metadata});
+      state.decoded.push(response);
+      return {$tag: 1, _0: response};
     },
   };
   const physical = {...store,
@@ -120,5 +127,36 @@ test('private raw port preserves saved custody on revocation before nominal rece
   assert.equal((await port.persist()).receipt, f.receipt);
   assert.equal(f.state.writes, 1);
   assert.equal(f.state.acknowledgements, 1);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('private raw Chat port decodes only saved bytes and preserves BOM Unicode and line endings', async t => {
+  const original = '\ufeff{"text":"é\\r\\n","nested":{"empty":""}}\r\n';
+  const f = await fixture(t, {bytes: Buffer.from(original, 'utf8')});
+  const port = createModelRawCaptureStorePort(f.physical, f.moon, f.view, f.bytes);
+  const result = await port.persistChat(undefined);
+  assert.equal(result.receipt, f.receipt);
+  assert.equal(result.response.body, original);
+  assert.equal(result.response.actual, f.receipt);
+  assert.equal(f.state.decoded.length, 1);
+  assert.equal(f.state.writes, 1);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('private raw Chat port retains invalid UTF8 saved receipt without issuing a decoded response', async t => {
+  const f = await fixture(t);
+  const port = createModelRawCaptureStorePort(f.physical, f.moon, f.view, f.bytes);
+  await assert.rejects(port.persistChat(undefined), error => {
+    assert.equal(error.code, 'ERR_ENCODING_INVALID_ENCODED_DATA');
+    assert.equal(error.rawPersistenceConfirmed, true);
+    assert.equal(error.rawCustodyRetained, true);
+    assert.equal(error.rawReceipt, f.receipt);
+    assert.equal(error.cleanupHandle, port.holding);
+    return true;
+  });
+  assert.equal(f.state.decoded.length, 0);
+  assert.equal(f.state.writes, 1);
+  assert.equal(port.holding.status().committed, true);
+  assert.equal(await port.holding.abort(), false);
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
 });
