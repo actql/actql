@@ -70,6 +70,8 @@ test "Graph traversal retains malformed authored bodies for common refusal" {
       traversal_nodes_source() + "FROM g |> " + tail + " |> SELECT depth",
       expected=if tail.contains("max_hops: 0") {
         Some(@pipeline.GraphMatch(Structure(InvalidCount)))
+      } else if tail.contains("path_mode: 'invented'") {
+        Some(@pipeline.GraphMatch(Structure(InvalidBody)))
       } else if tail.contains("id: 'missing'") {
         None
       } else {
