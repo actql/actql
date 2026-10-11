@@ -4073,18 +4073,10 @@ fn run_holder(
       stop("holder setup failed before claim")
     }
   }
-  let effect_resume = open_holder_effect_resume_installation(
-    matches,
-    environment.sqlite_library,
-    resources,
-  ) catch {
-    CommandStop(primary) => {
-      close_holder_output_resources(resources)
-      close_site_environment(environment)
-      ignore(slot.close())
-      stop(primary)
-    }
-  }
+  // A Provider grant binds the captured invocation, including actual Source
+  // observation times. It is installed on the first exact Resume, not made a
+  // prerequisite of the independently authorized Source start claim.
+  let effect_resume : Ref[HolderEffectResumeInstallation?] = Ref(None)
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
   let saved_completion = match environment.journal.dispatch_envelope(attempt) {
@@ -4182,7 +4174,26 @@ fn run_holder(
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
         effect_resume_installation=request => {
-          match effect_resume {
+          if effect_resume.val is None {
+            let installed = open_holder_effect_resume_installation(
+              matches,
+              environment.sqlite_library,
+              resources,
+              request,
+            ) catch {
+              CommandStop(_) => {
+                // Keep the existing task and Review responsibility. Missing
+                // or invalid Provider installation cannot restart computation.
+                report("effect-resume-pending", [
+                  ("request_cid", @remote.dispatch_request_identity(request)),
+                  ("reason", "provider-installation"),
+                ])
+                None
+              }
+            }
+            effect_resume.val = installed
+          }
+          match effect_resume.val {
             Some(owner) => owner.for_dispatch(request)
             None => None
           }
@@ -4237,7 +4248,7 @@ fn run_holder(
       }
     }
   }
-  if effect_resume is Some(owner) {
+  if effect_resume.val is Some(owner) {
     let mut wait_ms = 50
     while !owner.close() {
       report("cleanup-pending", [("step", "effect-resume-installation")])
