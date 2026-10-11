@@ -120,6 +120,19 @@ extern "C" fn database_compare_exchange_ffi(
 ) -> Int = "actql_native_sqlite_database_compare_exchange"
 
 ///|
+#borrow(database, scope, key, body)
+extern "C" fn database_remove_exact_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  expected_revision : Int64,
+  body : Bytes,
+  body_length : Int,
+) -> Int = "actql_native_sqlite_database_remove_exact"
+
+///|
 #borrow(database)
 extern "C" fn database_begin_immediate_ffi(database : Database) -> Int = "actql_native_sqlite_database_begin_immediate"
 
@@ -482,6 +495,41 @@ pub fn Database::compare_exchange(
   )
   if code == 0 {
     Ok(database_result_revision_ffi(self))
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Remove one exact original row inside an already-open, unfenced transaction.
+/// This confirms neither transaction commit nor any other physical cleanup.
+pub fn Database::remove_exact(
+  self : Database,
+  scope : String,
+  key : String,
+  expected_revision : Int64,
+  expected_body : Bytes,
+) -> Result[Unit, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  if expected_revision < 0L {
+    return Err(Collision)
+  }
+  let code = database_remove_exact_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+    expected_revision,
+    expected_body,
+    expected_body.length(),
+  )
+  if code == 0 {
+    Ok(())
   } else {
     Err(operation_issue(self, code))
   }

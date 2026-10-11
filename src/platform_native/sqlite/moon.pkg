@@ -15,6 +15,7 @@ options(
     "sqlite_native.mbt": [ "native" ],
     "sqlite_unsupported.mbt": [ "not", "native" ],
     "sqlite_wbtest.mbt": [ "native" ],
+    "exact_removal_native_wbtest.mbt": [ "native" ],
     "existing_database_wbtest.mbt": [ "native" ],
     "sqlite_unsupported_wbtest.mbt": [ "not", "native" ],
   },
