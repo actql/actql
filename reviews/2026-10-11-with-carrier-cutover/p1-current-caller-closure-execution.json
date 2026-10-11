@@ -167,6 +167,14 @@
         "exitCode": 0,
         "complete": true,
         "locksReleased": true
+      },
+      {
+        "run": "run-FYf9Th",
+        "summary": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-FYf9Th/summary.json",
+        "owner": 85123,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
       }
     ]
   },
@@ -874,6 +882,24 @@
       "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/focused-test-bhvMyo/0003.summary.json",
       "bytes": 1784,
       "sha256": "90211613f4e10735c649983d701d76c51518de8bcd3ab4679830943777c296a9"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-FYf9Th/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-FYf9Th/summary.json",
+      "bytes": 1908,
+      "sha256": "3f3640e03ff01fcbedbb7e7e8ee3a2c04d556a287eb12dce9e0fd433a2b51a90"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-FYf9Th/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/current-caller-evidence/run-FYf9Th/output.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
-  ]
+  ],
+  "staticChecks": {
+    "source": "bda85e2a054ba38a9b1a4d41e5aa07555e8f4acd",
+    "run": "run-FYf9Th",
+    "python": "AST parse only; execution unverified",
+    "javascript": "snapshot consumer syntax only; Host unverified"
+  }
 }
