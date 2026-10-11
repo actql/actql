@@ -1,0 +1,90 @@
+[
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/identity-preimage-preparation.mjs",
+      "scripts/fixtures/pre-grouped-rows-boundaries-values-identities.json",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/baseline-grammar.json",
+      "9777812bee444f3c9653c513e49e22057ab2fefd"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.25,
+    "stdout": "preparation-00.stdout.log",
+    "stderr": "preparation-00.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/identity-preimage-preparation.mjs",
+      "scripts/fixtures/pre-grouped-rows-main-values-identities.json",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/adopted-main-grammar.json",
+      "1887855e9bf867ba9c3abb724dc52ebe4be3daa1"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.124,
+    "stdout": "preparation-01.stdout.log",
+    "stderr": "preparation-01.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/compilation-manifests.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.108,
+    "stdout": "preparation-02.stdout.log",
+    "stderr": "preparation-02.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/update-document-metadata.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.784,
+    "stdout": "preparation-03.stdout.log",
+    "stderr": "preparation-03.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-actql-spec-family.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.702,
+    "stdout": "preparation-04.stdout.log",
+    "stderr": "preparation-04.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-canonical-json.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.895,
+    "stdout": "preparation-05.stdout.log",
+    "stderr": "preparation-05.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/identity-preimage-preparation.mjs",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/current-values-preimages.json"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.125,
+    "stdout": "preparation-06.stdout.log",
+    "stderr": "preparation-06.stderr.log"
+  }
+]

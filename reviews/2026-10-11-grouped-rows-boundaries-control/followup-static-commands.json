@@ -1,0 +1,34 @@
+[
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_syntax/grouped_rows_boundary_test.mbt"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.019,
+    "stdout": "followup-static-0.stdout.log",
+    "stderr": "followup-static-0.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-document-links.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 2.889,
+    "stdout": "followup-static-1.stdout.log",
+    "stderr": "followup-static-1.stderr.log"
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.08,
+    "stdout": "followup-static-2.stdout.log",
+    "stderr": "followup-static-2.stderr.log"
+  }
+]
