@@ -26,7 +26,7 @@ fn entry_gate_fixture(
   bind_egress_admission(active, egress_admission).unwrap()
   let (compiled, definition) = invocation_fixture_compiled(active)
   let prefix_work = match fixture_finish(active) {
-    Waiting(work) => work
+    Waiting(work~) => work
     _ => abort("ordinary preparation must wait for original entry binding")
   }
   let prepared = prepared_call_set(active).unwrap()
