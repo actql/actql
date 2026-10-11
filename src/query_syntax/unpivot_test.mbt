@@ -42,12 +42,49 @@ test "UNPIVOT does not reinterpret expressions qualified columns or unsupported 
   for
     text in [
       "FROM rows |> UNPIVOT(v FOR k IN ())", "FROM rows |> UNPIVOT(v FOR k IN (x + 1))",
-      "FROM rows |> UNPIVOT(v FOR k IN (rows.x))", "FROM rows |> UNPIVOT(v FOR k IN (x AS 'first'))",
+      "FROM rows |> UNPIVOT(v FOR k IN (rows.x))", "FROM rows |> UNPIVOT(v FOR k IN (x AS alias))",
       "FROM rows |> UNPIVOT((v,w) FOR k IN ((x,y)))", "FROM rows |> UNPIVOT NULLS (v FOR k IN (x))",
     ] {
     assert_true(
       parse_query(text, query_limits()) is Err({ issue: Syntax(_), .. }),
       msg=text,
+    )
+  }
+}
+
+///|
+test "UNPIVOT row labels preserve decoded literals and omitted labels" {
+  for
+    source in [
+      "FROM rows |> UNPIVOT(v FOR k IN(x AS 'first',x \"second\",y))", "SELECT * FROM rows UNPIVOT(v FOR k IN(x AS 'first',x \"second\",y))",
+    ] {
+    let query = parse_query(source, query_limits()).unwrap()
+    let body = if cte_count(query) == 1 {
+      cte_at(query, 0).unwrap().query
+    } else {
+      query
+    }
+    guard operation_at(body, 0) is Some(Unpivot(clause)) else {
+      fail("UNPIVOT must retain occurrence labels")
+    }
+    assert_eq(clause.row_labels, [
+      Some(TextLabel("first")),
+      Some(TextLabel("second")),
+      None,
+    ])
+  }
+}
+
+///|
+test "UNPIVOT row labels reject expressions mixed types and missing integer labels" {
+  for
+    source in [
+      "FROM rows |> UNPIVOT(v FOR k IN(x AS 'first' || 'last'))", "FROM rows |> UNPIVOT(v FOR k IN(x AS 1.5))",
+      "FROM rows |> UNPIVOT(v FOR k IN(x AS 1,y AS 'second'))", "FROM rows |> UNPIVOT(v FOR k IN(x AS 1,y))",
+    ] {
+    assert_true(
+      parse_query(source, query_limits()) is Err({ issue: Syntax(_), .. }),
+      msg=source,
     )
   }
 }
