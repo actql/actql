@@ -120,14 +120,18 @@ test "Graph MATCH uses the shared bounded query budget" {
 }
 
 ///|
-test "Graph annotations retain their own bounded escape profile" {
+test "retired Graph annotations have no alternate escape entry" {
   assert_true(parse_query("SELECT \"id\" FROM rows", query_limits()) is Ok(_))
   for
     source in [
       "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Person)",
       "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_\\u0074ype\"}} |> MATCH WALK (a:Person)",
     ] {
-    assert_true(parse_query(source, query_limits()) is Ok(_), msg=source)
+    assert_true(
+      parse_query(source, query_limits())
+      is Err({ issue: Syntax("Graph LABELS annotation is retired"), .. }),
+      msg=source,
+    )
   }
   assert_true(
     parse_query(

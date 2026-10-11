@@ -77,7 +77,7 @@ test "public SQL and Text reject retired Graph LABELS before preparation" {
   for format in formats {
     assert_true(
       lower(
-        "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Node) |> SELECT a.id",
+        "WITH chosen AS (FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Node) |> SELECT a.id) SELECT 1 AS id",
         format,
         Some(test_context()),
       )
