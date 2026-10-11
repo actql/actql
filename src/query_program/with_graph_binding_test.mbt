@@ -41,7 +41,7 @@ test "WITH Graph binding keeps nearest Carrier and constructor origin" {
       { ..fixture_context(), inputs: [], },
       construction_limits(),
     )
-    is Err(UnknownRelation),
+    is Err(UnsupportedGraph),
   )
   // A nearer Relation cannot be repaired by searching the outer Graph.
 }

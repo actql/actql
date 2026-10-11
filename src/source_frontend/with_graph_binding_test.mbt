@@ -21,7 +21,7 @@ test "WITH Graph shared SQL and text route matches independent Program" {
     format=Json,
   ).unwrap()
   let writer = @encode.writer(65536, 8192, 64)
-  @program.emit_program_source(expected, writer)
+  @program.emit_metadata_stripped_program(expected, writer)
   let expected_text = @encode.finish(writer)
   let formats : Array[Format] = [Text, Sql]
   for format in formats {
@@ -32,8 +32,12 @@ test "WITH Graph shared SQL and text route matches independent Program" {
       source_path="bindings.sql",
     ).unwrap()
     assert_eq(actual.format, @program.Json)
-    assert_eq(actual.document, expected_text)
     let program = actual.program.unwrap()
+    let actual_writer = @encode.writer(65536, 8192, 64)
+    @program.emit_metadata_stripped_program(program, actual_writer)
+    // Object member order is not Program meaning; ordered step/column arrays
+    // remain part of this complete comparison. Authored spans are checked below.
+    assert_eq(@encode.finish(actual_writer), expected_text)
     let steps = @wire.elements(
       lookup(@program.stage_body(@program.stages(program)[0]), "steps"),
     ).unwrap()
