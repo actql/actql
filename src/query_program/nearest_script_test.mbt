@@ -59,9 +59,9 @@ test "NEAREST CTE candidate reports the separate current scope-validation gap" {
     old="DATA qs = FROM queries; DATA cs = FROM candidates; ",
     new="WITH qs AS (FROM queries), cs AS (FROM candidates) ",
   )
-  // The candidate CTE is used. validate_cte_scope currently misses NEAREST
-  // in its use graph and rejects it as unused; this is an implementation gap,
-  // not a language restriction. Its positive source is retained for D's fix.
+  // This pre-cutover caller still retains its original refusal expectation.
+  // The unified owner already counts NEAREST producer references; this fixture
+  // is retired separately with the remaining accepted WITH callers.
   assert_true(
     compile_query_script(
       @query.parse_query_script(source, syntax_limits()).unwrap(),
