@@ -390,3 +390,17 @@ The bounded formatter completed with a one-file whitespace change. Exact source,
 commands, original failures, raw receipts/focused output and SHA256 are retained.
 Actual Owner/group/ownlock absence was observed for all four attempts. This is
 compile/check evidence, not runtime, package or Local/HTTPS completion.
+
+## WITH predicate, ceiling and INFER input caller retirement
+
+[p1-composition-input-retirement-execution.json](p1-composition-input-retirement-execution.json)
+records clean `695add75e3670513013973e80f0c430e6bab9a9e`: actual JS9/9
+(`run-lZ640a`) and no-change two-file formatter (`run-4OGHgz`). Two current DATA
+wrappers become ordinary WITH bodies. The Source `id = id` is retained exactly
+once, never replaced by true; the JOIN ceiling remains10, including refusal when
+the compiler Context allows only9. INFER INPUT contract spelling, key, original
+source-free form and nullable Values control remain unchanged. The existing
+Effect, assertion and multi-Result continuation controls were executed without
+editing their source or Owner. This is compile/check evidence, not Model/Effect
+Host execution. Raw receipts, focused logs and SHA256 are retained; actual
+Owner/group/ownlock absence was observed for both attempts.
