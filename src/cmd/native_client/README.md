@@ -77,7 +77,11 @@ Input is durably recorded before preparation. A rejected preparation can be
 looked up as the same retained submission; it is never treated as absent or as
 permission to replace its input. An already-admitted submission returns the
 original lookup facts without recompilation, a new Run or another acquisition.
-`ready` still means admission only. `local_run_published` is emitted only after
+`ready` still means admission only. A retained admission resolves the same
+original Run definition into the common closed Run reference and separately
+observes its control revision; neither comes from current Run settings or
+from the admission revision. This reference is not an execution or read grant.
+`local_run_published` is emitted only after
 the original Store confirms publication and temporary Source/Compute cleanup
 and Store close succeed; it is not a Result delivery receipt or read grant.
 The selected Result retention original supplies the Run validity ceiling.

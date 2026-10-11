@@ -341,10 +341,17 @@ test('Native CLI admitted Source Run still requires read authority before loadin
   assert.equal(admitted.history, 'retained');
   assert.equal(admitted.phase, 'ready', 'Ready is admission, not execution or publication');
   assert.match(admitted.runDefinitionCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.deepEqual(Object.keys(admitted.ref).sort(), ['authorityScopeCid', 'namespaceId', 'runDefinitionCid']);
+  assert.equal(admitted.ref.namespaceId, 'local-example');
+  assert.equal(admitted.ref.runDefinitionCid, admitted.runDefinitionCid);
+  assert.match(admitted.ref.authorityScopeCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.match(admitted.controlRevision, /^[0-9]+$/u, 'Current journal control revision is an independent observation');
   await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
   await unlink(join(f.root, 'input.json'));
   const looked = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
   assert.equal(looked.runDefinitionCid, admitted.runDefinitionCid);
+  assert.deepEqual(looked.ref, admitted.ref);
+  assert.equal(looked.controlRevision, admitted.controlRevision);
 });
 
 test('Native CLI refuses conflicting request assertion before durable acceptance', async () => {

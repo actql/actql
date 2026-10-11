@@ -503,16 +503,10 @@ fn local_publish_source(
   if !published.committed {
     stop("LocalPublicationNeedsReconciliation")
   }
-  let run_ref = Json::object(
-    Map([
-      ("namespaceId", Json::string(run.namespace_id)),
-      ("authorityScopeCid", Json::string(intent.authority_scope_cid)),
-      ("runDefinitionCid", Json::string(result.scope_cid)),
-    ]),
+  let run_ref = local_original_run_reference(
+    definition,
+    intent.authority_scope_cid,
   )
-  if !wire_run_ref_shape(run_ref) {
-    stop("LocalRunReferenceInvalid")
-  }
   let submission_ref = @json.parse(
     @local_host.native_client_submission_reference_wire(reference),
   ) catch {

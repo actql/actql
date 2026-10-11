@@ -449,6 +449,37 @@ fn local_submission_lookup(
       match @local_host.native_client_submitted_run_admission(record) {
         None => fields.set("phase", Json::string("preparing"))
         Some(admission) => {
+          // Resolve the original durable Run rather than rebuilding a reference
+          // from current settings or treating admission revision as control.
+          let request = @local_host.native_client_submitted_run_request(
+            admission,
+          )
+          if @run_host.client_request_authority_scope_cid(request) != scope {
+            stop("LocalOriginalRunScopeMismatch")
+          }
+          let run = match
+            journal.lookup(
+              request,
+              local_submit_allowed(host, settings, crypto, scope),
+            ) {
+            Ok(Retained(run)) => run
+            _ => stop("LocalOriginalRunUnavailable")
+          }
+          let definition = @local_host.native_client_run_definition(run)
+          if @publication.publication_contract_identity(definition) !=
+            @local_host.native_client_submitted_run_definition_cid(admission) {
+            stop("LocalOriginalRunUnavailable")
+          }
+          if !local_submit_allowed(host, settings, crypto, scope) {
+            stop("LocalSubmissionAuthorizationDenied")
+          }
+          fields.set("ref", local_original_run_reference(definition, scope))
+          fields.set(
+            "controlRevision",
+            Json::string(
+              @local_host.native_client_run_record_revision(run).to_string(),
+            ),
+          )
           fields.set("phase", Json::string("ready"))
           fields.set(
             "runDefinitionCid",
@@ -469,4 +500,35 @@ fn local_submission_lookup(
     }
   }
   encode_request_json(Json::object(fields), 4096)
+}
+
+///|
+// A common Run reference is projected only from the already-admitted original
+// definition and currently verified authority. It grants no attach, dispatch,
+// delivery or cancellation; each operation still uses its existing Owner.
+fn local_original_run_reference(
+  definition : @publication.PublicationContract,
+  scope : String,
+) -> Json raise ClientStop {
+  let original = @decode.open_object(
+    local_input_cursor(@publication.publication_contract_json(definition)),
+  ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
+  guard @decode.lookup(original, "scope_id") is Some(namespace) &&
+    @decode.text(namespace) is Ok(namespace) else {
+    stop("LocalOriginalRunUnavailable")
+  }
+  let reference = Json::object(
+    Map([
+      ("namespaceId", Json::string(namespace)),
+      ("authorityScopeCid", Json::string(scope)),
+      (
+        "runDefinitionCid",
+        Json::string(@publication.publication_contract_identity(definition)),
+      ),
+    ]),
+  )
+  if !wire_run_ref_shape(reference) {
+    stop("LocalRunReferenceInvalid")
+  }
+  reference
 }
