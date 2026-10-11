@@ -10,6 +10,8 @@ pub(all) enum ClientModelInputCapacityIssue {
 // funds validation/control before this entry and supplies a separately reviewed
 // physical byte grant. This function derives no numeric policy or send permit,
 // retains no new owner, and does not authenticate a durable Store descriptor.
+// Production callers supply the current scope/rows from the existing bind_run
+// execution path; this join alone does not establish that original Run context.
 pub fn handoff_client_model_read_input_capacity(
   value : ClientModelReadPreparation,
   compiled : ClientCompiledRun,
