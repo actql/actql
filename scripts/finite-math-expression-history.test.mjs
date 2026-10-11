@@ -31,8 +31,10 @@ test('finite math preserves complete recovered ROUND predecessor identities',()=
 });
 
 test('finite math extends only five closed source and machine alternatives and their laws',()=>{
-  const expression=read('spec/contracts/actql-expressions.json');
-  const program=read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Retain the adopted finite-math bodies while later scalar increments extend current inputs.
+  const adopted=Object.fromEntries(read('portability/corpus/historical/pre-number-extrema-contract-identities.json').contracts.map(item=>[item.id,item.body]));
+  const expression=adopted.expression_contract;
+  const program=adopted.program_schema;
   const names=new Set(['pow','exp','ln','log','log10']);const counts={};
   function withoutMath(value){
     if(Array.isArray(value))return value.map(withoutMath);
@@ -56,5 +58,5 @@ test('finite math extends only five closed source and machine alternatives and t
   assert.deepEqual(Object.keys(counts).sort(),[...names].sort());
   for(const count of Object.values(counts))assert.equal(count,8);
   assert.notEqual(cid(expression),cid(earlier.expression_contract));assert.notEqual(cid(program),cid(earlier.program_schema));
-  for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(read(path),earlier[id]);
+  for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(adopted[id],earlier[id]);
 });

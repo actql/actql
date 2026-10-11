@@ -55,7 +55,12 @@ fn expression_role(
     | "is_false"
     | "is_unknown"
     | "len"
+    | "byte_length"
+    | "unicode"
+    | "chr"
+    | "reverse"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -100,6 +105,8 @@ fn expression_role(
     | "or"
     | "concat_strict"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "if"
     | "between"
     | "contains"
@@ -112,11 +119,17 @@ fn expression_role(
     | "safe_subtract"
     | "safe_multiply"
     | "replace"
+    | "repeat"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "concat"
     | "date_trunc"
     | "date_add"
     | "date_diff"
     | "array"
+    | "split"
     | "vector_concat" => Arguments(tag)
     "to_decimal"
     | "typed_literal"
@@ -154,7 +167,15 @@ fn arity(
 ) -> Unit raise Stop {
   let valid = match tag {
     "array" => true
-    "and" | "or" | "concat_strict" | "coalesce" | "concat" => size >= 1
+    "split" => size == 1 || size == 2
+    "lpad" | "rpad" => size == 2 || size == 3
+    "and"
+    | "or"
+    | "concat_strict"
+    | "coalesce"
+    | "concat"
+    | "greatest"
+    | "least" => size >= 1
     "vector_concat" => size >= 2
     "if" | "between" | "replace" | "date_add" | "date_diff" => size == 3
     _ => size == 2

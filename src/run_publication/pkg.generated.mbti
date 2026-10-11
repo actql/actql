@@ -544,6 +544,8 @@ pub fn prepare_superseded_publication_finalization(PublicationContract?) -> Publ
 
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
 
+pub fn project_current_interactive_run_view(PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int, static_plan_installed? : Bool) -> Result[String, RunControlReadIssue]
+
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
 pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]

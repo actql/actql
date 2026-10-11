@@ -1819,9 +1819,9 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, and `floor`;
+- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `cbrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
 - the authoring-only string `template` form;
-- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, and literal `replace`;
+- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `lpad`, `rpad`, `split`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
 - explicit `to_number`, `to_string`, `to_boolean`, and `to_timestamp`;
 - `to_decimal`, `try_decimal`, `quantize`, and `decimal_divide`; and
@@ -1869,6 +1869,224 @@ Substring has no text-time envelope/profile requirement; nested profile calls
 retain their own obligations, input preflight and selected resource limits.
 All scalar logical-work, live-value, output-byte, workspace, failure and
 cooperative cancellation requirements remain applicable.
+
+<!-- requirement-block: scalar-expressions.google-side-slices-padding scalar-expressions.google-padding-length scalar-expressions.google-side-padding-eager-children scalar-expressions.google-side-padding-scalar-preservation scalar-expressions.google-side-padding-output-admission -->
+`left(value, length)` and `right(value, length)` MUST return at most the
+specified number of Unicode scalars from the corresponding end. Zero returns
+empty; a length at least the input scalar count returns the entire input.
+`lpad(value, length[, pattern])` and `rpad(value, length[, pattern])` MUST return
+exactly the requested scalar length. They truncate the original value to its
+leftmost requested scalars when the requested length does not exceed its
+length. Otherwise they prepend or append repetitions of the pattern, taking
+only the needed prefix of its final repetition. The omitted pattern is U+0020.
+An explicitly empty pattern is a domain failure even when no padding is needed.
+
+Every supplied child MUST evaluate once, left to right, before strict NULL
+propagation and then domain validation. A demanded, non-null call fails for
+negative, nonintegral or unsafe-integer lengths. Child failure identity and
+lazy branch demand remain unchanged. All lengths use ActQL finite binary64
+safe integers; full GoogleSQL INT64, BYTES and collation remain unsupported.
+Unicode scalars, including astral characters, combining marks, NUL and line
+breaks, MUST remain unchanged without normalization or grapheme segmentation.
+
+The common source bodies are ordered arrays: `{left: [value, length]}`,
+`{right: [value, length]}`, `{lpad: [value, length, pattern?]}` and
+`{rpad: [value, length, pattern?]}`, with corresponding machine operation/body
+arrays. Omission stays omitted; an implicit pattern expression is not inserted.
+Side slices retain input String maxima and drop minimum length. Padding drops
+input maxima because runtime padding can expand beyond them. All supplied
+operands contribute to result nullability. The existing scalar continuation
+owns cooperative counting, boundary location, exact output sizing and
+construction. Before output buffer allocation, all output logical bytes and
+workspace MUST be admitted. Retained operand roots, logical work, live values,
+control work and cancellation stay with the existing owners.
+
+<!-- requirement-block: scalar-expressions.google-split-signature -->
+`split(value[, delimiter])` MUST accept one STRING expression and an optional
+ordinary STRING delimiter expression, returning an Array of non-null String
+elements. The Array is nullable exactly when any supplied operand is nullable;
+untyped NULL takes the unique STRING signature at either position. The admitted
+domain is the existing finite, bounded String domain without implicit
+conversion, BYTES, regular-expression or collation overloads.
+
+<!-- requirement-block: scalar-expressions.google-split-value -->
+A demanded non-null `split` MUST split at non-overlapping literal matches of
+the delimiter in authored input order, preserving leading, adjacent and trailing
+empty parts. An omitted delimiter is U+002C COMMA. Empty input produces one
+empty String, including with an empty delimiter; an empty delimiter on nonempty
+input produces one String per Unicode scalar. No normalization, case folding,
+trimming or grapheme segmentation is applied, including to astral characters,
+combining marks, NUL and line breaks. A literal match does not restrict the
+delimiter expression to a literal or parameter.
+
+<!-- requirement-block: scalar-expressions.google-split-type-bounds -->
+The `split` result type MUST retain the input String's known `max_codepoints`
+and `max_utf8_bytes` on its non-null element contract and drop `min_length`.
+For a known scalar-count ceiling `n`, use `max_items = n + 1` only when that
+addition is representable in the existing safe-integer bound domain. The
+ceiling is the smaller of both known input maxima, or the sole known maximum;
+a UTF-8 byte ceiling is also a conservative scalar-count ceiling. If neither
+is known, or the addition is unrepresentable, omit `max_items`. Type derivation
+does not evaluate the value or delimiter expression or invent a minimum bound.
+
+<!-- requirement-block: scalar-expressions.google-split-eager-children -->
+Every supplied `split` child MUST evaluate exactly once, value before delimiter,
+before strict NULL propagation. A NULL value does not suppress a demanded
+delimiter failure. Preserve the first child failure and enclosing lazy demand;
+no secondary evaluator or Host splitting helper replaces the common owner.
+
+<!-- requirement-block: scalar-expressions.google-split-identity -->
+The common source and machine node MUST retain ordered argument arrays,
+`{split: [value, delimiter?]}` and `{op: split, body: [value, delimiter?]}`,
+including a one-element array when the delimiter is omitted. Omission remains
+distinct from explicit NULL or an explicit comma expression. Do not fold the
+node, reorder children or substitute the separately owned `split_part` profile.
+Earlier pinned bodies retain their original meaning and identities.
+
+<!-- requirement-block: scalar-expressions.google-split-admission -->
+The common expression continuation MUST preserve retained operand roots,
+logical operand/result charges, control work, live-value/output-byte limits,
+node/depth limits, workspace limits and cooperative cancellation throughout
+literal search, exact sizing and construction. Admit the complete Array's wire
+bytes, node/depth shape, String storage and Array slots before allocating
+output builders or their storage; no eager whole-input split or boundary array
+substitutes for bounded continuation work. This is an ordinary common
+expression with no split-specific text-time profile, policy or envelope;
+nested profile calls retain their own obligations and input preflight.
+
+<!-- requirement-block: scalar-expressions.google-unicode-signatures -->
+`byte_length(value)` and `unicode(value)` MUST accept exactly one STRING
+expression and return Number with that operand's nullability. `chr(value)`
+accepts exactly one finite Number expression and returns String with its
+operand's nullability. Untyped NULL takes each operation's unique signature.
+The CHR result has intrinsic `max_codepoints = 1` and `max_utf8_bytes = 4`,
+without a minimum length; type derivation does not evaluate its child.
+There are no implicit conversions, BYTES, Decimal or distinct INT64 overloads.
+
+<!-- requirement-block: scalar-expressions.google-byte-length-value -->
+A demanded non-null `byte_length` MUST return the exact UTF-8 byte count of
+its complete String operand, including zero for empty input. This is not a
+UTF-16 code-unit, Unicode scalar, grapheme or JSON-escaped byte count. Preserve
+all input scalars without normalization; `octet_length` is its text alias.
+
+<!-- requirement-block: scalar-expressions.google-unicode-value -->
+A demanded non-null `unicode` MUST return the first Unicode scalar's code
+point, or zero for empty input or a leading U+0000. An astral scalar contributes
+its complete code point, not a surrogate or encoded byte. Combining marks
+remain independent scalars without normalization or grapheme segmentation.
+
+<!-- requirement-block: scalar-expressions.google-chr-value -->
+A demanded non-null `chr` MUST require an integral Number in the inclusive
+ranges 0..55295 or 57344..1114111 before integer conversion. Zero returns an
+empty String; every other admitted code point returns exactly one Unicode
+scalar, including noncharacters. Negative, fractional, surrogate and above
+U+10FFFF values fail without truncation or wrapping. NULL propagates before
+this domain validation and produces NULL.
+
+<!-- requirement-block: scalar-expressions.google-unicode-demand-resources -->
+The common expression continuation MUST demand each sole child exactly once
+and preserve its failure before strict NULL propagation. Enclosing lazy demand,
+retained roots, logical operand/result and control charges, live-value,
+output-byte, workspace and cancellation owners remain unchanged. Admit complete
+CHR output bytes and storage before constructing the bounded String. These
+ordinary operations require no text-time profile or frontend/Host evaluator.
+
+<!-- requirement-block: scalar-expressions.google-unicode-identity -->
+Canonical lowering MUST retain the three closed direct unary source bodies
+`{byte_length: expression}`, `{unicode: expression}` and `{chr: expression}`
+and corresponding `{op, body: expression_node}` machine nodes, without folding,
+duplication or synthetic arrays. SQL and expression-text BYTE_LENGTH and
+OCTET_LENGTH share `byte_length`; no canonical `octet_length` operation is
+added. UNICODE and CHR select their respective common nodes. Earlier pinned
+contract bodies retain their original meaning and identities.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-signature -->
+`cbrt(value)` MUST accept exactly one finite binary64 Number operand and return
+Number with exactly the operand nullability. Untyped NULL takes the unique
+Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC,
+Decimal or non-finite overload is introduced.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-value -->
+A demanded non-null `cbrt` MUST return the real cube root, including negative
+inputs, subnormals and largest finite magnitudes. Either zero sign produces
+canonical positive zero; NULL produces NULL. The finite Number domain adds no
+value-domain failure. Reject non-finite operands and preserve the existing
+arithmetic failure for an unexpected non-finite result.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-algorithm -->
+`cbrt` MUST use the same pinned portable MoonBit core Double
+cube-root primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native,
+with canonical finite-result validation. Substitution with `pow(x, 1/3)` or logarithmic reconstruction
+or a frontend/Host evaluator is forbidden. Preserve all existing numeric
+accuracy and exception contracts. Identical admitted inputs and selected
+semantic contracts preserve exact logical Number bits across targets;
+live-BigQuery last-bit equivalence is not claimed.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-typing -->
+Typing MUST check the sole Number operand without evaluating it and return
+Number with exactly its nullability. Positive, negative, zero, subnormal and
+largest finite values remain within the admitted domain.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-demand-resources -->
+The common continuation MUST demand the sole child exactly once, preserving its
+failure before strict NULL propagation. Preserve enclosing lazy demand, retained
+roots, logical operand/result and control charges, live-value and workspace
+limits, and cooperative cancellation through the canonical unary scalar owner.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-identity -->
+Canonical lowering MUST retain the closed direct unary source
+`{cbrt: expression}` and matching `{op: cbrt, body: expression_node}` machine
+node. SQL and expression-text CBRT select this same common operation without
+folding, duplication or synthetic children, including constant arguments.
+Earlier pinned bodies retain their meaning and identities.
+
+<!-- requirement-block: scalar-expressions.google-repeat-reverse-signatures -->
+`repeat(value, count)` MUST accept exactly a STRING and finite Number in that
+order and return String with their unioned nullability. `reverse(value)` accepts
+exactly one STRING and preserves its nullability. Untyped NULL takes each
+unique positional signature. No implicit conversion, BYTES, Decimal or distinct
+INT64 overload is introduced.
+
+<!-- requirement-block: scalar-expressions.google-repeat-value -->
+A demanded non-null `repeat` MUST require a nonnegative integral Number count
+before an empty-input shortcut. Negative and fractional counts fail. Zero count
+or empty input returns empty, including empty input with a very large valid
+count. Otherwise concatenate the complete input scalar sequence count times
+without normalization. This explicitly adapts GoogleSQL's INT64 count to the
+existing finite binary64 domain without adding a safe-integer or INT64 cap;
+NULL propagates before operation-domain validation.
+
+<!-- requirement-block: scalar-expressions.google-reverse-value -->
+A demanded non-null `reverse` MUST reverse Unicode scalar order, preserving
+complete astral scalars, NUL and combining marks without normalization or
+grapheme segmentation. It reverses neither UTF-16 code units nor UTF-8 bytes.
+Empty input returns empty and NULL produces NULL.
+
+<!-- requirement-block: scalar-expressions.google-repeat-reverse-typing -->
+Typing MUST preserve the complete input String contract for `reverse`, including
+minimum length and codepoint/UTF-8 maxima, because scalar and byte counts do not
+change. `repeat` returns an otherwise unconstrained String, dropping input
+minimum and maximum lengths because a dynamic count can be zero or expand it.
+Neither rule evaluates operands during checking.
+
+<!-- requirement-block: scalar-expressions.google-repeat-reverse-demand-resources -->
+The common continuation MUST demand every child exactly once in authored order,
+preserving a later child failure after an earlier NULL, before strict NULL
+propagation. Preserve enclosing lazy demand, retained roots, logical operand,
+result and control charges, live-value, output-byte, workspace and cooperative
+cancellation owners. Validate a non-null repetition count before narrowing. Prove
+a nonempty repetition count fits bounded execution using existing storage limits
+before narrowing. Admit complete output storage through existing resource owners
+before allocation. No arbitrary scalar cap,
+huge binary64 decrement loop, profile or frontend/Host evaluator is introduced.
+
+<!-- requirement-block: scalar-expressions.google-repeat-reverse-identity -->
+Canonical lowering MUST retain the closed ordered binary source
+`{repeat: [expression, expression]}` and direct unary source
+`{reverse: expression}`, with matching `{op, body}` machine nodes. SQL and
+expression-text REPEAT/REVERSE select these same common operations without
+folding, duplication or synthetic children. Earlier pinned bodies retain their
+meaning and identities.
 
 Explicit String transformations follow their declared Unicode and locale-independent laws; ordinary String values are preserved. `replace`
 is literal substring replacement, not regex. `date_add` and `date_diff`
@@ -1928,6 +2146,7 @@ The conversion/boundary truth table is normative:
 | `to_timestamp(string)` | canonical millisecond UTC `Z` spelling only; offsets fail |
 | `modulo(a,b)` | truncating remainder with dividend sign; zero divisor fails |
 | `sqrt(x)` | negative fails |
+| `cbrt(x)` | real cube root of a finite Number, including negatives; canonical positive zero; null propagates |
 | `pow(x,y)` | negative base requires integral exponent; zero with negative exponent fails; zero to zero is one; overflow fails and underflow returns canonical zero |
 | `exp(x)` | natural exponential; finite-input overflow fails; underflow returns canonical zero |
 | `ln(x)`, `log10(x)` | natural/base-ten logarithm; nonpositive input fails |
@@ -2002,6 +2221,9 @@ atomic, not null, except where the named function explicitly specifies it.
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at both ends; exact interior preserved and strict-null | RelA |
 | `ltrim`, `rtrim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at the leading or trailing end respectively; exact remaining scalars preserved and strict-null | RelA |
+| `left`, `right` | S, N → S | Unicode scalar prefix/suffix; zero/oversize clamp; strict NULL; demanded length-domain failures | RelA |
+| `lpad`, `rpad` | S, N[, S] → S | Unicode scalar padding/truncation; omitted space; explicit empty pattern fails; strict NULL | RelA |
+| `split` | S[, S] → Array(S) | Literal non-overlapping splitting; omitted comma; empty delimiter selects scalars; strict NULL; non-null String elements | RelA |
 | `substring` | S, N[, N] → S | GoogleSQL scalar positions; optional length; strict NULL; demanded index-domain failures; known input upper bounds retained | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
@@ -2009,10 +2231,12 @@ atomic, not null, except where the named function explicitly specifies it.
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
 | `pow`, `log` | N, N → N | Finite binary64 domains below; result nullable exactly when either operand is nullable; both ordered children evaluated once | RelA |
 | `exp`, `ln`, `log10` | N → N | Finite binary64 domains below; operand nullability preserved | RelA |
+| `cbrt` | N → N | Real cube root over all finite Number inputs; canonical positive zero; operand nullability preserved | RelA |
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; legacy safe division by zero returns null, overflow fails | RelA |
 | `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
 | `safe_negate` | N → N | Finite binary64 negation cannot overflow; preserves operand nullability | RelA |
 | `abs`, `sign` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
+| `greatest`, `least` | N × … × N → N (one or more) | Finite numeric order; strict NULL after once-only ordered child demand; nullable iff any child is nullable | RelA |
 | `round`, `trunc` | N → N or N × N → N | One or two children evaluated once on demand in authored order; result nullable exactly when any child is nullable; explicit decimal position must be integral when both values are non-null | RelA |
 | `to_number`, `to_boolean`, `to_timestamp` | S or the exact target type → indicated type | [Explicit casts](#casts) closed conversion table; same-type identity | RelA |
 | `to_string` | string, number, decimal, boolean, timestamp, or date → S | Canonical spelling; json/object/array/vector and both reference types are rejected | RelA |
@@ -2091,6 +2315,40 @@ errors. The same pinned portable numeric kernel MUST be used across JS,
 WebAssembly and Native, preserving exact logical Number bits for identical
 admitted inputs and selected contracts. Live-BigQuery last-bit equality is not
 guaranteed.
+
+<!-- requirement-block: scalar-expressions.number-extrema scalar-expressions.number-extrema-null scalar-expressions.number-extrema-demand scalar-expressions.number-extrema-order scalar-expressions.number-extrema-subset scalar-expressions.number-extrema-identity -->
+`greatest(x, ...)` and `least(x, ...)` MUST take one or more finite binary64
+`number` expressions.
+
+The result MUST be `number`, nullable exactly when any operand is nullable,
+with each immediate untyped NULL taking the unique number signature including
+an all-NULL list and any NULL producing NULL only after all demanded child
+evaluations succeed.
+
+ActQL's common expression continuation MUST evaluate each demanded child
+exactly once in authored left-to-right order, preserve the first child failure
+and enclosing lazy IF/CASE/COALESCE demand, and retain the existing
+entry/operand/result charges, live-root, frame, control/workspace and cancellation
+rules without charging fold accumulators as extra semantic results.
+
+For non-null operands the result MUST be the greatest or least operand in the
+existing finite numeric order, preserving its exact binary64 value with canonical
+positive zero for either zero sign, with singleton calls using the same zero
+rule and without arithmetic overflow or precision reduction.
+
+This finite Number subset MUST reject STRING, BOOLEAN, temporal, decimal,
+BYTES, non-finite and mixed-type overloads, explicit collation, and implicit
+conversions without adding a private STRING comparator or changing shared global
+comparison or canonical-key ordering. GoogleSQL string ordering is by Unicode
+code point, whereas the current canonical ActQL string owner orders UTF-16 code
+units. Other overloads remain implementation gaps, without imposing new
+language-wide restrictions.
+
+The closed source forms `{greatest: [first, ...]}` and `{least: [first, ...]}`
+MUST lower to the same operation with an ordered nonempty machine `body` array,
+retaining singleton calls and every authored child in order including repetitions,
+without sorting, deduplication or constant folding and without changing the
+meanings of earlier contract bodies or CIDs.
 
 <!-- requirement-block: scalar-expressions.round-trunc scalar-expressions.round-trunc-evaluation scalar-expressions.round-trunc-precision-integrality scalar-expressions.round-trunc-precision-position-bounds scalar-expressions.round-trunc-precision-algorithm scalar-expressions.round-trunc-precision-final-scaling scalar-expressions.round-trunc-precision-operation-order scalar-expressions.round-trunc-precision-overflow scalar-expressions.round-trunc-budgets scalar-expressions.round-trunc-exclusions scalar-expressions.round-trunc-precision-identity -->
 `round(x)` and `trunc(x)` MUST each take one finite binary64 `number`,
@@ -2335,7 +2593,7 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `cbrt(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `trim(x, characters)`, `ltrim(x, characters)`, `rtrim(x, characters)` | corresponding scalar trim with an explicit STRING code-point set |
 | `pow(x, y)`, `power(x, y)` | canonical `pow` with two ordered Number expressions |
 | `log(x)` | canonical unary `ln` |
@@ -2351,6 +2609,9 @@ an optional final argument, not expression syntax.
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
 | `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
+| `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
+| `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
+| `split(value[, delimiter])` | common ordered-array expression; ordinary optional STRING delimiter; omitted delimiter remains omitted |
 | `substring(value, start[, length])` | common scalar substring named body; omitted length is distinct from explicit NULL |
 | `split_part(value, delimiter, index)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
 | `try_number(value)`, `nfkc(value)`, `case_fold(value)` | [Text, time, and regular expressions](#text-time) unary expressions |
@@ -10258,7 +10519,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:cd67bbed5be66c57e0d0783ca5b6e55c09dc5779ada66edc92551dad3d520161
+../../spec/contracts/actql-aoa.json# sha256:436b28a3c19b3ed01865c4243fc18fcb229705ec809cd7edd9b1f1af02af3c5f
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10267,13 +10528,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:ef58a418013702af64b675602056153211dbdb4dad07ffa583d3e23a0c60342c
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:6cb1de98a0f227ed95d3f5e4394b292c7c4ffa524e2ef1e8093dcba94679667c
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:37a0e5fb56275baa0dfeadfccdc630df12cdc0889b7ce816390ed83746606463
+../../spec/contracts/actql-expressions.json# sha256:cc7a9bddc5a021640e62a802e4610886aa88281b2ed0ab304aed614d838c1557
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:740f0139243ad0a9ea64dbb728709a609346cc3eba3d17a81eacf32df1882387
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:28271b290baad55d92db98818d231ee0c33dfecff584e7e3b4c0949ae497b972
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:d508d4260e24a4252672f5f67118a9d89d3f170f9af016be43254d64b5aa50cc
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:831a1c9700cdd04f1ee486432939b6fea33b0747a0d4f57b0873856e98fcce71
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:641a38e9f940e11163a42dc767f6a5cfe12d0a2e83db11081960eb3c20fc7c00
+../../spec/contracts/actql-expressions.json#/laws sha256:69df776529e431867f8d1e8f845582352f2d247fa3de778513d6e121a893eccc
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:42aac0c5d0c01dcaa5a3e41560233af5025d157e38c8e4a5a780e3b53974f51e
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:8acd72a79e2e6048de492139105adfa907feb0aa8ec36c0b400fc31abd3b1ae6
 ```
 
 <!-- stage-contract-pins:start -->

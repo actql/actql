@@ -47,6 +47,10 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ByteLength
+  Unicode
+  Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -54,6 +58,7 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
   Exp
   Ln
   Log10
@@ -102,10 +107,18 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
+  Repeat
+  Split
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, Debug)
 
@@ -225,6 +238,7 @@ fn expression_tag(
     | "rtrim"
     | "floor"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -267,11 +281,23 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "concat"
     | "concat_strict"
     | "len"
+    | "byte_length"
+    | "unicode"
+    | "chr"
+    | "reverse"
+    | "repeat"
     | "replace"
+    | "split"
     | "substring"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -336,6 +362,7 @@ fn expression_children(
     | "lower"
     | "floor"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -348,7 +375,7 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" => [body]
+    "len" | "byte_length" | "unicode" | "chr" | "reverse" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -939,6 +966,7 @@ fn lower_typed_expression_measured(
           }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
+        "cbrt" => Unary(Cbrt, args[0])
         "exp" => Unary(Exp, args[0])
         "ln" => Unary(Ln, args[0])
         "log10" => Unary(Log10, args[0])
@@ -958,6 +986,10 @@ fn lower_typed_expression_measured(
           }
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
+        "byte_length" => Unary(ByteLength, args[0])
+        "unicode" => Unary(Unicode, args[0])
+        "chr" => Unary(Chr, args[0])
+        "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
@@ -1004,11 +1036,19 @@ fn lower_typed_expression_measured(
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)
+        "greatest" => Many(Greatest, args)
+        "least" => Many(Least, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "repeat" => Many(Repeat, args)
+        "split" => Many(Split, args)
         "substring" => Many(Substring, args)
+        "left" => Many(LeftString, args)
+        "right" => Many(RightString, args)
+        "lpad" => Many(LPad, args)
+        "rpad" => Many(RPad, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

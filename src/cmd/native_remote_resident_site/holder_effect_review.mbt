@@ -181,3 +181,73 @@ fn holder_effect_current_task(
   }
   Some(task)
 }
+
+///|
+/// Resume only an already retained original Review under independent current
+/// Host roles and resume observations. A terminal row receipt is not dispatch
+/// completion, Result publication, formal release or physical cleanup.
+fn execute_holder_effect_resume(
+  task : HolderTaskCustody,
+  body : String,
+  configuration : @effect_review.NativeResidentEffectResumeConfiguration,
+  current_site : () -> Bool,
+) -> Bool {
+  let current = () => {
+    !task.released && !task.release_requested && current_site()
+  }
+  guard current() &&
+    task.effect_review is Some(review) &&
+    review.dispatch_identity() ==
+    @remote.dispatch_request_identity(task.request) else {
+    return false
+  }
+  match review.execute_remote_approved_row(body, configuration, current) {
+    Ok(_) => {
+      report("effect-row-settled", [
+        ("request_cid", @remote.dispatch_request_identity(task.request)),
+      ])
+      true
+    }
+    Err(_) => {
+      report("effect-resume-pending", [
+        ("request_cid", @remote.dispatch_request_identity(task.request)),
+        ("reason", "original-custody"),
+      ])
+      false
+    }
+  }
+}
+
+///|
+/// Route the retained Result through the original Review's saved-response and
+/// final Receipt Owners. The ordinary output path stays unchanged; an Effect
+/// computation with no installed Review never acquires a Result identity here.
+fn holder_result_output(
+  task : HolderTaskCustody,
+  configuration : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectResumeConfiguration?,
+  authorize_evidence_read : () -> Bool,
+) -> @resident_host.ResidentExecuted? {
+  if task.released || task.release_requested {
+    return None
+  }
+  match task.effect_review {
+    None => task.executed
+    Some(review) => {
+      guard configuration(task.request) is Some(installed) else { return None }
+      match
+        review.completed_result_output(
+          authorize_evidence_read,
+          installed.limits,
+        ) {
+        Ok((executed, _)) => Some(executed)
+        Err(_) => {
+          report("effect-output-pending", [
+            ("request_cid", @remote.dispatch_request_identity(task.request)),
+            ("reason", "original-custody"),
+          ])
+          None
+        }
+      }
+    }
+  }
+}

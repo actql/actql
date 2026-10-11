@@ -1481,10 +1481,18 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
+  Repeat
+  Split
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, @debug.Debug)
 
@@ -1890,6 +1898,10 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ByteLength
+  Unicode
+  Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -1897,6 +1909,7 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
   Exp
   Ln
   Log10
