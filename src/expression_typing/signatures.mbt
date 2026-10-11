@@ -574,6 +574,8 @@ fn infer(
     | "sign"
     | "round"
     | "trunc"
+    | "greatest"
+    | "least"
     | "safe_negate"
     | "safe_div"
     | "safe_divide"

@@ -1,178 +1,2462 @@
 {
   "version": "actql-expression-syntax-corpus/0.1",
   "positive": [
-    {"source":{"literal":{"$param":"opaque","field":"left.name","nested":["$hidden"]}},"tree":{"literal":{"$param":"opaque","field":"left.name","nested":["$hidden"]}},"parameters":[]},
-    {"source":{"object":{"total":"$price * $count","caption":{"template":"{name}: $opaque"}}},"tree":{"object":{"total":{"multiply":[{"$param":"price"},{"$param":"count"}]},"caption":{"template":"{name}: $opaque"}}},"parameters":["price","count"]},
-    {"source":{"empty_array":{"items":{"type":"object","nullable":false,"fields":{}}}},"tree":{"empty_array":{"items":{"type":"object","nullable":false,"fields":{}}}},"parameters":[]},
-    {"source":{"to_decimal":{"value":"$x","precision":38,"scale":38}},"tree":{"cast":{"value":{"$param":"x"},"target":{"type":"decimal","precision":38,"scale":38}}},"parameters":["x"]},
-    {"source":{"field":"left.address.city"},"tree":{"property":{"value":{"join_field":{"side":"left","name":"address"}},"name":"city"}},"parameters":[]},
-    {"source":"left.id","tree":{"join_field":{"side":"left","name":"id"}},"parameters":[]},
-    {"source":"\"left.id\"","tree":{"join_field":{"side":"left","name":"id"}},"parameters":[]},
-    {"source":{"field":"left.id"},"tree":{"join_field":{"side":"left","name":"id"}},"parameters":[]},
-    {"source":"right.id","tree":{"join_field":{"side":"right","name":"id"}},"parameters":[]},
-    {"source":"\"right.id\"","tree":{"join_field":{"side":"right","name":"id"}},"parameters":[]},
-    {"source":{"field":"right.id"},"tree":{"join_field":{"side":"right","name":"id"}},"parameters":[]},
-    {"source":"\"right\".id","tree":{"property":{"value":{"field":"right"},"name":"id"}},"parameters":[]},
-    {"source":"\"left.name\"","tree":{"join_field":{"side":"left","name":"name"}},"parameters":[]},
-    {"source":"\"right.address.city\"","tree":{"property":{"value":{"join_field":{"side":"right","name":"address"}},"name":"city"}},"parameters":[]},
-    {"source":"\"left\".name","tree":{"property":{"value":{"field":"left"},"name":"name"}},"parameters":[]},
-    {"source":{"array":["\"left\"",{"field":"left.name"}]},"tree":{"array":[{"field":"left"},{"join_field":{"side":"left","name":"name"}}]},"parameters":[]},
-    {"source":{"case":{"when":[{"when":"$p","then":{"to_string":"$x"}}],"else":{"literal":null}}},"tree":{"case":{"when":[{"when":{"$param":"p"},"then":{"cast":{"value":{"$param":"x"},"target":{"type":"string"}}}}],"else":{"literal":null}}},"parameters":["p","x"]},
-    {"source":{"in":["$x",{"literal":[1,null,{"$param":"v"}]}]},"tree":{"in":[{"$param":"x"},{"literal":[1,null,{"$param":"v"}]}]},"parameters":["x","v"]},
-    {"source":{"not_in":["x","$items"]},"tree":{"not_in":[{"field":"x"},{"$param":"items"}]},"parameters":["items"]},
-    {"source":{"like":["x","$pattern"]},"tree":{"like":[{"field":"x"},{"$param":"pattern"}]},"parameters":["pattern"]},
-    {"source":{"vector_score":{"left":"$a","right":"$b","metric":"cosine"}},"tree":{"vector_score":{"left":{"$param":"a"},"right":{"$param":"b"},"metric":"cosine"}},"parameters":["a","b"]},
-    {"source":{"object":{"line\nname":{"literal":"literal $x"},"$param":{"literal":"not a reference"}}},"tree":{"object":{"line\nname":{"literal":"literal $x"},"$param":{"literal":"not a reference"}}},"parameters":[]},
-    {"source":{"regex_replace":{"value":"$x","pattern":"$p","replacement":"$r","flags":"im"}},"tree":{"regex_replace":{"value":{"$param":"x"},"pattern":{"$param":"p"},"replacement":{"$param":"r"},"flags":"im"}},"parameters":["x","p","r"]},
-    {"source":{"starts_with":["$value","$prefix"]},"tree":{"starts_with":[{"$param":"value"},{"$param":"prefix"}]},"parameters":["value","prefix"]},
-    {"source":{"ends_with":[{"field":"value"},{"literal":""}]},"tree":{"ends_with":[{"field":"value"},{"literal":""}]},"parameters":[]},
-    {"source":{"sign":"$value"},"tree":{"sign":{"$param":"value"}},"parameters":["value"]},
-    {"source":{"sign":{"literal":null}},"tree":{"sign":{"literal":null}},"parameters":[]},
-    {"source":{"strpos":["$value","$part"]},"tree":{"strpos":[{"$param":"value"},{"$param":"part"}]},"parameters":["value","part"]},
-    {"source":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"tree":{"strpos":[{"literal":"é\r\n\u0000😀"},{"literal":"\u0000"}]},"parameters":[]},
-    {"source":{"strpos":[{"literal":null},{"literal":null}]},"tree":{"strpos":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"round":"$value"},"tree":{"round":{"$param":"value"}},"parameters":["value"]},
-    {"source":{"trunc":"$value"},"tree":{"trunc":{"$param":"value"}},"parameters":["value"]},
-    {"source":{"round":{"literal":null}},"tree":{"round":{"literal":null}},"parameters":[]},
-    {"source":{"trunc":{"literal":null}},"tree":{"trunc":{"literal":null}},"parameters":[]},
-    {"source":{"ltrim":"$p"},"tree":{"ltrim":{"$param":"p"}},"parameters":["p"]},
-    {"source":{"ltrim":{"literal":null}},"tree":{"ltrim":{"literal":null}},"parameters":[]},
-    {"source":{"ltrim":{"literal":" 😀é "}},"tree":{"ltrim":{"literal":" 😀é "}},"parameters":[]},
-    {"source":{"rtrim":"$p"},"tree":{"rtrim":{"$param":"p"}},"parameters":["p"]},
-    {"source":{"rtrim":{"literal":null}},"tree":{"rtrim":{"literal":null}},"parameters":[]},
-    {"source":{"rtrim":{"literal":" 😀é "}},"tree":{"rtrim":{"literal":" 😀é "}},"parameters":[]},
-    {"source":{"trim":["$p","$q"]},"tree":{"trim":[{"$param":"p"},{"$param":"q"}]},"parameters":["p","q"]},
-    {"source":{"trim":[{"literal":"x"},{"literal":" "}]},"tree":{"trim":[{"literal":"x"},{"literal":" "}]},"parameters":[]},
-    {"source":{"trim":[{"literal":null},{"literal":null}]},"tree":{"trim":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"trim":["s","concat('a','b')"]},"tree":{"trim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]},"parameters":[]},
-    {"source":{"ltrim":["$p","$q"]},"tree":{"ltrim":[{"$param":"p"},{"$param":"q"}]},"parameters":["p","q"]},
-    {"source":{"ltrim":[{"literal":"x"},{"literal":" "}]},"tree":{"ltrim":[{"literal":"x"},{"literal":" "}]},"parameters":[]},
-    {"source":{"ltrim":[{"literal":null},{"literal":null}]},"tree":{"ltrim":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"ltrim":["s","concat('a','b')"]},"tree":{"ltrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]},"parameters":[]},
-    {"source":{"rtrim":["$p","$q"]},"tree":{"rtrim":[{"$param":"p"},{"$param":"q"}]},"parameters":["p","q"]},
-    {"source":{"rtrim":[{"literal":"x"},{"literal":" "}]},"tree":{"rtrim":[{"literal":"x"},{"literal":" "}]},"parameters":[]},
-    {"source":{"rtrim":[{"literal":null},{"literal":null}]},"tree":{"rtrim":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"rtrim":["s","concat('a','b')"]},"tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]},"parameters":[]},
-    {"source":{"round":["$value","$digits"]},"tree":{"round":[{"$param":"value"},{"$param":"digits"}]},"parameters":["value","digits"]},
-    {"source":{"round":[{"field":"x"},{"literal":2}]},"tree":{"round":[{"field":"x"},{"literal":2}]},"parameters":[]},
-    {"source":{"round":["x","$digits + 1"]},"tree":{"round":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]},"parameters":["digits"]},
-    {"source":{"round":[{"literal":null},{"literal":2}]},"tree":{"round":[{"literal":null},{"literal":2}]},"parameters":[]},
-    {"source":{"round":[{"literal":1},{"literal":null}]},"tree":{"round":[{"literal":1},{"literal":null}]},"parameters":[]},
-    {"source":{"round":[{"literal":null},{"literal":null}]},"tree":{"round":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"round":[{"literal":1.25},{"literal":0}]},"tree":{"round":[{"literal":1.25},{"literal":0}]},"parameters":[]},
-    {"source":{"trunc":["$value","$digits"]},"tree":{"trunc":[{"$param":"value"},{"$param":"digits"}]},"parameters":["value","digits"]},
-    {"source":{"trunc":[{"field":"x"},{"literal":2}]},"tree":{"trunc":[{"field":"x"},{"literal":2}]},"parameters":[]},
-    {"source":{"trunc":["x","$digits + 1"]},"tree":{"trunc":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]},"parameters":["digits"]},
-    {"source":{"trunc":[{"literal":null},{"literal":2}]},"tree":{"trunc":[{"literal":null},{"literal":2}]},"parameters":[]},
-    {"source":{"trunc":[{"literal":1},{"literal":null}]},"tree":{"trunc":[{"literal":1},{"literal":null}]},"parameters":[]},
-    {"source":{"trunc":[{"literal":null},{"literal":null}]},"tree":{"trunc":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"trunc":[{"literal":1.25},{"literal":0}]},"tree":{"trunc":[{"literal":1.25},{"literal":0}]},"parameters":[]},
-    {"source":{"pow":[{"literal":2},{"literal":3}]},"tree":{"pow":[{"literal":2},{"literal":3}]},"parameters":[]},
-    {"source":{"pow":[{"literal":null},{"literal":null}]},"tree":{"pow":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"pow":["$q",{"field":"n"}]},"tree":{"pow":[{"$param":"q"},{"field":"n"}]},"parameters":["q"]},
-    {"source":{"log":[{"literal":2},{"literal":3}]},"tree":{"log":[{"literal":2},{"literal":3}]},"parameters":[]},
-    {"source":{"log":[{"literal":null},{"literal":null}]},"tree":{"log":[{"literal":null},{"literal":null}]},"parameters":[]},
-    {"source":{"log":["$q",{"field":"n"}]},"tree":{"log":[{"$param":"q"},{"field":"n"}]},"parameters":["q"]},
-    {"source":{"exp":{"literal":1}},"tree":{"exp":{"literal":1}},"parameters":[]},
-    {"source":{"exp":{"literal":null}},"tree":{"exp":{"literal":null}},"parameters":[]},
-    {"source":{"exp":"$q"},"tree":{"exp":{"$param":"q"}},"parameters":["q"]},
-    {"source":{"ln":{"literal":1}},"tree":{"ln":{"literal":1}},"parameters":[]},
-    {"source":{"ln":{"literal":null}},"tree":{"ln":{"literal":null}},"parameters":[]},
-    {"source":{"ln":"$q"},"tree":{"ln":{"$param":"q"}},"parameters":["q"]},
-    {"source":{"log10":{"literal":1}},"tree":{"log10":{"literal":1}},"parameters":[]},
-    {"source":{"log10":{"literal":null}},"tree":{"log10":{"literal":null}},"parameters":[]},
-    {"source":{"log10":"$q"},"tree":{"log10":{"$param":"q"}},"parameters":["q"]}
+    {
+      "source": {
+        "literal": {
+          "$param": "opaque",
+          "field": "left.name",
+          "nested": [
+            "$hidden"
+          ]
+        }
+      },
+      "tree": {
+        "literal": {
+          "$param": "opaque",
+          "field": "left.name",
+          "nested": [
+            "$hidden"
+          ]
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "object": {
+          "total": "$price * $count",
+          "caption": {
+            "template": "{name}: $opaque"
+          }
+        }
+      },
+      "tree": {
+        "object": {
+          "total": {
+            "multiply": [
+              {
+                "$param": "price"
+              },
+              {
+                "$param": "count"
+              }
+            ]
+          },
+          "caption": {
+            "template": "{name}: $opaque"
+          }
+        }
+      },
+      "parameters": [
+        "price",
+        "count"
+      ]
+    },
+    {
+      "source": {
+        "empty_array": {
+          "items": {
+            "type": "object",
+            "nullable": false,
+            "fields": {}
+          }
+        }
+      },
+      "tree": {
+        "empty_array": {
+          "items": {
+            "type": "object",
+            "nullable": false,
+            "fields": {}
+          }
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "to_decimal": {
+          "value": "$x",
+          "precision": 38,
+          "scale": 38
+        }
+      },
+      "tree": {
+        "cast": {
+          "value": {
+            "$param": "x"
+          },
+          "target": {
+            "type": "decimal",
+            "precision": 38,
+            "scale": 38
+          }
+        }
+      },
+      "parameters": [
+        "x"
+      ]
+    },
+    {
+      "source": {
+        "field": "left.address.city"
+      },
+      "tree": {
+        "property": {
+          "value": {
+            "join_field": {
+              "side": "left",
+              "name": "address"
+            }
+          },
+          "name": "city"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "left.id",
+      "tree": {
+        "join_field": {
+          "side": "left",
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "\"left.id\"",
+      "tree": {
+        "join_field": {
+          "side": "left",
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "field": "left.id"
+      },
+      "tree": {
+        "join_field": {
+          "side": "left",
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "right.id",
+      "tree": {
+        "join_field": {
+          "side": "right",
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "\"right.id\"",
+      "tree": {
+        "join_field": {
+          "side": "right",
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "field": "right.id"
+      },
+      "tree": {
+        "join_field": {
+          "side": "right",
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "\"right\".id",
+      "tree": {
+        "property": {
+          "value": {
+            "field": "right"
+          },
+          "name": "id"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "\"left.name\"",
+      "tree": {
+        "join_field": {
+          "side": "left",
+          "name": "name"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "\"right.address.city\"",
+      "tree": {
+        "property": {
+          "value": {
+            "join_field": {
+              "side": "right",
+              "name": "address"
+            }
+          },
+          "name": "city"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": "\"left\".name",
+      "tree": {
+        "property": {
+          "value": {
+            "field": "left"
+          },
+          "name": "name"
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "array": [
+          "\"left\"",
+          {
+            "field": "left.name"
+          }
+        ]
+      },
+      "tree": {
+        "array": [
+          {
+            "field": "left"
+          },
+          {
+            "join_field": {
+              "side": "left",
+              "name": "name"
+            }
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "case": {
+          "when": [
+            {
+              "when": "$p",
+              "then": {
+                "to_string": "$x"
+              }
+            }
+          ],
+          "else": {
+            "literal": null
+          }
+        }
+      },
+      "tree": {
+        "case": {
+          "when": [
+            {
+              "when": {
+                "$param": "p"
+              },
+              "then": {
+                "cast": {
+                  "value": {
+                    "$param": "x"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ],
+          "else": {
+            "literal": null
+          }
+        }
+      },
+      "parameters": [
+        "p",
+        "x"
+      ]
+    },
+    {
+      "source": {
+        "in": [
+          "$x",
+          {
+            "literal": [
+              1,
+              null,
+              {
+                "$param": "v"
+              }
+            ]
+          }
+        ]
+      },
+      "tree": {
+        "in": [
+          {
+            "$param": "x"
+          },
+          {
+            "literal": [
+              1,
+              null,
+              {
+                "$param": "v"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [
+        "x",
+        "v"
+      ]
+    },
+    {
+      "source": {
+        "not_in": [
+          "x",
+          "$items"
+        ]
+      },
+      "tree": {
+        "not_in": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "items"
+          }
+        ]
+      },
+      "parameters": [
+        "items"
+      ]
+    },
+    {
+      "source": {
+        "like": [
+          "x",
+          "$pattern"
+        ]
+      },
+      "tree": {
+        "like": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "pattern"
+          }
+        ]
+      },
+      "parameters": [
+        "pattern"
+      ]
+    },
+    {
+      "source": {
+        "vector_score": {
+          "left": "$a",
+          "right": "$b",
+          "metric": "cosine"
+        }
+      },
+      "tree": {
+        "vector_score": {
+          "left": {
+            "$param": "a"
+          },
+          "right": {
+            "$param": "b"
+          },
+          "metric": "cosine"
+        }
+      },
+      "parameters": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "source": {
+        "object": {
+          "line\nname": {
+            "literal": "literal $x"
+          },
+          "$param": {
+            "literal": "not a reference"
+          }
+        }
+      },
+      "tree": {
+        "object": {
+          "line\nname": {
+            "literal": "literal $x"
+          },
+          "$param": {
+            "literal": "not a reference"
+          }
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "regex_replace": {
+          "value": "$x",
+          "pattern": "$p",
+          "replacement": "$r",
+          "flags": "im"
+        }
+      },
+      "tree": {
+        "regex_replace": {
+          "value": {
+            "$param": "x"
+          },
+          "pattern": {
+            "$param": "p"
+          },
+          "replacement": {
+            "$param": "r"
+          },
+          "flags": "im"
+        }
+      },
+      "parameters": [
+        "x",
+        "p",
+        "r"
+      ]
+    },
+    {
+      "source": {
+        "starts_with": [
+          "$value",
+          "$prefix"
+        ]
+      },
+      "tree": {
+        "starts_with": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "prefix"
+          }
+        ]
+      },
+      "parameters": [
+        "value",
+        "prefix"
+      ]
+    },
+    {
+      "source": {
+        "ends_with": [
+          {
+            "field": "value"
+          },
+          {
+            "literal": ""
+          }
+        ]
+      },
+      "tree": {
+        "ends_with": [
+          {
+            "field": "value"
+          },
+          {
+            "literal": ""
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "sign": "$value"
+      },
+      "tree": {
+        "sign": {
+          "$param": "value"
+        }
+      },
+      "parameters": [
+        "value"
+      ]
+    },
+    {
+      "source": {
+        "sign": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "sign": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "strpos": [
+          "$value",
+          "$part"
+        ]
+      },
+      "tree": {
+        "strpos": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "part"
+          }
+        ]
+      },
+      "parameters": [
+        "value",
+        "part"
+      ]
+    },
+    {
+      "source": {
+        "strpos": [
+          {
+            "literal": "é\r\n\u0000😀"
+          },
+          {
+            "literal": "\u0000"
+          }
+        ]
+      },
+      "tree": {
+        "strpos": [
+          {
+            "literal": "é\r\n\u0000😀"
+          },
+          {
+            "literal": "\u0000"
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "strpos": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "strpos": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "round": "$value"
+      },
+      "tree": {
+        "round": {
+          "$param": "value"
+        }
+      },
+      "parameters": [
+        "value"
+      ]
+    },
+    {
+      "source": {
+        "trunc": "$value"
+      },
+      "tree": {
+        "trunc": {
+          "$param": "value"
+        }
+      },
+      "parameters": [
+        "value"
+      ]
+    },
+    {
+      "source": {
+        "round": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "round": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trunc": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "trunc": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ltrim": "$p"
+      },
+      "tree": {
+        "ltrim": {
+          "$param": "p"
+        }
+      },
+      "parameters": [
+        "p"
+      ]
+    },
+    {
+      "source": {
+        "ltrim": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "ltrim": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ltrim": {
+          "literal": " 😀é "
+        }
+      },
+      "tree": {
+        "ltrim": {
+          "literal": " 😀é "
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "rtrim": "$p"
+      },
+      "tree": {
+        "rtrim": {
+          "$param": "p"
+        }
+      },
+      "parameters": [
+        "p"
+      ]
+    },
+    {
+      "source": {
+        "rtrim": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "rtrim": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "rtrim": {
+          "literal": " 😀é "
+        }
+      },
+      "tree": {
+        "rtrim": {
+          "literal": " 😀é "
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trim": [
+          "$p",
+          "$q"
+        ]
+      },
+      "tree": {
+        "trim": [
+          {
+            "$param": "p"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "parameters": [
+        "p",
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "trim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      },
+      "tree": {
+        "trim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "trim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trim": [
+          "s",
+          "concat('a','b')"
+        ]
+      },
+      "tree": {
+        "trim": [
+          {
+            "field": "s"
+          },
+          {
+            "concat": [
+              {
+                "literal": "a"
+              },
+              {
+                "literal": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ltrim": [
+          "$p",
+          "$q"
+        ]
+      },
+      "tree": {
+        "ltrim": [
+          {
+            "$param": "p"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "parameters": [
+        "p",
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "ltrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      },
+      "tree": {
+        "ltrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ltrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "ltrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ltrim": [
+          "s",
+          "concat('a','b')"
+        ]
+      },
+      "tree": {
+        "ltrim": [
+          {
+            "field": "s"
+          },
+          {
+            "concat": [
+              {
+                "literal": "a"
+              },
+              {
+                "literal": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "rtrim": [
+          "$p",
+          "$q"
+        ]
+      },
+      "tree": {
+        "rtrim": [
+          {
+            "$param": "p"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "parameters": [
+        "p",
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "rtrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      },
+      "tree": {
+        "rtrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "rtrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "rtrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "rtrim": [
+          "s",
+          "concat('a','b')"
+        ]
+      },
+      "tree": {
+        "rtrim": [
+          {
+            "field": "s"
+          },
+          {
+            "concat": [
+              {
+                "literal": "a"
+              },
+              {
+                "literal": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "round": [
+          "$value",
+          "$digits"
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "digits"
+          }
+        ]
+      },
+      "parameters": [
+        "value",
+        "digits"
+      ]
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "round": [
+          "x",
+          "$digits + 1"
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "field": "x"
+          },
+          {
+            "add": [
+              {
+                "$param": "digits"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [
+        "digits"
+      ]
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "round": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 0
+          }
+        ]
+      },
+      "tree": {
+        "round": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 0
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trunc": [
+          "$value",
+          "$digits"
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "digits"
+          }
+        ]
+      },
+      "parameters": [
+        "value",
+        "digits"
+      ]
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trunc": [
+          "x",
+          "$digits + 1"
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "field": "x"
+          },
+          {
+            "add": [
+              {
+                "$param": "digits"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [
+        "digits"
+      ]
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 2
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "trunc": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 0
+          }
+        ]
+      },
+      "tree": {
+        "trunc": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 0
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "tree": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "pow": [
+          "$q",
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "tree": {
+        "pow": [
+          {
+            "$param": "q"
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "parameters": [
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "tree": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "log": [
+          "$q",
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "tree": {
+        "log": [
+          {
+            "$param": "q"
+          },
+          {
+            "field": "n"
+          }
+        ]
+      },
+      "parameters": [
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "exp": {
+          "literal": 1
+        }
+      },
+      "tree": {
+        "exp": {
+          "literal": 1
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "exp": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "exp": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "exp": "$q"
+      },
+      "tree": {
+        "exp": {
+          "$param": "q"
+        }
+      },
+      "parameters": [
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "ln": {
+          "literal": 1
+        }
+      },
+      "tree": {
+        "ln": {
+          "literal": 1
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ln": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "ln": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "ln": "$q"
+      },
+      "tree": {
+        "ln": {
+          "$param": "q"
+        }
+      },
+      "parameters": [
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "log10": {
+          "literal": 1
+        }
+      },
+      "tree": {
+        "log10": {
+          "literal": 1
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "log10": {
+          "literal": null
+        }
+      },
+      "tree": {
+        "log10": {
+          "literal": null
+        }
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "log10": "$q"
+      },
+      "tree": {
+        "log10": {
+          "$param": "q"
+        }
+      },
+      "parameters": [
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": 7
+          }
+        ]
+      },
+      "tree": {
+        "greatest": [
+          {
+            "literal": 7
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "greatest": [
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "greatest": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": -2
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "tree": {
+        "greatest": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": -2
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "greatest": [
+          "$q",
+          {
+            "field": "n"
+          },
+          "$q"
+        ]
+      },
+      "tree": {
+        "greatest": [
+          {
+            "$param": "q"
+          },
+          {
+            "field": "n"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "parameters": [
+        "q",
+        "q"
+      ]
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": 7
+          }
+        ]
+      },
+      "tree": {
+        "least": [
+          {
+            "literal": 7
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": null
+          }
+        ]
+      },
+      "tree": {
+        "least": [
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "least": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": -2
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "tree": {
+        "least": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": -2
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "parameters": []
+    },
+    {
+      "source": {
+        "least": [
+          "$q",
+          {
+            "field": "n"
+          },
+          "$q"
+        ]
+      },
+      "tree": {
+        "least": [
+          {
+            "$param": "q"
+          },
+          {
+            "field": "n"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      },
+      "parameters": [
+        "q",
+        "q"
+      ]
+    }
   ],
   "negative": [
     "\"right.\"",
     "\"__cid\"",
-    {"field":"__cid"},
+    {
+      "field": "__cid"
+    },
     {},
-    {"field":"x","meta":{"note":"not an expression field"}},
-    {"literal":0,"$param":"x"},
-    {"to_number":{"literal":1},"extra":true},
-    {"empty_array":{"items":{"type":"decimal","nullable":false,"precision":1,"scale":2}}},
-    {"cast":{"value":"x","target":{"type":"number","nullable":false}}},
-    {"cast":{"value":"x","target":{"type":"json"}}},
-    {"object":{}},
-    {"field":"left."},
-    {"field":"left.a..b"},
-    {"join_field":{"side":"elsewhere","name":"x"}},
-    {"in":["x",{"literal":[{"$param":"p","literal":1}]}]},
-    {"in":["x",{"literal":[{"literal":1}]}]},
-    {"in":["x",{"literal":[[1]]}]},
-    {"in":["x",{"literal":1}]},
-    {"like":["x","pattern"]},
-    {"eq":["x","NULL"]},
-    {"date_trunc":["$unit","x"]},
-    {"split_part":{"value":"x","delimiter":"delimiter","index":"1"}},
-    {"vector_score":{"left":"a","right":"b","metric":"unknown"}},
-    {"quantize":{"value":"x","precision":5,"scale":2,"rounding":"nearest"}},
-    {"regex_match":{"value":"x","pattern":"$p","flags":{"literal":"i"}}},
-    {"template":"unmatched }"},
-    {"template":"empty {}"},
-    {"starts_with":[]},
-    {"starts_with":[{"literal":"a"}]},
-    {"starts_with":[{"literal":"a"},{"literal":"b"},{"literal":"c"}]},
-    {"ends_with":{"literal":"a"}},
-    {"ends_with":[{"literal":"a"}]},
-    {"ends_with":[{"literal":"a"},{"literal":"b"},{"literal":"c"}]},
-    {"sign":[]},
-    {"sign":[{"literal":1}]},
-    {"sign":{"literal":1},"extra":true},
-    {"strpos":[]},
-    {"strpos":["x"]},
-    {"strpos":["x","y","z"]},
-    {"strpos":{"literal":"x"}},
-    {"strpos":["x","y"],"extra":true},
-    {"round":[]},
-    {"trunc":[]},
-    {"round":[{"literal":1}]},
-    {"trunc":[{"literal":1}]},
-    {"round":{"literal":1},"extra":true},
-    {"trunc":{"literal":1},"extra":true},
-    {"ltrim":[]},
-    {"ltrim":[{"literal":"x"}]},
-    {"ltrim":{"literal":"x"},"extra":true},
-    {"ltrim":{"value":{"literal":"x"},"characters":" "}},
-    {"rtrim":[]},
-    {"rtrim":[{"literal":"x"}]},
-    {"rtrim":{"literal":"x"},"extra":true},
-    {"rtrim":{"value":{"literal":"x"},"characters":" "}},
-    {"trim":[]},
-    {"trim":[{"literal":"x"}]},
-    {"trim":[{"literal":"x"},{"literal":" "},{"literal":"y"}]},
-    {"trim":[{"literal":"x"},{"literal":" "}],"extra":true},
-    {"trim":{"value":{"literal":"x"},"characters":" "}},
-    {"ltrim":[{"literal":"x"},{"literal":" "},{"literal":"y"}]},
-    {"ltrim":[{"literal":"x"},{"literal":" "}],"extra":true},
-    {"rtrim":[{"literal":"x"},{"literal":" "},{"literal":"y"}]},
-    {"rtrim":[{"literal":"x"},{"literal":" "}],"extra":true},
-    {"round":[{"literal":1},{"literal":2},{"literal":"ROUND_HALF_EVEN"}]},
-    {"round":[{"literal":1},{"literal":2}],"extra":true},
-    {"round":{"value":{"literal":1},"digits":{"literal":2}}},
-    {"trunc":[{"literal":1},{"literal":2},{"literal":"ROUND_HALF_EVEN"}]},
-    {"trunc":[{"literal":1},{"literal":2}],"extra":true},
-    {"trunc":{"value":{"literal":1},"digits":{"literal":2}}},
-    {"pow":[]},
-    {"pow":[{"literal":1}]},
-    {"pow":[{"literal":1},{"literal":2},{"literal":3}]},
-    {"pow":{"literal":1}},
-    {"pow":[{"literal":1},{"literal":2}],"extra":true},
-    {"log":[]},
-    {"log":[{"literal":1}]},
-    {"log":[{"literal":1},{"literal":2},{"literal":3}]},
-    {"log":{"literal":1}},
-    {"log":[{"literal":1},{"literal":2}],"extra":true},
-    {"exp":[]},
-    {"exp":[{"literal":1}]},
-    {"exp":{"literal":1},"extra":true},
-    {"ln":[]},
-    {"ln":[{"literal":1}]},
-    {"ln":{"literal":1},"extra":true},
-    {"log10":[]},
-    {"log10":[{"literal":1}]},
-    {"log10":{"literal":1},"extra":true},
-    {"power":[{"literal":2},{"literal":3}]}
+    {
+      "field": "x",
+      "meta": {
+        "note": "not an expression field"
+      }
+    },
+    {
+      "literal": 0,
+      "$param": "x"
+    },
+    {
+      "to_number": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "empty_array": {
+        "items": {
+          "type": "decimal",
+          "nullable": false,
+          "precision": 1,
+          "scale": 2
+        }
+      }
+    },
+    {
+      "cast": {
+        "value": "x",
+        "target": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    },
+    {
+      "cast": {
+        "value": "x",
+        "target": {
+          "type": "json"
+        }
+      }
+    },
+    {
+      "object": {}
+    },
+    {
+      "field": "left."
+    },
+    {
+      "field": "left.a..b"
+    },
+    {
+      "join_field": {
+        "side": "elsewhere",
+        "name": "x"
+      }
+    },
+    {
+      "in": [
+        "x",
+        {
+          "literal": [
+            {
+              "$param": "p",
+              "literal": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "in": [
+        "x",
+        {
+          "literal": [
+            {
+              "literal": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "in": [
+        "x",
+        {
+          "literal": [
+            [
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "in": [
+        "x",
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "like": [
+        "x",
+        "pattern"
+      ]
+    },
+    {
+      "eq": [
+        "x",
+        "NULL"
+      ]
+    },
+    {
+      "date_trunc": [
+        "$unit",
+        "x"
+      ]
+    },
+    {
+      "split_part": {
+        "value": "x",
+        "delimiter": "delimiter",
+        "index": "1"
+      }
+    },
+    {
+      "vector_score": {
+        "left": "a",
+        "right": "b",
+        "metric": "unknown"
+      }
+    },
+    {
+      "quantize": {
+        "value": "x",
+        "precision": 5,
+        "scale": 2,
+        "rounding": "nearest"
+      }
+    },
+    {
+      "regex_match": {
+        "value": "x",
+        "pattern": "$p",
+        "flags": {
+          "literal": "i"
+        }
+      }
+    },
+    {
+      "template": "unmatched }"
+    },
+    {
+      "template": "empty {}"
+    },
+    {
+      "starts_with": []
+    },
+    {
+      "starts_with": [
+        {
+          "literal": "a"
+        }
+      ]
+    },
+    {
+      "starts_with": [
+        {
+          "literal": "a"
+        },
+        {
+          "literal": "b"
+        },
+        {
+          "literal": "c"
+        }
+      ]
+    },
+    {
+      "ends_with": {
+        "literal": "a"
+      }
+    },
+    {
+      "ends_with": [
+        {
+          "literal": "a"
+        }
+      ]
+    },
+    {
+      "ends_with": [
+        {
+          "literal": "a"
+        },
+        {
+          "literal": "b"
+        },
+        {
+          "literal": "c"
+        }
+      ]
+    },
+    {
+      "sign": []
+    },
+    {
+      "sign": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "sign": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "strpos": []
+    },
+    {
+      "strpos": [
+        "x"
+      ]
+    },
+    {
+      "strpos": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    {
+      "strpos": {
+        "literal": "x"
+      }
+    },
+    {
+      "strpos": [
+        "x",
+        "y"
+      ],
+      "extra": true
+    },
+    {
+      "round": []
+    },
+    {
+      "trunc": []
+    },
+    {
+      "round": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "trunc": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "round": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "trunc": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "ltrim": []
+    },
+    {
+      "ltrim": [
+        {
+          "literal": "x"
+        }
+      ]
+    },
+    {
+      "ltrim": {
+        "literal": "x"
+      },
+      "extra": true
+    },
+    {
+      "ltrim": {
+        "value": {
+          "literal": "x"
+        },
+        "characters": " "
+      }
+    },
+    {
+      "rtrim": []
+    },
+    {
+      "rtrim": [
+        {
+          "literal": "x"
+        }
+      ]
+    },
+    {
+      "rtrim": {
+        "literal": "x"
+      },
+      "extra": true
+    },
+    {
+      "rtrim": {
+        "value": {
+          "literal": "x"
+        },
+        "characters": " "
+      }
+    },
+    {
+      "trim": []
+    },
+    {
+      "trim": [
+        {
+          "literal": "x"
+        }
+      ]
+    },
+    {
+      "trim": [
+        {
+          "literal": "x"
+        },
+        {
+          "literal": " "
+        },
+        {
+          "literal": "y"
+        }
+      ]
+    },
+    {
+      "trim": [
+        {
+          "literal": "x"
+        },
+        {
+          "literal": " "
+        }
+      ],
+      "extra": true
+    },
+    {
+      "trim": {
+        "value": {
+          "literal": "x"
+        },
+        "characters": " "
+      }
+    },
+    {
+      "ltrim": [
+        {
+          "literal": "x"
+        },
+        {
+          "literal": " "
+        },
+        {
+          "literal": "y"
+        }
+      ]
+    },
+    {
+      "ltrim": [
+        {
+          "literal": "x"
+        },
+        {
+          "literal": " "
+        }
+      ],
+      "extra": true
+    },
+    {
+      "rtrim": [
+        {
+          "literal": "x"
+        },
+        {
+          "literal": " "
+        },
+        {
+          "literal": "y"
+        }
+      ]
+    },
+    {
+      "rtrim": [
+        {
+          "literal": "x"
+        },
+        {
+          "literal": " "
+        }
+      ],
+      "extra": true
+    },
+    {
+      "round": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        },
+        {
+          "literal": "ROUND_HALF_EVEN"
+        }
+      ]
+    },
+    {
+      "round": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        }
+      ],
+      "extra": true
+    },
+    {
+      "round": {
+        "value": {
+          "literal": 1
+        },
+        "digits": {
+          "literal": 2
+        }
+      }
+    },
+    {
+      "trunc": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        },
+        {
+          "literal": "ROUND_HALF_EVEN"
+        }
+      ]
+    },
+    {
+      "trunc": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        }
+      ],
+      "extra": true
+    },
+    {
+      "trunc": {
+        "value": {
+          "literal": 1
+        },
+        "digits": {
+          "literal": 2
+        }
+      }
+    },
+    {
+      "pow": []
+    },
+    {
+      "pow": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "pow": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        },
+        {
+          "literal": 3
+        }
+      ]
+    },
+    {
+      "pow": {
+        "literal": 1
+      }
+    },
+    {
+      "pow": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        }
+      ],
+      "extra": true
+    },
+    {
+      "log": []
+    },
+    {
+      "log": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "log": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        },
+        {
+          "literal": 3
+        }
+      ]
+    },
+    {
+      "log": {
+        "literal": 1
+      }
+    },
+    {
+      "log": [
+        {
+          "literal": 1
+        },
+        {
+          "literal": 2
+        }
+      ],
+      "extra": true
+    },
+    {
+      "exp": []
+    },
+    {
+      "exp": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "exp": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "ln": []
+    },
+    {
+      "ln": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "ln": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "log10": []
+    },
+    {
+      "log10": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "log10": {
+        "literal": 1
+      },
+      "extra": true
+    },
+    {
+      "power": [
+        {
+          "literal": 2
+        },
+        {
+          "literal": 3
+        }
+      ]
+    },
+    {
+      "greatest": []
+    },
+    {
+      "greatest": {
+        "literal": 1
+      }
+    },
+    {
+      "greatest": [
+        {
+          "literal": 1
+        }
+      ],
+      "extra": true
+    },
+    {
+      "GREATEST": [
+        {
+          "literal": 1
+        }
+      ]
+    },
+    {
+      "least": []
+    },
+    {
+      "least": {
+        "literal": 1
+      }
+    },
+    {
+      "least": [
+        {
+          "literal": 1
+        }
+      ],
+      "extra": true
+    },
+    {
+      "LEAST": [
+        {
+          "literal": 1
+        }
+      ]
+    }
   ]
 }

@@ -16,12 +16,13 @@ function bodies() {
   return [{schemas: {source, node}, laws: {}, grammar_sha256: ''},
     {artifact_schemas: {program: structuredClone(source)}, artifact_schema_cids: {}}];
 }
-const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_divide" | "safe_negate" ;\n';
+const grammar = 'function_name = "contains" | "starts_with" | "ends_with" | "strpos" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "trim" | "ltrim" | "rtrim" | "greatest" | "least" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_divide" | "safe_negate" ;\n';
 
 test('GoogleSQL scalar schemas preserve exact arities, local references and original operators', () => {
   const [expression, protocol] = bodies();
   const original = structuredClone(expression.schemas);
   assert.deepEqual(updateGoogleScalarContracts(expression, protocol, grammar, true), {
+    greatest: {source: 2, node: 1}, least: {source: 2, node: 1},
     pow: {source: 2, node: 1}, exp: {source: 2, node: 1}, ln: {source: 2, node: 1}, log: {source: 2, node: 1}, log10: {source: 2, node: 1},
     starts_with: {source: 2, node: 1}, ends_with: {source: 2, node: 1}, strpos: {source: 2, node: 1}, sign: {source: 2, node: 1}, round: {source: 2, node: 1}, trunc: {source: 2, node: 1}, trim: {source: 2, node: 1}, ltrim: {source: 2, node: 1}, rtrim: {source: 2, node: 1}, safe_add: {source: 2, node: 1}, safe_subtract: {source: 2, node: 1}, safe_multiply: {source: 2, node: 1}, safe_divide: {source: 2, node: 1}, safe_negate: {source: 2, node: 1},
   });
@@ -51,6 +52,14 @@ test('GoogleSQL scalar schemas preserve exact arities, local references and orig
         {type: 'array', minItems: 2, maxItems: 2, items: {$ref: '#/$defs/' + ref}}]});
     }
   }
+  for (const name of ['greatest', 'least']) {
+    for (const [kind, ref] of [['source', 'source_expression'], ['node', 'machine_expression']]) {
+      const shape = expression.schemas[kind].oneOf.find(s => kind === 'source'
+        ? s.required[0] === name : s.properties.op.const === name);
+      assert.deepEqual(shape.properties[kind === 'source' ? name : 'body'],
+        {type: 'array', minItems: 1, items: {$ref: '#/$defs/' + ref}});
+    }
+  }
   assert.deepEqual(expression.laws, googleScalarLaws);
   const prepared = structuredClone([expression, protocol]);
   updateGoogleScalarContracts(expression, protocol, grammar, true);
@@ -60,6 +69,11 @@ test('GoogleSQL scalar schemas preserve exact arities, local references and orig
 
 test('GoogleSQL scalar verification rejects missing, duplicate, widened and stale contracts', () => {
   for (const mutate of [
+    expression => { expression.laws.greatest.signature = 'all orderable types'; },
+    expression => { expression.laws.least.value = 'ignore NULL'; },
+    expression => { expression.laws.greatest.evaluation = 'stop at NULL'; },
+    expression => { expression.schemas.source.oneOf.find(s => s.required[0] === 'greatest').properties.greatest.minItems = 0; },
+    expression => { expression.schemas.node.oneOf.find(s => s.properties.op.const === 'least').properties.body.maxItems = 2; },
     expression => { expression.laws.starts_with.value = 'case-insensitive'; },
     expression => { expression.laws.ends_with.signature = 'any value'; },
     expression => { expression.laws.strpos.value = 'UTF-16 offset'; },

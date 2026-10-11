@@ -750,7 +750,7 @@ fn advance_expression_frame_impl(
             let initial = match op {
               And => Boolean(true)
               Or => Boolean(false)
-              Coalesce | Between => Null
+              Coalesce | Between | Greatest | Least => Null
               Concat | ConcatStrict | Replace | Substring => Text("")
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
@@ -1464,6 +1464,11 @@ fn advance_expression_frame_impl(
               Replace | Substring | Between =>
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
+              Greatest | Least =>
+                match number_extremum(op, previous, value, index == 0) {
+                  Ok(v) => v
+                  Err(e) => return Err({ kind: Scalar(e), expression: expr, })
+                }
               And | Or =>
                 match boolean_pair(op, previous, value) {
                   Ok(v) => v

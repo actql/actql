@@ -147,6 +147,21 @@ This implements the finite FLOAT64 subset. INT64, NUMERIC, BIGNUMERIC and
 non-finite overload domains remain unsupported; no implicit conversion is
 introduced by the frontend.
 
+`GREATEST(expr, ...)` and `LEAST(expr, ...)` require at least one finite
+`number` expression and lower to the corresponding common nonempty argument
+array, retaining order, repetitions and singleton calls. They return the numeric
+maximum/minimum; any NULL yields NULL after every demanded child succeeds.
+A NULL operand does not suppress a later arithmetic error. Enclosing lazy
+conditional and COALESCE demand still applies. Immediate untyped NULL has the
+unique number signature, including all-NULL calls, and result nullability is the
+union of operand nullability. Empty calls are rejected before checking.
+
+Only the finite Number subset is implemented. STRING, BOOLEAN, decimal,
+temporal, BYTES, non-finite and mixed-type overloads, implicit conversions and
+collation are unsupported. GoogleSQL's Unicode-code-point STRING order differs
+from the canonical ActQL UTF-16 order; these functions do not redefine that
+shared ordering owner. No GoogleSQL NUMERIC/BIGNUMERIC support is implied.
+
 `ROUND(expr[, n])` and `TRUNC(expr[, n])` take one or two finite binary64
 `number` expressions and lower to the common `round` or `trunc` node.
 The omitted-position forms retain their unary body and value rules: ROUND
