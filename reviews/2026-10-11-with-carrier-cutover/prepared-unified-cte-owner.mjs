@@ -7,6 +7,6 @@ const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs"; pr
 process.exitCode = await runLocalCheck({root:process.cwd(),heavy:false,
   timeoutSeconds:60,graceSeconds:5,steps:process.argv.includes('--format') ? [{
     name:'Format finite removed CTE branch and public caller',command:'moon',
-    args:['fmt','src/query_program/compile.mbt','src/query_program/with_cte_composition_test.mbt'],
+    args:['fmt','src/query_program/compile.mbt','src/query_program/with_cte_composition_test.mbt','src/query_program/query_join_bindings.mbt','src/query_program/query_set_join_entry.mbt'],
   }] : [{name:'Existing unified WITH public entry and unused binding obligations',command:'node',
     args:['--input-type=module','-e',runner,'moon','--target','js',...tests]}]});
