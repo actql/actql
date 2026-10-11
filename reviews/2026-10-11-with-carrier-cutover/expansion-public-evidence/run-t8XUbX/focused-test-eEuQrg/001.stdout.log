@@ -1,0 +1,2 @@
+[actql/actql] test query_program/with_expansion_public_fixture_test.mbt:414 ("WITH captured expansion preserves missing publication order refusal") failed: src/query_program/with_expansion_public_fixture_test.mbt:465:9-465:95@actql/actql FAILED: PipelineOrder stage 1: UnresolvedOrder
+Total tests: 1, passed: 0, failed: 1.

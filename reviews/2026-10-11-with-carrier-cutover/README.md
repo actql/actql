@@ -573,4 +573,38 @@ Current set callers and public fixture wrappers now use WITH. Fixed `b90a1a8e788
 
 Current positional caller source `da13e683189b2e27843c4e74b1a9f43c35c4beb9` executes JS **33/33** (`run-2WX8J5`) via `prepared-with-positional-current.mjs`; its pinned formatter completes unchanged. Anonymous/duplicate columns, COUNT, ROW_NUMBER, range snapshots, typed empty outputs and existing structural limits remain unchanged. Initial `637b89201c44005417b2c00bef8548d349a8ca82` remains **JS31/33, exit2** (`run-rfOa6B`): one fixture retained the DATA-only SQL selector refusal, and three refusal strings had malformed migrated binding delimiters. The existing WITH SQL selector and shared lowerer justify comparing SQL/Text lowering documents; pure anonymous binding exports still assert UnsupportedProjection. Original source and failed raw receipts remain preserved in [positional caller execution](p1-positional-current-retirement-execution.json). All attempts used 60-second/grace-5/non-Heavy guards; actual Owner/group/own locks were observed released. Host, new packages, Native/Wasm execution and Hosted CI remain unexecuted for these units.
 
-Root's five remaining Core DATA success callers were adopted through normal merge `65c102eb4a6fb1ca3894d77d5f0c5357490de164`, without conflicts or duplicate editing. Root reports fixed `bc738e9b46d75cdb839e8255b6e1a860bddb2d3c` JS28/28 (`run-weoNyZ`, `focused-lN4g4G`) and read-only five-file formatting. Only SQL wrapper/GRAPH spelling changed; complete independent Programs, values/schema, predicates, ceilings, ASSERT UNIQUE and Effect remain unchanged. [The adoption record](root-five-current-caller-adoption.json) separates Root-reported source evidence from the merged source, whose runtime and public Host acceptance are unexecuted. Root retains raw custody evidence; B has not substituted an unseen release receipt.
+Root's five remaining Core DATA success callers were adopted through normal merge `65c102eb4a6fb1ca3894d77d5f0c5357490de164`, without conflicts or duplicate editing. Root reports fixed `bc738e9b46d75cdb839e8255b6e1a860bddb2d3c` JS28/28 (`run-weoNyZ`, `focused-lN4g4G`) and read-only five-file formatting. Only SQL wrapper/GRAPH spelling changed; complete independent Programs, values/schema, predicates, ceilings, ASSERT UNIQUE and Effect remain unchanged. [The adoption record](root-five-current-caller-adoption.json) separates Root-reported source evidence from the merged source, whose runtime and public Host acceptance are unexecuted. Root's complete handoff is now copied byte-for-byte and hashed in the adoption record, including its actual Owner/group/both-lock release observations. This remains Root execution evidence, not a B rerun.
+
+
+## Current public expansion fixture wrapper retirement
+
+Six existing public UNNEST/UNPIVOT fixture files now use WITH. Frozen full
+source preimages and complete authored exports preserve JSON controls, every
+expected row and ordered column contract, NULL/duplicate cases, parameters,
+JOIN ceilings 4/10, ASSERT UNIQUE and Source read/session counts. Existing
+case IDs remain immutable; only current wrapper syntax changes.
+
+[The exact execution record](p1-expansion-public-retirement-execution.json)
+retains all thirteen guards and raw focused evidence with SHA256. At clean
+`6c40cf430c348779e90802e1032dfa401767e88e`, all fifteen normal authored
+sources reach public frontend/common checking; the full guard remains failed
+15/16 because its added negative predicted the wrong order cause. Clean
+`7ce656021078e3a5905f971baf218899afb8c742` separately passes the corrected
+Catalog refusal JS1/1 (`run-7QV5h0`) and the independent fixture/registration
+Node35/35 (`run-BaQnsp`). The following formatter completes and changes only
+one assertion's whitespace (`a1b56767e`). No new-SHA runtime is inferred.
+
+The acquired normal text uses exact Source rows through the existing Values
+owner as a local typing control. The admitted Catalog counterpart lacks
+required pipeline input-order facts: capture is stage 0, expansion stage 1,
+and its real common cause is PipelineOrder(UnresolvedOrder). Existing
+contextual/logical order requirements independently justify that refusal.
+It is not silently ignored, replaced with fake order, or asserted to be a
+public Host defect. Earlier legacy schema-only contexts and wrong negative
+oracles remain failures. Real standard Host Catalog acquisition and public
+Local/HTTPS are unexecuted, with the original full fixture unchanged.
+
+All checks use 60-second/grace-5/non-Heavy limits. Actual Owners/groups/own
+locks were confirmed absent after termination. No package producer, Heavy,
+Hosted CI, full Core or new semantic Owner was started. Remaining current
+callers, P2 adapters and full four-Carrier public cutover remain incomplete.

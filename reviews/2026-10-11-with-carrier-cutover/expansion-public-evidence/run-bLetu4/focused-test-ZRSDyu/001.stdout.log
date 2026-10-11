@@ -1,0 +1,2 @@
+[actql/actql] test query_program/with_expansion_public_fixture_test.mbt:371 ("WITH public expansion joined-unnest-star-acquired-data") failed: src/query_program/with_expansion_public_fixture_test.mbt:404:15-404:45@actql/actql FAILED: another frontend cause
+Total tests: 15, passed: 14, failed: 1.

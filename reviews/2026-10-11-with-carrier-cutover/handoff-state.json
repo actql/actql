@@ -25,5 +25,15 @@
   "adoption_merge": "c4813c6303ba432fd929f45a2bce1af26f096308",
   "adoption_tree": "54f6f118ced6db8e2628221768ffac0390618078",
   "integration_observation": "Root common #1522 ForeignProgram refusal normally adopted; no duplicate common repair.",
-  "adopted_E": "54d7852347e087b01de17f698eff154cd050c74b"
+  "adopted_E": "54d7852347e087b01de17f698eff154cd050c74b",
+  "current_public_expansion_unit": {
+    "evidence": "p1-expansion-public-retirement-execution.json",
+    "fixture_files": 6,
+    "normal_source_admission": "15 normal passed at 6c40; total guard 15/16 failed due independent negative oracle",
+    "corrected_refusal": "JS1/1 at 7ce656",
+    "fixture_preservation": "Node35/35 at 7ce656",
+    "formatter": "one assertion whitespace only after tests",
+    "public_Host": "unexecuted",
+    "Root_five_caller_custody": "root-five-core-callers-handoff.json byte-identical received copy"
+  }
 }
