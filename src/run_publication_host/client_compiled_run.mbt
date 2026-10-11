@@ -41,6 +41,20 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// Result declarations come from the exact checked compilation, including
+/// Effect-bearing Runs. A Host must not invent names in lifecycle projections.
+pub fn client_compiled_run_result_names(
+  value : ClientCompiledRun,
+) -> Array[String] {
+  match value.compilation {
+    Values(compilation) => client_values_compilation_result_names(compilation)
+    Tasks(compilation) => client_task_compilation_result_names(compilation)
+    Effects(allowed) =>
+      client_effect_compilation_result_names(allowed.compilation)
+  }
+}
+
+///|
 /// The shared Run owner retains the selected model barrier through admission.
 /// None denotes another compilation path, not permission to synthesize one.
 pub fn client_compiled_run_infer(

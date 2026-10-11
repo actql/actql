@@ -23,7 +23,7 @@ pub(all) enum WriteProjectionIssue {
 /// an Effect preview, current grant, write attempt, or dispatch permission.
 pub struct WriteProjection {
   observation_cid : String
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   resource : String
   operation : WriteOperation
   field_names : Array[String]
@@ -72,11 +72,30 @@ pub fn prepare_write_projection(
   field_names : Array[String],
   max_fields : Int,
 ) -> Result[WriteProjection, WriteProjectionIssue] {
+  prepare_owned_write_projection(
+    observation,
+    SiteCatalog(current),
+    resource_name,
+    operation,
+    field_names,
+    max_fields,
+  )
+}
+
+///|
+fn prepare_owned_write_projection(
+  observation : CatalogObservation,
+  current : CatalogExecutionBinding,
+  resource_name : String,
+  operation : WriteOperation,
+  field_names : Array[String],
+  max_fields : Int,
+) -> Result[WriteProjection, WriteProjectionIssue] {
   if max_fields < 0 || field_names.length() > max_fields {
     return Err(FieldLimit)
   }
   let resource = match
-    catalog_observation_resource(observation, current, resource_name) {
+    catalog_owned_observation_resource(observation, current, resource_name) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
@@ -176,7 +195,7 @@ pub fn recheck_write_projection(
     return Err(ForeignCurrentObservation)
   }
   let refreshed = match
-    prepare_write_projection(
+    prepare_owned_write_projection(
       current,
       current.binding,
       plan.resource,
@@ -229,5 +248,5 @@ pub fn write_projection_matches_binding(
   value : WriteProjection,
   current : CatalogObservationBinding,
 ) -> Bool {
-  value.binding == current
+  value.binding == SiteCatalog(current)
 }

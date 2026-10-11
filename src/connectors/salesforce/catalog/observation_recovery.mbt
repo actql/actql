@@ -25,6 +25,35 @@ pub fn recover_catalog_observation(
   describe_limits : DescribeLimits,
   max_observation_bytes : Int,
 ) -> Result[CatalogObservation, CatalogObservationRecoveryIssue] {
+  recover_owned_catalog_observation(
+    expected_body,
+    listing_bytes,
+    describe_bytes,
+    outcomes,
+    SiteCatalog(binding),
+    list_use_cid,
+    describe_use_cids,
+    describe_response_sha256,
+    list_limits,
+    describe_limits,
+    max_observation_bytes,
+  )
+}
+
+///|
+fn recover_owned_catalog_observation(
+  expected_body : String,
+  listing_bytes : Bytes,
+  describe_bytes : Array[Bytes?],
+  outcomes : Array[Int],
+  binding : CatalogExecutionBinding,
+  list_use_cid : String,
+  describe_use_cids : Array[String?],
+  describe_response_sha256 : Array[String?],
+  list_limits : ListLimits,
+  describe_limits : DescribeLimits,
+  max_observation_bytes : Int,
+) -> Result[CatalogObservation, CatalogObservationRecoveryIssue] {
   let listing = match project_resource_listing(listing_bytes, list_limits) {
     Ok(value) => value
     Err(issue) => return Err(Listing(issue))
@@ -66,7 +95,7 @@ pub fn recover_catalog_observation(
     Err(issue) => return Err(Sync(issue))
   }
   let observation = match
-    prepare_catalog_observation(
+    prepare_owned_catalog_observation(
       sync, binding, list_use_cid, describe_use_cids, describe_response_sha256, max_observation_bytes,
     ) {
     Ok(value) => value
@@ -87,6 +116,31 @@ pub fn recover_named_catalog_observation(
   describe_bytes : Array[Bytes?],
   outcomes : Array[Int],
   binding : CatalogObservationBinding,
+  describe_use_cids : Array[String?],
+  describe_response_sha256 : Array[String?],
+  describe_limits : DescribeLimits,
+  max_observation_bytes : Int,
+) -> Result[CatalogObservation, CatalogObservationRecoveryIssue] {
+  recover_owned_named_catalog_observation(
+    expected_body,
+    names,
+    describe_bytes,
+    outcomes,
+    SiteCatalog(binding),
+    describe_use_cids,
+    describe_response_sha256,
+    describe_limits,
+    max_observation_bytes,
+  )
+}
+
+///|
+fn recover_owned_named_catalog_observation(
+  expected_body : String,
+  names : Array[String],
+  describe_bytes : Array[Bytes?],
+  outcomes : Array[Int],
+  binding : CatalogExecutionBinding,
   describe_use_cids : Array[String?],
   describe_response_sha256 : Array[String?],
   describe_limits : DescribeLimits,
@@ -132,7 +186,7 @@ pub fn recover_named_catalog_observation(
     Err(issue) => return Err(Sync(issue))
   }
   let observation = match
-    prepare_catalog_observation(
+    prepare_owned_catalog_observation(
       sync, binding, "", describe_use_cids, describe_response_sha256, max_observation_bytes,
     ) {
     Ok(value) => value

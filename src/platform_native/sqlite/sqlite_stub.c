@@ -89,6 +89,8 @@ typedef struct {
   int test_close_failures;
   int test_commit_failures;
   int test_commit_reply_failures;
+  int test_commit_skip;
+  int transaction_fenced;
   int test_checked_close_count;
 } actql_native_sqlite_database;
 
@@ -241,11 +243,21 @@ void actql_native_sqlite_test_fail_close(
 // Whitebox-only injection: the caller owns this database and its transaction.
 void actql_native_sqlite_test_fail_commit(
   actql_native_sqlite_database *database, int32_t failures
-) { database->test_commit_failures = failures; }
+) { database->test_commit_failures = failures; database->test_commit_skip = 0; }
 
 void actql_native_sqlite_test_fail_commit_reply(
   actql_native_sqlite_database *database, int32_t failures
-) { database->test_commit_reply_failures = failures; }
+) { database->test_commit_reply_failures = failures; database->test_commit_skip = 0; }
+
+// Select an owned transaction boundary after preceding successful commits.
+// This is whitebox fault injection, not an environment-controlled retry mode.
+void actql_native_sqlite_test_fail_commit_after(
+  actql_native_sqlite_database *database, int32_t skip, int32_t reply_lost
+) {
+  database->test_commit_skip = skip > 0 ? skip : 0;
+  database->test_commit_failures = reply_lost ? 0 : 1;
+  database->test_commit_reply_failures = reply_lost ? 1 : 0;
+}
 
 int32_t actql_native_sqlite_test_checked_close_count(
   actql_native_sqlite_database *database
@@ -625,11 +637,14 @@ moonbit_bytes_t actql_native_sqlite_library_version(
   return actql_copy_message(library->libversion());
 }
 
-void *actql_native_sqlite_open_database(
+static void *actql_open_database(
   actql_native_sqlite_library *library,
   moonbit_bytes_t path,
   int32_t length,
-  int64_t max_body_bytes
+  int64_t max_body_bytes,
+  int mode,
+  uint64_t expected_device,
+  uint64_t expected_inode
 ) {
   actql_native_sqlite_database *database = moonbit_make_external_object(
     actql_native_sqlite_database_finalize,
@@ -643,17 +658,48 @@ void *actql_native_sqlite_open_database(
     actql_replace_error(&database->error, "SQLite library is unavailable");
     return database;
   }
+  bool contained = mode != 0;
+  bool existing = mode == 1;
+  if (contained && (length < 2 || length > 4096 || path[0] != '/' ||
+      memchr(path, 0, (size_t)length) != NULL)) {
+    actql_replace_error(&database->error, "invalid existing database path");
+    return database;
+  }
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
     actql_replace_error(&database->error, "database path allocation failed");
     return database;
   }
+  int pinned = -1;
+  struct stat original;
+  if (contained) {
+    pinned = open(path_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (pinned < 0 || fstat(pinned, &original) != 0 ||
+        !S_ISREG(original.st_mode) ||
+        (existing ? original.st_size < 1 : original.st_size != 0) ||
+        (mode == 2 && ((uint64_t)original.st_dev != expected_device ||
+          (uint64_t)original.st_ino != expected_inode))) {
+      if (pinned >= 0) close(pinned);
+      free(path_text);
+      actql_replace_error(&database->error, "existing database is unavailable");
+      return database;
+    }
+  }
+  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
+  flags |= contained ? SQLITE_OPEN_NOFOLLOW : SQLITE_OPEN_CREATE;
   int code = library->open_v2(
     path_text,
     &database->database,
-    SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX,
+    flags,
     NULL
   );
+  if (code == SQLITE_OK && contained) {
+    struct stat selected;
+    if (lstat(path_text, &selected) != 0 || !S_ISREG(selected.st_mode) ||
+        selected.st_dev != original.st_dev || selected.st_ino != original.st_ino)
+      code = SQLITE_CANTOPEN;
+  }
+  if (pinned >= 0) close(pinned);
   free(path_text);
   if (code != SQLITE_OK) {
     actql_database_error(database, "open SQLite database failed");
@@ -670,13 +716,60 @@ void *actql_native_sqlite_open_database(
     database->database = NULL;
     return database;
   }
-  if (!actql_initialize_schema(database)) {
+  // Restoration validates the retained schema. It cannot create tables,
+  // migrate the format, or infer fresh custody from a missing record.
+  database->opened = true;
+  bool admitted = existing
+    ? actql_native_sqlite_inspection_schema(database) != 0 &&
+      actql_exec(database, "PRAGMA synchronous=FULL;PRAGMA foreign_keys=ON") == SQLITE_OK
+    : actql_initialize_schema(database);
+  if (!admitted) {
+    database->opened = false;
     library->close_v2(database->database);
     database->database = NULL;
     return database;
   }
   database->opened = true;
   return database;
+}
+
+void *actql_native_sqlite_open_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0);
+}
+
+void *actql_native_sqlite_open_existing_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0);
+}
+
+// Only the exact exclusively created, still-empty file may receive a schema.
+// The Host must bind that physical proof to its durable one-time intent first.
+void *actql_native_sqlite_initialize_owned_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  uint64_t device,
+  uint64_t inode,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode);
+}
+
+// Whitebox-only loss of one schema constituent in an owner-created fixture.
+int32_t actql_native_sqlite_test_drop_capacity(
+  actql_native_sqlite_database *database
+) {
+  return database != NULL && database->opened &&
+    actql_exec(database, "DROP TABLE actql_capacity") == SQLITE_OK;
 }
 
 int32_t actql_native_sqlite_database_ready(
@@ -1003,6 +1096,26 @@ int32_t actql_native_sqlite_database_compare_exchange(
   return result;
 }
 
+// Test-only physical custody-loss injection. There is no production MoonBit
+// delete API; callers cannot silently repair the independent issuance record.
+int32_t actql_native_sqlite_test_remove_journal_record(
+    actql_native_sqlite_database *database,
+    moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+    moonbit_bytes_t key, int32_t key_length) {
+  if (database == NULL || !database->opened) return 0;
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(database->database,
+    "DELETE FROM actql_records WHERE namespace = ?1 AND record_key = ?2",
+    -1, &statement, NULL);
+  if (code != SQLITE_OK) return 0;
+  int bound = actql_bind_key(database, statement, 1, namespace_bytes,
+    namespace_length, 2, key, key_length);
+  int removed = bound == 0 && database->library->step(statement) == SQLITE_DONE &&
+    database->library->changes64(database->database) == 1;
+  int finalized = database->library->finalize(statement);
+  return removed && finalized == SQLITE_OK;
+}
+
 int32_t actql_native_sqlite_database_begin_immediate(
   actql_native_sqlite_database *database
 ) {
@@ -1012,11 +1125,29 @@ int32_t actql_native_sqlite_database_begin_immediate(
   return code == SQLITE_OK ? 0 : actql_operation_code(code);
 }
 
+// An adapter that cannot confirm commit/rollback fences this physical handle.
+// There is deliberately no reset: a new handle still requires durable-state
+// reconciliation by its owning adapter, never an assumption of non-execution.
+void actql_native_sqlite_database_fence_transactions(
+    actql_native_sqlite_database *database) {
+  if (database != NULL) database->transaction_fenced = 1;
+}
+
+int32_t actql_native_sqlite_database_transaction_fenced(
+    actql_native_sqlite_database *database) {
+  return database == NULL || database->transaction_fenced;
+}
+
 int32_t actql_native_sqlite_database_commit(
   actql_native_sqlite_database *database
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
+  if (database->test_commit_skip > 0) {
+    database->test_commit_skip--;
+    int code = actql_exec(database, "COMMIT");
+    return code == SQLITE_OK ? 0 : actql_operation_code(code);
+  }
   if (database->test_commit_failures > 0) {
     database->test_commit_failures--;
     actql_replace_error(&database->error, "injected transaction commit failure");

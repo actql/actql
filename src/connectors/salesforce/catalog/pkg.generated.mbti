@@ -30,7 +30,11 @@ pub fn catalog_observation_is_complete(CatalogObservation) -> Bool
 
 pub fn catalog_observation_json(CatalogObservation) -> String
 
+pub fn catalog_observation_local_resource(CatalogObservation, LocalCatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
+
 pub fn catalog_observation_matches_binding(CatalogObservation, CatalogObservationBinding) -> Bool
+
+pub fn catalog_observation_matches_local_binding(CatalogObservation, LocalCatalogObservationBinding) -> Bool
 
 pub fn catalog_observation_resource(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
 
@@ -68,9 +72,19 @@ pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
+pub fn generate_local_static_declaration(CatalogObservation, LocalCatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
+
 pub fn generate_static_declaration(CatalogObservation, CatalogObservationBinding, SalesforceImplementation, String, Array[String], DeclarationLimits) -> Result[StaticDeclaration, DeclarationIssue]
 
 pub fn interrupt_query_read(QueryRead) -> Bool
+
+pub fn local_target_read_request_binding(LocalTargetReadRequest) -> LocalCatalogObservationBinding
+
+pub fn local_target_read_request_candidate(LocalTargetReadRequest) -> SingleWriteRequest
+
+pub fn local_target_read_request_cid(LocalTargetReadRequest) -> String
+
+pub fn local_target_read_request_path(LocalTargetReadRequest) -> String
 
 pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 
@@ -79,6 +93,12 @@ pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, Wri
 pub fn prepare_execution_mapping(StaticDeclaration, String, ExecutionWrite, DeclarationLimits) -> Result[ExecutionMapping, ExecutionMappingIssue]
 
 pub fn prepare_execution_write_body(ExecutionMapping, WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
+pub fn prepare_local_catalog_observation(CatalogSync, LocalCatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
+
+pub fn prepare_local_target_read_request(SingleWriteRequest, LocalCatalogObservationBinding, CatalogObservation, String, Int) -> Result[LocalTargetReadRequest, WriteRequestIssue]
+
+pub fn prepare_local_write_projection(CatalogObservation, LocalCatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
 
 pub fn prepare_observed_target_preview_row(SingleWriteRequest, TargetObservation, Int) -> Result[TargetPreviewRow, TargetObservationIssue]
 
@@ -180,6 +200,8 @@ pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[U
 
 pub fn recover_catalog_observation(String, Bytes, Array[Bytes?], Array[Int], CatalogObservationBinding, String, Array[String?], Array[String?], ListLimits, DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
 
+pub fn recover_local_named_catalog_observation(String, Array[String], Array[Bytes?], Array[Int], LocalCatalogObservationBinding, Array[String?], Array[String?], DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
+
 pub fn recover_named_catalog_observation(String, Array[String], Array[Bytes?], Array[Int], CatalogObservationBinding, Array[String?], Array[String?], DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
 
 pub fn recover_single_write_request(WriteProjection, String, String, String, WriteBodyLimits, WriteRequestLimits) -> Result[SingleWriteRequest, RecoveredWriteRequestIssue]
@@ -211,6 +233,8 @@ pub fn single_write_request_effect_kind(SingleWriteRequest) -> String
 pub fn single_write_request_grant_operation(SingleWriteRequest) -> String
 
 pub fn single_write_request_kind(SingleWriteRequest) -> WriteSingleKind
+
+pub fn single_write_request_matches_local_binding(SingleWriteRequest, LocalCatalogObservationBinding) -> Bool
 
 pub fn single_write_request_matches_preview_row_target(SingleWriteRequest, String, Int) -> Result[Bool, WriteCollectionRequestIssue]
 
@@ -341,11 +365,16 @@ pub fn write_target_scheme_cid(WriteTargetIdentity) -> String
 // Errors
 
 // Types and methods
+pub(all) enum CatalogExecutionBinding {
+  SiteCatalog(CatalogObservationBinding)
+  DirectLocalCatalog(LocalCatalogObservationBinding)
+} derive(Eq, @debug.Debug)
+
 pub struct CatalogObservation {
   names : Array[String]
   outcomes : Array[ResourceDescribeOutcome]
   truncated : Bool
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   body : String
   cid : String
 }
@@ -568,6 +597,31 @@ pub(all) enum ListingIssue {
   DuplicateResource(String)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct LocalCatalogObservationBinding {
+  account_configuration_cid : String
+  account_id : String
+  authority_scope_cid : String
+  client_request_intent_cid : String
+  client_request_scope_cid : String
+  connection_revision : String
+  connector_registration : String
+  connector_revision : String
+  environment : String
+  host_adoption_cid : String
+  namespace_id : String
+  org_id : String
+  principal : String
+  resource_origin : String
+  run_invocation_cid : String
+  sync_occurrence : String
+} derive(Eq, @debug.Debug)
+
+pub struct LocalTargetReadRequest {
+  original : SingleWriteRequest
+  binding : LocalCatalogObservationBinding
+  cid : String
+}
+
 pub struct QueryPage {
   projection : ReadProjection
   rows : Array[Array[@value_admission.CheckedValue]]
@@ -633,7 +687,7 @@ pub(all) struct QueryValueViolation {
 
 pub struct ReadProjection {
   observation_cid : String
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   resource : String
   fields : Array[FieldMetadata]
   contracts : Array[@value_contract.Contract]
@@ -734,7 +788,7 @@ pub struct SingleWriteRequest {
 pub struct StaticDeclaration {
   connector_id : String
   connector_version : String
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   observation_cid : String
   catalog : String
   catalog_cid : String
@@ -905,7 +959,7 @@ pub(all) enum WriteOperation {
 
 pub struct WriteProjection {
   observation_cid : String
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   resource : String
   operation : WriteOperation
   field_names : Array[String]

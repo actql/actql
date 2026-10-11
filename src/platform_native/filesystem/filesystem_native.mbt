@@ -37,6 +37,14 @@ type Reader
 extern "C" fn open_root_ffi(path : Bytes, length : Int) -> Root = "actql_native_filesystem_open_root"
 
 ///|
+#borrow(path)
+extern "C" fn open_private_root_ffi(path : Bytes, length : Int) -> Root = "actql_native_filesystem_open_private_root"
+
+///|
+#borrow(root)
+extern "C" fn private_root_identity_ffi(root : Root) -> Bool = "actql_native_filesystem_private_root_identity"
+
+///|
 #borrow(root)
 extern "C" fn root_ready_ffi(root : Root) -> Bool = "actql_native_filesystem_root_ready"
 
@@ -224,6 +232,35 @@ pub fn open_root(path : String) -> Result[Root, NativeFilesystemIssue] {
     Ok(root)
   } else {
     Err(RootOpen(decode_message(root_error_ffi(root))))
+  }
+}
+
+///|
+/// Open an explicitly selected user-owned private directory. This establishes
+/// physical containment, not adoption, freshness or execution authority.
+pub fn open_private_root(path : String) -> Result[Root, NativeFilesystemIssue] {
+  let encoded = @utf8.encode(path)
+  let root = open_private_root_ffi(encoded, encoded.length())
+  if root_ready_ffi(root) {
+    Ok(root)
+  } else {
+    Err(RootOpen(decode_message(root_error_ffi(root))))
+  }
+}
+
+///|
+/// Recheck the pinned descriptor's privacy and its original namespace binding.
+/// A missing/replaced original name is not a new root or freshness evidence.
+pub fn Root::private_ownership(
+  self : Root,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  if private_root_identity_ffi(self) {
+    Ok({
+      device: root_result_device_ffi(self),
+      inode: root_result_inode_ffi(self),
+    })
+  } else {
+    Err(RootOpen(decode_message(root_error_ffi(self))))
   }
 }
 

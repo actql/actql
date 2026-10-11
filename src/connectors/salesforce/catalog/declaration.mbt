@@ -104,7 +104,7 @@ pub struct DeclaredWritable {
 pub struct StaticDeclaration {
   connector_id : String
   connector_version : String
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   observation_cid : String
   catalog : String
   catalog_cid : String
@@ -428,6 +428,25 @@ pub fn generate_static_declaration(
   resource_names : Array[String],
   limits : DeclarationLimits,
 ) -> Result[StaticDeclaration, DeclarationIssue] {
+  generate_owned_static_declaration(
+    observation,
+    SiteCatalog(current),
+    implementation,
+    connector_id,
+    resource_names,
+    limits,
+  )
+}
+
+///|
+fn generate_owned_static_declaration(
+  observation : CatalogObservation,
+  current : CatalogExecutionBinding,
+  implementation : SalesforceImplementation,
+  connector_id : String,
+  resource_names : Array[String],
+  limits : DeclarationLimits,
+) -> Result[StaticDeclaration, DeclarationIssue] {
   if !valid_connector_id(connector_id) {
     return Err(InvalidConnectorId)
   }
@@ -440,17 +459,18 @@ pub fn generate_static_declaration(
       return Err(InvalidSelection)
     }
   }
-  if implementation.connector_revision != current.connector_revision {
+  if implementation.connector_revision !=
+    catalog_binding_connector_revision(current) {
     return Err(ForeignImplementation)
   }
   let resources = []
   for name in names {
-    match catalog_observation_resource(observation, current, name) {
+    match catalog_owned_observation_resource(observation, current, name) {
       Ok(resource) => resources.push(resource)
       Err(issue) => return Err(Observation(issue))
     }
   }
-  let connector_version = current.connector_revision
+  let connector_version = catalog_binding_connector_revision(current)
   try {
     let envelopes : Envelopes = {
       prefix: connector_id,
@@ -738,7 +758,7 @@ pub fn generate_static_declaration(
       view_bodies.push(canonical_text(entry.1, limits))
     }
     let entry = object([
-      ("connector", current.connector_registration.to_json()),
+      ("connector", catalog_binding_connector_registration(current).to_json()),
       ("connector_id", connector_id.to_json()),
       ("connector_version", connector_version.to_json()),
     ])
@@ -838,7 +858,7 @@ fn check_declared_fields(
 ///|
 /// The installed Site identity a declaration is valid for. Dispatch and sync
 /// occurrence differ between the generating sync and any later use.
-fn declaration_site_matches(
+fn declaration_site_binding_matches(
   declared : CatalogObservationBinding,
   current : CatalogObservationBinding,
 ) -> Bool {
@@ -862,7 +882,7 @@ pub fn check_declared_read(
   plan : ReadProjection,
   source_view_cid : String,
 ) -> Result[Unit, DeclarationUseIssue] {
-  if !declaration_site_matches(declaration.binding, plan.binding) {
+  if !declaration_owned_binding_matches(declaration.binding, plan.binding) {
     return Err(ForeignDeclaration)
   }
   for view in declaration.views {
@@ -1323,7 +1343,7 @@ pub fn check_execution_write(
   bodies? : Array[String] = [],
 ) -> Result[Unit, DeclarationUseIssue] {
   let declaration = mapping.declaration
-  if !declaration_site_matches(declaration.binding, projection.binding) {
+  if !declaration_owned_binding_matches(declaration.binding, projection.binding) {
     return Err(ForeignDeclaration)
   }
   if projection.resource != mapping.resource ||

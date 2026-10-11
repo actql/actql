@@ -22,8 +22,9 @@ static const char format_body[] =
   "\"isolation\":\"execution-namespace\"}";
 
 // 0 = admitted, 1 = legacy data, 2 = unidentified format, 3 = I/O failure.
-// The first call inspects without writing. The second is made under the
-// publication lock and creates the marker only for an otherwise empty root.
+// Mode 0 inspects a fresh or retained root without writing; mode 1 creates
+// a marker only under the publication lock. Mode -1 requires a retained
+// marker and never initializes an empty root.
 int32_t actql_native_publication_store_format(
   moonbit_bytes_t path,
   int32_t length,
@@ -93,6 +94,10 @@ int32_t actql_native_publication_store_format(
   if (other) {
     close(root);
     return legacy ? 1 : 2;
+  }
+  if (establish < 0) {
+    close(root);
+    return 2;
   }
   if (!establish) {
     close(root);

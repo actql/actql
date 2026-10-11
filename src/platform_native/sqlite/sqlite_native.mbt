@@ -31,6 +31,26 @@ extern "C" fn open_database_ffi(
 
 ///|
 #borrow(library, path)
+extern "C" fn open_existing_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_existing_database"
+
+///|
+#borrow(library, path)
+extern "C" fn initialize_owned_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  device : UInt64,
+  inode : UInt64,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_initialize_owned_database"
+
+///|
+#borrow(library, path)
 extern "C" fn open_inspection_database_ffi(
   library : Library,
   path : Bytes,
@@ -110,6 +130,14 @@ extern "C" fn database_commit_ffi(database : Database) -> Int = "actql_native_sq
 ///|
 #borrow(database)
 extern "C" fn database_rollback_ffi(database : Database) -> Int = "actql_native_sqlite_database_rollback"
+
+///|
+#borrow(database)
+extern "C" fn database_fence_transactions_ffi(database : Database) -> Unit = "actql_native_sqlite_database_fence_transactions"
+
+///|
+#borrow(database)
+extern "C" fn database_transaction_fenced_ffi(database : Database) -> Bool = "actql_native_sqlite_database_transaction_fenced"
 
 ///|
 #borrow(database, scope, key)
@@ -236,6 +264,62 @@ pub fn Library::open_database(
     self,
     encoded,
     encoded.length(),
+    max_body_bytes,
+  )
+  if database_ready_ffi(database) {
+    Ok(database)
+  } else {
+    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+  }
+}
+
+///|
+/// Open a retained journal without creation or schema repair. The caller must
+/// first admit its original format/custody and contain the absolute path under
+/// its pinned managed Root; this physical operation issues no authority.
+pub fn Library::open_existing_database(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  if max_body_bytes < 0L {
+    return Err(InvalidLimit)
+  }
+  let encoded = @utf8.encode(path)
+  let database = open_existing_database_ffi(
+    self,
+    encoded,
+    encoded.length(),
+    max_body_bytes,
+  )
+  if database_ready_ffi(database) {
+    Ok(database)
+  } else {
+    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+  }
+}
+
+///|
+/// Initialize only the exact exclusively created empty file. This never opens
+/// with CREATE and never repairs a previously initialized database. Ownership
+/// alone is not authorization; a trusted Host must bind its original durable
+/// initialization intent before calling this physical boundary.
+pub fn Library::initialize_owned_database(
+  self : Library,
+  path : String,
+  ownership : @filesystem.NativeFileOwnership,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  if max_body_bytes < 0L {
+    return Err(InvalidLimit)
+  }
+  let encoded = @utf8.encode(path)
+  let database = initialize_owned_database_ffi(
+    self,
+    encoded,
+    encoded.length(),
+    ownership.device,
+    ownership.inode,
     max_body_bytes,
   )
   if database_ready_ffi(database) {
@@ -430,6 +514,19 @@ pub fn Database::commit(self : Database) -> Result[Unit, NativeSqliteIssue] {
 }
 
 ///|
+/// Share an adapter's uncertain transaction outcome with other adapters on
+/// this same physical handle. This does not classify the durable outcome or
+/// authorize a replacement connection. There is no in-place fence reset.
+pub fn Database::fence_transactions(self : Database) -> Unit {
+  database_fence_transactions_ffi(self)
+}
+
+///|
+pub fn Database::transaction_fenced(self : Database) -> Bool {
+  database_transaction_fenced_ffi(self)
+}
+
+///|
 /// Roll back the current physical transaction after a failed adapter step.
 pub fn Database::rollback(self : Database) -> Result[Unit, NativeSqliteIssue] {
   let code = database_rollback_ffi(self)
@@ -564,6 +661,24 @@ pub fn Database::claim_ordinal(
   key : String,
   max_claims : Int64,
 ) -> Result[Int64, NativeSqliteIssue] {
+  self
+  .claim_ordinal_action(scope, key, max_claims)
+  .map(action => {
+    match action {
+      Fresh(ordinal) | Retained(ordinal) => ordinal
+    }
+  })
+}
+
+///|
+/// Preserve the existing transaction's new/original result. A retained claim
+/// must not be promoted to a fresh send when its separate use record is lost.
+pub fn Database::claim_ordinal_action(
+  self : Database,
+  scope : String,
+  key : String,
+  max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -581,7 +696,22 @@ pub fn Database::claim_ordinal(
       key_bytes.length(),
       max_claims,
     ) {
-    0 | 7 => Ok(database_result_revision_ffi(self))
+    0 => {
+      let ordinal = database_result_revision_ffi(self)
+      if ordinal <= 0L {
+        Err(Physical("invalid bounded claim ordinal"))
+      } else {
+        Ok(Fresh(ordinal))
+      }
+    }
+    7 => {
+      let ordinal = database_result_revision_ffi(self)
+      if ordinal <= 0L {
+        Err(Physical("invalid retained claim ordinal"))
+      } else {
+        Ok(Retained(ordinal))
+      }
+    }
     code => Err(operation_issue(self, code))
   }
 }

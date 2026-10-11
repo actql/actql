@@ -70,6 +70,7 @@ pub(all) struct CommittedResultRead {
   logical_result_cid : String
   result_schema_cid : String
   ordering_evidence_cid : String
+  effective_data_policy_cid : String
   effective_retention_policy_cid : String
   durable_result_binding_cid : String
   material_generation_cid : String
@@ -958,6 +959,8 @@ pub fn project_committed_result_read(
     is Some(result_schema_cid) &&
     optional_string(@json.object_field(artifact, "ordering_evidence_cid"))
     is Some(ordering_evidence_cid) &&
+    optional_string(@json.object_field(artifact, "effective_data_policy_cid"))
+    is Some(effective_data_policy_cid) &&
     optional_string(
       @json.object_field(artifact, "effective_retention_policy_cid"),
     )
@@ -1019,6 +1022,7 @@ pub fn project_committed_result_read(
     logical_result_cid,
     result_schema_cid,
     ordering_evidence_cid,
+    effective_data_policy_cid,
     effective_retention_policy_cid,
     durable_result_binding_cid: binding.identity,
     material_generation_cid,
