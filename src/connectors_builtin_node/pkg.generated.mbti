@@ -305,6 +305,8 @@ pub fn client_program_check_unavailable(String) -> String
 
 pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
 
+pub fn client_program_claim_infer_original_preparation(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Result[@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn client_program_cleanup_infer_capture_export(@model_execution.ModelCaptureExport) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_cleanup_infer_execution(@client_infer_host.Execution) -> Result[Bool, @client_infer_host.Issue]
@@ -1443,7 +1445,7 @@ pub fn client_program_start_model_execution(@execution_relation.PreparedInferRow
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
 
-pub fn client_program_start_original_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadPreparation, Int64, Int64, Int64, Int64, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_original_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

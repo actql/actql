@@ -3,8 +3,14 @@
 // The installing Run funds this four-field record and Execution's reference
 // before binding. Normal public installation remains unavailable until the
 // complete original Ledger overlap envelope is adopted.
+priv enum OriginalModelRead {
+  Bound(@publication_host.ClientModelReadPreparation)
+  Claimed(@publication_host.ClientModelReadConsumer)
+}
+
+///|
 struct OriginalModelPreparation {
-  read : @publication_host.ClientModelReadPreparation
+  read : OriginalModelRead
   retained_bytes : Int64
   execution_bytes : Int64
   mut startup : @model.OriginalModelStartup?
@@ -44,7 +50,7 @@ pub fn start_original_model_preparation(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   plan : @publication_host.ClientInferPlanGraph,
-  read : @publication_host.ClientModelReadPreparation,
+  consumer : @publication_host.ClientModelReadConsumer,
   read_retained_bytes : Int64,
   read_execution_bytes : Int64,
   model_retained_bytes : Int64,
@@ -56,26 +62,19 @@ pub fn start_original_model_preparation(
     model_retained_bytes <= 0L || model_execution_bytes < 0L {
     return Err(Model(@model.InvalidLimits))
   }
-  // Run/descriptor authenticity precedes use of caller-supplied requirements.
-  if !@publication_host.client_model_read_available(
-      read, compiled, definition, plan,
-    ) {
-    return Err(OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun)))
-  }
-  if !@publication_host.client_model_read_preparation_available(
-      read, compiled, definition, plan, read_execution_bytes,
-    ) {
-    return Err(OriginalCapacity(@publication_host.Read(@publication_host.Resource(@resources.Resource(@resources.ExecutionLimit)))))
-  }
-  if !original_model_preparation_available(
-      read, compiled, definition, plan, read_retained_bytes, read_execution_bytes,
-    ) {
-    return Err(OriginalCapacity(@publication_host.Read(@publication_host.Resource(@resources.Resource(@resources.RetentionLimit)))))
-  }
   guard @publication_host.prepared_client_infer_execution_occurrence(prepared, step)
     is Some(occurrence) &&
     @publication_host.client_infer_occurrence_matches_compiled_run(occurrence, compiled) else {
     return Err(OriginalCapacity(@publication_host.ForeignInput))
+  }
+  // The Node caller claimed once before IO/closures. Enter that same opaque
+  // ticket once before input/Execution allocation; aliases cannot start again.
+  // A refused input start leaves responsibility with the original read owner.
+  match @publication_host.enter_client_model_read_consumer(
+    consumer, compiled, definition, plan, read_retained_bytes, read_execution_bytes,
+  ) {
+    Ok(_) => ()
+    Err(issue) => return Err(OriginalCapacity(@publication_host.Read(issue)))
   }
   let active = match start(
     prepared, step, registry, values, provider,
@@ -89,7 +88,7 @@ pub fn start_original_model_preparation(
   // fallible post-start bind that could drop the newly owned input on refusal.
   active.run_binding = Some({ compiled, definition, })
   active.original_preparation = Some({
-    read, retained_bytes: model_retained_bytes,
+    read: Claimed(consumer), retained_bytes: model_retained_bytes,
     execution_bytes: model_execution_bytes, startup: None,
   })
   Ok(active)
@@ -119,6 +118,8 @@ pub fn bind_original_model_preparation(
     ) else {
     return Err(OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun)))
   }
-  active.original_preparation = Some({read, retained_bytes, execution_bytes, startup: None})
+  // This explicit existing post-bind path is not the new early-funded path.
+  // No failed claim ever falls back to it.
+  active.original_preparation = Some({read: Bound(read), retained_bytes, execution_bytes, startup: None})
   Ok(())
 }

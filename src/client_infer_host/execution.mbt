@@ -625,10 +625,17 @@ fn begin_model(active : Execution) -> Poll {
       }
       // The seal is retained before attempting startup. A refused start must
       // not lose its unconsumed original capacity or input cleanup custody.
-      let startup = match @model.prepare_original_model_startup(
-        original.read, bound.compiled, bound.definition, plan, scope, rows,
-        original.retained_bytes, original.execution_bytes,
-      ) {
+      let issued = match original.read {
+        Bound(read) => @model.prepare_original_model_startup(
+          read, bound.compiled, bound.definition, plan, scope, rows,
+          original.retained_bytes, original.execution_bytes,
+        )
+        Claimed(consumer) => @model.prepare_original_model_consumer_startup(
+          consumer, bound.compiled, bound.definition, plan, scope, rows,
+          original.retained_bytes, original.execution_bytes,
+        )
+      }
+      let startup = match issued {
         Ok(value) => value
         Err(issue) => return fail(active, OriginalCapacity(issue))
       }
@@ -1041,6 +1048,10 @@ pub fn cancel(active : Execution) -> Bool {
     return false
   }
   active.cancelled = true
+  if active.original_preparation is Some(original) &&
+    original.read is Claimed(consumer) {
+    @publication_host.stop_client_model_read_consumer(consumer)
+  }
   match active.phase {
     Input => @input.cancel_client_infer_input(active.input) |> ignore
     Identity =>
@@ -1389,6 +1400,13 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       active.rows = None
       active.call_scope = None
       active.acquired_input = None
+      // Core retirement does not prove original FD/Store cleanup. The original
+      // read owner retains this stopped ticket until its own physical cleanup
+      // settles the read and severs both nominal back-references.
+      if active.original_preparation is Some(original) &&
+        original.read is Claimed(consumer) {
+        @publication_host.stop_client_model_read_consumer(consumer)
+      }
       active.original_preparation = None
       active.reclaimed = true
       Ok(true)

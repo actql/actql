@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openNodeInferOperation} from './infer-operation.mjs';
+import {createInferIoNotification, claimInferIoNotification} from './infer-io-notification.mjs';
 
 function fixture() {
   const active = {}, read = {}, compiled = {}, runDefinition = {};
@@ -60,11 +61,14 @@ test('original preparation typed refusal is preserved without a retry or replace
 });
 
 function fundedFixture(available = true, startIssue) {
-  const calls = [], active = {}, read = {}, compiled = {}, runDefinition = {}, graph = {};
-  let stopped = false;
+  const calls = [], active = {}, read = {}, consumer = {}, compiled = {}, runDefinition = {}, graph = {};
+  let stopped = false, claimed = false;
   const moon = {
-    clientProgramInferOriginalPreparationAvailable(...args) {
-      calls.push(['probe', ...args]); return available;
+    clientProgramClaimInferOriginalPreparation(...args) {
+      calls.push(['claim', ...args]);
+      if (!available || claimed) return {$tag: 0, _0: 'SpentClaim'};
+      claimed = true;
+      return {$tag: 1, _0: consumer};
     },
     clientProgramStartOriginalInferExecution(...args) {
       calls.push(['start', ...args]);
@@ -78,17 +82,17 @@ function fundedFixture(available = true, startIssue) {
     readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n};
   const options = {moon, preparedProgram: {}, step: 2, graph, registry: 'registry',
     values: 'values', fragment: 'fragment', ordered: 'ordered', provider: {}, originalPreparation};
-  return {options, originalPreparation, calls, graph};
+  return {options, originalPreparation, calls, graph, consumer};
 }
 
-test('funded start probes original envelope before Core allocation and keeps distinct Model grant', async () => {
+test('funded start claims original envelope before Core allocation and keeps distinct Model grant', async () => {
   const f = fundedFixture();
   const operation = openNodeInferOperation(f.options);
-  assert.deepEqual(f.calls[0], ['probe', f.originalPreparation.read,
+  assert.deepEqual(f.calls[0], ['claim', f.originalPreparation.read,
     f.originalPreparation.compiled, f.originalPreparation.runDefinition, f.graph, 7n, 5n]);
   assert.deepEqual(f.calls[1], ['start', f.options.preparedProgram, 2, f.graph,
     'registry', 'values', f.options.provider, f.originalPreparation.compiled,
-    f.originalPreparation.runDefinition, f.originalPreparation.read, 7n, 5n, 100n, 5n,
+    f.originalPreparation.runDefinition, f.consumer, 7n, 5n, 100n, 5n,
     'fragment', 'ordered']);
   assert.equal('ledger' in operation, false);
   assert.equal('startup' in operation, false);
@@ -97,7 +101,8 @@ test('funded start probes original envelope before Core allocation and keeps dis
 
 test('funded start refuses original envelope without opening or replacing an execution', () => {
   const f = fundedFixture(false);
-  assert.throws(() => openNodeInferOperation(f.options), /InferOriginalPreparationUnavailable/u);
+  assert.throws(() => openNodeInferOperation(f.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === 'SpentClaim');
   assert.equal(f.calls.length, 1);
 });
 
@@ -107,6 +112,21 @@ test('funded start preserves Core recheck refusal and never falls back to unowne
   assert.throws(() => openNodeInferOperation(f.options), error =>
     error.code === 'MoonBitHostFailure' && error.cause === cause);
   assert.equal(f.calls.length, 2);
+});
+
+test('funded start duplicate claim refuses before a second IO notification is consumed', async () => {
+  const f = fundedFixture();
+  const firstIo = createInferIoNotification(), secondIo = createInferIoNotification();
+  f.options.ioNotification = firstIo;
+  const operation = openNodeInferOperation(f.options);
+  f.options.ioNotification = secondIo;
+  assert.throws(() => openNodeInferOperation(f.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === 'SpentClaim');
+  assert.equal(f.calls.filter(call => call[0] === 'start').length, 1);
+  // Actual notifier remains unclaimed: refusal occurred before this allocation
+  // site's claim, rather than closing/replacing a second Core operation later.
+  claimInferIoNotification(secondIo).close();
+  await operation.close();
 });
 
 test('funded start does not reinterpret restored or malformed installation as fresh funding', () => {

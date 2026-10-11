@@ -52,6 +52,32 @@ pub fn prepare_original_model_startup(
 }
 
 ///|
+/// Continue the one-shot early consumer through the same original input guard
+/// and Ledger. This does not issue dispatch permission or release read custody.
+pub fn prepare_original_model_consumer_startup(
+  consumer : @publication_host.ClientModelReadConsumer,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  scope : @publication_host.ClientInferCallScope,
+  rows : @relation.PreparedInferRows,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[OriginalModelStartup, @publication_host.ClientModelInputCapacityIssue] {
+  if retained_bytes <= 0L || execution_bytes < 0L {
+    return Err(Read(Resource(@resources.Resource(@resources.InvalidCharge))))
+  }
+  let (ledger, capacity) = match
+    @publication_host.handoff_client_model_read_consumer_input_capacity(
+      consumer, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ rows, scope: Some(scope), ledger, capacity, retained_bytes, execution_bytes, used: false, })
+}
+
+///|
 /// Start only from the original issuer's seal. No Ledger/token projection or
 /// second begin state machine is exposed. Refusal leaves the seal with its
 /// issuing owner; success transfers settlement to existing Model cleanup.

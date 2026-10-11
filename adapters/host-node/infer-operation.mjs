@@ -32,6 +32,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // The original installing Run has already reserved this entire simultaneous
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
+  let originalConsumer;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
@@ -39,18 +40,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         typeof originalPreparation.readRetainedBytes !== 'bigint' ||
         originalPreparation.readRetainedBytes <= 0n ||
         typeof originalPreparation.readExecutionBytes !== 'bigint' ||
-        originalPreparation.readExecutionBytes < 0n ||
+        originalPreparation.readExecutionBytes <= 0n ||
         typeof originalPreparation.modelRetainedBytes !== 'bigint' ||
         originalPreparation.modelRetainedBytes <= 0n ||
         typeof originalPreparation.modelExecutionBytes !== 'bigint' ||
         originalPreparation.modelExecutionBytes < 0n) {
       throw new TypeError('InvalidInferOriginalPreparation');
     }
-    if (!moon.clientProgramInferOriginalPreparationAvailable(originalPreparation.read,
+    // The original read owner retains the issued ticket if a later constructor
+    // fails. No JS ownership map, claim reset or unowned-start fallback exists.
+    originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalPreparation.read,
       originalPreparation.compiled, originalPreparation.runDefinition, graph,
-      originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes)) {
-      throw new TypeError('InferOriginalPreparationUnavailable');
-    }
+      originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes));
   }
   if (retainOperation !== undefined && typeof retainOperation !== 'function') {
     throw new TypeError('InvalidInferOperationCustody');
@@ -103,7 +104,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   try { active = checked(originalPreparation !== undefined
     ? moon.clientProgramStartOriginalInferExecution(preparedProgram, step, graph,
       registry, values, provider, originalPreparation.compiled, originalPreparation.runDefinition,
-      originalPreparation.read, originalPreparation.readRetainedBytes,
+      originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
       originalPreparation.modelExecutionBytes, fragment, ordered)
     : restoredInput !== undefined && composedInput !== undefined

@@ -706,6 +706,25 @@ pub fn client_program_infer_original_preparation_available(
 }
 
 ///|
+/// Claim the original funded read once before Node IO/control allocation.
+#export_name("clientProgramClaimInferOriginalPreparation")
+pub fn client_program_claim_infer_original_preparation(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  @publication_host.ClientModelReadConsumer,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, graph, retained_bytes, execution_bytes,
+  )
+}
+
+///|
 /// Recheck original funding before the ordinary bounded input/Execution start.
 /// This private caller does not install a public asynchronous capability.
 #export_name("clientProgramStartOriginalInferExecution")
@@ -718,7 +737,7 @@ pub fn client_program_start_original_infer_execution(
   provider : @model.ModelProvider,
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
-  read : @publication_host.ClientModelReadPreparation,
+  consumer : @publication_host.ClientModelReadConsumer,
   read_retained_bytes : Int64,
   read_execution_bytes : Int64,
   model_retained_bytes : Int64,
@@ -727,8 +746,8 @@ pub fn client_program_start_original_infer_execution(
   ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   // Even the installed limits/config projection follows the funded probe.
-  if !@infer_host.original_model_preparation_available(
-      read, compiled, definition, graph, read_retained_bytes, read_execution_bytes,
+  if !@publication_host.client_model_read_consumer_available(
+      consumer, compiled, definition, graph, read_retained_bytes, read_execution_bytes,
     ) {
     return Err(
       @infer_host.OriginalCapacity(
@@ -748,7 +767,7 @@ pub fn client_program_start_original_infer_execution(
     compiled,
     definition,
     graph,
-    read,
+    consumer,
     read_retained_bytes,
     read_execution_bytes,
     model_retained_bytes,
