@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import {spawnProofCommand} from '../bounded-session/native-command.mjs';
 import { performance } from 'node:perf_hooks';
 import { modelExecution, modelObservationUnits, artifacts, bindings, checkBindings, coverage, fixture, identityFixture, snapshot, targets, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -18,7 +19,7 @@ mkdirSync(directory, { recursive: true });
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
 function run(id, command, args, target = 'model', pkg = null) {
   const start = performance.now();
-  const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  const result = spawnProofCommand(command, args, target, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}.log`), output);
   const count = pkg ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : modelObservationUnits(output, result.status);

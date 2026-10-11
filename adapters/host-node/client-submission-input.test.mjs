@@ -224,9 +224,9 @@ for (const entrance of ['local', 'https']) {
         if (committed) {
           assert.equal(stored[0].caller_request_id, submissionRequestId(options.submissionRef));
           // Independently assembled current Values Program semantics and
-          // Definition preimages include the adopted typed-JSON expression contract.
+          // Definition preimages include the current expression contract closure.
           assert.equal(stored[0].program_definition_cid,
-            'sha256:5b60d2728eeab010cd8cb2ce2efe9f1df250e16bea9826703c2157a6c4a7de34');
+            'sha256:8454e0ca44e23631cec1118a10c3414f3535e7cb1872d74b7ac5d0b4a2a1d64e');
           assert.equal(stored[0].dispatch_reserved, 0);
           assert.equal(stored[0].physical_start_reserved, 0);
         }

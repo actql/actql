@@ -3,7 +3,7 @@ fn graph_composition_cleanup_fixture(
   operation : String,
   input_count : Int,
 ) -> Unit raise {
-  // Both checked composition operations use the existing Host fixture and
+  // Checked composition operations use the existing Host fixture and
   // cleanup owner. The Source/capture and driver owners are unchanged.
   let program = current_graph_relation_program("current_filter")
     .replace(
@@ -224,4 +224,9 @@ test "Host union keeps repeated input holdings and cleanup reservation through f
 ///|
 test "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry" {
   graph_composition_cleanup_fixture("\"subtract_graphs\":{\"with\":\"g\"}", 2)
+}
+
+///|
+test "Host graft keeps both borrowed occurrences and cleanup reservation through false error and retry" {
+  graph_composition_cleanup_fixture("\"graft_graph\":{\"with\":\"g\"}", 2)
 }

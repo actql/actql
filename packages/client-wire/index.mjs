@@ -1,4 +1,5 @@
 export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
+export * from './interactive-control.generated.js';
 // Structural Client–Host wire admission only. The Host's MoonBit owners decide
 // identities, authorization, state transitions, publication and retry.
 import {validDeliveryAttempt, validDeliveryRecord,

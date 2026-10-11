@@ -5,6 +5,7 @@ fn retained_holder_review_policy(
   holder : @resident.ResidentRetainedConsumer,
   inputs : @strategy.CapturedEffectInputs,
   invocation : @publication.PublicationContract,
+  mapped_create? : Bool = false,
 ) -> @effect_provider.NativeResidentEffectReviewPolicy raise {
   let dispatch = @resident.resident_retained_consumer_request(holder)
   let mut result_index = -1
@@ -15,21 +16,37 @@ fn retained_holder_review_policy(
   }
   assert_true(result_index >= 0)
   let binding = {
-    ..provider_binding(),
+    ..(if mapped_create {
+      native_mapped_create_binding()
+    } else {
+      provider_binding()
+    }),
     run_invocation_cid: @publication.publication_contract_identity(invocation),
     dispatch_request_cid: @remote.dispatch_request_identity(dispatch),
   }
-  let catalog = provider_catalog(binding)
+  let catalog = if mapped_create {
+    native_mapped_create_catalog(binding)
+  } else {
+    provider_catalog(binding)
+  }
   {
     stage: 1,
     effect_id: "save",
     result_index,
-    mapping: provider_mapping(),
+    mapping: if mapped_create {
+      native_mapped_create_mapping()
+    } else {
+      provider_mapping()
+    },
     projection: @catalog.prepare_write_projection(
       catalog,
       binding,
       "ActQL_Test_Record__c",
-      @catalog.WriteUpdateById,
+      if mapped_create {
+        @catalog.WriteCreate
+      } else {
+        @catalog.WriteUpdateById
+      },
       ["Count__c"],
       1,
     ).unwrap(),
@@ -130,14 +147,34 @@ fn retained_holder_provider_review(
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
   let policy = retained_holder_review_policy(holder, inputs, invocation)
+  // The create connection cannot reinterpret this genuine update member,
+  // export a different input, or acquire Provider authority from it.
+  let create_before = consumer.usage().reserved_retention_bytes
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_created_targets(
+      consumer,
+      materials,
+      inputs,
+      policy.stage,
+      policy.effect_id,
+      policy.result_index,
+      policy.mapping,
+      policy.projection,
+      policy.api_version,
+      policy.export_limits,
+      policy.body_limits,
+      policy.request_limits,
+      policy.max_rows,
+      policy.max_fields,
+      policy.max_work,
+      policy.max_utf16_units,
+      policy.preview_limits.max_wire_bytes,
+    )
+    is Err(ForeignMapping),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, create_before)
   let work = @effect_provider.prepare_native_resident_effect_review_from_context(
-    holder,
-    journal,
-    owned_context,
-    normalization,
-    [],
-    [],
-    policy,
+    holder, journal, owned_context, normalization, policy,
   ).unwrap()
   let owned_result = work.result_capture().unwrap()
   assert_eq(
@@ -156,7 +193,7 @@ fn retained_holder_provider_review(
   // ceiling, and its retirement must leave the adopted Result/input live.
   let congested = prepare_context().unwrap()
   assert_true(
-    congested.capture_result(journal, normalization, [], [], 65536, 4096, 64)
+    congested.capture_result(journal, normalization, 65536, 4096, 64)
     is Err(Native(Export(Retain(Physical(HoldingLimit))))),
   )
   assert_true(congested.close())
@@ -205,13 +242,49 @@ fn retained_holder_provider_review(
     review=Some(work),
   ).unwrap()
   mark("provider-observed")
+  let capture_progress : Array[
+    (@resident.ResidentEffectRunCapturePhase, Int64, Int64),
+  ] = []
   let complete = match
-    work.complete(phase_observe=phase => {
-      mark(phase)
-      if !(work.complete() is Err(Unavailable)) {
-        abort("original review: reentrant completion accepted")
-      }
-    }) {
+    work.complete(
+      phase_observe=phase => {
+        mark(phase)
+        if !(work.complete() is Err(Unavailable)) {
+          abort("original review: reentrant completion accepted")
+        }
+      },
+      capture_progress=(phase, advances, logical_work) => {
+        capture_progress.push((phase, advances, logical_work))
+        let name = match phase {
+          Preparing => "preparing"
+          Prepared => "prepared"
+          Advancing => "advancing"
+          Completed => "completed"
+        }
+        // A partial marker survives a killed Native test even if its output
+        // was buffered. It contains no private projection or credential.
+        mark(
+          "capture-" +
+          name +
+          "-" +
+          advances.to_string() +
+          "-" +
+          logical_work.to_string(),
+        )
+        // Only fixed phase names and counters, never original private bodies.
+        println(
+          "native-effect-capture-progress " +
+          name +
+          " " +
+          advances.to_string() +
+          " " +
+          logical_work.to_string(),
+        )
+        if !(work.complete() is Err(Unavailable)) {
+          abort("original review: reentrant capture completion accepted")
+        }
+      },
+    ) {
     Ok(value) => value
     Err(Preview(_)) => abort("original review: Preview owner refused")
     Err(Contract(_)) => abort("original review: artifact contract refused")
@@ -238,6 +311,27 @@ fn retained_holder_provider_review(
     Err(_) => abort("original review: completion unavailable")
   }
   mark("captured")
+  assert_true(capture_progress.length() >= 4)
+  assert_true(capture_progress[0].0 is Preparing)
+  assert_true(capture_progress[1].0 is Prepared)
+  assert_eq(capture_progress[0].1, 0L)
+  assert_eq(capture_progress[1].2, 0L)
+  let last_progress = capture_progress[capture_progress.length() - 1]
+  assert_true(last_progress.0 is Completed)
+  assert_true(last_progress.1 > 0L && last_progress.2 > 0L)
+  for index = 2; index < capture_progress.length(); index = index + 1 {
+    let previous = capture_progress[index - 1]
+    let observed = capture_progress[index]
+    assert_true(observed.1 >= previous.1 && observed.2 >= previous.2)
+    assert_true(observed.2 <= observed.1 * 16L)
+  }
+  let progress_count = capture_progress.length()
+  // A cached completion never advances or issues another Captured Run.
+  work
+  .complete(capture_progress=(_, _, _) => abort("cached capture advanced"))
+  .unwrap()
+  |> ignore
+  assert_eq(capture_progress.length(), progress_count)
   println("native-original-review: captured completion confirmed")
   // The row-export budget (100 entries) cannot cover whole evidence buffers.
   // Keep that rejection and use the independently installed capture budget.
@@ -249,7 +343,7 @@ fn retained_holder_provider_review(
       owned_result,
       invocation,
       complete.preview.preview,
-      [complete.preview.proof],
+      [complete.preview.proof.unwrap()],
       [complete.source],
       [complete.local_source],
       complete.inventory,

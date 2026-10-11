@@ -1,4 +1,5 @@
 import {decodeRetainedFixture} from './retained-fixture-values.mjs';
+import {observeRetainedGraphDispatch} from './retained-graph-observer.mjs';
 // Fresh process, installed packages only: restore published Results, without
 // submitting source or invoking a compiler to recreate missing data.
 import assert from 'node:assert/strict';
@@ -16,16 +17,18 @@ const mode = process.env.ACTQL_TEST_QUERY_TRANSPORT;
 assert.ok(mode === undefined || ['local', 'remote'].includes(mode));
 const worker = mode === undefined ? undefined : transportWorker();
 worker?.check();
-const retained = JSON.parse(await readFile('retained-string-results.json', 'utf8'));
-const {hostCapacityPolicy} = retained;
-assert.ok(hostCapacityPolicy !== null && typeof hostCapacityPolicy === 'object');
-const sourceProfilePath = mode => resolve(retained.sourceProfilePaths?.[mode] ?? 'source-profile.json');
 function accepted(directory) {
   const db = new DatabaseSync(resolve(directory, 'requests/client-requests.sqlite3'),
     {readOnly: true});
   try { return db.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count; }
   finally { db.close(); }
 }
+const cohortOnly = process.env.ACTQL_TEST_RETAINED_COHORT_ONLY === '1';
+if (!cohortOnly) {
+const retained = JSON.parse(await readFile('retained-string-results.json', 'utf8'));
+const {hostCapacityPolicy} = retained;
+assert.ok(hostCapacityPolicy !== null && typeof hostCapacityPolicy === 'object');
+const sourceProfilePath = mode => resolve(retained.sourceProfilePaths?.[mode] ?? 'source-profile.json');
 async function readRetained(mode, options, directory) {
   const before = accepted(directory);
   const client = await connect(options);
@@ -59,6 +62,8 @@ try {
 
 }
 
+}
+
 // Independent consumer regression for cohort ownership after every installation
 // has closed. Attach, original-submission replay and lookup must all resolve in
 // the recorded Store; reopening cannot create another Run or replace an oracle.
@@ -75,6 +80,10 @@ async function readRetainedCohort(cohort, options) {
   const client = await connect(options);
   try {
     assert.ok(cohort.samples.length >= 1 && cohort.samples.length <= 2);
+    if (cohort.expectedSampleNames !== undefined) {
+      assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,
+        'Fresh-process Graph reader requires every original boundary sample');
+    }
     for (const {source, ref, submissionRef} of cohort.samples) {
       const execution = await client.attach(ref);
       assert.equal((await execution.status()).status, 'succeeded');
@@ -102,17 +111,28 @@ async function readRetainedCohort(cohort, options) {
   } finally { await client.close(); }
 }
 const completedRoots = [];
+// Count the real installed dispatch boundary, not only newly admitted Runs.
+// These private hooks do not change account configuration or Run identity.
+const physicalDispatches = [];
 for (const cohort of cohorts) {
   if (mode !== undefined && cohort.mode !== mode) continue;
   worker?.check();
+  const verifyNoPhysicalReplay = cohort.expectedSampleNames !== undefined;
+  const replayAuthorization = verifyNoPhysicalReplay
+    ? observeRetainedGraphDispatch(cohort.authorization, physicalDispatches) : undefined;
+  const beforePhysical = physicalDispatches.length;
   if (cohort.mode === 'local') {
     await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: cohort.directory, sourceProfilePath: cohort.sourceProfilePath,
-        hostCapacityPolicy: cohort.hostCapacityPolicy}});
+        hostCapacityPolicy: cohort.hostCapacityPolicy,
+        ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
+        ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {})}});
   } else {
     assert.equal(cohort.mode, 'remote');
     const host = await openInstalledRemoteHttpHost({directory: cohort.directory,
       sourceProfilePath: cohort.sourceProfilePath, hostCapacityPolicy: cohort.hostCapacityPolicy,
+      ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
+      ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {}),
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     const server = createServer({key: await readFile('remote.key'),
       cert: await readFile('remote.crt')}, host.handler);
@@ -126,8 +146,11 @@ for (const cohort of cohorts) {
       await host.close();
     }
   }
+  if (verifyNoPhysicalReplay) assert.equal(physicalDispatches.length, beforePhysical,
+    'Restored Graph Result attach/replay/lookup must not dispatch or advance Compute');
   completedRoots.push(cohort.directory);
 }
 if (mode !== undefined) await writeFile(`transport-restart.${mode}.json`,
-  JSON.stringify({mode, stringComplete: true, completedRoots}) + '\n', {flag: 'wx'});
+  JSON.stringify({mode, stringComplete: !cohortOnly, completedRoots,
+    physicalDispatches: physicalDispatches.length}) + '\n', {flag: 'wx'});
 console.log('Retained cohort boundary Results preserve attach/replay ownership after fresh Host processes');

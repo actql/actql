@@ -2,6 +2,7 @@
 pub enum SelectorForm {
   ExplicitIds
   RelationIds(from~ : String, field~ : @row.FieldName)
+  NodeWhere
 }
 
 ///|
@@ -20,6 +21,78 @@ struct CheckedSelector {
   identity : @contract.Contract
   ids : Array[@value.CheckedValue]
   usage : PredicateUsage
+  predicate : CheckedPredicate?
+  fields : @carrier.Knowledge?
+  positions : Array[Array[Int]]
+}
+
+///|
+// A complete typed identity can itself be an object. Recognize a selector by
+// its declared discriminator, not merely by the JSON container kind.
+fn check_reach_selector(
+  source : @decode.Cursor,
+  graph : @carrier.Carrier,
+  relation : @carrier.Carrier?,
+  parameters : @parameter.Declarations?,
+  limits : PredicateLimits,
+) -> Result[CheckedSelector, MatchIssue] {
+  let object = @decode.open_object(source)
+  if object is Ok(root) && @decode.lookup(root, "where") is Some(_) {
+    return check_node_where_selector(
+      source, graph, relation, parameters, limits,
+    )
+  }
+  if object is Ok(root) &&
+    ["ids", "from", "where"].any(key => @decode.lookup(root, key) is Some(_)) {
+    return check_selector(source, graph, relation, parameters, limits)
+  }
+  try {
+    if relation is Some(_) {
+      fail(source, InvalidBody)
+    }
+    guard graph is @carrier.GraphValue(g) else { fail(source, IncompleteGraph) }
+    let b : Budget = {
+      limits: {
+        max_work: limits.max_work,
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: limits.max_text_bytes,
+      },
+      work: limits.max_work,
+      nodes: limits.max_nodes,
+      text: limits.max_text_bytes,
+    }
+    scan(b, source)
+    let identity = @carrier.graph_identity(g)
+    let admitted = match
+      @value.admit(identity, source, {
+        max_nodes: limits.max_nodes - b.nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: limits.max_text_bytes - b.text,
+      }) {
+      Ok(value) => value
+      Err(issue) => raise MatchStop(MatchIdentity(issue))
+    }
+    Ok({
+      source,
+      form: ExplicitIds,
+      identity,
+      ids: [admitted],
+      predicate: None,
+      fields: None,
+      positions: [],
+      usage: {
+        work: limits.max_work - b.work,
+        nodes: limits.max_nodes - b.nodes,
+        text_bytes: limits.max_text_bytes - b.text,
+        tokens: 0,
+      },
+    })
+  } catch {
+    Stop(issue) => Err(MatchStructure(issue))
+    MatchStop(issue) => Err(issue)
+    _ => abort("unexpected Reach selector exception")
+  }
 }
 
 ///|
@@ -142,6 +215,9 @@ pub fn check_selector(
       form,
       identity,
       ids,
+      predicate: None,
+      fields: None,
+      positions: [],
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -159,6 +235,113 @@ pub fn check_selector(
 ///|
 pub fn selector_form(c : CheckedSelector) -> SelectorForm {
   c.form
+}
+
+///|
+pub fn selector_predicate(c : CheckedSelector) -> CheckedPredicate? {
+  c.predicate
+}
+
+///|
+pub fn selector_fields(c : CheckedSelector) -> @carrier.Knowledge? {
+  c.fields
+}
+
+///|
+pub fn selector_property_position(
+  c : CheckedSelector,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  c.positions.get(definition).bind(positions => positions.get(field))
+}
+
+///|
+// Resolve the complete static definition set before evaluating any Graph data.
+// The ordinary predicate checker enforces presence and compatible field types.
+fn check_node_where_selector(
+  source : @decode.Cursor,
+  input : @carrier.Carrier,
+  relation : @carrier.Carrier?,
+  parameters : @parameter.Declarations?,
+  limits : PredicateLimits,
+) -> Result[CheckedSelector, MatchIssue] {
+  try {
+    if relation is Some(_) ||
+      limits.max_work < 0 ||
+      limits.max_nodes < 0 ||
+      limits.max_depth < 0 ||
+      limits.max_text_bytes < 0 ||
+      limits.max_tokens < 0 {
+      fail(source, InvalidBody)
+    }
+    guard input is @carrier.GraphValue(graph) else {
+      fail(source, IncompleteGraph)
+    }
+    let b : Budget = {
+      limits: {
+        max_work: limits.max_work,
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: limits.max_text_bytes,
+      },
+      work: limits.max_work,
+      nodes: limits.max_nodes,
+      text: limits.max_text_bytes,
+    }
+    scan(b, source)
+    let root = decoded(@decode.closed_object(source, ["where"]))
+    let at = decoded(@decode.required(root, "where"))
+    let profile = @carrier.graph_definition(graph)
+    let count = @carrier.graph_node_count(profile)
+    spend(b, at, count)
+    let candidates = []
+    for index in 0..<count {
+      candidates.push(index)
+    }
+    let (fields, positions) = traversal_common_scope(
+      profile,
+      Nodes,
+      candidates,
+      at,
+      b,
+    )
+    let predicate = match
+      check_predicate_in_scope(
+        { fields, usage: { work: 0, nodes: 0, text_bytes: 0, }, },
+        at,
+        parameters,
+        {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+          max_tokens: limits.max_tokens,
+        },
+      ) {
+      Ok(value) => value
+      Err(issue) => raise MatchStop(MatchPredicate(issue))
+    }
+    Ok({
+      source,
+      form: NodeWhere,
+      identity: @carrier.graph_identity(graph),
+      ids: [],
+      predicate: Some(predicate),
+      fields: Some(fields),
+      positions,
+      usage: {
+        work: limits.max_work - b.work + predicate.usage.work,
+        nodes: limits.max_nodes - b.nodes + predicate.usage.nodes,
+        text_bytes: limits.max_text_bytes - b.text + predicate.usage.text_bytes,
+        tokens: predicate.usage.tokens,
+      },
+    })
+  } catch {
+    Stop(issue) => Err(MatchStructure(issue))
+    MatchStop(issue) => Err(issue)
+    _ => abort("unexpected node selector exception")
+  }
 }
 
 ///|

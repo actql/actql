@@ -18,7 +18,7 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:125dca402e23045554460d184cc66e9eb35c7f7916eea88954ab1b49f2dd3efd');
+    'sha256:e54d1288d215787596a34d16333fb71cd337f1d88efcc0edbbdf6f0362e34753');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
@@ -41,7 +41,7 @@ test('current registry and historical preimages keep distinct identities', () =>
   const primitive = structuredClone(previous);
   assert.equal(
     cid(contract.execution_contracts['REL.derive.ordered']),
-    'sha256:3c9d293e12f31668173d02fb438a0ec691cac113721829176539c58f1c0466dd',
+    'sha256:3b718188eb7587fb36fe45faf0a587ce82dfa2c69562d746901733829309e152',
   );
   delete primitive['REL.derive'].execution_extensions;
   delete primitive['REL.except_rows'];

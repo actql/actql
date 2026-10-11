@@ -141,6 +141,17 @@ pub fn prepare_ordered_references(
                 return Err(ReferenceLimit)
               }
             }
+            Subscript(value, index) => {
+              guard append_path(path, "/body/value") is Some(value_path) &&
+                append_path(path, "/body/index") is Some(index_path) else {
+                return Err(ReferenceLimit)
+              }
+              // Semantic demand order differs from canonical object-key order.
+              if !push(Visit(index, index_path)) ||
+                !push(Visit(value, value_path)) {
+                return Err(ReferenceLimit)
+              }
+            }
             Object(fields) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)

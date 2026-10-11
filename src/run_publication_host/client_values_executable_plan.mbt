@@ -175,6 +175,30 @@ pub fn issue_prepared_client_task_executable_plan(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientTaskExecutablePlan, ClientValuesExecutablePlanIssue] {
+  issue_prepared_client_task_plan_parts(
+    value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(parts => parts.0)
+}
+
+///|
+/// Same issuer and validation order as the public Plan entry. Compilation can
+/// retain the immutable graph/material already used by that exact Plan rather
+/// than reissue them under the same prepared Owner and limits. No caller can
+/// supply wire bytes or substitute an owner through this private composition.
+fn issue_prepared_client_task_plan_parts(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (ClientTaskExecutablePlan, ClientExecutionMaterial, ClientTaskPlanGraph),
+  ClientValuesExecutablePlanIssue,
+] {
   if max_facts <= 0 ||
     max_witnesses <= 0 ||
     max_wire_bytes <= 0 ||
@@ -189,9 +213,20 @@ pub fn issue_prepared_client_task_executable_plan(
     Ok(graph) => graph
     Err(issue) => return Err(TaskGraph(issue))
   }
+  // The immediately preceding issuer validated this exact immutable graph
+  // under the same Owner and limits. The template's public entry performs
+  // that same graph check; private composition uses its checked continuation
+  // without issuing and discarding a second identical graph.
+  let template = match
+    issue_client_task_bound_template(
+      value, manifests, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(template) => template
+    Err(issue) => return Err(Material(TaskTemplate(issue)))
+  }
   let material = match
-    issue_prepared_client_task_execution_material(
-      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_prepared_client_execution_material_with_template(
+      value, manifests, template, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -206,7 +241,7 @@ pub fn issue_prepared_client_task_executable_plan(
     max_wire_bytes,
     max_nodes,
     max_depth,
-  ).map(plan => { plan, })
+  ).map(plan => ({ plan, }, material, graph))
 }
 
 ///|

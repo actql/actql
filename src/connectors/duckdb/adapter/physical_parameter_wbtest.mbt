@@ -7,6 +7,27 @@ fn parameter_text(value : @admitted.CheckedValue) -> String raise {
 }
 
 ///|
+test "physical binding profile retains the admitted type even for NULL" {
+  for
+    (kind, expected) in [
+      (@contract.BooleanType, "BOOLEAN"),
+      (@contract.NumberType, "DOUBLE"),
+      (@contract.StringType, "VARCHAR"),
+      (@contract.DateType, "DATE"),
+      (@contract.TimestampType, "TIMESTAMP_TZ"),
+    ] {
+    let checked = @admitted.admit(
+      @contract.primitive(kind, nullable=true),
+      payload("null"),
+      { max_nodes: 1, max_depth: 0, max_text_bytes: 32, },
+    ).unwrap()
+    let parameter = prepare_physical_parameter(checked).unwrap()
+    assert_eq(physical_parameter_type_id(parameter), expected)
+    assert_eq(physical_parameter_binding(parameter), Ok(BindNull))
+  }
+}
+
+///|
 test "prepared parameters preserve exact scalar physical content" {
   for
     (kind, input, expected) in [

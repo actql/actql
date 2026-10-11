@@ -61,6 +61,13 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
 }
 
 ///|
+// A projected/set output has closed its input ranges. Transparent unnamed
+// parentheses preserve the remaining row scopes through the existing binding.
+fn query_output_carries_ranges(query : Query) -> Bool {
+  query.sets.is_empty() && !(pipe_join_input_alias(query) is Some(None))
+}
+
+///|
 // Only ordinary Relation operations may carry an immutable row scope into
 // another JOIN. Model, Graph and Result boundaries keep their own admission.
 fn pipe_join_range_input(query : Query) -> Bool {

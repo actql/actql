@@ -164,6 +164,8 @@ pub fn execute_resident_retained_attempt(
 /// must use the existing producer/receiver Owners; it creates no new dispatch,
 /// borrow or reservation. Computation completion does not publish an Effect
 /// Result or imply approval: its private output remains owned by Runtime.
+// Profile-bound materials require independent producer context; absent context
+// remains an ordinary Owner refusal, never a request copied from candidate wire.
 pub fn execute_resident_effect_retained_attempt(
   journal : @journal.Journal,
   execution : ResidentExecution,
@@ -183,6 +185,7 @@ pub fn execute_resident_effect_retained_attempt(
   current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
   retain_computation? : (ResidentSourceCompute) -> Unit,
+  producer_context? : (@journal.Journal, @remote.DispatchRequest)? = None,
 ) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
   execute_resident_retained_attempt_owned(
     journal,
@@ -194,18 +197,18 @@ pub fn execute_resident_effect_retained_attempt(
     executor_entry,
     (request, binding, wire) => {
       let rebuilt = match
-        @host.admit_client_effect_run_materials(
-          wire,
-          @remote.dispatch_request_task_scope(request).0,
-          admission.expressions,
-          admission.operations,
-          admission.manifests,
-          admission.limits,
-          effect_limits,
-        ) {
+        (match producer_context {
+          Some((producer_journal, producer)) =>
+            retained_effect_consumer_materials(
+              producer_journal, producer, request, wire, admission, effect_limits,
+            )
+          None =>
+            retained_effect_direct_materials(
+              wire, request, admission, effect_limits,
+            )
+        }) {
         Ok(value) => value
-        Err(issue) =>
-          return Err(retained_execution_failed(EffectMaterials(issue)))
+        Err(issue) => return Err(retained_execution_failed(issue))
       }
       let fragment = match @host.issue_client_effect_task_fragment(rebuilt, 1) {
         Ok(value) => value
@@ -290,6 +293,34 @@ pub fn execute_resident_effect_retained_attempt(
       })
     },
   )
+}
+
+///|
+// The legacy direct path has no independent original producer context. A
+// candidate's absent request cannot select a trusted absent expected request.
+fn retained_effect_direct_materials(
+  body : String,
+  consumer : @remote.DispatchRequest,
+  admission : ResidentRunAdmission,
+  limits : @host.ClientEffectComputationLimits,
+) -> Result[@host.ClientEffectRunMaterials, ResidentRetainedExecutionIssue] {
+  let materials = match
+    @host.admit_client_effect_run_materials(
+      body,
+      @remote.dispatch_request_task_scope(consumer).0,
+      admission.expressions,
+      admission.operations,
+      admission.manifests,
+      admission.limits,
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(EffectMaterials(issue))
+  }
+  if materials.normalization is Some(_) {
+    return Err(EffectMaterials(Normalization(UnverifiedOriginalMaterials)))
+  }
+  Ok(materials)
 }
 
 ///|

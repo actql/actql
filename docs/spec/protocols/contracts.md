@@ -1359,7 +1359,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:c600c5c574a749f8791cdd4b7cc04abffdbc9755a49124d48c9645908c9286bd -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:bb2fe2b59ce8240c7869ca6aa9f98198a73e61802c9b5baa33fc78a451ce9419 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:98cabab7effed19178941d006ff89d3d6c08da0ebbc721d0a975058b4762d67c -->
 
 <a id="parameter-value-projection"></a>
@@ -1930,7 +1930,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:168f818bb0669b88bcb7bc1b57b56077e6d6ed205847176bfa3177f9309c3bf9
+../../../spec/contracts/actql-check-environment.json# sha256:9e75bc8c7233c465d22d2307ab812aa35be35c4849822b348e377a5c08eb5943
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

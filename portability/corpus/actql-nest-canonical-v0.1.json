@@ -4,13 +4,13 @@
   "cases": [
     {
       "name": "candidate-key",
-      "program_definition_cid": "sha256:a4e2ec64d54a044e5baefa7ba29f1bae56f3607b0fd250d7b9ce33c05acf11c1",
-      "program_semantics_cid": "sha256:1907266e64564cca6d2d3466aa26ffebf0f857b03c1defe3b34e728d3bc65fe4",
-      "stage_semantics_cid": "sha256:5c9766605147622b9e21de09530aa778c3cf61ea16f06f6161ef204408e6546c",
+      "program_definition_cid": "sha256:14a2ebfacf5b08a91194b83944d9a6b7a4c473681a9a8dcfd22064e6e1dab394",
+      "program_semantics_cid": "sha256:fd277f7bcdb3b7e8d005307f2764572cfa841818c093110487572b42abd9f3cd",
+      "stage_semantics_cid": "sha256:7457afb5114fa0c530dd9365b0cd087fcf93dfa5a10e2dc46fd69380178883fc",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -90,7 +90,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -99,7 +99,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:5c9766605147622b9e21de09530aa778c3cf61ea16f06f6161ef204408e6546c",
+                "stage_semantics_cid": "sha256:7457afb5114fa0c530dd9365b0cd087fcf93dfa5a10e2dc46fd69380178883fc",
                 "after": "initial",
                 "imports": {}
               }
@@ -117,7 +117,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.candidate-key",
-          "program_semantics_cid": "sha256:1907266e64564cca6d2d3466aa26ffebf0f857b03c1defe3b34e728d3bc65fe4"
+          "program_semantics_cid": "sha256:fd277f7bcdb3b7e8d005307f2764572cfa841818c093110487572b42abd9f3cd"
         }
       },
       "pipeline": {
@@ -487,32 +487,6 @@
         {
           "version": "actql-execution-limit-binding/0.1",
           "target": {
-            "kind": "aoa_step",
-            "step_id": "rel_groupby_6",
-            "field_path": "params.aggs.__actql_nest_empty.max_items"
-          },
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
-          "unit": "array_items",
-          "effective_max": 1,
-          "resolved_limit_cid": "sha256:70abb92eabc7c9637fd3e39f167d78fee39895bea85e15de9a137d897c4d5aab",
-          "binding_cid": "sha256:761b6764aa23c7957d22749745099fba9da535a0bc597d20c6dcb3a38272637d"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
-            "kind": "aoa_step",
-            "step_id": "rel_groupby_4",
-            "field_path": "params.aggs.__actql_nest_items.max_items"
-          },
-          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
-          "unit": "array_items",
-          "effective_max": 3,
-          "resolved_limit_cid": "sha256:75d20555aa23ebcb0ca39ce5e0370a7250a54092cf84b1a29fb0a404d40dfa55",
-          "binding_cid": "sha256:bca19a99a9c04acf06c9cdd3c63b7f9cd3da360ce1499dd008cfd9e7da4add33"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
             "kind": "aoa_output",
             "step_id": "nested",
             "fields": [
@@ -525,6 +499,32 @@
           "effective_max": 16777216,
           "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
           "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:d262ebd29491839ab36ea15e23591a7298e0344480edb9c22f6df52820be751a",
+          "binding_cid": "sha256:bfe507ae9eec3d74dc8f39863c2a4ee1a32d28c65b547e3eb7b452c0dbe45da8"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:9e03cf68714200fddf18fd8d36d38444ad75f8e19dc77ce1656be29ac81bc89f",
+          "binding_cid": "sha256:c819887e7289ef4a5ff8527bc286c3dc537782b7f563748d1c0cf3199b1f643c"
         }
       ],
       "resolved_limits": [
@@ -561,38 +561,6 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
-          "unit": "array_items",
-          "candidates": [
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 1,
-              "role": "proven_upper_bound",
-              "law_id": "actql.bound.nest-empty-array",
-              "source": {
-                "kind": "program",
-                "semantic_ref": "$.stages[0].steps[0].nest",
-                "proof_cid": "sha256:2525453d97ce6546eb6ac3be6573fcfa7bf8909a85d9743b5d5b50acece7a985"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:2525453d97ce6546eb6ac3be6573fcfa7bf8909a85d9743b5d5b50acece7a985",
-                "sha256:a4e2ec64d54a044e5baefa7ba29f1bae56f3607b0fd250d7b9ce33c05acf11c1"
-              ],
-              "witness_cid": "sha256:121ac257257e39e9cf833fe6f6614dcb73e22527edac4dd03799673d32fa5ffd"
-            }
-          ],
-          "effective_max": 1,
-          "author_guard_binding": "absent",
-          "enforcement": "engine_atomic",
-          "breach": "fail",
-          "resolved_limit_cid": "sha256:70abb92eabc7c9637fd3e39f167d78fee39895bea85e15de9a137d897c4d5aab"
-        },
-        {
-          "version": "actql-resolved-limit/0.1",
           "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
           "unit": "array_items",
           "candidates": [
@@ -605,15 +573,15 @@
               "source": {
                 "kind": "author_guard",
                 "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:a4e2ec64d54a044e5baefa7ba29f1bae56f3607b0fd250d7b9ce33c05acf11c1"
+                "program_definition_cid": "sha256:14a2ebfacf5b08a91194b83944d9a6b7a4c473681a9a8dcfd22064e6e1dab394"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:a4e2ec64d54a044e5baefa7ba29f1bae56f3607b0fd250d7b9ce33c05acf11c1"
+                "sha256:14a2ebfacf5b08a91194b83944d9a6b7a4c473681a9a8dcfd22064e6e1dab394"
               ],
-              "witness_cid": "sha256:2d384ad2b45c32ba514afd0ccfed625725e931d43696d4aa17a3a79a7fcfafb3"
+              "witness_cid": "sha256:2db3ff6f9935c2dcb2c377ae3e6696bc6f88e6655fd66e211397ea08a8f33cd7"
             },
             {
               "version": "actql-bound-witness/0.1",
@@ -639,7 +607,7 @@
           "author_guard_binding": "binding",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:75d20555aa23ebcb0ca39ce5e0370a7250a54092cf84b1a29fb0a404d40dfa55"
+          "resolved_limit_cid": "sha256:9e03cf68714200fddf18fd8d36d38444ad75f8e19dc77ce1656be29ac81bc89f"
         },
         {
           "version": "actql-resolved-limit/0.1",
@@ -671,6 +639,38 @@
           "enforcement": "engine_atomic",
           "breach": "fail",
           "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:325ae64cd212f1f452ae3215a7dd6f6c9c0b8f58d1f1897f6ce9a55c632827e7"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:14a2ebfacf5b08a91194b83944d9a6b7a4c473681a9a8dcfd22064e6e1dab394",
+                "sha256:325ae64cd212f1f452ae3215a7dd6f6c9c0b8f58d1f1897f6ce9a55c632827e7"
+              ],
+              "witness_cid": "sha256:c633563634b64f9bcd838730b2135c293e8e526e0d500f867cb827440df422c5"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:d262ebd29491839ab36ea15e23591a7298e0344480edb9c22f6df52820be751a"
         }
       ],
       "inferred_shapes": [
@@ -726,13 +726,13 @@
     },
     {
       "name": "explicit-tie",
-      "program_definition_cid": "sha256:a780ab1b1ba882c2ff3fac7f0dff593bae078578eb0f5d664b38b6556a32d36c",
-      "program_semantics_cid": "sha256:0454aef40a7b42b6fca1c3bcbd28bd6e74541df5366e138c2e473e75bb922ae1",
-      "stage_semantics_cid": "sha256:049e46c40e560c5d4add6226bfa4565c0809147cc97f110aa77237c04ef918c0",
+      "program_definition_cid": "sha256:7bfa77ac8ae9352ed309c8516b3c25c175e17ebe282dbf0e85b780400acc4085",
+      "program_semantics_cid": "sha256:d3c75482fd20bd6acff378558451a4ac79c2397d5b8762b14f5df41f04990a44",
+      "stage_semantics_cid": "sha256:dd610e25b773d64ea6e3d132498da153b66144cd8c4b039d50daa5ff2a7d2604",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -817,7 +817,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -826,7 +826,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:049e46c40e560c5d4add6226bfa4565c0809147cc97f110aa77237c04ef918c0",
+                "stage_semantics_cid": "sha256:dd610e25b773d64ea6e3d132498da153b66144cd8c4b039d50daa5ff2a7d2604",
                 "after": "initial",
                 "imports": {}
               }
@@ -844,7 +844,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.explicit-tie",
-          "program_semantics_cid": "sha256:0454aef40a7b42b6fca1c3bcbd28bd6e74541df5366e138c2e473e75bb922ae1"
+          "program_semantics_cid": "sha256:d3c75482fd20bd6acff378558451a4ac79c2397d5b8762b14f5df41f04990a44"
         }
       },
       "pipeline": {
@@ -1220,27 +1220,27 @@
           "version": "actql-execution-limit-binding/0.1",
           "target": {
             "kind": "aoa_step",
-            "step_id": "rel_groupby_6",
-            "field_path": "params.aggs.__actql_nest_empty.max_items"
-          },
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
-          "unit": "array_items",
-          "effective_max": 1,
-          "resolved_limit_cid": "sha256:86af7671fb5898d131f71c389bf5479f21cba8cf088f88bcd92b0fe755be59e6",
-          "binding_cid": "sha256:ae51d9fa95cbf943e85e9f304725fb2cbce532307e179a6e67b097e3e2738c01"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
-            "kind": "aoa_step",
             "step_id": "rel_groupby_4",
             "field_path": "params.aggs.__actql_nest_items.max_items"
           },
           "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
           "unit": "array_items",
           "effective_max": 3,
-          "resolved_limit_cid": "sha256:a5ff45f3da6ce9d822069d9fea7c36e744ade8ddc8ecba47c9dcb532b1ff5e6c",
-          "binding_cid": "sha256:b2549179fc497fbab4c974dcd9d3e704ea7f4db9388bdc7992a9554776c47b8a"
+          "resolved_limit_cid": "sha256:704931b3d6d3806b7979f55afc0a480c60c397fdb37cc044eef1cb4db5d205a1",
+          "binding_cid": "sha256:a062facc1cdfc1a9dcab775bbd15b629b3c1124ce783cccccee14eb031905fa7"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:d6d7a7f8f9348a1d4e6c4ff6509223382b528d7c4f1d55eec1874f8eee701aa1",
+          "binding_cid": "sha256:bd137e74bada600d1559b27bec7bc9be09f24440cfa993a04f8b9dbf109f999d"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -1293,41 +1293,28 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
           "unit": "array_items",
           "candidates": [
             {
               "version": "actql-bound-witness/0.1",
               "unit": "array_items",
-              "value": 1,
-              "role": "proven_upper_bound",
-              "law_id": "actql.bound.nest-empty-array",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
               "source": {
-                "kind": "program",
-                "semantic_ref": "$.stages[0].steps[0].nest",
-                "proof_cid": "sha256:b3ebc48c005479f26c082a057f64ac4f6ad4d9266fb28f5bd9c18f0cafdfe819"
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:7bfa77ac8ae9352ed309c8516b3c25c175e17ebe282dbf0e85b780400acc4085"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:a780ab1b1ba882c2ff3fac7f0dff593bae078578eb0f5d664b38b6556a32d36c",
-                "sha256:b3ebc48c005479f26c082a057f64ac4f6ad4d9266fb28f5bd9c18f0cafdfe819"
+                "sha256:7bfa77ac8ae9352ed309c8516b3c25c175e17ebe282dbf0e85b780400acc4085"
               ],
-              "witness_cid": "sha256:07eec0fa559155db5f51f26ee15e951fc674dba8b8b008869854039dd357f264"
-            }
-          ],
-          "effective_max": 1,
-          "author_guard_binding": "absent",
-          "enforcement": "engine_atomic",
-          "breach": "fail",
-          "resolved_limit_cid": "sha256:86af7671fb5898d131f71c389bf5479f21cba8cf088f88bcd92b0fe755be59e6"
-        },
-        {
-          "version": "actql-resolved-limit/0.1",
-          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
-          "unit": "array_items",
-          "candidates": [
+              "witness_cid": "sha256:9d63435eee431fc3cac1249d90a5b48ce49ad47f0370726489e504e03b57b071"
+            },
             {
               "version": "actql-bound-witness/0.1",
               "unit": "array_items",
@@ -1346,32 +1333,13 @@
                 "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
               ],
               "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
-            },
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 3,
-              "role": "author_guard",
-              "law_id": "actql.guard.array-aggregate",
-              "source": {
-                "kind": "author_guard",
-                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:a780ab1b1ba882c2ff3fac7f0dff593bae078578eb0f5d664b38b6556a32d36c"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:a780ab1b1ba882c2ff3fac7f0dff593bae078578eb0f5d664b38b6556a32d36c"
-              ],
-              "witness_cid": "sha256:da0a7dd8aaca0f0469c6d8b1a4bd4d86369125f0da57a5f1228df6b6b92bed96"
             }
           ],
           "effective_max": 3,
           "author_guard_binding": "binding",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:a5ff45f3da6ce9d822069d9fea7c36e744ade8ddc8ecba47c9dcb532b1ff5e6c"
+          "resolved_limit_cid": "sha256:704931b3d6d3806b7979f55afc0a480c60c397fdb37cc044eef1cb4db5d205a1"
         },
         {
           "version": "actql-resolved-limit/0.1",
@@ -1403,6 +1371,38 @@
           "enforcement": "engine_atomic",
           "breach": "fail",
           "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:2ebae9989b76e68e6474b01bce7f894cacc9d4cb02276adaf74d9b3e5992bbbe"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:2ebae9989b76e68e6474b01bce7f894cacc9d4cb02276adaf74d9b3e5992bbbe",
+                "sha256:7bfa77ac8ae9352ed309c8516b3c25c175e17ebe282dbf0e85b780400acc4085"
+              ],
+              "witness_cid": "sha256:983145db3dbd94e49a05fd5bcdba844d6c318fd32bf1834e96a620503d6899a8"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:d6d7a7f8f9348a1d4e6c4ff6509223382b528d7c4f1d55eec1874f8eee701aa1"
         }
       ],
       "inferred_shapes": [
@@ -1458,13 +1458,13 @@
     },
     {
       "name": "numeric-rename",
-      "program_definition_cid": "sha256:3d44bcc520bb5c148d7f54a4c4c14fbc65bbf2bee2ff50e802d412746d4312f4",
-      "program_semantics_cid": "sha256:81afa958134d6b7212449cc7d714e299bb72a9099ca577b4bf9fa4ee4def59bc",
-      "stage_semantics_cid": "sha256:87559e3c603446dabb1014e49aa7cd309719af5535ab458d7d616ccbc70a764d",
+      "program_definition_cid": "sha256:84c4d335914aa3494afbf3de533f84a829683405facf853997395de6fcf9c9ec",
+      "program_semantics_cid": "sha256:c40b7cf35584898fa55a48a4f020bc69d0c09ce8af72f8a3728b7b7efa1205a6",
+      "stage_semantics_cid": "sha256:c26e9f97723e4fec4673116f4857fe886cdb3e0e5395e22395e758b7a0b7996c",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -1557,7 +1557,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -1566,7 +1566,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:87559e3c603446dabb1014e49aa7cd309719af5535ab458d7d616ccbc70a764d",
+                "stage_semantics_cid": "sha256:c26e9f97723e4fec4673116f4857fe886cdb3e0e5395e22395e758b7a0b7996c",
                 "after": "initial",
                 "imports": {}
               }
@@ -1584,7 +1584,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.numeric-rename",
-          "program_semantics_cid": "sha256:81afa958134d6b7212449cc7d714e299bb72a9099ca577b4bf9fa4ee4def59bc"
+          "program_semantics_cid": "sha256:c40b7cf35584898fa55a48a4f020bc69d0c09ce8af72f8a3728b7b7efa1205a6"
         }
       },
       "pipeline": {
@@ -1980,6 +1980,19 @@
         {
           "version": "actql-execution-limit-binding/0.1",
           "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:1c5fba36cc8e055424750639635a5af7739df7e777006cf813ebca7d4785fb80",
+          "binding_cid": "sha256:1eb910453675cd200ef98d5b52f253889db05d1934715fd5505798bd06ce7b81"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
             "kind": "aoa_output",
             "step_id": "rel_groupby_4",
             "fields": [
@@ -1997,27 +2010,14 @@
           "version": "actql-execution-limit-binding/0.1",
           "target": {
             "kind": "aoa_step",
-            "step_id": "rel_groupby_4",
-            "field_path": "params.aggs.__actql_nest_items.max_items"
-          },
-          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
-          "unit": "array_items",
-          "effective_max": 3,
-          "resolved_limit_cid": "sha256:58502892b39d4b02ba8a2298b4373a14054d79b685aa1b093e9cab7da356f49f",
-          "binding_cid": "sha256:4c8335597d63d94be2363464830fb530f2ffc4b3aa6aba267c76bbc1ca10fb7e"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
-            "kind": "aoa_step",
             "step_id": "rel_groupby_6",
             "field_path": "params.aggs.__actql_nest_empty.max_items"
           },
           "subject_ref": "nest-empty:$.stages[0].steps[0]",
           "unit": "array_items",
           "effective_max": 1,
-          "resolved_limit_cid": "sha256:d17e6505f80f3fea843060811455170597ca320e1eb8ea84393b3ed1f92b77f2",
-          "binding_cid": "sha256:9745f9711edfc9cd650ef7dc0ec840fca66aef32aa8ef9f71641f9aedabf6fa8"
+          "resolved_limit_cid": "sha256:c464c5ff2f1e86817d022aa532a5837f485f418daf94eea8cbefa480551f06c1",
+          "binding_cid": "sha256:851877bbeae66caf70750aa1f5b42cc7b2ebc69f8995e299d998a928ea68d1db"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -2051,15 +2051,15 @@
               "source": {
                 "kind": "author_guard",
                 "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:3d44bcc520bb5c148d7f54a4c4c14fbc65bbf2bee2ff50e802d412746d4312f4"
+                "program_definition_cid": "sha256:84c4d335914aa3494afbf3de533f84a829683405facf853997395de6fcf9c9ec"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:3d44bcc520bb5c148d7f54a4c4c14fbc65bbf2bee2ff50e802d412746d4312f4"
+                "sha256:84c4d335914aa3494afbf3de533f84a829683405facf853997395de6fcf9c9ec"
               ],
-              "witness_cid": "sha256:63d08a5ae4c6f90c14bc9be28fab53ac30b651085ad40a2ad9b5059ae0915912"
+              "witness_cid": "sha256:7b8b7af4a09397b7bcf0c1952c4c021706319d8a2ee44a9b7d38b95f69b75a3e"
             },
             {
               "version": "actql-bound-witness/0.1",
@@ -2085,7 +2085,7 @@
           "author_guard_binding": "binding",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:58502892b39d4b02ba8a2298b4373a14054d79b685aa1b093e9cab7da356f49f"
+          "resolved_limit_cid": "sha256:1c5fba36cc8e055424750639635a5af7739df7e777006cf813ebca7d4785fb80"
         },
         {
           "version": "actql-resolved-limit/0.1",
@@ -2163,23 +2163,23 @@
               "source": {
                 "kind": "program",
                 "semantic_ref": "$.stages[0].steps[0].nest",
-                "proof_cid": "sha256:cd7f2e23d1036e21117fedb05e2c500ce54e0f02d884491661b87ea02f2051e2"
+                "proof_cid": "sha256:8fa598e2e8a1b5e18e56a02237327d1ec6737039c8d7770fd5452c10e76653bd"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:3d44bcc520bb5c148d7f54a4c4c14fbc65bbf2bee2ff50e802d412746d4312f4",
-                "sha256:cd7f2e23d1036e21117fedb05e2c500ce54e0f02d884491661b87ea02f2051e2"
+                "sha256:84c4d335914aa3494afbf3de533f84a829683405facf853997395de6fcf9c9ec",
+                "sha256:8fa598e2e8a1b5e18e56a02237327d1ec6737039c8d7770fd5452c10e76653bd"
               ],
-              "witness_cid": "sha256:55857c9f5e98d77c1ca01a980e675f26db444d213961cc586b25a02dfb341e07"
+              "witness_cid": "sha256:c1d7621bc9d721e78ab93ed1ff83003edf74148e5faf5e014941e6cda478071e"
             }
           ],
           "effective_max": 1,
           "author_guard_binding": "absent",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:d17e6505f80f3fea843060811455170597ca320e1eb8ea84393b3ed1f92b77f2"
+          "resolved_limit_cid": "sha256:c464c5ff2f1e86817d022aa532a5837f485f418daf94eea8cbefa480551f06c1"
         }
       ],
       "inferred_shapes": [
@@ -2243,13 +2243,13 @@
     },
     {
       "name": "composite-correlation",
-      "program_definition_cid": "sha256:e91ed40341799e81007bb0aa6690deec65ddb7fd291759b1ccce83c785c4f229",
-      "program_semantics_cid": "sha256:0ef62de4b5598acb2f90e5a1e00b06ef223ff44f92580894ef59f1914b34cb52",
-      "stage_semantics_cid": "sha256:803654853d8c0445e77bb07fab2520ab3f4fa467c6bfb848a28c1a2eff616332",
+      "program_definition_cid": "sha256:3de0d857dd0e725f118b21e6f3e170cb9fbd212debabded241c7a9f7c9fdea5c",
+      "program_semantics_cid": "sha256:4bae5676c86ca333623c672a4067c837eb0cc2f8b448b20ef79e44f77c7893c8",
+      "stage_semantics_cid": "sha256:d034f77680f1c604633d29d2f6e941dc465b0c4f89687bfcf976b3adb91c635a",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -2342,7 +2342,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -2351,7 +2351,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:803654853d8c0445e77bb07fab2520ab3f4fa467c6bfb848a28c1a2eff616332",
+                "stage_semantics_cid": "sha256:d034f77680f1c604633d29d2f6e941dc465b0c4f89687bfcf976b3adb91c635a",
                 "after": "initial",
                 "imports": {}
               }
@@ -2369,7 +2369,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.composite-correlation",
-          "program_semantics_cid": "sha256:0ef62de4b5598acb2f90e5a1e00b06ef223ff44f92580894ef59f1914b34cb52"
+          "program_semantics_cid": "sha256:4bae5676c86ca333623c672a4067c837eb0cc2f8b448b20ef79e44f77c7893c8"
         }
       },
       "pipeline": {
@@ -2800,8 +2800,21 @@
           "subject_ref": "nest-empty:$.stages[0].steps[0]",
           "unit": "array_items",
           "effective_max": 1,
-          "resolved_limit_cid": "sha256:b9d9453c8cf33aed77bec9f4f712a19aefffd671f0a74a25d8a8f817993da0b8",
-          "binding_cid": "sha256:08d2e658f03be066c9ecb7a86a1ea43a90a5bd39ab11b2cd011740dcb49ae4bc"
+          "resolved_limit_cid": "sha256:7df9c81d2fe8781d8e5f2ea220872b47046cdcecc9f602b0c922da3cbec0cec4",
+          "binding_cid": "sha256:1e5d622f2afe3ce922f687669f567edf60b6b6d03368b3d0aae2f52d0620873c"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:f8f5fa5b3eecd7da5711933b45e7d9dd749256bafeb7674b5a1d03716f4a776a",
+          "binding_cid": "sha256:2527340ca2536ba0469a7767c6e023d4c03aef9089bedd2488f9bff8ca0381ff"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -2818,19 +2831,6 @@
           "effective_max": 16777216,
           "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067",
           "binding_cid": "sha256:3a38337ee308668ceb9bb641ea1a60263624bf5daab855a0bd3ae58a49b6dac7"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
-            "kind": "aoa_step",
-            "step_id": "rel_groupby_4",
-            "field_path": "params.aggs.__actql_nest_items.max_items"
-          },
-          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
-          "unit": "array_items",
-          "effective_max": 3,
-          "resolved_limit_cid": "sha256:d76f603339e344d8ba8c94102fa3f8e7df788801ce2a7bf407be3d8b0f1dd579",
-          "binding_cid": "sha256:8ae3014fe44687c8a0b78aafe96493a7bb06ec90206b76be1b147a27b24363b7"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -2883,6 +2883,38 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:cea814aa1c2460bf9ff803c1f29b4979b0c5130839e8c521cd35adaa4e5b0011"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:3de0d857dd0e725f118b21e6f3e170cb9fbd212debabded241c7a9f7c9fdea5c",
+                "sha256:cea814aa1c2460bf9ff803c1f29b4979b0c5130839e8c521cd35adaa4e5b0011"
+              ],
+              "witness_cid": "sha256:4cde8b99c11ed31b327ad68617bb12374ef51f6f9dd090e8bb680cc3acae56d0"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:7df9c81d2fe8781d8e5f2ea220872b47046cdcecc9f602b0c922da3cbec0cec4"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
           "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
           "unit": "bytes",
           "candidates": [
@@ -2914,38 +2946,6 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
-          "unit": "array_items",
-          "candidates": [
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 1,
-              "role": "proven_upper_bound",
-              "law_id": "actql.bound.nest-empty-array",
-              "source": {
-                "kind": "program",
-                "semantic_ref": "$.stages[0].steps[0].nest",
-                "proof_cid": "sha256:32579e92fadfb397c4c2752c8031e2c7899a8208c24646360551fe5f9e3ce86f"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:32579e92fadfb397c4c2752c8031e2c7899a8208c24646360551fe5f9e3ce86f",
-                "sha256:e91ed40341799e81007bb0aa6690deec65ddb7fd291759b1ccce83c785c4f229"
-              ],
-              "witness_cid": "sha256:d1c4407f0aa71fac798e5792012ad0edbed0df6104ca63a6baaac850d20cf31b"
-            }
-          ],
-          "effective_max": 1,
-          "author_guard_binding": "absent",
-          "enforcement": "engine_atomic",
-          "breach": "fail",
-          "resolved_limit_cid": "sha256:b9d9453c8cf33aed77bec9f4f712a19aefffd671f0a74a25d8a8f817993da0b8"
-        },
-        {
-          "version": "actql-resolved-limit/0.1",
           "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
           "unit": "array_items",
           "candidates": [
@@ -2958,15 +2958,15 @@
               "source": {
                 "kind": "author_guard",
                 "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:e91ed40341799e81007bb0aa6690deec65ddb7fd291759b1ccce83c785c4f229"
+                "program_definition_cid": "sha256:3de0d857dd0e725f118b21e6f3e170cb9fbd212debabded241c7a9f7c9fdea5c"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:e91ed40341799e81007bb0aa6690deec65ddb7fd291759b1ccce83c785c4f229"
+                "sha256:3de0d857dd0e725f118b21e6f3e170cb9fbd212debabded241c7a9f7c9fdea5c"
               ],
-              "witness_cid": "sha256:4e5da5d7dc1ec7ec7112b3c0e968cd55d991ca95745e55fa1f1536a2ae868bfe"
+              "witness_cid": "sha256:a141e55b1a14648e9f906566a3351df674859364c4f5d81c1265a611bfa401af"
             },
             {
               "version": "actql-bound-witness/0.1",
@@ -2992,7 +2992,7 @@
           "author_guard_binding": "binding",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:d76f603339e344d8ba8c94102fa3f8e7df788801ce2a7bf407be3d8b0f1dd579"
+          "resolved_limit_cid": "sha256:f8f5fa5b3eecd7da5711933b45e7d9dd749256bafeb7674b5a1d03716f4a776a"
         }
       ],
       "inferred_shapes": [
@@ -3050,13 +3050,13 @@
     },
     {
       "name": "reference-key",
-      "program_definition_cid": "sha256:dbbf16e631155ec9cb2e2877c236c30627b1ad5a034344b0da3e48a7ab1c78ed",
-      "program_semantics_cid": "sha256:3c4473e08871bcf4faad79477c7b14dbcb79ad62c82ffbbe74de50ee274c4d45",
-      "stage_semantics_cid": "sha256:69fcdc147568935865ee4236dec859b75a84a2e69610eeeff10a63db2caa8cbe",
+      "program_definition_cid": "sha256:7190777ed9713a213eda0e9e662286a20d87f17d0522638f9dd2614bac0fe6e1",
+      "program_semantics_cid": "sha256:152dd4e7c75f6e95579153fe0873f645e8d21d7a2d462ce25c4e67ad450cdc69",
+      "stage_semantics_cid": "sha256:9cdb82d43517f4ebe7ac9562525738d1e424226427f6703e51f62604c10e41fc",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -3110,7 +3110,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -3119,7 +3119,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:69fcdc147568935865ee4236dec859b75a84a2e69610eeeff10a63db2caa8cbe",
+                "stage_semantics_cid": "sha256:9cdb82d43517f4ebe7ac9562525738d1e424226427f6703e51f62604c10e41fc",
                 "after": "initial",
                 "imports": {}
               }
@@ -3137,7 +3137,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.reference-key",
-          "program_semantics_cid": "sha256:3c4473e08871bcf4faad79477c7b14dbcb79ad62c82ffbbe74de50ee274c4d45"
+          "program_semantics_cid": "sha256:152dd4e7c75f6e95579153fe0873f645e8d21d7a2d462ce25c4e67ad450cdc69"
         }
       },
       "pipeline": {
@@ -3549,21 +3549,8 @@
           "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
           "unit": "array_items",
           "effective_max": 3,
-          "resolved_limit_cid": "sha256:cbaa40c0cefb2e0b1c0c4ff5b70ff3a3b06b01f75ee289192ff64533052de1cd",
-          "binding_cid": "sha256:5486a1c0367f4c71bbd7fda6fe7a5e2986d41c721f1c5bd789ce7bc9ae75e4dc"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
-            "kind": "aoa_step",
-            "step_id": "rel_groupby_8",
-            "field_path": "params.aggs.__actql_nest_empty.max_items"
-          },
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
-          "unit": "array_items",
-          "effective_max": 1,
-          "resolved_limit_cid": "sha256:a979aeba9283dbcf712291692903a47258727cfa6c0b669a25ed1f24ce130d4a",
-          "binding_cid": "sha256:80076ae9cbe2e7ff5c2ff18b52ab590996060cb56db3adf5fa50dd916ad7762d"
+          "resolved_limit_cid": "sha256:393579bb82e2d55a808fd8bc958bb22ceaae0f93dfe1ab7f567fa85ec5e67174",
+          "binding_cid": "sha256:062e1aedc9c69b41142c2bc77e48c14ae3790d3c4255313ee9424e7ca9f93737"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -3596,9 +3583,72 @@
           "effective_max": 16777216,
           "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
           "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_8",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:980e74f428111f66fb0f7ed227d727d322b43a6e7b3b7a766cb2aa65266ec53e",
+          "binding_cid": "sha256:be9c2c4a888754227ada08f58525b098ca046be8ff3d2bc04d1e865fcdf029a5"
         }
       ],
       "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:7190777ed9713a213eda0e9e662286a20d87f17d0522638f9dd2614bac0fe6e1"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:7190777ed9713a213eda0e9e662286a20d87f17d0522638f9dd2614bac0fe6e1"
+              ],
+              "witness_cid": "sha256:0f4da449aa54ad7f7903a49a72161497efcbbeee0092311846db14972a7c54a3"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:393579bb82e2d55a808fd8bc958bb22ceaae0f93dfe1ab7f567fa85ec5e67174"
+        },
         {
           "version": "actql-resolved-limit/0.1",
           "subject_ref": "nest-value:nested:[\"items\"]",
@@ -3644,23 +3694,23 @@
               "source": {
                 "kind": "program",
                 "semantic_ref": "$.stages[0].steps[0].nest",
-                "proof_cid": "sha256:d24fe3ae3dc77a25cf931da6d94e55f4cf5e95ce9395d0dddcd384b19be5e016"
+                "proof_cid": "sha256:5ef770d1ea77043f4f034fab1736429ce0d297644f76df6a2bdd47d20e51349f"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:d24fe3ae3dc77a25cf931da6d94e55f4cf5e95ce9395d0dddcd384b19be5e016",
-                "sha256:dbbf16e631155ec9cb2e2877c236c30627b1ad5a034344b0da3e48a7ab1c78ed"
+                "sha256:5ef770d1ea77043f4f034fab1736429ce0d297644f76df6a2bdd47d20e51349f",
+                "sha256:7190777ed9713a213eda0e9e662286a20d87f17d0522638f9dd2614bac0fe6e1"
               ],
-              "witness_cid": "sha256:0c21fa095631663aa6306c870683935a2ee65fcaf155f4bf12ce10e9450235bb"
+              "witness_cid": "sha256:b6b8fd9f29b74bb6aa5944b61fd694334c131de8d589afee52aaad7786488b8d"
             }
           ],
           "effective_max": 1,
           "author_guard_binding": "absent",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:a979aeba9283dbcf712291692903a47258727cfa6c0b669a25ed1f24ce130d4a"
+          "resolved_limit_cid": "sha256:980e74f428111f66fb0f7ed227d727d322b43a6e7b3b7a766cb2aa65266ec53e"
         },
         {
           "version": "actql-resolved-limit/0.1",
@@ -3692,56 +3742,6 @@
           "enforcement": "engine_atomic",
           "breach": "fail",
           "resolved_limit_cid": "sha256:b81bfd9ae68d63661729610ede05c203c584b242f525475725832027a429a7d0"
-        },
-        {
-          "version": "actql-resolved-limit/0.1",
-          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
-          "unit": "array_items",
-          "candidates": [
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 3,
-              "role": "author_guard",
-              "law_id": "actql.guard.array-aggregate",
-              "source": {
-                "kind": "author_guard",
-                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:dbbf16e631155ec9cb2e2877c236c30627b1ad5a034344b0da3e48a7ab1c78ed"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:dbbf16e631155ec9cb2e2877c236c30627b1ad5a034344b0da3e48a7ab1c78ed"
-              ],
-              "witness_cid": "sha256:8da66402642c898c3ace1eae470e7bcacfad7e409ba4adac0008a799dd766836"
-            },
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 100000,
-              "role": "host_ceiling",
-              "law_id": "actql.host.aggregate-array-items",
-              "source": {
-                "kind": "host_policy",
-                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
-                "field": "max_aggregate_array_items"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
-              ],
-              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
-            }
-          ],
-          "effective_max": 3,
-          "author_guard_binding": "binding",
-          "enforcement": "engine_atomic",
-          "breach": "fail",
-          "resolved_limit_cid": "sha256:cbaa40c0cefb2e0b1c0c4ff5b70ff3a3b06b01f75ee289192ff64533052de1cd"
         }
       ],
       "inferred_shapes": [
@@ -3797,13 +3797,13 @@
     },
     {
       "name": "artifact-key",
-      "program_definition_cid": "sha256:bb78fb0b374d15af1730378a25ef8bf9ac33ac3709ef3c8c0b81bf8df13f9d10",
-      "program_semantics_cid": "sha256:3c4473e08871bcf4faad79477c7b14dbcb79ad62c82ffbbe74de50ee274c4d45",
-      "stage_semantics_cid": "sha256:69fcdc147568935865ee4236dec859b75a84a2e69610eeeff10a63db2caa8cbe",
+      "program_definition_cid": "sha256:3f268fa844ee2dd1c2d1da06ca022e5a73c50bddaced923bbfa6135ad1533f35",
+      "program_semantics_cid": "sha256:152dd4e7c75f6e95579153fe0873f645e8d21d7a2d462ce25c4e67ad450cdc69",
+      "stage_semantics_cid": "sha256:9cdb82d43517f4ebe7ac9562525738d1e424226427f6703e51f62604c10e41fc",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -3857,7 +3857,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -3866,7 +3866,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:69fcdc147568935865ee4236dec859b75a84a2e69610eeeff10a63db2caa8cbe",
+                "stage_semantics_cid": "sha256:9cdb82d43517f4ebe7ac9562525738d1e424226427f6703e51f62604c10e41fc",
                 "after": "initial",
                 "imports": {}
               }
@@ -3884,7 +3884,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.artifact-key",
-          "program_semantics_cid": "sha256:3c4473e08871bcf4faad79477c7b14dbcb79ad62c82ffbbe74de50ee274c4d45"
+          "program_semantics_cid": "sha256:152dd4e7c75f6e95579153fe0873f645e8d21d7a2d462ce25c4e67ad450cdc69"
         }
       },
       "pipeline": {
@@ -4267,8 +4267,8 @@
           "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
           "unit": "array_items",
           "effective_max": 3,
-          "resolved_limit_cid": "sha256:ee6b927636da9d3e8fca776b47dd36a0dff024694ffebcd805b99b075b4dbd94",
-          "binding_cid": "sha256:437035572164089fb9e23af07e097ca89f2cb31db94dd35e1d4d3e61f35f0f96"
+          "resolved_limit_cid": "sha256:7c14be61c8dba25f7b14d1b2ca77089797c83876c3106bba9697d0fc0e8ff3b6",
+          "binding_cid": "sha256:3816e54d1eaca310e911440447524a912688fd2467ff516974b267c3f4bea97c"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -4280,8 +4280,8 @@
           "subject_ref": "nest-empty:$.stages[0].steps[0]",
           "unit": "array_items",
           "effective_max": 1,
-          "resolved_limit_cid": "sha256:1ae0fdb1a32b58d42333faf1e54d04a83fef741a4c563c6f67bb532363075ba8",
-          "binding_cid": "sha256:5988d84a40e510465220e8250086433637dd2c3041fb887ae18545c4b62672b9"
+          "resolved_limit_cid": "sha256:a3687bc32dc01813597b9379028d49287186a27cda1d9c2f972fc22319cc8131",
+          "binding_cid": "sha256:40cd2e10d7cf4843b34d98415fa41225ad49a62ed39165d09ab797d1f4fb7d14"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -4319,38 +4319,6 @@
       "resolved_limits": [
         {
           "version": "actql-resolved-limit/0.1",
-          "subject_ref": "nest-empty:$.stages[0].steps[0]",
-          "unit": "array_items",
-          "candidates": [
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 1,
-              "role": "proven_upper_bound",
-              "law_id": "actql.bound.nest-empty-array",
-              "source": {
-                "kind": "program",
-                "semantic_ref": "$.stages[0].steps[0].nest",
-                "proof_cid": "sha256:0f6f9a09cfb7415e0c22e98581a609468659f3bc057a0a17d12e1c9627db80ed"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:0f6f9a09cfb7415e0c22e98581a609468659f3bc057a0a17d12e1c9627db80ed",
-                "sha256:bb78fb0b374d15af1730378a25ef8bf9ac33ac3709ef3c8c0b81bf8df13f9d10"
-              ],
-              "witness_cid": "sha256:cfada350b50dbfaed63972ec60b0f57966ce6887289bb8fb3ebcfdab40b39adb"
-            }
-          ],
-          "effective_max": 1,
-          "author_guard_binding": "absent",
-          "enforcement": "engine_atomic",
-          "breach": "fail",
-          "resolved_limit_cid": "sha256:1ae0fdb1a32b58d42333faf1e54d04a83fef741a4c563c6f67bb532363075ba8"
-        },
-        {
-          "version": "actql-resolved-limit/0.1",
           "subject_ref": "nest-value:nested:[\"items\"]",
           "unit": "bytes",
           "candidates": [
@@ -4379,6 +4347,56 @@
           "enforcement": "engine_atomic",
           "breach": "fail",
           "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:3f268fa844ee2dd1c2d1da06ca022e5a73c50bddaced923bbfa6135ad1533f35"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:3f268fa844ee2dd1c2d1da06ca022e5a73c50bddaced923bbfa6135ad1533f35"
+              ],
+              "witness_cid": "sha256:d53226f112c94eb12402199b647e69044e8f59c2f51f651421b9601677c1c24b"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:7c14be61c8dba25f7b14d1b2ca77089797c83876c3106bba9697d0fc0e8ff3b6"
         },
         {
           "version": "actql-resolved-limit/0.1",
@@ -4413,53 +4431,35 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
-          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
           "unit": "array_items",
           "candidates": [
             {
               "version": "actql-bound-witness/0.1",
               "unit": "array_items",
-              "value": 3,
-              "role": "author_guard",
-              "law_id": "actql.guard.array-aggregate",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
               "source": {
-                "kind": "author_guard",
-                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:bb78fb0b374d15af1730378a25ef8bf9ac33ac3709ef3c8c0b81bf8df13f9d10"
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:de51f21bb98bba73ec4ccdb846b6a46c372af753f6e4fb01956919ae14a4ead1"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:bb78fb0b374d15af1730378a25ef8bf9ac33ac3709ef3c8c0b81bf8df13f9d10"
+                "sha256:3f268fa844ee2dd1c2d1da06ca022e5a73c50bddaced923bbfa6135ad1533f35",
+                "sha256:de51f21bb98bba73ec4ccdb846b6a46c372af753f6e4fb01956919ae14a4ead1"
               ],
-              "witness_cid": "sha256:1caed201c9f437acd89f43a239ef6a379bca9436c09f9b2f418facfb6cfb2bf5"
-            },
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 100000,
-              "role": "host_ceiling",
-              "law_id": "actql.host.aggregate-array-items",
-              "source": {
-                "kind": "host_policy",
-                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
-                "field": "max_aggregate_array_items"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
-              ],
-              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+              "witness_cid": "sha256:de580a41a2fcdb48ee15809fdb4105db3ecee7d1d02181bd6dba27788bd854bb"
             }
           ],
-          "effective_max": 3,
-          "author_guard_binding": "binding",
+          "effective_max": 1,
+          "author_guard_binding": "absent",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:ee6b927636da9d3e8fca776b47dd36a0dff024694ffebcd805b99b075b4dbd94"
+          "resolved_limit_cid": "sha256:a3687bc32dc01813597b9379028d49287186a27cda1d9c2f972fc22319cc8131"
         }
       ],
       "inferred_shapes": [
@@ -4515,13 +4515,13 @@
     },
     {
       "name": "existing-witness",
-      "program_definition_cid": "sha256:cad86f42dcfb150e9c6904036d79c8c856e6fd15a760d5d2135f13bd50f52a91",
-      "program_semantics_cid": "sha256:abf59d40f383a62e4da74b47d772e91698997b01ae138714831d10593e6b0923",
-      "stage_semantics_cid": "sha256:0d488850138c142594ed203af54a8cbbef49cbe2d2b07bd7910c082561e84071",
+      "program_definition_cid": "sha256:5048758db8e9752929e5595bf2b1f0d4b0c95e22780f48f125a21d12a40054cf",
+      "program_semantics_cid": "sha256:55f23f82a7d8e45ebda4d2e971329e5c4e09f739f3d72eaf2359869972762a51",
+      "stage_semantics_cid": "sha256:88e8dc142dce01f81aa4921fb319b1368257d39179c318ea71479a7e60965a6c",
       "identity_envelopes": {
         "stage": {
           "version": "actql-stage-semantics/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -4614,7 +4614,7 @@
         "program": {
           "version": "actql-program-semantics/0.1",
           "actql_version": "actql/0.1",
-          "expression_contract_cid": "sha256:12c5fe6e7724fd717761c9b801575599e8f49398d0cc42fc5147f2827d581c19",
+          "expression_contract_cid": "sha256:47921fedc617f83a20f12410d5daecfff032707da84de845468b9b11514aefa8",
           "parameters": {},
           "parameter_references": [],
           "bindings": {},
@@ -4623,7 +4623,7 @@
             "stages": [
               {
                 "id": "main",
-                "stage_semantics_cid": "sha256:0d488850138c142594ed203af54a8cbbef49cbe2d2b07bd7910c082561e84071",
+                "stage_semantics_cid": "sha256:88e8dc142dce01f81aa4921fb319b1368257d39179c318ea71479a7e60965a6c",
                 "after": "initial",
                 "imports": {}
               }
@@ -4641,7 +4641,7 @@
         "definition": {
           "version": "actql-program-definition/0.1",
           "id": "nest.golden.existing-witness",
-          "program_semantics_cid": "sha256:abf59d40f383a62e4da74b47d772e91698997b01ae138714831d10593e6b0923"
+          "program_semantics_cid": "sha256:55f23f82a7d8e45ebda4d2e971329e5c4e09f739f3d72eaf2359869972762a51"
         }
       },
       "pipeline": {
@@ -5007,8 +5007,21 @@
           "subject_ref": "nest-empty:$.stages[0].steps[1]",
           "unit": "array_items",
           "effective_max": 1,
-          "resolved_limit_cid": "sha256:7cf450113ac02eb129637d6778366331255bf17d884d6ef73e555d796a69d7b4",
-          "binding_cid": "sha256:a7cc9002a52f9dee1c9e643ff7119b54630024ca9a8ccaadce59544522c26e41"
+          "resolved_limit_cid": "sha256:127f40496d845941e12e3dfef994de2c8d61a3a408e7053f86518250662a9423",
+          "binding_cid": "sha256:04b33e74bf4d64b2b0afc90031d15221f6ace182bfa4c6a52ee11f7fd4676218"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_3",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[1].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:dbc3c64bd06773d1908b4fa185ae812fd7b9427a2abb05f8b4d0905fd3a17c9a",
+          "binding_cid": "sha256:a1f149a9705d8bd9a3961f9d8100c4c5dff35aa6d12cad728db378fe89c7c6e0"
         },
         {
           "version": "actql-execution-limit-binding/0.1",
@@ -5041,19 +5054,6 @@
           "effective_max": 16777216,
           "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
           "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
-        },
-        {
-          "version": "actql-execution-limit-binding/0.1",
-          "target": {
-            "kind": "aoa_step",
-            "step_id": "rel_groupby_3",
-            "field_path": "params.aggs.__actql_nest_items.max_items"
-          },
-          "subject_ref": "array_agg:$.stages[0].steps[1].nest.__actql_nest_items",
-          "unit": "array_items",
-          "effective_max": 3,
-          "resolved_limit_cid": "sha256:eb2433fe87c855b840f6e3696fe3c9619ee6bfee334f446f5ff9f12b6fdc8e40",
-          "binding_cid": "sha256:f172483717b950e58b03e59a77236eeeabd262c98731d395fce3ca323d229c3b"
         }
       ],
       "resolved_limits": [
@@ -5090,6 +5090,38 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[1]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[1].nest",
+                "proof_cid": "sha256:8484cb91e96714f406c48ed0a76b81e784a70fff55c1ba0370e40f87730bdcaf"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:5048758db8e9752929e5595bf2b1f0d4b0c95e22780f48f125a21d12a40054cf",
+                "sha256:8484cb91e96714f406c48ed0a76b81e784a70fff55c1ba0370e40f87730bdcaf"
+              ],
+              "witness_cid": "sha256:b4872a25da61e3c25827fc717f54db483778d419428f46db56e641fcb1e600df"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:127f40496d845941e12e3dfef994de2c8d61a3a408e7053f86518250662a9423"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
           "subject_ref": "nest-value:nested:[\"items\"]",
           "unit": "bytes",
           "candidates": [
@@ -5121,41 +5153,28 @@
         },
         {
           "version": "actql-resolved-limit/0.1",
-          "subject_ref": "nest-empty:$.stages[0].steps[1]",
+          "subject_ref": "array_agg:$.stages[0].steps[1].nest.__actql_nest_items",
           "unit": "array_items",
           "candidates": [
             {
               "version": "actql-bound-witness/0.1",
               "unit": "array_items",
-              "value": 1,
-              "role": "proven_upper_bound",
-              "law_id": "actql.bound.nest-empty-array",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
               "source": {
-                "kind": "program",
-                "semantic_ref": "$.stages[0].steps[1].nest",
-                "proof_cid": "sha256:628adeacfdcadc05ea88463605c6e1e4298d41c2147cf0cfa1d7050650173c79"
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[1].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:5048758db8e9752929e5595bf2b1f0d4b0c95e22780f48f125a21d12a40054cf"
               },
               "derivation": {
                 "op": "source"
               },
               "dependencies": [
-                "sha256:628adeacfdcadc05ea88463605c6e1e4298d41c2147cf0cfa1d7050650173c79",
-                "sha256:cad86f42dcfb150e9c6904036d79c8c856e6fd15a760d5d2135f13bd50f52a91"
+                "sha256:5048758db8e9752929e5595bf2b1f0d4b0c95e22780f48f125a21d12a40054cf"
               ],
-              "witness_cid": "sha256:4dc11a1deb008ba157e4408e6783c456591811a71f904f1215c9cb097c522569"
-            }
-          ],
-          "effective_max": 1,
-          "author_guard_binding": "absent",
-          "enforcement": "engine_atomic",
-          "breach": "fail",
-          "resolved_limit_cid": "sha256:7cf450113ac02eb129637d6778366331255bf17d884d6ef73e555d796a69d7b4"
-        },
-        {
-          "version": "actql-resolved-limit/0.1",
-          "subject_ref": "array_agg:$.stages[0].steps[1].nest.__actql_nest_items",
-          "unit": "array_items",
-          "candidates": [
+              "witness_cid": "sha256:c3f25328b47beebbbdbba4639684f7a0c1b17901b5b5feacf5ff587ab2827dd5"
+            },
             {
               "version": "actql-bound-witness/0.1",
               "unit": "array_items",
@@ -5174,32 +5193,13 @@
                 "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
               ],
               "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
-            },
-            {
-              "version": "actql-bound-witness/0.1",
-              "unit": "array_items",
-              "value": 3,
-              "role": "author_guard",
-              "law_id": "actql.guard.array-aggregate",
-              "source": {
-                "kind": "author_guard",
-                "source_path": "$.stages[0].steps[1].nest.__actql_nest_items.max_items",
-                "program_definition_cid": "sha256:cad86f42dcfb150e9c6904036d79c8c856e6fd15a760d5d2135f13bd50f52a91"
-              },
-              "derivation": {
-                "op": "source"
-              },
-              "dependencies": [
-                "sha256:cad86f42dcfb150e9c6904036d79c8c856e6fd15a760d5d2135f13bd50f52a91"
-              ],
-              "witness_cid": "sha256:e7a6f443559ce6532ebd18c596b5ac579a5b16fafbe54975c2cf0443bc8e6e21"
             }
           ],
           "effective_max": 3,
           "author_guard_binding": "binding",
           "enforcement": "engine_atomic",
           "breach": "fail",
-          "resolved_limit_cid": "sha256:eb2433fe87c855b840f6e3696fe3c9619ee6bfee334f446f5ff9f12b6fdc8e40"
+          "resolved_limit_cid": "sha256:dbc3c64bd06773d1908b4fa185ae812fd7b9427a2abb05f8b4d0905fd3a17c9a"
         }
       ],
       "inferred_shapes": [

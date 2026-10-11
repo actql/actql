@@ -1,0 +1,112 @@
+///|
+pub(all) enum ClientLocalNormalizationIssue {
+  Inventory(@checked.CompletionFreeInventoryIssue)
+  ForeignPreparation
+  ForeignCatalog
+  SubstitutedJournal
+  Evidence(@publication.RunEvidenceValueIssue)
+}
+
+///|
+/// Original preparation owns the completion inventory and its issued bytes.
+/// The normative journal preimage has no additional Program binding fields;
+/// this opaque projection and the original materials chain own those links.
+struct ClientLocalNormalization {
+  preparation : PreparedClientProgram
+  audit : @checked.LocalCompletionFreeInventory
+  evidence : @publication.RunEvidenceValue
+}
+
+///|
+pub fn client_local_completion_free_catalog_cid() -> String {
+  "sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587"
+}
+
+///|
+/// Issue only from the inventory retained by the original checked preparation.
+/// No parse, compile, Source acquisition or physical Effect operation occurs.
+pub fn issue_prepared_client_local_normalization(
+  owner : PreparedClientProgram,
+) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
+  if owner.local_normalization is Some(original) {
+    match prepared_client_local_normalization_evidence(owner, original) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return Ok(original)
+  }
+  let inventory = match
+    @checked.local_program_completion_free_inventory(
+      @strategy.graph_program(owner.graph),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Inventory(issue))
+  }
+  let wire = "{\"entries\":[],\"rule_catalog_cid\":\"" +
+    client_local_completion_free_catalog_cid() +
+    "\",\"version\":\"actql-normalization-journal/0.1\"}"
+  let journal = match
+    @publication.seal_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  let issued : ClientLocalNormalization = {
+    preparation: owner,
+    audit: inventory,
+    evidence: journal,
+  }
+  owner.local_normalization = Some(issued)
+  Ok(issued)
+}
+
+///|
+/// A copied or foreign preparation cannot take another original journal.
+/// Definition, semantics and check-environment identity are inherited from
+/// this exact preparation owner, rather than inferred from equal source bytes.
+pub fn prepared_client_local_normalization_evidence(
+  owner : PreparedClientProgram,
+  value : ClientLocalNormalization,
+) -> Result[@publication.RunEvidenceValue, ClientLocalNormalizationIssue] {
+  if !physical_equal(owner, value.preparation) ||
+    !(owner.local_normalization is Some(original) &&
+    physical_equal(original, value)) ||
+    !@checked.local_completion_free_inventory_matches(
+      value.audit,
+      @strategy.graph_program(owner.graph),
+    ) {
+    return Err(ForeignPreparation)
+  }
+  Ok(value.evidence)
+}
+
+///|
+/// Re-admit saved bytes against the original projection without issuing a new
+/// journal or repeating preparation. Cross-process materials restoration is a
+/// separate connection; an arbitrary journal alone is not an inventory proof.
+pub fn restore_prepared_client_local_normalization(
+  owner : PreparedClientProgram,
+  original : ClientLocalNormalization,
+  wire : String,
+  catalog_cid : String,
+) -> Result[@publication.RunEvidenceValue, ClientLocalNormalizationIssue] {
+  let expected = match
+    prepared_client_local_normalization_evidence(owner, original) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if catalog_cid != client_local_completion_free_catalog_cid() {
+    return Err(ForeignCatalog)
+  }
+  if wire != @publication.run_evidence_value_json(expected) {
+    return Err(SubstitutedJournal)
+  }
+  match
+    @publication.admit_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Evidence(issue))
+  }
+}
