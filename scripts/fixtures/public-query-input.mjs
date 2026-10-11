@@ -929,3 +929,26 @@ queryCompositionRefusals.push(...[
  ['scalar-star','SELECT r.* FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
  ['duplicate-range','SELECT r AS value FROM (SELECT 7 AS id) r CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
 ].map(([name,text])=>({name:'join-value-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramInvalidInput'})));
+
+// Bare ordinary range names are row objects, never same-named scalar columns
+// in ON. The independent scalar-key JSON control remains executable.
+export const joinOnColumnControl = {version:'actql/0.1',id:'fixture.join_on_column',
+ stages:[{id:'main',inputs:{},steps:[
+  {values:{schema:{l:{type:'number',nullable:false},id:{type:'number',nullable:false}},rows:[{l:1,id:2}]},as:'left'},
+  {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:1}]},as:'right'},
+  {from:'left',join:{with:'right',kind:'inner',on:[{left:'l',right:'id'}],max_output_rows:10,select:{id:'left.id'}},as:'out'},
+ ],results:{rows:{from:'out',fields:['id']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const joinOnCase=(name,text,id=2,format='sql')=>({name:'join-on-range-'+name,
+ format,text,expected:[{id}],columns:[relationNumber('id')],sourceReadCount:0,sourceReadSessionCount:0});
+queryCompositionSuccesses.push(
+ joinOnCase('json-column-control',JSON.stringify(joinOnColumnControl),2,'json'),
+ joinOnCase('qualified-left','SELECT l.id FROM (SELECT 1 AS l,2 AS id) l JOIN (SELECT 1 AS id) r ON l.l=r.id MAX_OUTPUT_ROWS 10'),
+ joinOnCase('qualified-right','SELECT l.id FROM (SELECT 1 AS id) l JOIN (SELECT 1 AS r,2 AS id) r ON l.id=r.r MAX_OUTPUT_ROWS 10',1),
+ joinOnCase('using-column','FROM (SELECT 1 AS l,2 AS id) l |> JOIN (SELECT 1 AS l) r USING(l) MAX_OUTPUT_ROWS 10 |> SELECT l.id',2,'aql-text'),
+);
+queryCompositionRefusals.push(...[
+ ['left','sql','SELECT l.id FROM (SELECT 1 AS l,2 AS id) l JOIN (SELECT 1 AS id) r ON l=r.id MAX_OUTPUT_ROWS 10'],
+ ['right-shared','sql','SELECT l AS row FROM (SELECT 1 AS id) l JOIN (SELECT 1 AS r,2 AS id) r ON l.id=r MAX_OUTPUT_ROWS 10'],
+ ['quoted-cte','aql-text','WITH a AS (SELECT 1 AS l,2 AS id),b AS (SELECT 1 AS id) FROM a AS `L` |> JOIN b AS r ON `L`=r.id MAX_OUTPUT_ROWS 10 |> SELECT `L`.id'],
+ ['acquired','sql','SELECT records.id FROM records JOIN (SELECT 1 AS id) r ON records=r.id MAX_OUTPUT_ROWS 10'],
+].map(([name,format,text])=>({name:'join-on-range-refusal-'+name,format,text,expectedCode:'ClientProgramRejected'})));
