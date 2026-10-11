@@ -27,6 +27,8 @@ pub fn observe_native_resident_effect_targets(@remote_resident_host.ResidentSour
 
 pub fn observe_native_salesforce_effect_target(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, String, @catalog.SingleWriteRequest, @catalog.CatalogObservation, @catalog.TargetObservationLimits) -> Result[(String, @catalog.TargetObservation, @catalog.TargetPreviewRow), NativeSalesforcePreviewIssue]
 
+pub fn observe_native_salesforce_named_catalog(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, @catalog.CatalogObservationBinding, String, String, String, @catalog.DescribeLimits, Int, () -> Bool) -> Result[(@catalog.CatalogObservation, @credential_resource.NativeCredentialResponse), NativeSalesforceNamedCatalogIssue]
+
 pub fn prepare_native_resident_effect_created_targets(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, String, Int, @catalog.ExecutionMapping, @catalog.WriteProjection, String, @run_publication_host.PublicationOutputExportLimits, @catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int, Int) -> Result[NativeResidentEffectCreatedTargets, NativeResidentEffectTargetIssue]
 
 pub fn prepare_native_resident_effect_preview(@remote_resident_host.ResidentSourceCompute, @run_publication_host.ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @run_publication_host.ClientRequestIdentity, Int, String, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, @catalog.ExecutionMapping, String, @catalog.CatalogObservation, Array[(@catalog.SingleWriteRequest, String, @catalog.TargetObservation, @catalog.TargetPreviewRow)], @run_publication_host.ClientCapturedEffectPreviewLimits, @run_publication_host.PublicationOutputExportLimits, NativeEffectDispatchKeyLimits, created_targets? : NativeResidentEffectCreatedTargets?) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue]
@@ -87,6 +89,14 @@ pub(all) enum NativeResidentEffectCompletionIssue {
 }
 
 type NativeResidentEffectCreatedTargets
+
+pub(all) enum NativeResidentEffectCurrentReportIssue {
+  Unavailable
+  EvidenceDenied
+  Query(@remote_site_protocol.DispatchIssue)
+  Observation(NativeResidentEffectObservationIssue)
+  Transport(@remote_client.NativeRemoteClientIssue)
+}
 
 pub struct NativeResidentEffectObservation {
   dispatch_request_cid : String
@@ -158,6 +168,7 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_
 pub fn NativeResidentEffectReview::prepare_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits, delivery_claim? : @checkpoint_runtime.ResumeClaim?) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_remote_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_retention(Self, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_resident_host.ResidentEffectReviewRetention, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::report_effect_current(Self, String, @http_client.Client, String, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, NativeResidentEffectCurrentReportIssue]
 pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal) -> Result[Unit, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::restore_row_custody(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::result_capture(Self) -> @remote_resident_host.ResidentEffectResultCapture?
@@ -268,6 +279,17 @@ pub(all) enum NativeResidentEffectWriteIssue {
 pub(all) struct NativeResidentEffectWriteLimits {
   response : @catalog.WriteCollectionResponseLimits
   ledger : @checkpoint_runtime.WireLimits
+}
+
+pub(all) enum NativeSalesforceNamedCatalogIssue {
+  InvalidCatalogConfiguration
+  CatalogScopeMismatch
+  MetadataAccessDenied
+  MetadataAuthorizationChanged(@credential_resource.NativeCredentialResponse)
+  CatalogCredential(@credential_resource.NativeCredentialResourceIssue)
+  MetadataReadUnavailable(@credential_resource.NativeCredentialResponse)
+  CatalogSyncFailure(@catalog.CatalogSyncIssue, @credential_resource.NativeCredentialResponse)
+  CatalogObservationFailure(@catalog.CatalogObservationIssue, @credential_resource.NativeCredentialResponse)
 }
 
 pub(all) enum NativeSalesforcePreviewIssue {
