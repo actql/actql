@@ -59,10 +59,41 @@ fn retained_effect_capture_store(
   )
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
-  let persist = () => {
+  // Explicit test-only charges exercise lifetime separation. They do not
+  // declare an adopted Native layout or a production funding profile.
+  let computation_capacity : @resident.ResidentEffectComputationCapacity = {
+    contract_bytes: 1048576L,
+    control_bytes: 4096L,
+    workspace_bytes: 65536L,
+  }
+  let metadata_bytes = computation_capacity.contract_bytes +
+    computation_capacity.control_bytes
+  let execution_baseline = consumer.usage().reserved_execution_bytes
+  assert_true(
     consumer.persist_effect_capture(
       store, materials, inputs, result, invocation, preview, captured, authority,
       crypto, key, 65536, 10000, 64,
+    )
+    is Err({ issue: ComputationCapacityMissing, custody: None, }),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  let persist = () => {
+    consumer.persist_effect_capture(
+      store,
+      materials,
+      inputs,
+      result,
+      invocation,
+      preview,
+      captured,
+      authority,
+      crypto,
+      key,
+      65536,
+      10000,
+      64,
+      computation_capacity=Some(computation_capacity),
     )
   }
   let closed = Ref(false)
@@ -107,7 +138,9 @@ fn retained_effect_capture_store(
   guard first is Err({ issue: Store(Closed), custody: Some(custody), }) else {
     fail("lost encrypted capture acknowledgement: " + code)
   }
-  let charged = consumer.usage().reserved_retention_bytes - baseline
+  let charged = consumer.usage().reserved_retention_bytes -
+    baseline -
+    metadata_bytes
   assert_true(charged > 0L)
   store = open()
   custody.restore_store(store).unwrap()
@@ -116,6 +149,17 @@ fn retained_effect_capture_store(
     @publication.publication_contract_identity(captured),
   )
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, charged)
+  assert_eq(
+    custody
+    .original_computation_representation_extent(10000, 64, 65536)
+    .unwrap()
+    .length(),
+    6,
+  )
+  assert_eq(
+    consumer.usage().reserved_execution_bytes,
+    execution_baseline + computation_capacity.workspace_bytes,
+  )
   let original_binding = @publication.prepare_effect_capture_holding_binding(
     materials.run_definition,
     invocation,
@@ -161,12 +205,40 @@ fn retained_effect_capture_store(
     )
     is Err(PrivateEvidence(CipherRejected)),
   )
+  let before_changed_capacity = consumer.usage()
+  assert_true(
+    consumer.persist_effect_capture(
+      store,
+      materials,
+      inputs,
+      result,
+      invocation,
+      preview,
+      captured,
+      authority,
+      crypto,
+      key,
+      65536,
+      10000,
+      64,
+      computation_capacity=Some({
+        ..computation_capacity,
+        control_bytes: 4097L,
+      }),
+    )
+    is Err({ issue: Unavailable, custody: Some(original), }) &&
+    physical_equal(original, custody),
+  )
+  assert_eq(consumer.usage(), before_changed_capacity)
   assert_true(physical_equal(persist().unwrap(), custody))
   assert_eq(
     inspection.read("effect_capture_custody", slot).unwrap().body,
     encrypted_row.body,
   )
-  assert_eq(consumer.usage().reserved_retention_bytes, baseline + charged)
+  assert_eq(
+    consumer.usage().reserved_retention_bytes,
+    baseline + charged + metadata_bytes,
+  )
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, charged)
   if private_preview is Some((wire, authoring_cid)) {
     store = retained_effect_preview_store(
@@ -186,7 +258,7 @@ fn retained_effect_capture_store(
       path,
       store,
       custody,
-      baseline,
+      baseline + metadata_bytes,
       charged,
       checkpoint_custody~,
     )
@@ -201,7 +273,10 @@ fn retained_effect_capture_store(
     }
   })
   assert_true(custody.retry_cleanup() is Err(Store(Closed)))
-  assert_eq(consumer.usage().reserved_retention_bytes, baseline + charged)
+  assert_eq(
+    consumer.usage().reserved_retention_bytes,
+    baseline + charged + metadata_bytes,
+  )
   store = open()
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, charged)
   custody.restore_store(store).unwrap()
@@ -209,6 +284,11 @@ fn retained_effect_capture_store(
   assert_true(custody.retry_cleanup().unwrap())
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+  assert_eq(consumer.usage().reserved_execution_bytes, execution_baseline)
+  assert_true(
+    custody.original_computation_representation_extent(10000, 64, 65536)
+    is Err(Unavailable),
+  )
   let terminal_row = inspection.read("effect_capture_custody", slot).unwrap()
   assert_eq(terminal_row.revision, 1L)
   assert_true(terminal_row.body != encrypted_row.body)

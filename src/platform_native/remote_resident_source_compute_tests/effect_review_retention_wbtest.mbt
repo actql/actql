@@ -37,6 +37,12 @@ fn retained_effect_review_retention_store(
     max_nodes: 10000,
     max_depth: 64,
   }
+  // Test charges are explicit; they are not a production layout declaration.
+  let computation_capacity : @resident.ResidentEffectComputationCapacity = {
+    contract_bytes: 1048576L,
+    control_bytes: 4096L,
+    workspace_bytes: 65536L,
+  }
   let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(
       material, inputs, result, invocation, preview, captured, wire, authoring_cid,
@@ -110,7 +116,10 @@ fn retained_effect_review_retention_store(
         store.close().unwrap() |> ignore
       }
     })
-    let failed = retention.persist(store)
+    let failed = retention.persist(
+      store,
+      computation_capacity=Some(computation_capacity),
+    )
     assert_true(lost.val)
     match step {
       "effect-capture-persisted" =>
@@ -128,7 +137,9 @@ fn retained_effect_review_retention_store(
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
   println("native-original-review: persistence fault retries confirmed")
-  let report = retention.persist(store).unwrap()
+  let report = retention
+    .persist(store, computation_capacity=Some(computation_capacity))
+    .unwrap()
   let before_projection = consumer.usage().reserved_retention_bytes
   assert_true(
     retention.review_projection(() => false, 65536) is Err(EvidenceDenied),
@@ -210,8 +221,14 @@ fn retained_effect_review_retention_store(
     println("native-original-review: retaining journal report")
     let queued = work
       .persist_and_retain_report(
-        store, crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-        "2026-10-11T00:00:00.000Z", limits,
+        store,
+        crypto,
+        key,
+        "native-original-review-retention",
+        "2026-10-10T00:00:00.000Z",
+        "2026-10-11T00:00:00.000Z",
+        limits,
+        computation_capacity=Some(computation_capacity),
       )
       .unwrap()
     assert_eq(
@@ -380,7 +397,9 @@ fn retained_effect_review_retention_store(
   for _ in 0..<2 {
     assert_eq(
       @remote.remote_effect_checkpoint_report_json(
-        retention.persist(store).unwrap(),
+        retention
+        .persist(store, computation_capacity=Some(computation_capacity))
+        .unwrap(),
       ),
       report_wire,
     )
@@ -463,7 +482,10 @@ fn retained_effect_review_retention_store(
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
-    assert_true(retention.persist(store) is Err(Unavailable))
+    assert_true(
+      retention.persist(store, computation_capacity=Some(computation_capacity))
+      is Err(Unavailable),
+    )
   }
   assert_true(retention.retry_cleanup().unwrap())
   assert_false(retention.retry_cleanup().unwrap())

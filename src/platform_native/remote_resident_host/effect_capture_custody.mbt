@@ -4,6 +4,7 @@ pub(all) enum ResidentEffectCaptureCustodyIssue {
   Binding(@publication.RunEvidenceChainIssue)
   Store(@publication_store.NativePublicationStoreIssue)
   Capacity(@resources.LedgerIssue)
+  ComputationCapacityMissing
 }
 
 ///|
@@ -16,7 +17,8 @@ pub(all) struct ResidentEffectCaptureCustodyFailure {
 /// The complete original computation chain already accepted by the existing
 /// capture binding Owner. These are bounded contract references, not another
 /// output borrow, execution handle or authority. Cleanup drops them only after
-/// both physical custody and the original reservation are settled.
+/// physical custody is confirmed retired. Its separate metadata reservation
+/// remains live through failed cleanup or settlement.
 priv struct OriginalResidentEffectComputationEvidence {
   run : @publication.PublicationContract
   invocation : @publication.PublicationContract
@@ -37,7 +39,7 @@ struct ResidentEffectCaptureCustody {
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   mut released : Bool
-  mut original : OriginalResidentEffectComputationEvidence?
+  mut original : FundedResidentEffectComputation?
 }
 
 ///|
@@ -58,6 +60,7 @@ pub fn ResidentSourceCompute::persist_effect_capture(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  computation_capacity? : ResidentEffectComputationCapacity? = None,
 ) -> Result[ResidentEffectCaptureCustody, ResidentEffectCaptureCustodyFailure] {
   if !self.resident_effect_inputs_current(inputs) {
     return Err({ issue: Unavailable, custody: None, })
@@ -79,6 +82,14 @@ pub fn ResidentSourceCompute::persist_effect_capture(
     ) {
     Ok(value) => value
     Err(issue) => return Err({ issue: Binding(issue), custody: None, })
+  }
+  // The operator must supply an independently justified representation bound.
+  // A missing bound is a private installation gap, not a language restriction.
+  guard computation_capacity is Some(capacity) else {
+    return Err({ issue: ComputationCapacityMissing, custody: None, })
+  }
+  if !original_computation_capacity_valid(capacity) {
+    return Err({ issue: Capacity(InvalidCharge), custody: None, })
   }
   let physical = match
     store.prepare_effect_capture_custody(binding, crypto, key) {
@@ -108,17 +119,71 @@ pub fn ResidentSourceCompute::persist_effect_capture(
         ledger,
         reservation,
         released: false,
-        original: Some({
-          run: materials.run_definition,
-          invocation,
-          definition: result.definition,
-          artifact: result.artifact,
-          manifest: result.manifest,
-          receipt: result.receipt,
-        }),
+        original: None,
       }
       self.effect_captures[holding] = owner
       owner
+    }
+  }
+  match owner.original {
+    Some(funded) =>
+      if funded.capacity != capacity ||
+        funded.physical_cleanup_confirmed ||
+        funded.evidence is None ||
+        !@resources.capacity_reservation_matches(
+          owner.ledger,
+          funded.reservation,
+          capacity.contract_bytes + capacity.control_bytes,
+          capacity.workspace_bytes,
+        ) {
+        return Err({ issue: Unavailable, custody: Some(owner), })
+      }
+    None => {
+      let reservation = match
+        reserve_original_computation_capacity(owner.ledger, capacity) {
+        Ok(value) => value
+        Err(issue) =>
+          return Err({ issue: Capacity(issue), custody: Some(owner), })
+      }
+      // Publish the nominal reservation into the same owner before measuring
+      // or extending any of the six original contract lifetimes.
+      let funded : FundedResidentEffectComputation = {
+        capacity,
+        reservation,
+        evidence: None,
+        physical_cleanup_confirmed: false,
+      }
+      owner.original = Some(funded)
+      let evidence : OriginalResidentEffectComputationEvidence = {
+        run: materials.run_definition,
+        invocation,
+        definition: result.definition,
+        artifact: result.artifact,
+        manifest: result.manifest,
+        receipt: result.receipt,
+      }
+      for
+        contract in [
+          evidence.run,
+          evidence.invocation,
+          evidence.definition,
+          evidence.artifact,
+          evidence.manifest,
+          evidence.receipt,
+        ] {
+        match
+          @publication.publication_contract_representation_extent(
+            contract, max_nodes, max_depth, max_bytes,
+          ) {
+          Ok(_) => ()
+          Err(_) =>
+            return Err({
+              issue: Binding(@publication.EvidenceEncoding),
+              custody: Some(owner),
+            })
+        }
+      }
+      funded.evidence = Some(evidence)
     }
   }
   if !self.resident_effect_inputs_current(inputs) {
@@ -138,7 +203,11 @@ pub fn ResidentSourceCompute::persist_effect_capture(
 pub fn ResidentEffectCaptureCustody::confirm(
   self : ResidentEffectCaptureCustody,
 ) -> Result[@publication.PublicationContract, ResidentEffectCaptureCustodyIssue] {
-  if self.released {
+  if self.released || self.original is None {
+    return Err(Unavailable)
+  }
+  if self.original is Some(funded) &&
+    (funded.physical_cleanup_confirmed || funded.evidence is None) {
     return Err(Unavailable)
   }
   self.custody.confirm().map_err(issue => Store(issue))
@@ -153,6 +222,11 @@ pub fn ResidentEffectCaptureCustody::restore_store(
 ) -> Result[Unit, ResidentEffectCaptureCustodyIssue] {
   if self.released {
     return Err(Unavailable)
+  }
+  // A confirmed physical cleanup must never reopen the encrypted body merely
+  // because its metadata settlement still needs retry.
+  if self.original is Some(funded) && funded.physical_cleanup_confirmed {
+    return Ok(())
   }
   let custody = match
     store.restore_effect_capture_custody(self.binding, self.crypto, self.key) {
@@ -170,13 +244,33 @@ pub fn ResidentEffectCaptureCustody::retry_cleanup(
   if self.released {
     return Ok(false)
   }
-  match self.custody.retry_cleanup() {
-    Ok(_) => ()
-    Err(issue) => return Err(Store(issue))
+  let physical_confirmed = match self.original {
+    Some(funded) => funded.physical_cleanup_confirmed
+    None => false
   }
-  match @resources.settle_reservation(self.ledger, self.reservation) {
-    Ok(_) => ()
-    Err(issue) => return Err(Capacity(issue))
+  if !physical_confirmed {
+    match self.custody.retry_cleanup() {
+      Ok(_) => ()
+      Err(issue) => return Err(Store(issue))
+    }
+    if self.original is Some(funded) {
+      funded.physical_cleanup_confirmed = true
+    }
+  }
+  if @resources.reservation_open(self.reservation) {
+    match @resources.settle_reservation(self.ledger, self.reservation) {
+      Ok(_) => ()
+      Err(issue) => return Err(Capacity(issue))
+    }
+  }
+  if self.original is Some(funded) {
+    funded.evidence = None
+    if @resources.capacity_reservation_open(funded.reservation) {
+      match @resources.settle_capacity(self.ledger, funded.reservation) {
+        Ok(_) => ()
+        Err(issue) => return Err(Capacity(issue))
+      }
+    }
   }
   self.original = None
   self.released = true

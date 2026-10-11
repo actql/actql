@@ -123,7 +123,11 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     Ok(value) => value
     Err(issue) => return Err(Request(issue))
   }
-  guard capture.original is Some(original) && !capture.released else {
+  guard capture.original is Some(funded) &&
+    funded.evidence is Some(original) &&
+    !funded.physical_cleanup_confirmed &&
+    @resources.capacity_reservation_open(funded.reservation) &&
+    !capture.released else {
     return Err(ForeignCapture)
   }
   let captured = match capture.confirm() {

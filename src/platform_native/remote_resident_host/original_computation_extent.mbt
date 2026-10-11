@@ -13,7 +13,10 @@ pub fn ResidentEffectCaptureCustody::original_computation_representation_extent(
 ] {
   guard !self.released &&
     @resources.reservation_open(self.reservation) &&
-    self.original is Some(original) else {
+    self.original is Some(funded) &&
+    !funded.physical_cleanup_confirmed &&
+    @resources.capacity_reservation_open(funded.reservation) &&
+    funded.evidence is Some(original) else {
     return Err(Unavailable)
   }
   let facts = []
