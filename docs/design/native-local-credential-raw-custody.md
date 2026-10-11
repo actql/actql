@@ -71,6 +71,16 @@ tree/control bounds are workspace costs, separate from retained Store payloads.
 Database record limits,
 physical file identity and Store workspace limits still apply independently.
 
+A post-closure reader accepts only the exact original grant reference and an
+already-open Store matching the original Run publication binding. It validates
+the saved target and currently adopted configuration, then independently checks
+current Account permissions for the original Run and resource. It obtains no
+issuer issue authority, Work, installation secret or HTTP client. Missing grant
+and target originals are typed unavailable conditions; neither can be repaired
+by a lookup. Current authorization and Store custody bracket each credential
+read-only lookup and the final return. Original use/outcome/raw-envelope checks,
+expiry, revocation and cleanup custody stay with the credential and Store Owners.
+
 The private raw Store AES key is derived as HMAC-SHA-256 using the existing
 authenticated private epoch key. The UTF-8 message is the closed, value-preserving
 JSON object, in this order: `adoption_cid`, `domain`, `store_binding`.
