@@ -3,6 +3,7 @@
 /// success cases. This fixture is not Cloud approval authority.
 fn retained_holder_review_policy(
   holder : @resident.ResidentRetainedConsumer,
+  journal : @dispatch_journal.Journal,
   inputs : @strategy.CapturedEffectInputs,
   invocation : @publication.PublicationContract,
   mapped_create? : Bool = false,
@@ -53,7 +54,9 @@ fn retained_holder_review_policy(
     catalog,
     api_version: "v66.0",
     runtime_bundle_cid: @remote.dispatch_request_execution_scope(dispatch)[2],
-    source_binding_cid: retained_compute_cid("e"),
+    source_binding_cid: holder
+    .effect_source_binding_cid(journal, inputs)
+    .unwrap(),
     store_authority_cid: retained_compute_cid("a"),
     retention: retained_compute_effect_retention(),
     retention_dependencies: [
@@ -146,7 +149,9 @@ fn retained_holder_provider_review(
   }
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
-  let policy = retained_holder_review_policy(holder, inputs, invocation)
+  let policy = retained_holder_review_policy(
+    holder, journal, inputs, invocation,
+  )
   // The create connection cannot reinterpret this genuine update member,
   // export a different input, or acquire Provider authority from it.
   let create_before = consumer.usage().reserved_retention_bytes
@@ -206,6 +211,14 @@ fn retained_holder_provider_review(
     )
   }
   let before = consumer.usage().reserved_retention_bytes
+  // A well-formed fixture CID cannot stand in for the original consumer edge.
+  assert_true(
+    prepare(materials, {
+      ..policy,
+      source_binding_cid: retained_compute_cid("e"),
+    })
+    is Err(Unavailable),
+  )
   assert_true(
     prepare({ ..materials, request: None, }, policy) is Err(Unavailable),
   )

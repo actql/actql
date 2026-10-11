@@ -148,6 +148,21 @@ pub fn ResidentEffectReviewInputContext::matches_holder(
 }
 
 ///|
+/// Project the original consumer input identity through the same live holder,
+/// journal, captured inputs and transported request. This creates no Artifact,
+/// borrow or permission and cannot recover identity from candidate materials.
+pub fn ResidentEffectReviewInputContext::source_binding_cid(
+  self : ResidentEffectReviewInputContext,
+  journal : @journal.Journal,
+) -> String? {
+  guard self.facts(journal) is Some(facts) &&
+    facts.materials.request == Some(self.request) else {
+    return None
+  }
+  self.holder.effect_source_binding_cid(journal, facts.inputs)
+}
+
+///|
 /// Capture the actual consumer Result from the original acquired Source and
 /// invocation. Binding inventory comes from the original checked materials
 /// and compiler Template. Normalization must come from the trusted Host;
