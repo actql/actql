@@ -63,9 +63,13 @@ test "NEAREST WITH candidate reaches the unified public query entry" {
   // The candidate producer is consumed by NEAREST even though it is not the
   // principal FROM. The old separate CTE unused-refusal is not language law.
   assert_eq(semantic(actual), semantic(nearest_script_expected()))
-  match @check.check_parsed(
-    actual, check_environment(veca=true), None, check_limits(),
-  ) {
+  match
+    @check.check_parsed(
+      actual,
+      check_environment(veca=true),
+      None,
+      check_limits(),
+    ) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     NeedsInputs(_) => fail("closed WITH candidate must remain checked")
