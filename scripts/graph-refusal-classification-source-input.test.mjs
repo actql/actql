@@ -48,6 +48,7 @@ const originals = [
 // Retired authored sources remain immutable evidence, not accepted callers.
 const historicalCore = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-core-source-input.json', import.meta.url), 'utf8'));
 const historicalRows = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-row-source-input.json', import.meta.url), 'utf8'));
+const historicalOperations = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-operation-source-input.json', import.meta.url), 'utf8'));
 const cases = new Map([
   ...historicalCore.graph.refusals,
   ...subgraphSourceRefusals,
@@ -57,7 +58,7 @@ const cases = new Map([
   ...graphEdgePredicateRefusals,
   ...graphHopNodePredicateRefusals,
   ...historicalRows.refusals,
-  ...graphDiagnosticSourceRefusals,
+  ...historicalOperations.groups.diagnostics.refusals,
   ...graphDifferenceSourceRefusals,
   ...graphEqualitySourceRefusals,
 ].map(item => [item.name, item]));
@@ -103,5 +104,16 @@ test('WITH Graph core refusals preserve independent rejection policy', () => {
       assert.ok(text.startsWith('WITH '), current.name);
       assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text), current.name);
     }
+  }
+});
+
+
+test('WITH diagnostic refusals retain complete input policy', () => {
+  for (const current of graphDiagnosticSourceRefusals) {
+    const {text: oldText, ...oldPolicy} = historicalOperations.groups.diagnostics.refusals.find(item => item.name === current.name);
+    const {text, ...policy} = current;
+    assert.deepEqual(policy, oldPolicy);
+    assert.notEqual(text, oldText);
+    assert.ok(text.startsWith('WITH '));
   }
 });

@@ -1,0 +1,7 @@
+error: the argument '[PATH]...' cannot be used with '--file <FILE>'
+
+Usage: moon test --target <TARGET> <PATH>...
+
+For more information, try '--help'.
+["moon","test","--target","js","src/query_program","--file","with_vectors_events_test.mbt"]: process failed (2); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-lVJMfN

@@ -25,7 +25,7 @@ test "Traversal Relation output joins without a separate execution owner" {
     NeedsInputs(_) => fail("independent traversal JOIN has no Source")
   }
   let source = traversal_nodes_source() +
-    "DATA r = SELECT 0 AS depth, 10 AS tag UNION ALL SELECT 0 AS depth, 20 AS tag; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> AS v |> JOIN r AS rr ON v.depth = rr.depth MAX_OUTPUT_ROWS 10 |> SELECT v.depth AS depth, rr.tag AS tag"
+    ", r AS (SELECT 0 AS depth, 10 AS tag UNION ALL SELECT 0 AS depth, 20 AS tag) FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> AS v |> JOIN r AS rr ON v.depth = rr.depth MAX_OUTPUT_ROWS 10 |> SELECT v.depth AS depth, rr.tag AS tag"
   let actual = compile_data_set(source)
   match
     @check.check_parsed_with_evidence(
@@ -55,7 +55,7 @@ test "Traversal Relation output joins without a separate execution owner" {
 ///|
 test "Traversal path JOIN uses its own projected schema and rejects node-only fields" {
   let prefix = traversal_nodes_source() +
-    "DATA r = SELECT 0 AS depth, 10 AS tag; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'paths', max_output_rows: 10)"
+    ", r AS (SELECT 0 AS depth, 10 AS tag) FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'paths', max_output_rows: 10)"
   let actual = compile_data_set(
     prefix +
     " |> SELECT hop_count AS level |> AS v |> JOIN r AS rr ON v.level = rr.depth MAX_OUTPUT_ROWS 10 |> SELECT v.level AS depth, rr.tag AS tag",
