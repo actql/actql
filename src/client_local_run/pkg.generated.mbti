@@ -67,6 +67,10 @@ pub fn local_publication_intent_contracts(LocalPublicationIntent) -> (@run_publi
 
 pub fn local_publication_intent_inventory(LocalPublicationIntent) -> @run_publication.CheckedPublicationInventory
 
+pub fn local_publication_preflight_contracts(LocalPublicationPreflight) -> (@run_publication.PublicationContract, @run_publication.PublicationContract)
+
+pub fn local_publication_preflight_count(LocalPublicationPreflight) -> Int
+
 pub fn local_result_publication_contracts(LocalResultPublication) -> Array[@run_publication.PublicationContract]
 
 pub fn local_run_admission(LocalRunPlan) -> @run_publication.RunPublicationAdmission
@@ -116,6 +120,8 @@ pub fn restore_local_run_normalization_evidence(LocalRunPlan, LocalRunNormalizat
 pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn reuse_local_preflight_result_publication(LocalPublicationPreflight, Int, LocalResultPublication, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
 
 pub fn reuse_local_result_publication(LocalResultPublication, LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalResultPublicationIssue]
 
