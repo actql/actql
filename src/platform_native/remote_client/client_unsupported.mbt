@@ -139,3 +139,12 @@ pub fn acknowledge_retained_effect_checkpoint(
   ignore(checkpoint)
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn acknowledge_effect_current(
+  _client : @http.Client,
+  _url : String,
+  _reply : @remote.RemoteEffectCurrentReply,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}

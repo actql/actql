@@ -19,6 +19,7 @@ import {
   "actql/actql/platform_native/remote_client" @client,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_resident_host" @resident_host,
+  "actql/actql/platform_native/salesforce_effect_preview" @effect_review,
   "actql/actql/platform_native/runtime_bundle" @bundle,
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
