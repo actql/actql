@@ -25,15 +25,18 @@ source_publication = '--source-publication' in sys.argv[4:]
 explicit_view = '--explicit-view' in sys.argv[4:]
 final_publication = '--final-publication' in sys.argv[4:]
 result_binding = '--result-binding' in sys.argv[4:]
+commit_candidate = '--commit-candidate' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'])
 source_cases = []
 publication_cases = []
 binding_cases = []
 preflight_cases = []
+commit_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -162,7 +165,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 22
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 23
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -668,6 +671,8 @@ try:
                     fixture.inputs.pop(ticket)
                     assert fixture.call('close', before_completion) == 0
                 assert_status('publication', 'prepare', 0, value, configuration)
+                if commit_candidate:
+                    assert_status('publication_commit_export', 'reserve', -2, value, ticket + 1, 2097200)
                 spent = 0
                 for _ in range(100000):
                     advanced = call('publication', 'advance', value, configuration, quantum)
@@ -753,7 +758,8 @@ try:
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     size = call('result_binding', 'length', loan)
                     assert 0 < size <= 65536
-                    binding = json.loads(bytes(fixture.call('byte', loan, i) for i in range(size)))
+                    binding_wire = bytes(fixture.call('byte', loan, i) for i in range(size)).decode('utf-8')
+                    binding = json.loads(binding_wire)
                     for key in ('byte_count', 'physical_sha256', 'row_count', 'result_fields',
                                 'result_schema_cid', 'codec_contract_cid', 'material_generation_cid', 'store_authority_cid'):
                         assert binding[key] == physical[key], ('Independent Result binding field', key, binding[key])
@@ -773,6 +779,152 @@ try:
                     assert_status('result_binding', 'close', 0, loan)
                     assert fixture.call('close', input_handle) == 0
                     binding_cases.append('same_input_borrow_stop_and_cleanup_retry')
+                    if commit_candidate:
+                        commit_expected = json.loads((root / 'scripts/fixtures/python-local-commit-candidate.json').read_text())
+
+                        def complete_candidate_publication():
+                            child = publication_loan()
+                            assert_status('publication', 'prepare', 0, child, configuration)
+                            for _ in range(100000):
+                                assert_status('publication', 'advance', 0, child, configuration, 100)
+                                if call('publication', 'progress', child, 0) == 1:
+                                    break
+                            else:
+                                raise AssertionError('Candidate publication exceeded the original fixture bound')
+                            assert_status('publication', 'finish', 0, child, configuration)
+                            return child
+
+                        # Each malformed attempt retains its own original input;
+                        # later inputs cannot restart that same invocation.
+                        import rfc8785
+                        wrong_run = {key: val for key, val in binding.items()
+                                     if key != 'durable_result_binding_cid'}
+                        wrong_run['run_definition_cid'] = 'sha256:' + '0' * 64
+                        wrong_run['durable_result_binding_cid'] = 'sha256:' + hashlib.sha256(
+                            rfc8785.dumps(wrong_run)).hexdigest()
+                        for bad in ({'bindings': None}, {'bindings': []},
+                                    {'bindings': [binding_wire, binding_wire]},
+                                    {'bindings': [binding_wire], 'request': preflight_body['request']},
+                                    {'bindings': [encode(wrong_run).decode()]}):
+                            child = complete_candidate_publication()
+                            bad_input = copy({'committed_at': commit_expected['committed_at'], **bad})
+                            assert_status('publication', 'prepare_commit', -32, child, bad_input, configuration)
+                            assert_status('publication', 'finish_commit', -33, child, configuration)
+                            assert_status('publication_commit_export', 'reserve', -2, child, ticket + 1, 2097200)
+                            assert fixture.call('close', bad_input) == -9
+                            assert_status('publication', 'close', 0, child)
+                            assert fixture.call('close', bad_input) == 0
+                        # A shape-valid, independently rehashed binding with a
+                        # foreign logical Result must reach the full validator
+                        # and still cannot yield a candidate export.
+                        wrong_logical = {key: val for key, val in binding.items()
+                                         if key != 'durable_result_binding_cid'}
+                        wrong_logical['logical_result_cid'] = 'sha256:' + '0' * 64
+                        wrong_logical['durable_result_binding_cid'] = 'sha256:' + hashlib.sha256(
+                            rfc8785.dumps(wrong_logical)).hexdigest()
+                        child = complete_candidate_publication()
+                        bad_input = copy({'bindings': [encode(wrong_logical).decode()],
+                                          'committed_at': commit_expected['committed_at']})
+                        assert_status('publication', 'prepare_commit', 0, child, bad_input, configuration)
+                        for _ in range(100000):
+                            status = call('publication', 'advance_commit', child, configuration, 100)
+                            if status == -32:
+                                break
+                            assert status == 0
+                            if call('publication', 'commit_progress', child, 0) == 1:
+                                assert_status('publication', 'finish_commit', -32, child, configuration)
+                                break
+                        else:
+                            raise AssertionError('Foreign logical Result was not refused within the fixture bound')
+                        assert call('publication', 'commit_progress', child, 2) < 1000000
+                        assert_status('publication_commit_export', 'reserve', -2, child, ticket + 1, 2097200)
+                        assert_status('publication', 'close', 0, child)
+                        assert fixture.call('close', bad_input) == 0
+                        commit_cases.append('closed_candidate_input_and_original_binding_inventory')
+
+                        commit_input = copy({'bindings': [binding_wire],
+                                             'committed_at': commit_expected['committed_at']})
+                        assert_status('publication', 'prepare_commit', 0, value, commit_input, configuration)
+                        assert_status('publication', 'finish_commit', -7, value, configuration)
+                        assert_status('publication_commit_export', 'reserve', -2, value, ticket + 1, 2097200)
+                        commit_start_work = call('publication', 'commit_progress', value, 2)
+                        commit_work = 0
+                        assert_status('publication', 'advance_commit', -32, value, denied_configuration, 7)
+                        for _ in range(100000):
+                            assert_status('publication', 'advance_commit', 0, value, configuration, 7)
+                            used = call('publication', 'commit_progress', value, 1)
+                            assert 0 <= used <= 7
+                            commit_work += used
+                            if call('publication', 'commit_progress', value, 0) == 1:
+                                break
+                        else:
+                            raise AssertionError('Candidate validator exceeded the original fixture bound')
+                        assert commit_work > 0
+                        assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
+                        assert_status('publication', 'finish_commit', -32, value, denied_configuration)
+                        assert_status('publication', 'finish_commit', 0, value, configuration)
+                        assert_status('publication', 'finish_commit', 0, value, configuration)
+                        replacement = copy({'bindings': [binding_wire],
+                                            'committed_at': '2026-10-10T00:00:05.000Z'})
+                        assert_status('publication', 'prepare_commit', -2, value, replacement, configuration)
+                        assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
+                        assert fixture.call('close', replacement) == 0
+                        assert fixture.call('close', commit_input) == -9
+                        commit_cases.append('full_chain_validation_and_shared_work_budget')
+
+                        ticket += 1
+                        fixture.inputs[ticket] = b''
+                        commit_export = call('publication_commit_export', 'reserve', value, ticket, 2097200)
+                        assert commit_export > 0
+                        assert_status('publication_commit_export', 'length', -33, commit_export)
+                        assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
+                        assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
+                        assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
+                        assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
+                        size = call('publication_commit_export', 'length', commit_export)
+                        assert 0 < size <= 1048576
+                        proposal = json.loads(bytes(fixture.call('byte', commit_export, i) for i in range(size)))
+                        assert sorted(proposal) == commit_expected['output_fields']
+                        assert proposal['request'] == preflight_body['request']
+                        assert proposal['attempt'] == preflight_body['attempt']
+                        index = json.loads(proposal['index_entry'])
+                        assert sorted(index) == sorted(commit_expected['index_fields'])
+                        assert index['version'] == commit_expected['index_version']
+                        assert index['committed_at'] == commit_expected['committed_at']
+                        assert index['namespace_id'] == intent_facts['namespace_id']
+                        assert index['authority_scope_cid'] == CONFIGURATION['authority_scope_cid']
+                        # These references name the original independently tested
+                        # parent contracts, not values copied from this candidate.
+                        for field, original in (
+                            ('publication_request_cid', preflight_body['request']),
+                            ('publication_attempt_cid', preflight_body['attempt']),
+                            ('result_manifest_cid', body['manifest']),
+                            ('run_receipt_cid', body['receipt']),
+                            ('captured_run_cid', body['captured_run']),
+                        ):
+                            assert index[field] == json.loads(original)[field]
+                        assert index['run_definition_cid'] == original_request['run_definition_cid']
+                        assert index['invocation_cid'] == json.loads(body['manifest'])['invocation_cid']
+                        assert index['durable_result_binding_cids'] == [binding['durable_result_binding_cid']]
+                        assert len(index['durable_result_binding_cids']) == commit_expected['binding_count']
+                        expected_index_body = {
+                            'version': commit_expected['index_version'],
+                            'committed_at': commit_expected['committed_at'],
+                            'namespace_id': intent_facts['namespace_id'],
+                            'authority_scope_cid': CONFIGURATION['authority_scope_cid'],
+                            'run_definition_cid': original_request['run_definition_cid'],
+                            'invocation_cid': manifest['invocation_cid'],
+                            'publication_request_cid': original_request['publication_request_cid'],
+                            'publication_attempt_cid': original_attempt['publication_attempt_cid'],
+                            'result_manifest_cid': manifest['result_manifest_cid'],
+                            'run_receipt_cid': receipt['run_receipt_cid'],
+                            'captured_run_cid': captured['captured_run_cid'],
+                            'durable_result_binding_cids': [binding['durable_result_binding_cid']],
+                        }
+                        assert index['public_index_entry_cid'] == 'sha256:' + hashlib.sha256(
+                            rfc8785.dumps(expected_index_body)).hexdigest()
+                        assert fixture.queries == expected['source_queries']
+                        commit_cases.append('original_index_intent_and_current_authority')
                     loan, input_handle = binding_loan(facts)
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     assert_status('publication', 'close', -9, value)
@@ -781,6 +933,16 @@ try:
                     assert fixture.call('close', input_handle) == 0
                     assert fixture.queries == expected['source_queries']
                     binding_cases.append('parent_close_retains_child_without_source_compute_replay')
+                    if commit_candidate:
+                        assert_status('publication_commit_export', 'produce', -5, commit_export, configuration)
+                        reserved = fixture.call('reserved')
+                        fixture.cleanup_ready = False
+                        assert_status('publication_commit_export', 'close', -9, commit_export)
+                        assert fixture.call('reserved') == reserved
+                        assert_status('publication', 'close', -9, value)
+                        fixture.cleanup_ready = True
+                        assert_status('publication_commit_export', 'close', 0, commit_export)
+                        commit_cases.append('candidate_parent_pin_and_same_cleanup_retry')
                 if quantum == 100:
                     # Closing parents seals them but retains custody until the
                     # same child output and reader cleanup both succeed.
@@ -793,6 +955,8 @@ try:
                 assert fixture.call('reserved') == reserved
                 fixture.cleanup_ready = True
                 assert_status('publication', 'close', 0, value)
+                if commit_candidate and quantum == 7:
+                    assert fixture.call('close', commit_input) == 0
                 assert call('compute', 'configured', compute) == 0
                 publication_cases.append('quantum_' + str(quantum) + '_exact_snapshot_manifest_receipt_capture_and_cleanup')
             assert call('run', 'close_configuration', denied_configuration) == 0
@@ -869,6 +1033,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'result_publication_cases': publication_cases,
                   'result_binding_cases': binding_cases,
                   'publication_preflight_cases': preflight_cases,
+                  'commit_candidate_cases': commit_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']
