@@ -26,12 +26,14 @@ explicit_view = '--explicit-view' in sys.argv[4:]
 final_publication = '--final-publication' in sys.argv[4:]
 result_binding = '--result-binding' in sys.argv[4:]
 commit_candidate = '--commit-candidate' in sys.argv[4:]
+payload_request = '--payload-request' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -40,6 +42,7 @@ preflight_retirement_cases = []
 preflight_inputs = {}
 preflight_output_tickets = {}
 commit_cases = []
+payload_request_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -749,6 +752,79 @@ try:
                     expected_body = body
                 assert body == expected_body, 'Quantum cannot change the original final evidence'
                 assert fixture.queries == expected['source_queries']
+                payload_child = payload_input = None
+                if payload_request and quantum == 7:
+                    payload_expected = json.loads((root / 'scripts/fixtures/python-local-payload-request.json').read_text())
+                    payload_facts = payload_expected['input']
+                    assert len(payload_expected['exact_payload'].encode()) == int(payload_expected['max_bytes'])
+
+                    def payload_loan(facts):
+                        global ticket
+                        input_handle = copy(facts)
+                        ticket += 1
+                        fixture.inputs[ticket] = b''
+                        child = call('payload_request', 'reserve', value, 0, input_handle, ticket, 131300)
+                        assert child > 0, ('Original payload request reserve', child)
+                        return child, input_handle
+
+                    for bad in (
+                            {key: val for key, val in payload_facts.items() if key != 'material_generation_cid'},
+                            {**payload_facts, 'material_generation_cid': None},
+                            {**payload_facts, 'max_payload_bytes': True},
+                            {**payload_facts, 'max_payload_bytes': 0},
+                            {**payload_facts, 'row_count': 1}):
+                        child, input_handle = payload_loan(bad)
+                        assert_status('payload_request', 'produce', -31, child, configuration)
+                        assert_status('payload_request', 'length', -33, child)
+                        assert_status('payload_request', 'close', 0, child)
+                        assert fixture.call('close', input_handle) == 0
+                    child, input_handle = payload_loan({**payload_facts, 'max_payload_bytes': 11})
+                    assert_status('payload_request', 'produce', -32, child, configuration)
+                    assert_status('payload_request', 'close', 0, child)
+                    assert fixture.call('close', input_handle) == 0
+                    payload_request_cases.append('closed_request_preserves_absent_null_and_rejects_supplied_result_identity')
+                    child, input_handle = payload_loan(payload_facts)
+                    assert_status('payload_request', 'produce', -32, child, denied_configuration)
+                    assert_status('payload_request', 'produce', 0, child, configuration)
+                    size = call('payload_request', 'length', child)
+                    assert 0 < size <= 65536
+                    payload_wire = bytes(fixture.call('byte', child, i) for i in range(size))
+                    payload_body = json.loads(payload_wire)
+                    assert sorted(payload_body) == payload_expected['output_fields']
+                    assert payload_body['version'] == payload_expected['version']
+                    for key in ('store_authority_cid', 'material_generation_cid'):
+                        assert payload_body[key] == payload_facts[key]
+                    for key in ('max_bytes', 'row_count'):
+                        assert payload_body[key] == payload_expected[key]
+                    assert payload_body['publication_attempt_cid'] == original_attempt['publication_attempt_cid']
+                    assert payload_body['result_definition_cid'] == original_request['inventory'][0]['result_definition_cid']
+                    original_physical = json.loads((root / 'scripts/fixtures/python-local-result-storage-binding.json').read_text())
+                    assert payload_body['result_schema_cid'] == original_physical['result_schema_cid']
+                    assert payload_body['durable_codec_cid'] == original_physical['codec_contract_cid']
+                    payload_request_cases.append('original_result_and_attempt_project_exact_bounded_payload_intent')
+                    assert_status('payload_request', 'produce', -32, child, denied_configuration)
+                    assert_status('payload_request', 'produce', 0, child, configuration)
+                    assert bytes(fixture.call('byte', child, i) for i in range(size)) == payload_wire
+                    payload_request_cases.append('current_authority_revalidated_after_cached_projection')
+                    allocated = fixture.call('allocated')
+                    fixture.cleanup_ready = False
+                    assert_status('payload_request', 'close', -9, child)
+                    assert fixture.call('allocated') == allocated
+                    assert fixture.call('close', input_handle) == -9
+                    payload_request_cases.append('failed_cleanup_keeps_same_child_input_and_exact_allocation')
+                    fixture.cleanup_ready = True
+                    fixture.stop_ready = False
+                    assert_status('payload_request', 'close', -9, child)
+                    assert fixture.call('close', input_handle) == -9
+                    fixture.stop_ready = True
+                    assert_status('payload_request', 'close', 0, child)
+                    assert fixture.call('close', input_handle) == 0
+                    assert_status('payload_request', 'length', -2, child)
+                    assert_status('payload_request', 'close', -2, child)
+                    payload_request_cases.append('input_stop_retry_and_stale_child_refusal')
+                    payload_child, payload_input = payload_loan(payload_facts)
+                    assert_status('payload_request', 'produce', 0, payload_child, configuration)
+                    assert fixture.queries == expected['source_queries']
                 if result_binding and quantum == 7:
                     physical = json.loads((root / 'scripts/fixtures/python-local-result-storage-binding.json').read_text())
                     # These hashes are independently fixed from authored UTF-8
@@ -957,6 +1033,14 @@ try:
                     loan, input_handle = binding_loan(facts)
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     assert_status('publication', 'close', -9, value)
+                    if payload_request:
+                        assert payload_child is not None and payload_input is not None
+                        assert_status('payload_request', 'produce', -5, payload_child, configuration)
+                        assert_status('payload_request', 'close', 0, payload_child)
+                        assert fixture.call('close', payload_input) == 0
+                        assert fixture.queries == expected['source_queries']
+                        payload_request_cases.append('parent_close_keeps_child_without_source_compute_reexecution')
+                        assert payload_request_cases == payload_expected['cases']
                     assert_status('result_binding', 'produce', -5, loan, configuration)
                     assert_status('result_binding', 'close', 0, loan)
                     assert fixture.call('close', input_handle) == 0
@@ -1073,6 +1157,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'publication_preflight_cases': preflight_cases,
                   'preflight_retirement_cases': preflight_retirement_cases,
                   'commit_candidate_cases': commit_cases,
+                  'payload_request_cases': payload_request_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']
