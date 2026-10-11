@@ -1099,7 +1099,7 @@ for (const [index, cohort] of cohorts.entries()) {
     observe: observe(directory), prepareCase,
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
-    'Initial Graph execution proves the actual dispatch hook is live');
+    'Initial retained execution proves the actual dispatch hook is live');
   const acceptedRuns = observe(directory)().acceptedRuns;
   assert.equal(acceptedRuns, cohortRunCount(cohort));
   localAcceptedRuns += acceptedRuns;

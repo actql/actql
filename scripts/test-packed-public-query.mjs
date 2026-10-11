@@ -807,7 +807,7 @@ if (process.argv.includes('--graph-graft-only') || process.argv.includes('--grap
     process.argv.includes('--graph-remaining-operations-only') ||
     process.argv.includes('--graph-shortest-only')) {
   // The Local and HTTPS producers have exited. Read the original retained
-  // Graph-derived Results in new processes; no String fixture was selected.
+  // selected Results in new processes; no String fixture was selected.
   await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});
   if (process.argv.includes('--input-stage-result-only')) {
     await mkdir(join(root, 'tls'));
