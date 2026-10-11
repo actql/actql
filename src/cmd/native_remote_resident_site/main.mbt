@@ -4096,6 +4096,18 @@ fn run_holder(
       stop("holder setup failed before claim")
     }
   }
+  let effect_host_operator = load_holder_effect_host_operator(
+    matches,
+    resources,
+    () => slot.verify_current_hold() == Ok(()),
+  ) catch {
+    CommandStop(issue) => {
+      close_holder_output_resources(resources)
+      close_site_environment(environment)
+      ignore(slot.close())
+      stop(issue)
+    }
+  }
   // A Provider grant binds the captured invocation, including actual Source
   // observation times. It is installed on the first exact Resume, not made a
   // prerequisite of the independently authorized Source start claim.
@@ -4196,6 +4208,7 @@ fn run_holder(
         observer,
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
+        effect_host_operator~,
         effect_catalog_review=original => {
           open_holder_effect_review_installation(
             matches,
@@ -4777,6 +4790,7 @@ fn command() -> @argparse.Command {
       global("engine-root"),
       global("effect-resume-root"),
       global("effect-review-root"),
+      global("effect-host-account-root"),
       global("effect-catalog-root"),
       global("duckdb-library"),
       global("source-ref"),

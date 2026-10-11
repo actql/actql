@@ -186,6 +186,7 @@ fn holder_effect_evidence_allowed(
 priv struct HolderEffectHostOperatorInstallation {
   account : @effect_review.NativeEffectHostAccountInstallation
   original_identity : @effect_review.NativeEffectCloudHostIdentityRead
+  installation_current : () -> Bool
 }
 
 ///|
@@ -194,7 +195,9 @@ fn holder_effect_operator_admission(
   resources : HolderOutputResources,
   installation : HolderEffectHostOperatorInstallation?,
 ) -> HolderEffectHostAdmission? {
-  guard installation is Some(installed) && original.current() else {
+  guard installation is Some(installed) &&
+    (installed.installation_current)() &&
+    original.current() else {
     return None
   }
   let selected = installed.account.subject()
@@ -225,6 +228,7 @@ fn holder_effect_operator_admission(
     original_identity: installed.original_identity,
     read_current: purpose => {
       guard original.current() &&
+        (installed.installation_current)() &&
         installed.account.read_current_configuration() is Some(configuration) &&
         original.current() else {
         return None
@@ -234,6 +238,7 @@ fn holder_effect_operator_admission(
         delegated_action: None,
         current: () => {
           original.current() &&
+          (installed.installation_current)() &&
           installed.account.current_permission(
             dispatch_cid,
             match purpose {
@@ -241,6 +246,7 @@ fn holder_effect_operator_admission(
               Read => false
             },
           ) &&
+          (installed.installation_current)() &&
           original.current()
         },
       })

@@ -50,9 +50,10 @@ explicit publication Allow restricted to the original receiver.
 The physical Native bounded reader and actual holder caller are compiled, not
 executed by these JS tests. No production CLI Account installation, real Native
 filesystem acceptance, Cloud DO/TLS, Provider I/O, public approval, Result or
-release is claimed. The private production port still defaults to None. A visible
-never-constructed operator record documents the remaining production supplier;
-it is not hidden by a dummy value or warning suppression.
+release is claimed. The private production port still defaults to None. At the installer-only
+source, the never-constructed operator record documents the remaining supplier;
+its warning is retained, not hidden by a dummy value or suppression. The
+subsequent explicit CLI supplier is described separately.
 
 No Journal, initial Catalog stamp, Ledger, credential Resource or cleanup file
 is changed. No wire/CID domain, Run identity, Owner or grant is introduced.
