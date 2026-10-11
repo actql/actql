@@ -377,6 +377,7 @@ pub struct ModelOutcomeRead {
 type ModelOutputPreparation
 
 pub enum ModelPhysicalEvent {
+  BeforeInvoke
   InvokeStarted
   InvokeReturned
   InvokeFailed

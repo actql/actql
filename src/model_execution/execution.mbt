@@ -554,6 +554,7 @@ fn advance_model(
   // Both persistence adapters retain this exact owner-issued attempt. The
   // immediate adapter reports its save here; the polling adapter suspends with
   // the same entry. Both resume through the original final one-shot send gate.
+  let mut send_gate : ModelCallSendGate? = None
   if state.durable_calls {
     guard state.prepared_call_set is Some(prepared_set) &&
       attempt is Some(trace) &&
@@ -602,25 +603,26 @@ fn advance_model(
     // The legacy immediate adapter's true result reports actual persistence;
     // it does not itself authorize transport or fabricate a new approval.
     retain_model_entry_attempt(state, entry)
-    let started = match acknowledge_model_call_entry(entry, prepared_set) {
+    let issued = match acknowledge_model_call_entry(entry, prepared_set) {
       None =>
         match model_call_start_current(entry, reader) {
           Err(issue) => Err(issue)
           Ok(_) => Err(CallEntryRefused)
         }
       Some(acknowledgement) =>
-        match issue_model_call_send_gate(acknowledgement, reader) {
-          Err(issue) => Err(issue)
-          Ok(gate) => consume_model_call_send_gate(gate, reader)
-        }
+        issue_model_call_send_gate(acknowledgement, reader)
     }
     retire_model_call_entry_persistence(entry)
-    state.entering = None
-    match started {
-      Err(Cancelled) => return @bounded.Stopped(@bounded.Cancelled, 1, 1)
-      Err(Deadline) => return @bounded.Stopped(@bounded.Deadline, 1, 1)
-      Err(issue) => return @bounded.Failed(issue, 1, 1)
-      Ok(_) => ()
+    match issued {
+      Err(issue) => {
+        retire_model_entering(state)
+        return match issue {
+          Cancelled => @bounded.Stopped(@bounded.Cancelled, 1, 1)
+          Deadline => @bounded.Stopped(@bounded.Deadline, 1, 1)
+          _ => @bounded.Failed(issue, 1, 1)
+        }
+      }
+      Ok(gate) => send_gate = Some(gate)
     }
   }
   if !state.durable_calls && attempt is Some(attempt) {
@@ -634,13 +636,32 @@ fn advance_model(
     return @bounded.Stopped(@bounded.Cancelled, 1, 1)
   }
   state.observing_response = state.durable_calls
-  // No observation is issued for denied, cancelled, restored, or missing-plan
-  // calls. This is only the actual synchronous invocation interval.
+  // This diagnostic callback is not a physical-start fact. It may revoke
+  // authority or cancel, so the original one-shot gate is consumed afterwards.
   if state.physical_preflight is Some(_) &&
     state.physical_plans.get(state.next_slot) is None {
     return @bounded.Failed(RequestIdentity, 1, 1)
   }
-  observe_model_physical(state, InvokeStarted)
+  observe_model_physical(state, BeforeInvoke)
+  let started = match send_gate {
+    Some(gate) => consume_model_call_send_gate(gate, reader)
+    None => check_model_physical_start_current(state, reader)
+  }
+  retire_model_entering(state)
+  match started {
+    Err(issue) => {
+      state.observing_response = false
+      return match issue {
+        Cancelled => @bounded.Stopped(@bounded.Cancelled, 1, 1)
+        Deadline => @bounded.Stopped(@bounded.Deadline, 1, 1)
+        _ => @bounded.Failed(issue, 1, 1)
+      }
+    }
+    Ok(_) => ()
+  }
+  // No callback, await or request construction separates final consumption
+  // from the retained invocation. Entered responsibility already exists if
+  // the installed foreign invocation loses its response or throws.
   let invoked = match state.physical_preflight {
     None => (provider.invoke)(request)
     Some(_) => {
@@ -650,6 +671,9 @@ fn advance_model(
       (plan.invoke)()
     }
   }
+  // Deliver the entry-start fact only after crossing the invocation boundary.
+  // It proves neither network delivery nor a valid/saved provider response.
+  observe_model_physical(state, InvokeStarted)
   observe_model_physical(
     state,
     match invoked {

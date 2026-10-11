@@ -10,6 +10,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
 import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
+import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -331,34 +332,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     live.set(preparedCallSet, owner);
     ownership.owner = owner;
     if (observation?.canMeasure('infer')) {
-      let physical;
-      const installed = operation.bindModelObservation(preparedCallSet, facts => {
-        try {
-          if (facts.event === 'started') {
-            // MoonBit emits this only at actual invoke, after durable entry
-            // and cancellation checks, never during approval or replay.
-            physical = {slot: facts.slot, attemptCid: facts.attemptCid,
-              started: performance.now()};
-            return;
-          }
-          const interval = physical;
-          physical = undefined;
-          const receipt = owner.entries.get(facts.slot);
-          if (interval === undefined || interval.slot !== facts.slot ||
-              interval.attemptCid !== facts.attemptCid ||
-              receipt?.attemptCid !== facts.attemptCid) {
-            observation.noteLoss(); return;
-          }
-          observation.emit('infer', 'transport_completed', {
-            ref: {namespaceId, authorityScopeCid, runDefinitionCid: receipt.runDefinitionCid},
-            task: receipt.taskIndex, slot: receipt.ordinal, attempt: receipt.attemptIndex,
-            attemptCid: facts.attemptCid,
-            // This is the physical callback disposition, not Run completion
-            // or proof that a returned response was valid, saved, or published.
-            outcome: facts.outcome,
-          }, {segment: facts.attemptCid, durationMs: performance.now() - interval.started});
-        } catch { observation.noteLoss(); }
-      });
+      const installed = operation.bindModelObservation(preparedCallSet,
+        createInferPhysicalObservation({observation,
+          reference: {namespaceId, authorityScopeCid},
+          receiptAt: slot => owner.entries.get(slot)}));
       if (!installed) observation.noteLoss();
     }
     const unreconciled = new Map();
