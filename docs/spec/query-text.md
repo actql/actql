@@ -351,7 +351,10 @@ constructs type, identity, uniqueness or order evidence. The
 is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
-parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+parameter, including transparent grouping such as `LIMIT ((@count)) OFFSET (1)`.
+Grouping uses the existing expression budgets and does not evaluate arithmetic,
+casts, calls or row references. Names lower to the ordinary `take.count` and
+`take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
 Frontend evaluation, coercion or default for an invalid/missing binding.
 Omitted OFFSET is the literal zero. The current common `take` contract still
