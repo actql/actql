@@ -44,6 +44,7 @@ fn finish_prepared_model_capacity(
       Err(issue) => return Err(Ledger(issue))
     }
     state.prepared_capacity = None
+    state.original_startup = None
   }
   Ok(true)
 }
