@@ -11,6 +11,86 @@ fn read_capacity_fixture(retained : Int64, execution : Int64) -> Ledger {
 }
 
 ///|
+test "original byte coverage checks both dimensions without changing custody" {
+  let ledger = read_capacity_fixture(17L, 13L)
+  let token = reserve_capacity(ledger, 7L, 5L).unwrap()
+  let before = ledger_usage(ledger)
+  let serial = ledger.next_capacity_serial
+  assert_true(capacity_reservation_covers(ledger, token, 7L, 5L))
+  assert_true(capacity_reservation_covers(ledger, token, 6L, 4L))
+  assert_true(capacity_reservation_covers(ledger, token, 0L, 0L))
+  assert_false(capacity_reservation_covers(ledger, token, 8L, 5L))
+  assert_false(capacity_reservation_covers(ledger, token, 7L, 6L))
+  assert_false(capacity_reservation_covers(ledger, token, -1L, 0L))
+  assert_false(capacity_reservation_covers(ledger, token, 0L, -1L))
+  assert_false(
+    capacity_reservation_covers(ledger, token, 9223372036854775807L, 0L),
+  )
+  // Spare Ledger capacity is not allowance held by this token.
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, serial)
+  // The older exact-match check is still exact.
+  assert_true(capacity_reservation_matches(ledger, token, 7L, 5L))
+  assert_false(capacity_reservation_matches(ledger, token, 6L, 4L))
+  settle_capacity(ledger, token).unwrap()
+  assert_false(capacity_reservation_covers(ledger, token, 0L, 0L))
+}
+
+///|
+test "original byte coverage rejects foreign pending and nonbyte tokens" {
+  let ledger = read_capacity_fixture(7L, 5L)
+  let foreign = read_capacity_fixture(7L, 5L)
+  let token = reserve_capacity(ledger, 7L, 5L).unwrap()
+  assert_false(capacity_reservation_covers(foreign, token, 7L, 5L))
+  mark_cleanup_pending(ledger, token.reservation).unwrap()
+  assert_true(capacity_reservation_open(token))
+  assert_false(capacity_reservation_covers(ledger, token, 0L, 0L))
+  settle_execution_reservation(
+    ledger,
+    token.reservation,
+    remaining_execution=5L,
+  ).unwrap()
+  assert_true(capacity_reservation_covers(ledger, token, 7L, 5L))
+  settle_capacity(ledger, token).unwrap()
+
+  // White-box construction cannot turn a send token into byte-only custody.
+  let send = reserve_attempt(ledger, 1L, 7L, 5L).unwrap()
+  let forged : CapacityReservation = { reservation: send, }
+  assert_false(capacity_reservation_covers(ledger, forged, 7L, 5L))
+  settle_reservation(ledger, send).unwrap()
+}
+
+///|
+test "original byte coverage does not adopt reserved or uncertain quantities" {
+  let ledger = read_capacity_fixture(7L, 5L)
+  configure_quantities(ledger, {
+    tokens: 13L,
+    cost_units: 17L,
+    duration_ms: 19L,
+  }).unwrap()
+  let send = reserve_attempt(
+    ledger,
+    0L,
+    7L,
+    5L,
+    quantities=Some({ tokens: 1L, cost_units: 2L, duration_ms: 3L, }),
+  ).unwrap()
+  let forged : CapacityReservation = { reservation: send, }
+  let before = ledger_usage(ledger)
+  let quantities = quantity_usage(ledger)
+  assert_false(capacity_reservation_covers(ledger, forged, 0L, 0L))
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(quantity_usage(ledger), quantities)
+  mark_quantities_uncertain(ledger, send).unwrap()
+  let uncertain = quantity_usage(ledger)
+  assert_false(capacity_reservation_covers(ledger, forged, 0L, 0L))
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(quantity_usage(ledger), uncertain)
+  settle_reservation(ledger, send).unwrap()
+  assert_eq(quantity_usage(ledger).uncertain, uncertain.uncertain)
+}
+
+///|
 test "read capacity admits exact bytes without send or quantity authority" {
   let ledger = read_capacity_fixture(7L, 5L)
   configure_quantities(ledger, {

@@ -62,3 +62,88 @@ pub fn NativeLocalPreparationGrantAcknowledgement::credential_authorizer(
 ) -> (@credential_resource.NativeLocalPreparationCredentialAuthorization) -> Bool {
   authorization => self.authorize_credential_request(authorization) is Ok(_)
 }
+
+///|
+// Original request matching for the distinct current read operation. A match
+// is not authority, a grant acknowledgement, or a physical use observation.
+fn local_preparation_raw_request_matches(
+  grant : @credential.LocalPreparationCredentialGrant,
+  authorization : @credential_resource.NativeLocalPreparationCredentialAuthorization,
+) -> Bool {
+  let scope = @credential.local_preparation_credential_grant_scope(grant)
+  if authorization.scope != scope ||
+    authorization.grant_cid !=
+    @credential.local_preparation_credential_grant_cid(grant) {
+    return false
+  }
+  match (authorization.stage, authorization.use_cid, authorization.request) {
+    ("query", None, None) => true
+    ("return", Some(cid), None) => !cid.is_empty()
+    ("raw-query" | "raw-return", Some(cid), Some(request)) =>
+      !cid.is_empty() &&
+      request.verb == @http.Get &&
+      request.path == scope.request_path &&
+      request.body.length() == 0 &&
+      scope.request_method == "GET" &&
+      scope.operation == "salesforce:record:observe"
+    _ => false
+  }
+}
+
+///|
+// Lookup/disclosure does not acquire the issuer's independent issue authority.
+// Require current original Work/target read, Run read, and immutable committed
+// grant custody; the credential Owner separately validates the actual use.
+fn NativeLocalPreparationGrantOperation::require_raw_read(
+  self : NativeLocalPreparationGrantOperation,
+) -> Result[Unit, NativeLocalSalesforcePreparationIssue] {
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if !(self.provider.host.authorize({
+      principal: self.provider.principal,
+      connection: self.provider.connection,
+      resource: "run",
+      operation: "read",
+    })
+    is Ok(@authorization.Allow(_))) {
+    return Err(AuthorizationDenied)
+  }
+  let saved = self.provider.host.journal.transaction(() => {
+    match self.require_current_locked() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    match self.require_original_target_locked() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    self.provider.host.lookup_local_grant_original_locked(
+      self.provider.crypto,
+      self.original,
+    )
+  })
+  match saved {
+    Ok(Some(original)) if original.intent == self.original.intent => ()
+    Ok(_) => return Err(Journal(CustodyLost))
+    Err(issue) => return Err(Journal(issue))
+  }
+  self.require_current()
+}
+
+///|
+fn NativeLocalPreparationGrantOperation::authorize_raw_read(
+  self : NativeLocalPreparationGrantOperation,
+  authorization : @credential_resource.NativeLocalPreparationCredentialAuthorization,
+) -> Result[Unit, NativeLocalSalesforcePreparationIssue] {
+  match self.require_raw_read() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard self.original.grant is PreparationGrant(grant) &&
+    local_preparation_raw_request_matches(grant, authorization) else {
+    return Err(AuthorizationDenied)
+  }
+  self.require_raw_read()
+}

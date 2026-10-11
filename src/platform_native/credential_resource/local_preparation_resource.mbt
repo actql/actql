@@ -16,6 +16,7 @@ pub fn install_native_local_preparation_credential_resource_service(
   client : @http.Client,
   installations : Array[NativeLocalPreparationCredentialInstallation],
   authorize : (NativeLocalPreparationCredentialAuthorization) -> Bool,
+  raw_store? : NativeLocalPreparationRawStore? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   let operations = installations.map(value => value.operation)
   if operations.any(operation => {
@@ -33,6 +34,7 @@ pub fn install_native_local_preparation_credential_resource_service(
     () => @env.now().reinterpret_as_int64(),
     authorize_preparation=Some(authorize),
     preparation_installations=installations,
+    preparation_raw_store=raw_store,
   )
 }
 

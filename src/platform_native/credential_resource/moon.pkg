@@ -7,6 +7,7 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/trusted_clock",
+  "actql/actql/platform_native/publication_store" @publication,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
