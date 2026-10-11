@@ -70,3 +70,18 @@ test "public WITH cutover rejects retired DATA without structural fallback" {
     )
   }
 }
+
+///|
+test "public SQL and Text reject retired Graph LABELS before preparation" {
+  let formats : Array[Format] = [Text, Sql]
+  for format in formats {
+    assert_true(
+      lower(
+        "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Node) |> SELECT a.id",
+        format,
+        Some(test_context()),
+      )
+      is Err(QuerySyntax({ issue: @syntax.Syntax("Graph LABELS annotation is retired"), .. })),
+    )
+  }
+}

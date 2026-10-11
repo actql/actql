@@ -1,4 +1,18 @@
 ///|
+test "Graph LABELS property annotation is retired at the authored token" {
+  let prefix = "FROM GRAPH g "
+  let source = prefix +
+    "LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Node) |> SELECT a.id"
+  match parse_query(source, query_limits()) {
+    Err(diagnostic) => {
+      assert_eq(diagnostic.issue, Syntax("Graph LABELS annotation is retired"))
+      assert_eq(diagnostic.range.start_byte, 13)
+    }
+    Ok(_) => fail("retired LABELS must not reach lowering")
+  }
+}
+
+///|
 test "Graph MATCH retains source labels, mode and directed occurrences" {
   let query = parse_query(
     "FROM GRAPH crm_graph LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH ACYCLIC (a:Account)-[e:HAS_CONTACT]->(b:Contact) |> SELECT a.name AS account_name;",
