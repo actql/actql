@@ -1,3 +1,4 @@
+import {readHistoricalJson} from './historical-json.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
@@ -8,7 +9,7 @@ const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).joi
     ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
     : JSON.stringify(value);
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
+const read = readHistoricalJson;
 
 test('decimal-position ROUND/TRUNC retain exact predecessor bodies and complete identity preimages', () => {
   const history = read('portability/corpus/historical/pre-round-precision-contract-identities.json');
