@@ -42,6 +42,7 @@ pub fn local_prepared_document(value : LocalPreparedInput) -> String {
 
 ///|
 pub(all) enum LocalPreparationIssue {
+  Publication(@publication.PublicationIssue)
   Context(@frontend.AliasIssue)
   ForeignEnvironment
   Frontend(@frontend.Issue)
@@ -140,4 +141,23 @@ pub fn prepare_local_input_material(
     Ok(_) => Ok({ prepared, original: input, document: lowered.document, })
     Err(issue) => Err(ArrayProfile(issue))
   }
+}
+
+///|
+/// Interpret the same installed publication used by the Node Host. The
+/// publication Owner checks the exact environment, Source view, policy,
+/// schema and alias. Success is name binding, not Run or read admission.
+pub fn bind_local_published_input_context(
+  environment : @checked.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[LocalInputContext, LocalPreparationIssue] {
+  @publication.bind_published_query_context(
+    environment, publication, declarations,
+  )
+  .map(query => {
+    environment_cid: @checked.checking_environment_cid(environment),
+    query,
+  })
+  .map_err(issue => Publication(issue))
 }

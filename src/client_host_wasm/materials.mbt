@@ -77,11 +77,7 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
   material.invoked = true
   let wire = match material.kind {
     1 => {
-      guard @buffers.buffer_wire(value.pool, environment.borrow.slot)
-        is Some(bytes) else {
-        return -5
-      }
-      let body = @utf8.decode(bytes) catch { _ => return -12 }
+      let body = environment.wire
       match
         @local_run.export_local_run_materials(
           plan,

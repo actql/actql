@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 3; this private ABI
+before opening the instance. `actql_host_abi_version` returns 4; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -91,6 +91,57 @@ objects, DuckDB workspace or aggregate Local execution. A product Host must
 reserve and account for those resources using their existing Owners before
 claiming an aggregate execution bound.
 
+## Physical DuckDB boundary
+
+The private Python adapter loads an explicitly installed standalone DuckDB C
+library with a verified digest and selected version. It neither discovers a
+Node package at runtime nor falls back to the Python extension's unbounded
+row-fetch APIs. The existing native adapter's C layouts and scalar row/field
+codec are shared boundary references. Canonical environment settings are
+generated from `adapters/connectors/duckdb/environment-contract.json`.
+
+Before opening a database, the product Host must reserve the native workspace
+through the existing Core resource Owner. The adapter applies a memory limit,
+one worker, disabled external access and extension loading, and no temporary
+spill. These physical settings alone are not an aggregate memory guarantee.
+
+SQL arrives from the existing checked acquisition Owner. The physical adapter
+does not parse, authorize or repair it. The private physical binding profile accepts the existing Core BOOLEAN,
+DOUBLE and VARCHAR projections, including explicit NULL. DOUBLE is transferred
+using the existing sixteen lowercase hexadecimal IEEE-bit payload; text uses
+length-aware binding and preserves Unicode, CR/LF and embedded NULL. DATE,
+TIMESTAMP and DECIMAL binding are not yet supported by this physical profile.
+These capabilities must be checked before product dispatch. Missing parameters
+are a count mismatch, not NULL or a default value. Unsupported native types are rejected before rows
+are fetched. Core remains responsible for pre-execution Capability admission.
+
+Row and metadata encoding writes only into a bounded, caller-reserved bytearray.
+Native VARCHAR length is inspected before any Python cell copy. JSON escaping
+cannot grow that buffer, numeric payloads follow the existing native codec,
+and raw Unicode, embedded NULL and line endings are preserved. Parameter input
+is an immutable tuple of at most 32 scalar projections. Each text copy is
+counted in UTF-8 before allocation against both the cell ceiling and the
+remaining shared parameter-copy allowance (the row-byte ceiling). All payload
+checks precede native preparation; exact native arity and binding checks
+precede execution. The product reservation must account for simultaneous Core
+input, Python encoded parameters and DuckDB-owned parameter copies. A capacity
+failure does not deliver a partial row, claim EOF or authorize a repeated query.
+
+For the existing Native receipt decoder, `read_column_row` writes one-row
+column vectors directly into that same reserved buffer. For example, native
+row `["7",null]` becomes `[["7"],[null]]` with a claimed row count of one.
+No intermediate parsed row or transposed copy is retained. Both framing
+methods consume the same native cursor and share its row and byte ceilings.
+The existing Core receiver validates column shape, counts, schema, values and
+cumulative limits; the physical encoding does not certify a Source receipt.
+
+Statement, result, chunk and logical-type handles belong to the exact physical
+connection and stream. Copied handles are refused. Interrupt delivery is not
+physical-stop acknowledgement or a Run cancellation result. While native I/O
+is active, close remains pending; failed destruction retains the same handles
+for retry. Closing a connection waits for its stream custody to settle and
+never starts another query or decides a Run outcome.
+
 ## Execution boundary
 
 The `actql_program_*` source-free preparation profile installs a trusted Check
@@ -124,6 +175,24 @@ callbacks and persistence, not a second Run or recovery state machine. This
 transfer facade provides no task dispatch or durable recovery start.
 
 ## Checked task Host
+
+The single-Source relation profile defines its Run before acquisition using the
+same request, compilation and publication Owners as the source-free profile.
+Neither profile grants physical Source access. Unsupported Graph/Model/Effect
+paths remain outside this installed profile.
+
+The existing physical-start Owner's accepted decision is retained against the
+exact plan before Source I/O. The verified capture is then borrowed by the
+existing captured Local Host. Compute binds that retained decision rather than
+claiming the Run is still physically unstarted after acquisition. A decision
+from another plan cannot authorize this Host. Current authorization is still
+checked at each task activation.
+
+Captured root inputs and completed Compute producers use the existing managed
+driver's distinct input variants. The common compute Host refreshes its normal
+estimates/selection before dispatch; no Python task counter or replacement
+selector is introduced. Source capture custody outlives its consumers, and
+closing Compute does not revoke the caller's acquisition Owner.
 
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
@@ -229,7 +298,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 3 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 4 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -258,3 +327,23 @@ handle cannot replace a completed or interrupted invocation. The material loan
 remains live until dependent Run handles close. This is plan restoration only;
 original process recovery still requires durable completed-output, start,
 publication and cleanup observations from their existing Owners.
+
+## Installed Source publication
+
+The private ABI 4 `actql_program_install_source_environment` takes one
+pre-reserved, closed Host configuration with `environment` and `publication`
+strings. The original canonical environment is admitted by the existing Check
+Environment Owner. `client_source_publication` contains the same publication
+interpretation used by the Node Host: generation, Source View, schema, policy,
+Source reference and alias checks precede query binding. The Source-backed
+profile and source-free profile remain explicit supported configurations;
+neither performs Source I/O or grants read authority during installation.
+
+The installed input loan outlives all dependent preparation and Run handles.
+Exported original Run materials carry the admitted environment wire, rather
+than mistaking its outer Host configuration for an environment. Publication
+metadata and authored Program/AQL remain distinct. The scalar Run adapter
+selects the existing single-Source or source-free compilation profile from the
+checked acquisition inventory; unsupported profiles are refused by those
+Owners before physical dispatch. This boundary does not provide durable
+acceptance, an acquisition callback or recovery of completed physical work.

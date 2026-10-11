@@ -23,6 +23,7 @@ pub(all) enum LocalComputeIssue {
   Obligations(@execution.ManagedObligationIssue)
   Dispatch(@builtin.ConfiguredDispatchIssue[@strategy.RunIssue])
   Managed(@managed.LocalDispatchIssue)
+  Estimate(@driver.AdaptiveEstimateIssue[@strategy.RunIssue])
   Start(LocalRunIssue)
   StartNotPermitted
 }
@@ -35,24 +36,82 @@ pub fn configure_source_free_local_compute(
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[LocalComputeHost, LocalComputeIssue] {
+  configure_local_compute(
+    plan,
+    None,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// The exact verified acquisition remains borrowed from its existing Owner.
+/// Opening Compute cannot issue a replacement Source or authorize physical I/O.
+pub fn configure_captured_source_local_compute(
+  plan : LocalRunPlan,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[LocalComputeHost, LocalComputeIssue] {
+  configure_local_compute(
+    plan,
+    Some(source),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+fn configure_local_compute(
+  plan : LocalRunPlan,
+  source : @query.CapturedInputSource?,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[LocalComputeHost, LocalComputeIssue] {
   let prepared = local_run_prepared(plan)
-  if !source_free_profile(prepared) {
+  let unsupported = match source {
+    None => !source_free_profile(prepared)
+    Some(_) => !captured_source_profile(prepared)
+  }
+  if unsupported {
     return Err(UnsupportedCapability)
   }
-  guard @local.open_source_free_local_retained_host(
-      prepared,
-      registry_body,
-      values_body,
-      1L,
-      0L,
-      0L,
-      0L,
-      fragment_body~,
-      ordered_body~,
-    )
-    is Some(setup) else {
-    return Err(Configuration)
+  let opened = match source {
+    None =>
+      @local.open_source_free_local_retained_host(
+        prepared,
+        registry_body,
+        values_body,
+        1L,
+        0L,
+        0L,
+        0L,
+        fragment_body~,
+        ordered_body~,
+      )
+    Some(source) =>
+      @local.open_captured_local_retained_host(
+        prepared,
+        source,
+        registry_body,
+        values_body,
+        1L,
+        0L,
+        0L,
+        0L,
+        fragment_body~,
+        ordered_body~,
+      )
   }
+  guard opened is Some(setup) else { return Err(Configuration) }
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
   @strategy.require_captured_task_activation(run)
   Ok({ plan, setup, })
@@ -87,7 +146,7 @@ pub fn confirm_local_compute_start(
   context_cid : String,
 ) -> Result[LocalComputeStart, LocalComputeIssue] {
   match
-    prepare_local_run_physical_start(
+    confirm_local_run_physical_start(
       host.plan,
       retained,
       retained_definition_cid,
@@ -100,10 +159,23 @@ pub fn confirm_local_compute_start(
       tuple,
       context_cid,
     ) {
-    Ok(true) => Ok({ host, })
-    Ok(false) => Err(StartNotPermitted)
+    Ok(start) => bind_local_compute_start(host, start)
+    Err(StartNotPermitted) => Err(StartNotPermitted)
     Err(issue) => Err(Start(issue))
   }
+}
+
+///|
+/// A captured Source is configured after the original pre-I/O start decision.
+/// Do not reassert that the Run remains physically unstarted at this boundary.
+pub fn bind_local_compute_start(
+  host : LocalComputeHost,
+  start : LocalRunPhysicalStart,
+) -> Result[LocalComputeStart, LocalComputeIssue] {
+  if !physical_equal(host.plan, start.plan) {
+    return Err(StartNotPermitted)
+  }
+  Ok({ host, })
 }
 
 ///|
@@ -134,6 +206,11 @@ pub fn start_local_compute_task(
     return Err(AuthorizationMismatch)
   }
   let run = local_compute_run(host)
+  match
+    @driver.refresh_compute_host(@builtin.configured_host_runtime(host.setup)) {
+    Ok(_) => ()
+    Err(issue) => return Err(Estimate(issue))
+  }
   guard @strategy.next_captured_task(run) is Some(task) else { return Ok(None) }
   let obligations = match
     @strategy.captured_next_managed_obligations(
@@ -145,16 +222,45 @@ pub fn start_local_compute_task(
     Ok(value) => value
     Err(issue) => return Err(Obligations(issue))
   }
-  let configuration = match
+  let dispatch = if captured_source_profile(local_run_prepared(plan)) {
+    guard @builtin.configured_local_module(
+        @builtin.configured_host_modules(host.setup),
+      )
+      is Some(installed) else {
+      return Err(UnsupportedCapability)
+    }
+    let available = []
+    let mut index = 0
+    for producer in @strategy.captured_next_managed_producers(run) {
+      if producer == 0 {
+        available.push(@managed.local_managed_captured_relation_input())
+      } else if producer == -1 {
+        available.push(@managed.local_managed_supplied_relation_input())
+      } else if index < completed.length() {
+        available.push(@managed.local_managed_relation_output(completed[index]))
+        index += 1
+      } else {
+        return Err(UnsupportedCapability)
+      }
+    }
+    if index != completed.length() {
+      return Err(UnsupportedCapability)
+    }
+    @managed.prepare_local_managed_dispatch_with_outputs(
+      installed, available, obligations, 0L,
+    ).map_err(issue => Managed(issue))
+  } else {
     @builtin.dispatch_managed_local(
       @builtin.configured_host_modules(host.setup),
       completed,
       obligations,
       0L,
-    ) {
+    ).map_err(issue => Dispatch(issue))
+  }
+  let configuration = match dispatch {
     Ok(Some(value)) => value
     Ok(None) => return Err(UnsupportedCapability)
-    Err(issue) => return Err(Dispatch(issue))
+    Err(issue) => return Err(issue)
   }
   let grant = @strategy.task_activation_authorized(
     @authorization.dispatch_authorization_action(permit),
