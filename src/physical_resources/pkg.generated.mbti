@@ -34,7 +34,7 @@ pub fn[T] fund_original_read(Ledger, T, OriginalLedgerDescriptor[T], Int64, Int6
 
 pub fn[T] funded_read_available(FundedReadClaim[T], T) -> Bool
 
-pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64) -> Bool
+pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 

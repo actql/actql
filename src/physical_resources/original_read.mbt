@@ -388,13 +388,18 @@ pub fn[T] handoff_funded_read(
 // new projection. This checks the original read token, not aggregate free space.
 // The caller's full read profile must still include overlapping authentication
 // and codec scratch; this predicate does not reinterpret their charge as slack.
+// retained_bytes is the complete simultaneous read-phase envelope, not a
+// remaining balance or a separate allowance for each repeated invocation.
 pub fn[T] funded_read_preparation_available(
   claim : FundedReadClaim[T],
   origin : T,
   execution_bytes : Int64,
+  retained_bytes? : Int64 = 0L,
 ) -> Bool {
+  retained_bytes >= 0L &&
   execution_bytes >= 0L &&
   funded_read_available(claim, origin) &&
+  claim.read.reservation.retention >= retained_bytes &&
   claim.read.reservation.execution >= execution_bytes
 }
 
