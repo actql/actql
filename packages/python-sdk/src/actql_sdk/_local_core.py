@@ -194,6 +194,7 @@ _PUBLICATION_SIGNATURES = {
     'progress': ('i64 i32 i32', 'i64'),
     'finish': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
+    'retire_output': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
     'prepare_commit': ('i64 i32 i32 i32', 'i32'),
     'advance_commit': ('i64 i32 i32 i32', 'i32'),
@@ -419,7 +420,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 25:
+            if self._exports['actql_host_abi_version'](self._store) != 26:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -824,6 +825,16 @@ class LocalCore:
 
     def read_publication(self, value: _Output) -> bytes:
         return self._read_output(value, 'publication', 'length')
+
+    def retire_publication_output(self, value: _Output) -> bool:
+        """Retire transport bytes, keeping original semantic publication custody."""
+        with self._lock:
+            self._owned_output(value, 'publication')
+            code = self._call('publication', 'retire_output', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_output', code)
+            return True
 
     def close_publication(self, value: _Output) -> bool:
         return self._close_output(value, 'publication', 'close')
