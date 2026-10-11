@@ -15,7 +15,7 @@ import {
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/effect_application" @effect,
   "actql/actql/platform_native/salesforce_effect_preview" @effect_resolution,
-  "actql/actql/platform_native/credential_resource" @credential_resource,
+  "actql/actql/platform_native/credential_resource",
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/filesystem",

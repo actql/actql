@@ -49,3 +49,48 @@ test "review Catalog retains original Run and dispatch even with the same Resour
     assert_false(matches(candidate))
   }
 }
+
+///|
+test "Resident Catalog creation retains the exact original Site origin" {
+  let binding = named_catalog_test_binding()
+  assert_eq(
+    native_resident_catalog_create_origin(@catalog.SiteCatalog(binding)).unwrap(),
+    "https://provider.example",
+  )
+}
+
+///|
+test "Direct Local Catalog cannot supply Resident review or create custody" {
+  let site = named_catalog_test_binding()
+  let binding : @catalog.LocalCatalogObservationBinding = {
+    account_configuration_cid: local_target_test_cid("1"),
+    account_id: "account-a",
+    authority_scope_cid: local_target_test_cid("2"),
+    client_request_intent_cid: local_target_test_cid("3"),
+    client_request_scope_cid: local_target_test_cid("4"),
+    connection_revision: site.connection_revision,
+    connector_registration: site.connector_registration,
+    connector_revision: site.connector_revision,
+    environment: site.environment,
+    host_adoption_cid: local_target_test_cid("5"),
+    namespace_id: site.namespace_id,
+    org_id: site.org_id,
+    principal: site.principal,
+    resource_origin: site.resource_origin,
+    run_invocation_cid: site.run_invocation_cid,
+    sync_occurrence: site.sync_occurrence,
+  }
+  let local = @catalog.DirectLocalCatalog(binding)
+  assert_false(
+    native_review_catalog_binding_matches_original(
+      local,
+      site.site_key,
+      site.site_generation.to_string(),
+      site.run_invocation_cid,
+      site.dispatch_request_cid,
+    ),
+  )
+  assert_true(
+    native_resident_catalog_create_origin(local) is Err(ForeignRequest),
+  )
+}

@@ -87,13 +87,17 @@ test "Native preparation callback refuses foreign identity and non-original requ
       grant_cid: cid,
     }),
   )
-  for
-    request in [
-      None,
-      Some({ verb: @http.Get, path: original.scope.request_path + "2", body: b"", }),
-      Some({ verb: @http.Post, path: original.scope.request_path, body: b"", }),
-      Some({ verb: @http.Get, path: original.scope.request_path, body: b"x", }),
-    ] {
+  let requests : Array[@credential_resource.NativeCredentialRequest?] = [
+    None,
+    Some({
+      verb: @http.Get,
+      path: original.scope.request_path + "2",
+      body: b"",
+    }),
+    Some({ verb: @http.Post, path: original.scope.request_path, body: b"", }),
+    Some({ verb: @http.Get, path: original.scope.request_path, body: b"x", }),
+  ]
+  for request in requests {
     assert_false(
       local_preparation_credential_request_matches(grant, {
         ..original,

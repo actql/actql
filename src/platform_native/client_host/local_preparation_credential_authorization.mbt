@@ -19,9 +19,7 @@ fn local_preparation_credential_request_matches(
     ("send", Some(cid)) if !cid.is_empty() => ()
     _ => return false
   }
-  guard authorization.request is Some(request) else {
-    return false
-  }
+  guard authorization.request is Some(request) else { return false }
   request.verb is @http.Get &&
   request.path == scope.request_path &&
   request.body.length() == 0 &&
