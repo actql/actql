@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 4; this private ABI
+before opening the instance. `actql_host_abi_version` returns 5; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -135,6 +135,23 @@ methods consume the same native cursor and share its row and byte ceilings.
 The existing Core receiver validates column shape, counts, schema, values and
 cumulative limits; the physical encoding does not certify a Source receipt.
 
+`begin_read_view` retains one physical transaction on the same connection used
+for metadata, validation and processed-result queries. The fixed transaction
+control commands do not introduce a query parser or authorize Source access.
+Only a successful observed COMMIT sets the physical `committed` fact. All query
+streams must release their exact native handles before commit or view teardown.
+The Core Native attempt Owner still decides whether that settled view belongs
+to its issued attempt and whether the receipts establish a capture.
+
+A missing control reply is not settlement or permission to repeat the command.
+Failed BEGIN/COMMIT/ROLLBACK retains the same read-view and result handles. After
+result cleanup, disconnect physically terminates an unresolved view without
+replaying control I/O. Closing a readable, unfinished view rolls back once;
+rollback never reports commit. A known COMMIT survives a later result-cleanup
+failure, while connection release remains pending until the result is actually
+destroyed. Busy I/O or failed destruction retains custody for the same-handle
+retry. Read-view close is physical cleanup, not cancellation of a Run.
+
 Statement, result, chunk and logical-type handles belong to the exact physical
 connection and stream. Copied handles are refused. Interrupt delivery is not
 physical-stop acknowledgement or a Run cancellation result. While native I/O
@@ -188,11 +205,48 @@ claiming the Run is still physically unstarted after acquisition. A decision
 from another plan cannot authorize this Host. Current authorization is still
 checked at each task activation.
 
+The private `actql_run_reserve_physical_start` scalar entry retains one exact
+immutable fact loan and the installed current account configuration against the
+original Run handle. Its closed object contains the original request record,
+`definition_cid`, and explicit boolean facts `reserved`, `physically_unstarted`,
+`cancellation_requested` and `pre_start_failure_confirmed`. Missing or NULL
+facts are malformed physical Host input, never false or a default value. The
+physical adapter must obtain these facts from its durable original journal and
+resource reservations; neither a Client payload nor preparation can supply
+proof that they are true.
+
+`actql_run_confirm_physical_start` admits the retained request through its
+existing codec and calls the common Run start Owner under current subject-bound
+authorization. The input loan and Run remain live during an interrupted call.
+One original Run handle reserves at most one start invocation, including after
+that invocation closes. A known result may be observed again without redoing
+the evaluation. Unknown, interrupted or malformed invocations cannot silently
+replace their facts, reserve another start or imply unstarted physical work.
+The readiness status is not a durable Submission response or evidence that I/O
+was dispatched. Closing this loan requires physical reader-stop acknowledgement
+and does not cancel or rewrite the original Run.
+
 Captured root inputs and completed Compute producers use the existing managed
 driver's distinct input variants. The common compute Host refreshes its normal
 estimates/selection before dispatch; no Python task counter or replacement
 selector is introduced. Source capture custody outlives its consumers, and
 closing Compute does not revoke the caller's acquisition Owner.
+
+`configure_local_native_source` binds one existing checked query requirement to
+the installed physical database/schema/table and its read account, access tuple
+and context. The configured Native candidate requires the existing registered
+receipt Capabilities; publication or a general Allow entry cannot manufacture
+them. The caller principal must match the original Run, while physical read
+authority remains separate from Run activation authority.
+
+`start_local_native_source` requires that exact plan's retained pre-I/O start
+decision and a current Acquisition permit bound to the requirement CID, read
+tuple and context. Revoked authority, a different database, another requirement
+or another Run's start decision is refused before an attempt is issued. The
+existing Native acquisition Owner alone validates metadata, both receipts and
+the settled read-view observation. The installing Host must retain the issued
+attempt and durably record its physical invocation; these in-process adapter
+values neither reserve the whole runtime nor establish process recovery.
 
 `client_local_run` installs the existing retained Local compute driver for a
 checked source-free plan. Configuration opens task Owners and resource accounting
@@ -302,6 +356,25 @@ it can resume the original Run. Earlier ABI modules are refused by the ABI 4 bri
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
+
+The captured-Source profile uses
+`restore_captured_source_local_run_from_materials` against the same readmitted
+task materials Owner. The restored compilation, admission and Run definition
+remain one physically bound set. Fresh authored provenance must have identical
+checked Program/parameter and environment identities; it cannot substitute its
+execution Owner. The exact original request, authority scope, current account,
+execution context and policy remain required. Source-free and captured profiles
+are selected explicitly from the checked acquisition inventory, not retried as
+fallbacks after semantic refusal.
+
+Restoring that plan is distinct from restoring completed Source bytes. The
+existing Source capture codec binds the saved descriptor and rows to its exact
+requirement CID and original Run binding. Receiving custody owns its own
+lifetime: loss or close cannot acquire or revoke the original capture. Neither
+codec readmission nor configuration authorizes Source I/O, proves a completed
+task or starts replacement work. Durable process recovery must subsequently
+re-admit the saved completed Source/Compute and publication facts through their
+existing Owners before deciding the next permitted action.
 
 `restore_source_free_local_run` retains the material codec's original checked
 Owner, task compilation, admission and definition. It does not issue a new Run

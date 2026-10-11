@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_duckdb import (  # noqa: E402
     DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBTransferLimits, DuckDBParameter,
+    _Result,
 )
 
 parser = argparse.ArgumentParser()
@@ -79,6 +80,88 @@ class StandaloneDuckDBTests(unittest.TestCase):
             ['f', 'FLOAT', None, None], ['dec', 'DECIMAL', '5', '2'],
             ['huge', 'HUGEINT', None, None], ['uhuge', 'UHUGEINT', None, None],
         ])
+
+    def test_read_view_preserves_snapshot_across_queries_and_observes_commit(self):
+        self.rows('CREATE TABLE records AS SELECT 1::BIGINT AS id')
+        self.assertTrue(self.stream.close())
+        self.stream = None
+        view = self.connection.begin_read_view()
+        try:
+            self.assertFalse(view.committed)
+            self.assertEqual(self.rows('SELECT id FROM records'), [b'["1"]'])
+            self.assertTrue(self.stream.close())
+            self.stream = None
+            # An independent physical connection changes the same database.
+            # The captured view must keep the value seen by its first query.
+            other = C.c_void_p()
+            changed = _Result()
+            self.assertEqual(library.api.duckdb_connect(
+                self.connection._database, C.byref(other)), 0)
+            try:
+                self.assertEqual(library.api.duckdb_query(
+                    other, b'UPDATE records SET id = 2', C.byref(changed)), 0)
+            finally:
+                library.api.duckdb_destroy_result(C.byref(changed))
+                library.api.duckdb_disconnect(C.byref(other))
+            self.assertEqual(self.rows('SELECT id FROM records'), [b'["1"]'])
+            with self.assertRaises(DuckDBPhysicalError):
+                view.commit()
+            self.assertTrue(self.stream.close())
+            self.stream = None
+            view.commit()
+            self.assertTrue(view.committed)
+            with self.assertRaises(DuckDBPhysicalError):
+                view.commit()
+        finally:
+            if self.stream is not None:
+                self.assertTrue(self.stream.close())
+                self.stream = None
+            self.assertTrue(view.close())
+        self.assertEqual(self.rows('SELECT id FROM records'), [b'["2"]'])
+
+    def test_lost_commit_reply_is_not_replayed_or_reported_as_settlement(self):
+        view = self.connection.begin_read_view()
+        native = library.api.duckdb_query
+        commands = []
+
+        def lost_reply(connection, command, result):
+            commands.append(command)
+            self.assertEqual(native(connection, command, result), 0)
+            raise OSError('Lost physical control reply')
+
+        with patch.object(library.api, 'duckdb_query', side_effect=lost_reply):
+            with self.assertRaises(OSError) as failure:
+                view.commit()
+            self.assertIs(failure.exception.physical_cleanup, view)
+            self.assertFalse(view.committed)
+            self.assertFalse(self.connection.close())
+            self.assertTrue(view.close())
+        self.assertEqual(commands, [b'COMMIT'])
+        self.assertTrue(self.connection.close())
+
+    def test_commit_cleanup_failure_retries_same_actual_result_without_control_io(self):
+        view = self.connection.begin_read_view()
+        destroy = library.api.duckdb_destroy_result
+        attempts = 0
+
+        def fail_once(result):
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise OSError('Physical result cleanup pending')
+            destroy(result)
+
+        with patch.object(library.api, 'duckdb_destroy_result', side_effect=fail_once):
+            with self.assertRaises(OSError) as failure:
+                view.commit()
+            self.assertIs(failure.exception.physical_cleanup, view)
+            self.assertTrue(view.committed)
+            self.assertFalse(self.connection.close())
+            with self.assertRaises(DuckDBPhysicalError):
+                view.commit()
+            self.assertTrue(view.close())
+            self.assertTrue(view.close())
+        self.assertEqual(attempts, 2)
 
     def test_core_scalar_parameter_codec_preserves_bits_null_and_raw_text(self):
         parameters = (DuckDBParameter('DOUBLE', '3ff8000000000000'),
@@ -278,4 +361,4 @@ print(json.dumps({'source_sha': source, 'library': str(args.library),
     'python': sys.version, 'platform': platform.platform(),
     'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
     'public_local_acceptance': False, 'wheel_acceptance': False}))
-sys.exit(0 if result.wasSuccessful() and result.testsRun == 16 and not result.skipped else 1)
+sys.exit(0 if result.wasSuccessful() and result.testsRun == 19 and not result.skipped else 1)

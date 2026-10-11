@@ -30,6 +30,7 @@ class PhysicalDuckDBTests(unittest.TestCase):
         owner._io = Lock()
         owner._lifetime = Lock()
         owner._streams = set()
+        owner._read_view = None
         owner._connection = C.c_void_p()
         owner._database = C.c_void_p()
         owner._config = C.c_void_p()
@@ -37,6 +38,109 @@ class PhysicalDuckDBTests(unittest.TestCase):
         owner._closing = False
         owner._closed = False
         return owner
+
+    def read_view(self):
+        owner = self.connection()
+        owner._connection.value = 41
+        owner._api.duckdb_query = Mock(return_value=0)
+        return owner, owner.begin_read_view()
+
+    def test_read_view_settlement_requires_successful_commit_and_closed_streams(self):
+        owner, view = self.read_view()
+        self.assertFalse(view.committed)
+        stream = DuckDBStream(owner, DuckDBTransferLimits())
+        owner._streams.add(stream)
+        with self.assertRaises(DuckDBPhysicalError):
+            view.commit()
+        self.assertFalse(view.close())
+        self.assertEqual(owner._api.duckdb_query.call_count, 1)
+        self.assertTrue(stream.close())
+        view.commit()
+        self.assertTrue(view.committed)
+        with self.assertRaises(DuckDBPhysicalError):
+            view.commit()
+        self.assertTrue(view.close())
+        self.assertTrue(view.close())
+        self.assertEqual([call.args[1] for call in owner._api.duckdb_query.call_args_list],
+                         [b'BEGIN TRANSACTION', b'COMMIT'])
+
+    def test_abandoned_read_view_rolls_back_without_settlement(self):
+        owner, view = self.read_view()
+        self.assertTrue(view.close())
+        self.assertFalse(view.committed)
+        self.assertEqual([call.args[1] for call in owner._api.duckdb_query.call_args_list],
+                         [b'BEGIN TRANSACTION', b'ROLLBACK'])
+        self.assertTrue(owner.close())
+
+    def test_unknown_commit_is_not_replayed_or_settlement(self):
+        owner, view = self.read_view()
+        owner._api.duckdb_query.side_effect = OSError('reply lost')
+        with self.assertRaises(OSError) as failure:
+            view.commit()
+        self.assertIs(failure.exception.physical_cleanup, view)
+        self.assertFalse(view.committed)
+        self.assertFalse(owner.close())
+        with self.assertRaises(DuckDBPhysicalError):
+            view.commit()
+        owner._api.duckdb_disconnect.side_effect = [OSError('stop pending'), None]
+        with self.assertRaises(OSError):
+            view.close()
+        self.assertIs(owner._read_view, view)
+        self.assertTrue(view.close())
+        self.assertEqual(owner._api.duckdb_query.call_count, 2)
+        self.assertFalse(view.committed)
+
+    def test_observed_commit_cleanup_failure_retains_result_without_recommit(self):
+        owner, view = self.read_view()
+        owner._api.duckdb_destroy_result.side_effect = [OSError('cleanup pending'), None]
+        with self.assertRaises(OSError) as failure:
+            view.commit()
+        self.assertIs(failure.exception.physical_cleanup, view)
+        self.assertTrue(view.committed)
+        self.assertTrue(view._result_created)
+        self.assertFalse(owner.close())
+        self.assertIs(owner._read_view, view)
+        self.assertTrue(view.close())
+        self.assertFalse(view._result_created)
+        self.assertEqual(owner._api.duckdb_query.call_count, 2)
+
+    def test_read_view_copy_and_callback_overlap_cannot_close_original(self):
+        owner, view = self.read_view()
+        with self.assertRaisesRegex(ValueError, 'Foreign'):
+            copy.copy(view).close()
+        owner._io.acquire()
+        try:
+            self.assertFalse(view.close())
+            self.assertIs(owner._read_view, view)
+            self.assertEqual(owner._api.duckdb_query.call_count, 1)
+        finally:
+            owner._io.release()
+        self.assertTrue(view.close())
+
+    def test_failed_begin_retains_original_cleanup_and_never_retries_begin(self):
+        owner = self.connection()
+        owner._connection.value = 41
+        owner._api.duckdb_query = Mock(return_value=1)
+        with self.assertRaises(DuckDBPhysicalError) as failure:
+            owner.begin_read_view()
+        view = failure.exception.physical_cleanup
+        self.assertIs(owner._read_view, view)
+        self.assertFalse(view.committed)
+        self.assertFalse(owner.close())
+        with self.assertRaises(DuckDBPhysicalError):
+            owner.begin_read_view()
+        self.assertTrue(view.close())
+        self.assertEqual(owner._api.duckdb_query.call_count, 1)
+
+    def test_failed_rollback_teardown_does_not_repeat_control_io(self):
+        owner, view = self.read_view()
+        owner._api.duckdb_query.return_value = 1
+        with self.assertRaises(DuckDBPhysicalError):
+            view.close()
+        self.assertFalse(view.committed)
+        self.assertIs(owner._read_view, view)
+        self.assertTrue(view.close())
+        self.assertEqual(owner._api.duckdb_query.call_count, 2)
 
     def stream(self):
         owner = self.connection()

@@ -303,5 +303,23 @@ test "physical start needs durable unstarted proof and cannot override cancellat
       ).unwrap(),
       expected,
     )
+    let token = confirm_local_run_physical_start(
+      original,
+      original.request,
+      definition_cid,
+      reserved,
+      unstarted,
+      cancelled,
+      failed,
+      allowed,
+      current,
+      tuple(),
+      context_cid(),
+    )
+    if expected {
+      assert_true(token is Ok(_))
+    } else {
+      assert_true(token is Err(StartNotPermitted))
+    }
   }
 }

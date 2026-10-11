@@ -2,7 +2,10 @@
 package "actql/actql/client_local_run"
 
 import {
+  "actql/actql/client_local_host",
   "actql/actql/client_local_preparation",
+  "actql/actql/connectors/duckdb/acquisition",
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_authorization",
@@ -11,6 +14,7 @@ import {
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
   "actql/actql/program_check",
+  "actql/actql/query_planning",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
@@ -19,6 +23,8 @@ import {
 pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]
 
 pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
+pub fn configure_local_native_source(LocalRunPlan, Int, Int, String, String, String?, String?, String, String, String, String, String, @execution_authorization.AccessTuple, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalNativeSourceConfiguration, LocalNativeSourceIssue]
 
 pub fn configure_source_free_local_compute(LocalRunPlan, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
@@ -31,6 +37,10 @@ pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment,
 pub fn local_compute_producers(LocalComputeHost) -> Array[Int]
 
 pub fn local_compute_run(LocalComputeHost) -> @physical_strategy.CapturedDAG
+
+pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @host.NativeHostConfiguration
+
+pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
 
 pub fn local_run_admission(LocalRunPlan) -> @run_publication.RunPublicationAdmission
 
@@ -54,6 +64,8 @@ pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequest
 
 pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
+pub fn restore_captured_source_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
 pub fn restore_local_run_materials(String, String) -> Result[@run_publication_host.ClientTaskRunMaterials, LocalRunIssue]
 
 pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
@@ -61,6 +73,8 @@ pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInpu
 pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
+
+pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysicalStart, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[@host.NativeHostRun, LocalNativeSourceIssue]
 
 // Errors
 
@@ -85,6 +99,25 @@ pub(all) enum LocalComputeIssue {
 
 pub struct LocalComputeStart {
   host : LocalComputeHost
+}
+
+pub struct LocalNativeSourceConfiguration {
+  plan : LocalRunPlan
+  requirement : @query_planning.QueryRequirement
+  setup : @host.NativeHostConfiguration
+  read_tuple : @execution_authorization.AccessTuple
+  read_context_cid : String
+  read_account_id : String
+}
+
+pub(all) enum LocalNativeSourceIssue {
+  UnsupportedCapability
+  InvalidReadBinding
+  ForeignRunStart
+  AuthorizationMismatch
+  Requirement(@client_local_host.ClientLocalQueryIssue)
+  Configuration(@client_local_host.ClientDuckDBAcquisitionIssue)
+  Host(@host.NativeHostIssue)
 }
 
 pub(all) enum LocalRunIssue {
