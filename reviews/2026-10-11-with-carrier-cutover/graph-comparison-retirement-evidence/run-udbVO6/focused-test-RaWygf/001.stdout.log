@@ -1,0 +1,7 @@
+[actql/actql] test query_program/graph_equality_test.mbt:139 ("Graph equality rejects unknown arguments and repeated Carrier transitions") failed: src/query_program/graph_equality_test.mbt:166:7-166:38@actql/actql FAILED: `462 != 473`
+diff:
+-462 +473
+[actql/actql] test query_program/graph_difference_rows_test.mbt:92 ("Graph difference rejects hidden Graph columns and repeated transitions") failed: src/query_program/graph_difference_rows_test.mbt:119:7-119:38@actql/actql FAILED: `460 != 471`
+diff:
+-460 +471
+Total tests: 13, passed: 11, failed: 2.

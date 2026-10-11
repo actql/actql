@@ -47,8 +47,8 @@ test "FROM postfix preserves multi-column UNPIVOT" {
     "SELECT id,amount,note,month FROM wide UNPIVOT ((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb')) ORDER BY id,month",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(query), 1)
-  let body = cte_at(query, 0).unwrap().query
+  assert_eq(query_binding_count(query), 1)
+  let body = query_binding_at(query, 0).unwrap().query
   guard operation_at(body, 0) is Some(Unpivot(clause)) else {
     fail("the FROM postfix retains a tuple UNPIVOT before SELECT")
   }

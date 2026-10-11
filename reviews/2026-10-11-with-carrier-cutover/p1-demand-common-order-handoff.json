@@ -1,0 +1,51 @@
+{
+  "source": "46b9a8f145c29ab48ea59eccec5104e71dc90932",
+  "run": "run-CaCZxB",
+  "focused": "focused-test-9Baoqs",
+  "tests": 4,
+  "passed": 2,
+  "failed": 2,
+  "exit_code": 2,
+  "actual_refusal": "BindingPreparation(SourceProgram(Program(Order(0, ResultOrder(UnresolvedOrder)))))",
+  "nested_source": "WITH kept AS (WITH unused AS (SELECT id FROM objects) SELECT 1 AS id) SELECT id FROM kept",
+  "input": "Actual source_member_context(captured=true): Catalog-backed objects with nonnullable number id and nullable closed object payload containing nullable number score. Original Catalog preimages remain in source-member-catalog-independent.json.",
+  "expected": "Full static checking, no executable capture/Source declaration for unused binding, one nonnullable numeric id=1 row; exactly the independent source-free Program in with_binding_demand_test.mbt.",
+  "boundary": {
+    "registration": "pipeline_check_context.prepare_source_registrations",
+    "check": "pipeline_check_context.prepare_sourceview_program -> stage_results.prepare_local_program",
+    "first_refusal": "stage_results/local_program.mbt: resolve_all_orders for capture stage Result before demanded binding selection",
+    "not_established": "No provider I/O or packed Run was executed. This does not prove a runtime Owner defect."
+  },
+  "needed_common_seam": {
+    "input": "Original Stage parameter Source plus actual Catalog-backed registrations and local-input owners, existing bounded Limits, ModelTasks/profiles when selected",
+    "output": "Conditional checked Stage pipelines, actual Stage Result projection/import edges, original Cursors and outstanding Result order/value/profile obligations, without issuing runtime publication ports",
+    "reuse": [
+      "pipeline_typing.check_with_evidence",
+      "relation_results.check_inventory",
+      "pipeline_typing.project_produced_input (preserves producer identity/evidence without Result ordering)"
+    ],
+    "keep_strict": "The ordinary execution/publication path must still resolve Result ordering. No fake ResultPort/order evidence, schema-only Source evidence or hidden catch-and-ignore fallback."
+  },
+  "ownership": "B keeps frontend demand/old parser cutover. Shared check-only Stage/import seam must be coordinated with the common owner before editing stage_results/pipeline_check_context. Other frontend work continues.",
+  "termination": {
+    "owner": 46333,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-CaCZxB/summary.json",
+      "sha256": "b45e5b0418bb978b69d240ccd5d35085ed833e9fc177732a0a36bbc4099fb6ef"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-CaCZxB/output.log",
+      "sha256": "180954ed14f458416fbcf17710caeb37bc952652a3aac841051078933d02dc0a"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-9Baoqs/summary.json",
+      "sha256": "12e6e2462e3483430de9a8cd99f0b10cfd6509d851bc3062a7dbe519f0515761"
+    }
+  ],
+  "fixed_product_source": "46b9a8f145c29ab48ea59eccec5104e71dc90932",
+  "authored_source": "WITH unused AS (SELECT id FROM objects) SELECT 1 AS id"
+}

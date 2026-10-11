@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-10-11T22:55:54.615Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format exact changed WITH expansion source callers",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/with_expansion_public_fixture_test.mbt"
+      ],
+      "startedAt": "2026-10-11T22:55:54.747Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:55:55.099Z",
+      "endedAt": "2026-10-11T22:55:55.102Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5842d499-131b-45fd-a052-b39b01734908",
+    "pid": 55180,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T22:55:54.723Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-PuZQru"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T22:55:55.194Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

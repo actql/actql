@@ -1,0 +1,230 @@
+TAP version 13
+# Subtest: DISTINCT aggregate order obligations distinguish multiplicity and input snapshots
+ok 1 - DISTINCT aggregate order obligations distinguish multiplicity and input snapshots
+  ---
+  duration_ms: 2.774209
+  type: 'test'
+  ...
+# Subtest: normal packed acceptance and selected cohort share DISTINCT aggregate order cases
+ok 2 - normal packed acceptance and selected cohort share DISTINCT aggregate order cases
+  ---
+  duration_ms: 14.010625
+  type: 'test'
+  ...
+# Subtest: Mean independent oracle preserves explicit sample occurrences and nullable numeric output
+ok 3 - Mean independent oracle preserves explicit sample occurrences and nullable numeric output
+  ---
+  duration_ms: 2.836458
+  type: 'test'
+  ...
+# Subtest: Mean public acceptance reuses the existing fresh-process retained cohort reader
+ok 4 - Mean public acceptance reuses the existing fresh-process retained cohort reader
+  ---
+  duration_ms: 9.166291
+  type: 'test'
+  ...
+# Subtest: Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input
+ok 5 - Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input
+  ---
+  duration_ms: 0.833125
+  type: 'test'
+  ...
+# Subtest: Mean asymmetric controls distinguish sample port order from producer order
+ok 6 - Mean asymmetric controls distinguish sample port order from producer order
+  ---
+  duration_ms: 0.553375
+  type: 'test'
+  ...
+# Subtest: Graph member source counterexamples retain independently authored rows and contracts
+ok 7 - Graph member source counterexamples retain independently authored rows and contracts
+  ---
+  duration_ms: 5.072875
+  type: 'test'
+  ...
+# Subtest: quoted path calls preserve duplicate parallel-edge occurrences and the common traversal
+ok 8 - quoted path calls preserve duplicate parallel-edge occurrences and the common traversal
+  ---
+  duration_ms: 2.515792
+  type: 'test'
+  ...
+# Subtest: Graph nullable, empty and unknown-member cases retain their separate obligations
+ok 9 - Graph nullable, empty and unknown-member cases retain their separate obligations
+  ---
+  duration_ms: 0.190167
+  type: 'test'
+  ...
+# Subtest: Graph member fixtures remain in the normal public acceptance consumer
+ok 10 - Graph member fixtures remain in the normal public acceptance consumer
+  ---
+  duration_ms: 11.534042
+  type: 'test'
+  ...
+# Subtest: grouped Graph binding fixtures retain independent identity and multiplicity controls
+ok 11 - grouped Graph binding fixtures retain independent identity and multiplicity controls
+  ---
+  duration_ms: 1.207833
+  type: 'test'
+  ...
+# Subtest: grouped Graph binding refusals preserve closed roles and post-projection scope
+ok 12 - grouped Graph binding refusals preserve closed roles and post-projection scope
+  ---
+  duration_ms: 0.662459
+  type: 'test'
+  ...
+# Subtest: quoted Graph identity calls retain the authored predicate value and typed empty output
+ok 13 - quoted Graph identity calls retain the authored predicate value and typed empty output
+  ---
+  duration_ms: 0.551334
+  type: 'test'
+  ...
+# Subtest: subtraction expectations distinguish binary removal, property retention and endpoint closure
+ok 14 - subtraction expectations distinguish binary removal, property retention and endpoint closure
+  ---
+  duration_ms: 3.944208
+  type: 'test'
+  ...
+# Subtest: normal corpus and narrow subtraction run retain the same installed public driver
+ok 15 - normal corpus and narrow subtraction run retain the same installed public driver
+  ---
+  duration_ms: 15.712167
+  type: 'test'
+  ...
+# Subtest: nearest member public controls retain independent values and complete column contracts
+ok 16 - nearest member public controls retain independent values and complete column contracts
+  ---
+  duration_ms: 20.002667
+  type: 'test'
+  ...
+# Subtest: nearest source keeps authored member spelling and explicit unknown-member refusal
+ok 17 - nearest source keeps authored member spelling and explicit unknown-member refusal
+  ---
+  duration_ms: 6.602375
+  type: 'test'
+  ...
+# Subtest: ordinary packed acceptance includes both optional Effect pairs
+ok 18 - ordinary packed acceptance includes both optional Effect pairs
+  ---
+  duration_ms: 4.302417
+  type: 'test'
+  ...
+# Subtest: JSON pair differs only by the terminal Effect
+ok 19 - JSON pair differs only by the terminal Effect
+  ---
+  duration_ms: 2.370958
+  type: 'test'
+  ...
+# Subtest: text pair shares exact submitted bytes up to the terminal Effect
+ok 20 - text pair shares exact submitted bytes up to the terminal Effect
+  ---
+  duration_ms: 0.7315
+  type: 'test'
+  ...
+# Subtest: binding preserves authored inputs and rejects malformed text MappingRefs
+ok 21 - binding preserves authored inputs and rejects malformed text MappingRefs
+  ---
+  duration_ms: 19.99775
+  type: 'test'
+  ...
+# Subtest: independent expected rows, type order and replay counts retain NULL and one write
+ok 22 - independent expected rows, type order and replay counts retain NULL and one write
+  ---
+  duration_ms: 0.458583
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent source-graph-member-input contract
+ok 23 - WITH final caller retains complete independent source-graph-member-input contract
+  ---
+  duration_ms: 14.188459
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent graph-delta-json-source contract
+ok 24 - WITH final caller retains complete independent graph-delta-json-source contract
+  ---
+  duration_ms: 9.555833
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent nearest-public-input contract
+ok 25 - WITH final caller retains complete independent nearest-public-input contract
+  ---
+  duration_ms: 20.709625
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent pipe-join-input contract
+ok 26 - WITH final caller retains complete independent pipe-join-input contract
+  ---
+  duration_ms: 2.10775
+  type: 'test'
+  ...
+# Subtest: WITH optional Effect preserves complete original terminal body two-source-without-effect.aql
+ok 27 - WITH optional Effect preserves complete original terminal body two-source-without-effect.aql
+  ---
+  duration_ms: 0.257583
+  type: 'test'
+  ...
+# Subtest: WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template
+ok 28 - WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template
+  ---
+  duration_ms: 0.106917
+  type: 'test'
+  ...
+# Subtest: WITH Python ABI fixture changes only the binding wrapper
+ok 29 - WITH Python ABI fixture changes only the binding wrapper
+  ---
+  duration_ms: 0.332625
+  type: 'test'
+  ...
+# Subtest: WITH Graph snapshot keeps original oracle and consumer assertions
+ok 30 - WITH Graph snapshot keeps original oracle and consumer assertions
+  ---
+  duration_ms: 0.240166
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 222.550542
+ACTQL_TEST_CASE {"name":"DISTINCT aggregate order obligations distinguish multiplicity and input snapshots","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-aggregate-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal packed acceptance and selected cohort share DISTINCT aggregate order cases","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-aggregate-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean independent oracle preserves explicit sample occurrences and nullable numeric output","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean public acceptance reuses the existing fresh-process retained cohort reader","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean asymmetric controls distinguish sample port order from producer order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph member source counterexamples retain independently authored rows and contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"quoted path calls preserve duplicate parallel-edge occurrences and the common traversal","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph nullable, empty and unknown-member cases retain their separate obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph member fixtures remain in the normal public acceptance consumer","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped Graph binding fixtures retain independent identity and multiplicity controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped Graph binding refusals preserve closed roles and post-projection scope","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"quoted Graph identity calls retain the authored predicate value and typed empty output","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"subtraction expectations distinguish binary removal, property retention and endpoint closure","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-subtraction-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal corpus and narrow subtraction run retain the same installed public driver","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-subtraction-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"nearest member public controls retain independent values and complete column contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/nearest-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"nearest source keeps authored member spelling and explicit unknown-member refusal","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/nearest-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary packed acceptance includes both optional Effect pairs","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"JSON pair differs only by the terminal Effect","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"text pair shares exact submitted bytes up to the terminal Effect","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"binding preserves authored inputs and rejects malformed text MappingRefs","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent expected rows, type order and replay counts retain NULL and one write","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent source-graph-member-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent graph-delta-json-source contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent nearest-public-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent pipe-join-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH optional Effect preserves complete original terminal body two-source-without-effect.aql","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Python ABI fixture changes only the binding wrapper","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph snapshot keeps original oracle and consumer assertions","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":24.271917,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-aggregate-order-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":22.651417,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":7,"failed":0,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":7,"suites":0},"duration_ms":29.727542,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":25.997458,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-subtraction-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":33.084333,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/nearest-member-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":39.455,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":8,"failed":0,"passed":8,"cancelled":0,"skipped":0,"todo":0,"topLevel":8,"suites":0},"duration_ms":57.808875,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":30,"failed":0,"passed":30,"cancelled":0,"skipped":0,"todo":0,"topLevel":30,"suites":0},"duration_ms":222.550542}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-final-current-callers.test.mjs","scripts/graph-member-source-input.test.mjs","scripts/graph-mean-source-input.test.mjs","scripts/graph-subtraction-source-input.test.mjs","scripts/distinct-aggregate-order-source-input.test.mjs","scripts/nearest-member-source-input.test.mjs","scripts/two-source-optional-effect.test.mjs"]: executed; counts={"tests":30,"passed":30,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-BGH8BQ

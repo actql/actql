@@ -1,0 +1,537 @@
+{
+  "version": "frontend-local-evidence/0.1",
+  "scope": "WITH current grammar/profile/Graph guidance and independently derived grammar-bound Values identity consumers",
+  "tested_product_sha": "6d0f1a3782d687dc98715ea144e0b8cd177e49c6",
+  "tested_product_tree": "6201eeb09af32789b0f548e42f03fa7047bba4a0",
+  "adopted_main": "ece026dda6a48a5a86259f048ca55e553dd87f4f",
+  "entries": [
+    {
+      "run": "run-IshUT4",
+      "source_sha": null,
+      "note": "dirty authored source: existing compilation/vocabulary/document/family generators; no runtime",
+      "receipt": {
+        "startedAt": "2026-10-11T18:32:03.719Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "WITH compilation manifest generation",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:32:03.794Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:32:03.967Z",
+            "endedAt": "2026-10-11T18:32:03.968Z"
+          },
+          {
+            "name": "WITH machine vocabulary generation",
+            "command": [
+              "node",
+              "scripts/generate-aql-text-vocabulary.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:32:04.029Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:32:04.069Z",
+            "endedAt": "2026-10-11T18:32:04.071Z"
+          },
+          {
+            "name": "WITH document metadata generation",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:32:04.125Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:32:05.499Z",
+            "endedAt": "2026-10-11T18:32:05.500Z"
+          },
+          {
+            "name": "WITH family evidence generation",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:32:05.572Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:32:07.040Z",
+            "endedAt": "2026-10-11T18:32:07.042Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "f8ce21b7-e5c9-46b7-8ad1-ef97f54ec32b",
+          "pid": 2873,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:32:03.785Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-IshUT4"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:32:07.105Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-IshUT4/summary.json",
+          "sha256": "a62f55de69b8307a6c63d59010adc699cd6a70c8b5a2341a4c15a35dac85df2c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-IshUT4/output.log",
+          "sha256": "f72a60e9fe67ed721b50a627ed5830c91488389ff4f978f65f8c1ef751832b38"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-czxCLI",
+      "source_sha": null,
+      "note": "dirty authored source: pinned Values caller formatting; no runtime",
+      "receipt": {
+        "startedAt": "2026-10-11T18:33:26.665Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "WITH Values caller formatting",
+            "command": [
+              "moon",
+              "fmt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T18:33:26.749Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:33:27.815Z",
+            "endedAt": "2026-10-11T18:33:27.817Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "f8ddf5aa-a403-4c8d-9c05-7f63fbed3974",
+          "pid": 4114,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:33:26.743Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-czxCLI"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:33:27.899Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-czxCLI/summary.json",
+          "sha256": "4b4ff7d31cd72bae3cecae9544891438ea4ce886e1ea4dec049d07f8a9c0c59c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-czxCLI/output.log",
+          "sha256": "d393167842497299594613a638c611958541c523b29b026257cbc852f24d0503"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-ELGxzB",
+      "source_sha": "786b8f111c35f46d614767db5774cea7d073ff9e",
+      "note": "Node88:85 passed/3 failed; stale current preimage consumers and canonical fixture",
+      "receipt": {
+        "startedAt": "2026-10-11T18:34:11.363Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "selected node tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "node",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/sga-query-call-contract.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs"
+            ],
+            "startedAt": "2026-10-11T18:34:11.469Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:34:21.313Z",
+            "endedAt": "2026-10-11T18:34:21.316Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "af2f37d7-2c4e-4e1a-98bf-0e4e2bf950f2",
+          "pid": 4944,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:34:11.461Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ELGxzB"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:34:21.390Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-ELGxzB/summary.json",
+          "sha256": "5e3ab86f060f022629cc2aa3ac8a33b5d9a27e360d05409a012438408be72cce"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-ELGxzB/output.log",
+          "sha256": "617fae7798b9f780436d86a8b362a9465be36ce721ca7397df33888355483088"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-0W6Gc9",
+      "source_sha": null,
+      "note": "dirty source: existing canonical generator; 554 independently registered bodies, not runtime tests",
+      "receipt": {
+        "startedAt": "2026-10-11T18:35:30.148Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "WITH canonical fixture regeneration",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:35:30.219Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:35:32.067Z",
+            "endedAt": "2026-10-11T18:35:32.072Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "35fc87c2-c651-4989-bcb5-6c57d83ff066",
+          "pid": 5753,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:35:30.213Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-0W6Gc9"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:35:32.162Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-0W6Gc9/summary.json",
+          "sha256": "95054d30913ddcb62a58aef289f396f4efe0af2dbc01be6c40a19a3d7ce29c3a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-0W6Gc9/output.log",
+          "sha256": "1b75ffb435070051ab3676db2a1b2a3009be4c721222e716aa5a8b3a39d35a25"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-1uEBN9",
+      "source_sha": "4d63461aa8efc402222418b4a54f1a6b55e4d4c5",
+      "note": "Node88:87 passed/1 failed; remaining historical SGA body used as current",
+      "receipt": {
+        "startedAt": "2026-10-11T18:36:13.785Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "selected node tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "node",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/sga-query-call-contract.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs"
+            ],
+            "startedAt": "2026-10-11T18:36:13.864Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:36:21.344Z",
+            "endedAt": "2026-10-11T18:36:21.348Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "42e70256-6fc0-4b63-85ae-ee5ff1ef5ae8",
+          "pid": 6135,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:36:13.859Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-1uEBN9"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:36:21.420Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-1uEBN9/summary.json",
+          "sha256": "78f28dbe7a18a4f5e04c40f8d4135d60dedc08d350e53fcd24abcbd4c05a7ad0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-1uEBN9/output.log",
+          "sha256": "ce61e0db80b296be7ee3eaa49d50fac086727fe160cde1b3866d91fb63ed5a81"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-Jdvclk",
+      "source_sha": "6d0f1a3782d687dc98715ea144e0b8cd177e49c6",
+      "note": "actual corrected Node11/11, JS29/29 including Values Run reconstruction, read-only freshness5",
+      "receipt": {
+        "startedAt": "2026-10-11T18:37:22.958Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "WITH corrected SGA preimage tests",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/sga-query-call-contract.test.mjs"
+            ],
+            "startedAt": "2026-10-11T18:37:23.150Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:24.057Z",
+            "endedAt": "2026-10-11T18:37:24.062Z"
+          },
+          {
+            "name": "WITH Graph and Values Run caller JS",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/graph_test.mbt",
+              "src/query_syntax/string_literals_test.mbt",
+              "src/query_syntax/literal_forms_test.mbt",
+              "src/query_program/with_graph_binding_test.mbt",
+              "src/query_program/quoted_graph_macro_wbtest.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T18:37:24.143Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:44.390Z",
+            "endedAt": "2026-10-11T18:37:44.392Z"
+          },
+          {
+            "name": "WITH compilation manifest freshness",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs"
+            ],
+            "startedAt": "2026-10-11T18:37:44.459Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:44.684Z",
+            "endedAt": "2026-10-11T18:37:44.687Z"
+          },
+          {
+            "name": "WITH vocabulary freshness",
+            "command": [
+              "node",
+              "scripts/generate-aql-text-vocabulary.mjs"
+            ],
+            "startedAt": "2026-10-11T18:37:44.761Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:44.833Z",
+            "endedAt": "2026-10-11T18:37:44.836Z"
+          },
+          {
+            "name": "WITH document metadata freshness",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs"
+            ],
+            "startedAt": "2026-10-11T18:37:44.932Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:47.246Z",
+            "endedAt": "2026-10-11T18:37:47.250Z"
+          },
+          {
+            "name": "WITH family links and evidence freshness",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs"
+            ],
+            "startedAt": "2026-10-11T18:37:47.334Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:49.576Z",
+            "endedAt": "2026-10-11T18:37:49.579Z"
+          },
+          {
+            "name": "WITH canonical manifest fixture freshness",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs"
+            ],
+            "startedAt": "2026-10-11T18:37:49.655Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:37:51.659Z",
+            "endedAt": "2026-10-11T18:37:51.660Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "f967cb86-f3a5-4a45-8409-716c79056b0e",
+          "pid": 6688,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:37:23.068Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Jdvclk"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:37:51.735Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-Jdvclk/summary.json",
+          "sha256": "56ea68b7ad9fa6eb94ae1771e49e41a712a68c5c854ff5fdf130a5a3a45efc7e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/grammar-pin-evidence/run-Jdvclk/output.log",
+          "sha256": "8c9002db280e7c4281d771f6f9a2ff2b69dd5362d11018c4b68901d9e00d03eb"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    }
+  ],
+  "identity_change": "Values Unit, Program and ResultPlan preimages are unchanged. Grammar, invocation template, executable/compiled Plan and Run identities change. Historical stored values are never reinterpreted.",
+  "independent_vectors": [
+    "scripts/fixtures/pre-with-carrier-cutover-values-identities.json",
+    "scripts/fixtures/submitted-with-carrier-cutover-values-identities.json"
+  ],
+  "unverified": [
+    "remaining current DATA fixture/caller replacement",
+    "four Carrier complete P1/P2 lowering",
+    "packed Local/HTTPS cutover",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ]
+}

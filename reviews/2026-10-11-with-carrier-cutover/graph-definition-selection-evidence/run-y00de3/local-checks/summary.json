@@ -1,0 +1,44 @@
+{
+  "startedAt": "2026-10-11T21:57:37.956Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format changed WITH Graph definition selection and JOIN callers",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/graph_row_selection_test.mbt",
+        "src/query_program/graph_relation_join_input_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:57:38.193Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:57:38.773Z",
+      "endedAt": "2026-10-11T21:57:38.779Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "13fcecc6-5db1-4fdd-aa93-17d162c1503d",
+    "pid": 4495,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:57:38.158Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-y00de3"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:57:38.988Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

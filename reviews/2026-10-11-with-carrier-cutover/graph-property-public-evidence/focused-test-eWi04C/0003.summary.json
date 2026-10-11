@@ -1,0 +1,66 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-eWi04C",
+  "revision": "c61ffaf545446969c3499aef92b5a9646f673b2a",
+  "source": {
+    "revision": "c61ffaf545446969c3499aef92b5a9646f673b2a",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T23:15:00.869Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/with-graph-property-public-fixtures.test.mjs",
+        "scripts/acquired-data-acceptance.test.mjs",
+        "scripts/distinct-order-member-source-input.test.mjs",
+        "scripts/distinct-order-receiver-source-input.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "c61ffaf545446969c3499aef92b5a9646f673b2a",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T23:15:01.090Z",
+      "endedAt": "2026-10-11T23:15:01.373Z",
+      "elapsedMs": 277.25275,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 16,
+        "passed": 16,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

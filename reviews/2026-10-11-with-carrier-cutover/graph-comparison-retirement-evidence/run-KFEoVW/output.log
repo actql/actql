@@ -1,0 +1,3 @@
+Total tests: 13, passed: 13, failed: 0.
+["moon","test","--target","js","src/query_program/graph_equality_test.mbt","src/query_program/graph_difference_rows_test.mbt"]: executed; counts={"tests":13,"passed":13,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-Mi3qtA

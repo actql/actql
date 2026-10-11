@@ -1,0 +1,1901 @@
+{
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "status": "bounded static retired-entry caller scan, not a global deletion authorization",
+  "pattern": "data_declaration_(count|at)|parse_query_script|DataDeclaration|DataExpression|QueryScript|graph_data_body",
+  "counts": {
+    "caller regression; convert active source, retain independent Program/refusal requirements": 93,
+    "generated public interface; existing moon info regeneration only": 2,
+    "shared product caller; remove retired entry/count and connect common producer path": 5
+  },
+  "paths": [
+    {
+      "path": "src/query_program/composition_controls_test.mbt",
+      "sha256": "54005e31be375eaffbc9fb339afcd6df4efe7d337acb368c6d7b0ecade2d1298",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 55,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 74,
+          "text": "  let script = @query.parse_query_script(text, syntax_limits()).unwrap()"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/correlated_unnest_visible_star_test.mbt",
+      "sha256": "3ff3a5722686ea245fa90b74be42883e1f9c628bccc7519f814b54d0e6414275",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 212,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/cte_value_table_scope_test.mbt",
+      "sha256": "a8e318aaada26ba2edc5a3f0a0dd9bdc0a1e955ac910f7796a7547d040e48a4a",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 44,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/data_acquisition_test.mbt",
+      "sha256": "062c3d63940c02c27123a4089aed29bc5a7eb940dae9d69b51f87bd18cafa5d1",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 15,
+          "text": "    @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 49,
+          "text": "    @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 95,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 136,
+          "text": "  let script = @query.parse_query_script("
+        },
+        {
+          "line": 191,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 201,
+          "text": "        @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/data_cte_test.mbt",
+      "sha256": "ecbfcce7e7995908fd9bc15add54e57698661bf8ba93cb4ab934b6e99e419f2f",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 18,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 42,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 63,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 86,
+          "text": "        @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 109,
+          "text": "  let script = @query.parse_query_script("
+        },
+        {
+          "line": 138,
+          "text": "    @query.parse_query_script(text, { ..syntax_limits(), max_cte_count: 1, })"
+        },
+        {
+          "line": 141,
+          "text": "  let script = @query.parse_query_script(text, syntax_limits()).unwrap()"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/data_join_test.mbt",
+      "sha256": "077f05be764299dcd3e6394df068517383f86f5ac940655ec3689a12af8e57ca",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 7,
+          "text": "    @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 103,
+          "text": "        @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 111,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/data_positional_set_test.mbt",
+      "sha256": "3f666e425911c625ca2682a3aa4a893c1c28434bf0e592d446da34dafda289e1",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 10,
+          "text": "    let script = @query.parse_query_script(text, syntax_limits()).unwrap()"
+        },
+        {
+          "line": 62,
+          "text": "      @query.parse_query_script(by_name, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 71,
+          "text": "      @query.parse_query_script(private_name, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/data_script_test.mbt",
+      "sha256": "61ab047a3d7c99cf5484f874cf9b171cdadff82ce8c6a42f3738fbb433ab398e",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 13,
+          "text": "  let script = @query.parse_query_script("
+        },
+        {
+          "line": 35,
+          "text": "  let nested = @query.parse_query_script("
+        },
+        {
+          "line": 47,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/data_set_test.mbt",
+      "sha256": "f86f030c0568aa337b2d7cb360f3c51a7b19e3cf76fe0142ccc5f74f1b7af2cd",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 3,
+          "text": "  let script = match @query.parse_query_script(text, syntax_limits()) {"
+        },
+        {
+          "line": 89,
+          "text": "        @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 104,
+          "text": "  let query = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/full_join_scope_test.mbt",
+      "sha256": "4ae2cc46239477939dc90abdebbd17c8746e260edefcf60817f11ff948d6d80d",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 22,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/full_select_scope_test.mbt",
+      "sha256": "aa298eb048f3be39c9ff478fa6b8e8cfb7cd1f7ca07346e4b5430b89ddf2f529",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 44,
+          "text": "      @query.parse_query_script(prefix + body, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_abbreviated_edge_test.mbt",
+      "sha256": "6acc003cc6e4d541d86c01c1aa9d45950a9adb8a697d3071ee23ef9d70b12a4b",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 51,
+          "text": "          @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_any_direction_test.mbt",
+      "sha256": "5da1725dd342a08d47db8eca8f17e54b0a45363d3573132c8187a664ddb4261d",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 34,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 64,
+          "text": "  let parsed = @query.parse_query_script("
+        },
+        {
+          "line": 91,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_delta_source_test.mbt",
+      "sha256": "efe98e7d7c37c3abff9b0324538f9cc2be643d24e56280092402ea437036b476",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 5,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 128,
+          "text": "    let script = @query.parse_query_script("
+        },
+        {
+          "line": 144,
+          "text": "  let script = @query.parse_query_script("
+        },
+        {
+          "line": 158,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_diagnostics_test.mbt",
+      "sha256": "ea79cfd55d463bec23cb4ff3fa84d3baf237766fdd45793e367cde305be8c622",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 163,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 188,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_difference_rows_test.mbt",
+      "sha256": "de45e23b61cbc8e70be386d925aa25024748fbf691a5d4693f098c006cf4b368",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 75,
+          "text": "    let script = @query.parse_query_script("
+        },
+        {
+          "line": 99,
+          "text": "    let script = @query.parse_query_script("
+        },
+        {
+          "line": 130,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_edge_predicate_test.mbt",
+      "sha256": "9d18c4ebacc604ff77f73caed72e55e2e3a54bbbfbb0115c1b6e35c6c754c38d",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 53,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 238,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_equality_test.mbt",
+      "sha256": "0a9865d5f308e840871f78e1d7976c12f02fe45d1fdfd88b77d4fa335f6ac1ca",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 106,
+          "text": "    let script = @query.parse_query_script("
+        },
+        {
+          "line": 123,
+          "text": "  let forward = @query.parse_query_script("
+        },
+        {
+          "line": 146,
+          "text": "    let script = @query.parse_query_script("
+        },
+        {
+          "line": 177,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_hop_node_predicate_test.mbt",
+      "sha256": "566018575fd0aaabe068218f4eb964baaf4db4bfc09ef74e1770181b4e501061",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 70,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 95,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 109,
+          "text": "    @query.parse_query_script(graph_hop_node_source(pattern), syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 265,
+          "text": "  let parsed = @query.parse_query_script("
+        },
+        {
+          "line": 286,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_match_paths_integration_test.mbt",
+      "sha256": "a4ca91fad891d13098aee4403062b6316297755fc38354495982f5bcf12688ec",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 61,
+          "text": "    @query.parse_query_script(node_only_field, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_match_rows_test.mbt",
+      "sha256": "354457b5478360df8f3d4fba643153f6694a623d4552ad9cfb45b96cd13b00e8",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 111,
+          "text": "    let parsed = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_member_test.mbt",
+      "sha256": "b3b9e18aeb606d072bd5f31ec50b64670a15fde334985a37fa2b9b10e5a00888",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 19,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 42,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_program_wbtest.mbt",
+      "sha256": "f833cc49d1c656f6bd48b701c82ed4616d06f36be3288e7de2b07430fa7cecfe",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 381,
+          "text": "  let script = @query.parse_query_script("
+        },
+        {
+          "line": 411,
+          "text": "    let script = @query.parse_query_script(text, mapping_syntax_limits()).unwrap()"
+        },
+        {
+          "line": 419,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_projection_property_test.mbt",
+      "sha256": "d411eaa3095cea8d31ae92a1071cb8c56bb4a2804bc81866ed991f5f8edc5495",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 70,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 93,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 107,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 133,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 153,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_property_predicate_test.mbt",
+      "sha256": "54a7070c8b12bd1bade9167448d1d30507b2eb6e9075fa8f65294bfdb5e4b11e",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 71,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 92,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 106,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 127,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 153,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 181,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 217,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_quantifier_forms_test.mbt",
+      "sha256": "c000b9a69c656a0ef9d410646442e290be1e628023e9dae5179a783e5b3abcea",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 37,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_refusal_classification_test.mbt",
+      "sha256": "f925cf2695c90c3b3fd18db13a7f17b6c470840884a3540d96bb0e782cf2e213",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 4,
+          "text": "    @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 72,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_row_selection_test.mbt",
+      "sha256": "8f262d9383aedd01aa04df36cb3c4800efc29dc47309fb8ed531fb82758d8637",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 43,
+          "text": "    let script = @query.parse_query_script(prefix + suffix, syntax_limits()).unwrap()"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_rows_join_input_test.mbt",
+      "sha256": "562b8d4b5a602790f8872bb8116dbe6ae43054eb1a2d0fb5d61562366797e317",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 90,
+          "text": "    let script = @query.parse_query_script(source, syntax_limits()).unwrap()"
+        },
+        {
+          "line": 110,
+          "text": "      @query.parse_query_script(source, syntax_limits()) is Err(_),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_rows_positional_set_test.mbt",
+      "sha256": "b1d4cc08477ebe52b27d3fae0b4780805f99c4d37000407832171749772acdc9",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 14,
+          "text": "          @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 57,
+          "text": "      @query.parse_query_script(prefix + tail, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 82,
+          "text": "        @query.parse_query_script(prefix + suffix, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_rows_test.mbt",
+      "sha256": "e46847ff59319693972afbb07b404d02937b70bff234dcbfdac8fbc826779fa9",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 144,
+          "text": "    let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_subtraction_source_test.mbt",
+      "sha256": "304ea90c5db6150d548845e47178ebc552205fe8255439fb4141b8a0df8fbebd",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 46,
+          "text": "    let query = @query.parse_query_script("
+        },
+        {
+          "line": 62,
+          "text": "    let query = @query.parse_query_script("
+        },
+        {
+          "line": 77,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/graph_union_source_test.mbt",
+      "sha256": "f9348ca0ccf2023e887cd435be8181049097362c98e73ac6ea81034e1574303b",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 66,
+          "text": "      @query.parse_query_script(graph_union_prefix() + suffix, syntax_limits())"
+        },
+        {
+          "line": 76,
+          "text": "    let query = @query.parse_query_script("
+        },
+        {
+          "line": 92,
+          "text": "    let query = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/group_having_implicit_alias_test.mbt",
+      "sha256": "4398fb939e585525c75fa908cb4de371ad36d44b1b87799744213aa68dbbe7bf",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 163,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/group_ordinal_test.mbt",
+      "sha256": "2fc73050030d5d28c5dd0bf825233dac5b2c05a7c21b08582d17c9e37f4b9293",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 114,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/group_scope_test.mbt",
+      "sha256": "37ee50d870957319d63ca192550d949f7122ffab24bae2292cc5334babb1d9ea",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 211,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/group_select_input_scope_test.mbt",
+      "sha256": "b198a73e23befb82adae12e837d2396bfe1b928d3ed7022da8a799b0e8258c26",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 25,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 46,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/group_star_scope_test.mbt",
+      "sha256": "c0016007f4c71d5d89448cfb9c8d24ef6e75b7febd20bd462c6b2c9b9af4e604",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 60,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 75,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/grouped_graph_macro_test.mbt",
+      "sha256": "0307cfe32eb82acb4212439e59afdfbd1392c441f6927c9a4b4dc2283b0e694d",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 23,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 52,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/grouped_implicit_property_name_test.mbt",
+      "sha256": "885bba88051ed96a51dd8a4b120989129dc22286dce0c3e1a967b313e687372e",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 57,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 95,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/having_aggregate_test.mbt",
+      "sha256": "b65584bae09473f04bc05c4510e43f186a101f5f6017287857732fa92dbe9a83",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 136,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 153,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/having_grouped_subexpression_test.mbt",
+      "sha256": "5ec7d700d71e4486369c30ef16750612faeca32badc694b10fee4194b62f7967",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 84,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/having_projection_slots_test.mbt",
+      "sha256": "83b1f74c3e001bba35d0b87d37e4f119e969d82d07194c61b3244e64f39f577b",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 27,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/infer_input_field_test.mbt",
+      "sha256": "96e3b63f6240c7eebba581671fb40828c9085ee610b6466345c213897bc97376",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 113,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/join_chain_test.mbt",
+      "sha256": "95d5c2d09f94f7b6166190e7a784d214291b7ce1d774d1ddd8380f952e6c9e53",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 45,
+          "text": "        @query.parse_query_script("
+        },
+        {
+          "line": 136,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/join_on_row_range_test.mbt",
+      "sha256": "14ec2ade4139f3a226f48945320436584f3a5b0e231e3a5fa55f21197195b15f",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 4,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/join_pipe_edits_test.mbt",
+      "sha256": "63416b570dc5e58b5e62fdfff7df7e8ee971a38ce9344b21a26cbd5584cf0000",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 91,
+          "text": "        @query.parse_query_script(prefix + tail, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 101,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 112,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/join_pipe_limit_tail_test.mbt",
+      "sha256": "c89989406abf8d1c71efe9e393c57fa0e75760be25d8efdea2186247d41114fc",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 109,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/join_value_table_receiver_test.mbt",
+      "sha256": "a907edb27db10b08b7b0eeee7e151dab4d9d9e4d98e651bc4368ce63de3653c5",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 21,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 58,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 97,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 114,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 150,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/joined_row_range_test.mbt",
+      "sha256": "aad4ebdcdec28e3c265943bf599a3bd16d756c0cd2027b99b3e626ee887e37fa",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 20,
+          "text": "  let query = @query.parse_query_script("
+        },
+        {
+          "line": 49,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 76,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 92,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 110,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 133,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/joined_unnest_star_test.mbt",
+      "sha256": "7326d375f1011f3e1cf1a919536b4df0918ba70af19ea44d9c8b17212a0e018f",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 19,
+          "text": "      @query.parse_query_script(head + tail, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 30,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 55,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 72,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 80,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 174,
+          "text": "        @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 200,
+          "text": "  let script = match @query.parse_query_script(text, syntax_limits()) {"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/keyed_graph_program_wbtest.mbt",
+      "sha256": "a8d7bf5354465e6fe99b5311cba2382ee6a188c66e5bb25b807e2a7bbc67ccb8",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 4,
+          "text": "    @query.parse_query_script(text, mapping_syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/match_data_producer_test.mbt",
+      "sha256": "7b842089451bca226a27d66d8dab9ca454fd207036ef2ff00c9d90aa75fb730c",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 126,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 142,
+          "text": "      @query.parse_query_script(match_data_prefix() + text, syntax_limits())"
+        },
+        {
+          "line": 152,
+          "text": "    @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/nearest_script_test.mbt",
+      "sha256": "127b817b649222013d4ddf8e2e384c83f449ef339b1a31500d99fec2e9f8f7a6",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 38,
+          "text": "    @query.parse_query_script(nearest_script_source(), syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 67,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 82,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 114,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/order_aggregate_expression_test.mbt",
+      "sha256": "4f87a769ed28f1b0c3b74125824e979e853ef0c18be9fca389c5ca173d83af85",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 142,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/order_grouped_subexpression_test.mbt",
+      "sha256": "de37aae9c3a9df3602cf6ff7e6cc3602c0e406e06a685f18540d2905d3728673",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 120,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/order_property_paths_test.mbt",
+      "sha256": "26461a75c963fe30a75b235eb777d7e2fb6da8ed5b956c311fb4a39a2290b26c",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 195,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/parenthesized_positional_output_test.mbt",
+      "sha256": "76e84d93915498435246979968eabd2ad679ceac34d88f15aaaad3a50e82b63f",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 6,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 60,
+          "text": "        @query.parse_query_script("
+        },
+        {
+          "line": 122,
+          "text": "        @query.parse_query_script(head + source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/pipe_join_input_test.mbt",
+      "sha256": "abe8ff5ad6ad7cedbe80adb75249253776926aac9a5db2e26d2f5939aebfcc0d",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 60,
+          "text": "            @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/pipe_rename_target_scope_test.mbt",
+      "sha256": "03bea535493324ee519e65a8c5317bcfa792489e616e62c5b390d4c1d24330e7",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 105,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/pipe_set_target_scope_test.mbt",
+      "sha256": "bf4c50ab8186ef6970df46e0fcf4095963a123f53a82ef6a92d987cf02f965be",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 76,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/pkg.generated.mbti",
+      "sha256": "a78d0234e8070e7496ab3796b9647834fb406ef412ccc34436c6324432d391ad",
+      "category": "generated public interface; existing moon info regeneration only",
+      "matches": [
+        {
+          "line": 20,
+          "text": "pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/positional_aggregate_duplicates_test.mbt",
+      "sha256": "fb67c5f35d082bae3cc081e99a6b642891adb41de5864da806c5c4439d68fcb3",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 15,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 41,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 101,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/positional_anonymous_window_test.mbt",
+      "sha256": "1380b39751d190eafc795f28a6d83b3e53d74895792a84de0e8c230d783a520e",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 6,
+          "text": "  let query = @query.parse_query_script(source, syntax_limits()).unwrap()"
+        },
+        {
+          "line": 48,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 83,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 95,
+          "text": "        @query.parse_query_script(head + field + \" > 0\", syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/positional_duplicate_columns_test.mbt",
+      "sha256": "eb33448986aaede084ca6ab63c9b68ec185344283d7ede6ba12c39344a03835c",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 87,
+          "text": "    let script = @query.parse_query_script(source, syntax_limits()).unwrap()"
+        },
+        {
+          "line": 144,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 160,
+          "text": "    @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/positional_join_set_test.mbt",
+      "sha256": "4dc9d4daebc08d12386d23657266c152386b5a36e92faa2f5f4fbc112dc1a5fe",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 44,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/positional_order_limit_test.mbt",
+      "sha256": "eecbaa289de7b75f9327a8e048ce439cc43852fee2d4bd9d6a09ab724983f681",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 206,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/positional_window_duplicates_test.mbt",
+      "sha256": "946513ad4cdcb6f4c323f48a8e158506eb814fe73d6ad5d2d8679d2f5c5cc213",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 8,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 40,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 88,
+          "text": "        @query.parse_query_script(head + predicate, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 98,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 116,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/query_script_inputs.mbt",
+      "sha256": "2bc6a818e32ac08a68c341492291838ee4c5a8a14780a8c35896b8d0ff1c8845",
+      "category": "shared product caller; remove retired entry/count and connect common producer path",
+      "matches": [
+        {
+          "line": 79,
+          "text": "  script : @query.QueryScript,"
+        },
+        {
+          "line": 84,
+          "text": "  for index in 0..<@query.data_declaration_count(script) {"
+        },
+        {
+          "line": 85,
+          "text": "    match @query.data_declaration_at(script, index).unwrap().value {"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/query_script_program.mbt",
+      "sha256": "7c79a40671e7fe7dc0de28517789d270f39ffbc180870993309696c431712482",
+      "category": "shared product caller; remove retired entry/count and connect common producer path",
+      "matches": [
+        {
+          "line": 288,
+          "text": "  script : @query.QueryScript,"
+        },
+        {
+          "line": 344,
+          "text": "    for index in 0..<@query.data_declaration_count(script) {"
+        },
+        {
+          "line": 345,
+          "text": "      let declaration = @query.data_declaration_at(script, index).unwrap()"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/quoted_graph_macro_test.mbt",
+      "sha256": "0add63f8f6bad74cd37e67fafc7e10d267928355ca8c1f8966911323934b3cd1",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 23,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/repeated_group_key_test.mbt",
+      "sha256": "45533682f270e33e80a5c147ca57f210f3eca60fec4ea54b013ddf90a4bd5665",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 90,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/select_aggregate_expression_test.mbt",
+      "sha256": "9f4472540f0c01be4c1b037d687b16ddfa88a44a7d00e2c2505624b31d29dd90",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 102,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/set_by_name_list_test.mbt",
+      "sha256": "423967d97416bd2dbef3e410556694756ef179161497455a8cd04a45a804307c",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 96,
+          "text": "        @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/set_member_public_source_test.mbt",
+      "sha256": "9b859efa9578fda7559987791e751c9816b58a7cd08c6308735cc8ccb2a018d8",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 48,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 72,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 96,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 120,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/set_member_scope_test.mbt",
+      "sha256": "d935678594b292a6b6649bc066b7ee4aee544da9aef75d720abad44b254d53a7",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 53,
+          "text": "      @query.parse_query_script(text, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/set_window_private_scope_test.mbt",
+      "sha256": "abf35ce37d55baa4bcc76ec6cc79ebbf81ff3475d5e181bf71cbd4dfe8952568",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 133,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/sga_script_test.mbt",
+      "sha256": "150171f45963a5510c99b287a7dec22dc371c193eb82e2812aef93aa07725577",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 52,
+          "text": "      @query.parse_query_script(prefix + suffix, syntax_limits()) {"
+        },
+        {
+          "line": 68,
+          "text": "  let incomplete_mean = @query.parse_query_script("
+        },
+        {
+          "line": 81,
+          "text": "  let unknown = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/single_join_group_test.mbt",
+      "sha256": "cb7af3178baa3dc69687d05484e74e4477525fde6648a54e18d321578276ce5e",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 46,
+          "text": "          @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/source_member_test.mbt",
+      "sha256": "38831d9d828cbc81c61fa11496a2f492db77d7bc6c7159bda4bc3fa584d93ec3",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 219,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 265,
+          "text": "      @query.parse_query_script("
+        },
+        {
+          "line": 345,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/sql_group_by_all_test.mbt",
+      "sha256": "5e557d46779eeaf7fd1605749a9236bded0e1e5d48530c269d6d4fa1951753e1",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 178,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/sql_grouped_subexpression_test.mbt",
+      "sha256": "2747560209a9f3b56783c836b320d30fc5ba1aef684b2d0d47a48476d56f765b",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 82,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/subgraph_source_test.mbt",
+      "sha256": "3441e2494331c96654e40c0523b3eab7794161f1a05dcb445c671e74a2eb59ae",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 53,
+          "text": "  let script = @query.parse_query_script("
+        },
+        {
+          "line": 190,
+          "text": "    let script = @query.parse_query_script("
+        },
+        {
+          "line": 206,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/table_effect_program_test.mbt",
+      "sha256": "3e8596b259c9a5cbcb9a35cb1fcf02de795ad3a20d2080a9b9765a59f5362ffc",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 102,
+          "text": "  let script = @query.parse_query_script(source, syntax_limits()).unwrap()"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/traversal_join_input_test.mbt",
+      "sha256": "61469d03665fe81525e6fa52120311ddd5ff3fd6df0608b5ab45386882b51ff7",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 75,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/traversal_nodes_test.mbt",
+      "sha256": "9a4af7983dc6b0dc617d5eb6e17b0e4a0e94a311aa823f6cb9edd8da7dab7c20",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 89,
+          "text": "    let parsed = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/traversal_paths_test.mbt",
+      "sha256": "88392e040bb2004b1a981ca3807e7029ace84574cdd0c3f9135f7e0a3e6acc56",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 39,
+          "text": "      @query.parse_query_script(traversal_paths_source(), syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 87,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 112,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 123,
+          "text": "      @query.parse_query_script(omitted, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/unnest_join_continuation_test.mbt",
+      "sha256": "c789f6a60d01338a118f71ea583f0586f6d8ad7119ada9996854c1acb0276d45",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 132,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/unnest_offset_range_scope_test.mbt",
+      "sha256": "61e112eb83d9deaedd740163aae5d8a710d511286c0c11b24806e42be3bb6e4a",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 13,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 37,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 70,
+          "text": "    @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/unnest_pipe_edit_scope_test.mbt",
+      "sha256": "4cff9b8d78712eeb7e159743db4eedab15c50e5d3b231e008cb5f339370e80cf",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 122,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/unnest_scalar_range_target_test.mbt",
+      "sha256": "59442800284d6ffdb4c0cbd2bde899b1d335a71044fa0f64190f780b2e0af487",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 11,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 44,
+          "text": "    @query.parse_query_script("
+        },
+        {
+          "line": 67,
+          "text": "        @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        },
+        {
+          "line": 90,
+          "text": "      @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/unnest_scalar_receiver_precedence_test.mbt",
+      "sha256": "6093a784e2f056659ed784648242dca155d4ee355fda845fec2a3c7b46942153",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 76,
+          "text": "      @query.parse_query_script(source, syntax_limits()).unwrap(),"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_program/whole_row_range_test.mbt",
+      "sha256": "3e8d038a6df877bbee6ae2adab3b8376a794d35c6e80063d13d2e70870dd7a10",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 205,
+          "text": "  let script = @query.parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_syntax/composition_controls_test.mbt",
+      "sha256": "bddd9622ae8c554710392f1742b96b7bdb05575c27dcbbb50dcac231c4e1f45c",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 4,
+          "text": "  assert_true(parse_query_script(text, query_limits()) is Ok(_))"
+        },
+        {
+          "line": 16,
+          "text": "    assert_true(parse_query_script(text, query_limits()) is Err(_))"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_syntax/pkg.generated.mbti",
+      "sha256": "a0e7b7d1a6789a2d0521cf9304d1c6361dc117a177142df4fec8026803974b3e",
+      "category": "generated public interface; existing moon info regeneration only",
+      "matches": [
+        {
+          "line": 17,
+          "text": "pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?"
+        },
+        {
+          "line": 19,
+          "text": "pub fn data_declaration_count(QueryScript) -> Int"
+        },
+        {
+          "line": 63,
+          "text": "pub fn parse_query_script(String, QueryLimits, source_path? : String) -> Result[QueryScript, Diagnostic]"
+        },
+        {
+          "line": 83,
+          "text": "pub fn script_document(QueryScript) -> @frontend_source_map.Document"
+        },
+        {
+          "line": 85,
+          "text": "pub fn script_query(QueryScript) -> Query"
+        },
+        {
+          "line": 87,
+          "text": "pub fn script_work(QueryScript) -> Int"
+        },
+        {
+          "line": 93,
+          "text": "pub fn single_query_script(Query) -> QueryScript"
+        },
+        {
+          "line": 169,
+          "text": "pub(all) struct DataDeclaration {"
+        },
+        {
+          "line": 171,
+          "text": "  value : DataExpression"
+        },
+        {
+          "line": 176,
+          "text": "pub(all) enum DataExpression {"
+        },
+        {
+          "line": 465,
+          "text": "type QueryScript"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "sha256": "8a93f8fa1f49db2f102daabeb227a8f0c254179fa9d659ccb0a7de44b611e985",
+      "category": "shared product caller; remove retired entry/count and connect common producer path",
+      "matches": [
+        {
+          "line": 2313,
+          "text": "  graph_data_body? : Bool = false,"
+        },
+        {
+          "line": 2399,
+          "text": "    self.pipe(cte_body~, graph_data_body~)"
+        },
+        {
+          "line": 2579,
+          "text": "  graph_data_body? : Bool = false,"
+        },
+        {
+          "line": 2585,
+          "text": "    if cte_body && !graph_data_body {"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_syntax/query_script.mbt",
+      "sha256": "777e80b976bc1d6fa51ec6d45dda0d73677357409265670e9058545a3154b480",
+      "category": "shared product caller; remove retired entry/count and connect common producer path",
+      "matches": [
+        {
+          "line": 4,
+          "text": "pub(all) enum DataExpression {"
+        },
+        {
+          "line": 11,
+          "text": "pub(all) struct DataDeclaration {"
+        },
+        {
+          "line": 13,
+          "text": "  value : DataExpression"
+        },
+        {
+          "line": 19,
+          "text": "struct QueryScript {"
+        },
+        {
+          "line": 21,
+          "text": "  declarations : Array[DataDeclaration]"
+        },
+        {
+          "line": 27,
+          "text": "pub fn data_declaration_count(script : QueryScript) -> Int {"
+        },
+        {
+          "line": 32,
+          "text": "pub fn data_declaration_at("
+        },
+        {
+          "line": 33,
+          "text": "  script : QueryScript,"
+        },
+        {
+          "line": 35,
+          "text": ") -> DataDeclaration? {"
+        },
+        {
+          "line": 40,
+          "text": "pub fn script_query(script : QueryScript) -> Query {"
+        },
+        {
+          "line": 45,
+          "text": "pub fn script_document(script : QueryScript) -> @origin.Document {"
+        },
+        {
+          "line": 50,
+          "text": "pub fn script_work(script : QueryScript) -> Int {"
+        },
+        {
+          "line": 55,
+          "text": "pub fn parse_query_script("
+        },
+        {
+          "line": 59,
+          "text": ") -> Result[QueryScript, Diagnostic] {"
+        },
+        {
+          "line": 81,
+          "text": "    let declarations : Array[DataDeclaration] = []"
+        },
+        {
+          "line": 96,
+          "text": "        DataExpression::Graph(parser.graph())"
+        },
+        {
+          "line": 98,
+          "text": "        DataExpression::NamedGraphCall(parser.sga_call())"
+        },
+        {
+          "line": 102,
+          "text": "        DataExpression::RelationQuery("
+        },
+        {
+          "line": 103,
+          "text": "          parser.query(cte_body=true, graph_data_body=true),"
+        },
+        {
+          "line": 127,
+          "text": "pub fn single_query_script(query : Query) -> QueryScript {"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_syntax/query_script_test.mbt",
+      "sha256": "abdc38e7ed0bad3107fb2847ce83c0c391af35c72612da053cb4180bf79f6af2",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 4,
+          "text": "  let script = parse_query_script(text, query_limits(), source_path=\"graph.aql\").unwrap()"
+        },
+        {
+          "line": 5,
+          "text": "  assert_eq(data_declaration_count(script), 2)"
+        },
+        {
+          "line": 6,
+          "text": "  let nodes = data_declaration_at(script, 0).unwrap()"
+        },
+        {
+          "line": 10,
+          "text": "  let graph = data_declaration_at(script, 1).unwrap()"
+        },
+        {
+          "line": 34,
+          "text": "    let script = parse_query_script("
+        },
+        {
+          "line": 39,
+          "text": "      data_declaration_at(script, 0).unwrap().value is RelationQuery(_),"
+        },
+        {
+          "line": 55,
+          "text": "    assert_true(parse_query_script(text, query_limits()) is Err(_), msg=text)"
+        },
+        {
+          "line": 62,
+          "text": "  let baseline = parse_query_script(text, query_limits()).unwrap()"
+        },
+        {
+          "line": 65,
+          "text": "    parse_query_script(text, { ..query_limits(), max_work: work, }) is Ok(_),"
+        },
+        {
+          "line": 68,
+          "text": "    parse_query_script(text, { ..query_limits(), max_work: work - 1, })"
+        },
+        {
+          "line": 72,
+          "text": "    parse_query_script(text, { ..query_limits(), max_cte_count: 1, }) is Err(_),"
+        },
+        {
+          "line": 75,
+          "text": "    parse_query_script(text, { ..query_limits(), max_syntax_nodes: 1, })"
+        },
+        {
+          "line": 78,
+          "text": "  let issue = parse_query_script("
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/query_syntax/sga_call_test.mbt",
+      "sha256": "69cd87a39ce7fc2cc3315a16094a2cc3da20d89e50d7b9622aa82e7e868b832d",
+      "category": "caller regression; convert active source, retain independent Program/refusal requirements",
+      "matches": [
+        {
+          "line": 184,
+          "text": "  let script = parse_query_script("
+        },
+        {
+          "line": 189,
+          "text": "    data_declaration_at(script, 0).unwrap().value is NamedGraphCall(_),"
+        },
+        {
+          "line": 191,
+          "text": "  guard data_declaration_at(script, 1).unwrap().value is RelationQuery(body) else {"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    },
+    {
+      "path": "src/source_frontend/lower.mbt",
+      "sha256": "16df104effc1906139ab21611dbd98094346ae1964f326030d88dabc806aba52",
+      "category": "shared product caller; remove retired entry/count and connect common producer path",
+      "matches": [
+        {
+          "line": 324,
+          "text": "        @syntax.parse_query_script(document, syntax_limits(), source_path~) {"
+        },
+        {
+          "line": 332,
+          "text": "      if @syntax.data_declaration_count(script) == 0 &&"
+        },
+        {
+          "line": 336,
+          "text": "      let program = if @syntax.data_declaration_count(script) > 0 {"
+        }
+      ],
+      "disposition": "no edit yet; adopt normally integrated source before cutover"
+    }
+  ],
+  "protected_private_fixture": {
+    "path": "src/internal_structural_fixture",
+    "actual_refs": [
+      "scripts/portable-core.test.mjs",
+      "scripts/frontend-profile.test.mjs",
+      "scripts/generate-aql-text-vocabulary.mjs",
+      "scripts/aql-text.test.mjs"
+    ],
+    "disposition": "Private independent fixture dependencies are not a public compatibility route. Keep ordinary machine Program controls and rejection evidence; do not delete by token search."
+  },
+  "public_facades": [
+    "packages/sdk/source-query.mjs",
+    "packages/native-cli/bin/actql.mjs",
+    "packages/python-sdk/src/actql_sdk",
+    "adapters/host-node/client-program-preparation.mjs"
+  ],
+  "remaining": "Review active text literals and documentation against original scope before direct replacement; do not use a source rewriting/migration product."
+}

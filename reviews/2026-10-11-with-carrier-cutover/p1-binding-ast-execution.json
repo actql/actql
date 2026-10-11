@@ -1,0 +1,292 @@
+{
+  "unit": "P1 binding AST actual caller evidence; not complete cutover",
+  "new_source": "2ba8f12decf3c75ac2fbf35c866b14a0a40746e7",
+  "new_result": "JS27 total,26 passed,1 failed; run-WTnxP7 exit2",
+  "baseline_source": "50b22809e72a56a918bbda3fc27947c381f017e9",
+  "baseline_result": "Only existing derived captured Pipe test selected,1 executed,0 passed,1 failed; run-4INhNp exit2",
+  "classification": "The old independent expected Program mismatch reproduces before AST changes. Both observed actual Programs are byte-identical and the expected Program hash is unchanged. This disproves a new AST regression for this first source only; neither failed run is PASS.",
+  "source": "SELECT id FROM (FROM orders |> WHERE amount > 10) AS chosen",
+  "difference": "The script owner retains a full-column projection for the internal range-binding continuation; the old complete oracle expects direct capture input renaming without that projection. Do not replace the oracle with measured output. Carry this boundary into common WITH scope/producer lowering.",
+  "unobserved": [
+    "Second Pipe variant after this first failing loop iteration",
+    "Public values/schema/source counter and full cutover",
+    "Other backends or CI"
+  ],
+  "owners_released": [
+    718,
+    2262
+  ],
+  "own_group_lock_checks": "Both known Owner/PGID checks returned no rows and own lock absent after actual terminal guard receipts. Returned to clean product branch2ba8 after baseline.",
+  "records": [
+    {
+      "source": "2ba8f12decf3c75ac2fbf35c866b14a0a40746e7",
+      "run": "run-WTnxP7",
+      "focused": "focused-test-Tg6dcY",
+      "actual_program_sha256": "14675f8afe9405dcbe89a16522a3a4bd504723cd817fb4dc7804269a10935ef1",
+      "expected_program_sha256": "69b09f03b9f6c93758e2713d5f7e979858a1c5bc0fa190a341253b8455271594",
+      "actual_program": {
+        "id": "fixture.query_pair",
+        "results": {
+          "answer": {
+            "from": {
+              "result": "rows",
+              "stage": "main"
+            }
+          }
+        },
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "orders": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "amount": {
+                    "nullable": false,
+                    "type": "number"
+                  },
+                  "customer_id": {
+                    "nullable": false,
+                    "type": "string"
+                  },
+                  "id": {
+                    "nullable": false,
+                    "type": "string"
+                  },
+                  "status": {
+                    "nullable": false,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "results": {
+              "source": {
+                "fields": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ],
+                "from": "aql_capture_0"
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "amount"
+                    },
+                    {
+                      "literal": 10
+                    }
+                  ]
+                },
+                "from": "orders"
+              },
+              {
+                "as": "aql_capture_0",
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "orders": {
+                "result": {
+                  "result": "source",
+                  "stage": "capture"
+                }
+              }
+            },
+            "results": {
+              "rows": {
+                "fields": [
+                  "id"
+                ],
+                "from": "aql_script_result"
+              }
+            },
+            "steps": [
+              {
+                "as": "aql_script_cte_1",
+                "from": "orders",
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              },
+              {
+                "as": "aql_script_result",
+                "from": "aql_script_cte_1",
+                "select": [
+                  "id"
+                ]
+              }
+            ]
+          }
+        ],
+        "version": "actql/0.1"
+      },
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-WTnxP7/summary.json",
+          "bytes": 1998,
+          "sha256": "e129a87b7c60ec78c75e52f44e5af286fe5532fd8585afa57b1c1c1f262daaf6"
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-Tg6dcY/001.stdout.log",
+          "bytes": 4594,
+          "sha256": "0635de83c90e73d9914e794c53ea160d0f737591d909a76c091768ac193cfc0d"
+        }
+      ]
+    },
+    {
+      "source": "50b22809e72a56a918bbda3fc27947c381f017e9",
+      "run": "run-4INhNp",
+      "focused": "focused-test-TqY16R",
+      "actual_program_sha256": "14675f8afe9405dcbe89a16522a3a4bd504723cd817fb4dc7804269a10935ef1",
+      "expected_program_sha256": "69b09f03b9f6c93758e2713d5f7e979858a1c5bc0fa190a341253b8455271594",
+      "actual_program": {
+        "id": "fixture.query_pair",
+        "results": {
+          "answer": {
+            "from": {
+              "result": "rows",
+              "stage": "main"
+            }
+          }
+        },
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "orders": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "amount": {
+                    "nullable": false,
+                    "type": "number"
+                  },
+                  "customer_id": {
+                    "nullable": false,
+                    "type": "string"
+                  },
+                  "id": {
+                    "nullable": false,
+                    "type": "string"
+                  },
+                  "status": {
+                    "nullable": false,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "results": {
+              "source": {
+                "fields": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ],
+                "from": "aql_capture_0"
+              }
+            },
+            "steps": [
+              {
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "amount"
+                    },
+                    {
+                      "literal": 10
+                    }
+                  ]
+                },
+                "from": "orders"
+              },
+              {
+                "as": "aql_capture_0",
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "orders": {
+                "result": {
+                  "result": "source",
+                  "stage": "capture"
+                }
+              }
+            },
+            "results": {
+              "rows": {
+                "fields": [
+                  "id"
+                ],
+                "from": "aql_script_result"
+              }
+            },
+            "steps": [
+              {
+                "as": "aql_script_cte_1",
+                "from": "orders",
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              },
+              {
+                "as": "aql_script_result",
+                "from": "aql_script_cte_1",
+                "select": [
+                  "id"
+                ]
+              }
+            ]
+          }
+        ],
+        "version": "actql/0.1"
+      },
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-4INhNp/summary.json",
+          "bytes": 1753,
+          "sha256": "952a06f1e4884816c2f62cf9089abce09541c5a12f29449f5a24220dfd1a1841"
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-TqY16R/001.stdout.log",
+          "bytes": 4592,
+          "sha256": "4691d0b4593544b3c9a70f613999584f4dacca6f66eefbe118864ee255814e64"
+        }
+      ]
+    }
+  ]
+}

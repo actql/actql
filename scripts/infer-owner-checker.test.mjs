@@ -255,7 +255,6 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
   const waiting = await runOriginal('prepare original call');
   assert.equal(waiting.status, 'waiting');
   assert.equal(fetches, 0);
-  sdk.bindPrepared(waiting.preparedCallSet);
   const facts = operation.preparedFacts(waiting.preparedCallSet);
   const boundary = moon.clientProgramInferPlanBoundary(graph);
   const providerBinding = control.sealRunEvidence('model_provider_binding', canonicalText({

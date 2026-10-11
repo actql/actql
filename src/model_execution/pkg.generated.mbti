@@ -142,6 +142,8 @@ pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
 
 pub fn model_physical_call(ModelCallEntry, ModelPreparedCallSet, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
 
+pub fn model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
+
 pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, String, String, String)
 
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]

@@ -1,0 +1,25 @@
+[1mdiff --git a/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_union_source_test.mbt b/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/wasm-gc/release/format/query_program/graph_union_source_test.mbt[m
+[1mindex 83991883b..8fac566a0 100644[m
+[1m--- a/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_union_source_test.mbt[m
+[1m+++ b/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/wasm-gc/release/format/query_program/graph_union_source_test.mbt[m
+[36m@@ -151,11 +151,12 @@[m [mfn expect_with_graph_static_refusal([m
+     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>[m
+       match expected {[m
+         Some(expected) => assert_eq(issue.kind, expected)[m
+[31m-        None => match issue.kind {[m
+[31m-          Graph(_) | GraphMatch(_) => ()[m
+[31m-          other =>[m
+[31m-            fail("expected common Graph refusal: " + @debug.to_string(other))[m
+[31m-        }[m
+[32m+[m[32m        None =>[m
+[32m+[m[32m          match issue.kind {[m
+[32m+[m[32m            Graph(_) | GraphMatch(_) => ()[m
+[32m+[m[32m            other =>[m
+[32m+[m[32m              fail("expected common Graph refusal: " + @debug.to_string(other))[m
+[32m+[m[32m          }[m
+       }[m
+     _ => fail("expected common static Graph admission refusal: " + text)[m
+   }[m
+failed to execute `git --no-pager diff --color=always --no-index /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_union_source_test.mbt /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/wasm-gc/release/format/query_program/graph_union_source_test.mbt`
+Failed with 0 warnings, 0 errors.
+Error: failed when formatting project

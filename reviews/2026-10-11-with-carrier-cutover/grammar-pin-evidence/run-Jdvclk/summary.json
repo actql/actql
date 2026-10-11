@@ -1,0 +1,142 @@
+{
+  "startedAt": "2026-10-11T18:37:22.958Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH corrected SGA preimage tests",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/sga-query-call-contract.test.mjs"
+      ],
+      "startedAt": "2026-10-11T18:37:23.150Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:24.057Z",
+      "endedAt": "2026-10-11T18:37:24.062Z"
+    },
+    {
+      "name": "WITH Graph and Values Run caller JS",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/graph_test.mbt",
+        "src/query_syntax/string_literals_test.mbt",
+        "src/query_syntax/literal_forms_test.mbt",
+        "src/query_program/with_graph_binding_test.mbt",
+        "src/query_program/quoted_graph_macro_wbtest.mbt",
+        "src/source_frontend/with_graph_binding_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T18:37:24.143Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:44.390Z",
+      "endedAt": "2026-10-11T18:37:44.392Z"
+    },
+    {
+      "name": "WITH compilation manifest freshness",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs"
+      ],
+      "startedAt": "2026-10-11T18:37:44.459Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:44.684Z",
+      "endedAt": "2026-10-11T18:37:44.687Z"
+    },
+    {
+      "name": "WITH vocabulary freshness",
+      "command": [
+        "node",
+        "scripts/generate-aql-text-vocabulary.mjs"
+      ],
+      "startedAt": "2026-10-11T18:37:44.761Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:44.833Z",
+      "endedAt": "2026-10-11T18:37:44.836Z"
+    },
+    {
+      "name": "WITH document metadata freshness",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs"
+      ],
+      "startedAt": "2026-10-11T18:37:44.932Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:47.246Z",
+      "endedAt": "2026-10-11T18:37:47.250Z"
+    },
+    {
+      "name": "WITH family links and evidence freshness",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-11T18:37:47.334Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:49.576Z",
+      "endedAt": "2026-10-11T18:37:49.579Z"
+    },
+    {
+      "name": "WITH canonical manifest fixture freshness",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs"
+      ],
+      "startedAt": "2026-10-11T18:37:49.655Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:37:51.659Z",
+      "endedAt": "2026-10-11T18:37:51.660Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "f967cb86-f3a5-4a45-8409-716c79056b0e",
+    "pid": 6688,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:37:23.068Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Jdvclk"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:37:51.735Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -1,0 +1,39 @@
+{
+  "failed_source": "92e6585f0684f4c389f054d02101903534f31447",
+  "failed_run": "run-udbVO6",
+  "actual_js": {
+    "tests": 13,
+    "passed": 11,
+    "failed": 2
+  },
+  "basis": "Count UTF-8 bytes of the declared ASCII prefix and caller suffix; do not use product diagnostic output to generate expected positions. Retain UnknownReference and Authored origin; only source coordinates change from retired DATA prefix.",
+  "prefix_source": {
+    "path": "src/query_program/graph_rows_test.mbt",
+    "sha256": "8bc0431a153895ff4f1b66ae6225acdb2c91e9b3c299e0b876995545174858f1",
+    "text": "WITH n AS (SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name), e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) "
+  },
+  "cases": [
+    {
+      "source": "WITH n AS (SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name), e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) FROM g |> graphs_equal(with: g) |> SELECT node_key",
+      "old_span": [
+        473,
+        481
+      ],
+      "independent_span": [
+        462,
+        470
+      ]
+    },
+    {
+      "source": "WITH n AS (SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name), e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) FROM g |> graph_diff(with: g) |> SELECT node_key",
+      "old_span": [
+        471,
+        479
+      ],
+      "independent_span": [
+        460,
+        468
+      ]
+    }
+  ]
+}

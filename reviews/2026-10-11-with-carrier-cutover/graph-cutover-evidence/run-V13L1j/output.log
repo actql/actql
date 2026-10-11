@@ -1,0 +1,9 @@
+Warning: [0060]
+      ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_syntax/query.mbt:2788:24 ]
+      │
+ 2788 │           graph = Some({ ..current, pattern: Some(pattern), })
+      │                        ───────────────────┬──────────────────  
+      │                                           ╰──────────────────── Warning (unused_struct_update): The spread '..s' has no effect: all fields are explicitly overwritten.
+──────╯
+Finished. moon: ran 5 tasks, now up to date (1 warnings, 0 errors)
+Finished. moon: ran 540 tasks, now up to date

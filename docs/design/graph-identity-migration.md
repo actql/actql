@@ -6,8 +6,9 @@ types, constructor APIs and public Program fields use Graph names. There is no
 second model, compatibility reader or fallback execution path.
 
 The public constructor uses the closed `graph` Program field and
-`actql-graph-constructor/0.1`. Text retains the standard `PROPERTY GRAPH`
-keywords; that spelling does not select another runtime representation.
+`actql-graph-constructor/0.1`. Current SQL/Pipe text uses `GRAPH (...)`
+inside a `WITH name AS (...)` producer binding. Both surfaces select the same
+Graph representation and the existing constructor Owner.
 
 ## Identity boundary
 

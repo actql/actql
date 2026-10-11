@@ -46,45 +46,92 @@ fn lower_script_relation(
   retain_value_table? : Bool = false,
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
+  allow_nonrelation? : Bool = false,
 ) -> Input raise Abort {
-  let (known, graphs) = if @query.cte_count(query) == 0 {
-    (known, graphs)
+  let (known, graphs) = lower_script_bindings(
+    construction, query, known, graphs, context, sources, limits, steps, reserved,
+  )
+  let query = @query.after_query_bindings(query)
+  let current = lower_script_primary(
+    construction, query, known, graphs, context, sources, limits, steps, reserved,
+  )
+  let query = @query.after_producer_primary(query)
+  let graph = current_script_graph(current, query, graphs)
+  let query = if graph is Some(_) {
+    @query.graph_source_query(query)
   } else {
-    validate_cte_scope(query, known, graphs~)
-    let mut scoped = known.copy()
-    let mut scoped_graphs = graphs.copy()
-    for index in 0..<@query.cte_count(query) {
-      let cte = @query.cte_at(query, index).unwrap()
-      let name = pipe_physical_name(reserved, "aql_script_cte_")
-      reserved.push(name)
-      let bound = lower_script_relation(
+    query
+  }
+  if graph is Some(graph) && @query.set_part_count(query) == 0 {
+    if @query.graph_query(query)
+      .map(value => value.pattern is Some(_))
+      .unwrap_or(false) {
+      return lower_script_keyed_graph_query(
         construction,
-        cte.query,
-        scoped,
-        context,
-        sources,
+        query,
+        graphs,
         limits,
         steps,
         reserved,
-        name,
-        carry_ranges=cte.carry_ranges,
-        retain_value_table=true,
-        graphs=scoped_graphs,
+        output,
+        retained.unwrap_or([]),
+        known~,
+        current=Some(graph),
       )
-      if !cte.carry_ranges &&
-        sources.value_tables.get(bound.name) is Some(scope) {
-        sources.value_tables[bound.name] = bind_value_table_scope(
-          scope,
-          cte.name,
-        )
-      }
-      scoped = scoped.filter(input => !input_relation_matches([cte.name], input))
-      scoped.push({ ..bound, relation: [cte.name], })
-      scoped_graphs = scoped_graphs.filter(graph => {
-        !same_name(graph.name, cte.name)
-      })
     }
-    (scoped, scoped_graphs)
+    if script_has_graph_rows(query) {
+      return lower_script_graph_rows(
+        construction,
+        query,
+        graph,
+        limits,
+        steps,
+        reserved,
+        output,
+        known~,
+        graphs~,
+        retained~,
+        positional_set_output~,
+      )
+    }
+    raise Abort(UnsupportedGraph)
+  }
+  if @query.set_part_count(query) == 0 && script_has_carrier_calls(query) {
+    return lower_script_carrier_calls(
+      construction,
+      query,
+      known,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
+      retained~,
+      allow_nonrelation~,
+    )
+  }
+  if @query.set_part_count(query) == 0 {
+    let input = known
+      .filter(input => input_relation_matches(@query.relation(query), input))
+      .get(0)
+    if input is Some(input) &&
+      sources.carriers.get(input.name) is Some(carrier) &&
+      !(carrier is @carrier.Relation(_)) {
+      let query = @query.graph_source_query(query)
+      if @query.relation_alias(query) is Some(_) ||
+        Array::makei(@query.operation_count(query), i => {
+          @query.operation_at(query, i)
+        }).any(operation => operation is Some(Alias(_))) {
+        raise Abort(RangeAliasRequiresRelation)
+      }
+      guard allow_nonrelation &&
+        @query.operation_count(query) == 0 &&
+        !has_retained_result(query) else {
+        raise Abort(UnsupportedProjection)
+      }
+      return input
+    }
   }
   if @query.set_part_count(query) > 0 {
     return lower_script_set_relation(
@@ -137,9 +184,11 @@ fn lower_script_relation_term(
   set_head? : Bool = false,
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
-    guard script_graph_input(query, graphs) is Some(graph) else {
-      raise Abort(UnsupportedGraph)
-    }
+    let graph = require_script_graph_input(
+      script_graph_input(query, graphs),
+      query,
+      known,
+    )
     return lower_script_graph_rows(
       construction,
       query,
@@ -282,7 +331,7 @@ fn lower_script_relation_term(
 }
 
 ///|
-// Compose producer references in one existing pipeline. DATA does not add
+// Compose WITH producer references in one existing pipeline. Binding does not add
 // Stage Results, Artifact boundaries or physical task requests.
 pub fn compile_query_script(
   script : @query.QueryScript,
@@ -337,178 +386,40 @@ pub fn compile_query_script(
       unshared: unshared_script_sources(script, context.inputs),
       ranges: Map([]),
       value_tables: Map([]),
+      binding_ranges: [],
+      carriers: Map([]),
+      carrier_work: limits.max_expression_work,
     }
-    let mut known = context.inputs.copy()
-    let mut graphs : Array[ScriptGraph] = []
-    let reserved = known.map(input => input.name)
-    for index in 0..<@query.data_declaration_count(script) {
-      let declaration = @query.data_declaration_at(script, index).unwrap()
-      let output = pipe_physical_name(reserved, "aql_data_")
-      reserved.push(output)
-      match declaration.value {
-        RelationQuery(query) => {
-          let graph = script_graph_input(query, graphs)
-          if graph is Some(graph) &&
-            !(script_has_graph_rows(query) && @query.set_part_count(query) > 0) {
-            let matched = @query.graph_query(query)
-              .map(query => query.pattern is Some(_))
-              .unwrap_or(false)
-            if script_has_graph_rows(query) || matched {
-              let bound = if matched {
-                // A DATA producer has no public Result declarations. Retain
-                // the ordinary declaration refusal before calling the keyed
-                // lowerer, whose terminal entry accepts retained Results.
-                if has_retained_result(query) {
-                  raise Abort(UnsupportedResult)
-                }
-                // MATCH's explicit projection is a Relation producer. Keep
-                // pattern scope/identity with the existing keyed lowerer.
-                lower_script_keyed_graph_query(
-                  construction,
-                  query,
-                  graphs,
-                  limits,
-                  steps,
-                  reserved,
-                  output,
-                  [],
-                  known~,
-                )
-              } else {
-                lower_script_graph_rows(
-                  construction,
-                  query,
-                  graph,
-                  limits,
-                  steps,
-                  reserved,
-                  output,
-                  known~,
-                  graphs~,
-                )
-              }
-              known = known.filter(input => {
-                !(input.relation.length() == 1 &&
-                same_name(input.relation[0], declaration.name))
-              })
-              known.push({ ..bound, relation: [declaration.name], })
-              graphs = graphs.filter(graph => {
-                !same_name(graph.name, declaration.name)
-              })
-              continue
-            }
-            let bound = lower_script_graph_calls(
-              construction,
-              query,
-              graph,
-              limits,
-              steps,
-              reserved,
-              known~,
-              graphs~,
-            )
-            if @query.operation_count(@query.after_graph_calls(query)) != 0 {
-              raise Abort(UnsupportedGraph)
-            }
-            graphs = graphs.filter(graph => {
-              !same_name(graph.name, declaration.name)
-            })
-            graphs.push({ ..bound, name: declaration.name, })
-            known = known.filter(input => {
-              !(input.relation.length() == 1 &&
-              same_name(input.relation[0], declaration.name))
-            })
-            continue
-          }
-          if script_has_graph_rows(query) &&
-            known.any(input => {
-              input_relation_matches(@query.relation(query), input)
-            }) {
-            raise Abort(InvalidQuery)
-          }
-          let bound = lower_script_relation(
-            construction,
-            query,
-            known,
-            context,
-            sources,
-            limits,
-            steps,
-            reserved,
-            output,
-            graphs~,
-          )
-          // Body resolution precedes binding. Existing published names may be
-          // shadowed only afterward; no forward/recursive DATA reference exists.
-          known = known.filter(input => {
-            !(input.relation.length() == 1 &&
-            same_name(input.relation[0], declaration.name))
-          })
-          known.push({ ..bound, relation: [declaration.name], })
-          graphs = graphs.filter(graph => {
-            !same_name(graph.name, declaration.name)
-          })
-        }
-        Graph(mapping) => {
-          // Resolve against the original source kind: binding a captured
-          // Relation must not turn its quoted-name rules into DATA alias rules.
-          let producer_names : Map[String, String] = Map([])
-          let references = mapping.nodes.map(node => node.producer) +
-            mapping.edges.map(edge => edge.producer)
-          for path in references {
-            let input = property_mapping_input(path, known)
-            if !producer_names.contains(input.name) {
-              let bound = bind_script_input(
-                construction, input, context, sources, steps, reserved,
-              )
-              producer_names[input.name] = bound.name
-            }
-          }
-          steps.push(
-            lower_graph_step(
-              construction,
-              mapping,
-              known,
-              output,
-              producer_names~,
-            ),
-          )
-          graphs = graphs.filter(graph => {
-            !same_name(graph.name, declaration.name)
-          })
-          graphs.push({
-            name: declaration.name,
-            producer: output,
-            mapping,
-            inputs: known.copy(),
-          })
-          // A Graph has its own Carrier, never a fabricated Relation binding.
-          known = known.filter(input => {
-            !(input.relation.length() == 1 &&
-            same_name(input.relation[0], declaration.name))
-          })
-        }
-        NamedGraphCall(call) => {
-          let bound = lower_script_mean_generator(
-            construction, document, call, graphs, known, limits, steps, output,
-          )
-          graphs = graphs.filter(graph => {
-            !same_name(graph.name, declaration.name)
-          })
-          graphs.push({ ..bound, name: declaration.name, })
-          known = known.filter(input => {
-            !(input.relation.length() == 1 &&
-            same_name(input.relation[0], declaration.name))
-          })
-        }
-      }
+    let root = @query.script_query(script)
+    let has_bindings = @query.query_binding_count(root) > 0
+    let reserved = context.inputs.map(input => input.name)
+    let (known, graphs) = lower_script_bindings(
+      construction,
+      root,
+      context.inputs,
+      [],
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+    )
+    let current_graph = lower_script_primary(
+      construction, root, known, graphs, context, sources, limits, steps, reserved,
+    )
+    let tail = @query.after_producer_primary(@query.after_query_bindings(root))
+    let mut query = if current_graph is Some(_) ||
+      script_graph_input(tail, graphs) is Some(_) {
+      @query.graph_source_query(tail)
+    } else {
+      tail
     }
-    let mut query = @query.script_query(script)
     let mut stage_context = context
     let mut stage_steps = steps
     let mut stage_sources = sources
     let mut stage_known = known
     let stages : Array[@builder.Node] = []
+    let stage_arrays : Array[Array[@builder.Node]] = []
     let exports : Array[(String, (String, String))] = []
     while true {
       let input_name = pipe_physical_name(
@@ -519,18 +430,18 @@ pub fn compile_query_script(
         quoted: true,
       })
       let current = split.map(pair => pair.0).unwrap_or(query)
+      let primary_graph = if stages.is_empty() { current_graph } else { None }
       let retained : Array[RetainedResult] = []
       let graph_row_set = script_has_graph_rows(current) &&
         @query.set_part_count(current) > 0
-      let result = if script_has_graph_rows(current) && !graph_row_set {
-        guard script_graph_input(current, graphs) is Some(graph) else {
-          if stage_known.any(input => {
-              input_relation_matches(@query.relation(current), input)
-            }) {
-            raise Abort(InvalidQuery)
-          }
-          raise Abort(UnsupportedGraph)
-        }
+      let result = if script_has_graph_rows(current) &&
+        !graph_row_set &&
+        !script_has_carrier_calls(current) {
+        let graph = require_script_graph_input(
+          current_script_graph(primary_graph, current, graphs),
+          current,
+          stage_known,
+        )
         lower_script_graph_rows(
           construction,
           current,
@@ -554,6 +465,7 @@ pub fn compile_query_script(
           "aql_script_result",
           retained,
           known=stage_known,
+          current=primary_graph,
         )
       } else {
         lower_script_relation(
@@ -659,6 +571,7 @@ pub fn compile_query_script(
         )
       }
       stages.push(construction.object(stage_entries))
+      stage_arrays.push(stage_steps)
       for
         (name, port) in retained_result_exports(stage_context, retained).unwrap_or([
             (stage_context.result_name, stage_context.stage_result),
@@ -692,6 +605,9 @@ pub fn compile_query_script(
         unshared: [],
         ranges: Map([]),
         value_tables: Map([]),
+        binding_ranges: sources.binding_ranges,
+        carriers: Map([]),
+        carrier_work: stage_sources.carrier_work,
       }
       stage_known = [
         {
@@ -732,9 +648,47 @@ pub fn compile_query_script(
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
     }
-    match admit_query_source(source, document, context, limits) {
-      Ok(program) => Ok(program)
-      Err(issue) => Err(issue)
+    if !has_bindings {
+      return admit_query_source(source, document, context, limits)
+    }
+    // Resolve and check every authored binding before demand selection. This
+    // temporary syntax owner does not publish another Program/Plan/Run.
+    let source = resolve_query_members(source, document, context, limits)
+    let complete = match
+      @program.admit_generated_source(source, limits.program) {
+      Ok(program) => program
+      Err(issue) => return Err(Admission(issue))
+    }
+    let checked = match check_query_bindings(complete, context, limits) {
+      Ok(checked) => checked
+      Err(issue) => return Err(BindingPreparation(issue))
+    }
+    let demand = match
+      trace_query_binding_demand(
+        checked,
+        stage_arrays,
+        sources.stages.length(),
+        sources.binding_ranges,
+        limits.max_expression_work,
+      ) {
+      Ok(demand) => demand
+      Err(issue) => return Err(BindingPreparation(Demand(issue)))
+    }
+    let source = match
+      prune_query_binding_source(source, demand, document, limits) {
+      Ok(source) => source
+      Err(issue) => return Err(issue)
+    }
+    let program = match
+      @program.admit_generated_source(source, limits.program) {
+      Ok(program) => program
+      Err(issue) => return Err(Admission(issue))
+    }
+    // New syntax gets its own common owners. Never transfer conditional
+    // evidence issued for the complete temporary pipeline onto the pruned one.
+    match prepare_query_bindings(program, context, limits) {
+      Ok(_) => Ok(program)
+      Err(issue) => Err(BindingPreparation(issue))
     }
   } catch {
     Abort(issue) => {

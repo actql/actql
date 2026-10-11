@@ -1,0 +1,21 @@
+{
+  "failed_source": "bfe03a6935d67f57d641f10282f4d43184482382",
+  "failed_run": "run-8mivVK",
+  "actual_js": {
+    "tests": 11,
+    "passed": 10,
+    "failed": 1
+  },
+  "reason": "Four negative JOIN declarations were incompletely migrated: the terminal parenthesis changed before the declaration prefix, leaving WITH seed = ... instead of WITH seed AS (...), joined AS (...). Parser unwrap failed before the intended lowering boundary. Correct the declaration grammar only, retaining every invalid alias, field, missing input, ON predicate and output bound.",
+  "product_change": false,
+  "unchanged": [
+    "duplicate alias a",
+    "ambiguous id",
+    "removed amount column",
+    "missing input reference",
+    "ON l.id/r.id equality",
+    "max_join_output_rows=0 refusal",
+    "complete positive Program/row/schema/Result controls"
+  ],
+  "unexecuted": "Host Local/HTTPS Named Result execution"
+}

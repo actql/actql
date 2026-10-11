@@ -60,13 +60,13 @@ const paths = (domain, sequences) => sequences.map(sequence => ({
 // TRAIL permits the two permutations; ACYCLIC permits only the zero-hop path.
 const walk = [[0, 0], [0, 1], [1, 0], [1, 1]];
 const trail = [[0, 1], [1, 0]];
-const source = 'DATA n = SELECT 1 AS node_key; ' +
-  'DATA e = SELECT 10 AS edge_key, 1 AS src, 1 AS dst; ' +
-  'DATA f = SELECT 11 AS edge_key, 1 AS src, 1 AS dst; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) ' +
+const source = 'WITH n AS (SELECT 1 AS node_key) ' +
+  ', e AS (SELECT 10 AS edge_key, 1 AS src, 1 AS dst) ' +
+  ', f AS (SELECT 11 AS edge_key, 1 AS src, 1 AS dst) ' +
+  ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) ' +
   'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, ' +
-  'f AS F KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
-const seeds = 'DATA seeds = FROM g |> node_rows() |> SELECT id AS element; ';
+  'f AS F KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) ';
+const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
 // The union must execute the actual shared boundary, not merely its two
 // component corpora. Match returns the same admitted identity to the existing
 // Relation selector; neither the match nor traversal changes the Graph domain.
@@ -118,8 +118,8 @@ export const graphTraversePathSuccesses = [
       results: results(sourceDomain, sequences), sourceReadCount: 0,
     })),
   {name: 'graph-traverse-paths-quoted-data-reordered-columns', format: 'aql-text',
-    text: source + seeds.replace('seeds', '`seed set`') + 'DATA visited = FROM g |> ' +
-      call().replace('from: seeds', 'from: `seed set`') + '; FROM visited' +
+    text: source + seeds.replace('seeds', '`seed set`') + ', visited AS (FROM g |> ' +
+      call().replace('from: seeds', 'from: `seed set`') + ') FROM visited' +
       ' |> WHERE hop_count > 1 |> SELECT edge_ids, node_ids, hop_count |> ORDER BY hop_count |> RESULT paths',
     results: {paths: {columns: [columns[4], columns[3], columns[2]],
       rows: paths(sourceDomain, trail).map(({edge_ids, node_ids, hop_count}) =>

@@ -1,0 +1,327 @@
+{
+  "unit": "WITH P1 context and lexical producer-role preparation; full cutover unfinished",
+  "adopted_main": "ab5460e2422f59da69dcf873c5498dc8a5d7997e",
+  "executions": [
+    {
+      "source": "91f3679aa",
+      "run": "run-unBfQJ",
+      "js": "28/28",
+      "meaning": "Context and existing placement/table-subquery callers only."
+    },
+    {
+      "source": "ec618ac03afad41e60ca706126f62844423039ed",
+      "tree": "bd409e9c70e21c67510fc295c7584bff5f0aaf34",
+      "run": "run-iLxt9T",
+      "js": "21/21",
+      "meaning": "Constructor/SGA references, private scoped parser and context; no checker/Host PASS."
+    },
+    {
+      "source": "ec618ac03afad41e60ca706126f62844423039ed",
+      "run": "run-uNxIR6",
+      "exit": 255,
+      "meaning": "Initial changed-source formatting failed on three authored files; retained."
+    },
+    {
+      "working_source_base": "ec618ac03afad41e60ca706126f62844423039ed",
+      "run": "run-4qyHq7",
+      "exit": 0,
+      "meaning": "Pinned formatter applied only three authored files; eight changed files passed fmt check. Working-source formatting, not a clean final SHA test."
+    }
+  ],
+  "receipts": [
+    {
+      "run": "run-unBfQJ",
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-unBfQJ/summary.json",
+      "sha256": "26a8b3f7500a82148df587e14a4f615101d7988ae82a5e90ffacffc115a62dee",
+      "actual_summary": {
+        "startedAt": "2026-10-11T15:59:13.041Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "selected moon tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/query_context_test.mbt",
+              "src/query_syntax/table_effect_test.mbt",
+              "src/query_syntax/infer_test.mbt",
+              "src/query_syntax/query_test.mbt"
+            ],
+            "startedAt": "2026-10-11T15:59:13.107Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T15:59:16.096Z",
+            "endedAt": "2026-10-11T15:59:16.098Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "b49f6c5a-b42e-4046-a505-1493884dae71",
+          "pid": 88562,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T15:59:13.103Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-unBfQJ"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T15:59:16.159Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      }
+    },
+    {
+      "run": "run-iLxt9T",
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iLxt9T/summary.json",
+      "sha256": "81467b04517a33d4f9ff2881d3a4f779b9b8bdb00e2989da73362ed6d8679cf5",
+      "actual_summary": {
+        "startedAt": "2026-10-11T16:04:51.898Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "selected moon tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/producer_scope_wbtest.mbt",
+              "src/query_syntax/graph_constructor_test.mbt",
+              "src/query_syntax/sga_call_test.mbt",
+              "src/query_syntax/query_context_test.mbt"
+            ],
+            "startedAt": "2026-10-11T16:04:52.022Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T16:04:54.167Z",
+            "endedAt": "2026-10-11T16:04:54.170Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "6dabb910-0da7-430e-a3fb-f43a9f41bdab",
+          "pid": 91939,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T16:04:52.005Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iLxt9T"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T16:04:54.242Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      }
+    },
+    {
+      "run": "run-uNxIR6",
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-uNxIR6/summary.json",
+      "sha256": "b62766d0316fbee502bc77f72e4fc44b10ce4cbe83317479f2d09e11ab9fa959",
+      "actual_summary": {
+        "startedAt": "2026-10-11T16:05:26.917Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "WITH P1 changed source format",
+            "command": [
+              "moon",
+              "fmt",
+              "--check",
+              "src/query_syntax/query_context.mbt",
+              "src/query_syntax/query_context_test.mbt",
+              "src/query_syntax/query_script.mbt",
+              "src/query_syntax/query.mbt",
+              "src/query_syntax/query_test.mbt",
+              "src/query_syntax/graph_constructor.mbt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/producer_scope_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T16:05:26.987Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 255,
+            "signal": null,
+            "exitedAt": "2026-10-11T16:05:27.702Z",
+            "endedAt": "2026-10-11T16:05:27.705Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "8c1bd7cb-8d6d-40e0-a8a5-a930b45abd3f",
+          "pid": 92332,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T16:05:26.980Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-uNxIR6"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T16:05:27.784Z",
+        "outputComplete": true,
+        "exitCode": 255,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      }
+    },
+    {
+      "run": "run-4qyHq7",
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-4qyHq7/summary.json",
+      "sha256": "5153574b76cdcce11af91c0adeed344ff6124448ed4a7ba56b99ecbf70a2b84c",
+      "actual_summary": {
+        "startedAt": "2026-10-11T16:06:03.346Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Pinned formatter for three P1 files",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/query_context.mbt",
+              "src/query_syntax/query_context_test.mbt",
+              "src/query_syntax/producer_scope_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T16:06:03.410Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T16:06:03.825Z",
+            "endedAt": "2026-10-11T16:06:03.827Z"
+          },
+          {
+            "name": "Changed source format check",
+            "command": [
+              "moon",
+              "fmt",
+              "--check",
+              "src/query_syntax/query_context.mbt",
+              "src/query_syntax/query_context_test.mbt",
+              "src/query_syntax/query_script.mbt",
+              "src/query_syntax/query.mbt",
+              "src/query_syntax/query_test.mbt",
+              "src/query_syntax/graph_constructor.mbt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/producer_scope_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T16:06:03.884Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T16:06:04.539Z",
+            "endedAt": "2026-10-11T16:06:04.547Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "d3f87546-777d-4779-8b52-798e457ad1c6",
+          "pid": 92894,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T16:06:03.405Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-4qyHq7"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T16:06:04.727Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      }
+    }
+  ],
+  "old_failures": "p1-context-first-execution.json and p1-producer-resolution.json retain the two old parser negative failures, two test compilation authoring failures and current marked-Graph node_rows placement gap. None is relabeled PASS.",
+  "release": "All runs report terminal output and released own locks. Known Owner/PGID checks returned no rows for 88562, 91939, 92332, 92894; own lock absent. No Heavy acquired.",
+  "changed_source_hashes": [
+    {
+      "path": "src/query_syntax/query_context.mbt",
+      "bytes": 1299,
+      "sha256": "6dece6cd974f69034938d547f14ce80ff663da81d740c82011cc29b89386272d"
+    },
+    {
+      "path": "src/query_syntax/query_context_test.mbt",
+      "bytes": 4026,
+      "sha256": "e58e570c37149386a9e5b3eb7e5472934c6b3d2548454c1d0774684ae61b2cce"
+    },
+    {
+      "path": "src/query_syntax/query_script.mbt",
+      "bytes": 3323,
+      "sha256": "0cde5d715ba692d970f9af0a8afb9975b07ff91685058192fbb2d87899751712"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "bytes": 99156,
+      "sha256": "ad1fb7ce773cab5096758ff97ea5b74b9dd9d6024872cc1b0223ac5fb664bce4"
+    },
+    {
+      "path": "src/query_syntax/query_test.mbt",
+      "bytes": 18347,
+      "sha256": "6a7a05a2cc25eded3e9bba7780caf99eb5ece011a7afb9bec338b6bab83e2a99"
+    },
+    {
+      "path": "src/query_syntax/graph_constructor.mbt",
+      "bytes": 6815,
+      "sha256": "f58f1f2b34f2f43d28a39141b36a03b66ceed1c39a1091bbef7408f1bee1de2c"
+    },
+    {
+      "path": "src/query_syntax/sga_call.mbt",
+      "bytes": 9335,
+      "sha256": "e882f4fd832ca1f401ff77d898c84ac26cbb61b17e6e1e8eb94d49cde3a543dc"
+    },
+    {
+      "path": "src/query_syntax/producer_scope_wbtest.mbt",
+      "bytes": 3959,
+      "sha256": "f16f2995a318451e01cd4b121e3ffea7a7e480078e0a57c3483aee6fb569d8ea"
+    }
+  ],
+  "unverified": [
+    "Unified authored WITH AST",
+    "Four-Carrier static admission and demand",
+    "Marked Graph/no-MATCH producer path",
+    "Complete old DATA acceptance/API/current explanation retirement",
+    "New GRAPH shared SQL/AQL-text preparation",
+    "Checker/Host/packed public Local/HTTPS",
+    "Other targets and CI"
+  ]
+}

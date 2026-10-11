@@ -1,0 +1,41 @@
+{
+  "id": "001",
+  "command": "moon",
+  "args": [
+    "test",
+    "--target",
+    "js",
+    "src/query_program/full_select_scope_test.mbt",
+    "src/query_program/full_join_scope_test.mbt",
+    "src/query_program/joined_row_range_test.mbt"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "2454c0d00796a6c103acf2ff7442402c4ecf8359",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T21:53:48.919Z",
+  "endedAt": "2026-10-11T21:53:57.918Z",
+  "elapsedMs": 8996.973417,
+  "status": 2,
+  "signal": null,
+  "error": null,
+  "complete": true,
+  "verificationStatus": 2,
+  "outputComplete": true,
+  "outputLimitBytes": 67108864,
+  "counts": {
+    "tests": 13,
+    "passed": 12,
+    "failed": 1,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  }
+}

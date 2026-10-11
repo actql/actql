@@ -1,0 +1,36 @@
+{
+  "source": "96ed289dc205a18b4b340c1e58aff01a489d3d2a",
+  "tree": null,
+  "guard_run": "run-PKvQ4o",
+  "focused": "focused-test-VroDrz",
+  "tests": 22,
+  "passed": 22,
+  "failed": 0,
+  "exit_code": 0,
+  "timeout_seconds": 60,
+  "grace_seconds": 5,
+  "heavy": false,
+  "public_execution": false,
+  "coverage": "Five selected syntax/lowering test files; full independent machine Program and common checker included. Dependency compilation is not dependency test execution.",
+  "receipts": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-PKvQ4o/summary.json",
+      "sha256": "13916164ed31ae91620b3ce4d51b5c0327cdaa5ba7d4141fa8e402af286d67c4"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-PKvQ4o/output.log",
+      "sha256": "1a678a35bc37da569d1ba3b375d0519735307344ade2c28f48c51abc15c1e796"
+    }
+  ],
+  "termination": {
+    "owner": 16819,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "unfinished": [
+    "Static checking and demand elimination",
+    "Four Carrier/P2 scope/profile",
+    "Current docs/examples/grammar/pins",
+    "Public Local/HTTPS"
+  ]
+}

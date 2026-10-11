@@ -1,0 +1,259 @@
+{
+  "adopted_main": "23697f7430c227327b4b0b3735ad14806eed321a",
+  "normal_merge": "397fedd634e5905b35e81c87b4231696309d1d41",
+  "current_source": "5f80f15531ddb53ff2670da412de6201b3692ea0",
+  "current_tree": "6b24f545a708ff7ef9e43a174f304c7894be54f5",
+  "current_source_note": "Formatting-only follower of bbcbec11; runtime evidence below belongs to its stated source, not a separately executed 5f80 runtime.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "runs": [
+    {
+      "run": "run-XNATG5",
+      "source": "dirty merge of 6e198119 + main23697; generators only",
+      "summary": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-XNATG5/summary.json",
+      "summary_sha256": "9b911975b6137042e6280d9316eff0defd8fe83cc12127bf7a9513a5375beac2",
+      "output": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-XNATG5/output.log",
+      "output_sha256": "c41eef603097563e1e4358dfa1d81c6d7132c9252126c8bc6706380eda0d46b2",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "commands": [
+        [
+          "node",
+          "scripts/compilation-manifests.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/generate-aql-text-vocabulary.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs",
+          "--write"
+        ]
+      ],
+      "owner_pid": 57538,
+      "actual_owner_group_and_lock_absent": true
+    },
+    {
+      "run": "run-Ls7ppv",
+      "source": "397fedd634e5905b35e81c87b4231696309d1d41",
+      "summary": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-Ls7ppv/summary.json",
+      "summary_sha256": "d3721666619834cd64168efad30b285a29157cccf3827e4ea9d1ea49c33623a8",
+      "output": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-Ls7ppv/output.log",
+      "output_sha256": "a3f271088ff56355ec3c9af3b50c32ca271bbb3d31d9dfe2573cc1e602f7ecad",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 1,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "--test-name-pattern",
+          "^(baseline preimages and changed normative pins independently determine the Run CID|current contract inputs independently determine the Values Run and consuming fixtures|WITH cutover preserves the old complete Values closure and independently pins the new Run)$",
+          "scripts/client-values-run-materials-vector.test.mjs"
+        ]
+      ],
+      "owner_pid": 58199,
+      "actual_owner_group_and_lock_absent": true
+    },
+    {
+      "run": "run-UiYkvi",
+      "source": "cd38e9506c910d9eea358941572edafe2e751861",
+      "summary": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-UiYkvi/summary.json",
+      "summary_sha256": "895735cb3b2d86a2f7583dbafd264dd2c00474457806ac1bddfbafe02469e15d",
+      "output": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-UiYkvi/output.log",
+      "output_sha256": "5b1d36e7de591bd4de614fb6403ba73d6bbac9bd1d23c4abe89d3b14b994e9f2",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "--test-name-pattern",
+          "^WITH cutover preserves the old complete Values closure and independently pins the new Run$",
+          "scripts/client-values-run-materials-vector.test.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/sga-query-call-contract.test.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_graph_binding_test.mbt",
+          "src/source_frontend/with_graph_binding_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ],
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ]
+      ],
+      "owner_pid": 58522,
+      "actual_owner_group_and_lock_absent": true
+    },
+    {
+      "run": "run-qmvtaa",
+      "source": "bbcbec11e8ede3b97422f3760310342dc45027a0",
+      "summary": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-qmvtaa/summary.json",
+      "summary_sha256": "2d988490c326bbffe3a87f8e64ca76dd04e4dfa6cd5073c43545a67ae6362d71",
+      "output": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-qmvtaa/output.log",
+      "output_sha256": "b71ef888e5269785fe77f981309411471ffc58b9ce32f94dfb8a92b8bd1a8a0b",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/with-graph-core-caller.test.mjs",
+          "scripts/graph-refusal-classification-source-input.test.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "--test-name-pattern",
+          "^shared Relation controls and Graph source cases have one request each$",
+          "scripts/public-query-cases.test.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_graph_core_wbtest.mbt"
+        ]
+      ],
+      "owner_pid": 62968,
+      "actual_owner_group_and_lock_absent": true
+    },
+    {
+      "run": "run-Htb2q7",
+      "source": "bbcbec11 + pinned formatter changes; formatting only",
+      "summary": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-Htb2q7/summary.json",
+      "summary_sha256": "c91b1134cb735711c2151b3523ddda0e7e5524091dd905136cf332ee24567247",
+      "output": "reviews/2026-10-11-with-carrier-cutover/scalar-graph-core-evidence/run-Htb2q7/output.log",
+      "output_sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_graph_core_wbtest.mbt"
+        ]
+      ],
+      "owner_pid": 66128,
+      "actual_owner_group_and_lock_absent": true
+    }
+  ],
+  "counts": {
+    "run-Ls7ppv": {
+      "node": {
+        "tests": 3,
+        "passed": 2,
+        "failed": 1
+      },
+      "moon_and_freshness": "not reached"
+    },
+    "run-UiYkvi": {
+      "node_corrected_vector": {
+        "tests": 1,
+        "passed": 1
+      },
+      "node_sga": {
+        "tests": 11,
+        "passed": 11
+      },
+      "js": {
+        "tests": 9,
+        "passed": 9
+      },
+      "read_only_freshness": 3
+    },
+    "run-qmvtaa": {
+      "node_fixture_obligations": {
+        "tests": 5,
+        "passed": 5
+      },
+      "node_shared_requests": {
+        "tests": 1,
+        "passed": 1
+      },
+      "js": {
+        "tests": 3,
+        "passed": 3
+      }
+    }
+  },
+  "pre_guard_environment_failure": {
+    "command": "same 60/5 nonHeavy four-generator command as run-XNATG5 in filesystem sandbox",
+    "exit_code": 1,
+    "stderr": "Cannot inspect owned process group with ps\n",
+    "product_execution": 0,
+    "generation": 0,
+    "classification": "sandbox process inspection unavailable; tool call accepted, not automatic approval review rejection",
+    "followup": "existing normal require_escalated execution accepted, no guard modification"
+  },
+  "identity_boundary": "Keep both complete old WITH and adopted Scalar main closures. Current grammar only changes query syntax/rules relative to adopted Scalar main. The Scalar dependency changes Unit/Program identity versus old WITH; old stored Runs are not rebound.",
+  "core_declarations": {
+    "successes": 38,
+    "execution_failures": 3,
+    "refusals": 25,
+    "classification": "authored public cohort, not executed public results"
+  },
+  "remaining": [
+    "E typed client_check diagnostic projection",
+    "remaining current DATA callers/docs/examples",
+    "four Carrier and P2 owner connections",
+    "allocated packed Local/HTTPS acceptance"
+  ],
+  "heavy_runs": 0,
+  "public_runs": 0,
+  "hosted_ci": "not started"
+}

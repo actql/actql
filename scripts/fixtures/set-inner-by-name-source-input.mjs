@@ -45,9 +45,9 @@ export const setInnerByNameSuccesses = [
   success('pipe-union-all', 'FROM records |> WHERE id > 1 |> SELECT id, amount, 10 AS left_only '
     + '|> INNER UNION ALL BY NAME (FROM records |> WHERE id <= 2 |> SELECT amount, id, 20 AS right_only)'
     + '|> ORDER BY amount NULLS LAST, id', {format: 'aql-text'}),
-  success('data-on-quoted-case', 'DATA combined = ' + left
+  success('data-on-quoted-case', 'WITH combined AS (' + left
     + ' INNER UNION ALL BY NAME ON (`AMOUNT`, ID) ' + right
-    + '; FROM combined |> ORDER BY AMOUNT NULLS LAST, ID', {format: 'aql-text',
+    + ') FROM combined |> ORDER BY AMOUNT NULLS LAST, ID', {format: 'aql-text',
       expected: expected.map(row => ({AMOUNT: row.amount, ID: row.id})),
       columns: [{name: 'AMOUNT', contract: {...number, nullable: true}}, {name: 'ID', contract: number}]}),
   success('cte-output-scope', 'WITH chosen AS (' + left + ' INNER UNION ALL BY NAME ' + right
@@ -58,7 +58,7 @@ export const setInnerByNameSuccesses = [
     + order + ' LIMIT 2 OFFSET 1', {parameterDeclarations: {min: number}, parameters: {min: 2},
       expected: [{id: 2, amount: 20}, {id: 3, amount: 30}]}),
   success('sql-global-common-type', chain + ' ORDER BY x', chainExpectation),
-  success('data-global-common-type', 'DATA combined = ' + chain + '; FROM combined |> ORDER BY x',
+  success('data-global-common-type', 'WITH combined AS (' + chain + ') FROM combined |> ORDER BY x',
     {...chainExpectation, format: 'aql-text'}),
 ];
 export const setInnerByNameRefusals = [

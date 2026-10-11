@@ -1,0 +1,46 @@
+{
+  "owner": "Root",
+  "consumer_owner": "B",
+  "source": "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c",
+  "source_parent": "0783279498e1ccc6b9b283a8eca50c3374e01320",
+  "adoption_merge": "65c102eb4a6fb1ca3894d77d5f0c5357490de164",
+  "adoption_tree": "62405c17b33b2ab97db49bdd46eb9764183d1a18",
+  "integration": "normal merge; no conflicts; no rebase or cherry-pick",
+  "root_reported_evidence": {
+    "run": "run-weoNyZ",
+    "focused": "focused-lN4g4G",
+    "js": "28/28",
+    "complete": true,
+    "exit_code": 0,
+    "readonly_format": "five changed MoonBit files passed",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+    "custody_note": "Root handoff received and copied byte-for-byte. It records actual Owner/group/both-lock absence. This is Root execution evidence, not a B rerun."
+  },
+  "changed_files": [
+    "src/query_program/group_scope_test.mbt",
+    "src/query_program/order_property_paths_test.mbt",
+    "src/query_program/table_effect_program_test.mbt",
+    "src/query_program/unnest_join_continuation_test.mbt",
+    "src/query_program/unpivot_multicolumn_public_source_test.mbt"
+  ],
+  "preserved": [
+    "complete independent Programs",
+    "rows and schema",
+    "predicate",
+    "resource ceilings",
+    "ASSERT UNIQUE",
+    "Effect owner"
+  ],
+  "unexecuted": [
+    "B rerun of adopted files",
+    "merged source runtime",
+    "Host Local/HTTPS",
+    "new package producer",
+    "full WITH/P2 completion"
+  ],
+  "received_handoff": {
+    "original": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/with-five-core-callers-handoff.json",
+    "retained": "reviews/2026-10-11-with-carrier-cutover/root-five-core-callers-handoff.json",
+    "sha256": "469723d9fed711be0a561f2f167962553d06d052f47f7d2538ba1d808f9dd8f6"
+  }
+}

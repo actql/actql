@@ -1,0 +1,2 @@
+[actql/actql] test query_program/pipe_join_input_test.mbt:91 ("projected Pipe JOIN cannot revive removed columns or displaced aliases") failed: src/query_program/pipe_join_input_test.mbt:110:31-110:62@actql/actql FAILED: FROM t AS old |> SELECT x AS id |> AS l |> JOIN r AS rr ON old.x = rr.k |> SELECT l.id : UnknownColumn
+Total tests: 14, passed: 13, failed: 1.

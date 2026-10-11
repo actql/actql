@@ -1,0 +1,7 @@
+Error: [4018]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_property_predicate_test.mbt:10:51 ]
+    │
+ 10 │       fail("expected common pipeline refusal: " + @debug.to_string(other))
+    │                                                   ────────┬───────  
+    │                                                           ╰───────── Type @actql/actql/query_program.Issue does not implement trait @moonbitlang/core/debug.Debug: no `impl` is defined
+────╯
