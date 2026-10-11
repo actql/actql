@@ -15,8 +15,12 @@ new historical snapshots without immediately converting them. Registered corrupt
 fails closed. There is no fallback to current contracts or other snapshots.
 
 Run `node scripts/historical-json-archive.mjs check` to verify the complete archive.
-`npm run check:historical-json` also runs focused codec tests and is included in
-`check:expression-syntax`, hence `check:spec`. For local test execution use the
+`npm run check:historical-json` also runs focused codec tests. The npm lifecycle
+script `precheck:expression-syntax` runs it before `check:expression-syntax`, hence
+through the existing `check:spec` aggregate and specification CI. Keep npm lifecycle
+scripts enabled on this verification chain; `--ignore-scripts` would skip the hook.
+Custom invocations that disable lifecycle scripts must run the separate explicit
+`npm run check:historical-json` command as well. For local test execution use the
 repository's bounded, nonzero-test wrappers described in the local verification
 skill.
 

@@ -960,6 +960,42 @@ retry an unknown operation or supply saved-Run recovery.
 
 ### Validated commit candidate export
 
+The portable publisher callback port is installed by the trusted Host using the
+original preflight request and attempt and a fixed Store authority identity.
+It presents the same six facts as Native publication: stage, namespace,
+authority scope, Run, request and optional index. Policy and target are the
+external references in the original request preimage; projection does not
+publish their bodies or supply their current authorization. The Host must
+select their genuine configured originals and evaluate its independent
+publisher authority for `request`, `commit` and `return_committed`.
+
+Every check fences the original nominal request/attempt and Store identity,
+then checks current Host custody before and after the authority callback. The
+Local adapter also obtains a fresh account for current original Run/Source
+authorization on both sides. Neither Run/Source access nor an SDK boolean
+implements publisher authority. A denied or revoked check changes no Result,
+payload, attempt or Run state. A prior successful callback caches no grant.
+Returning an existing committed index can refer to an earlier attempt of the
+same request; its stored full chain still requires the existing validator.
+This callback port does not install a Store, validate physical payloads, commit
+an index or establish public Local admission or durable recovery.
+
+The portable `prepare_local_preflight_payload_request` projection binds one
+original nominal Result to the publication attempt fixed before Compute. It
+rechecks original preflight, retention and current Run/Source access, then asks
+the completed-output Owner to project the existing `PublicationPayloadRequest`.
+That Owner requires a live EOF receipt, issued evidence and artifact, and obtains
+schema, codec, ordering, byte count and row count from the exact retained export.
+Only physical Store authority, material generation and a payload byte ceiling
+are supplied by trusted Host configuration. The ceiling must cover the exact
+payload; it does not replace aggregate workspace or transfer reservations.
+
+This request does not start I/O, authorize a publisher or create a durable
+record. The existing publication payload Owner retains responsibility for
+reservation, writing, sealing, durable transition confirmation and cleanup.
+Retained metadata or cancellation of a borrowed snapshot cannot replace the
+original live receipt, and a released parent cannot issue another payload intent.
+
 Private ABI 23 adds `actql_publication_commit_export_reserve`,
 `actql_publication_commit_export_produce`,
 `actql_publication_commit_export_length` and

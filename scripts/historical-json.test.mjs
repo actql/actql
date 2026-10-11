@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {decodeSnapshot, packSnapshots, readArchive, readHistoricalJson} from './historical-json.mjs';
 import {checkArchive, importSnapshots} from './historical-json-archive.mjs';
@@ -110,4 +114,39 @@ test('full archive checking bounds stored nesting before hashing', () => {
   for (let i = 0; i < 1100; i++) node = ['a', [node]];
   archive.objects['0'.repeat(64)] = node;
   assert.throws(() => checkArchive(archive), /stored node limit/);
+});
+
+
+test('specification aggregate retains the historical archive npm pre-hook', () => {
+  const {scripts} = JSON.parse(readFileSync('package.json', 'utf8'));
+  assert.equal(scripts['precheck:expression-syntax'], 'npm run check:historical-json');
+  assert.equal(scripts['check:historical-json'], 'node scripts/historical-json-archive.mjs check && node --test scripts/historical-json.test.mjs');
+  assert.match(scripts['check:spec'], /npm run check:spec-after-preflight/);
+  assert.match(scripts['check:spec-after-preflight'], /npm run check:expression-syntax/);
+  assert.doesNotMatch(scripts['check:expression-syntax'], /check:historical-json/);
+  for (const name of ['check:spec', 'check:spec-after-preflight']) assert.doesNotMatch(scripts[name], /--ignore-scripts/);
+  assert.match(readFileSync('.github/workflows/ci.yml', 'utf8'), /run: npm run check:spec-after-preflight/);
+});
+
+test('npm runs the archive pre-hook before the syntax command without installing dependencies', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-history-lifecycle-'));
+  try {
+    writeFileSync(join(directory, 'package.json'), JSON.stringify({private: true, scripts: {
+      'check:historical-json': 'node archive.cjs',
+      'precheck:expression-syntax': 'npm run check:historical-json --silent',
+      'check:expression-syntax': 'node syntax.cjs',
+    }}));
+    writeFileSync(join(directory, 'archive.cjs'), "require('node:fs').appendFileSync('order', 'archive\\n');");
+    writeFileSync(join(directory, 'syntax.cjs'), "require('node:fs').appendFileSync('order', 'syntax\\n');");
+    const result = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'check:expression-syntax', '--silent'], {
+      cwd: directory, encoding: 'utf8', timeout: 30_000,
+      shell: process.platform === 'win32',
+      env: {...process.env, npm_config_ignore_scripts: 'false', npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false'},
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(readFileSync(join(directory, 'order'), 'utf8'), 'archive\nsyntax\n');
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
 });
