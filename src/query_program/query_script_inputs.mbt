@@ -85,6 +85,29 @@ fn bind_script_input(
 // Conservatively count raw installed-input references before placing an
 // ordinary leading WHERE at the existing capture boundary. Any shared use
 // retains the complete source and applies each consumer's filter downstream.
+// Producer leaves already carry the parser's lexical resolution and declared
+// argument role. This visitor does not interpret strings or check dependencies.
+fn script_call_sources(call : @query.SgaCall) -> Array[Array[@query.NamePart]] {
+  let paths = []
+  let pending = call.arguments.map(argument => argument.1)
+  while pending.pop() is Some(argument) {
+    match argument {
+      Producer(name) => paths.push([name])
+      ObjectValue(fields) =>
+        for (_, value) in fields {
+          pending.push(value)
+        }
+      ListValue(values) =>
+        for value in values {
+          pending.push(value)
+        }
+      _ => ()
+    }
+  }
+  paths
+}
+
+///|
 fn unshared_script_sources(
   script : @query.QueryScript,
   inputs : Array[Input],
@@ -120,8 +143,13 @@ fn unshared_script_sources(
       paths.push(@query.join_part_at(query, index).unwrap().relation)
     }
     for index in 0..<@query.operation_count(query) {
-      if @query.operation_at(query, index) is Some(Nearest(clause)) {
-        paths.push(clause.relation)
+      match @query.operation_at(query, index) {
+        Some(Nearest(clause)) => paths.push(clause.relation)
+        Some(GraphCall(call)) =>
+          for path in script_call_sources(call) {
+            paths.push(path)
+          }
+        _ => ()
       }
     }
     for path in paths {
