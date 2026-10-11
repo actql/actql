@@ -26,7 +26,9 @@ await mkdir(scratch, {recursive:true});
 // operation matrix merely to test the same Store failure/cleanup ownership.
 const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
 const cases = inputStageResultOnly ? [
-  {family:'input-only-relation', failure:'seal', key:'relation-task-1',
+  // The row-only bounded output transfer uses task-N. relation-task-N is
+  // the managed Carrier descendant's Relation snapshot, not this profile.
+  {family:'input-only-relation', failure:'seal', key:'task-1',
     sample:inputStageResultSuccesses[0]},
 ] : [
   {family:'carrier', failure:'seal', key:'task-3', sample:graphGraftSourceSuccesses[0]},
@@ -60,9 +62,11 @@ for (const mode of ['local', 'remote']) for (const scenario of cases) {
           server.close(error => error ? reject(error) : resolve()));
       });
       if (mode === 'local') {
-        client = await connectEmbeddedLocal({mode,owner:'local',installation:{directory,authorization}});
+        client = await connectEmbeddedLocal({mode,owner:'local',installation:{directory,authorization,
+          ...(inputStageResultOnly ? {retainedRelationOutput:true} : {})}});
       } else {
         host = await openInstalledRemoteHttpHost({directory,authorization,
+          ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
           authenticate:header => header === 'Bearer synthetic-graph-failure' ? userInfo().username : undefined});
         let material;
         if (packed) {
@@ -90,16 +94,17 @@ for (const mode of ['local', 'remote']) for (const scenario of cases) {
         nonce:`graph-${scenario.family}-${scenario.failure}-${mode}`})};
       const run = await client.startSource(source, options);
       const state = await run.wait({signal:AbortSignal.timeout(15_000)});
+      assert.equal(faults.leases.filter(value => value.key === scenario.key).length,1,
+        `fault target ${scenario.key}; allocated keys: ${faults.leases.map(value => value.key).join(',')}`);
+      const failure = faults.counts();
+      assert.equal(failure.failedAppends,scenario.failure === 'append' ? 1 : 0);
+      assert.equal(failure.lostSeals,scenario.failure === 'seal' ? 1 : 0);
       // The existing dispatch Owner cannot observe physical stop while its
       // retained cleanup is unresolved. execution.md requires unknown to stay
       // nonterminal; a known Store error alone must not fabricate Run failure.
       assert.equal(state.status,'needs_reconciliation',JSON.stringify(state));
       assert.deepEqual(state.next_action,{kind:'reconcile_run',reason:'execution_unknown'});
       assert.equal(state.control.physical_stop,'unknown');
-      assert.equal(faults.leases.filter(value => value.key === scenario.key).length,1);
-      const failure = faults.counts();
-      assert.equal(failure.failedAppends,scenario.failure === 'append' ? 1 : 0);
-      assert.equal(failure.lostSeals,scenario.failure === 'seal' ? 1 : 0);
       assert(failure.refusedCleanups > 0, 'the fault must reach pending physical cleanup');
       for (const name of Object.keys(scenario.sample.results)) {
         assert.equal(state.result_availability[name].state,'unavailable');
