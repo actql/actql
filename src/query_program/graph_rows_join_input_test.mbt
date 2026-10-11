@@ -101,14 +101,14 @@ test "Graph row JOIN cannot revive removed fields or a shadowed Graph binding" {
         )
     }
   }
-  // Normalization retains Graph; Reach has a Relation output but this
-  // original scalar start is not the declared typed Graph identity.
+  // Normalization retains Graph; Reach has a Relation output. This original
+  // Reach call omits its required direction, so its common checker refuses it.
   let source = prefix +
     "FROM g |> normalize_graph() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT rr.key"
   assert_true(@query.parse_query_script(source, syntax_limits()) is Err(_))
   expect_with_graph_static_refusal(
     prefix +
     "FROM g |> reach(start: 'A', max_depth: 1) |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT rr.key",
-    expected=Some(@pipeline.GraphMatch(Decode(WrongType))),
+    expected=Some(@pipeline.GraphMatch(Structure(Decode(MissingField)))),
   )
 }
